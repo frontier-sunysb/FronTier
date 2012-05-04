@@ -194,13 +194,6 @@ $$ME/src/pak/hypre-1.6.0.tar.gz \
 $$ME/src/pak/sn_ellip/*.C \
 $$ME/src/pak/sn_ellip/*.h \
 $$ME/src/pak/sn_ellip/Makefile.in \
-$$ME/src/pak/cgnslib_3.0/Makefile* \
-$$ME/src/pak/cgnslib_3.0/LICENSE* \
-$$ME/src/pak/cgnslib_3.0/adf*/*.[ch] \
-$$ME/src/pak/cgnslib_3.0/*.[ch] \
-$$ME/src/pak/pcgnslib_0.2.0/Makefile* \
-$$ME/src/pak/pcgnslib_0.2.0/*.[ch] \
-$$ME/src/pak/pcgnslib_0.2.0/test/*.[ch] 
 
 tar:
 	-mkdir in

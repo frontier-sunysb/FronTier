@@ -24,16 +24,6 @@ fi
 
 AC_ARG_ENABLE(linpak, [  --enable-linpak               Turns on the building and linking of the linpak library],[build_linpak=1],[build_linpak=0])
 
-# Check CGNS
-
-AC_ARG_WITH(cgns,[  --with-cgns           Support for the cgns file format],[build_cgns=1],[build_cgns=0])
-if test ${build_cgns} -eq 1; then
-        scriptotherlibs="${scriptotherlibs} -lcgnslib"
-	cgnsincs="  -DUSE_CGNS "
-	AC_DEFINE(USE_CGNS)
-fi
-AC_SUBST(build_cgns, ${build_cgns})
-
 ########################### BUILD GAS ##############################
 gasyesorno=" "
 pakyesorno=" "
@@ -515,7 +505,7 @@ gasdebug=" -DCHECK_FOR_BAD_STATES -DDEBUG_GRIEMANN -DDEBUG_MUSCL -DDEBUG_POINT_P
 #                           intfc 
 #                           tri
 
-scriptftlibincs=" -I.. -I../util"${debug}${cppflagss}${amrincs}${hdfincs}${hdf5incs}${mpichincs}${overinc}${appinc}${ftlibdubug}${itapsd}${dim}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${ompincs}${gdincs}${subgrid}${cgnsincs}
+scriptftlibincs=" -I.. -I../util"${debug}${cppflagss}${amrincs}${hdfincs}${hdf5incs}${mpichincs}${overinc}${appinc}${ftlibdubug}${itapsd}${dim}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${ompincs}${gdincs}${subgrid}
 
 
 #included in all code in: gas/gbifur 
@@ -529,16 +519,16 @@ scriptftlibincs=" -I.. -I../util"${debug}${cppflagss}${amrincs}${hdfincs}${hdf5i
 #                          gas/gprt 
 #                          gas/gstate/
 
-scriptgasincs=" -I. -I../../gas -I../.. -I../../util "${hypreincs}${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${overinc}${appinc}${gasdebug}${rotsym}${ftlibdubug}${dim}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${physincs}${ompincs}${gasincs}${gdincs}${subgrid}${cgnsincs}
+scriptgasincs=" -I. -I../../gas -I../.. -I../../util "${hypreincs}${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${overinc}${appinc}${gasdebug}${rotsym}${ftlibdubug}${dim}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${physincs}${ompincs}${gasincs}${gdincs}${subgrid}
 
 #included in all code in: example and testfront 
-scriptexampleincs=${mpichincs}${amrincs}${hdfincs}${hdf5incs}${hdfinc}${systemincs}${ompincs}${subgrid}${cgnsincs}
+scriptexampleincs=${mpichincs}${amrincs}${hdfincs}${hdf5incs}${hdfinc}${systemincs}${ompincs}${subgrid}
 
 #included in all code in: util/util
-scriptutilincs=" -I../.. -I../ "${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${fenv}${optimization}${firix}${noname}${hdfinc}${systemincs}${ompincs}${subgrid}${cgnsincs}
+scriptutilincs=" -I../.. -I../ "${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${fenv}${optimization}${firix}${noname}${hdfinc}${systemincs}${ompincs}${subgrid}
 
 #include in all conde in: util/dutil
-scriptdutilincs=" -I../.. -I../ "${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${fenv}${optimization}${firix}${noname}${hdfinc}${systemincs}${ompincs}${subgrid}${cgnsincs}
+scriptdutilincs=" -I../.. -I../ "${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${fenv}${optimization}${firix}${noname}${hdfinc}${systemincs}${ompincs}${subgrid}
 
 flagsss=$FFLAGS${optimization}${firix}${fsun}${debug}${cppflagss}
 
@@ -608,8 +598,6 @@ solver/Makefile
 weno/Makefile
 src/pak/linpak/Makefile
 src/pak/blas/Makefile
-src/pak/cgnslib_3.0/Makefile
-src/pak/pcgnslib_0.2.0/Makefile
 devel-deps.inc
 iMesh-Defs.inc'
 fi
@@ -623,8 +611,6 @@ src/pak/odepack/Makefile
 src/pak/dierckx/Makefile 
 src/pak/linpak/Makefile 
 src/pak/blas/Makefile 
-src/pak/cgnslib_3.0/Makefile
-src/pak/pcgnslib_0.2.0/Makefile
 src/pak/sn_ellip/Makefile 
 src/driver/Makefile 
 src/front/Makefile 
@@ -667,8 +653,6 @@ mkdir -p lib/${build_cpu}/gas
 mkdir -p src/pak/odepack/${build_cpu}
 mkdir -p src/pak/dierckx/${build_cpu}
 mkdir -p src/pak/blas/${build_cpu}
-mkdir -p src/pak/cgnslib_3.0/${build_cpu}
-mkdir -p src/pak/pcgnslib_0.2.0/${build_cpu}
 mkdir -p src/pak/linpak/${build_cpu}
 mkdir -p src/driver/${build_cpu}
 mkdir -p src/gas/${build_cpu}

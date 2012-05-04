@@ -52,9 +52,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#ifdef USE_CGNS
-#include "pak/cgnslib_3.0/cgnslib.h"
-#endif
 
 #define MAX_NVARS 100
 
@@ -91,12 +88,6 @@ LOCAL	void	hdf_plot_var3d(Front*,char*,char*,double*,COMPONENT,
 #endif /* defined(USE_HDF) */
 LOCAL   void    show_front_gv(Front*,char*);
 LOCAL	void	gv_plot_var2d(Front*,char*,HDF_MOVIE_VAR*,int);
-
-#ifdef USE_CGNS
-LOCAL	void	show_front_cgns(Front*,char*);
-LOCAL 	void 	cgns_plot_vector_field(const char*,Front*);
-#endif
-
 
 #if defined(__GD__)
 LOCAL	void 	FrontGDMovie(char*,Front*);
@@ -1523,11 +1514,7 @@ EXPORT  void show_front_output(
 	show_front_hdf(front,out_name);
 	//show_front_gv(front,out_name);
 	
-	#ifdef USE_CGNS
-	show_front_cgns(front,out_name);
-	#else
 	show_front_vtk(front,out_name,print_in_binary);	
-        #endif 
 	show_front_sdl(front,out_name);
 }       /* end show_front_output */
 
@@ -3641,165 +3628,6 @@ LOCAL void vtk_plot_vector_field(
 	}
 	fclose(vfile);
 }	/* end vtk_plot_vector_field */
-
-#ifdef USE_CGNS
-LOCAL	void show_front_cgns(
-	Front *front,
-        char *out_name)
-{
-	/*****************New with CGNS ****************/
-	char dirname_cgns[256];
-	int step = front->step;
-	int dim = front->rect_grid->dim;
-	boolean print_in_binary = YES;
-	
-	if (dim == 1) return;
-
-	/* Create cgns directories */
-
-	sprintf(dirname_cgns,"%s/cgns.ts%s",out_name,right_flush(step,7));
-	if (pp_numnodes() > 1)
-	    sprintf(dirname_cgns,"%s-nd%s",dirname_cgns,
-		right_flush(pp_mynode(),4));
-	if (!create_directory(dirname_cgns,YES))
-	{
-	    screen("Cannot create directory %s\n",dirname_cgns);
-	    clean_up(ERROR);
-	}
-    	cgns_interface_plot(dirname_cgns,front->interf,print_in_binary, 
-	        front->time,front->step);
-	if (front->vtk_movie_var != NULL)
-	    cgns_plot_vector_field(dirname_cgns,front);
-  
-  	/***********************************************/
-	/*return;*/
-}	/* end show_front_cgns */
-
-LOCAL void cgns_plot_vector_field(
-	const char *dname,
-	Front *front)
-{
-	INTERFACE *grid_intfc = front->grid_intfc;
-	RECT_GRID *gr = &topological_grid(grid_intfc);
-	int gmax[MAXD],icoords[MAXD];
-	double h[MAXD],L[MAXD],vec[MAXD];
-	VTK_MOVIE_VAR *vtk_movie_var = front->vtk_movie_var;
-	double **top_var = vtk_movie_var->top_var[0];
-	char *vname;
-	static char *fname = NULL;
-	FILE *vfile;
-	size_t fname_len = 0;
-	int i,j,k,l,index,dim = grid_intfc->dim;
-	double time = front->time;
-	int step = front->step;
- 	/********* New with CGNS *********************/
-   	static double ***xs_velocity = NULL;
-	static double ***ys_velocity = NULL;
-	static double ***zs_velocity = NULL;
-	static double ***xs = NULL;
-	static double ***ys = NULL;
-	static double ***zs = NULL;
-	static char *filename = NULL;
-   	int isize2d[3][2], isize3d[3][3];
-   	int ni,nj,nk;
-   	int index_file,icelldim,iphysdim;
-   	int index_base,index_zone,index_coord;
-	int index_flow,index_velocity;
-   	char basename[33],zonename[33],solname[33];
-	/*********************************************/
-
-	vname = vtk_movie_var->var_name[0];
-	filename = get_cgns_file_name(fname,dname,vname,&fname_len);
-	cg_open(filename,CG_MODE_WRITE,&index_file); /* New with CGNS*/
-	for (i = 0; i < 3; ++i)
-	{
-	    gmax[i] = 1; L[i] = 0.0; h[i] = 0.0;
-	}
-	for (i = 0; i < dim; ++i)
-	{
-	    gmax[i] = gr->gmax[i]; L[i] = gr->L[i]; h[i] = gr->h[i];
-	}
-
-	/* create base (user can give any name) */
-   	strcpy(basename,"Base");
-   	icelldim=3;
-   	iphysdim=3;
-   	cg_base_write(index_file,basename,icelldim,iphysdim,&index_base);
-	/* define zone name (user can give any name) */
-   	strcpy(zonename,"Zone 1");
-	/* vertex size */
-   	isize3d[0][0]=gmax[0]+2;
-   	isize3d[0][1]=gmax[1]+2;
-	isize3d[0][2]=gmax[2]+2;
-	/* cell size */
-   	isize3d[1][0]=isize3d[0][0]-1;
-   	isize3d[1][1]=isize3d[0][1]-1;
-	isize3d[1][2]=isize3d[0][2]-1;
-	/* boundary vertex size (always zero for structured grids) */
-   	isize3d[2][0]=0;
-   	isize3d[2][1]=0;
-	isize3d[2][2]=0;
-	/* create zone */
-   	cg_zone_write(index_file,index_base,zonename,*isize3d,Structured,&index_zone);
-
-	/* create gridpoints */
-	tri_array(&xs,gmax[2]+2,gmax[1]+2,gmax[0]+2,FLOAT);
-	tri_array(&ys,gmax[2]+2,gmax[1]+2,gmax[0]+2,FLOAT);
-        tri_array(&zs,gmax[2]+2,gmax[1]+2,gmax[0]+2,FLOAT);
-
-   	for (k=0; k <= gmax[0]+1; k++)
-      	for (j=0; j <= gmax[1]+1; j++)
-        for (i=0; i <= gmax[2]+1; i++)
-	{
-	  xs[i][j][k] = L[0] + (k-.5)*h[0];
-	  ys[i][j][k] = L[1] + (j-.5)*h[1];
-	  zs[i][j][k] = L[2] + (i-.5)*h[2];
-   	}
-
-	/* write grid coordinates (user must use SIDS-standard names here) */
-   	cg_coord_write(index_file,index_base,index_zone,RealDouble,"CoordinateX",
-      	    **xs,&index_coord);
-   	cg_coord_write(index_file,index_base,index_zone,RealDouble,"CoordinateY",
-      	    **ys,&index_coord);
-   	cg_coord_write(index_file,index_base,index_zone,RealDouble,"CoordinateZ",
-      	    **zs,&index_coord);
-	
-	/* create flow solution */
-	strcpy(solname,"FlowSolution");
-	cg_sol_write(index_file,index_base,index_zone,solname,CellCenter,&index_flow);
-
-	/* create velocities */
-	tri_array(&xs_velocity,gmax[2]+1,gmax[1]+1,gmax[0]+1,FLOAT);
-	tri_array(&ys_velocity,gmax[2]+1,gmax[1]+1,gmax[0]+1,FLOAT);
-        tri_array(&zs_velocity,gmax[2]+1,gmax[1]+1,gmax[0]+1,FLOAT);
-	
-	for (l = 0; l < dim; ++l) vec[l] = 0.0;
-
-	for (k = 0; k <= gmax[0]; k++)
-	for (j = 0; j <= gmax[1]; j++)
-	for (i = 0; i <= gmax[2]; i++)
-	{		
-	    icoords[2] = i;
-	    icoords[1] = j;
-	    icoords[0] = k;
-	    index  = d_index(icoords,gmax,dim);
-	    for (l = 0; l < dim; ++l)
-		vec[l] = top_var[l][index];
-	    /*fprintf(vfile,"%lf %lf %lf\n",vec[0],vec[1],vec[2]);*/
-	    xs_velocity[i][j][k] = vec[0];
-	    ys_velocity[i][j][k] = vec[1];
-	    zs_velocity[i][j][k] = vec[2];
-	}
-	/* write velocities (user must use SIDS-standard names here) */
-	cg_field_write(index_file,index_base,index_zone,index_flow,RealDouble,
-	    "VelocityX",**xs_velocity,&index_velocity);
-	cg_field_write(index_file,index_base,index_zone,index_flow,RealDouble,
-	    "VelocityY",**ys_velocity,&index_velocity);
-	cg_field_write(index_file,index_base,index_zone,index_flow,RealDouble,
-	    "VelocityZ",**zs_velocity,&index_velocity);
-	cg_close(index_file);
-}	/* end cgns_plot_vector_field */
-#endif /*end USE_CGNS */
 
 LOCAL	void	gv_plot_var2d( 
 	Front	*front, 
