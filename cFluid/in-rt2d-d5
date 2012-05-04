@@ -1,0 +1,46 @@
+Domain limit in 0-th dimension: 0 1
+Domain limit in 1-th dimension: 0 4
+Computational grid: 60 240
+Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
+Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
+Lower boundary in 1-th dimension: NEUMANN_BOUNDARY
+Upper boundary in 1-th dimension: NEUMANN_BOUNDARY
+
+Max time: 12
+Max step: 100000
+Print interval: 2
+Movie frame interval: 0.4
+CFL factor: 0.25
+Redistribution interval: 5
+
+Problem type can be
+	TWO_FLUID_BUBBLE
+	TWO_FLUID_RT
+	FLUID_SOLID_CIRCLE
+Enter problem type: TWO_FLUID_RT
+Enter mean position of fluid interface: 2.2
+Enter number of sine modes: 1
+Enter frequency of mode 1: 1
+Enter amplitude of mode 1: 0.05
+Enter phase of mode 1: 270
+
+Enter gamma, pinf, einf of the fluid with comp 2: 1.67 0 0
+Enter gamma, pinf, einf of the fluid with comp 3: 1.67 0 0
+Enter density of top fluid: 5
+Enter density of bottom fluid: 1
+Enter gravity: 0 -0.14
+Enter pressure at interface: 1
+Type yes to track the interface: n
+
+Type y to make movie of density: y
+Type y to make movie of pressure: y
+Type y to make movie of vorticity: y
+Type y to make movie of velocity: y
+
+************Debugging options*****************
+
+Enter yes for debugging: no
+Enter the debugging string: trace
+Enter the debugging string: CLOCK
+Enter the debugging string: step_size
+Enter the debugging string: sample_velocity

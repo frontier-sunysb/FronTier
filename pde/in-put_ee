@@ -1,0 +1,24 @@
+****************Called by FrontReadRegularDomainInfo*****
+
+Domain limit in 0-th dimension: 0 6
+Computational grid: 1000
+Lower boundary in 0-th dimension: DIRICHLET
+Upper boundary in 0-th dimension: DIRICHLET
+
+****************Called by FrontReadTimeControlInfo*******
+
+Max time: 4
+Max step: 10000
+Print interval: 1
+Movie frame interval: 0.1
+CFL factor: 1.25
+Redistribution interval: 0
+
+***************Called by init_wave_params****************
+
+Enter option type: EROUPEAN_PUT
+Enter interest rate: 0.05
+Enter volatility: 0.60
+Enter strike price: 1
+Enter expiry time: 4
+Enter numerical scheme: LW_CENTRAL_EXPLICIT

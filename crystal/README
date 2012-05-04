@@ -1,0 +1,25 @@
+
+The crystal code is a FronTier application. In order to compile this
+program, one needs mpi library (mpich or openmpi), PETSc library which
+can be downloaded at:
+
+http://www.mcs.anl.gov/petsc/petsc-as/
+
+Other OPTIONAL accompanying packages include HDF4:
+
+http://www.hdfgroup.org/products/hdf4/
+
+and GD:
+
+http://www.libgd.org/Main_Page
+
+The configure line for compiling crystal under FronTier is:
+
+configure --with-openmpi=(mpi-dir) --with-petsc=(petsc-dir) --with-devel [--with-hdf=(hdf-dir)] [--with-gd=(gd-dir)]
+
+Compile FronTier library under FronTier first, and then:
+
+cd crystal
+make
+
+to make the crystal excutable.

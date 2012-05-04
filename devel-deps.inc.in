@@ -1,0 +1,18 @@
+##FT library checks
+
+../lib/@build_cpu@/libFronTier.a: ../lib/@build_cpu@/libfront.a ../lib/@build_cpu@/libutil.a ../lib/@build_cpu@/libintfc.a
+	@cd ../lib/@build_cpu@/; \
+	rm -f *.o; \
+	ar x libintfc.a; \
+	ar x libutil.a;\
+	ar x libfront.a;\
+	ar cru libFronTier.a *.o; \
+	ranlib libFronTier.a; \
+	rm -rf *.o
+
+FT_libs:
+	@cd ../src/front && $(MAKE) ../../lib/@build_cpu@/libfront.a
+	@cd ../src/util && $(MAKE) ../../lib/@build_cpu@/libutil.a
+	@cd ../src/intfc && $(MAKE) ../../lib/@build_cpu@/libintfc.a
+	@cd .. && $(MAKE) incs
+	@$(MAKE) ../lib/@build_cpu@/libFronTier.a

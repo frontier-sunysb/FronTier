@@ -1,0 +1,62 @@
+
+This is the directory containing 2D examples of using front tracking
+libary and its basic functionalities. 
+
+If the FronTier library was configured in serial,
+the Makefile will automatically compile examples in serial; if the
+FronTier library is compiled in parallel, the Makefile in this
+directory will automatically compile examples in parallel.
+
+To run an example in serial:
+
+1. compile the FronTier library.
+
+2. copy example[n].c to example.c and make.
+
+3. execute the program.
+
+For example:
+   cp example01.c example.c
+   make
+   example -d 2 -o output01
+
+here the -d option is for three dimensions.
+
+When HDF4 library is linked, the output will contain an .hdf file which
+can be converted to an animated .gif file. To do so, one needs:
+
+configure --with-hdf=(HDF4lib)
+make
+example -d 2 -o output
+hdf2gif output.hdf output.gif
+animate output.gif
+   
+4. The code can also restart from a step of previous run. For example,
+if the user has saved the file in previous run with name:
+
+output.ts0000100
+
+He can restart the run with the command:
+
+example -d 2 -o output.r -r output -t 100
+
+here output.r is the new output name, output is the restart name and 100 
+is the step at which the data was saved.
+
+To run an example in parallel, the user needs to compile the FronTier
+library in parallel. This can be done in configure:
+
+configure --with-mpich={path to mpich}
+configure --with-openmpi={path to openmpi}
+
+The run command is:
+
+mpirun -np num_nodes example -d 2 -p nx ny -o out-name
+
+For example:
+
+mpirun -np 4 example -d 2 -p 2 2 -o output
+
+to restart:
+
+mpirun -np 4 example -d 2 -p 2 2 -o output.r -r output -t 100

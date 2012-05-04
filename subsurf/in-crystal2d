@@ -1,0 +1,75 @@
+*****Domain information***********
+Domain limit in 0-th dimension: 0 1
+Domain limit in 1-th dimension: 0 1
+Computational grid: 160 160
+Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
+Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
+Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
+Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
+
+*****Crystal Input data*************
+Are there seeds grow from floor: N
+Are there seeds grow from ceiling: N
+Are there seeds grow from space: Y
+Enter number of space seeds: 1
+Enter center coordinates of space seed 1: 0.5 0.5
+Enter yes to add perturbation: n
+Enter radius of seeds: 0.03
+
+*****Physical information***********
+Diffusion coefficient: 0.5
+Growth rate: 80.0
+Equilibrium concentration: 1.0
+Ambient concentration: 2
+Crystal density: 10.0
+Choose numerical scheme
+        Unsplit explicit (EX)
+        Unsplit implicit (IM)
+        Crank-Nicolson (CN)
+Enter scheme: IM
+Choose point propagation scheme
+        Explicit Euler (EX)
+        Implicit Euler (IM)
+        Middle point (MP)
+Enter scheme: MP
+Enter yes to add curvature effect: n
+
+*****Fluid parameters**************
+Enter density and viscosity of the fluid: 1 0.0628
+
+*****Control information***********
+Max time: 0.69
+Max step: 100000
+Print interval: 0.05
+Movie frame interval: 0.005
+CFL factor: 0.4
+Redistribution interval: 5
+
+*****Movie output options*********
+Type y to make movie of pressure: n
+Type y to make movie of vorticity: y
+Type y to make movie of velocity: n
+
+Type y to make vector velocity field movie: y
+Type y to make movie of solute: y
+
+*****Dirichlet boundary condition*********
+For lower boundary in 1-th dimension
+Enter type of Dirichlet boundary: CONSTANT_STATE
+Enter velocity: 0 0
+Enter pressure: 10
+Enter solute concentration: 2.0
+For upper boundary in 1-th dimension
+Enter type of Dirichlet boundary: CONSTANT_STATE
+Enter solute concentration: 2.0
+Enter velocity: 0 -20
+Enter pressure: 10
+Enter solute concentration: 2
+
+************Debugging options*****************
+
+Enter yes for debugging: no
+Enter the debugging string: trace
+Enter the debugging string: CLOCK
+Enter the debugging string: step_size
+Enter the debugging string: sample_velocity

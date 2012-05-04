@@ -1,0 +1,64 @@
+Domain limit in 0-th dimension: -10 10
+Domain limit in 1-th dimension: -10 10
+Domain limit in 2-th dimension: 25 45
+Computational grid: 80 80 80
+Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
+Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
+Lower boundary in 1-th dimension: PERIODIC_BOUNDARY
+Upper boundary in 1-th dimension: PERIODIC_BOUNDARY
+Lower boundary in 2-th dimension: PERIODIC_BOUNDARY
+Upper boundary in 2-th dimension: PERIODIC_BOUNDARY
+
+Max time: 0.04
+Max step: 10
+Print interval: 1
+Movie frame interval: 0.001
+CFL factor: 0.75
+Redistribution interval: 1000000000
+
+Problem type can be
+        FLUID_SOLID_CIRCLE
+	FLUID_RIGID_BODY
+	ROTRO_ONE_FLUID
+	WINDMILL_2D
+	WINDMILL_3D
+Enter problem type: WINDMILL_3D
+Projection type can be
+        SIMPLE
+        BELL_COLELLA
+        KIM_MOIN
+        PEROT_BOTELLA
+Enter projection type: SIMPLE
+
+Enter the vtk file name for wing: vtk/wings_only.vtk
+Enter the vtk file name for rotor: vtk/rotor_only.vtk
+Enter the total mass for rigid body: 1.0
+Enter the center of mass for rigid body: -0.00171 5.0068 34.8595
+Type yes if rigid body will only rotate about an axis: y
+Enter direction of the axis: -0.00171 5.0068 34.8595
+Enter center of the axis: -0.00171 5.0068 34.8595
+Enter the moment of inertial about the axis: 4.0
+Type yes if angular velocity is preset: y
+Enter preset angular velocity: 6.28
+
+Enter the vtk file name for support structure: vtk/head_only.vtk
+Enter density and viscosity of the fluid: 1.0 0.00628
+
+Type y to make movie of pressure: n
+Type y to make movie of vorticity: n
+Type y to make movie of velocity: n
+Type y to make yz cross section movie: n
+Type y to make xz cross section movie: n
+Type y to make xy cross section movie: n
+Type y to make cross sectional component movie: n
+
+Type y to make vector velocity field movie: y
+
+************Debugging options*****************
+
+Enter yes for debugging: no
+Enter the debugging string: trace
+Enter the debugging string: CLOCK
+Enter the debugging string: step_size
+Enter the debugging string: rgbody
+Enter the debugging string: windmill

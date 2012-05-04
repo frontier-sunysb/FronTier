@@ -1,0 +1,525 @@
+
+
+------------------------------------------------------
+The FronTier README
+------------------------------------------------------
+
+For information on the FronTier development, please visit the FronTier
+homepage at :
+http://frontier.ams.sunysb.edu
+
+INDEX
+	1. Introduction
+	2. How to get it
+	3. Unpacking
+	4. Contents
+	5. Configuring and Building 
+	6. Running the test programs
+	7. Viewing the output
+	8. Parallel version of FronTier
+	9. Selecting built-in interface initialization and velocity fields
+	10. Build your own initial interface
+	11. Build your own velocity field function
+        12. Propagating the interface
+
+---------------
+1. Introduction
+---------------
+
+This library package is designed for those who wish to track the dynamic
+motion of explicit boundaries in computations. The front tracking method 
+provides high resolution tracking for shock waves, and contact discontinuities 
+in continuum medium simulations. This library provides an excellent way 
+to design complex fronts in one, two, or three dimensions.
+
+----------------
+2. How to get it
+----------------
+
+This distribution can be freely downloaded and distributed under the
+terms of the LGPL from:
+
+http://frontier.ams.sunysb.edu/download
+
+------------
+3. Unpacking 
+------------
+
+The FronTier library package is available in the .tar.gz format. 
+Some older versions of tar might require the -o option upon extraction to 
+ensure that new directories can be created.
+
+-----------
+4. Contents
+-----------
+
+If the archive is unpacked correctly, you should have the following files and
+directories:
+
+The FronTier/ directory is the "root" directory of the FronTier distribution. 
+In it should be located the src/ directory. It also contains various files 
+required for configuration, and this README file.
+
+The src/        dir contains source code subdirectories:
+src/driver/         drives the FronTier gas dynamics package
+src/hyp/            contains the solvers for the gas dynamics package
+src/tri/            code for the crossing grid portion of the FT code
+src/front/          code for front tracking in FT_lite
+src/intfc/          code for front tracking geometry in FT_lite
+src/pak/            contains linear algebra solvers for use with gas
+src/util/           code for memory management and binding in FT_lite
+src/gas/            the FronTier gas dynamics package
+iMesh/          code for the ITAPS-iMesh plugin for FT_lite
+testfront/      simple geometric front tracking from input files
+example/        example applications that use the FT_lite API libraries
+example3d/        example applications that use the FT_lite API libraries
+
+------------
+5. Configuring and  Building 
+------------
+
+FronTier is configured and built using autoconf, configure, and make. 
+For most users, it is the easiest to build FronTier using the wrapper 
+shell script
+   ./build.sh
+This script sets some environment variables, calls autoconf and configure,
+and then optionally calls make. The build script has some command options 
+to control the modules to compile, which can be seen by running 
+"./build.sh -h".
+
+The build script recognizes a few systems commonly used by FronTier
+developers and users. For these platforms, the script should work
+automatically in batch mode without user intervention, assuming the
+user's environment has set up correctly.
+
+For an unrecognized system, the build script will run in an
+interactive mode and prompts the user to enter some options for the
+compilers, PETSc, and HDF. The most basic set of environment variables
+is the compilers. In general you should specify proper MPI wrappers
+for C, C++, and FORTRAN compilers. If you specify the plain C or
+FORTRAN compilers instead of MPI wrappers, then FronTier will be
+compiled with MPI disabled. The most complex part of the configuration
+process is the specification for PETSc, since it may be platform and
+version dependent. In general, you should specify the root path for
+PETSc, the PETSC_ARCH variable, and PETSC_LIB. It is important that
+the PETSC_ARCH you specified matches with the MPI wrappers you
+specified; otherwise there may be compilation or runtime errors.
+After obtaining these options, build.sh prints out the commands it
+would use to configure and build. You can copy and paste these
+commands for later use, or use them as a template for modification.
+
+For more advanced users, you may want to configure and build FronTier 
+manually, following three steps:
+  1. Set environment variables;
+  2. Call autoconf
+  3. Call ./configure with additional options.
+
+FronTier has a configure.in file, which will produce the configure file when
+"autoconf" is run in the FronTier directory.
+
+  Configuring and building FronTier requires support for sh, GNU make, and
+  the necessary compilers for C, and FORTRAN77 (gas dynamics package and Lapack),
+  and optionally MPI, PETSc and HDF.
+
+Configuring for the FronTier Lite library:
+   In the FronTier directory simply type "./configure", if you are unsure
+   how to use this configuration script, or what configurations options 
+   are available, type "./configure --help". With this default configuration, 
+   all output will be in the VTK file format. 
+
+Configuring for parallel:
+   FronTier supports parallel operation using the MPI protocol. The preferred
+   implementation is openmpi(http://www.open-mpi.org/). To build with parallel
+   support and openmpi just type "./configure --with-openmpi=path_to_mpi" where
+   path_to_mpi is the path in which openmpi is located. There is also support
+   mpich which can be configured using "./configure --with-mpich=path_to_mpich".
+   To build with generic MPI support you can use:
+./configure --with-mpi --with-extra-incs=inc_flags --with-extra-libs=lib_flags
+
+Building the FronTier with PETSc package:
+   FronTier uses PETSc as linear solver in some applications. To download 
+   this package, go to:
+	http://www.mcs.anl.gov/petsc/petsc-2/
+   In the FronTier/ directory simply type "./configure --with-petsc=petsc_path".
+   where petsc_path is the directory the PETSc is installed. The inclusion
+   of PETSc package enables FronTier to use elliptic solvers, parabolic
+   solvers using implicit and Crank-Nicolson schemes. FronTier applications
+   such as liquid, frgb, subsurf, crystal, finance, all call for PETSc solvers.
+   Note that you may need to specify PETSC_ARCH, PETSC_INCLUDE, and PETSC_LIB
+   variables on some platforms and/or for some PETSc builds.
+
+Building the FronTier with HDF4 package:
+   FronTier uses HDF4.2r1 for 2D animation. To download this package, go to:
+        http://hdf.ncsa.uiuc.edu/release4/obtain.html
+   In the FronTier/ directory simply type "./configure --with-hdf=hdf_path".
+   where hdf_path is the directory the HDF is installed. The inclusion
+   of HDF package gives user capability of producing HDF files as output.
+
+Building the FronTier with GD package:
+   FronTier uses GD graphics library for 1D and 2D animations. To download 
+   this package, go to:
+	http://www.boutell.com/gd/
+   In the FronTier/ directory simply type "./configure --with-gd=gd_path".
+   where gd_path is the directory the GD is installed. The inclusion
+   of GD package gives user capability of producing animated gif files as 
+   output in some of the 1D and 2D problems.
+
+Building the FronTier gas dynamics executable:
+   In the FronTier/ directory simply type "./configure --with-gas"
+
+These are only a few of the options available, and all options can be specified
+together (e.g. "./configure --with-gas --with-hdf=hdf_path"). To see a list of
+all possible configure options, type "./configure --help".
+
+To to build what you have configured, in the FronTier/ directory type "make".
+
+After make has finished there will be a new subdirectory in FronTier called
+lib/ which will contain all libraries built in the distribution which were 
+chosen, the FronTier-Lite version has four libraries:
+
+libutil.a: utility functions and macros for FronTier
+libintfc.a: interface geometry functions and related calls
+libfront.a: propagation related functions and related calls
+libFronTier.a: a convenience library including the previous three
+
+If the gas dynamics executable was built, it will be in:
+        FronTier/src/gas/build_cpu/gas.
+where "build_cpu" is the architecture type of the machine that built it 
+(usually i686 or x86_64 for intel chipsets).
+
+------------
+6. Running the test programs 
+------------
+
+After compiling the libFronTier.a, one can test the library by running
+example code calling the software.
+
+---
+a) Running in serial
+---
+
+Template code for application of FronTier-Lite library are stored in
+FronTier/example (for 2D) and FronTier/example3d (3D) directories.
+These contain simple and benchmark testing cases. To run them, copy
+one of them to example.c, for example:
+
+cp example00.c example.c
+make
+./example -o output
+
+If HDF library is linked to the code, the run will produce an output
+file named output.hdf. 
+
+If HDF is not linked, then the output will be in the VTK format. You will see
+the directories:
+        output-vtk.ts00000/, output-vtk.ts00001/, ... 
+Each of these contains VTK files for the interface during the named 
+time step (That's what the 'ts' in the file name means). 
+In 2d, there is 1 file in each of these directories: 2d-intfc.vtk. 
+In 3d there are two: 3d-intfc.vtk, and box.vtk.
+In each case, the intfc file is the interesting one. The box.vtk file contains
+the bounding box for the computational region (which may be useful to plot
+along with the interface in some cases).
+
+
+The FronTier build system also has a built in diagnostic/benchmark series of 
+runs for the testfront program. The input cards for these runs are in 
+FronTier/testfront/in directory. After the test programs have been built, the 
+testfront diagnostic/benchmarks can be run, while in the main FronTier 
+directory by typing "make testrun".
+
+To run a single testfront case cd into FronTier/testfront and type:
+
+./testfront -i input -o output
+
+Template input files are located in testfront/in. for example:
+
+testfront -i in/disk-c -o disc-c-out
+
+This will direct the output of the testfront program to a file or series of 
+files with the prefix of disc-c-out.
+
+---
+b) running in parallel
+---
+
+The example codes in the example directory can be run in parallel if FronTier
+is compiled with MPI enabled. To run the example in parallel, first you must
+copy one of the example files to example.c as before, for example:
+
+cp example00.c example.c
+make
+mpirun -np 6 ./example -p 3 2 -o output
+
+Here the '-np 6' flag specifies the number of processors (here 6), and the 
+'-p 3 2' specifies the number of divisions in the x and y directions for the
+computation. Of course, the product of all divisions must equal the number of
+processors (e.g. 3*2=6). 
+
+The VTK output for this type of run will give a VTK file for each processor at
+each time step. The files will be of the form 'output-vtk.ts00000-nd0000' where 
+the numbers following 'ts' are the time step number, and the numbers following
+'nd' are the processor ID number.
+
+If HDF output is enabled, the parallel example will produce a single HDF file,
+just as with a serial run, which can be viewed in the exact same way.
+
+
+------------
+7. Viewing the output
+------------
+
+To view VTK files, we prefer LLNL's vis package: VisIt. It can be found at:
+        https://wci.llnl.gov/codes/visit/
+To view a time series of VTK files, it is necessary to create a .visit file.
+See the VisIt user's manual for more info on .visit files. Gas dynamics package
+will automatically create .visit files for you if VTK output is selected.
+
+VisIt can also be compiled with support for HDF4 to view these files. It is
+easier, however, to use HDF's own tools, i.e. hdf2gif. Simply type
+        hdf2gif my_hdf_file.hdf my_gif_file.gif
+to get a .gif animation of the output. This can be viewed with (our preference)
+ImageMagick animate, or in any gif viewer or web browser. ImageMagick is a 
+proprietary package with lots of useful tools for manipulating standard image
+files. It is located at:
+        http://www.imagemagick.org/script/index.php
+
+FronTier and gas dynamics packages both also support Geomview files. Geomview
+is located at:
+        http://www.geomview.org/
+
+------------
+8. Selecting built-in interface initialization and velocity fields
+------------
+
+The testfront.c driver in the testfront directory uses FronTier's built-in
+interface initialization function and velocity field function. 
+These functions prompt the user for information using input files.
+
+The function f_init_interface() follows the input file method to answer
+questions about interface initialization. For 2D, the possible interface 
+types that can be initialized are a straight line, an ellipse, multiple 
+circles, sine waves, and a slotted disk. For 3D, there is a plane, an 
+ellipse, multiple ellipsoids, a hyperboloid, a paraboloid, a randomly 
+perturbed interface, or superimposed sine waves. The input file prompting 
+system will ask the user to supply parameters in order to change shape and
+size of the corresponding initial interface.
+
+The testfront program  uses the FrontInitVelo() function (with NULL passed
+as the second parameter) to setup a velocity function automatically. 
+The choices of velocity fields are translation, radial motion, shear motion, 
+sinusoidal motion, circular rotation, normal motion, bi-polar velocity, 
+and vortex velocity. Look at testfront input files to see all velocity field 
+related options. Again, the user needs to supply the parameters for these 
+velocity field. These parameters are read from stdin(standart input), which
+is redirected from the input file in testfront.c. FrontInitVelo() parses
+stdin for the control sequence ': ' which indicates that the proceeding entry
+is a response to one of the control fields in the order in which they appear.
+
+------------
+9. Build your own initial interface
+------------
+The built in functions are very simplistic and most users of FronTier 
+will usually require something not provided by the the built in functions 
+when using FronTier for their research purposes. Therefore, a short example
+program which demonstrates interface initialization and velocity functions 
+is included in the FronTier/example and FronTier/example3d  directories. This 
+section exists to help describe what is going on in the example program, 
+through the use of code snippets. To get a full understanding of this program 
+you may want to open another window and read the FronTier/example code at the 
+same time. If more help is need in writing initialization functions or velocity 
+functions feel free to contact the Stony Brook AMS FronTier group for help. You
+can find contact information at http://www.ams.sunysb.edu
+
+This sample code lets the user define his/her own computational domain 
+and mesh grid. The only input needed for this code is the ft_control 
+card which allows the user to specify the appropriate front redistribution 
+parameters.
+
+In order to initialize the interface, the user needs to supply a
+data structure containing any parameters for the of the level surface function. 
+This may be skipped, but it is good practice to place any parameters that may
+vary into such a structure. The user must also provide a level function that
+takes these parameters as input, as well as the coordinates of some point. The
+level function is a continuous function that has the value 0 anywhere on the
+initial surface. At any other point, the value is the shortest distance to
+the interface. The distance should be positive if the point is outside the
+interface, and negative if inside. The following code snippet shows how to 
+initialize a circle:
+
+/********************************************************************
+*      Level function parameters for the initial interface         *
+********************************************************************/
+
+typedef struct {
+                /* equation for circle is (x-x0)^2 + (y-y0)^2 = R^2 */
+        float x0; // center x coordinate
+        float y0; // center y coordinate
+        float R;  // radius
+} CIRCLE_PARAMS;
+
+//This data structure is to be casted as a POINTER (void*) as
+//func_params in level_func_pack. The user also needs to supply
+//a level function for the initial interface which takes this data
+//as input, for example:
+
+
+/********************************************************************
+ *	Sample (circle) level function for the initial interface    *
+ ********************************************************************/
+
+static float level_circle_func(
+        POINTER func_params,   // This will be a void* pointer pointing to our
+                               // input data structure
+        float *coords)
+{
+        // You must cast from the (void*) type to your user defined type.
+	CIRCLE_PARAMS *circle_params = (CIRCLE_PARAMS*)func_params;
+	float x0,y0,R,dist;
+
+	x0 = circle_params->x0;
+	y0 = circle_params->y0;
+	R  = circle_params->R;
+
+	dist = sqrt(sqr(coords[0] - x0) + sqr(coords[1] - y0)) - R;
+	return dist;
+}	/* end level_circle_func */
+
+// FronTier can be informed of your initialization parameters and level function
+// via a call to FrontInitIntfc(LEVEL_FUNC_PACK*); The LEVEL_FUNC_PACK is a 
+// FronTier datatype that contains a pointer to your initialization parameters, 
+// and a pointer to your level function as below. Negative and positive 
+// component indicate the inside and outside of the interface respectively. 
+// They must be nonnegative, nonequal integers.
+
+Front front;
+LEVEL_FUNC_PACK level_func_pack;
+CIRCLE_PARAMS circle_params;
+circle_params.x0 = 0.2;
+circle_params.y0 = 0.2;
+circle_params.R = 0.1;
+
+level_func_pack.neg_component = 1;
+level_func_pack.pos_component = 2;
+level_func_pack.func_params = (POINTER)&circle_params;
+level_func_pack.func = circle_level_func;
+
+FrontInitIntfc(&front,&level_func_pack);
+
+
+------------
+10. Build your own velocity field function
+------------
+
+To build your own velocity field, you need to have a data structure
+containing the parameters for the velocity function and a function that
+takes in those parameters, and the coordinates for a point and returns the
+velocity. This is an example of parameters for a double vortex velocity:
+
+
+/********************************************************************
+ *	Velocity function parameters for the front	 	    *
+ ********************************************************************/
+
+typedef struct {
+	float i1,i2;
+        float cen1[2],cen2[2]; // 2d coordinates for centers of 2 vortices
+} DOUBLE_VORTEX_PARAMS;
+
+//and the velocity function:
+
+
+/********************************************************************
+ *	Sample (circle) velocity function for the front    *
+ ********************************************************************/
+
+static int double_vortex_vel(
+	POINTER params,
+	Front *front,
+	POINT *p,
+	HYPER_SURF_ELEMENT *hse,
+	HYPER_SURF *hs,
+	float *vel)
+{
+	DOUBLE_VORTEX_PARAMS *dv_params = (DOUBLE_VORTEX_PARAMS*)params;
+	float *coords = Coords(p);
+	float d1,d2;
+	float s1,s2;
+	float *cen1 = dv_params->cen1;
+	float *cen2 = dv_params->cen2;
+	float dx1,dy1;
+	float dx2,dy2;
+
+	dx1 = coords[0] - cen1[0]; 
+	dy1 = coords[1] - cen1[1];
+	dx2 = coords[0] - cen2[0]; 
+	dy2 = coords[1] - cen2[1];
+
+	d1 = sqrt(sqr(dx1) + sqr(dy1));
+	d2 = sqrt(sqr(dx2) + sqr(dy2));
+
+	s1 = dv_params->i1/2.0/PI/d1;
+	s2 = dv_params->i2/2.0/PI/d2;
+
+	vel[0] =  s1*dy1/d1 + s2*dy2/d2;
+	vel[1] = -s1*dx1/d1 - s2*dx2/d2;
+}	/* end double_vortex_vel */
+
+They are assigned to a VELO_FUNC_PACK in much the same way as the 
+LEVEL_FUNC_PACK in the last example, and passed into FronTier via a call to
+FrontInitVelo();
+
+Front front;
+DOUBLE_VORTEX_PARAMS dv_params;
+// set values for dv_params;
+VELO_FUNC_PACK velo_func_pack;
+velo_func_pack.func_params = (POINTER)&dv_params;
+velo_func_pack.func = double_vortex_vel;
+
+FrontInitVelo(&front,&velo_func_pack);
+
+
+------------
+11. Propagating the interface
+------------
+
+The interface is propagated via the FrontAdvance() function. This function has
+the following prototype:
+
+EXPORT  int FrontAdvance(
+        float    dt,
+        float    *dt_frac,
+        Front    *front,
+        Front    **newfront,
+        POINTER  wave);
+
+It is generally called as such:
+Front front;
+...
+// initialization of interface and velocity field
+...
+float dt_frac;
+Front *newfront;
+int status;
+status = FrontAdvance(front->dt,&dt_frac,front,&newfront, (POINTER)NULL);
+
+Where status can have the values: FUNCTION_SUCCEEDED or FUNCTION_FAILED. The
+wave structure is used for gas dynamics and to indicate that there is no gas
+dynamics taking place, NULL is passed in for the wave. dt_frac is just some
+storage that FronTier needs to have passed in each call. newfront is where the
+new advanced front will now live. To move this storage to the main "front", use
+this line:
+
+assign_interface_and_free_front(front,newfront);
+
+And there, the front is propagated.
+
+Visit the webpage:
+
+http://www.ams.sunysb.edu/~linli/FronTier.html
+
+We are gradually building up the manual page for different functions
+provided by the FronTier library.
+
+***
+Last change : April 23, 2009

@@ -1,0 +1,133 @@
+build_cpu = @build_cpu@
+header_files = @headers@
+#include_dirs=include include/FronTier include/FronTier/front include/FronTier/util include/FronTier/intfc
+include_dirs=@include_dirs@
+lib_only:
+	cd src && $(MAKE)
+	$(MAKE) incs 
+
+all: 
+	cd src && $(MAKE)
+	$(MAKE) incs 
+	cd airfoil && $(MAKE)
+	cd cell && $(MAKE)
+	cd cFluid && $(MAKE)
+	cd cim && $(MAKE)
+	cd crystal && $(MAKE)
+	cd curvature && $(MAKE)
+	cd finance && $(MAKE)
+	cd frgb && $(MAKE)
+	cd iFluid && $(MAKE)
+	cd melting && $(MAKE)
+	cd pde && $(MAKE)
+	cd poisson && $(MAKE)
+	cd subsurf && $(MAKE)
+clean:
+	cd src && $(MAKE) clean
+	cd testfront && $(MAKE) clean
+	cd example && $(MAKE) clean
+	cd example3d && $(MAKE) clean
+	cd iFluid && $(MAKE) clean
+	cd cFluid && $(MAKE) clean
+	cd cim && $(MAKE) clean
+	cd airfoil && $(MAKE) clean
+	cd cell && $(MAKE) clean
+	cd crystal && $(MAKE) clean
+	cd curvature && $(MAKE) clean
+	cd finance && $(MAKE) clean
+	cd frgb && $(MAKE) clean
+	cd melting && $(MAKE) clean
+	cd pde && $(MAKE) clean
+	cd poisson && $(MAKE) clean
+	cd subsurf && $(MAKE) clean
+	cd iTaps && $(MAKE) clean
+	-cd lib/$(build_cpu)/; rm -rf gas *.a
+	-rm -rf incs
+	-rm -rf include
+tar:
+	cd src/gas && $(MAKE) tar	
+export:
+	cd src/gas && $(MAKE) export
+
+diff:
+	cd src && $(MAKE) diff
+	-diff -r . $(diffdir) > DIFF
+
+incs: $(include_dirs) include/FronTier.h $(header_files)
+
+include/FronTier:
+	mkdir include include/FronTier
+$(include_dirs): include/FronTier
+	mkdir $@
+
+include/FronTier.h: $(include_dirs) 
+	@echo "#include <FronTier/front/fdecs.h>" > include/FronTier.h
+$(header_files): include/FronTier/%: src/% 
+	@echo "updating: "$@; \
+	sed -e "1,$$ s,include <,include <FronTier/,g" $^ | \
+	sed -e "1,$$ s,include <FronTier/hdf,include <hdf,g" | \
+	sed -e "1,$$ s,include <FronTier/mpi,include <mpi,g" | \
+	sed -e "1,$$ s,include <FronTier/mfhdf,include <mfhdf,g" | \
+	sed -e "1,$$ s,FronTier/cdecs.h,FronTier/util/cdecs.h,g" | \
+	sed -e "1,$$ s,FronTier/vmalloc.h,FronTier/util/vmalloc.h,g" | \
+	sed -e "1,$$ s,FronTier/fnamedebug.h,FronTier/util/fnamedebug.h,g"|  \
+	sed -e "1,$$ s,FronTier/uprotos.h,FronTier/util/uprotos.h,g"| \
+	sed -e "1,$$ s,FronTier/navdecs.h,FronTier/util/navdecs.h,g" | \
+	sed -e "1,$$ s,FronTier/gd.h,gd.h,g" | \
+	sed -e "1,$$ s,FronTier/gdfonts.h,gdfonts.h,g" | \
+	sed -e "1,$$ s,FronTier/gdfontl.h,gdfontl.h,g" | \
+	sed -e "1,$$ s,FronTier/gdfontt.h,gdfontt.h,g" | \
+	sed -e "1,$$ s,FronTier/stdlib.h,stdlib.h,g" | \
+	sed -e "1,$$ s,FronTier/stdio.h,stdio.h,g" | \
+	sed -e "1,$$ s,FronTier/stdint.h,stdint.h,g" | \
+	sed -e "1,$$ s,FronTier/string.h,string.h,g" | \
+	sed -e "1,$$ s,FronTier/unistd.h,unistd.h,g" | \
+	sed -e "1,$$ s,FronTier/ctype.h,ctype.h,g" | \
+	sed -e "1,$$ s,FronTier/math.h,math.h,g" | \
+	sed -e "1,$$ s,FronTier/limits.h,limits.h,g" | \
+	sed -e "1,$$ s,FronTier/float.h,float.h,g" | \
+	sed -e "1,$$ s,FronTier/errno.h,errno.h,g" | \
+	sed -e "1,$$ s,FronTier/libgen.h,libgen.h,g" | \
+	sed -e "1,$$ s,FronTier/algorithm,algorithm,g" | \
+	sed -e "1,$$ s,FronTier/string,string,g" > $@
+$(header_files): $(include_dirs)
+
+
+
+
+
+
+
+
+
+test:	
+	cd example/; $(MAKE)
+	cd testfront/; $(MAKE)
+testrun:
+	@echo "+++++++++++++++++++++++++++++++++"			;\
+	echo "+	 The FronTier          +"			;\
+	echo "+	   TESTFRONT           +"			;\
+	echo "+	  test script          +"			;\
+	echo "+++++++++++++++++++++++++++++++++"			;\
+	echo "+ Input name      |  Status"				;\
+	echo "+++++++++++++++++++++++++++++++++"			;\
+	rm -rf testfront/in/*.sc					;\
+	FILES=`ls testfront/in`						;\
+	for i in $$FILES; do				 		 \
+	echo -n "+ $$i" 						;\
+	testfront/testfront -i testfront/in/$$i -o testfront/out/$$i	;\
+	output=`cat testfront/out/$$i | grep CLEAN_UP`			;\
+	goodresult="		CLEAN_UP, error = 0"			;\
+	if test "$$output" = "$$goodresult"; then			\
+		echo -e '\t\tpassed'					;\
+	fi								;\
+	if test "$$output" != "$$goodresult"; then	              \
+		echo -e '\t\tfailed'	                            ;\
+	fi	                                                      ;\
+	rm -rf testfront/in/*.sc					;\
+	done								;\
+
+
+
+
+

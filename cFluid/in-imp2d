@@ -1,0 +1,69 @@
+Domain limit in 0-th dimension: 0 4
+Domain limit in 1-th dimension: 0 4
+Computational grid: 200 200
+Lower boundary in 0-th dimension: PASSIVE_BOUNDARY
+Upper boundary in 0-th dimension: PASSIVE_BOUNDARY
+Lower boundary in 1-th dimension: PASSIVE_BOUNDARY
+Upper boundary in 1-th dimension: PASSIVE_BOUNDARY
+
+Max time: 12
+Max step: 3000
+Print interval: 2
+Movie frame interval: 0.01
+CFL factor: 0.75
+Redistribution interval: 5
+
+Problem type can be
+	TWO_FLUID_BUBBLE
+	TWO_FLUID_RT
+	TWO_FLUID_RM
+	FLUID_SOLID_CIRCLE
+	IMPLOSION
+Enter problem type: IMPLOSION
+Numerical scheme for interior solver can be
+        TVD_1st_ORDER
+        TVD_2nd_ORDER
+        TVD_4th_ORDER
+Enter numerical scheme for interior solver: TVD_2nd_ORDER
+Point propagator order can be (1,2,4)
+Enter order of point propagator: 2
+
+Enter the center of implosion: 2 2
+Enter radius of the wall: 1.9
+Enter radius of the two fluid interface: 0.8
+Enter yes to add perturbation: yes
+Enter number of Fourier modes: 2
+For 0-th mode enter frequency, amplitude and phase: 2 0.1 90
+For 1-th mode enter frequency, amplitude and phase: 14 0.03 180
+
+Enter gamma, pinf, einf of the fluid with comp 2: 1.67 0 0
+Enter gamma, pinf, einf of the fluid with comp 3: 1.67 0 0
+Enter density and pressure inside contact: 2 1
+Enter density and pressure outside contact: 1 1
+Enter density and pressure at the boundary: 2 10
+Enter gravity: 0 0
+Type yes to track the interface: yes
+
+For interior Dirichlet boundary:
+Enter type of Dirichlet boundary: CONSTANT_STATE
+Enter velocity: 0 0
+Enter pressure: 40
+Enter density: 4.0
+
+Type y to make movie of density: y
+Type y to make movie of pressure: y
+Type y to make movie of vorticity: y
+Type y to make movie of velocity: y
+
+************Debugging options*****************
+
+Enter yes for debugging: no
+Enter the debugging string: trace
+Enter the debugging string: CLOCK
+Enter the debugging string: tstep_size
+Enter the debugging string: sample_velocity
+Enter the sample line type: x
+Cannot find string Enter the sample line coordinate: 2.0
+Enter the start step for sample: 0
+Enter the end step for sample: 100
+Enter the step interval for sample: 1

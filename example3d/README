@@ -1,0 +1,56 @@
+
+This is a directory containing 3D examples of using front tracking
+libary and its basic functionalities. 
+
+If the FronTier library was configured in serial,
+the Makefile will automatically compile examples in serial; if the
+FronTier library is compiled in parallel, the Makefile in this
+directory will automatically compile examples in parallel.
+
+To run an example in serial:
+
+1. compile the FronTier library.
+
+2. copy example[n].c to example.c and make.
+
+3. execute the program.
+
+For example:
+   cp example01.c example.c
+   make
+   example -o output01
+   
+4. The code can also restart from a step of previous run. For example,
+if the user has saved the file in previous run with name:
+
+output.ts0000100
+
+He can restart the run with the command:
+
+example -o output.r -r output -t 100
+
+here output.r is the new output name, output is the restart name and 100 
+is the step at which the data was saved.
+
+To run an example in parallel, the user needs to compile the FronTier
+library in parallel. This can be done in configure:
+
+configure --with-mpich={path to mpich}
+To run an example in parallel, the user needs to compile the FronTier
+library in parallel. This can be done in configure:
+
+configure --with-mpich={path to mpich} [other options]
+or 
+configure --with-openmpi={path to openmpi} [other options]
+
+The run command is:
+
+mpirun -np num_nodes example -p nx ny nz -o out-name
+
+For example:
+
+mpirun -np 8 example -p 2 2 2 -o output
+
+to restart:
+
+mpirun -np 8 example -p 2 2 2 -o output.r -r output -t 100

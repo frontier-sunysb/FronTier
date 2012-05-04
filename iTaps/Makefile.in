@@ -1,0 +1,21 @@
+include ../iMesh-Defs.inc
+#CXX=@CXX@
+#F77=@F77@
+#F77_LIBS=@F77_LIBS@
+
+#libext = @libext@
+incs =  @ftlibincs@
+#libincs = @otherlibsinc@
+#libs = @otherlibs@
+
+iTaps: @devel@ iTaps.cpp
+	rm -f iTaps
+	$(IMESH_CXX) -c -I../include $(incs) $(IMESH_INCLUDES) iTaps.cpp
+	$(IMESH_CXX) iTaps.o $(IMESH_LDFLAGS) $(IMESH_LIBS) -o iTaps
+
+-include ../devel-deps.inc
+
+clean:
+	rm -rf *.o iTaps 
+tagsfile:
+	ctags *.cpp ../src/*/*.[chf] ../src/*/*/*.[chf]

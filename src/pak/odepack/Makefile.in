@@ -1,0 +1,84 @@
+CC=@CC@
+F77=@F77@
+OBJEXT = @OBJEXT@
+ftlibincs = @ftlibincs@
+build_cpu = @build_cpu@
+RANLIB = @RANLIB@
+
+Clibodepak_a_OBJECTS = \
+${build_cpu}/ode.$(OBJEXT)  \
+
+Flibodepak_a_OBJECTS = \
+${build_cpu}/adjlr.$(OBJEXT)\
+${build_cpu}/aigbt.$(OBJEXT) \
+${build_cpu}/ainvg.$(OBJEXT) \
+${build_cpu}/blkdt.$(OBJEXT) \
+${build_cpu}/bnorm.$(OBJEXT) \
+${build_cpu}/cdrv.$(OBJEXT)  \
+${build_cpu}/cfode.$(OBJEXT) \
+${build_cpu}/cntnzu.$(OBJEXT)\
+${build_cpu}/decbt.$(OBJEXT) \
+${build_cpu}/ewset.$(OBJEXT) \
+${build_cpu}/fnorm.$(OBJEXT) \
+${build_cpu}/intdy.$(OBJEXT) \
+${build_cpu}/iprep.$(OBJEXT) \
+${build_cpu}/jgroup.$(OBJEXT)\
+${build_cpu}/lsoda.$(OBJEXT) \
+${build_cpu}/lsodar.$(OBJEXT)\
+${build_cpu}/lsode.$(OBJEXT) \
+${build_cpu}/lsodes.$(OBJEXT) \
+${build_cpu}/lsodi.$(OBJEXT) \
+${build_cpu}/lsoibt.$(OBJEXT)\
+${build_cpu}/md.$(OBJEXT)    \
+${build_cpu}/mdi.$(OBJEXT)   \
+${build_cpu}/mdm.$(OBJEXT)   \
+${build_cpu}/mdp.$(OBJEXT)   \
+${build_cpu}/mdu.$(OBJEXT)   \
+${build_cpu}/nnfc.$(OBJEXT)  \
+${build_cpu}/nnsc.$(OBJEXT)  \
+${build_cpu}/nntc.$(OBJEXT) \
+${build_cpu}/nroc.$(OBJEXT) \
+${build_cpu}/nsfc.$(OBJEXT) \
+${build_cpu}/odrv.$(OBJEXT) \
+${build_cpu}/pjibt.$(OBJEXT) \
+${build_cpu}/prep.$(OBJEXT) \
+${build_cpu}/prepj.$(OBJEXT) \
+${build_cpu}/prepji.$(OBJEXT)\
+${build_cpu}/prja.$(OBJEXT) \
+${build_cpu}/prjs.$(OBJEXT) \
+${build_cpu}/roots.$(OBJEXT) \
+${build_cpu}/slsbt.$(OBJEXT) \
+${build_cpu}/slss.$(OBJEXT) \
+${build_cpu}/solbt.$(OBJEXT) \
+${build_cpu}/solsy.$(OBJEXT) \
+${build_cpu}/sro.$(OBJEXT) \
+${build_cpu}/stoda.$(OBJEXT)\
+${build_cpu}/stode.$(OBJEXT) \
+${build_cpu}/stodi.$(OBJEXT) \
+${build_cpu}/vmnorm.$(OBJEXT) \
+${build_cpu}/vnorm.$(OBJEXT) \
+${build_cpu}/xerrwv.$(OBJEXT) \
+${build_cpu}/d1mach.$(OBJEXT) \
+${build_cpu}/i1mach.$(OBJEXT)
+
+
+Clibodepak_a_SOURCES = ode.c
+
+Flibodepak_a_SOURCES = adjlr.f aigbt.f ainvg.f blkdt.f bnorm.f cdrv.f cfode.f cntnzu.f decbt.f ewset.f fnorm.f intdy.f iprep.f jgroup.f lsoda.f lsodar.f lsode.f lsodes.f lsodi.f lsoibt.f md.f mdi.f mdm.f mdp.f mdu.f nnfc.f nnsc.f nntc.f nroc.f nsfc.f odrv.f pjibt.f prep.f prepj.f prepji.f prja.f prjs.f rchek.f roots.f slsbt.f slss.f  solbt.f  solsy.f sro.f stoda.f  stode.f  stodi.f vmnorm.f vnorm.f xerrwv.f d1mach.c i1mach.f
+
+all: ../../../lib/$(build_cpu)/libodepack.a
+../../../lib/$(build_cpu)/libodepack.a: $(Clibodepak_a_OBJECTS) $(Clibodepak_a_SOURCES) $(Flibodepak_a_OBJECTS) $(Flibodepak_a_SOURCES)
+	-rm -rf libodepack.a
+	$(AR) cru libodepack.a $(Clibodepak_a_OBJECTS) $(Flibodepak_a_OBJECTS)
+	$(RANLIB) libodepack.a; mv libodepack.a ../../../lib/$(build_cpu)/
+
+$(Clibodepak_a_OBJECTS): $(Clibodepak_a_SOURCES)
+	$(CC) -I../../util -c $(*F).c -o $@
+
+
+$(Flibodepak_a_OBJECTS): $(Flibodepak_a_SOURCES)
+	$(F77) -c $(*F).f -o $@
+
+
+clean:
+	cd  $(build_cpu)/; rm -rf *.o

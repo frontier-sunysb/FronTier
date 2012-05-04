@@ -1,0 +1,50 @@
+CXX=@CXX@
+F77=@F77@
+F77_LIBS=@F77_LIBS@
+libext = @libext@
+incs =  @ftlibincs@
+libincs = @otherlibsinc@
+libs = @otherlibs@
+build_cpu = @build_cpu@
+incsloc = -I. -I../include
+
+PETSC = yes
+PETSC_ARCH=@PETSC_ARCH@
+PETSC_DIR=@PETSC_DIR@
+
+Petsc_Include=@PETSC_INCLUDE@
+Petsc_Lib=@PETSC_LIB@
+
+libSolver.a: ../lib/libSolver.a
+
+solver.o : solver.h solver.cpp
+	${CXX} -c solver.cpp $(incsloc) $(incs) ${Petsc_Include}
+ellip.o : solver.h ellip.cpp
+	${CXX} -c ellip.cpp $(incsloc) $(incs) ${Petsc_Include}
+cim_ellip.o : solver.h cim_ellip.cpp
+	${CXX} -c cim_ellip.cpp $(incsloc) $(incs) ${Petsc_Include}
+hyperb.o : solver.h hyperb.cpp
+	${CXX} -c hyperb.cpp $(incsloc) $(incs) ${Petsc_Include}
+
+../lib/libSolver.a: solver.o ellip.o cim_ellip.o hyperb.o
+	$(AR) cru libSolver.a $^
+	ranlib libSolver.a; mv libSolver.a ../lib/$(build_cpu)/libSolver.a
+
+-include ../devel-deps.inc
+
+clean:
+	rm -rf *.o ../lib/$(build_cpu)/libSolver.a
+output :
+	rm -rf out/*
+
+gif :
+	hdf2gif out/intfc.hdf out/intfc.gif
+
+TagsFile:
+	ctags *.h *.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+
+tagsfile:
+	ctags *.h *.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+
+etagsfile:
+	etags *.h *.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]

@@ -1,0 +1,35 @@
+# Sample Makefile for building libcgnslib.a.
+# 
+# 03/07/2010. Xiangmin Jiao
+build_cpu = @build_cpu@
+LIBCGNS = libcgnslib.a
+
+# Option for HDF5. Note that HDF5 1.8 is required.
+WITHHDF5 =
+HDF5INC = 
+
+# Compiler options
+CC=@CC@
+CPPFLAGS = -I. -Iadf $(if $(WITHHDF5),-Iadfh -I$(HDF5INC))
+CFLAGS = -O
+
+AR = ar cr
+ARFLAGS =
+RANLIB = ranlib
+vpath %.c adf adfh
+
+OBJS = cgnslib.o cgns_internals.o cgns_io.o cgns_error.o adf_cond.o \
+       ADF_interface.o ADF_internals.o $(if $(WITHHDF5),ADFH.o)
+
+# Rules
+all: $(LIBCGNS)
+
+$(LIBCGNS): $(OBJS)
+	$(AR) $(ARFLAGS) $@ $^
+	$(RANLIB) $@
+	cp $(LIBCGNS) ../../../lib/$(build_cpu)/
+$(OBJS) : %.o : %.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJS) $(LIBCGNS)

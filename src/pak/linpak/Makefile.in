@@ -1,0 +1,157 @@
+CC=@CC@
+F77=@F77@
+Fliblinpak_a_OBJECTS = \
+${build_cpu}/cchdc.$(OBJEXT) \
+${build_cpu}/cchdd.$(OBJEXT) \
+${build_cpu}/cchex.$(OBJEXT) \
+${build_cpu}/cchud.$(OBJEXT) \
+${build_cpu}/cgbco.$(OBJEXT) \
+${build_cpu}/cgbdi.$(OBJEXT) \
+${build_cpu}/cgbfa.$(OBJEXT) \
+${build_cpu}/cgbsl.$(OBJEXT) \
+${build_cpu}/cgeco.$(OBJEXT) \
+${build_cpu}/cgedi.$(OBJEXT) \
+${build_cpu}/cgefa.$(OBJEXT) \
+${build_cpu}/cgesl.$(OBJEXT) \
+${build_cpu}/cgtsl.$(OBJEXT) \
+${build_cpu}/chico.$(OBJEXT) \
+${build_cpu}/chidi.$(OBJEXT) \
+${build_cpu}/chifa.$(OBJEXT) \
+${build_cpu}/chisl.$(OBJEXT) \
+${build_cpu}/chpco.$(OBJEXT) \
+${build_cpu}/chpdi.$(OBJEXT) \
+${build_cpu}/chpfa.$(OBJEXT) \
+${build_cpu}/chpsl.$(OBJEXT) \
+${build_cpu}/cpbco.$(OBJEXT) \
+${build_cpu}/cpbdi.$(OBJEXT) \
+${build_cpu}/cpbfa.$(OBJEXT) \
+${build_cpu}/cpbsl.$(OBJEXT) \
+${build_cpu}/cpoco.$(OBJEXT) \
+${build_cpu}/cpodi.$(OBJEXT) \
+${build_cpu}/cpofa.$(OBJEXT) \
+${build_cpu}/cposl.$(OBJEXT) \
+${build_cpu}/cppco.$(OBJEXT) \
+${build_cpu}/cppdi.$(OBJEXT) \
+${build_cpu}/cppfa.$(OBJEXT) \
+${build_cpu}/cppsl.$(OBJEXT) \
+${build_cpu}/cptsl.$(OBJEXT) \
+${build_cpu}/cqrdc.$(OBJEXT) \
+${build_cpu}/cqrsl.$(OBJEXT) \
+${build_cpu}/csico.$(OBJEXT) \
+${build_cpu}/csidi.$(OBJEXT) \
+${build_cpu}/csifa.$(OBJEXT) \
+${build_cpu}/csisl.$(OBJEXT) \
+${build_cpu}/cspco.$(OBJEXT) \
+${build_cpu}/cspdi.$(OBJEXT) \
+${build_cpu}/cspfa.$(OBJEXT) \
+${build_cpu}/cspsl.$(OBJEXT) \
+${build_cpu}/csrot.$(OBJEXT) \
+${build_cpu}/csvdc.$(OBJEXT) \
+${build_cpu}/ctrco.$(OBJEXT) \
+${build_cpu}/ctrdi.$(OBJEXT) \
+${build_cpu}/ctrsl.$(OBJEXT) \
+${build_cpu}/dcabs1.$(OBJEXT) \
+${build_cpu}/dchdc.$(OBJEXT) \
+${build_cpu}/dchdd.$(OBJEXT) \
+${build_cpu}/dchex.$(OBJEXT) \
+${build_cpu}/dchud.$(OBJEXT) \
+${build_cpu}/dgbco.$(OBJEXT) \
+${build_cpu}/dgbdi.$(OBJEXT) \
+${build_cpu}/dgbfa.$(OBJEXT) \
+${build_cpu}/dgbsl.$(OBJEXT) \
+${build_cpu}/dgeco.$(OBJEXT) \
+${build_cpu}/dgedi.$(OBJEXT) \
+${build_cpu}/dgefa.$(OBJEXT) \
+${build_cpu}/dgesl.$(OBJEXT) \
+${build_cpu}/dgtsl.$(OBJEXT) \
+${build_cpu}/dpbco.$(OBJEXT) \
+${build_cpu}/dpbdi.$(OBJEXT) \
+${build_cpu}/dpbfa.$(OBJEXT) \
+${build_cpu}/dpbsl.$(OBJEXT) \
+${build_cpu}/dpoco.$(OBJEXT) \
+${build_cpu}/dpodi.$(OBJEXT) \
+${build_cpu}/dpofa.$(OBJEXT) \
+${build_cpu}/dposl.$(OBJEXT) \
+${build_cpu}/dppco.$(OBJEXT) \
+${build_cpu}/dppdi.$(OBJEXT) \
+${build_cpu}/dppfa.$(OBJEXT) \
+${build_cpu}/dppsl.$(OBJEXT) \
+${build_cpu}/dptsl.$(OBJEXT) \
+${build_cpu}/dqrdc.$(OBJEXT) \
+${build_cpu}/dqrsl.$(OBJEXT) \
+${build_cpu}/dsico.$(OBJEXT) \
+${build_cpu}/dsidi.$(OBJEXT) \
+${build_cpu}/dsifa.$(OBJEXT) \
+${build_cpu}/dsisl.$(OBJEXT) \
+${build_cpu}/dspco.$(OBJEXT) \
+${build_cpu}/dspdi.$(OBJEXT) \
+${build_cpu}/dspfa.$(OBJEXT) \
+${build_cpu}/dspsl.$(OBJEXT) \
+${build_cpu}/dsvdc.$(OBJEXT) \
+${build_cpu}/dtrco.$(OBJEXT) \
+${build_cpu}/dtrdi.$(OBJEXT) \
+${build_cpu}/dtrsl.$(OBJEXT) \
+${build_cpu}/dzasum.$(OBJEXT) \
+${build_cpu}/dznrm2.$(OBJEXT) \
+${build_cpu}/schdc.$(OBJEXT) \
+${build_cpu}/schdd.$(OBJEXT) \
+${build_cpu}/schex.$(OBJEXT) \
+${build_cpu}/schud.$(OBJEXT) \
+${build_cpu}/sgbco.$(OBJEXT) \
+${build_cpu}/sgbdi.$(OBJEXT) \
+${build_cpu}/sgbfa.$(OBJEXT) \
+${build_cpu}/sgbsl.$(OBJEXT) \
+${build_cpu}/sgeco.$(OBJEXT) \
+${build_cpu}/sgedi.$(OBJEXT) \
+${build_cpu}/sgefa.$(OBJEXT) \
+${build_cpu}/sgesl.$(OBJEXT) \
+${build_cpu}/sgtsl.$(OBJEXT) \
+${build_cpu}/spbco.$(OBJEXT) \
+${build_cpu}/spbdi.$(OBJEXT) \
+${build_cpu}/spbfa.$(OBJEXT) \
+${build_cpu}/spbsl.$(OBJEXT) \
+${build_cpu}/spoco.$(OBJEXT) \
+${build_cpu}/spodi.$(OBJEXT) \
+${build_cpu}/spofa.$(OBJEXT) \
+${build_cpu}/sposl.$(OBJEXT) \
+${build_cpu}/sppco.$(OBJEXT) \
+${build_cpu}/sppdi.$(OBJEXT) \
+${build_cpu}/sppfa.$(OBJEXT) \
+${build_cpu}/sppsl.$(OBJEXT) \
+${build_cpu}/sptsl.$(OBJEXT) \
+${build_cpu}/sqrdc.$(OBJEXT) \
+${build_cpu}/sqrsl.$(OBJEXT) \
+${build_cpu}/ssico.$(OBJEXT) \
+${build_cpu}/ssidi.$(OBJEXT) \
+${build_cpu}/ssifa.$(OBJEXT) \
+${build_cpu}/ssisl.$(OBJEXT) \
+${build_cpu}/sspco.$(OBJEXT) \
+${build_cpu}/sspdi.$(OBJEXT) \
+${build_cpu}/sspfa.$(OBJEXT) \
+${build_cpu}/sspsl.$(OBJEXT) \
+${build_cpu}/ssvdc.$(OBJEXT) \
+${build_cpu}/strco.$(OBJEXT) \
+${build_cpu}/strdi.$(OBJEXT) \
+${build_cpu}/strsl.$(OBJEXT)
+Fliblinpak_a_SOURCES = cchdc.f cchdd.f cchex.f cchud.f cgbco.f cgbdi.f cgbfa.f cgbsl.f  cgeco.f cgedi.f cgefa.f cgesl.f cgtsl.f chico.f chidi.f chifa.f  chisl.f chpco.f chpdi.f chpfa.f chpsl.f cpbco.f cpbdi.f cpbfa.f  cpbsl.f cpoco.f cpodi.f cpofa.f cposl.f cppco.f cppdi.f cppfa.f  cppsl.f cptsl.f cqrdc.f cqrsl.f csico.f csidi.f csifa.f csisl.f  cspco.f cspdi.f cspfa.f cspsl.f csrot.f csvdc.f ctrco.f ctrdi.f  ctrsl.f dcabs1.f dchdc.f dchdd.f dchex.f dchud.f dgbco.f dgbdi.f dgbfa.f dgbsl.f dgeco.f dgedi.f dgefa.f dgesl.f dgtsl.f dpbco.f dpbdi.f  dpbfa.f dpbsl.f dpoco.f dpodi.f dpofa.f dposl.f dppco.f dppdi.f  dppfa.f dppsl.f dptsl.f dqrdc.f dqrsl.f dsico.f dsidi.f dsifa.f  dsisl.f dspco.f dspdi.f dspfa.f dspsl.f dsvdc.f dtrco.f dtrdi.f  dtrsl.f dzasum.f dznrm2.f schdc.f schdd.f schex.f schud.f sgbco.f sgbdi.f sgbfa.f sgbsl.f  sgeco.f sgedi.f sgefa.f sgesl.f sgtsl.f spbco.f spbdi.f spbfa.f  spbsl.f spoco.f spodi.f spofa.f sposl.f sppco.f sppdi.f sppfa.f  sppsl.f sptsl.f sqrdc.f sqrsl.f ssico.f ssidi.f ssifa.f ssisl.f  sspco.f sspdi.f sspfa.f sspsl.f ssvdc.f strco.f strdi.f strsl.f
+
+OBJEXT = @OBJEXT@
+ftlibincs = @ftlibincs@
+build_cpu = @build_cpu@
+RANLIB = @RANLIB@
+all:@build_cpu@ ../../../lib/$(build_cpu)/liblinpak.a
+../../../lib/$(build_cpu)/liblinpak.a: $(Fliblinpak_a_OBJECTS) $(Fliblinpak_a_SOURCES)
+	-rm -f liblinpak.a
+	-rm -f ${build_cpu}/liblinpak.a
+	$(AR) cru liblinpak.a $(Fliblinpak_a_OBJECTS) $(Fliblinpak_a_LIBADD)
+	$(RANLIB) liblinpak.a; mv liblinpak.a ../../../lib/${build_cpu}/
+
+
+$(Fliblinpak_a_OBJECTS): $(Fliblinpak_a_SOURCES)
+	$(F77) -I. -c $(*F).f -o $@
+
+@build_cpu@:
+	mkdir $@
+
+clean:
+	cd  $(build_cpu)/; rm -rf *.o

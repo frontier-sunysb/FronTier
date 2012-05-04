@@ -1,0 +1,52 @@
+Domain limit in 0-th dimension: 0 1
+Domain limit in 1-th dimension: 0 4
+Computational grid: 50 200
+Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
+Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
+Lower boundary in 1-th dimension: NEUMANN_BOUNDARY
+Upper boundary in 1-th dimension: NEUMANN_BOUNDARY
+
+Max time: 17.5
+Max step: 100000
+Print interval: 50
+Movie frame interval: 0.25
+CFL factor: 0.75
+Redistribution interval: 5
+
+Problem type can be
+	TWO_FLUID_BUBBLE
+	TWO_FLUID_RT
+	TWO_FLUID_BUBBLE
+	FLUID_SOLID_CIRCLE
+Enter problem type: TWO_FLUID_BUBBLE
+Numerical scheme for interior solver can be
+        TVD_1st_ORDER
+        TVD_2nd_ORDER
+        TVD_4th_ORDER
+Enter numerical scheme for interior solver: TVD_2nd_ORDER
+Point propagator order can be (1,2,4)
+Enter order of point propagator: 2
+
+Enter the center of the circle: 0.5 2.0
+Enter radius of the circle: 0.2
+
+Enter gamma, pinf, einf of the fluid with comp 2: 1.67 0 0
+Enter gamma, pinf, einf of the fluid with comp 3: 1.67 0 0
+Enter density and pressure inside bubble: 2 1
+Enter density and pressure outside bubble: 1 1
+Enter gravity: 0 -0.14
+Enter pressure at interface: 1
+Type yes to track the interface: y
+
+Type y to make movie of density: y
+Type y to make movie of pressure: y
+Type y to make movie of vorticity: y
+Type y to make movie of velocity: y
+
+************Debugging options*****************
+
+Enter yes for debugging: no
+Enter the debugging string: trace
+Enter the debugging string: CLOCK
+Enter the debugging string: step_size
+Enter the debugging string: sample_velocity

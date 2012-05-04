@@ -1,0 +1,73 @@
+Domain limit in 0-th dimension: 0 4
+Domain limit in 1-th dimension: 0 4
+Computational grid: 200 200
+Lower boundary in 0-th dimension: PASSIVE_BOUNDARY
+Upper boundary in 0-th dimension: PASSIVE_BOUNDARY
+Lower boundary in 1-th dimension: PASSIVE_BOUNDARY
+Upper boundary in 1-th dimension: PASSIVE_BOUNDARY
+
+Max time: 2.0
+Max step: 10000
+Print interval: 1
+Movie frame interval: 0.002
+CFL factor: 0.75
+Redistribution interval: 1000000000
+
+Problem type can be
+        TWO_FLUID_BUBBLE
+        TWO_FLUID_RT
+        FLUID_SOLID_CIRCLE
+	FLUID_RIGID_BODY
+	ROTRO_ONE_FLUID
+Enter problem type: ROTRO_ONE_FLUID
+Projection type can be
+        SIMPLE
+        BELL_COLELLA
+        KIM_MOIN
+        PEROT_BOTELLA
+Enter projection type: SIMPLE
+Enter center of the cylinder: 2.0 2.0
+Enter radius of the cylinder: 1.9
+Enter density and viscosity of the fluid: 0.1 0.00628
+Enter gravity: 0.0 0.0
+
+Available geometrical shapes of rigid body are
+	Ellipse (E)
+	Tilt Ellipse (N)
+	Triangle (T)
+	Rectangle (R)
+	Cosmos (C)
+	Taegeuk (G)
+	Wing (W)
+	Propeller (P)
+Enter the shape of the rotor: p
+Enter the center: 2.0 2.0
+Enter the number of wings: 8
+Enter the inner radius: 0.6
+Enter the outer radius: 0.9
+
+************Rigid body parameters*************
+
+Enter the total mass for rigid body: 1.0
+Enter the center of mass for rigid body: 2.0 2.0
+Type yes if rigid body will only rotate about an axis: y
+Enter center of the axis: 2.0 2.0
+Enter the moment of inertial about the axis: 4.0
+Type yes if angular velocity is preset: y
+Enter preset angular velocity: 31.4
+
+************Movie output parameters*************
+
+Type y to make movie of pressure: n
+Type y to make movie of vorticity: y
+Type y to make movie of velocity: n
+
+Type y to make vector velocity field movie: y
+
+************Debugging options*****************
+
+Enter yes for debugging: no
+Enter the debugging string: trace
+Enter the debugging string: CLOCK
+Enter the debugging string: step_size
+Enter the debugging string: sample_velocity

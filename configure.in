@@ -1,0 +1,714 @@
+AC_PREREQ(2.57)
+AC_INIT([FronTier],[1.0])
+#AC_ARG_PROGRAM
+AC_CONFIG_SRCDIR([src/intfc/array.h])
+AC_PROG_RANLIB
+AC_PROG_INSTALL
+AC_CANONICAL_BUILD 
+AC_PROG_AWK
+#echo "BUILD CPU=${build_cpu}"
+#echo "BUILD OS=${build_os}"
+
+#scriptotherlibs=" "
+
+AC_ARG_WITH(devel, [   --with-devel                Enables dependency tracking in examples for FronTier files],[ checklibs=FT_libs ] [ check_libs="" ] )
+
+AC_SUBST(devel, ${checklibs})
+
+# Checks for programs.
+AC_ARG_WITH(seaborg,[  --with-seaborg              Setup for seaborg],[seaborgg="yes"],[seaborgg="no"])
+if test $seaborgg = 'yes'; then
+        module add GNU
+        module load gcc
+fi
+
+AC_ARG_ENABLE(linpak, [  --enable-linpak               Turns on the building and linking of the linpak library],[build_linpak=1],[build_linpak=0])
+
+# Check CGNS
+
+AC_ARG_WITH(cgns,[  --with-cgns           Support for the cgns file format],[build_cgns=1],[build_cgns=0])
+if test ${build_cgns} -eq 1; then
+        scriptotherlibs="${scriptotherlibs} -lcgnslib"
+	cgnsincs="  -DUSE_CGNS "
+	AC_DEFINE(USE_CGNS)
+fi
+AC_SUBST(build_cgns, ${build_cgns})
+
+########################### BUILD GAS ##############################
+gasyesorno=" "
+pakyesorno=" "
+subgrid=" "
+rotsym=" "
+gastest=" "
+gascleann=" "
+AC_ARG_WITH(gas,[  --with-gas                 Compilation of the FronTier gas code ],[gasyesorno='cd gas   && $(MAKE) gas_all'  gascleann='cd gas  &&  $(MAKE)  clean' gastest="yes"],[gasyesorno=" " gastest="no"])
+
+AC_ARG_WITH(subgrid,[  --with-subgrid               Compilation of the FronTier gas code, with the fully conservative algorithm ],[gasyesorno='cd gas   && $(MAKE) gas_all' driveryesorno='cd driver && $(MAKE)' hypyesorno='cd hyp    && $(MAKE)' subgrid=" -DSUBGRID"],[])
+
+AC_ARG_WITH(combustion,[  --with-combustion              Support for the gas combustion code],[combus="yes"],[combus="no"])
+
+AC_ARG_WITH(rotsym,[  --with-rotsym                 Compilation of the FronTier gas code, with rotational symetry ],[gasyesorno='cd gas   && $(MAKE) gas_all' gascleann='cd gas  &&  $(MAKE) clean' rotsym='-DROTATIONAL_SYMMETRY'],[ rotsym=" "])
+
+AC_ARG_WITH(gd,[  --with-gd=PFX             Links with gd library for 1d post processing],[scriptotherlibsinc=" -L$withval/lib "${scriptotherlibs} scriptotherlibs="-lgd "${scriptotherlibs} gdincs=" -D__GD__ -I"${withval}"/include "],[gdincs=""])
+        
+
+############################ END BUILD GAS ###########################
+
+############################ Compiler Checks #########################
+AC_PROG_CC(gcc gcc295 cc)
+AC_PROG_CXX
+AC_PROG_F77(gfortran)
+AC_LANG(C)
+############################ Compiler Checks Ends ####################
+
+
+
+
+
+AC_ARG_WITH(mpi, [ --with-mpi             generic MPI support. See manual.], [ ompincs=" -D__MPI__ " mpi=$withval],[ mpi="no"])
+
+AC_ARG_WITH(openmpi, [ --with-openmpi=path              use openmpi for MPI], [ompi=$withval],[ompi="no"])
+if test $ompi != "no" ; then
+    ompincs=" -D__MPI__ -I"$ompi"/include "
+    scriptotherlibsinc=${scriptotherlibsinc}" -L"$withval"/lib "
+    scriptotherlibs=${scriptotherlibs}" -lmpi -lmpi_cxx "
+fi
+
+
+AC_ARG_WITH(extra-incs,[  --with-extra-incs              a spot to put extra includes.],[extrai=$withval ],[extrai=" "])
+
+AC_ARG_WITH(extra-libs,[  --with-extra-libs              a spot to put extra libs.],[extral=${withval} ],[extral=" " ])
+scriptotherlibs=${scriptotherlibs}${extral}
+
+AC_CHECK_HEADER(malloc.h,[malloch='yes'],[malloch='no'])
+systemincs=" "
+if test $malloch = 'no'; then
+                # darwin places malloc.h in malloc/malloc.h
+                AC_CHECK_HEADER(malloc/malloc.h,[mallochd='yes'],[mallochd='no'])
+                #systemincs=${systemincs}"-I/usr/include/malloc/ -I/usr/include/sys/"
+                systemincs=${systemincs}"-I/usr/include/malloc/ "
+                if test $mallochd = 'no'; then
+                        AC_MSG_ERROR([malloc.h cannot be found  please do something about this.])
+                
+                fi
+fi
+ 
+AC_CHECK_FUNC(malloc,[malloc='yes'],[malloc='no'])
+                if test $malloc = 'no'; then
+                AC_MSG_ERROR([malloc cannot be found  please do something about this.])
+                fi
+
+#AC_CHECK_MEMBER([struct mallinfo.arena],[mallinfo='yes'],[mallinfo='no']) 
+#                if test $mallinfo = 'no'; then
+#                 systemincs=${systemincs}" -DNO_MALLINFO "
+#                fi
+
+
+#################################################
+### TESTS TO BE PREFORMED FOR FRONTIER
+################################################
+
+# checks for the function feenableexcept. If found -DHAS_FENV is set.
+
+AC_CHECK_LIB(m,feenableexcept,[fenv=" -DHAS_FENV "],[fenv=""])
+
+#done feenableeexpcept test
+
+# checks for libieee
+AC_CHECK_LIB(ieee,main,[],[])
+AC_CHECK_LIB(hdf,main,[scriptotherlibs=${scriptotherlibs}" -lhdf " testhdff='yes'],[testhdff='no'])
+
+#done with ieee check
+
+testmpi="no"
+mpiprexif="no"
+mpichprexif="no"
+testovertureprefix="neither"
+libover="neither"
+app="neither"
+testappprefix="neither"
+# check for overture
+
+AC_ARG_WITH(hdf,[  --with-hdf              Support for the hdf library],[hdffprefix=$withval hdff="yes"],[hdff="no"])
+if test $hdff = 'yes';then
+        hdfincs=" -I"${hdffprefix}"/include -DUSE_HDF "
+        scriptotherlibsinc=${scriptotherlibsinc}" -L"${hdffprefix}"/lib "
+        scriptotherlibs=${scriptotherlibs}" -lmfhdf -ldf -ljpeg -lz "        
+
+fi
+AC_ARG_WITH(hdf5,[  --with-hdf5              Support for the hdf5 library],[hdff5prefix=$withval hdff5="yes"],[hdff5="no"])
+if test $hdff5 = 'yes';then
+        hdf5incs=" -I"${hdff5prefix}"/include -DUSE_HDF5 "
+        scriptotherlibsinc=${scriptotherlibsinc}" -L"${hdff5prefix}"/lib "
+        scriptotherlibs=${scriptotherlibs}" -lhdf5"        
+
+fi
+
+AC_ARG_WITH(amr,[  --with-amr              Support generic AMR],[amrprefix=$withval amrr="yes"],[amrr="no"])
+if test $amrr = 'yes';then
+amrincs=" -DUSE_AMR "
+
+fi
+
+AC_ARG_WITH(overture,[  --with-overture              Support for the Overture AMR library],[testover="yes"],[testover="no"])
+
+
+if test $testover = 'yes';then
+AC_CHECK_LIB(libOverture.so,main,[libover="yes"],[libover="no"])
+fi
+
+AC_ARG_WITH(overture-prefix,[  --with-overture-prefix=PFX    Prefix where overture is installed],[testovertureprefix="yes" overtureprefix=$withval],[testovertureprefix="no"])
+
+if test $testovertureprefix = 'no' && test $libover = 'no'; then
+AC_MSG_ERROR([libOverture.so can not be found on this system, and its location is not specified. Please specify where it is using the --with-overture-prefix, or do not select the overture option.])
+fi
+
+AC_ARG_WITH(no-debugging,[  --with-no-debugging          Removes the -g option while compiling],[debug=" "],[debug=" -g "])
+
+
+##########################################################################################
+#              ||  all things requird for overture.  ||
+#if overture is opted for and found, check for A++, Mesa, Xlibs, and hdf  and others
+
+if test $libover = 'yes' || test $testovertureprefix = 'yes'; then
+
+AC_CHECK_LIB(libApp,main,[app="yes"],[app="no"])
+##check for mesa on syste
+AC_CHECK_LIB(MesaGL,main,[mesagl="yes"],[mesagl="no"]) 
+AC_CHECK_LIB(MesaGLU,main,[mesaglu="yes"],[mesaglu="no"])
+AC_CHECK_LIB(GLw,main,[glw="yes"],[glw="no"])
+        sysmesa=yes
+        if test $mesagl = 'no' || test mesaglu = 'no'|| test GLw = 'no';then
+        sysmesa='no'
+        fi 
+### check for X libs 
+AC_PATH_X
+## check for hdf
+AC_CHECK_LIB(mfhdf,main,[mfhdf="yes"],[mfhdf="no"])
+AC_CHECK_LIB(df,main,[df="yes"],[df="no"])
+AC_CHECK_LIB(jpeg,main,[jpeg="yes"],[jpeg="no"])
+AC_CHECK_LIB(z,main,[z="yes"],[z="no"])
+syshdf=yes
+        if test $mfhdf = 'no' || test $df = 'no' || test $jpeg = 'no' || test $z = 'no';then
+        syshdf='no'
+        fi
+
+#now check for user specified.
+
+AC_ARG_WITH(overture-hdf-prefix,[  --with-overture-hdf-prefix=PFX    Prefix where HDF is installed (necessary for Overture)],[testhdfprefix="yes" hdfprefix=$withval],[testhdfprefix="no"])
+AC_ARG_WITH(overture-mesa-prefix,[  --with-overture-mesa-prefix=PFX    Prefix where mesa is installed (necessary for Overture)],[testmesaprefix="yes" mesaprefix=$withval],[testmesaprefix="no"])
+
+
+
+
+AC_ARG_WITH(overture-app-prefix,[  --with-overture-app-prefix=PFX    Prefix where A++ is installed(necessary for overture)],[testappprefix="yes" appprefix=$withval],[testappprefix="no"])
+
+
+# stop configure if neither is found.
+
+                if test $app = 'no' && test $testappprefix = 'no'; then
+                AC_MSG_ERROR([libApp.so can not be found on this system, and its location is not specified. It you are using overture, it is also necessary to use this library. Please specify where it is using the --with-overture-app-prefix, or do not select the overture option.])
+                fi
+                
+                if test $sysmesa = 'no' && test $testmesaprefix = 'no';then
+                AC_MSG_ERROR([parts of, or all of the mesa libraries are missing, and their location is not specified. If you are using overture it is necessary to use this library.  Please specify where it is using the --with-overture-mesa-prefix, or do not select the overture option.])
+                fi                
+                
+                if test $syshdf = 'no' && test $testhdfprefix = 'no';then
+                AC_MSG_ERROR([parts of, or all of the hdf libraries are missing, and their location is not specified. If you are using overture it is necessary to use this library.  Please specify where it is using the --with-overture-hdf-prefix, or do not select the overture option.])
+                fi
+
+fi
+
+############################################################################################
+#done with overture
+########################### TSTT check #####################
+
+
+
+
+
+AC_ARG_ENABLE(itaps,
+AS_HELP_STRING([--enable-itaps],[compiles in extra data into intfc structure needed for all itaps components (iMesh)]),
+[if (test "$enableval" = "yes") ; then
+        itapsd=' -DIMESH '
+  else
+        itapsd=' '
+    fi
+    ])
+
+AC_ARG_ENABLE(imesh,
+AS_HELP_STRING([--enable-imesh],[compiles in extra data into intfc structure needed for iMesh]),
+[if (test "$enableval" = "yes") ; then
+        itapsd='-DIMESH'
+ fi
+])
+    
+
+####################################################3
+# check generic for mpich
+#/////////////////////////////
+AC_ARG_WITH(mpich,[  --with-mpich=PFX              Support for the mpich library, add the =PFX where PFX is the path to mpich, if it not in a system location,FronTier may suport other mpi implementations, that can put here also.],[mpichprefix=$withval mpichh="yes"],[mpichh="no"])
+if test $mpichh = 'yes';then
+        mpichincs=" -I"${mpichprefix}"/include -D__MPI__ "
+        scriptotherlibsinc=${scriptotherlibsinc}" -L"${mpichprefix}"/lib "
+        scriptotherlibs=${scriptotherlibs}" -lmpich -lpthread"
+fi
+
+AC_ARG_WITH(petsc, [ --with-petsc=path                 compile with petsc support], [petscdir=$withval iFluid="cd iFluid && \$(MAKE)"], [petscdir="" iFluid=""])
+if test "$petscdir" = ""; then
+    echo "PETSC not enabled, cannot build iFluid"
+else
+    if test $mpichh = 'no' -a $ompi = 'no' -a $mpi = 'no' ;then
+        echo "Cannot enable PETSC without mpi"
+        petscdir=""
+        iFluid=""
+    else
+        echo "PETSC enabled"
+	AC_SUBST(PETSC_DIR,${PETSC_DIR})
+	AC_SUBST(PETSC_ARCH,${PETSC_ARCH})
+	AC_SUBST(PETSC_LIB,${PETSC_LIB})
+	AC_SUBST(PETSC_INCLUDE,${PETSC_INCLUDE})
+       	
+    fi
+    if test ${build_linpak} -eq 0; then
+        echo "Building LINPAK because petsc requires it"
+        build_linpak=1
+    fi
+fi
+
+AC_SUBST(iFluid, ${iFluid})
+#/////////////////////////////
+#ibasename='no'
+#idirname='no'
+# check for irix
+if test $build_os = "irix" || test $build_cpu = "irix" || test $build_vendor = "irix" || test $build_os = "IRIX" || test $build_cpu = "IRIX"|| test $build_vendor = "IRIX";then
+echo made it in
+AC_CHECK_LIB(gen,basename,[ibasename='yes'],[ibasename='no'])
+AC_CHECK_LIB(gen,dirname,[idirname='yes'],[idirname='no'])
+firix=" -DFTIRIX -common "
+scriptotherlibs=${scriptotherlibs}" -lgen -lmalloc "
+fi
+# done with irix
+
+echo  $build_os
+#check for linux
+if test $build_os = "linux" || test $build_os = "linux-gnu";then
+echo using linux GCC optimizations when no debug option
+if test $debug = " "; then
+    optimization=" -O3 "
+else
+    optimization=" "
+fi
+fi
+
+#done with linux
+if test $build_os = "darwin7.8.0" || test $build_os = "darwin";then
+echo using  GCC optimizations
+optimization=" -O3 "
+scriptotherlibs=${scriptotherlibs}"  "
+fi
+
+
+
+# check for sun
+if test $build_os = "sun" || test $build_cpu = "sun" || test $build_vendor = "sun" || test $build_os = "SUN" || test $build_cpu = "SUN"|| test $build_vendor = "SUN";then
+scriptotherlibs=${scriptotherlibs}" -lmalloc "
+fsun=" -ext_names -w "
+fi
+# done with sun
+
+AC_CHECK_FUNC(basename,[basename='yes'],[basename='no'])
+AC_CHECK_FUNC(dirname,[dirname='yes'],[dirname='no'])
+
+if test $basename = 'no' && test $ibasename = 'no';then
+echo using alternate basename and dirname.
+AC_SUBST(name,name)
+noname=" -DNO_DIRNAME "
+echo ${scriptotherlibsinc}
+scriptotherlibsinc=${scriptotherlibsinc}" -L""../util/name "
+echo ${scriptotherlibsinc}
+else
+AC_SUBST(name,[])
+noname=""
+echo not using name.h
+fi
+
+#########################################
+##############################################################
+# Setting C++ as the compiler
+###############################################################
+echo "Using C++"
+#AC_SUBST(ccft,$CXX)
+AC_SUBST(CC,$CC)
+AC_SUBST(CXX,$CXX)
+AC_SUBST(F77,$F77)
+AC_SUBST(F77_LIBS,$F77_LIBS)
+AC_SUBST(libext,"")
+cppflagss=" "
+
+################################################################
+# Done checking for C++
+##########################################################
+
+########################################
+# Checking for Hypre support
+########################################
+hypreyesorno=" "
+snyesorno=" "
+testhypreprefix='no'
+testhypreprexif='no'
+#AC_ARG_WITH(hypre,[  --with-hypre             This makes frontier working with Hypre Library. This is nessacry for some features in FronTier such as 2D gravity support],[hypref=yes hypreyesorno='cd hypre-1.6.0/src && $(MAKE)' snyesorno='cd sn_ellip && $(MAKE)'],[ hypref=no hypreyesorno=' ' snyesorno=' '])
+AC_ARG_WITH(hypre,[  --with-hypre             This makes frontier working with Hypre Library. This is nessacry for some features in FronTier such as 2D gravity support],[hypref=yes hypreprefix=$withval hypreyesorno=' ' snyesorno='cd sn_ellip && $(MAKE)'],[ hypref=no hypreyesorno=' ' snyesorno=' '])
+#AC_ARG_WITH(hypre-prefix,[  --with-hypre-prefix=PFX   Prefix where  HYPRE is installed],[testhypreprefix="yes" hypreprefix=$withval],[testhypreprefix="no" hypreprexif=$withval])
+if test $hypref = 'yes';then
+#####if use hypre, then mpich and C++ should also be used
+#    echo "hypre need mpich and C++, so FronTier will autodect where mpich is"
+#    echo "if detect mpich dir fail, please specify mpich prefix"
+#    cppflagss=" "
+#     mpiCC_dir=`which mpiCC`
+#     mpichprefix=`cat $mpiCC_dir | grep 'prefix=/' | cut -d= -f2`
+#     echo "mpich prefix:" $mpichprefix
+#####end add mpich and C++ stuff
+#    if test $testhypreprefix = 'yes'; then
+        echo "user defined HYPRE DIR"
+        echo $hypreprefix
+        hypreyesorno=' '
+#    else
+#        if test -d /usr/local/hypre; then
+#            hypreprefix=/usr/local/hypre
+#            echo Hypre library is at $hypreprefix
+#            hypreyesorno=' '
+#        else    
+#            echo FronTier contained HYPRE DIR 
+#            hypreprefix=`pwd`"/src/pak/hypre-1.6.0/src/hypre"
+#            echo $hypreprefix
+#            cd src/pak/
+#            if test -d hypre-1.6.0; then
+#                echo "hypre-1.6.0 has existed, don't have to untar" 
+#            else
+#                echo "hypre-1.6.0 not exist, untaring......"
+#                tar xvzf hypre-1.6.0.tar.gz 
+#            fi
+#            cd hypre-1.6.0/src
+#            ./configure
+#            cd ../../../..
+#        fi
+#    fi
+    snprefix=`pwd`"/src/pak/sn_ellip"
+    hypreincs=" -I"${snprefix}" -I"${hypreprefix}"/include -DHYPRE"
+    scriptotherlibsinc=${scriptotherlibsinc}" -L"${hypreprefix}"/lib -L"${snprefix}
+    scriptotherlibs=${scriptotherlibs}" -lSN_ELLIP  -lHYPRE_IJ_mv -lHYPRE_utilities -lHYPRE_LSI -lHYPRE_blas -lmpich -lpthread"
+
+#    if test $mpichh = 'no';then
+#        mpichincs=" -I"${mpichprefix}"/include -D__MPI__ "
+#        scriptotherlibsinc=${scriptotherlibsinc}" -L"${mpichprefix}"/lib "
+#    fi
+else
+    echo "without hypre, there may be errors if using 2D gravity."
+fi
+
+
+########################################
+# Done checking for Hypre
+########################################
+
+###################################################################
+# FT build instructions
+#############################################################3#
+
+
+##############################################################
+# Done FT build instructions
+##############################################################
+
+
+######################################################
+##### CHANGING VARIBLES BASED ON ABOVE TESTS AND INPUT
+#########################################################
+#combustion code
+
+if test $combus = 'yes';then
+physincs=${physincs}" -DCOMBUSTION_CODE"
+fi
+
+#  Generic MPI
+mpiincs=''
+mpi=''
+
+
+if test $testmpi = 'yes';then 
+mpi=" -D__MPI__ "
+if test $seaborgg = 'yes';then
+echo ""
+echo "hohoho seaborg and mpi what a blast!"
+echo ""
+mpiincs="-mpe"
+aixmpichangback=${scriptotherlibs}
+fi
+scriptotherlibs=${scriptotherlibs}" -lmpi "
+if test $seaborgg = 'yes';then
+scriptotherlibs=${aixmpichangback}
+fi
+fi 
+
+
+
+
+#overture
+###############################
+if test $testovertureprefix = 'yes'; then
+# flag to compile overture part of frontier
+over=" -DUSE_OVERTURE "
+#includes nesscary to compile overter code in frontier
+overinc=" -I"${overtureprefix}"/include/ " 
+# overture requires g++
+AC_SUBST(CC,$CXX)
+# paralell overture requires mpif77
+
+if test $testmpich = 'yes' || test $testmpi = 'yes' || test $mpichprefix = 'yes';then
+AC_SUBST(F77,"mpif77")
+fi
+
+# all the extra libs needed! 
+overlib=" -lOverture -lOverture_static -lXm  -lXpm -lXp -lXt -lXmu -lXi -lXext -lX11 -lmfhdf -ldf -ljpeg -lz -lMesaGL -lMesaGLU -lGLw -lApp -lApp_static "
+scriptotherlibs=${scriptotherlibs}${overlib}
+scriptotherlibsinc=${scriptotherlibsinc}" -L"${overtureprefix}"/lib/ -L"${x_libraries}" -L"${hdfprefix}"/lib -L"${mesaprefix}"/lib -L"$appprefix"/lib "
+fi
+
+## if A++ and Overture installed in the system.
+if test $testappprefix = 'yes'; then
+appinc="-I"${appprefix}"/include "
+fi
+
+
+if test $testover =  'yes';then
+over="-DUSE_OVERTURE "
+fi
+
+#echo "gasyesorno=x${gasyesorno}x"
+echo "gastest="${gastest}
+if test  $gastest = yes; then
+        echo "LINPAK enabled because gas requires it."
+        build_linpak=0
+fi
+###################################
+#end overture
+ 
+ftlibdubug=" -DDEBUG_CROSSING -DDEBUG_NODE_PROPAGATE -DDEBUG_TRI_GRID "
+
+dim=" -DONED -DTWOD -DTHREED "
+
+optimization=$optimization 
+
+gasdebug=" -DCHECK_FOR_BAD_STATES -DDEBUG_GRIEMANN -DDEBUG_MUSCL -DDEBUG_POINT_PROPAGATE -DDEBUG_W_SPEED -DFULL_PHYSICS -DMULTI_COMPONENT -DPHASE_CODE "
+
+
+
+######################################################################
+## The complete varibles as the are sent to thier parts of the code.
+#####################################################################
+
+# included in all code in: driver 
+#                           front 
+#                           hyp 
+#                           intfc 
+#                           tri
+
+scriptftlibincs=" -I.. -I../util"${debug}${cppflagss}${amrincs}${hdfincs}${hdf5incs}${mpichincs}${overinc}${appinc}${ftlibdubug}${itapsd}${dim}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${ompincs}${gdincs}${subgrid}${cgnsincs}
+
+
+#included in all code in: gas/gbifur 
+#                          gas/gdecs 
+#                          gas/geos 
+#                          gas/ghyp 
+#                          gas/ginit 
+#                          gas/gintfc 
+#                          gas/gnode 
+#                          gas/gprop 
+#                          gas/gprt 
+#                          gas/gstate/
+
+scriptgasincs=" -I. -I../../gas -I../.. -I../../util "${hypreincs}${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${overinc}${appinc}${gasdebug}${rotsym}${ftlibdubug}${dim}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${physincs}${ompincs}${gasincs}${gdincs}${subgrid}${cgnsincs}
+
+#included in all code in: example and testfront 
+scriptexampleincs=${mpichincs}${amrincs}${hdfincs}${hdf5incs}${hdfinc}${systemincs}${ompincs}${subgrid}${cgnsincs}
+
+#included in all code in: util/util
+scriptutilincs=" -I../.. -I../ "${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${fenv}${optimization}${firix}${noname}${hdfinc}${systemincs}${ompincs}${subgrid}${cgnsincs}
+
+#include in all conde in: util/dutil
+scriptdutilincs=" -I../.. -I../ "${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${fenv}${optimization}${firix}${noname}${hdfinc}${systemincs}${ompincs}${subgrid}${cgnsincs}
+
+flagsss=$FFLAGS${optimization}${firix}${fsun}${debug}${cppflagss}
+
+headers=`find ./src/util/ ./src/intfc ./src/front -name \*\.h | perl -e "s/\.\/src\/(.*)\n/include\/FronTier\/\1 /g" -p`
+
+include_dirs="include/FronTier/intfc include/FronTier/front include/FronTier/util"
+
+AC_SUBST(headers, $headers)
+AC_SUBST(include_dirs, $include_dirs)
+
+# Substitute these changes in the makefile.ins
+AC_SUBST(gass,$gasyesorno)
+AC_SUBST(hypre,$hypreyesorno)
+AC_SUBST(sn_ellip,$snyesorno)
+AC_SUBST(hypreprefix,$hypreprefix)
+AC_SUBST(gasclean,$gascleann)
+AC_SUBST(debugg,$debug)
+AC_SUBST(tsttyesornoo,$tsttyesorno)
+AC_SUBST(FFLAGS,$flagsss)
+#AC_SUBST(f77ft,$F77)
+#AC_SUBST(f77ft,"gfortran")
+AC_SUBST(ftlibincs,$scriptftlibincs)
+AC_SUBST(gasincs,$scriptgasincs) 
+AC_SUBST(utilincs,$scriptutilincs)
+AC_SUBST(exampleincs,$scriptexampleincs)
+AC_SUBST(dutilincs,$scriptdutilincs)
+AC_SUBST(CFLAGS,"")
+AC_SUBST(otherlibs,$scriptotherlibs)
+AC_SUBST(otherlibsinc,$scriptotherlibsinc)
+AC_SUBST(randy,$RANLIB)
+AC_SUBST_FILE(ftbuild)
+ftbuild=./src/util/ftrules
+AC_SUBST_FILE(gasbuild)
+gasbuild=./src/util/gasrules
+AC_SUBST(build_linpak, ${build_linpak})
+
+
+
+#AC_SUBST(AWK,"awk")
+# Write the makefiles
+
+
+
+if test $gastest = "no"; then
+filelist='Makefile 
+src/Makefile 
+src/util/Makefile 
+src/front/Makefile 
+src/intfc/Makefile 
+airfoil/Makefile
+subsurf/Makefile
+crystal/Makefile
+example/Makefile
+example3d/Makefile
+iTaps/Makefile
+finance/Makefile
+melting/Makefile
+curvature/Makefile
+cell/Makefile
+pde/Makefile
+iFluid/Makefile
+frgb/Makefile
+poisson/Makefile
+cFluid/Makefile
+cim/Makefile
+solver/Makefile
+weno/Makefile
+src/pak/linpak/Makefile
+src/pak/blas/Makefile
+src/pak/cgnslib_3.0/Makefile
+src/pak/pcgnslib_0.2.0/Makefile
+devel-deps.inc
+iMesh-Defs.inc'
+fi
+
+if test $gastest = "yes"; then
+filelist='Makefile 
+src/Makefile 
+src/util/Makefile 
+src/pak/Makefile 
+src/pak/odepack/Makefile 
+src/pak/dierckx/Makefile 
+src/pak/linpak/Makefile 
+src/pak/blas/Makefile 
+src/pak/cgnslib_3.0/Makefile
+src/pak/pcgnslib_0.2.0/Makefile
+src/pak/sn_ellip/Makefile 
+src/driver/Makefile 
+src/front/Makefile 
+src/hyp/Makefile 
+src/intfc/Makefile 
+src/tri/Makefile 
+src/gas/Makefile 
+src/gas/gbifur/Makefile 
+src/gas/geos/Makefile 
+src/gas/ghyp/Makefile 
+src/gas/ginit/Makefile 
+src/gas/gintfc/Makefile 
+src/gas/gnode/Makefile 
+src/gas/gprop/Makefile 
+src/gas/gprt/Makefile 
+src/gas/gstate/Makefile 
+testfront/Makefile 
+example/Makefile
+example3d/Makefile
+iTaps/Makefile
+melting/Makefile
+finance/Makefile
+curvature/Makefile
+cell/Makefile
+pde/Makefile
+iFluid/Makefile
+frgb/Makefile
+subsurf/Makefile
+airfoil/Makefile
+crystal/Makefile
+poisson/Makefile
+cFluid/Makefile
+cim/Makefile
+solver/Makefile
+weno/Makefile
+devel-deps.inc
+iMesh-Defs.inc'
+
+mkdir -p lib/${build_cpu}/gas
+mkdir -p src/pak/odepack/${build_cpu}
+mkdir -p src/pak/dierckx/${build_cpu}
+mkdir -p src/pak/blas/${build_cpu}
+mkdir -p src/pak/cgnslib_3.0/${build_cpu}
+mkdir -p src/pak/pcgnslib_0.2.0/${build_cpu}
+mkdir -p src/pak/linpak/${build_cpu}
+mkdir -p src/driver/${build_cpu}
+mkdir -p src/gas/${build_cpu}
+mkdir -p src/gas/gbifur/${build_cpu}
+mkdir -p src/gas/geos/${build_cpu}
+mkdir -p src/gas/ghyp/${build_cpu}
+mkdir -p src/gas/ginit/${build_cpu}
+mkdir -p src/gas/gintfc/${build_cpu}
+mkdir -p src/gas/gnode/${build_cpu}
+mkdir -p src/gas/gprop/${build_cpu}
+mkdir -p src/gas/gprt/${build_cpu}
+mkdir -p src/gas/gstate/${build_cpu}
+mkdir -p src/hyp/${build_cpu}
+mkdir -p src/tri/${build_cpu}
+fi
+
+
+
+AC_CONFIG_FILES($filelist)
+
+AC_OUTPUT
+mkdir -p lib/
+mkdir -p lib/${build_cpu}
+mkdir -p src/front/${build_cpu}
+mkdir -p src/intfc/${build_cpu}
+mkdir -p src/util/${build_cpu}
+mkdir -p src/util/d${build_cpu}
+
+echo " Compiling with :"
+echo   $ccft
+echo   $F77
+echo "The util flags are:" $scriptutilincs
+echo
+echo "The dutil flags are:" $scriptdutilincs
+echo
+echo "The gas flags are:" $scriptgasincs
+echo
+echo "The front flags are:" $scriptftlibincs
+echo 
+echo "The example/testfront flags are:"$scriptexampleincs
+echo ""
+
+

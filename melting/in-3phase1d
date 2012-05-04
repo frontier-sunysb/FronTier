@@ -1,0 +1,61 @@
+*************Computational domain***********************
+
+Domain limit in 0-th dimension: 0 1
+Computational grid: 128
+Lower boundary in 0-th dimension: NEUMANN_BOUNDARY
+Upper boundary in 0-th dimension: NEUMANN_BOUNDARY
+
+*************Time control********************
+
+Max time: 5.0
+Max step: 100000
+Print interval: 0.5
+Movie frame interval: 0.1
+CFL factor: 0.4
+Redistribution interval: 100
+
+***********Initial phase conditions******************
+
+Enter number of phases: 3
+
+Enter ambient temperature of phase 1: -1.0
+Enter density of phase 1: 1.1
+Enter specific heat of phase 1: 0.4
+Enter thermal conductivity of phase 1: 0.02
+
+Enter melting temperature of interface 1: 0.0
+Enter latent heat at interface 1: 1.0
+
+Enter ambient temperature of phase 2: 3.0
+Enter density of phase 2: 1.0
+Enter specific heat of phase 2: 0.1
+Enter thermal conductivity of phase 2: 0.01
+
+Enter melting temperature of interface 2: 0.0
+Enter latent heat at interface 2: 1.0
+
+Enter ambient temperature of phase 3: -2.0
+Enter density of phase 3: 1.1
+Enter specific heat of phase 3: 0.4
+Enter thermal conductivity of phase 3: 0.02
+
+************Numerical scheme******************
+
+Choose numerical scheme
+	UNSPLIT_EXPLICIT (EX)
+	UNSPLIT_IMPLICIT (IM)
+	CRANK_NICOLSON (CN)
+Enter scheme: EX
+Enter position of interface 1: 0.3
+Enter position of interface 2: 0.7
+
+************Movie option********************
+
+Type y to make movie of solute: y
+
+************Debugging options*****************
+
+Enter yes for debugging: no
+Enter the debugging string: trace
+Enter the debugging string: CLOCK
+Enter the debugging string: step_size

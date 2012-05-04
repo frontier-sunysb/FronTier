@@ -1,0 +1,16 @@
+IMESH_CXX= @CXX@
+IMESH_CXXFLAGS = $(CXXFLAGS) -g
+IMESH_CFLAGS = $(CFLAGS) -g
+IMESH_LDFLAGS = -L$(FT_DIR)/lib/@build_cpu@  @otherlibsinc@
+IMESH_LIBS = -lFronTier
+
+IMESH_F77 = @F77@
+IMESH_F77_LIBS= @F77_LIBS@
+
+IMESH_INCLUDES = -I$(FT_DIR)/include/FronTier  -I$(FT_DIR)/include/FronTier/intfc
+
+IMESH_LIBS = -lFronTier -lm @otherlibs@
+
+IMESH_INCLUDEDIR = @include_dirs@
+
+FT_DIR=@abs_srcdir@

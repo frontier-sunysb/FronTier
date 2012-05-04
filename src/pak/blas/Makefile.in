@@ -1,0 +1,63 @@
+CC=@CC@
+F77=@F77@
+Flibblas_a_OBJECTS = \
+${build_cpu}/caxpy.$(OBJEXT) \
+${build_cpu}/ccopy.$(OBJEXT) \
+${build_cpu}/cdotc.$(OBJEXT) \
+${build_cpu}/cdotu.$(OBJEXT) \
+${build_cpu}/crotg.$(OBJEXT) \
+${build_cpu}/cscal.$(OBJEXT) \
+${build_cpu}/csscal.$(OBJEXT)\
+${build_cpu}/cswap.$(OBJEXT) \
+${build_cpu}/dasum.$(OBJEXT) \
+${build_cpu}/daxpy.$(OBJEXT) \
+${build_cpu}/dcopy.$(OBJEXT) \
+${build_cpu}/ddot.$(OBJEXT)  \
+${build_cpu}/dnrm2.$(OBJEXT) \
+${build_cpu}/drot.$(OBJEXT)  \
+${build_cpu}/drotg.$(OBJEXT) \
+${build_cpu}/drotm.$(OBJEXT) \
+${build_cpu}/drotmg.$(OBJEXT)\
+${build_cpu}/dscal.$(OBJEXT) \
+${build_cpu}/dsdot.$(OBJEXT) \
+${build_cpu}/dswap.$(OBJEXT) \
+${build_cpu}/icamax.$(OBJEXT)\
+${build_cpu}/idamax.$(OBJEXT)\
+${build_cpu}/isamax.$(OBJEXT)\
+${build_cpu}/sasum.$(OBJEXT) \
+${build_cpu}/saxpy.$(OBJEXT) \
+${build_cpu}/scasum.$(OBJEXT)\
+${build_cpu}/scnrm2.$(OBJEXT)\
+${build_cpu}/scopy.$(OBJEXT) \
+${build_cpu}/sdot.$(OBJEXT)  \
+${build_cpu}/sdsdot.$(OBJEXT)\
+${build_cpu}/snrm2.$(OBJEXT) \
+${build_cpu}/srot.$(OBJEXT)  \
+${build_cpu}/srotg.$(OBJEXT) \
+${build_cpu}/srotm.$(OBJEXT) \
+${build_cpu}/srotmg.$(OBJEXT)\
+${build_cpu}/sscal.$(OBJEXT) \
+${build_cpu}/sswap.$(OBJEXT) 
+
+Flibblas_a_SOURCES = caxpy.f ccopy.f cdotc.f cdotu.f crotg.f cscal.f csscal.f cswap.f dasum.f daxpy.f dcopy.f ddot.f dnrm2.f drot.f drotg.f drotm.f drotmg.f dscal.f dsdot.f dswap.f icamax.f idamax.f isamax.f  sasum.f saxpy.f scasum.f scnrm2.f scopy.f sdot.f sdsdot.f snrm2.f srot.f srotg.f srotm.f srotmg.f sscal.f sswap.f
+
+OBJEXT = @OBJEXT@
+ftlibincs = @ftlibincs@
+build_cpu = @build_cpu@
+RANLIB = @RANLIB@
+all:@build_cpu@ ../../../lib/$(build_cpu)/libblas.a
+../../../lib/$(build_cpu)/libblas.a: $(Flibblas_a_OBJECTS) $(Flibblas_a_SOURCES)
+	-rm -f libblas.a
+	-rm -f ${build_cpu}/libblas.a
+	$(AR) cru libblas.a $(Flibblas_a_OBJECTS)
+	$(RANLIB) libblas.a;  mv libblas.a ../../../lib/$(build_cpu)/ 
+
+$(Flibblas_a_OBJECTS): $(Flibblas_a_SOURCES)
+	$(F77) -I. -c $(*F).f -o $@
+
+@build_cpu@:
+	mkdir $@
+
+clean:
+	cd ${build_cpu}; rm -rf *.o
+

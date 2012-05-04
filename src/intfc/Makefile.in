@@ -1,0 +1,117 @@
+CC=@CC@
+F77=@F77@
+name = intfc
+libext = 
+
+FT_C_OBJECTS =  iredist.$(OBJEXT) \
+iredist_o2.$(OBJEXT) \
+arrayutils.$(OBJEXT) \
+iblkb.$(OBJEXT) \
+iblkc2.$(OBJEXT) \
+iblkc3.$(OBJEXT) \
+imksurf.$(OBJEXT) \
+igview.$(OBJEXT) \
+ixgraph.$(OBJEXT) \
+comp.$(OBJEXT) \
+comp1d.$(OBJEXT) \
+comp2d.$(OBJEXT) \
+comp3d.$(OBJEXT) \
+cross2d.$(OBJEXT) \
+geomutils.$(OBJEXT) \
+icheck3d.$(OBJEXT) \
+idiagnostic.$(OBJEXT) \
+iecomps.$(OBJEXT) \
+ifourier.$(OBJEXT) \
+igrid.$(OBJEXT) \
+int3d.$(OBJEXT) \
+intfc.$(OBJEXT) \
+iprt3d.$(OBJEXT) \
+irefl.$(OBJEXT) \
+iscatter.$(OBJEXT) \
+isect2d.$(OBJEXT) \
+isect3d.$(OBJEXT) \
+isub.$(OBJEXT) \
+isurgery.$(OBJEXT) \
+iuserintfc.$(OBJEXT) \
+map.$(OBJEXT) \
+ppcopy.$(OBJEXT) \
+setb1d.$(OBJEXT) \
+setb2d.$(OBJEXT) \
+setb3d.$(OBJEXT) \
+shift.$(OBJEXT) \
+top.$(OBJEXT) \
+triangle.$(OBJEXT) \
+trisurf.$(OBJEXT) \
+userhooks.$(OBJEXT) \
+zoom.$(OBJEXT) \
+imkcurve.$(OBJEXT) \
+iwallsurf.$(OBJEXT) \
+itrisset.$(OBJEXT) \
+iMesh.$(OBJEXT) \
+iMeshP.$(OBJEXT) \
+
+########################################################################################
+# DO NOT MODIFY BELOW THIS LINE UNLESS YOUR POSITIVE YOU KNOW WHAT YOU WANT TO DO 
+########################################################################################
+
+
+libext = 
+OBJEXT = o
+ftlibincs =  @ftlibincs@
+
+if [ @build_cgns@ -eq 1 ]; then cgnslibincs="-L../../lib/$(build_cpu)/libcgnslib.a" fi
+build_cpu = @build_cpu@
+RANLIB = ranlib
+all:  ../../lib/$(build_cpu)/lib$(name)$(libext).a
+	cd ../util; $(MAKE)
+
+######## FT BUILD INSTRUCTIONS ##############################
+VPATH =  $(build_cpu):../
+../../lib/$(build_cpu)/lib$(name)$(libext).a: make.dep $(build_cpu) $(FT_C_OBJECTS)
+	-rm -rf lib$(name)$(libext).a
+	-rm -rf ${build_cpu}/lib$(name)$(libext).a
+	-mkdir ../../lib/
+	-mkdir ../../lib/$(build_cpu)/
+	cd $(build_cpu); $(AR) cru lib$(name).a $(FT_C_OBJECTS)
+	cd $(build_cpu); $(RANLIB) lib$(name).a; mv lib$(name).a ../../../lib/$(build_cpu)/lib$(name)$(libext).a
+
+$(build_cpu):
+	-mkdir $(build_cpu)
+
+make.dep:../util/make.dep
+	cp ../util/make.dep make.util.dep
+	sed -e "1,$$ s,$(name)/,,g" make.util.dep > make.dep
+
+../util/make.dep:
+	cd ..;./util/mkfiles.pl
+	cd ..;./util/mkdep.pl
+	cd ..;mv make.dep util/make.dep
+
+-include make.dep
+
+diff:
+	-diff -r . $(diffdir)/src/$(name) > DIFF
+
+$(FT_C_OBJECTS):%.o: %.c
+	$(CC) $(ftlibincs) $(cgnslibincs) -c $< -o $(build_cpu)/$@
+######## END FT BUILD INSTRUCTIONS ##############################
+
+
+$(build_cpu)/testintfc.o: testintfc.c
+	$(CC) -I.. -I../util -DHAS_FENV -DONED -DTHREED -DTWOD  -c testintfc.c -o $(build_cpu)/testintfc.o
+
+testintfc: FORCE 
+	$(MAKE) $(build_cpu)/testintfc.o
+	$(MAKE) 
+	$(CC) $(build_cpu)/testintfc.o -L../../lib/$(build_cpu)/ -lintfc$(libext) -lutil$(libext) -lm -lieee -llinpak -o testintfc
+
+FORCE:
+
+clean:
+	cd  $(build_cpu)/; rm -rf *.o
+	rm -rf testintfc
+	cd ../util; $(MAKE) clean
+	cd ../pak/cgnslib_3.0 $(MAKE) clean
+tagsfile:
+	ctags *.c ../util/*.c *.h ../util/*.h 
+ 

@@ -1,0 +1,105 @@
+Welcome to the World of Partial Interfaces!
+
+Type 'p' to obtain prompting on input: 
+Type debug to Turn On Debugging: debug
+: file
+:intersect
+:f_boundary_untangle
+:hypunr
+:init
+:node_propagate
+:B_node
+: end
+Type 't' to obtain traceback of debug lines upon error termination:
+Enter the interface dimension: 2
+Enter the remapping (Jacobian) converting the physical coordinate system to the
+        cartesian computational coordinate system.  The choices are
+                Identity Remap (default) (i)
+			Type Choice Here: i
+Enter the computational limits in the x direction, XL, XU: 0 1
+Enter the computational limits in the x direction, YL, YU: 0 1
+Enter the numbers of grid intervals of the
+        computational grid in the x, y directions: 80 80
+
+Available rectangular boundary types are
+        Periodic (p)
+        Reflection (r)
+        Dirichlet (d)
+        Neumann (n)
+Enter boundary type for the left boundary in the x direction: DIRICHLET
+Enter boundary type for the right boundary in the x direction: DIRICHLET
+Enter boundary type for the lower boundary in the y direction: DIRICHLET
+Enter boundary type for the upper boundary in the y direction: DIRICHLET
+
+		Curve Redistribution Control
+
+Enter the mode of curve redistribution --
+	`none', `expansion', or `full' (dflt): 
+Enter version of full curve redistribution
+	ordinary full curve redistribution [o]
+	equi-bond curve redistribution [e(default)]
+Enter choice: 
+
+		Redistribution Frequency Control
+
+Enter the frequency of redistribution for general curves (dflt = 20): 1
+Enter the frequency of redistribution for vector curves (dlft = 5): 
+Enter the frequency of node redistribution (dflt = 10): 
+Enter the redistribute count (default = 0): 
+Type 'y' for rect grid based redistribution of rectangular boundaries: 
+
+		front spacing control
+
+Enter the spacing for general curves in dimensionless
+	length/mesh units (dflt = 0.75): 
+Enter the spacing for vector type curves in dimensionless
+	length/mesh units (dflt = 0.75): 
+
+		time step size control
+
+
+The current defaults for the front time step control are
+	Time step factor = 0.75
+	Apply CFL at nodes = yes
+	Maximum node separation at untangle = 2
+	CFL increase factor = 1.1
+	Minimum time step modification factor = 0.75
+	Maximum time step modification factor = 1.25
+Use defaults for front time step control (default = y): 
+Select tangent computation algorithm, choices are
+	Linear centered SECANT vectors (SECANT, default)
+	Fourth order LANGRANGIAN interpolation (LANGRANGIAN)
+	Cubic SPLINE fit (SPLINE)
+Enter choice: 
+
+                Initializing Interface 
+Enter two integers as the left and right components: 2 3
+Supported level curve types are 
+	Straight line (l)
+	Ellipse (e)
+	Multiple circles (m)
+	Sine curve (s)
+Enter choice: e
+The equation of ellipse is (x-x0)^2/a^2 + (y-y0)^2/b^2 = 1
+Enter center x0, and y0: 0.5 0.5
+Enter radii a, and b: 0.3 0.3
+
+                Specifying Velocity Field
+
+Supported velocity fields are
+        Translation (t)
+        Radial motion (r)
+        Shear motion (s)
+        Sinusiodal motion (w)
+        Circular rotation (c)
+        Normal motion (n)
+        Flame motion (f)
+        Burgers equation solver (b)
+Enter choice: n
+Enter the velocity coefficient: 0.1
+
+                Printing Control
+
+Enter maximum time and maximum step of the propagation: 3 1000
+Enter time interval for printing: 1
+Enter time interval for movie: 0.3

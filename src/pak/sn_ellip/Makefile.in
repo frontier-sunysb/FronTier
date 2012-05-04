@@ -1,0 +1,61 @@
+CC=@CC@
+F77=@F77@
+#####################################################################################################################
+#		makefile for SN_ELLIP
+#####################################################################################################################
+
+###################################################
+# defintion
+###################################################
+# Hypre
+Hypre_DIR	  = @hypreprefix@
+Hypre_Include_Dir = ${Hypre_DIR}/include
+Hypre_Lib_Dir     = ${Hypre_DIR}/lib
+
+# mpich 
+#MPICH		= @mpichprefix@
+#MPICH_Lib	= -L${MPICH}/lib -lmpich -lpmpich++ -lstdc++ 
+MPICH_Lib      = -lmpich -lpmpich++ -lstdc++
+#MPICH_Include	= -I${MPICH}/include 
+
+# compiler
+CC	= mpiCC 
+
+
+###################################################
+# individual object file
+###################################################
+
+# libSN_ELLIP.a
+libSN_ELLIP.a: gutil.o pgutil.o Hypre.o SN_ELLIP.o VectorMatrix.o	
+	ar -rs libSN_ELLIP.a gutil.o pgutil.o Hypre.o SN_ELLIP.o VectorMatrix.o
+
+# test_SN_ELLIP
+test_SN_ELLIP : test_SN_ELLIP.C Hypre.o SN_ELLIP.o VectorMatrix.o gutil.o pgutil.o
+	/bin/rm -f -r *.txt
+	/bin/rm -f -r *.plt
+	/bin/rm -f -r core.*
+	${CC} -o test_SN_ELLIP test_SN_ELLIP.C -I. -I${Hypre_Include_Dir} ${MPICH_Include} gutil.o pgutil.o Hypre.o SN_ELLIP.o VectorMatrix.o -lm -L${Hypre_Lib_Dir} -lHYPRE_IJ_mv -lHYPRE_utilities -lHYPRE_LSI -lHYPRE_blas ${MPICH_Lib}
+	
+
+
+
+gutil.o : gutil.h gutil.C
+	${CC} -DDPARALLEL_VERSION -c gutil.C -I. ${MPICH_Include}
+pgutil.o : pgutil.h pgutil.C
+	${CC} -DDPARALLEL_VERSION -c pgutil.C -I. ${MPICH_Include}
+	
+Hypre.o : Hypre.C Hypre.h
+	${CC} -c Hypre.C -I. -I${Hypre_Include_Dir} ${MPICH_Include}
+
+SN_ELLIP.o : SN_ELLIP.h SN_ELLIP.C Hypre.h VectorMatrix.h
+	${CC} -c SN_ELLIP.C -I. -I${Hypre_Include_Dir} ${MPICH_Include}
+	
+VectorMatrix.o : VectorMatrix.h VectorMatrix.C
+	${CC} -c VectorMatrix.C -I.
+clean	:
+	/bin/rm -f -r *.o
+	/bin/rm -f -r *.a
+	/bin/rm -f test_SN_ELLIP
+	
+			

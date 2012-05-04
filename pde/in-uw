@@ -1,0 +1,20 @@
+****************Called by FrontReadRegularDomainInfo*****
+
+Domain limit in 0-th dimension: 0 6
+Computational grid: 100
+Lower boundary in 0-th dimension: PERIODIC
+Upper boundary in 0-th dimension: PERIODIC
+
+****************Called by FrontReadTimeControlInfo*******
+
+Max time: 1.5
+Max step: 1000
+Print interval: 1
+Movie frame interval: 0.1
+CFL factor: 0.75
+Redistribution interval: 0
+
+***************Called by init_wave_params****************
+
+Enter wave speed: 2.0
+Enter numerical scheme: UPWIND_SCHEME

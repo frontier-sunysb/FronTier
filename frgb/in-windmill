@@ -1,0 +1,86 @@
+Domain limit in 0-th dimension: -10 10
+Domain limit in 1-th dimension: -10 10
+Domain limit in 2-th dimension: 25 45
+Computational grid: 80 80 80
+Lower boundary in 0-th dimension: DIRICHLET_BOUNDARY
+Upper boundary in 0-th dimension: DIRICHLET_BOUNDARY
+Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
+Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
+Lower boundary in 2-th dimension: DIRICHLET_BOUNDARY
+Upper boundary in 2-th dimension: DIRICHLET_BOUNDARY
+
+Max time: 0.4
+Max step: 100
+Print interval: 1
+Movie frame interval: 0.001
+CFL factor: 0.75
+Redistribution interval: 1000000000
+
+Problem type can be
+        FLUID_SOLID_CIRCLE
+	FLUID_RIGID_BODY
+	ROTRO_ONE_FLUID
+	WINDMILL_2D
+	WINDMILL_3D
+Enter problem type: WINDMILL_3D
+Projection type can be
+        SIMPLE
+        BELL_COLELLA
+        KIM_MOIN
+        PEROT_BOTELLA
+Enter projection type: SIMPLE
+
+Enter the vtk file name for wing: vtk/wings_only.vtk
+Enter the vtk file name for rotor: vtk/rotor_only.vtk
+Enter the total mass for rigid body: 1.0
+Enter the center of mass for rigid body: -0.00171 5.0068 34.8595
+Type yes if rigid body will only rotate about an axis: y
+Enter direction of the axis: 0 0 1
+Enter center of the axis: -0.00171 5.0068 34.8595
+Enter the moment of inertial about the axis: 4.0
+Type yes if angular velocity is preset: n
+Enter initial angular velocity: 3.14
+
+Enter the vtk file name for support structure: vtk/head_only.vtk
+Enter density and viscosity of the fluid: 1.0 0.00628
+
+For lower boundary in 0-th dimension
+Enter type of Dirichlet boundary: Flow through
+For upper boundary in 0-th dimension
+Enter type of Dirichlet boundary: Flow through
+For lower boundary in 1-th dimension
+Enter type of Dirichlet boundary: Flow through
+For upper boundary in 1-th dimension
+Enter type of Dirichlet boundary: Constant state
+Enter velocity: 0.0 -100.0 0.0
+Enter pressure: 20
+For lower boundary in 2-th dimension
+Enter type of Dirichlet boundary: Flow through
+For upper boundary in 2-th dimension
+Enter type of Dirichlet boundary: Flow through
+
+Type y to make movie of pressure: n
+Type y to make movie of vorticity: n
+Type y to make movie of velocity: n
+Type y to make yz cross section movie: n
+Type y to make xz cross section movie: n
+Type y to make xy cross section movie: n
+Type y to make cross sectional component movie: n
+
+Type y to make vector velocity field movie: y
+
+************Debugging options*****************
+
+Enter yes for debugging: yes
+Enter the debugging string: trace
+Enter the debugging string: CLOCK
+Enter the debugging string: front
+Enter the debugging string: nstep_size
+Enter the debugging string: nwindmill
+Enter the debugging string: nrigid_body
+Enter the debugging string: sample_velocity
+Enter the sample line type: xz
+Enter the sample line coordinate: 0 44
+Enter the start step for sample: 0
+Enter the end step for sample: 5
+Enter the step interval for sample: 1

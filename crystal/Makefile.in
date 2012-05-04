@@ -1,0 +1,53 @@
+CXX=@CXX@
+F77=@F77@
+F77_LIBS=@F77_LIBS@
+
+libext = @libext@
+incs =  @ftlibincs@
+libincs = @otherlibsinc@
+libs = @otherlibs@
+build_cpu = @build_cpu@
+incsloc = -I. -I../solver -I../include
+
+PETSC = yes
+PETSC_ARCH=@PETSC_ARCH@
+PETSC_DIR=@PETSC_DIR@
+
+Petsc_Include=@PETSC_INCLUDE@
+Petsc_Lib=@PETSC_LIB@
+crystal : @devel@
+
+solver.o : ../solver/solver.h ../solver/solver.cpp
+	${CXX} -c ../solver/solver.cpp $(incsloc) $(incs) ${Petsc_Include}
+
+parab.o : ../solver/solver.h ../solver/parab.cpp
+	${CXX} -c ../solver/parab.cpp $(incsloc) $(incs) ${Petsc_Include}
+
+ccartsn.o : crystal.h ../solver/solver.h ccartsn.cpp
+	${CXX} -c ccartsn.cpp $(incsloc) $(incs) ${Petsc_Include}
+
+crysub.o : crystal.h ../solver/solver.h crysub.cpp
+	${CXX} -c crysub.cpp $(incsloc) $(incs) ${Petsc_Include}
+
+crystal: crystal.h crystal_basic.h crystal.cpp solver.o parab.o ccartsn.o crysub.o
+	${CXX} -c crystal.cpp -I../include $(incs) ${Petsc_Include}
+	$(CXX) -o crystal crystal.o -I../include -L../lib/${build_cpu} solver.o parab.o ccartsn.o crysub.o ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
+
+-include ../devel-deps.inc
+
+clean:
+	rm -rf *.o crystal 
+output :
+	rm -rf out/*
+
+gif :
+	hdf2gif out/intfc.hdf out/intfc.gif
+
+TagsFile:
+	ctags *.h *.cpp ../solver/solver.h ../solver/solver.cpp ../solver/parab.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+
+tagsfile:
+	ctags *.h *.cpp ../solver/solver.h ../solver/solver.cpp ../solver/parab.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+
+etagsfile:
+	etags *.h *.cpp ../solver/solver.h ../solver/solver.cpp ../solver/parab.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]

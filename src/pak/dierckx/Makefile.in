@@ -1,0 +1,105 @@
+CC=@CC@
+F77=@F77@
+Flibdierckx_a_OBJECTS = \
+${build_cpu}/bispev.$(OBJEXT) \
+${build_cpu}/clocur.$(OBJEXT) \
+${build_cpu}/cocosp.$(OBJEXT) \
+${build_cpu}/concon.$(OBJEXT) \
+${build_cpu}/concur.$(OBJEXT) \
+${build_cpu}/cualde.$(OBJEXT) \
+${build_cpu}/curev.$(OBJEXT) \
+${build_cpu}/curfit.$(OBJEXT) \
+${build_cpu}/dblint.$(OBJEXT) \
+${build_cpu}/evapol.$(OBJEXT) \
+${build_cpu}/fourco.$(OBJEXT) \
+${build_cpu}/fpader.$(OBJEXT) \
+${build_cpu}/fpadno.$(OBJEXT) \
+${build_cpu}/fpadpo.$(OBJEXT) \
+${build_cpu}/fpback.$(OBJEXT) \
+${build_cpu}/fpbacp.$(OBJEXT) \
+${build_cpu}/fpbfout.$(OBJEXT) \
+${build_cpu}/fpbisp.$(OBJEXT) \
+${build_cpu}/fpbspl.$(OBJEXT) \
+${build_cpu}/fpchec.$(OBJEXT) \
+${build_cpu}/fpched.$(OBJEXT) \
+${build_cpu}/fpchep.$(OBJEXT) \
+${build_cpu}/fpclos.$(OBJEXT) \
+${build_cpu}/fpcoco.$(OBJEXT) \
+${build_cpu}/fpcons.$(OBJEXT) \
+${build_cpu}/fpcosp.$(OBJEXT) \
+${build_cpu}/fpcsin.$(OBJEXT) \
+${build_cpu}/fpcurf.$(OBJEXT) \
+${build_cpu}/fpcuro.$(OBJEXT) \
+${build_cpu}/fpcyt1.$(OBJEXT) \
+${build_cpu}/fpcyt2.$(OBJEXT) \
+${build_cpu}/fpdeno.$(OBJEXT) \
+${build_cpu}/fpdisc.$(OBJEXT) \
+${build_cpu}/fpfrno.$(OBJEXT) \
+${build_cpu}/fpgivs.$(OBJEXT) \
+${build_cpu}/fpgrdi.$(OBJEXT) \
+${build_cpu}/fpgrpa.$(OBJEXT) \
+${build_cpu}/fpgrre.$(OBJEXT) \
+${build_cpu}/fpgrsp.$(OBJEXT) \
+${build_cpu}/fpinst.$(OBJEXT) \
+${build_cpu}/fpintb.$(OBJEXT) \
+${build_cpu}/fpknot.$(OBJEXT) \
+${build_cpu}/fpopdi.$(OBJEXT) \
+${build_cpu}/fpopsp.$(OBJEXT) \
+${build_cpu}/fporde.$(OBJEXT) \
+${build_cpu}/fppara.$(OBJEXT) \
+${build_cpu}/fppasu.$(OBJEXT) \
+${build_cpu}/fpperi.$(OBJEXT) \
+${build_cpu}/fppocu.$(OBJEXT) \
+${build_cpu}/fppogr.$(OBJEXT) \
+${build_cpu}/fppola.$(OBJEXT) \
+${build_cpu}/fprank.$(OBJEXT) \
+${build_cpu}/fprati.$(OBJEXT) \
+${build_cpu}/fpregr.$(OBJEXT) \
+${build_cpu}/fprota.$(OBJEXT) \
+${build_cpu}/fprppo.$(OBJEXT) \
+${build_cpu}/fprpsp.$(OBJEXT) \
+${build_cpu}/fpseno.$(OBJEXT) \
+${build_cpu}/fpspgr.$(OBJEXT) \
+${build_cpu}/fpsphe.$(OBJEXT) \
+${build_cpu}/fpsuev.$(OBJEXT) \
+${build_cpu}/fpsurf.$(OBJEXT) \
+${build_cpu}/fpsysy.$(OBJEXT) \
+${build_cpu}/fptrnp.$(OBJEXT) \
+${build_cpu}/fptrpe.$(OBJEXT) \
+${build_cpu}/insert.$(OBJEXT) \
+${build_cpu}/parcur.$(OBJEXT) \
+${build_cpu}/parder.$(OBJEXT) \
+${build_cpu}/parsur.$(OBJEXT) \
+${build_cpu}/percur.$(OBJEXT) \
+${build_cpu}/pogrid.$(OBJEXT) \
+${build_cpu}/polar.$(OBJEXT) \
+${build_cpu}/profil.$(OBJEXT) \
+${build_cpu}/regrid.$(OBJEXT) \
+${build_cpu}/spalde.$(OBJEXT) \
+${build_cpu}/spgrid.$(OBJEXT) \
+${build_cpu}/sphere.$(OBJEXT) \
+${build_cpu}/splder.$(OBJEXT) \
+${build_cpu}/splev.$(OBJEXT) \
+${build_cpu}/splint.$(OBJEXT) \
+${build_cpu}/sproot.$(OBJEXT) \
+${build_cpu}/surev.$(OBJEXT) \
+${build_cpu}/surfit.$(OBJEXT)
+
+Flibdierckx_a_SOURCES = bispev.f clocur.f cocosp.f concon.f  concur.f cualde.f  curev.f curfit.f dblint.f evapol.f  fourco.f fpader.f  fpadno.f fpadpo.f fpback.f fpbacp.f fpbfout.f fpbisp.f  fpbspl.f fpchec.f fpched.f fpchep.f  fpclos.f fpcoco.f  fpcons.f fpcosp.f fpcsin.f fpcurf.f  fpcuro.f fpcyt1.f  fpcyt2.f fpdeno.f fpdisc.f fpfrno.f  fpgivs.f fpgrdi.f  fpgrpa.f fpgrre.f fpgrsp.f fpinst.f  fpintb.f fpknot.f  fpopdi.f fpopsp.f fporde.f fppara.f  fppasu.f fpperi.f  fppocu.f fppogr.f fppola.f fprank.f  fprati.f fpregr.f  fprota.f fprppo.f fprpsp.f fpseno.f  fpspgr.f fpsphe.f  fpsuev.f fpsurf.f fpsysy.f fptrnp.f  fptrpe.f insert.f  parcur.f parder.f parsur.f percur.f  pogrid.f  polar.f  profil.f regrid.f spalde.f spgrid.f  sphere.f splder.f  splev.f splint.f sproot.f  surev.f  surfit.f
+
+OBJEXT = @OBJEXT@
+ftlibincs = @ftlibincs@
+build_cpu = @build_cpu@
+RANLIB = @RANLIB@
+all: ../../../lib/$(build_cpu)/libdierckx.a 
+../../../lib/$(build_cpu)/libdierckx.a: $(Flibdierckx_a_OBJECTS) $(Flibdierckx_a_SOURCES)
+	-rm -f libdierckx.a
+	-rm -rf $(build_cpu)/libdierckx.a
+	$(AR) cru libdierckx.a $(Flibdierckx_a_OBJECTS)
+	$(RANLIB) libdierckx.a; mv libdierckx.a ../../../lib/$(build_cpu)/
+
+$(Flibdierckx_a_OBJECTS): $(Flibdierckx_a_SOURCES)
+	$(F77) -I. -c $(*F).f -o $@
+
+clean:
+	cd  $(build_cpu)/; rm -rf *.o

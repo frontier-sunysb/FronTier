@@ -1,0 +1,21 @@
+CC=@CXX@
+CXX=@CXX@
+F77=@F77@
+F77_LIBS=@F77_LIBS@
+
+libext = @libext@
+incs =  @exampleincs@
+libincs = @otherlibsinc@
+libs = @otherlibs@
+
+curvature: @devel@ curvature.cpp
+	rm -f curvature
+	$(CXX) -c -I../include $(incs) curvature.cpp
+	$(CXX) curvature.o -I../include -L../lib/@build_cpu@  $(libincs) -lFronTier -lm $(libs) -o curvature
+
+-include ../devel-deps.inc
+
+clean:
+	rm -rf *.o curvature 
+tagsfile:
+	ctags *.cpp ../src/*/*.[chf] ../src/*/*/*.[chf]

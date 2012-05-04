@@ -1,0 +1,10 @@
+Input files of testfront are in the in/ directory. The tests in
+this directory does not include parallel initialization, therefore
+to run cases in this directory, configure and make in serial.
+
+configure [--with-hdf=HDF4lib]
+make
+testfront -i in/input_name -o output_name
+
+Please report any failure of the case. We want to make sure that
+they are well-maintained.

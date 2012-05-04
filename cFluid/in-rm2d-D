@@ -1,0 +1,63 @@
+Domain limit in 0-th dimension: 0 1
+Domain limit in 1-th dimension: 0 4
+Computational grid: 50 200
+Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
+Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
+Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
+Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
+
+Max time: 24
+Max step: 10000
+Print interval: 2
+Movie frame interval: 0.1
+CFL factor: 0.75
+Redistribution interval: 5
+
+Problem type can be
+	TWO_FLUID_BUBBLE
+	TWO_FLUID_RT
+	TWO_FLUID_RM
+	FLUID_SOLID_CIRCLE
+Enter problem type: TWO_FLUID_RM
+Numerical scheme for interior solver can be
+        TVD_1st_ORDER
+        TVD_2nd_ORDER
+        TVD_4th_ORDER
+Enter numerical scheme for interior solver: TVD_2nd_ORDER
+Point propagator order can be (1,2,4)
+Enter order of point propagator: 2
+
+Enter mean position of fluid interface: 2.2
+Enter number of sine modes: 1
+Enter frequency of mode 1: 1
+Enter amplitude of mode 1: 0.05
+Enter phase of mode 1: 270
+
+Enter gamma, pinf, einf of the fluid with comp 2: 1.667 0.0 0.0
+Enter gamma, pinf, einf of the fluid with comp 3: 1.667 0.0 0.0
+Enter density of top fluid: 2
+Enter density of bottom fluid: 1
+Enter pressure at interface: 1
+Enter Mach number of shock: 2
+Enter position of shock: 1.8
+Enter direction of shock: 1
+Enter contact velocity after shock interaction: 1.20777034
+Type yes to track the interface: y
+
+Type y to make movie of density: y
+Type y to make movie of pressure: y
+Type y to make movie of vorticity: y
+Type y to make movie of velocity: y
+
+For lower boundary in 1-th dimension
+Enter type of Dirichlet boundary: F
+
+For upper boundary in 1-th dimension
+Enter type of Dirichlet boundary: F
+
+************Debugging options*****************
+
+Enter yes for debugging: no
+Enter the debugging string: trace
+Enter the debugging string: CLOCK
+Enter the debugging string: step_size

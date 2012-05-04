@@ -1,0 +1,30 @@
+Domain limit in 0-th dimension: 0 400
+Computational grid: 400
+Lower boundary in 0-th dimension: DIRICHLET_BOUNDARY
+Upper boundary in 0-th dimension: DIRICHLET_BOUNDARY
+
+Max time: 4
+Max step: 1000000
+Print interval: 0.2
+Movie frame interval: 0.2
+CFL factor: 0.5
+Redistribution interval: 5
+
+Choose option type
+	PUT_EUROUPE
+	CALL_EUROUPE
+	PUT_AMERICAN
+	CALL_AMERICAN
+Enter option type: PUT_AMERICAN
+Enter strike price: 100.0
+Enter volatility: 0.4
+Enter interest rate: 0.1
+Enter dividend rate: 0.06
+Choose numerical scheme
+	Unsplit explicit (EX)
+        Unsplit implicit (IM)
+        Crank-Nicolson (CN)
+Enter scheme: EX
+
+Enter yes for debugging: no
+Enter yes for debugging: excercise_point

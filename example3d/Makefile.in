@@ -1,0 +1,21 @@
+CXX=@CXX@
+F77=@F77@
+F77_LIBS=@F77_LIBS@
+
+libext = @libext@
+incs =  @exampleincs@
+libincs = @otherlibsinc@
+libs = @otherlibs@
+
+all: example
+
+example: @devel@ example.cpp
+	rm -f example
+	$(CXX) -c -I../include $(incs) example.cpp
+	$(CXX) example.o -I../include -L../lib/@build_cpu@ $(libincs) -lFronTier -lm $(libs) -o example
+clean:
+	rm -rf *.o example 
+tagsfile:
+	ctags *.[chf] ../src/*/*.[chf] ../src/*/*/*.[chf]
+
+-include ../devel-deps.inc

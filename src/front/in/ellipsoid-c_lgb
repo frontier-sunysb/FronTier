@@ -1,0 +1,127 @@
+Welcome to the World of Partial Interfaces!
+
+Type 'p' to obtain prompting on input: 
+Type debug to Turn On Debugging: debug
+: file
+:init
+: end
+Type 't' to obtain traceback of debug lines upon error termination:
+Enter the interface dimension: 3
+Enter the remapping (Jacobian) converting the physical coordinate system to the
+        cartesian computational coordinate system.  The choices are
+                Identity Remap (default) (i)
+			Type Choice Here: i
+Enter the computational limits in the x direction, XL, XU: 0 1
+Enter the computational limits in the y direction, YL, YU: 0 1
+Enter the computational limits in the z direction, ZL, ZU: 0 1
+Enter the numbers of grid intervals of the
+        computational grid in the x, y, & z directions: 80 80 80
+
+Available rectangular boundary types are
+        Periodic (p)
+        Reflection (r)
+        Dirichlet (d)
+        Neumann (n)
+Enter boundary type for the left boundary in the x direction: D
+Enter boundary type for the right boundary in the x direction: D
+Enter boundary type for the lower boundary in the y direction: D
+Enter boundary type for the upper boundary in the y direction: D
+Enter boundary type for the bottom boundary in the z direction: D
+Enter boundary type for the top boundary in the z direction: D
+
+                Curve Redistribution Control
+
+Enter the mode of curve redistribution --
+        `none', `expansion', or `full' (dflt): 
+Enter version of full curve redistribution 
+        ordinary full curve redistribution [o]
+        equi-bond curve redistribution [e(default)]
+Enter choice: 
+
+                front spacing control
+
+Enter the spacing for general surfaces in dimensionless
+        length/mesh units (dflt = 0.75): 
+Enter the spacing for vector type surfaces in dimensionless
+        length/mesh units (dflt = 0.75): 
+
+                surface redistribution control
+
+Enter tracking algorithm, choices are:
+        Grid free tracking(F),
+        Grid based tracking (G),
+        Mixed strategy tracking (M, dflt),
+        Hybrid strategy tracking (H),
+        Locally grid based tracking (L),
+Enter choice: L 
+
+Enter the mode of surface redistribution --
+        `none', or `full' (dflt): 
+Enter the maximum and minimum triangle area factors
+        for general waves (dflt = 2 0.5): 
+Enter the maximum and minimum triangle area factors
+        for vector waves (dflt = 2 0.5): 
+Enter the minimum allowed angle (in degrees)
+        at a triangle vertex on a general surface (dflt = 15): 
+Enter the minimum allowed angle (in degrees)
+        at a triangle vertex on a vector surface (dflt=0.261799): 
+Enter the max_scaled_tri_side_length (dflt = 1.3): 
+	              
+	                    Redistribution Frequency Control
+			                                    
+Enter the frequency of redistribution for general curves (dflt = 20): 2
+Enter the frequency of redistribution for vector curves (dlft = 5): 
+Enter the redistribute count (default = 0): 
+
+The current defaults for the front time step control are
+        Time step factor = 0.75
+        Apply CFL at nodes = yes
+        Maximum node separation at untangle = 2
+        CFL increase factor = 1.1
+        Minimum time step modification factor = 0.75
+        Maximum time step modification factor = 1.25
+Use defaults for front time step control (default = y): 
+
+Select normal computation algorithm, choices are
+        Area weighted normals (AREA, default)
+        Least squares plane fit (PLANE)
+Enter choice: 
+
+                Initializing Interface
+Enter two integers as the negative and positive components: 2 3
+Supported level interface types are
+        Plane (p)
+        Ellipse (e)
+        Multiple ellipsoids (m)
+        Boundary (b)
+        Hyperboloid (h)
+        Paraboloid (a)
+        Randomly perturbed interface (r)
+        Sine waves (s)
+        From NWGrid file (f)
+Enter choice: e
+Enter the coordinates of the ellipsoid center: 0.5 0.5 0.5
+Enter the three radii of the ellipsoid: 0.45 0.2 0.2
+
+                Specifying Velocity Field
+
+Supported velocity fields are 
+        Translation (t)
+        Radial motion (r)
+        Shear motion (s)
+        Sinusiodal motion (w)
+        Circular rotation (c)
+        Normal motion (n)
+        Flame motion (f)
+        Burgers equation solver (b)
+Enter choice: c
+Rotation axis is the z-axis
+Enter the x and y coordinates of rotation axis: 0.5 0.5
+Enter angular velocity at rotation center: 0.1
+Enter gradient of angular velocity d_omega/dr: 0.2
+
+                Printing Control
+
+Enter maximum time and maximum step of the propagation: 25 400
+Enter time interval for printing: 5
+Enter time interval for movie: 1

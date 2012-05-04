@@ -1,0 +1,23 @@
+CC=@CC@
+F77=@F77@
+all:
+	-cd odepack; mkdir @build_cpu@ 
+	cd odepack && $(MAKE)
+	-cd dierckx; mkdir @build_cpu@ 
+	cd dierckx && $(MAKE)
+	cd linpak && $(MAKE)
+	-cd blas; mkdir @build_cpu@ 
+	cd blas && $(MAKE)
+	if [ @build_cgns@ -eq 1 ]; then cd cgnslib_3.0 && $(MAKE); fi
+	if [ @build_cgns@ -eq 1 ]; then cd pcgnslib_0.2.0 && $(MAKE); fi
+	@hypre@
+	@sn_ellip@
+clean: 
+	cd odepack && $(MAKE) clean 
+	cd dierckx && $(MAKE) clean
+	cd linpak && $(MAKE)  clean
+	cd blas && $(MAKE)    clean
+	if [ @build_cgns@ -eq 1 ]; then cd cgnslib_3.0 && $(MAKE) clean; fi
+	if [ @build_cgns@ -eq 1 ]; then cd pcgnslib_0.2.0 && $(MAKE) clean; fi
+	-cd hypre-1.6.0/src && $(MAKE) veryclean
+	-cd sn_ellip && $(MAKE) clean
