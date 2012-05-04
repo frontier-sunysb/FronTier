@@ -9,8 +9,6 @@ function parse_arguments {
         echo "    -d          Enable debugging."
         echo "    -n          Just configure. Do not run make."
         echo "    -g          Enable compilation of Gas directory."
-        echo "    --with-cgns Enable compilation with CGNS."
-        echo "    --with-hdf5 Enable compilation with CGNS+HDF5."
         echo "    --with-hdf  Enable compilation with HDF4."
         echo "    --with-gd   Enable compilation with graphics drawing for 1-D post processing."
         echo "    --enable-itaps  Enable compilation with ITAPS."
