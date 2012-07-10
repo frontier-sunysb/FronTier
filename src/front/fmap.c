@@ -33,8 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <front/fdecs.h>		/* includes int.h, table.h */
 
 LOCAL 	boolean build_linear_element(INTRP_CELL*,double*);
-LOCAL 	void collect_cell_ptst(INTRP_CELL*,int*,COMPONENT,Front*,double*,
-			double (*func)(Locstate));
+LOCAL 	void collect_cell_ptst(INTRP_CELL*,int*,double*,COMPONENT,Front*,
+			double*,double (*func)(Locstate));
 LOCAL	boolean test_point_in_seg(double*,double**);
 LOCAL	boolean test_point_in_tri(double*,double**);
 LOCAL 	boolean test_point_in_tetra(double*,double**);
@@ -42,7 +42,9 @@ LOCAL	Tan_stencil **FrontGetTanStencils2d(Front*,POINT*,int);
 LOCAL	Tan_stencil **FrontGetTanStencils3d(Front*,POINT*,int);
 LOCAL 	void FrontPreAdvance2d(Front*);
 LOCAL 	void FrontPreAdvance3d(Front*);
+LOCAL 	void sort_blk_cell(INTRP_CELL *);
 LOCAL   boolean new_vtx_is_closer(double,double,double*,double*,int);
+LOCAL	boolean extrapolation_permitted;
 
 EXPORT	void FT_Propagate(
 	Front *front)
@@ -484,6 +486,17 @@ EXPORT	void FT_FreeGridIntfc(
 	front->grid_intfc = NULL;
 }	/* end FT_FreeGridIntfc */
 
+EXPORT	void FT_FreeFront(
+	Front *front)
+{
+	if (front->grid_intfc != NULL)
+	{
+	    free_grid_intfc(front->grid_intfc);
+	    front->grid_intfc = NULL;
+	}
+	free_front(front);
+}	/* end FT_FreeFront */
+
 EXPORT	void FT_ParallelExchIntfcBuffer(
 	Front *front)
 {
@@ -730,11 +743,13 @@ EXPORT	boolean FT_IntrpStateVarAtCoords(
 	static INTRP_CELL *blk_cell;
 	RECT_GRID *gr = &topological_grid(grid_intfc);
 	int i,dim = gr->dim;
+	extrapolation_permitted = front->extrapolation_permitted;
 
 	if (blk_cell == NULL)
 	{
 	    scalar(&blk_cell,sizeof(INTRP_CELL));
 	    uni_array(&blk_cell->var,MAX_NUM_VERTEX_IN_CELL,sizeof(double));
+	    uni_array(&blk_cell->dist,MAX_NUM_VERTEX_IN_CELL,sizeof(double));
 	    bi_array(&blk_cell->coords,MAX_NUM_VERTEX_IN_CELL,MAXD,
 						sizeof(double));
 	    bi_array(&blk_cell->p_lin,MAXD+1,MAXD,sizeof(double));
@@ -749,7 +764,8 @@ EXPORT	boolean FT_IntrpStateVarAtCoords(
 	    *ans = 0.0;
 	    return NO;
 	}
-	collect_cell_ptst(blk_cell,icoords,comp,front,grid_array,get_state);
+	collect_cell_ptst(blk_cell,icoords,coords,comp,front,grid_array,
+				get_state);
 	if (blk_cell->is_bilinear)
 	{
 	    if (debugging("the_pt"))
@@ -972,6 +988,15 @@ LOCAL boolean build_linear_element(
 		    }
 		}
 	    }
+	    if (extrapolation_permitted == YES)
+	    {
+	    	for (i = 0; i < 3; i++)
+		{
+	    	    p[i] = blk_cell->coords[i];
+	    	    var[i] =  blk_cell->var[i];
+		}
+	    	return FUNCTION_SUCCEEDED;
+	    }
 	    break;
 	case 3:
 	    for (i = 0; i < nv; i++)
@@ -1005,6 +1030,7 @@ LOCAL boolean build_linear_element(
 LOCAL void collect_cell_ptst(
 	INTRP_CELL *blk_cell,
 	int *icoords,
+	double *coords,
 	COMPONENT comp,
 	Front *front,
 	double *grid_array,
@@ -1044,6 +1070,8 @@ LOCAL void collect_cell_ptst(
 	    	{
 	    	    blk_cell->coords[nv][0] = L[0] + ic[0]*h[0];
 		    blk_cell->var[nv] = grid_array[index];
+		    blk_cell->dist[nv] = distance_between_positions(coords,
+				blk_cell->coords[nv],dim);
 		    nv++;
 	    	}
 	    	else
@@ -1063,6 +1091,13 @@ LOCAL void collect_cell_ptst(
 	    	    blk_cell->coords[nv][0] = L[0] + ic[0]*h[0];
 	    	    blk_cell->coords[nv][1] = L[1] + ic[1]*h[1];
 		    blk_cell->var[nv] = grid_array[index];
+		    blk_cell->dist[nv] = distance_between_positions(coords,
+				blk_cell->coords[nv],dim);
+		    if (debugging("the_pt"))
+		    {
+			printf("grid : var[%d] = %f  d[%d] = %f\n",
+				nv,blk_cell->var[nv],nv,blk_cell->dist[nv]);
+		    }
 		    nv++;
 	    	}
 	    	else
@@ -1085,6 +1120,8 @@ LOCAL void collect_cell_ptst(
 	    	    blk_cell->coords[nv][1] = L[1] + ic[1]*h[1];
 	    	    blk_cell->coords[nv][2] = L[2] + ic[2]*h[2];
 		    blk_cell->var[nv] = grid_array[index];
+		    blk_cell->dist[nv] = distance_between_positions(coords,
+				blk_cell->coords[nv],dim);
 		    nv++;
 	    	}
 	    	else
@@ -1108,12 +1145,14 @@ LOCAL void collect_cell_ptst(
 	    	    if (cell_comp1d[(i+1)%2] != comp)
 		    {
 		    	dir = (i < (i+1)%2) ? EAST : WEST;
-			fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,ic,dir,
-				comp,get_state,&state_at_crx,crx_coords);
+			fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,ic,
+				dir,comp,get_state,&state_at_crx,crx_coords);
 		    	if (fr_crx_grid_seg)
 		    	{
 		    	    blk_cell->var[nv] = state_at_crx;
 		    	    blk_cell->coords[nv][0] = crx_coords[0];
+		    	    blk_cell->dist[nv] = distance_between_positions(
+					coords,blk_cell->coords[nv],dim);
 		    	    nv++;
 		    	}
 		    }
@@ -1131,26 +1170,42 @@ LOCAL void collect_cell_ptst(
 	    	    if (cell_comp2d[(i+1)%2][j] != comp)
 	    	    {
 		    	dir = (i < (i+1)%2) ? EAST : WEST;
-			fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,ic,dir,
-				comp,get_state,&state_at_crx,crx_coords);
+			fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,ic,
+				dir,comp,get_state,&state_at_crx,crx_coords);
 		    	if (fr_crx_grid_seg)
 		    	{
 		    	    blk_cell->var[nv] = state_at_crx;
 		    	    blk_cell->coords[nv][0] = crx_coords[0];
 		    	    blk_cell->coords[nv][1] = crx_coords[1];
+		    	    blk_cell->dist[nv] = distance_between_positions(
+					coords,blk_cell->coords[nv],dim);
+		    	    if (debugging("the_pt"))
+		    	    {
+				printf("intfc: var[%d] = %f  d[%d] = %f\n",
+					nv,blk_cell->var[nv],nv,
+					blk_cell->dist[nv]);
+		    	    }
 		    	    nv++;
 		    	}
 	    	    }
 	    	    if (cell_comp2d[i][(j+1)%2] != comp)
 	    	    {
 		    	dir = (j < (j+1)%2) ? NORTH : SOUTH;
-			fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,ic,dir,
-				comp,get_state,&state_at_crx,crx_coords);
+			fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,ic,
+				dir,comp,get_state,&state_at_crx,crx_coords);
 		    	if (fr_crx_grid_seg)
 		    	{
 		    	    blk_cell->var[nv] = state_at_crx;
 		    	    blk_cell->coords[nv][0] = crx_coords[0];
 		    	    blk_cell->coords[nv][1] = crx_coords[1];
+		    	    blk_cell->dist[nv] = distance_between_positions(
+					coords,blk_cell->coords[nv],dim);
+		    	    if (debugging("the_pt"))
+		    	    {
+				printf("intfc: var[%d] = %f  d[%d] = %f\n",
+					nv,blk_cell->var[nv],nv,
+					blk_cell->dist[nv]);
+		    	    }
 		    	    nv++;
 		    	}
 	    	    }
@@ -1170,42 +1225,48 @@ LOCAL void collect_cell_ptst(
 	    	    if (cell_comp3d[(i+1)%2][j][k] != comp)
 	    	    {
 		    	dir = (i < (i+1)%2) ? EAST : WEST;
-			fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,ic,dir,
-				comp,get_state,&state_at_crx,crx_coords);
+			fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,ic,
+				dir,comp,get_state,&state_at_crx,crx_coords);
 		    	if (fr_crx_grid_seg)
 		    	{
 		    	    blk_cell->var[nv] = state_at_crx;
 		    	    blk_cell->coords[nv][0] = crx_coords[0];
 		    	    blk_cell->coords[nv][1] = crx_coords[1];
 		    	    blk_cell->coords[nv][2] = crx_coords[2];
+		    	    blk_cell->dist[nv] = distance_between_positions(
+					coords,blk_cell->coords[nv],dim);
 		    	    nv++;
 		    	}
 	    	    }
 	    	    if (cell_comp3d[i][(j+1)%2][k] != comp)
 	    	    {
 		    	dir = (j < (j+1)%2) ? NORTH : SOUTH;
-			fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,ic,dir,
-				comp,get_state,&state_at_crx,crx_coords);
+			fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,ic,
+				dir,comp,get_state,&state_at_crx,crx_coords);
 		    	if (fr_crx_grid_seg)
 		    	{
 		    	    blk_cell->var[nv] = state_at_crx;
 		    	    blk_cell->coords[nv][0] = crx_coords[0];
 		    	    blk_cell->coords[nv][1] = crx_coords[1];
 		    	    blk_cell->coords[nv][2] = crx_coords[2];
+		    	    blk_cell->dist[nv] = distance_between_positions(
+					coords,blk_cell->coords[nv],dim);
 		    	    nv++;
 		    	}
 	    	    }
 	    	    if (cell_comp3d[i][j][(k+1)%2] != comp)
 	    	    {
 		    	dir = (k < (k+1)%2) ? UPPER : LOWER;
-			fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,ic,dir,
-				comp,get_state,&state_at_crx,crx_coords);
+			fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,ic,
+				dir,comp,get_state,&state_at_crx,crx_coords);
 		    	if (fr_crx_grid_seg)
 		    	{
 		    	    blk_cell->var[nv] = state_at_crx;
 		    	    blk_cell->coords[nv][0] = crx_coords[0];
 		    	    blk_cell->coords[nv][1] = crx_coords[1];
 		    	    blk_cell->coords[nv][2] = crx_coords[2];
+		    	    blk_cell->dist[nv] = distance_between_positions(
+					coords,blk_cell->coords[nv],dim);
 		    	    nv++;
 		    	}
 	    	    }
@@ -1214,6 +1275,7 @@ LOCAL void collect_cell_ptst(
 	    break;
 	}
 	blk_cell->nv = nv;
+	sort_blk_cell(blk_cell);
 }	/* end collect_cell_ptst */
 
 
@@ -1364,9 +1426,12 @@ EXPORT	double FrontLinIntrp(
 	    f[1] = (xx*y2 - yy*x2) / den;
 	    f[2] = (x1*yy - y1*xx) / den;
 	    f[0] = 1.0 - f[1] - f[2];
-	    f[0] = max(0.0,f[0]);	f[0] = min(1.0,f[0]);
-	    f[1] = max(0.0,f[1]);	f[1] = min(1.0,f[1]);
-	    f[2] = max(0.0,f[2]);	f[2] = min(1.0,f[2]);
+	    if (!extrapolation_permitted)
+	    {
+	    	f[0] = max(0.0,f[0]);	f[0] = min(1.0,f[0]);
+	    	f[1] = max(0.0,f[1]);	f[1] = min(1.0,f[1]);
+	    	f[2] = max(0.0,f[2]);	f[2] = min(1.0,f[2]);
+	    }
 	    ans = f[0]*var[0] + f[1]*var[1] + f[2]*var[2];
 	}
 	break;
@@ -1489,6 +1554,107 @@ EXPORT void FT_ReadSpaceDomain(
 	int i;
 
 	infile = fopen(in_name,"r");
+	for (i = 0; i < f_basic->dim; ++i)
+	{
+            sprintf(input_string,"Domain limit in %d-th dimension:",i);
+            CursorAfterString(infile,input_string);
+            fscanf(infile,"%lf %lf",&f_basic->L[i],&f_basic->U[i]);
+            (void) printf("%f %f\n",f_basic->L[i],f_basic->U[i]);
+	}
+	CursorAfterString(infile,"Computational grid:");
+	for (i = 0; i < f_basic->dim; ++i)
+	{
+	    fscanf(infile,"%d",&f_basic->gmax[i]);
+	    (void) printf("%d ",f_basic->gmax[i]);
+	}
+	(void) printf("\n");
+	for (i = 0; i < f_basic->dim; ++i)
+	{
+            sprintf(input_string,"Lower boundary in %d-th dimension:",i);
+            CursorAfterString(infile,input_string);
+            fscanf(infile,"%s",sbdry);
+	    (void) printf("%s\n",sbdry);
+	    switch (sbdry[0])
+	    {
+	    case 'R':
+	    case 'r':
+	    	f_basic->boundary[i][0] = REFLECTION_BOUNDARY;
+		break;
+	    case 'P':
+	    case 'p':
+		if (sbdry[1] == 'a' || sbdry[1] == 'A')
+	    	    f_basic->boundary[i][0] = PASSIVE_BOUNDARY;
+		else if (sbdry[1] == 'e' || sbdry[1] == 'E')
+	    	    f_basic->boundary[i][0] = PERIODIC_BOUNDARY;
+		break;
+	    case 'D':
+	    case 'd':
+	    	f_basic->boundary[i][0] = DIRICHLET_BOUNDARY;
+	    	break;
+	    case 'N':
+	    case 'n':
+	    	f_basic->boundary[i][0] = NEUMANN_BOUNDARY;
+	    	break;
+	    case 'M':
+	    case 'm':
+	    	f_basic->boundary[i][0] = MIXED_TYPE_BOUNDARY;
+	    	break;
+	    default:
+	    	printf("Unknown boundary!\n");
+		clean_up(ERROR);
+	    }
+            sprintf(input_string,"Upper boundary in %d-th dimension:",i);
+            CursorAfterString(infile,input_string);
+            fscanf(infile,"%s",sbdry);
+	    (void) printf("%s\n",sbdry);
+	    switch (sbdry[0])
+	    {
+	    case 'R':
+	    case 'r':
+	    	f_basic->boundary[i][1] = REFLECTION_BOUNDARY;
+		break;
+	    case 'P':
+	    case 'p':
+		if (sbdry[1] == 'a' || sbdry[1] == 'A')
+	    	    f_basic->boundary[i][1] = PASSIVE_BOUNDARY;
+		else if (sbdry[1] == 'e' || sbdry[1] == 'E')
+	    	    f_basic->boundary[i][1] = PERIODIC_BOUNDARY;
+		break;
+	    case 'D':
+	    case 'd':
+	    	f_basic->boundary[i][1] = DIRICHLET_BOUNDARY;
+	    	break;
+	    case 'N':
+	    case 'n':
+	    	f_basic->boundary[i][1] = NEUMANN_BOUNDARY;
+	    	break;
+	    case 'M':
+	    case 'm':
+	    	f_basic->boundary[i][1] = MIXED_TYPE_BOUNDARY;
+	    	break;
+	    default:
+	    	printf("Unknown boundary!\n");
+		clean_up(ERROR);
+	    }
+	}
+	fclose(infile);
+}	/* end FT_ReadSpaceDomain */
+
+EXPORT void FT_ReadComparisonDomain(
+        char *in_name,
+        F_BASIC_DATA *f_basic)
+{
+	
+	FILE *infile;
+	char input_string[200],sbdry[200];
+	int i;
+
+	infile = fopen(in_name,"r");
+
+        sprintf(input_string,"For comparison solution");
+        CursorAfterString(infile,input_string);
+	printf("\n");
+
 	for (i = 0; i < f_basic->dim; ++i)
 	{
             sprintf(input_string,"Domain limit in %d-th dimension:",i);
@@ -3513,3 +3679,33 @@ static	boolean equi_bond_curve_redist(
         }
 	return YES;
 }		/*end equi_bond_curve_redist*/
+
+LOCAL void sort_blk_cell(
+	INTRP_CELL *blk_cell)
+{
+	int i,j,k,nv = blk_cell->nv;
+	int dim = blk_cell->dim;
+	double var_tmp;
+	double dist_tmp;
+	double coords_tmp[MAXD];
+
+	for (i = 0; i < nv-1; ++i)
+	for (j = i; j < nv; ++j)
+	{
+	    if (blk_cell->dist[i] > blk_cell->dist[j])
+	    {
+		var_tmp  = blk_cell->var[i];
+		dist_tmp = blk_cell->dist[i];
+		for (k = 0; k < dim; ++k)
+		    coords_tmp[k] = blk_cell->coords[i][k];
+		blk_cell->var[i]  = blk_cell->var[j];
+		blk_cell->dist[i] = blk_cell->dist[j];
+		for (k = 0; k < dim; ++k)
+		    blk_cell->coords[i][k] = blk_cell->coords[j][k];
+		blk_cell->var[j]  = var_tmp;
+		blk_cell->dist[j] = dist_tmp;
+		for (k = 0; k < dim; ++k)
+		    blk_cell->coords[j][k] = coords_tmp[k];
+	    }
+	}
+}

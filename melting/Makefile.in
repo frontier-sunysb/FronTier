@@ -7,7 +7,7 @@ incs =  @ftlibincs@
 libincs = @otherlibsinc@
 libs = @otherlibs@
 build_cpu = @build_cpu@
-incsloc = -I. -I../iFluid -I../include
+incsloc = -I. -I../solver -I../include
 
 PETSC = yes
 PETSC_ARCH=@PETSC_ARCH@
@@ -30,11 +30,11 @@ mprop.o : melting.h melting_basic.h mprop.cpp
 mcartsn.o : melting.h melting_basic.h mcartsn.cpp
 	${CXX} -c mcartsn.cpp $(incsloc) $(incs) ${Petsc_Include}
 
-solver.o : ../iFluid/solver.h ../iFluid/solver.cpp
-	${CXX} -c ../iFluid/solver.cpp $(incsloc) $(incs) ${Petsc_Include}
+solver.o : ../solver/solver.h ../solver/solver.cpp
+	${CXX} -c ../solver/solver.cpp $(incsloc) $(incs) ${Petsc_Include}
 
-parab.o : ../iFluid/solver.h ../iFluid/parab.cpp
-	${CXX} -c ../iFluid/parab.cpp $(incsloc) $(incs) ${Petsc_Include}
+parab.o : ../solver/solver.h ../solver/parab.cpp
+	${CXX} -c ../solver/parab.cpp $(incsloc) $(incs) ${Petsc_Include}
 
 melting: melting.h melting_basic.h melting_basic.h melting.cpp marray.o minit.o solver.o mcartsn.o mprop.o parab.o
 	${CXX} -c melting.cpp -I../include $(incs) ${Petsc_Include}

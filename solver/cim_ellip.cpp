@@ -22,6 +22,7 @@ void CIM_ELLIPTIC_SOLVER::set_solver_domain(void)
         top_comp = T->components;
         top_gmax = top_grid->gmax;
 	top_h = top_grid->h;
+	top_L = top_grid->L;
 	if (first)
 	{
 	    first = NO;
@@ -128,6 +129,8 @@ void CIM_ELLIPTIC_SOLVER::solve2d(double *soln)
 	    clean_up(ERROR);
         }
 	FT_ParallelExchGridArrayBuffer(soln,front);
+	if (solve_front_state)
+	    cimSolveFrontState();
         
         FT_FreeThese(3,A.a,A.j,A.i);
 
@@ -698,8 +701,10 @@ int CIM_ELLIPTIC_SOLVER::HCIM_Matrix_Generation_k(
     	double P[MAXD], Q[MAXD], R[MAXD];
     	double epi, epo;
     	double J_u[2*MAXD], J_eps_un[2*MAXD], J_ut[2*MAXD];
-    	double v, *val;
 	double *h = top_h;
+    	CIM_STRUCT CS;
+    	CIM_COEF CC;
+    	double v, *val;
 	HYPER_SURF *hs;
 	double crx_coords[MAXD];
 	COMPONENT comp;
@@ -714,9 +719,6 @@ int CIM_ELLIPTIC_SOLVER::HCIM_Matrix_Generation_k(
     	col = A.j;
     	val = A.a;
     
-    	CIM_STRUCT CS;
-    	CIM_COEF CC;
-
 	Ri = 0;
 	use_neumann = YES;
 
@@ -741,14 +743,15 @@ int CIM_ELLIPTIC_SOLVER::HCIM_Matrix_Generation_k(
 		{
 		    idir = i/2;
 		    nb = i%2;
-		    if (NB[i][k] >= 0) 
+		    if (NB[i][k] >= 0 && NB[2*idir+((i+1)%2)][k]>=0) 
 		    {
 			row[*n] = k;
 			col[*n] = NB[i][k];
 			val[*n] = -1.0/sqr(h[idir])*epi;
 			(*n)++;
+		    	v += 1.0/sqr(h[idir])*epi;
 		    } 
-		    else 
+		    else if(NB[i][k] < 0)
 		    {
 			// boundary treatment
 			HYPER_SURF *hs;
@@ -762,7 +765,9 @@ int CIM_ELLIPTIC_SOLVER::HCIM_Matrix_Generation_k(
 				dir[idir][nb],comp,&state,&hs,crx_coords);
 			if (status == DIRICHLET_PDE_BOUNDARY)
 			{
-			    b[k] += 1.0/sqr(h[idir])*epi*getStateVar(state);
+			    
+			    b[k] += 8.0/3/sqr(h[idir])*epi*getStateVar(state);
+			    //b[k] += 1.0/sqr(h[idir])*epi*getStateVar(state);
 			    use_neumann = NO;
 			}
 			else if (status == NEUMANN_PDE_BOUNDARY)
@@ -770,8 +775,15 @@ int CIM_ELLIPTIC_SOLVER::HCIM_Matrix_Generation_k(
 			    neumann_nb = YES;
 		    	    v -= 1.0/sqr(h[idir])*epi;
 			}
+		    	v += 8.0/3/sqr(h[idir])*epi;
+		    } else {
+			row[*n] = k;
+			col[*n] = NB[i][k];
+			val[*n] = -4.0/3/sqr(h[idir])*epi;
+			(*n)++;
+		    	v += 4.0/3/sqr(h[idir])*epi;
 		    }
-		    v += 1.0/sqr(h[idir])*epi;
+		    //v += 1.0/sqr(h[idir])*epi;
 		}
 		row[*n] = col[*n] = k;
 		val[*n] = v;
@@ -797,11 +809,25 @@ int CIM_ELLIPTIC_SOLVER::HCIM_Matrix_Generation_k(
 			for (j = 0; j < dim; ++j) 
 			    icrds[j] = icoords[j];
 			if (CS.s[i] == -1)
+			{
 			    status = FT_NormalAtGridCrossing(front,icrds,
 					dir[i][0],comp,R,&hs,crx_coords);
+			    if (comp == negative_component(hs))
+			    {
+				for (j = 0; j < dim; ++j) 
+				    R[i] *= -1;
+			    }
+			}
 			else
+			{
 			    status = FT_NormalAtGridCrossing(front,icrds,
 					dir[i][1],comp,R,&hs,crx_coords);
+			    if (comp == negative_component(hs))
+			    {
+				for (j = 0; j < dim; ++j) 
+				    R[i] *= -1;
+			    }
+			}
 			for (j = 0; j < dim; ++j) 
 			    Q[j] = crx_coords[j];	
 			CS.a[i] = (crx_coords[i] - P[i])/top_h[i]/CS.s[i];
@@ -876,11 +902,25 @@ int CIM_ELLIPTIC_SOLVER::HCIM_Matrix_Generation_k(
 			for (j = 0; j < dim; ++j) 
 			    icrds[j] = icoords[j];
 			if (nb == -1)
+			{
 			    status = FT_NormalAtGridCrossing(front,icrds,
 					dir[idir][0],comp,R,&hs,crx_coords);
+			    if (comp == negative_component(hs))
+			    {
+				for (j = 0; j < dim; ++j) 
+				    R[i] *= -1;
+			    }
+			}
 			else
+			{
 			    status = FT_NormalAtGridCrossing(front,icrds,
 					dir[idir][1],comp,R,&hs,crx_coords);
+			    if (comp == negative_component(hs))
+			    {
+				for (j = 0; j < dim; ++j) 
+				    R[i] *= -1;
+			    }
+			}
 			for (j = 0; j < dim; ++j) 
 			    Q[j] = crx_coords[j];	
 			CS.a[i] = (crx_coords[i] - P[i])/top_h[idir]/CS.s[i];
@@ -1511,3 +1551,239 @@ static int tangential_direction(
     	}
     	return j;
 }
+
+void CIM_ELLIPTIC_SOLVER::cimSolveFrontState()	
+{
+        INTERFACE *intfc = front->interf;
+        POINTER sl,sr;
+        POINT *p;
+        HYPER_SURF *hs;
+        HYPER_SURF_ELEMENT *hse;
+	double ul,ur;
+
+	if (debugging("trace"))
+	    (void) printf("Entering cimSolveFrontState()\n");
+	next_point(intfc,NULL,NULL,NULL);
+        while (next_point(intfc,&p,&hse,&hs))
+        {
+            if (Boundary_hs(hs))
+                continue;
+            FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+	    cimIntfcPointState(Coords(p),negative_component(hs),&ul,&ur);
+            assignStateVar(ul,sl);
+            assignStateVar(ur,sr);
+        }
+}	/* end cimSolveFrontState */
+
+void CIM_ELLIPTIC_SOLVER::cimIntfcPointState(
+	double *coords,
+	int comp,
+	double *ul,
+	double *ur)
+{
+	// ul = u at coords in omega_-
+	// ur = u at coords in omega_+
+	int icoords[MAXD],ic[MAXD];
+	int i,j,k,index;
+	GRID_DIRECTION forward_dir[3] = {EAST,NORTH,UPPER};
+	GRID_DIRECTION backward_dir[3] = {WEST,SOUTH,LOWER};
+	double nor[MAXD],crx_coords[MAXD];
+	boolean status;
+	HYPER_SURF *hs;
+	
+	int N;
+	double u, uJ;
+   	double epi, epo;
+   	double J_u[2*MAXD], J_eps_un[2*MAXD], J_ut[2*MAXD];
+	double *h = top_h;
+   	CIM_STRUCT CS;
+   	CIM_COEF CC;
+	GRID_DIRECTION dir[3][2] = {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
+	static double max_diff = 0.0;
+	double P[MAXD],R[MAXD],Q[MAXD];
+	double a[MAXD];
+	double uex;
+	double u_xx[MAXD], u_b[MAXD], u_xy[MAXD][MAXD], uc, ut, us, ud, ue;
+	double u_at_itfc;
+	int ii;
+
+	rect_in_which(coords,icoords,top_grid);
+	index = d_index(icoords,top_gmax,dim);
+	uJ = (*solutionJump)(jparams,D[k],coords);
+	k  = ij_to_I[icoords[0]][icoords[1]];
+	u = soln[index];
+	for (i = 0; i < dim; ++i) 
+	{
+	    ic[i] = icoords[i];
+	    P[i]  = top_L[i] + icoords[i]*top_h[i];
+	    a[i]  = (coords[i]-P[i])/top_h[i];
+	}
+
+
+	epi = (D[k] ==  1) ? diff_coeff[0] : diff_coeff[1];
+    	epo = (D[k] == -1) ? diff_coeff[0] : diff_coeff[1];
+
+	for (i = 0;i < dim; ++i) ic[i] = icoords[i];
+
+	for (i = 0; i < dim; ++i) 
+	{
+            CS.s[i] = S[2*i+1][k]-S[2*i][k];
+            CS.a[i] = 1.0;
+            for (j = 0; j < dim; ++j) 
+	    {
+		CS.n[i][j] = (i == j) ? 1 : 0;
+	    }
+	}
+	for (i = 0; i < dim; ++i) 
+	{
+            J_u[i] = J_eps_un[i] = J_ut[i] = 0;
+            if (CS.s[i] != 0) 
+	    {
+		for (j = 0; j < dim; ++j) 
+		    ic[j] = icoords[j];
+		if (CS.s[i] == -1)
+		{
+		    status = FT_NormalAtGridCrossing(front,ic,
+					dir[i][0],comp,R,&hs,Q);
+		    if (comp == negative_component(hs))
+		    {
+			for (j = 0; j < dim; ++j) 
+		    	    R[i] *= -1;
+		    }
+		}
+		else
+		{
+		    status = FT_NormalAtGridCrossing(front,ic,
+					dir[i][1],comp,R,&hs,Q);
+		    if (comp == negative_component(hs))
+		    {
+			for (j = 0; j < dim; ++j) 
+			    R[i] *= -1;
+		    }
+		}
+		CS.a[i] = (Q[i] - P[i])/top_h[i]/CS.s[i];
+		J_u[i] = (*solutionJump)(jparams,D[k],Q);
+		J_eps_un[i] = (*gradJumpDotN)(jparams,D[k],R,Q);
+		J_ut[i] = (*gradJumpDotT)(jparams,D[k],i,R,Q);
+		for (j = 0; j < dim; ++j) 
+		{
+		    CS.n[i][j] = R[j];
+		    CS.c[i][j] = CS.s[j];
+		}
+	    }
+    	}
+	N = CIM2(&CC,CS,epi,epo,dim);
+
+
+	uc = soln[index];
+	u_at_itfc = -uc;
+	for(i = 0; i < dim; ++i) 
+	{	
+	    u_xx[i] = u_b[i] = 0.0;
+	    for (j = 0; j < N; ++j)
+    	    {
+       		for (ii = 0; ii < dim; ++ii)
+           	    ic[ii] = icoords[ii]+CC.indx[ii][j];
+	  	index = d_index(ic,top_gmax,dim);
+        	u_xx[i] += CC.coef[i][j]*soln[index];
+    	    }
+            for (j = 0; j < dim; ++j)
+            {
+       	    	u_xx[i] += (CC.J[i][3*j]*J_eps_un[j]*h[i]
+                       +CC.J[i][3*j+1]*J_u[j]
+                       +CC.J[i][3*j+2]*J_ut[j]*h[i]);
+            }
+	    if(CS.s[i] != 0) 
+	    {
+		for (ii = 0; ii < dim; ++ii) 
+		    ic[ii] = icoords[ii];
+		ic[i] -= CS.s[i];
+		ut = soln[d_index(ic,top_gmax,dim)];
+		u_b[i] = uc + a[i]*CS.s[i]*(uc-ut)
+			+(1+a[i]*CS.s[i])*a[i]*CS.s[i]*0.5*u_xx[i];
+	    }
+	    else
+	    {
+		for (ii = 0; ii < dim; ++ii) 
+		    ic[ii] = icoords[ii];
+		ic[i] += 1;
+		ut = soln[d_index(ic,top_gmax,dim)];
+		ic[i] -= 2;
+		us = soln[d_index(ic,top_gmax,dim)];
+		u_b[i] = uc + a[i]*0.5*(ut-us) + 0.5*a[i]*a[i]*(ut+us-2*uc);
+	    }
+	    u_at_itfc += u_b[i];
+	}
+	
+    	for (i = 0; i < dim; ++i) 
+        for (j = i+1; j < dim; ++j) 
+	{
+            if(CS.s[i] != 0 && CS.s[j] != 0) 
+	    {
+		for (ii = 0; ii < dim; ++ii) 
+		    ic[ii] = icoords[ii];
+		ic[i] -= CS.s[i];
+		ut = soln[d_index(ic,top_gmax,dim)];
+		ic[i] += CS.s[i];
+		ic[j] -= CS.s[j];
+		us = soln[d_index(ic,top_gmax,dim)];
+		ic[i] -= CS.s[i];
+		ud = soln[d_index(ic,top_gmax,dim)];
+                u_xy[i][j] = (uc - ut - us + ud)*CS.s[i]*CS.s[j];
+            } 
+	    else if (CS.s[i] !=0 && CS.s[j] == 0) 
+	    {
+		for (ii = 0; ii < dim; ++ii) 
+		    ic[ii] = icoords[ii];
+		ic[j]++; 
+		ud = soln[d_index(ic,top_gmax,dim)];
+		ic[j] -= 2;
+		ut = soln[d_index(ic,top_gmax,dim)];
+		ic[i] -= CS.s[i];
+		ue = soln[d_index(ic,top_gmax,dim)];
+		ic[j] += 2;
+		us = soln[d_index(ic,top_gmax,dim)];
+                u_xy[i][j] = (ud - ut - us + ue)*CS.s[i]*0.5;
+            } 
+	    else if(CS.s[i] ==0 && CS.s[j] != 0) 
+	    {
+		for (ii = 0; ii < dim; ++ii) 
+		    ic[ii] = icoords[ii];
+		ic[i]++; 
+		ud = soln[d_index(ic,top_gmax,dim)];
+		ic[i] -= 2;
+		ut = soln[d_index(ic,top_gmax,dim)];
+		ic[j] -= CS.s[j];
+		ue = soln[d_index(ic,top_gmax,dim)];
+		ic[i] += 2;
+		us = soln[d_index(ic,top_gmax,dim)];
+                u_xy[i][j] = (ud - ut - us + ue)*CS.s[j]*0.5;
+            } 
+	    else 
+	    {
+		for ( ii = 0; ii < dim; ++ii) 
+		    ic[ii] = icoords[ii];
+		ic[i] -= (a[i] > 0)? 1 : -1;
+		ut = soln[d_index(ic,top_gmax,dim)];
+		ic[i] += (a[i] > 0)? 1 : -1;
+		ic[j] -= (a[j] > 0)? 1 : -1;
+		us = soln[d_index(ic,top_gmax,dim)];
+		ic[i] -= (a[i] > 0)? 1 : -1;
+		ud = soln[d_index(ic,top_gmax,dim)];
+                u_xy[i][j] = (uc - ut - us + ud);
+		u_xy[i][j] *= (a[i] > 0)? 1 : -1;
+		u_xy[i][j] *= (a[j] > 0)? 1 : -1;
+            }
+            u_at_itfc += a[i]*a[j]*u_xy[i][j];
+    	}
+	if (D[k] < 0) 
+	{
+	    (*ul) = u_at_itfc;
+	    (*ur) = u_at_itfc+uJ;
+	}
+	else
+	{
+	    (*ur) = u_at_itfc;
+	    (*ul) = u_at_itfc+uJ;
+	}
+}	/* end cimIntfcPointState */

@@ -42,6 +42,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 static void gas_driver(Front*,G_CARTESIAN&);
 static int g_cartesian_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
                         HYPER_SURF*,double*);
+static boolean compare_with_base_data(Front *front);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -65,6 +66,7 @@ int main(int argc, char **argv)
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
 	static EQN_PARAMS eqn_params;
+	int i;
 
 	G_CARTESIAN	g_cartesian(front);
 
@@ -107,6 +109,13 @@ int main(int argc, char **argv)
 
 	eqn_params.dim = f_basic.dim;
 	read_cFluid_params(in_name,&eqn_params);
+
+	if (eqn_params.use_base_soln == YES)
+	{
+            for (i = 0; i < f_basic.dim; ++i)
+                eqn_params.f_basic->subdomains[i] = f_basic.subdomains[i];
+	}
+
 	read_movie_options(in_name,&eqn_params);
 	front.extra1 = (POINTER)&eqn_params;
 	if (debugging("trace")) printf("Passed read_cFluid_params()\n");
@@ -262,6 +271,11 @@ static  void gas_driver(
 	    {
             	FT_Save(front,out_name);
 		g_cartesian.printFrontInteriorStates(out_name);
+		if (compare_with_base_data(front))
+		{
+		    g_cartesian.compareWithBaseData(out_name);
+		    g_cartesian.freeBaseFront();
+		}
 	    }
             if (FT_IsMovieFrameTime(front))
 	    {
@@ -309,3 +323,8 @@ static int g_cartesian_vel(
 	return YES;
 }	/* end g_cartesian_vel */
 
+static boolean compare_with_base_data(Front *front)
+{
+	EQN_PARAMS *eqn_params = (EQN_PARAMS*)front->extra1;
+	return eqn_params->use_base_soln;
+}	/* end compare_with_base_data */

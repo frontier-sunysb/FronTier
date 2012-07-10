@@ -2157,6 +2157,7 @@ EXPORT CURVE *i_copy_curve(
 	CURVE		*new_curve;
 	BOND		*b,*bnew;
 	COMPONENT	neg_comp = NO_COMP, pos_comp = NO_COMP;
+	int i;
 
 	if (curve->interface->dim == 2)
 	{
@@ -2192,8 +2193,12 @@ EXPORT CURVE *i_copy_curve(
 	        clean_up(ERROR);
 	    }
 	    bnew->length0 = b->length0;
+	    for (i = 0; i < curve->interface->dim; ++i)
+	    	bnew->dir0[i] = b->dir0[i];
 	}
 	new_curve->last->length0 = curve->last->length0;
+	for (i = 0; i < curve->interface->dim; ++i)
+	    new_curve->last->dir0[i] = curve->last->dir0[i];
 
 	if (is_bdry(curve))
 	    set_is_bdry(new_curve);

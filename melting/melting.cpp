@@ -106,11 +106,14 @@ int main(int argc, char **argv)
 	sprintf(restart_name,"%s/intfc-ts%s",restart_name,
 			right_flush(RestartStep,7));
 #if defined(__MPI__)
-        sprintf(restart_name,"%s-nd%s",restart_name,right_flush(pp_mynode(),4));
-        sprintf(restart_state_name,"%s-nd%s",restart_state_name,
-			right_flush(pp_mynode(),4));
+	if (pp_numnodes() > 1)
+	{
+        	sprintf(restart_name,"%s-nd%s",restart_name,
+				    right_flush(pp_mynode(),4));
+        	sprintf(restart_state_name,"%s-nd%s",restart_state_name,
+			            right_flush(pp_mynode(),4));
+	}
 #endif /* defined(__MPI__) */
-
         FT_ReadSpaceDomain(in_name,&f_basic);
 
 	FT_StartUp(&front,&f_basic);
@@ -197,7 +200,7 @@ static  void melting_driver(
 	Curve_redistribution_function(front) = expansion_redistribute;
         CFL = Time_step_factor(front);
 
-	eqn_params = (PARAMS*)front->vparams;
+	eqn_params = (PARAMS*)front->extra2;
 
 	front->hdf_movie_var = NULL;
         cartesian.initMovieVariables();
@@ -213,6 +216,8 @@ static  void melting_driver(
             FT_AddMovieFrame(front,out_name,binary);
 	    if (dim == 1)
 	    	cartesian.oneDimPlot(out_name);
+	    if (dim == 2)
+		cartesian.vtk_plot_temperature2d(out_name);
 
 	    if (dim == 1)
 	    {
@@ -286,6 +291,8 @@ static  void melting_driver(
                 FT_AddMovieFrame(front,out_name,binary);
 		if (dim == 1)
 	    	    cartesian.oneDimPlot(out_name);
+		else if (dim == 2)
+		    cartesian.vtk_plot_temperature2d(out_name);
 	    }
 	    if (dim == 1)
 	    {

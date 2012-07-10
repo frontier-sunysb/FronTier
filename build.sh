@@ -49,6 +49,26 @@ function parse_arguments {
     fi
 }
 
+function config_ycshu {
+    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
+    export F77="mpif77 ${OPTS}"
+    export CC="mpicc ${OPTS} ${COPTS_GCC}"
+
+    export PETSC_DIR=/usr/local/petsc
+    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -lm -L/usr/X11R6/lib -lX11 -lgfortran" 
+
+    if [[ -n "$WITHHDF" ]]; then
+        CONF="$CONF --with-hdf=/usr/local/"
+    fi
+    if [[ -n "$WITHGD" ]]; then
+        CONF="$CONF --with-gd=/usr/local"
+    fi
+
+    export CONF="--with-mpich=/usr/local/mpich --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/usr/local"
+    PMAKE="-j2"
+}
+
 #################
 function config_generic {
     # Generic platforms. 
@@ -124,18 +144,18 @@ function config_blade {
     export F77="mpif77 ${OPTS}"
     export CC="mpicc ${OPTS} ${COPTS_GCC}"
 
-    export PETSC_DIR=/home/netusers/visitor/xiaolin/pkg/petsc
+    export PETSC_DIR=/home/netusers/visitor/xiaolin/newpkg/petsc
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -llapack -lblas -ldl -lm -L/usr/X11R6/lib -lX11"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -lm -L/usr/X11R6/lib -lX11 -lgfortran" 
 
     if [[ -n "$WITHHDF" ]]; then
         CONF="$CONF --with-hdf=/home/netusers/visitor/xiaolin/pkg/hdf"
     fi
     if [[ -n "$WITHGD" ]]; then
-        CONF="$CONF --with-gd=/home/netusers/visitor/xiaolin/pkg/gd"
+        CONF="$CONF --with-gd=/home/netusers/visitor/xiaolin/newpkg/gd"
     fi
 
-    export CONF="--with-mpich=/usr --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/home/netusers/visitor/xiaolin/pkg/gd"
+    export CONF="--with-mpich=/home/netusers/visitor/xiaolin/newpkg/mpich --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/home/netusers/visitor/xiaolin/newpkg/gd"
     PMAKE="-j2"
 }
 
@@ -483,6 +503,9 @@ elif [[ "${HOST}" == "flogin1" ]]; then
 elif [[ "${HOST}" == "service0" ]]; then
     echo "Computer is recognized as INL Icestorm."
     config_icestorm
+elif [[ "${HOST}" == "ycshu-VirtualBox" ]]; then
+    echo "Computer is recognized as blade."
+    config_ycshu
 else
     echo "Computer was not recognized. Using generic configure options."
     config_generic

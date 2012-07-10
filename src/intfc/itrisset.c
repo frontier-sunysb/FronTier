@@ -676,9 +676,6 @@ EXPORT	int	bound_tris_set(
             tri = tris[i];
 	    for(j=0; j<3; j++)
 	    {
-		printf("In bound_tris_set(): is_side_bdry(%d,%d) = %d\n",
-			tri,j,is_side_bdry(tri,j));
-		if (is_side_bdry(tri,j)) return 0;
 		nbtri = Tri_on_side(tris[i],j);
 		if(!tri_recorded(nbtri,out_tris,num_out_tris) &&
 		   !tri_recorded(nbtri,tris,nt))

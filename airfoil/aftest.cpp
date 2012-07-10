@@ -30,7 +30,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 static void set_equilibrium_mesh2d(Front*);
 static void set_equilibrium_mesh3d(Front*);
 static void adjust_for_node_type(NODE*,int,STRING_NODE_TYPE,double**,double**,
-				double mass,double,double*);
+				double,double,double*);
+static void adjust_for_curve_type(CURVE*,int,double**,double**,double,double*);
+static void adjust_for_cnode_type(NODE*,int,double**,double**,double,double*);
 static void propagate_curve(PARACHUTE_SET*,CURVE*,double**);
 static void print_airfoil_stat2d(Front*,char*);
 static void print_airfoil_stat2d_1(Front*,char*);
@@ -38,6 +40,7 @@ static void print_airfoil_stat2d_2(Front*,char*);
 static void print_airfoil_stat3d(Front*,char*);
 static void print_airfoil_stat3d_1(Front*,char*);
 static void print_airfoil_stat3d_2(Front*,char*);
+static void record_stretching_length(SURFACE*,char*,double);
 
 extern void second_order_elastic_curve_propagate(
 	Front           *fr,
@@ -75,7 +78,10 @@ extern void second_order_elastic_curve_propagate(
 	    compute_curve_accel = compute_curve_accel2;
 	    compute_node_accel = compute_node_accel2;
 	    break;
-	case MODEL12:
+	case MODEL3:
+	    compute_curve_accel = compute_curve_accel3;
+	    compute_node_accel = compute_node_accel3;
+	    break;
 	default:
 	    (void) printf("Model function not implemented yet!\n");
 	    clean_up(ERROR);
@@ -199,7 +205,7 @@ extern void second_order_elastic_surf_propagate(
 	    compute_node_accel = compute_node_accel2;
 	    compute_surf_accel = compute_surf_accel2;
 	    break;
-	case MODEL12:
+	case MODEL3:
 	default:
 	    (void) printf("Model function not implemented yet!\n");
 	    clean_up(ERROR);
@@ -341,7 +347,8 @@ static void set_equilibrium_mesh2d(
 	    {
 		b->length0 = len0;
 		for (i = 0; i < dim; ++i)
-		    b->dir0[i] = (Coords(b->end)[i] - Coords(b->start)[i])/len0;	
+		    b->dir0[i] = (Coords(b->end)[i] - Coords(b->start)[i])
+				/b->length0;	
 	    }
 	    for (b = curve->first; b != curve->last; b = b->next)
 	    {
@@ -379,6 +386,7 @@ static void set_equilibrium_mesh2d(
 	    }
 	    for (b = curve->first; b != NULL; b = b->next)
 		set_bond_length(b,2);
+	    never_redistribute(Hyper_surf(curve)) = YES;
 	}
 }	/* end set_equilibrium_mesh2d */
 
@@ -439,6 +447,7 @@ static void set_equilibrium_mesh3d(
 		    count += 1.0;
 		}
 	    }
+	    never_redistribute(Hyper_surf(surf)) = YES;
 	}
 	af_params->min_len = min_len;
 	printf("Original length:\n");
@@ -452,6 +461,24 @@ static void set_equilibrium_mesh3d(
 	    surf = *s;
 	    switch (af_params->pert_params.pert_type)
 	    {
+	    case ORTHOGONAL_RAND_PERT:
+	        for (t = first_tri(surf); !at_end_of_tri_list(t,surf); 
+				t = t->next)
+		for (i = 0; i < 3; ++i)
+		{
+		    for (j = 0; j < 3; ++j)
+		    {
+			vec[j] = Coords(Point_of_tri(t)[i])[j] -
+				 Coords(Point_of_tri(t)[(i+1)%3])[j];
+		    }
+		    for (j = 0; j < 3; ++j)
+		    {
+		    	dx_rand = (2.0 + erand48(seed))/3.0;
+			vec[j] *= dx_rand;
+			Coords(Point_of_tri(t)[j])[2] += vec[j]; 
+		    }
+		}
+		break;
 	    case PARALLEL_RAND_PERT:
 	        for (t = first_tri(surf); !at_end_of_tri_list(t,surf); 
 				t = t->next)
@@ -600,7 +627,7 @@ static void print_airfoil_stat2d(
 	case MODEL2:
 	    print_airfoil_stat2d_2(front,out_name);
 	    break;
-	case MODEL12:
+	case MODEL3:
 	default:
 	    (void) printf("print_airfoil_stat2d_12() not implemented!\n");
 	}
@@ -731,7 +758,7 @@ static void print_airfoil_stat3d(
 	case MODEL2:
 	    print_airfoil_stat3d_2(front,out_name);
 	    break;
-	case MODEL12:
+	case MODEL3:
 	default:
 	    (void) printf("print_airfoil_stat3d_12() not implemented!\n");
 	}
@@ -751,6 +778,7 @@ static void print_airfoil_stat3d_1(
 	static FILE *eskfile,*espfile,*egpfile,*efile,*exkfile,*enkfile;
 	static FILE *afile,*sfile,*pfile,*vfile;
 	static FILE *xcom_file,*vcom_file;
+	static FILE *samplex,*sampley,*samplez;
 	static double ep0;
 	static boolean first = YES;
 	char fname[256];
@@ -763,6 +791,10 @@ static void print_airfoil_stat3d_1(
 	double payload = af_params->payload;
 	double *g = af_params->gravity;
 	STATE *st;
+	static int np,ip;
+	static POINT **pts;
+	POINT *psample;
+	static double p0[MAXD];
 
 	if (eskfile == NULL)
         {
@@ -790,6 +822,12 @@ static void print_airfoil_stat3d_1(
             xcom_file = fopen(fname,"w");
 	    sprintf(fname,"%s/vcom.xg",out_name);
             vcom_file = fopen(fname,"w");
+	    sprintf(fname,"%s/samplex.xg",out_name);
+            samplex = fopen(fname,"w");
+	    sprintf(fname,"%s/sampley.xg",out_name);
+            sampley = fopen(fname,"w");
+	    sprintf(fname,"%s/samplez.xg",out_name);
+            samplez = fopen(fname,"w");
             fprintf(eskfile,"\"Spr-kinetic energy vs. time\"\n");
             fprintf(espfile,"\"Spr-potentl energy vs. time\"\n");
             fprintf(exkfile,"\"Ext-kinetic energy vs. time\"\n");
@@ -802,6 +840,9 @@ static void print_airfoil_stat3d_1(
             fprintf(vfile,"\"Payload velo vs. time\"\n");
             fprintf(xcom_file,"\"COM vs. time\"\n");
             fprintf(vcom_file,"\"V-COM vs. time\"\n");
+            fprintf(samplex,"\"x-coords vs. time\"\n");
+            fprintf(sampley,"\"y-coords vs. time\"\n");
+            fprintf(samplez,"\"z-coords vs. time\"\n");
         }
 	ks = af_params->ks;
         m_s = af_params->m_s;
@@ -815,6 +856,14 @@ static void print_airfoil_stat3d_1(
 	    surf = *s;
 	    zcom = center_of_mass(Hyper_surf(surf))[2];
 	    vcom = center_of_mass_velo(Hyper_surf(surf))[2];
+	    if (first)
+	    {
+		np = FT_NumOfSurfPoints(surf);
+		ip = np/2;
+		FT_VectorMemoryAlloc((POINTER*)&pts,np,sizeof(POINT*));
+	    }
+	    FT_ArrayOfSurfPoints(surf,pts);
+	    psample = pts[ip];
 	    for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf);
                         tri = tri->next)
 	    {
@@ -848,6 +897,9 @@ static void print_airfoil_stat3d_1(
 		}
 	    }
 	}
+
+	record_stretching_length(surf,out_name,front->time);
+
 	epi *= 0.5;	//Each side is counted twice
 	for (c = intfc->curves; c && *c; ++c)
 	{
@@ -936,6 +988,8 @@ static void print_airfoil_stat3d_1(
 	    str_length /= (double)nc;
 	if (first)
 	{
+	    for (k = 0; k < dim; ++k)
+		p0[k] = Coords(psample)[k];
 	    first = NO;
 	    ep0 = egp;
 	}
@@ -967,6 +1021,15 @@ static void print_airfoil_stat3d_1(
         fprintf(vcom_file,"%16.12f  %16.12f\n",front->time,vcom);
 	fflush(xcom_file);
 	fflush(vcom_file);
+        fprintf(samplex,"%16.12f  %16.12f\n",front->time,Coords(psample)[0]
+				- p0[0]);
+        fprintf(sampley,"%16.12f  %16.12f\n",front->time,Coords(psample)[1]
+				- p0[1]);
+        fprintf(samplez,"%16.12f  %16.12f\n",front->time,Coords(psample)[2]
+				- p0[2]);
+	fflush(samplex);
+	fflush(sampley);
+	fflush(samplez);
 }	/* end print_airfoil_stat3d_1 */
 
 static void print_airfoil_stat3d_2(
@@ -1257,7 +1320,10 @@ extern void fourth_order_elastic_curve_propagate(
 	    compute_curve_accel = compute_curve_accel2;
 	    compute_node_accel = compute_node_accel2;
 	    break;
-	case MODEL12:
+	case MODEL3:
+	    compute_curve_accel = compute_curve_accel3;
+	    compute_node_accel = compute_node_accel3;
+	    break;
 	default:
 	    (void) printf("Model function not implemented yet!\n");
 	    clean_up(ERROR);
@@ -1300,7 +1366,6 @@ extern void fourth_order_elastic_curve_propagate(
 	compute_curve_accel(&geom_set,newc,f_old,x_old,v_old,&count);
 	compute_node_accel(&geom_set,ne,f_old,x_old,v_old,&count);
 
-	printf("ODE time step = %f\n",dt);
 	for (n = 0; n < n_tan; ++n)
 	{
 	    adjust_for_node_type(ns,is,start_type,f_old,v_old,mass,payload,g);
@@ -1313,6 +1378,7 @@ extern void fourth_order_elastic_curve_propagate(
 	    	x_mid[i][j] = x_old[i][j] + 0.5*v_old[i][j]*dt;
 	    	v_mid[i][j] = v_old[i][j] + 0.5*f_old[i][j]*dt;
 	    }
+	    printf("x_mid[20] = %f %f\n",x_mid[20][0],x_mid[20][1]);
 
 	    count = 0;
 	    assign_node_field(ns,x_mid,v_mid,&count);
@@ -1493,8 +1559,10 @@ extern void fourth_order_elastic_surf_propagate(
 	static double **x_old,**x_new,**v_old,**v_new,**f_old,**f_new;
         static double **x_mid,**v_mid,**f_mid;
 	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
+        double *g = af_params->gravity;
+	double mass;
 	int i,j,num_pts,count;
-	int n,n_tan = af_params->n_tan;
+	int n,n0,n_tan = af_params->n_tan;
 	double dt = fr_dt/(double)n_tan;
 	PARACHUTE_SET geom_set;
 	CURVE **oc,**nc,*oldc[MAX_SURF_CURVES],*newc[MAX_SURF_CURVES];
@@ -1506,6 +1574,9 @@ extern void fourth_order_elastic_surf_propagate(
 				double**,double **,int*);
 	void (*compute_surf_accel)(PARACHUTE_SET*,SURFACE*,double**,
 				double**,double **,int*);
+
+	if (wave_type(olds) != ELASTIC_BOUNDARY)
+	    return;
 
 	switch (af_params->spring_model)
 	{
@@ -1519,15 +1590,11 @@ extern void fourth_order_elastic_surf_propagate(
 	    compute_node_accel = compute_node_accel2;
 	    compute_surf_accel = compute_surf_accel2;
 	    break;
-	case MODEL12:
+	case MODEL3:
 	default:
 	    (void) printf("Model function not implemented yet!\n");
 	    clean_up(ERROR);
 	}
-
-
-	if (wave_type(olds) != ELASTIC_BOUNDARY)
-	    return;
 
 	if (debugging("trace"))
 	    (void) printf("Entering "
@@ -1538,7 +1605,7 @@ extern void fourth_order_elastic_surf_propagate(
 	geom_set.m_s = af_params->m_s;
 	geom_set.kl = af_params->kl;
 	geom_set.lambda_c = af_params->lambda_c;
-	geom_set.m_c = af_params->m_c;
+	geom_set.m_c = mass = af_params->m_c;
 	geom_set.front = fr;
 	geom_set.dt = dt;
 
@@ -1602,9 +1669,17 @@ extern void fourth_order_elastic_surf_propagate(
 	count = 0;
 	compute_surf_accel(&geom_set,news,f_old,x_old,v_old,&count);
 	for (i = 0; i < num_curves; ++i)
+	{
+	    n0 = count;
 	    compute_curve_accel(&geom_set,newc[i],f_old,x_old,v_old,&count);
+	    adjust_for_curve_type(newc[i],n0,f_old,v_old,mass,g);
+	}
 	for (i = 0; i < num_nodes; ++i)
+	{
+	    n0 = count;
 	    compute_node_accel(&geom_set,newn[i],f_old,x_old,v_old,&count);
+	    adjust_for_cnode_type(newn[i],n0,f_old,v_old,mass,g);
+	}
 
 	for (n = 0; n < n_tan; ++n)
 	{
@@ -1625,9 +1700,17 @@ extern void fourth_order_elastic_surf_propagate(
 	    count = 0;
 	    compute_surf_accel(&geom_set,news,f_mid,x_mid,v_mid,&count);
 	    for (i = 0; i < num_curves; ++i)
+	    {
+		n0 = count;
 	    	compute_curve_accel(&geom_set,newc[i],f_mid,x_mid,v_mid,&count);
+	    	adjust_for_curve_type(newc[i],n0,f_mid,v_mid,mass,g);
+	    }
 	    for (i = 0; i < num_nodes; ++i)
+	    {
+		n0 = count;
 	    	compute_node_accel(&geom_set,newn[i],f_mid,x_mid,v_mid,&count);
+	    	adjust_for_cnode_type(newn[i],n0,f_old,v_old,mass,g);
+	    }
 
 	    for (i = 0; i < size; ++i)
             for (j = 0; j < 3; ++j)
@@ -1640,15 +1723,25 @@ extern void fourth_order_elastic_surf_propagate(
 	    count = 0;
             assign_surf_field(news,x_mid,v_mid,&count);
 	    for (i = 0; i < num_curves; ++i)
+	    {
             	assign_curve_field(newc[i],x_mid,v_mid,&count);
+	    }
 	    for (i = 0; i < num_nodes; ++i)
             	assign_node_field(newn[i],x_mid,v_mid,&count);
 	    count = 0;
 	    compute_surf_accel(&geom_set,news,f_mid,x_mid,v_mid,&count);
 	    for (i = 0; i < num_curves; ++i)
+	    {
+		n0 = count;
 	    	compute_curve_accel(&geom_set,newc[i],f_mid,x_mid,v_mid,&count);
+	    	adjust_for_curve_type(newc[i],n0,f_mid,v_mid,mass,g);
+	    }
 	    for (i = 0; i < num_nodes; ++i)
+	    {
+		n0 = count;
 	    	compute_node_accel(&geom_set,newn[i],f_mid,x_mid,v_mid,&count);
+	    	adjust_for_cnode_type(newn[i],n0,f_old,v_old,mass,g);
+	    }
 
 	    for (i = 0; i < size; ++i)
             for (j = 0; j < 3; ++j)
@@ -1667,9 +1760,17 @@ extern void fourth_order_elastic_surf_propagate(
 	    count = 0;
 	    compute_surf_accel(&geom_set,news,f_mid,x_mid,v_mid,&count);
 	    for (i = 0; i < num_curves; ++i)
+	    {
+		n0 = count;
 	    	compute_curve_accel(&geom_set,newc[i],f_mid,x_mid,v_mid,&count);
+	    	adjust_for_curve_type(newc[i],n0,f_mid,v_mid,mass,g);
+	    }
 	    for (i = 0; i < num_nodes; ++i)
+	    {
+		n0 = count;
 	    	compute_node_accel(&geom_set,newn[i],f_mid,x_mid,v_mid,&count);
+	    	adjust_for_cnode_type(newn[i],n0,f_old,v_old,mass,g);
+	    }
 
 	    for (i = 0; i < size; ++i)
             for (j = 0; j < 3; ++j)
@@ -1688,11 +1789,19 @@ extern void fourth_order_elastic_surf_propagate(
 	    	count = 0;
 	    	compute_surf_accel(&geom_set,news,f_old,x_old,v_old,&count);
 	    	for (i = 0; i < num_curves; ++i)
+		{
+		    n0 = count;
 	    	    compute_curve_accel(&geom_set,newc[i],f_old,x_old,
 						v_old,&count);
+	    	    adjust_for_curve_type(newc[i],n0,f_mid,v_mid,mass,g);
+		}
 	    	for (i = 0; i < num_nodes; ++i)
+		{
+		    n0 = count;
 	    	    compute_node_accel(&geom_set,newn[i],f_old,x_old,
 						v_old,&count);
+	    	    adjust_for_cnode_type(newn[i],n0,f_old,v_old,mass,g);
+	    	}
 	    }
 	}
 
@@ -1700,6 +1809,105 @@ extern void fourth_order_elastic_surf_propagate(
 	    (void) printf("Leaving "
 			"fourth_order_elastic_surf_propagate()\n");
 }	/* end fourth_order_elastic_surf_propagate */
+
+static void adjust_for_curve_type(
+	CURVE *c,
+	int index0,
+	double **f,
+	double **v,
+	double mass,
+	double *g)
+{
+	C_PARAMS *c_params =  (C_PARAMS*)c->extra;
+	int j,dir,dim = 3;
+	double payload;
+	BOND *b;
+	int n,index = index0;
+	double ave_accel;
+
+	if (c_params == NULL) return;
+	dir = c_params->dir;
+	payload = c_params->point_mass;
+
+	if (c_params->load_type == NO_LOAD) return;
+	else if (c_params->load_type == FREE_LOAD)
+	{
+	    for (b = c->first; b != c->last; b = b->next)
+	    {
+	    	for (j = 0; j < dim; ++j)
+                    f[index][j] = f[index][j]*mass/payload + g[j];
+		index++;
+	    }
+	}
+	else if (c_params->load_type == RIGID_LOAD)
+	{
+	    ave_accel = 0.0;
+	    n = 0;
+	    for (b = c->first; b != c->last; b = b->next)
+	    {
+            	ave_accel += f[index][dir];
+		n++;
+		index++;
+	    }
+	    ave_accel /= n;
+	    index = index0;
+	    for (b = c->first; b != c->last; b = b->next)
+	    {
+	    	for (j = 0; j < dim; ++j)
+	    	{
+		    if (j == dir)
+            	    	f[index][dir] = ave_accel*mass/payload + g[dir];
+		    else
+		    	f[index][j] = v[index][j] = 0.0;
+	    	}
+		index++;
+	    }
+	}
+}	/* end adjust_for_curve_type */
+
+static void adjust_for_cnode_type(
+	NODE *n,
+	int index,
+	double **f,
+	double **v,
+	double mass,
+	double *g)
+{
+	CURVE **c;
+	C_PARAMS *c_params =  NULL;
+	int j,dir,dim = 3;
+	double payload;
+	for (c = n->in_curves; c && *c; ++c)
+	{
+	    if ((*c)->extra != NULL)
+	    	c_params = (C_PARAMS*)(*c)->extra;
+	}
+	for (c = n->out_curves; c && *c; ++c)
+	{
+	    if ((*c)->extra != NULL)
+	    	c_params = (C_PARAMS*)(*c)->extra;
+	}
+	if (c_params == NULL) return;
+
+	dir = c_params->dir;
+	payload = c_params->point_mass;
+	if (c_params->load_type == NO_LOAD) return;
+	else if (c_params->load_type == FREE_LOAD)
+	{
+	    for (j = 0; j < dim; ++j)
+                f[index][j] = f[index][j]*mass/payload + g[j];
+	}
+	else if (c_params->load_type == RIGID_LOAD)
+	{
+	    for (j = 0; j < dim; ++j)
+	    {
+		if (j == dir)
+            	    f[index][dir] = f[index][dir]*mass/payload + g[dir];
+		else
+		    f[index][j] = v[index][j] = 0.0;
+	    }
+	}
+}	/* end adjust_for_cnode_type */
 
 static void adjust_for_node_type(
 	NODE *n,
@@ -1774,7 +1982,7 @@ static void print_airfoil_stat2d_2(
 	STRING_NODE_TYPE start_type = af_params->start_type;
         STRING_NODE_TYPE end_type = af_params->end_type;
 	double *g,payload;
-	double vect[MAXD],dir[MAXD],len0;
+	double vect[MAXD],len0;
 
 	if (ekfile == NULL && pp_mynode() == 0)
         {
@@ -1877,3 +2085,53 @@ static void print_airfoil_stat2d_2(
 	}
 }	/* end print_airfoil_stat2d_2 */
 
+static void record_stretching_length(
+	SURFACE *surf,
+	char *out_name,
+	double time)
+{
+	int dir;
+	CURVE **c,*c1,*c2;
+	static FILE *lfile;
+	char lname[200];
+	C_PARAMS *c_params;
+	POINT *p1,*p2;
+	double length;
+
+	c1 = c2 = NULL;
+	for (c = surf->pos_curves; c && *c; ++c)
+	{
+	    if (hsbdry_type(*c) == MONO_COMP_HSBDRY &&
+		(*c)->extra != NULL)
+	    {
+		c1 = *c;
+		c_params = (C_PARAMS*)c1->extra;
+	    }
+	    else if (hsbdry_type(*c) == FIXED_HSBDRY)
+		c2 = *c;
+	}
+	for (c = surf->neg_curves; c && *c; ++c)
+	{
+	    if (hsbdry_type(*c) == MONO_COMP_HSBDRY &&
+		(*c)->extra != NULL)
+	    {
+		c1 = *c;
+		c_params = (C_PARAMS*)c1->extra;
+	    }
+	    else if (hsbdry_type(*c) == FIXED_HSBDRY)
+		c2 = *c;
+	}
+	if (c1 == NULL || c2 == NULL) return;
+	if (lfile == NULL)
+	{
+	    sprintf(lname,"%s/length.xg",out_name);
+	    lfile = fopen(lname,"w");
+	    fprintf(lfile,"\"Length vs. Time\"\n");
+	}
+	dir = c_params->dir;
+	p1 = c1->first->end;
+	p2 = c2->first->end;
+	length = fabs(Coords(p1)[dir] - Coords(p2)[dir]);
+	fprintf(lfile,"%f  %f\n",time,length);
+	fflush(lfile);
+}	/* end record_stretching_length */

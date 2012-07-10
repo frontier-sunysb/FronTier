@@ -642,6 +642,7 @@ struct _Front {
 	INTERFACE *interf;		/* Interface */
 	INTERFACE *grid_intfc;		/* Grid Interface */
 	INTERFACE *emb_grid_intfc;	/* Grid Interface for embedded bdry */
+	boolean extrapolation_permitted;
 
 #if defined(USE_OVERTURE)
 
@@ -1391,6 +1392,7 @@ struct _INTRP_CELL {
         int nv;
         double **p_lin;
         double *var_lin;
+	double *dist;
 };
 typedef struct _INTRP_CELL INTRP_CELL;
 

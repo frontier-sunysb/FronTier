@@ -28,7 +28,7 @@ enum _SPRING_MODEL {
 	UNKNOWN_MODEL 	= -1,
 	MODEL1	= 1,
 	MODEL2,
-	MODEL12
+	MODEL3
 };
 typedef enum _SPRING_MODEL SPRING_MODEL;
 
@@ -129,12 +129,30 @@ struct _STRING_PARAMS {
 };
 typedef struct _STRING_PARAMS STRING_PARAMS;
 
+enum _LOAD_TYPE {
+	NO_LOAD 	= 0,
+	FREE_LOAD,
+	RIGID_LOAD
+};
+typedef enum _LOAD_TYPE LOAD_TYPE;
+
 typedef struct {
         boolean lower_bdry[MAXD];
         boolean upper_bdry[MAXD];
         double L[MAXD];         /* Lower bounds of box */
         double U[MAXD];         /* Upper bounds of box */
+	LOAD_TYPE lower_side[MAXD];
+	LOAD_TYPE upper_side[MAXD];
+	double lower_mass[MAXD];
+	double upper_mass[MAXD];
 } BDRY_PARAMS;
+
+typedef struct {
+	LOAD_TYPE load_type;
+	int dir;
+	double load_mass;
+	double point_mass;
+} C_PARAMS;
 
 struct _AF_NODE_EXTRA {
 	AF_NODE_TYPE af_node_type;
@@ -235,5 +253,9 @@ extern void compute_node_accel1(PARACHUTE_SET*,NODE*,double**,double**,double**,
 extern void compute_curve_accel2(PARACHUTE_SET*,CURVE*,double**,double**,
 				double**,int*);
 extern void compute_node_accel2(PARACHUTE_SET*,NODE*,double**,double**,double**,
+				int*);
+extern void compute_curve_accel3(PARACHUTE_SET*,CURVE*,double**,double**,
+				double**,int*);
+extern void compute_node_accel3(PARACHUTE_SET*,NODE*,double**,double**,double**,
 				int*);
 extern boolean is_load_node(NODE*);

@@ -6,6 +6,7 @@ extern void read_cFluid_params(
 {
 	char string[100];
 	FILE *infile = fopen(inname,"r");
+	int i,dim = eqn_params->dim;
 
 	eqn_params->prob_type = ERROR_TYPE;
 	eqn_params->tracked = YES;		// Default
@@ -107,8 +108,39 @@ extern void read_cFluid_params(
 	    clean_up(ERROR);
 	}
 
+	eqn_params->use_base_soln = NO;
+	CursorAfterStringOpt(infile,"Enter yes for comparison with base data:");
+        fscanf(infile,"%s",string);
+        (void) printf("%s\n",string);
+        if (string[0] == 'y' || string[0] == 'Y')
+            eqn_params->use_base_soln = YES;
+	if (eqn_params->use_base_soln == YES)
+        {
+	    CursorAfterString(infile,"Enter base directory name:");
+            fscanf(infile,"%s",eqn_params->base_dir_name);
+            (void) printf("%s\n",eqn_params->base_dir_name);
+            CursorAfterString(infile,"Enter number of comparing steps:");
+            fscanf(infile,"%d",&eqn_params->num_step);
+            (void) printf("%d\n",eqn_params->num_step);
+            FT_VectorMemoryAlloc((POINTER*)&eqn_params->steps,
+                                eqn_params->num_step,sizeof(int));
+            for (i = 0; i < eqn_params->num_step; ++i)
+            {
+                sprintf(string,"Enter index of step %d:",i+1);
+                CursorAfterString(infile,string);
+                fscanf(infile,"%d",&eqn_params->steps[i]);
+                (void) printf("%d\n",eqn_params->steps[i]);
+            }
+            FT_ScalarMemoryAlloc((POINTER*)&eqn_params->f_basic,
+                                sizeof(F_BASIC_DATA));
+            eqn_params->f_basic->dim = dim;
+	}
+
 	assert(eqn_params->prob_type != ERROR_TYPE);
 	fclose(infile);
+
+	if (eqn_params->use_base_soln == YES)
+	    FT_ReadComparisonDomain(inname,eqn_params->f_basic);
 }	/* end read_cFluid_params */
 
 extern void read_movie_options(

@@ -182,6 +182,7 @@ public:
 	void oneDimPlot(char*);
 	void xgraphOneDimPlot(char*);
 	void initMovieVariables(void);
+	void vtk_plot_temperature2d(char*);
 
 	// Extra movie functions
 	void temperatureMovie(char*);

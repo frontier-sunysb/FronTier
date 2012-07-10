@@ -1173,6 +1173,7 @@ EXPORT	void	f_user_copy_hyper_surf(
 	    perform_redistribution_function(old_hs);
 	hypersurface_normal_function(new_hs) =
 	    hypersurface_normal_function(old_hs);
+	never_redistribute(new_hs) = never_redistribute(old_hs);
 	if (set_copy_from_to_lists)
 	{
 	    hs_copied_from(new_hs) = old_hs;

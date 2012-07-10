@@ -404,7 +404,7 @@ on `(hostname || uname -n) 2>/dev/null | sed 1q`
 "
 
 # Files that config.status was made for.
-config_files="Makefile src/Makefile src/util/Makefile src/front/Makefile src/intfc/Makefile airfoil/Makefile subsurf/Makefile crystal/Makefile example/Makefile example3d/Makefile iTaps/Makefile finance/Makefile melting/Makefile curvature/Makefile cell/Makefile pde/Makefile iFluid/Makefile frgb/Makefile poisson/Makefile cFluid/Makefile cim/Makefile solver/Makefile weno/Makefile src/pak/linpak/Makefile src/pak/blas/Makefile devel-deps.inc iMesh-Defs.inc"
+config_files="Makefile src/Makefile src/util/Makefile src/front/Makefile src/intfc/Makefile airfoil/Makefile subsurf/Makefile crystal/Makefile example/Makefile example3d/Makefile iTaps/Makefile finance/Makefile melting/Makefile curvature/Makefile cell/Makefile pde/Makefile iFluid/Makefile frgb/Makefile poisson/Makefile cFluid/Makefile cim/Makefile inverse/Makefile solver/Makefile weno/Makefile src/pak/linpak/Makefile src/pak/blas/Makefile devel-deps.inc iMesh-Defs.inc"
 
 ac_cs_usage="\
 \`$as_me' instantiates files and other configuration actions

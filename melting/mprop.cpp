@@ -82,8 +82,8 @@ static  void ice_point_propagate(
 	double grad_s,grad_l;
         double s0,s1;
         STATE *sl,*sr,*state;
-	PARAMS *eqn_params = (PARAMS*)front->vparams;
-        double *temperature = eqn_params->field->temperature;
+	PARAMS *eqn_params = (PARAMS*)front->extra2;
+	double *temperature = eqn_params->field->temperature;
         double rho_s = eqn_params->rho[0];
         double rho_l = eqn_params->rho[1];
         double k_s = eqn_params->k[0];
@@ -107,7 +107,6 @@ static  void ice_point_propagate(
         for (i = 0; i < dim; ++i)
             p1[i] = p0[i] + nor_l[i]*dn;
         FT_GetStatesAtPoint(oldp,oldhse,oldhs,(POINTER*)&sl,(POINTER*)&sr);
-	printf("sl = %f  sr = %f\n",sl->temperature,sr->temperature);
         state = (negative_component(oldhs) == LIQUID_COMP) ? sl : sr;
         s0 = state->temperature;
 	FT_IntrpStateVarAtCoords(front,LIQUID_COMP,p1,temperature,
@@ -134,7 +133,7 @@ static  void ice_point_propagate(
 	    if (H > 0)
 		vel[i] = H/L/rho_s*nor_s[i];
 	    else
-		vel[i] = H/L/rho_l*nor_s[i];
+		vel[i] = H/L/rho_s*nor_s[i];
 	}
 	printf("H = %f  vel = %f %f\n",H,vel[0],vel[1]);
 
@@ -147,13 +146,13 @@ static  void ice_point_propagate(
 	/* Update the state of the new interface point */
 	state = (STATE*)left_state(newp);
 	if (negative_component(oldhs) == LIQUID_COMP)
-            state->temperature = eqn_params->Ti[0];
+	    state->temperature = eqn_params->Ti[1];			
 	else if (negative_component(oldhs) == SOLID_COMP)
             state->temperature = eqn_params->Ti[0];
 
 	state = (STATE*)right_state(newp);
 	if (positive_component(oldhs) == LIQUID_COMP)
-            state->temperature = eqn_params->Ti[0];
+	    state->temperature = eqn_params->Ti[1];
 	else if (positive_component(oldhs) == SOLID_COMP)
             state->temperature = eqn_params->Ti[0];
 }       /* ice_point_propagate */

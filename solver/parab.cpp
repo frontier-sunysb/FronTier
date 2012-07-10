@@ -447,7 +447,8 @@ void PARABOLIC_SOLVER::runge_kutta()
 	if (var_mid == NULL)
 	{
 	    if (order > 1)
-	    	FT_VectorMemoryAlloc((POINTER*)&var_mid,array_size,sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&var_mid,array_size,
+				sizeof(double));
 	}
 	switch (order)
 	{

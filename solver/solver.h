@@ -342,6 +342,7 @@ public:
 	int ilower;
 	int iupper;
 	int size;
+	boolean solve_front_state;
 
 	POINTER jparams;	/* Params for jump functions */
 	double *soln;		/* field variable of new step */
@@ -352,21 +353,21 @@ public:
 	COMPONENT pos_comp,neg_comp;
 	void set_solver_domain(void);
 	void solve(double *soln);
-	void solve1d(double *soln);
-	void solve2d(double *soln);
-	void solve3d(double *soln);
+	void (*assignStateVar)(double,POINTER);
 	double (*getStateVar)(POINTER);
 	int (*findStateAtCrossing)(Front*,int*,GRID_DIRECTION,int,
                                 POINTER*,HYPER_SURF**,double*);
 	double (*solutionJump)(POINTER jparams,int D,double *coords);
 	double (*gradJumpDotN)(POINTER jparams,int D,double *N,double *P);
 	double (*gradJumpDotT)(POINTER jparams,int D,int i,double *N,double *P);
+	double (*exactSolution)(POINTER jparams,int D,double *P);
 private:
         // On topological grid
         int dim;
         RECT_GRID *top_grid;
         COMPONENT *top_comp;
 	double *top_h;
+	double *top_L;
         int *top_gmax;
 	int imin,jmin,kmin;
 	int imax,jmax,kmax;
@@ -387,7 +388,12 @@ private:
 	int Check_Type_k(int k);
 	void Set_Intersection();
 	int Search_Ghost_Value(int k);
-	
+	void cimSolveFrontState();
+	void cimIntfcPointState(double*,int,double*,double*);
+
+	void solve1d(double *soln);
+	void solve2d(double *soln);
+	void solve3d(double *soln);
 };
 
 extern void viewTopVariable(Front*,double*,boolean,double,double,char*,char*);

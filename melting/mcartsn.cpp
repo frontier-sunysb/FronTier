@@ -67,7 +67,7 @@ void CARTESIAN::initMesh(void)
 	switch (dim)
 	{
 	case 1:
-	    for (j = 0; j <= top_gmax[1]; j++)
+	    for (i = 0; i <= top_gmax[0]; j++)
 	    {
 	    	crds[0] = top_L[0] + top_h[0]*i;
 		index = d_index1d(i,top_gmax);
@@ -109,13 +109,43 @@ void CARTESIAN::initMesh(void)
 void CARTESIAN::setComponent(void)
 {
 	int i;
+
+	//TMP by Yijing Hu
+	static STATE *state = NULL;
+	double *coords;
+	int size = (int)cell_center.size();
 	
-	// cell center components
+	//cell center components
+	if (state == NULL)
+	    FT_ScalarMemoryAlloc((POINTER*)&state, sizeof(STATE));
+
+	for (i = 0; i < size; i++)
+	{
+	    coords = cell_center[i].coords;
+	    if (cell_center[i].comp != -1 &&
+		cell_center[i].comp != top_comp[i])
+	    {
+	        if (!FrontNearestIntfcState(front,coords,top_comp[i],
+			    	(POINTER)state))
+		{
+		    (void) printf("In setComponent()\n");
+		    (void) printf("FrontNearestIntfcState() failed\n");
+		    (void) printf("old_comp = %d new_comp = %d\n",
+			    		cell_center[i].comp,top_comp[i]);
+		    clean_up(ERROR);
+		}
+		field->temperature[i] = state->temperature;
+	    }
+	    cell_center[i].comp = top_comp[i];
+	}
+
+/*	// cell center components
 	for (i = 0; i < cell_center.size(); i++)
 	{
 	    cell_center[i].comp = 
 	    		getComponent(cell_center[i].icoords);
 	}
+*/
 }
 
 void CARTESIAN::setInitialCondition(void)
@@ -138,15 +168,15 @@ void CARTESIAN::setInitialCondition(void)
         {
             FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
             if (negative_component(hs) == LIQUID_COMP)
-                sl->temperature = eqn_params->T0[1];
+                sl->temperature = eqn_params->Ti[1];
             else if (negative_component(hs) == SOLID_COMP)
-                sl->temperature = eqn_params->T0[0];
+                sl->temperature = eqn_params->Ti[0];
 	    else
 		sl->temperature = 0.0;
             if (positive_component(hs) == LIQUID_COMP)
-                sr->temperature = eqn_params->T0[1];
+                sr->temperature = eqn_params->Ti[1];
             else if (positive_component(hs) == SOLID_COMP)
-                sr->temperature = eqn_params->T0[0];
+                sr->temperature = eqn_params->Ti[0];
 	    else
 		sr->temperature = 0.0;
         }
@@ -292,9 +322,13 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	start_clock("computeAdvectionCN");
 	if (debugging("trace")) printf("Entering computeAdvectionCN()\n");
 
+	D = eqn_params->D;
+	
+	if (m_dt < 0.1*sqr(hmin)/D/(double)dim)
+	    return computeAdvectionExplicit(sub_comp);
+
 	for (i = 0; i < dim; ++i) gmin[i] = 0;
 
-	D = eqn_params->D;
 	setIndexMap(sub_comp);
 	if (debugging("trace")) 
 	{
@@ -309,7 +343,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	switch(dim)
 	{
 	case 1:
-	    solver.Create(ilower, iupper-1, 3, 0);
+	    solver.Create(ilower, iupper-1, 3, 3);
 	    for (i = imin; i <= imax; ++i)
 	    {
 	    	icoords[0] = i;
@@ -351,7 +385,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	    }
 	    break;
 	case 2:
-	    solver.Create(ilower, iupper-1, 5, 0);
+	    solver.Create(ilower, iupper-1, 5, 5);
 	    for (i = imin; i <= imax; ++i)
 	    for (j = jmin; j <= jmax; ++j)
 	    {
@@ -395,7 +429,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	    }
 	    break;
 	case 3:
-	    solver.Create(ilower, iupper-1, 7, 0);
+	    solver.Create(ilower, iupper-1, 7, 7);
 	    for (i = imin; i <= imax; ++i)
 	    for (j = jmin; j <= jmax; ++j)
 	    for (k = kmin; k <= kmax; ++k)
@@ -536,6 +570,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	    break;
 	}
 	stop_clock("scatter_data");
+	FT_FreeThese(1,x);
 
 	if (debugging("trace")) printf("Leaving computeAdvectionCN()\n");
 	stop_clock("computeAdvectionCN");
@@ -544,6 +579,9 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
 {
 	static PARABOLIC_SOLVER parab_solver(*front);
+
+	if (m_dt < 0.1*sqr(hmin)/eqn_params->D/(double)dim)
+	    return computeAdvectionExplicit(sub_comp);
 
 	if (debugging("trace")) printf("Entering computeAdvectionImplicit()\n");
 	start_clock("computeAdvectionImplicit");
@@ -557,7 +595,6 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
         parab_solver.source = NULL;
         parab_solver.D = eqn_params->D;
         parab_solver.order = eqn_params->pde_order;
-        parab_solver.order = 2;
         parab_solver.ilower = ilower;
         parab_solver.iupper = iupper;
         parab_solver.dt = m_dt;
@@ -1212,6 +1249,172 @@ void CARTESIAN::xgraphOneDimPlot(char *outname)
 	    printf("Leaving xgraphTemp1()\n");
 }	/* end xgraphOneDimPlot */
 
+void CARTESIAN::vtk_plot_temperature2d(
+	char *outname)
+{
+	std::vector<int>ph_index;
+	int i,j,k,index;
+	char filename[256];
+	FILE *outfile;
+	double coord_x,coord_y,coord_z,xmin,ymin;
+	COMPONENT comp;
+	int pointsx,pointsy,num_points,num_cells,num_cell_list;
+	int icoords[2],p_gmax[2];
+
+	sprintf(filename, "%s/vtk.ts%s",outname,
+		right_flush(front->step,7));
+	if (pp_numnodes() > 1)
+	    sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+
+	//cell-based liquid phase
+	ph_index.clear();
+	sprintf(filename,"%s/liquid.vtk",filename);
+	outfile = fopen(filename,"w");
+	fprintf(outfile,"# vtk DataFile Version 3.0\n");
+	fprintf(outfile,"liquid temperature\n");
+	fprintf(outfile,"ASCII\n");
+	fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
+
+	for (j = jmin; j <= jmax; j++)
+	for (i = imin; i <= imax; i++)
+	{
+	    index = d_index2d(i,j,top_gmax);
+	    if (cell_center[index].comp == LIQUID_COMP)
+		ph_index.push_back(index);
+	}
+
+	pointsx = imax - imin + 2;
+	pointsy = jmax - jmin + 2;
+	num_points = pointsx*pointsy;
+
+	num_cells = (int) ph_index.size();
+	num_cell_list = 5*num_cells;
+
+	p_gmax[0] = pointsx - 1;
+	p_gmax[1] = pointsy - 1;
+
+	index = d_index2d(imin,jmin,top_gmax);
+	xmin = cell_center[index].coords[0] - top_h[0]/2.0;
+	ymin = cell_center[index].coords[1] - top_h[1]/2.0;
+	
+	fprintf(outfile,"POINTS %d double\n", num_points);
+	for (j = 0; j < pointsy; j++)
+	for (i = 0; i < pointsx; i++)
+	{
+	    coord_x = xmin + i*top_h[0];
+	    coord_y = ymin + j*top_h[1];
+	    coord_z = 0.0;
+	    fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+	}
+
+	fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
+	for (i = 0; i < num_cells; i++)
+	{
+	    int index0,index1,index2,index3;
+	    index = ph_index[i];
+	    icoords[0] = cell_center[index].icoords[0];
+	    icoords[1] = cell_center[index].icoords[1];
+	    index0 = d_index2d(icoords[0]-1,icoords[1]-1,p_gmax);
+	    index1 = d_index2d(icoords[0]-1+1,icoords[1]-1,p_gmax);
+	    index2 = d_index2d(icoords[0]-1,icoords[1]-1+1,p_gmax);
+	    index3 = d_index2d(icoords[0]-1+1,icoords[1]-1+1,p_gmax);
+
+	    fprintf(outfile,"4 %i %i %i %i\n",
+		    index0,index1,index2,index3);
+	}
+	
+	fprintf(outfile, "CELL_TYPES %i\n", num_cells);
+	for (i = 0; i < num_cells; i++)
+	    fprintf(outfile, "8\n");
+
+	fprintf(outfile, "CELL_DATA %i\n", num_cells);
+	fprintf(outfile, "SCALARS temperature double\n");
+	fprintf(outfile, "LOOKUP_TABLE default\n");
+	for (i = 0; i < num_cells; i++)
+	{
+	    index = ph_index[i];
+	    fprintf(outfile,"%f\n", eqn_params->field->temperature[index]);
+	}
+
+	fclose(outfile);
+
+	//cell-based solid phase
+	sprintf(filename,"%s/vtk.ts%s",outname,
+		right_flush(front->step,7));
+	if (pp_numnodes() > 1)
+	    sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+	
+	ph_index.clear();
+	sprintf(filename,"%s/solid.vtk",filename);
+	outfile = fopen(filename,"w");
+	fprintf(outfile,"# vtk DataFile Version 3.0\n");
+	fprintf(outfile,"solid temperature\n");
+	fprintf(outfile,"ASCII\n");
+	fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
+
+	for (j = jmin; j <= jmax; j++)
+	for (i = imin; i <= imax; i++)
+	{
+	    index = d_index2d(i,j,top_gmax);
+	    if (cell_center[index].comp == SOLID_COMP)
+		ph_index.push_back(index);
+	}
+
+	pointsx = imax - imin + 2;
+	pointsy = jmax - jmin + 2;
+	num_points = pointsx*pointsy;
+
+	num_cells = (int) ph_index.size();
+	num_cell_list = 5*num_cells;
+
+	p_gmax[0] = pointsx - 1;
+	p_gmax[1] = pointsy - 1;
+
+	index = d_index2d(imin,jmin,top_gmax);
+	xmin = cell_center[index].coords[0] - top_h[0]/2.0;
+	ymin = cell_center[index].coords[1] - top_h[1]/2.0;
+
+	fprintf(outfile,"POINTS %d double\n", num_points);
+	for (j = 0; j < pointsy; j++)
+	for (i = 0; i < pointsx; i++)
+	{
+	    coord_x = xmin + i*top_h[0];
+	    coord_y = ymin + j*top_h[1];
+	    coord_z = 0.0;
+	    fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+	}
+
+	fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
+	for (i = 0; i < num_cells; i++)
+	{
+	    int index0,index1,index2,index3;
+	    index = ph_index[i];
+	    icoords[0] = cell_center[index].icoords[0];
+	    icoords[1] = cell_center[index].icoords[1];
+	    index0 = d_index2d(icoords[0]-1,icoords[1]-1,p_gmax); 
+	    index1 = d_index2d(icoords[0]-1+1,icoords[1]-1,p_gmax);
+	    index2 = d_index2d(icoords[0]-1,icoords[1]-1+1,p_gmax);
+	    index3 = d_index2d(icoords[0]-1+1,icoords[1]-1+1,p_gmax);
+		
+	    fprintf(outfile,"4 %i %i %i %i\n",
+		    index0,index1,index2,index3);
+	}
+
+	fprintf(outfile, "CELL_TYPES %i\n", num_cells);
+	for (i = 0; i < num_cells; i++)
+	    fprintf(outfile, "8\n");
+	
+	fprintf(outfile, "CELL_DATA %i\n", num_cells);
+	fprintf(outfile, "SCALARS temperature double\n");
+	fprintf(outfile, "LOOKUP_TABLE default\n");
+	for (i = 0; i < num_cells; i++)
+	{
+	    index = ph_index[i];
+	    fprintf(outfile,"%f\n",eqn_params->field->temperature[index]);
+	}
+
+	fclose(outfile);
+}       /* end vtk_plot_temperature2d */
 
 void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
 {
@@ -1465,13 +1668,13 @@ void CARTESIAN::initMovieVariables()
                                         sizeof(double*));
                 FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,1,
                                         sizeof(COMPONENT));
-		FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,1,
+                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,1,
                                         sizeof(boolean));
                 FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,1,
                                         sizeof(double));
                 FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,1,
                                         sizeof(double));
-                if (movie_option->plot_temperature)
+		if (movie_option->plot_temperature)
                 {
                     sprintf(hdf_movie_var->var_name[0],"temperature");
                     hdf_movie_var->get_state_var[0] = getStateTemperature;

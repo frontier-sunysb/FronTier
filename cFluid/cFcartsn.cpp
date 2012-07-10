@@ -1601,6 +1601,16 @@ void G_CARTESIAN::printFrontInteriorStates(char *out_name)
 	fprintf(outfile,"\nInterior gas states:\n");
 	switch (dim)
 	{
+	case 1:
+	    for (i = 0; i <= top_gmax[0]; ++i)
+	    {
+		index = d_index1d(i,top_gmax);
+	        fprintf(outfile,"%24.18g\n",dens[index]);
+	        fprintf(outfile,"%24.18g\n",engy[index]);
+	    	for (l = 0; l < dim; ++l)
+	            fprintf(outfile,"%24.18g\n",momn[l][index]);
+	    }
+	    break;
 	case 2:
 	    for (i = 0; i <= top_gmax[0]; ++i)
 	    for (j = 0; j <= top_gmax[1]; ++j)

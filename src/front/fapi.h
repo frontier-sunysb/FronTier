@@ -58,6 +58,18 @@ extern "C" {
    IMPORT  void FT_ReadSpaceDomain(char *in_name, 
 				    F_BASIC_DATA *f_basic);
 
+/*! \fn void FT_ReadComparisonDomain(char *in_name, F_BASIC_DATA *f_basic)
+ *  \ingroup INITIALIZATION
+    \brief Read from input file the comparison domain information of the 
+     problem, including the domain limits, computational grid, and the types 
+     of the rectangular boundaries. The information is stored in the structure 
+     f_basic.
+    \param in_name @b in	The name of input file
+    \param f_basic @b out	Structure to store domain information
+ */
+   IMPORT  void FT_ReadComparisonDomain(char *in_name, 
+				    F_BASIC_DATA *f_basic);
+
 /*! \fn void FT_StartUp(Front *front, F_BASIC_DATA *ft_basic)
  *  \ingroup INITIALIZATION
     \brief Initialize front computational grid, interface and function hooks, 
@@ -356,6 +368,15 @@ extern "C" {
  */
 
    IMPORT  void FT_FreeGridIntfc(Front *front );
+
+/*! \fn void FT_FreeFront(Front *front)
+ *  \ingroup GRIDINTFC
+    \brief Delete and free space occupied by the front including grid_intfc 
+     if still there, and interf.
+    \param front @b inout	Pointer to Front.
+ */
+
+   IMPORT  void FT_FreeFront(Front *front );
 
 /*! \fn boolean FT_NormalAtGridCrossing(Front *front, int *icoords, GRID_DIRECTION dir, int comp, double *nor, HYPER_SURF **hs, double *crx_coords)
  *  \ingroup GRIDINTFC

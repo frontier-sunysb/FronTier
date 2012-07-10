@@ -594,6 +594,7 @@ frgb/Makefile
 poisson/Makefile
 cFluid/Makefile
 cim/Makefile
+inverse/Makefile
 solver/Makefile
 weno/Makefile
 src/pak/linpak/Makefile
@@ -644,6 +645,7 @@ crystal/Makefile
 poisson/Makefile
 cFluid/Makefile
 cim/Makefile
+inverse/Makefile
 solver/Makefile
 weno/Makefile
 devel-deps.inc

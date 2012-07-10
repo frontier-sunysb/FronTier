@@ -120,6 +120,8 @@ extern void readPhaseParams(
 	}
 
 	eqn_params->num_scheme = UNSPLIT_IMPLICIT;  // default
+	eqn_params->pde_order = 2; //default
+
 	if (CursorAfterStringOpt(infile,"Choose numerical scheme"))
 	{
 	    (void) printf("\n");
@@ -135,6 +137,15 @@ extern void readPhaseParams(
 	    else if ((scheme[0] == 'C' || scheme[0] == 'c') &&
 	    	(scheme[1] == 'N' || scheme[1] == 'n')) 
 	    	eqn_params->num_scheme = CRANK_NICOLSON;
+	}
+	
+	if (eqn_params->num_scheme == UNSPLIT_IMPLICIT)
+	{
+	    if (CursorAfterStringOpt(infile,"Choose order of PDE scheme:"))
+	    {
+	    	fscanf(infile,"%d",&eqn_params->pde_order);
+		(void) printf("%d\n",eqn_params->pde_order);
+	    }
 	}
 	fclose(infile);
 }

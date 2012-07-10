@@ -3021,7 +3021,7 @@ LOCAL	void	hdf_plot_var2d(
 	PU = global_gr->U;
 	pwidth = global_gr->gmax[0];
 	pheight = global_gr->gmax[1];
-	if (debugging("trace"))
+	if (debugging("hdf"))
 	{
 	    (void) printf("Entered hdf_plot_var2d().\n");
 	    (void) printf("Plotting: %s\n",var_name);
@@ -3147,7 +3147,7 @@ LOCAL	void	hdf_plot_var2d(
 	{
 	    free_these(2,tmp_val,pr_val);
 	}
-	if (debugging("trace"))
+	if (debugging("hdf"))
 	    (void) printf("Left hdf_plot_var2d().\n");
 }	/* end hdf_plot_var2d */
 
@@ -3674,7 +3674,7 @@ LOCAL	void	gv_plot_var2d(
 	BBL[0] = L[0];	BBL[1] = L[1];
 	BBU[0] = U[0];	BBU[1] = U[1];
 
-	if (debugging("trace"))
+	if (debugging("gview"))
 	{
 	    (void) printf("Entered gv_plot_var2d().\n");
 	    (void) printf("Plotting: %s\n",var_name);
@@ -3752,7 +3752,7 @@ LOCAL	void	gv_plot_var2d(
         (void) fclose(gvfile);
 	
 	free_these(1,var_val);
-	if (debugging("trace"))
-	    (void) printf("Left hdf_plot_var2d().\n");
+	if (debugging("gview"))
+	    (void) printf("Left gv_plot_var2d().\n");
 }	/* end gv_plot_var2d */
 

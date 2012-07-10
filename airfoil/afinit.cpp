@@ -376,18 +376,80 @@ static void setInitialIntfc3d(
 			    sprintf(string,"For direction %d",i);
 			    CursorAfterString(infile,string);
 		    	    (void) printf("%s\n",string);
+
 			    CursorAfterString(infile,
 				"Enter yes to fix lower boundary:");
 		    	    fscanf(infile,"%s",string);
 		    	    (void) printf("%s\n",string);
                     	    if (string[0] == 'y' || string[0] == 'Y')
 				bdry_params.lower_bdry[i] = YES;	
+			    else
+			    {
+				bdry_params.lower_side[i] = NO_LOAD;
+				if (CursorAfterStringOpt(infile,
+				   "Enter load type:"))
+				{
+		    		    fscanf(infile,"%s",string);
+		    		    (void) printf("%s\n",string);
+				    switch(string[0])
+				    {
+				    case 'n':
+				    case 'N':
+					break;
+				    case 'f':
+				    case 'F':
+					bdry_params.lower_side[i] = FREE_LOAD;
+					break;
+				    case 'r':
+				    case 'R':
+					bdry_params.lower_side[i] = RIGID_LOAD;
+					break;
+				    }
+			    	    CursorAfterString(infile,
+					"Enter total mass:");
+		    		    fscanf(infile,"%lf",
+					&bdry_params.lower_mass[i]);
+		    		    (void) printf("%f\n",
+					bdry_params.lower_mass[i]);
+				}
+			    }
+
 			    CursorAfterString(infile,
 				"Enter yes to fix upper boundary:");
 		    	    fscanf(infile,"%s",string);
 		    	    (void) printf("%s\n",string);
                     	    if (string[0] == 'y' || string[0] == 'Y')
 				bdry_params.upper_bdry[i] = YES;	
+			    else
+			    {
+				bdry_params.upper_side[i] = NO_LOAD;
+				if (CursorAfterStringOpt(infile,
+				   "Enter load type:"))
+				{
+		    		    fscanf(infile,"%s",string);
+		    		    (void) printf("%s\n",string);
+				    switch(string[0])
+				    {
+				    case 'n':
+				    case 'N':
+					break;
+				    case 'f':
+				    case 'F':
+					bdry_params.upper_side[i] = FREE_LOAD;
+					break;
+				    case 'r':
+				    case 'R':
+					bdry_params.upper_side[i] = RIGID_LOAD;
+					break;
+				    }
+			    	    CursorAfterString(infile,
+					"Enter total mass:");
+		    		    fscanf(infile,"%lf",
+					&bdry_params.upper_mass[i]);
+		    		    (void) printf("%f\n",
+					bdry_params.upper_mass[i]);
+				}
+			    }
 			}
 	    	    	level_func_pack->string_params = (POINTER)&bdry_params;
 		    }
@@ -714,7 +776,7 @@ static void setInitialIntfc2d(
 		af_params->spring_model = MODEL2;
 		break;
 	    case '3':
-		af_params->spring_model = MODEL12;
+		af_params->spring_model = MODEL3;
 		break;
 	    default:
 		break;
@@ -1177,6 +1239,16 @@ static boolean change_mono_boundary(
 		hsbdry_type(cside00) = FIXED_HSBDRY;
 	    if (upper_bdry[0] == YES)
 		hsbdry_type(cside01) = FIXED_HSBDRY;
+	    else
+	    {
+		static C_PARAMS c_params;
+		int npts = FT_NumOfCurvePoints(cside01);
+		c_params.load_type = bdry_params->upper_side[0];
+		c_params.load_mass = bdry_params->upper_mass[0];
+		c_params.point_mass = bdry_params->upper_mass[0]/npts;
+		c_params.dir = 0;
+		cside01->extra = (POINTER)&c_params;
+	    }
 	    if (lower_bdry[1] == YES)
 		hsbdry_type(cside10) = FIXED_HSBDRY;
 	    if (upper_bdry[1] == YES)

@@ -13,6 +13,7 @@ all:
 	cd cell && $(MAKE)
 	cd cFluid && $(MAKE)
 	cd cim && $(MAKE)
+	cd inverse && $(MAKE)
 	cd crystal && $(MAKE)
 	cd curvature && $(MAKE)
 	cd finance && $(MAKE)
@@ -24,12 +25,12 @@ all:
 	cd subsurf && $(MAKE)
 clean:
 	cd src && $(MAKE) clean
-	cd testfront && $(MAKE) clean
 	cd example && $(MAKE) clean
 	cd example3d && $(MAKE) clean
 	cd iFluid && $(MAKE) clean
 	cd cFluid && $(MAKE) clean
 	cd cim && $(MAKE) clean
+	cd inverse && $(MAKE) clean
 	cd airfoil && $(MAKE) clean
 	cd cell && $(MAKE) clean
 	cd crystal && $(MAKE) clean
@@ -102,31 +103,6 @@ $(header_files): $(include_dirs)
 
 test:	
 	cd example/; $(MAKE)
-	cd testfront/; $(MAKE)
-testrun:
-	@echo "+++++++++++++++++++++++++++++++++"			;\
-	echo "+	 The FronTier          +"			;\
-	echo "+	   TESTFRONT           +"			;\
-	echo "+	  test script          +"			;\
-	echo "+++++++++++++++++++++++++++++++++"			;\
-	echo "+ Input name      |  Status"				;\
-	echo "+++++++++++++++++++++++++++++++++"			;\
-	rm -rf testfront/in/*.sc					;\
-	FILES=`ls testfront/in`						;\
-	for i in $$FILES; do				 		 \
-	echo -n "+ $$i" 						;\
-	testfront/testfront -i testfront/in/$$i -o testfront/out/$$i	;\
-	output=`cat testfront/out/$$i | grep CLEAN_UP`			;\
-	goodresult="		CLEAN_UP, error = 0"			;\
-	if test "$$output" = "$$goodresult"; then			\
-		echo -e '\t\tpassed'					;\
-	fi								;\
-	if test "$$output" != "$$goodresult"; then	              \
-		echo -e '\t\tfailed'	                            ;\
-	fi	                                                      ;\
-	rm -rf testfront/in/*.sc					;\
-	done								;\
-
 
 TARFLIST = $$ME/README \
 $$ME/build.sh \
@@ -193,6 +169,10 @@ $$ME/cim/*.cpp \
 $$ME/cim/*.h \
 $$ME/cim/Makefile.in \
 $$ME/cim/in-* \
+$$ME/inverse/*.cpp \
+$$ME/inverse/*.h \
+$$ME/inverse/Makefile.in \
+$$ME/inverse/in-* \
 $$ME/solver/*.cpp \
 $$ME/solver/*.h \
 $$ME/solver/Makefile.in \
@@ -222,14 +202,12 @@ $$ME/iTaps/*.cpp \
 $$ME/iTaps/Makefile.in \
 $$ME/src/intfc/*.c \
 $$ME/src/intfc/*.h  \
-$$ME/src/intfc/in \
 $$ME/src/intfc/Makefile.in \
 $$ME/src/util/*.h \
 $$ME/src/util/*.c \
 $$ME/src/util/Makefile.in \
 $$ME/src/front/*.c \
 $$ME/src/front/*.h \
-$$ME/src/front/in \
 $$ME/src/front/Makefile.in \
 $$ME/src/front/README \
 $$ME/src/pak/hypre-1.6.0.tar.gz \

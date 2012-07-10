@@ -1258,7 +1258,7 @@ EXPORT void reset_hs_flags_on_intfc(
 	for (hs = hyper_surf_list(intfc); hs && *hs; ++hs)
 	{
 	    /*Turn off flags force || preventing redistribution*/
-	    never_redistribute(*hs) = NO;
+	    /*never_redistribute(*hs) = NO;*/
 	    do_not_redistribute(*hs) = NO;
 	    redistribute_hyper_surface(*hs) = NO;
 	    redistributed(*hs) = NO;

@@ -364,7 +364,6 @@ extern void elastic_point_propagate(
 	double area_dens = af_params->area_dens;
 	double left_nor_speed,right_nor_speed;
 	double dv;
-	/*TMP*/
 	double r;
 	int j;
 	static double Z[20],R[21];
@@ -373,46 +372,51 @@ extern void elastic_point_propagate(
 	static boolean first = YES;
 	static double min_lift,max_lift,ave_lift;
 	static double Ave_lift;
-	if (first)
+
+	/*TMP*/
+	if (debugging("ave_lift"))
 	{
-	    first = NO;
-	    for (i = 0; i < 21; ++i)
+	    if (first)
 	    {
-		R[i] = i*5.0/20.0;
-		printf("R[%d] = %f\n",i,R[i]);
+	    	first = NO;
+	    	for (i = 0; i < 21; ++i)
+	    	{
+		    R[i] = i*5.0/20.0;
+		    printf("R[%d] = %f\n",i,R[i]);
+	    	}
+	    	for (i = 0; i < 20; ++i)
+	    	{
+		    Z[i] = 0.0;
+		    np[i] = 0;
+	    	}
+	    	max_lift = -HUGE;
+	    	min_lift = HUGE;
+	    	ave_lift = 0.0;
+	    	total_np = 0;
+	    	if (front->step == 2)
+		    Ave_lift = ave_lift;
+	    	else
+		    Ave_lift = 0.0;
 	    }
-	    for (i = 0; i < 20; ++i)
+	    if (step != front->step)
 	    {
-		Z[i] = 0.0;
-		np[i] = 0;
-	    }
-	    max_lift = -HUGE;
-	    min_lift = HUGE;
-	    ave_lift = 0.0;
-	    total_np = 0;
-	    if (front->step == 2)
-		Ave_lift = ave_lift;
-	    else
-		Ave_lift = 0.0;
-	}
-	if (step != front->step)
-	{
-	    step = front->step;
-	    printf("Impact vs. radius:\n");
-	    for (i = 0; i < 20; ++i)
-	    {
-		Z[i] /= (double)np[i];
-		printf("%f  %f\n",R[i]+0.125,Z[i]);
-		Z[i] = 0.0;
-		np[i] = 0;
-	    }
-	    ave_lift /= (double)total_np;
-	    printf("Max lift = %f  Min lift = %f  Ave lift = %f\n",
+	    	step = front->step;
+	    	printf("Impact vs. radius:\n");
+	    	for (i = 0; i < 20; ++i)
+	    	{
+		    Z[i] /= (double)np[i];
+		    printf("%f  %f\n",R[i]+0.125,Z[i]);
+		    Z[i] = 0.0;
+		    np[i] = 0;
+	    	}
+	    	ave_lift /= (double)total_np;
+	    	printf("Max lift = %f  Min lift = %f  Ave lift = %f\n",
 			max_lift,min_lift,ave_lift);
-	    max_lift = -HUGE;
-	    min_lift = HUGE;
-	    ave_lift = 0.0;
-	    total_np = 0;
+	    	max_lift = -HUGE;
+	    	min_lift = HUGE;
+	    	ave_lift = 0.0;
+	    	total_np = 0;
+	    }
 	}
 
 	if (af_params->no_fluid)

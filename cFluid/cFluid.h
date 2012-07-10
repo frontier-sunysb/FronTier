@@ -133,6 +133,13 @@ typedef struct {
 	double **Gdens;
 	double ***Gvel;
 	double **Gpres;
+
+	// Base front for comparison
+	boolean use_base_soln;
+        char base_dir_name[200];
+        int num_step;
+        int *steps;
+        F_BASIC_DATA *f_basic;
 } EQN_PARAMS;
 
 struct _SCHEME_PARAMS
@@ -266,6 +273,8 @@ public:
 	void initMovieVariables();
 	void getVelocity(double*,double*);
 	void initSampleVelocity(char *in_name);
+	void compareWithBaseData(char *out_name);
+	void freeBaseFront();
 
 	// main step function
 	void solve(double dt);		
@@ -280,6 +289,8 @@ private:
 	COMPONENT *top_comp;
 	EQN_PARAMS *eqn_params;
 	FIELD field;
+	FIELD *base_field;
+	Front *base_front;
 
 	int top_gmax[MAXD];
 	int lbuf[MAXD],ubuf[MAXD];
@@ -390,6 +401,9 @@ private:
 	void setProjectileParams(char*);
 	void setRiemProbParams(char*);
 	void setOnedParams(char*);
+	void readBaseFront(int i);
+	void readBaseStates(char *restart_name);
+	void readFrontInteriorStates(char *restart_state_name);
 
 	void compSGS(void);             // subgrid model by Hyunkyung Lim
 
