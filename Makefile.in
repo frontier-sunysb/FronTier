@@ -21,6 +21,7 @@ all:
 	cd iFluid && $(MAKE)
 	cd melting && $(MAKE)
 	cd pde && $(MAKE)
+	cd MonteCarlo && $(MAKE)
 	cd poisson && $(MAKE)
 	cd subsurf && $(MAKE)
 clean:
@@ -39,6 +40,7 @@ clean:
 	cd frgb && $(MAKE) clean
 	cd melting && $(MAKE) clean
 	cd pde && $(MAKE) clean
+	cd MonteCarlo && $(MAKE) clean
 	cd poisson && $(MAKE) clean
 	cd subsurf && $(MAKE) clean
 	cd iTaps && $(MAKE) clean
@@ -195,6 +197,10 @@ $$ME/cell/Makefile.in \
 $$ME/pde/*.cpp \
 $$ME/pde/in-* \
 $$ME/pde/Makefile.in \
+$$ME/MonteCarlo/*.h \
+$$ME/MonteCarlo/*.cpp \
+$$ME/MonteCarlo/in-* \
+$$ME/MonteCarlo/Makefile.in \
 $$ME/poisson/*.cpp \
 $$ME/poisson/*.h \
 $$ME/poisson/Makefile.in \

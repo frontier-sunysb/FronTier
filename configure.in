@@ -589,6 +589,7 @@ melting/Makefile
 curvature/Makefile
 cell/Makefile
 pde/Makefile
+MonteCarlo/Makefile
 iFluid/Makefile
 frgb/Makefile
 poisson/Makefile
@@ -637,6 +638,7 @@ finance/Makefile
 curvature/Makefile
 cell/Makefile
 pde/Makefile
+MonteCarlo/Makefile
 iFluid/Makefile
 frgb/Makefile
 subsurf/Makefile
