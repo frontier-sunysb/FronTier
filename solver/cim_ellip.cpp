@@ -1609,8 +1609,8 @@ void CIM_ELLIPTIC_SOLVER::cimIntfcPointState(
 
 	rect_in_which(coords,icoords,top_grid);
 	index = d_index(icoords,top_gmax,dim);
-	uJ = (*solutionJump)(jparams,D[k],coords);
 	k  = ij_to_I[icoords[0]][icoords[1]];
+	uJ = (*solutionJump)(jparams,D[k],coords);
 	u = soln[index];
 	for (i = 0; i < dim; ++i) 
 	{
