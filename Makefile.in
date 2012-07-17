@@ -175,6 +175,7 @@ $$ME/inverse/*.cpp \
 $$ME/inverse/*.h \
 $$ME/inverse/Makefile.in \
 $$ME/inverse/in-* \
+$$ME/inverse/*mrun \
 $$ME/solver/*.cpp \
 $$ME/solver/*.h \
 $$ME/solver/Makefile.in \
