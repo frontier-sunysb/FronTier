@@ -135,3 +135,61 @@ extern  double dist_cauchy(
 	return y;
 }	/* end gauss_center_limit */
 
+extern  double dist_uniform(
+	POINTER params,
+        unsigned short int xsubi[3])
+{
+	double x,y;
+	UNIFORM_PARAMS *uniform_params = (UNIFORM_PARAMS*)params;
+	double a = uniform_params->a;
+	double b = uniform_params->b;
+	double k = b - a;
+
+	x = erand48(xsubi);
+	y = k*x + a;
+	return y;
+}	/* end dist_uniform */
+
+extern  double dist_stable(
+	POINTER params,
+        unsigned short int xsubi[3])
+{
+	double u,e,x,y;
+	static UNIFORM_PARAMS *uniform_params;
+	static EXP_PARAMS *exp_params;
+	STABLE_PARAMS *stable_params = (STABLE_PARAMS*)params;
+	double alpha = stable_params->alpha;
+	double beta = stable_params->beta;
+	double sigma = stable_params->sigma;
+	double mu = stable_params->mu;
+
+	if (uniform_params == NULL)
+	{
+	    FT_ScalarMemoryAlloc((POINTER*)&uniform_params,
+			sizeof(UNIFORM_PARAMS));
+	    FT_ScalarMemoryAlloc((POINTER*)&exp_params,
+			sizeof(EXP_PARAMS));
+	    uniform_params->a = -PI/2,0;
+	    uniform_params->b =  PI/2,0;
+	    exp_params->lambda = 1.0;
+	}
+
+	printf("Entering dist_stable()\n");
+	printf("alpha = %f  beta = %f  sigma = %f  mu = %f\n",
+			alpha,beta,sigma,mu);
+	/* u is a variable with uniform distribution from -PI/2 to PI/2 */
+	u = dist_uniform((POINTER)uniform_params,xsubi);
+	/* e is a variable with exponential distribution: lambda = 1 */
+	e = dist_exponential((POINTER)uniform_params,xsubi);
+	if (alpha == 1.0)
+	{
+	}
+	else
+	{
+	}
+
+	printf("Leaving dist_stable()\n");
+	clean_up(0);
+	return y;
+}	/* end dist_stable */
+

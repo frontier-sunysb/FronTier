@@ -10,7 +10,9 @@ enum _RANDOM_TYPE {
         EXPONENTIAL,
 	POWER,
 	MIDDLE,
-        CAUCHY
+        CAUCHY,
+        STABLE,
+	UNIFORM
 };
 typedef enum _RANDOM_TYPE RANDOM_TYPE;
 
@@ -32,10 +34,24 @@ struct _EXP_PARAMS {
 };
 typedef _EXP_PARAMS EXP_PARAMS;
 
+struct _UNIFORM_PARAMS {
+	double a;
+	double b;
+};
+typedef _UNIFORM_PARAMS UNIFORM_PARAMS;
+
 struct _POWER_PARAMS {
 	int power;
 };
 typedef _POWER_PARAMS POWER_PARAMS;
+
+struct _STABLE_PARAMS {
+	double alpha;
+	double beta;
+	double sigma;
+	double mu;
+};
+typedef _STABLE_PARAMS STABLE_PARAMS;
 
 struct _PARAMS {
 	/* Random number generator part */
@@ -70,4 +86,6 @@ extern double dist_cauchy(POINTER,unsigned short int*);
 extern double dist_exponential(POINTER,unsigned short int*);
 extern double dist_power(POINTER,unsigned short int*);
 extern double dist_middle(POINTER,unsigned short int*);
+extern double dist_uniform(POINTER,unsigned short int*);
+extern double dist_stable(POINTER,unsigned short int*);
 

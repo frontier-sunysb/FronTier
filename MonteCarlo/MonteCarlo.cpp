@@ -218,6 +218,8 @@ static void readMonteCarloParams(
 	static GAUSS_PARAMS *gauss_params;
 	static EXP_PARAMS *exp_params;
 	static POWER_PARAMS *power_params;
+	static UNIFORM_PARAMS *uniform_params;
+	static STABLE_PARAMS *stable_params;
 	char string[100];
         FILE *infile = fopen(inname,"r");
 
@@ -282,6 +284,35 @@ static void readMonteCarloParams(
             (void) printf(" %d\n",power_params->power);
 	    params->pdf_params = (POINTER)power_params;
 	    break;
+	case 'u':
+	case 'U':
+	    FT_ScalarMemoryAlloc((POINTER*)&uniform_params,
+				sizeof(UNIFORM_PARAMS));
+	    params->rand_type = UNIFORM;
+	    CursorAfterString(infile,"Enter the lower and upper bounds:");
+            fscanf(infile,"%lf %lf",&uniform_params->a,&uniform_params->b);
+            (void) printf(" %f %f\n",uniform_params->a,uniform_params->b);
+	    params->pdf_params = (POINTER)uniform_params;
+	    break;
+	case 's':
+	case 'S':
+	    FT_ScalarMemoryAlloc((POINTER*)&stable_params,
+				sizeof(STABLE_PARAMS));
+	    params->rand_type = STABLE;
+	    CursorAfterString(infile,"Enter alpha:");
+            fscanf(infile,"%lf",&stable_params->alpha);
+            (void) printf(" %f\n",stable_params->alpha);
+	    CursorAfterString(infile,"Enter beta:");
+            fscanf(infile,"%lf",&stable_params->beta);
+            (void) printf(" %f\n",stable_params->beta);
+	    CursorAfterString(infile,"Enter sigma:");
+            fscanf(infile,"%lf",&stable_params->sigma);
+            (void) printf(" %f\n",stable_params->sigma);
+	    CursorAfterString(infile,"Enter mu:");
+            fscanf(infile,"%lf",&stable_params->mu);
+            (void) printf(" %f\n",stable_params->mu);
+	    params->pdf_params = (POINTER)stable_params;
+	    break;
 	case 'm':
 	case 'M':
 	    params->rand_type = MIDDLE;
@@ -316,6 +347,12 @@ static void readMonteCarloParams(
 	    break;
 	case MIDDLE:
 	    random_func = dist_middle;
+	    break;
+	case UNIFORM:
+	    random_func = dist_uniform;
+	    break;
+	case STABLE:
+	    random_func = dist_stable;
 	    break;
 	default:
 	    (void) printf("Unknown random variable\n");
