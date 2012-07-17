@@ -1,0 +1,18 @@
+#!/bin/csh -f
+
+set DIR = `pwd`
+echo
+echo $DIR
+
+#link to openmpi
+#setenv LD_LIBRARY_PATH /usr/local/pkg/openmpi/lib
+
+#directory of excutable
+
+#mpirun path
+set MPIRUN = /usr/local/pkg/mpich/bin/mpirun
+
+#run options
+echo input file $DIR/in-$1
+echo output directory $DIR/out-$1
+$MPIRUN -np 1 $DIR/inverse -d 2 -p 1 1 -i $DIR/in-$1 -o $DIR/out-$1
