@@ -155,6 +155,7 @@ extern  double dist_stable(
         unsigned short int xsubi[3])
 {
 	double u,e,x,y;
+	static double piover2,b,c,s,temptan,r_alpha;
 	static UNIFORM_PARAMS *uniform_params;
 	static EXP_PARAMS *exp_params;
 	STABLE_PARAMS *stable_params = (STABLE_PARAMS*)params;
@@ -169,27 +170,33 @@ extern  double dist_stable(
 			sizeof(UNIFORM_PARAMS));
 	    FT_ScalarMemoryAlloc((POINTER*)&exp_params,
 			sizeof(EXP_PARAMS));
-	    uniform_params->a = -PI/2,0;
-	    uniform_params->b =  PI/2,0;
+	    uniform_params->a = -PI/2.0;
+	    uniform_params->b =  PI/2.0;
 	    exp_params->lambda = 1.0;
+	    piover2 = PI/2.0;
+	    temptan = beta*tan(piover2*alpha);
+	    s = pow(1+temptan*temptan,1.0/2.0/alpha);
+	    b = atan(temptan)/alpha;
+	    c = beta*sigma*log(sigma)/piover2+mu;
+	    r_alpha = 1.0/alpha;
 	}
 
-	printf("Entering dist_stable()\n");
-	printf("alpha = %f  beta = %f  sigma = %f  mu = %f\n",
-			alpha,beta,sigma,mu);
 	/* u is a variable with uniform distribution from -PI/2 to PI/2 */
 	u = dist_uniform((POINTER)uniform_params,xsubi);
 	/* e is a variable with exponential distribution: lambda = 1 */
-	e = dist_exponential((POINTER)uniform_params,xsubi);
+	e = dist_exponential((POINTER)exp_params,xsubi);
 	if (alpha == 1.0)
 	{
+	    x = ((piover2+beta*u)*tan(u)-beta*log((piover2*e*cos(u))/
+				(piover2+beta*u)))/piover2;
+	    y = sigma*x + c;
 	}
 	else
 	{
+	    x = s*sin(alpha*(u+b))/pow(cos(u),r_alpha)*
+				pow(cos(u-alpha*(u+b))/e,r_alpha-1.0);
+	    y = sigma*x+mu;
 	}
-
-	printf("Leaving dist_stable()\n");
-	clean_up(0);
 	return y;
 }	/* end dist_stable */
 
