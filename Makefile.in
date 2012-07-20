@@ -171,6 +171,7 @@ $$ME/cim/*.cpp \
 $$ME/cim/*.h \
 $$ME/cim/Makefile.in \
 $$ME/cim/in-* \
+$$ME/cim/*mrun \
 $$ME/inverse/*.cpp \
 $$ME/inverse/*.h \
 $$ME/inverse/Makefile.in \

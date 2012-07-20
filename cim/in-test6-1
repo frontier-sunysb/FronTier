@@ -1,6 +1,6 @@
 Domain limit in 0-th dimension: -1 1
 Domain limit in 1-th dimension: -1 1
-Computational grid: 320 320
+Computational grid: 40 40
 Lower boundary in 0-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 0-th dimension: DIRICHLET_BOUNDARY
 Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
@@ -13,8 +13,10 @@ Enter the debugging string: trace
 Enter the debugging string: CLOCK
 Enter the debugging string: step_size
 
-Enter jump type: EXACT_JUMP
-Enter run case number: 7
+Enter jump type: CONSTANT_JUMP
+Enter jump of u: 0.2
+Enter jump of eps gradient u dot n: -10.0
+Enter jump of gradient u dot t: 0.0
 Enter interface number: 1
 
 For lower boundary in 0-th dimension
@@ -31,7 +33,7 @@ Enter type of Dirichlet boundary: CONSTANT
 Enter boundary u: 1
 
 Enter comparison method: CAUCHY_COMPARE
-Enter base directory name: out-test3-5
+Enter base directory name: out-test2-5
 Enter number of comparing steps: 1
 Enter index of step 1: 0
 For comparison solution

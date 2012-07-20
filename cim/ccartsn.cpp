@@ -130,6 +130,7 @@ void C_CARTESIAN::setDomain()
 	dim = grid_intfc->dim;
 	T = table_of_interface(grid_intfc);
 	top_comp = T->components;
+	params = (CIM_PARAMS*)front->extra1;
 	hmin = top_h[0];
 	for (i = 1; i < dim; ++i)
 	    if (hmin > top_h[i]) hmin = top_h[i];
@@ -139,9 +140,12 @@ void C_CARTESIAN::setDomain()
 	case 1:
             if (first)
             {
+		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(FIELD));
                 FT_VectorMemoryAlloc((POINTER*)&array,top_gmax[0]+1,FLOAT);
                 FT_VectorMemoryAlloc((POINTER*)&source,top_gmax[0]+1,FLOAT);
                 FT_VectorMemoryAlloc((POINTER*)&diff_coeff,top_gmax[0]+1,FLOAT);
+                FT_VectorMemoryAlloc((POINTER*)&field->u,top_gmax[0]+1,FLOAT);
+                FT_VectorMemoryAlloc((POINTER*)&field->uex,top_gmax[0]+1,FLOAT);
                 first = NO;
             }	
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
@@ -150,11 +154,16 @@ void C_CARTESIAN::setDomain()
 	case 2:
 	    if (first)
 	    {
+		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(FIELD));
 	    	FT_VectorMemoryAlloc((POINTER*)&array,
 				(top_gmax[0]+1)*(top_gmax[1]+1),FLOAT);
 	    	FT_VectorMemoryAlloc((POINTER*)&source,
 				(top_gmax[0]+1)*(top_gmax[1]+1),FLOAT);
 	    	FT_VectorMemoryAlloc((POINTER*)&diff_coeff,
+				(top_gmax[0]+1)*(top_gmax[1]+1),FLOAT);
+	    	FT_VectorMemoryAlloc((POINTER*)&field->u,
+				(top_gmax[0]+1)*(top_gmax[1]+1),FLOAT);
+	    	FT_VectorMemoryAlloc((POINTER*)&field->uex,
 				(top_gmax[0]+1)*(top_gmax[1]+1),FLOAT);
 	    	first = NO;
 	    }
@@ -166,11 +175,16 @@ void C_CARTESIAN::setDomain()
 	case 3:
 	    if (first)
 	    {
+		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(FIELD));
 	    	FT_VectorMemoryAlloc((POINTER*)&array,
 			(top_gmax[0]+1)*(top_gmax[1]+1)*(top_gmax[2]+1),FLOAT);
 	    	FT_VectorMemoryAlloc((POINTER*)&source,
 			(top_gmax[0]+1)*(top_gmax[1]+1)*(top_gmax[2]+1),FLOAT);
 	    	FT_VectorMemoryAlloc((POINTER*)&diff_coeff,
+			(top_gmax[0]+1)*(top_gmax[1]+1)*(top_gmax[2]+1),FLOAT);
+	    	FT_VectorMemoryAlloc((POINTER*)&field->u,
+			(top_gmax[0]+1)*(top_gmax[1]+1)*(top_gmax[2]+1),FLOAT);
+	    	FT_VectorMemoryAlloc((POINTER*)&field->uex,
 			(top_gmax[0]+1)*(top_gmax[1]+1)*(top_gmax[2]+1),FLOAT);
 	    	first = NO;
 	    }
@@ -182,6 +196,7 @@ void C_CARTESIAN::setDomain()
 	    kmax = (ubuf[2] == 0) ? top_gmax[2] - 1 : top_gmax[2] - ubuf[2];
 	    break;
 	}
+	params->field = field;
 }	/* end setDomain */
 
 void C_CARTESIAN::scatMeshArray()
@@ -258,7 +273,6 @@ void C_CARTESIAN::solve()
         setIndexMap();
         if (debugging("trace")) printf("Passing setIndexMap()\n");
 
-	//old_solve();
 	cim_solve();
 
 	stop_clock("solve");
@@ -266,260 +280,96 @@ void C_CARTESIAN::solve()
 
 void C_CARTESIAN::cim_solve()
 {
+	int ii,jj,kk,k,l,index,DD;
+	double P[MAXD];
+	static CIM_ELLIPTIC_SOLVER elliptic_solver(*front);
+	CIM_PARAMS *params = (CIM_PARAMS*)front->extra1;;
+	INTERFACE *intfc = front->interf;
+        POINTER sl,sr;
+        POINT *p;
+        HYPER_SURF *hs;
+        HYPER_SURF_ELEMENT *hse;
+        double U;
+
+	params->dim = dim;
+
 	switch (dim)
 	{
 	case 2:
-	    cim_solve2d();
-	    return;
+	    for (ii = imin; ii <= imax; ++ii)
+	    for (jj = jmin; jj <= jmax; ++jj)
+	    {
+            	P[0] = cell_edge(ii,0,top_grid);
+            	P[1] = cell_edge(jj,1,top_grid);
+	    	index = d_index2d(ii,jj,top_gmax);
+	    	DD = (top_comp[index] == 2) ? 1 : -1;
+	    	source[index] = sourceFunc((POINTER)params,DD,P);
+	    	diff_coeff[index] = exact_eps(DD);
+	    }
+	    elliptic_solver.ij_to_I = ij_to_I;
+	    elliptic_solver.I_to_ij = I_to_ij;
+	    break;
 	case 3:
-	    cim_solve3d();
-	    return;
-	}
-}	/* end cim_solve */
-
-void C_CARTESIAN::cim_solve2d()
-{
-	int i,j,k,l,index;
-	double P[MAXD],L1,L2,L_inf,err;
-	int ic[MAXD];
-	static CIM_ELLIPTIC_SOLVER elliptic_solver(*front);
-	double *uex;
-	CIM_PARAMS *jparams = (CIM_PARAMS*)front->extra1;;
-
-	jparams->dim = dim;
-	FT_VectorMemoryAlloc((POINTER*)&uex,size,sizeof(double));
-	FT_VectorMemoryAlloc((POINTER*)&exact_soln,
-		(top_gmax[0]+1)*(top_gmax[1]+1),sizeof(double));
-	for (i = imin; i <= imax; ++i)
-	for (j = jmin; j <= jmax; ++j)
-	{
-	    int index,DD;
-	    k = ij_to_I[i][j];
-    	    for (l = 0; l < dim; ++l) 
+	    for (ii = imin; ii <= imax; ++ii)
+	    for (jj = jmin; jj <= jmax; ++jj)
+	    for (kk = kmin; kk <= kmax; ++kk)
 	    {
-	    	ic[l] = I_to_ij[k][l];
-            	P[l] = cell_edge(ic[l],l,top_grid);
-            }
-	    index = d_index(ic,top_gmax,dim);
-	    DD = (top_comp[index] == 2) ? 1 : -1;
-            uex[k] = exact_solution((POINTER)jparams,DD,P);
-	    source[index] = exact_source((POINTER)jparams,DD,P);
-	    diff_coeff[index] = exact_eps(DD);
-	    exact_soln[index] = uex[k];
+            	P[0] = cell_edge(ii,0,top_grid);
+            	P[1] = cell_edge(jj,1,top_grid);
+            	P[2] = cell_edge(kk,2,top_grid);
+	    	index = d_index3d(ii,jj,kk,top_gmax);
+	    	DD = (top_comp[index] == 2) ? 1 : -1;
+	    	source[index] = sourceFunc((POINTER)params,DD,P);
+	    	diff_coeff[index] = exact_eps(DD);
+	    }
+	    elliptic_solver.ijk_to_I = ijk_to_I;
+	    elliptic_solver.I_to_ijk = I_to_ijk;
+	    break;
 	}
-	FT_ParallelExchGridArrayBuffer(exact_soln,front);
 
 	elliptic_solver.w_type = w_type;
 	elliptic_solver.neg_comp = neg_comp;
 	elliptic_solver.pos_comp = pos_comp;
-	elliptic_solver.solutionJump = exact_jump_u;
-	elliptic_solver.gradJumpDotN = exact_jump_eps_gradu_dot_n;
-	elliptic_solver.gradJumpDotT = exact_jump_gradu_dot_t;
-        elliptic_solver.jparams = (POINTER)jparams;
+	elliptic_solver.solutionJump = jumpU;
+	elliptic_solver.gradJumpDotN = jumpEpsGradDotNorm;
+	elliptic_solver.gradJumpDotT = jumpGradDotTan;
+	elliptic_solver.exactSolution = exact_solution;
+        elliptic_solver.jparams = (POINTER)params;
 	elliptic_solver.diff_coeff[0] = exact_eps(1);
 	elliptic_solver.diff_coeff[1] = exact_eps(-1);
 	elliptic_solver.findStateAtCrossing = cim_find_state_at_crossing;
 	elliptic_solver.getStateVar = getStateU;
+	elliptic_solver.assignStateVar = assignStateU;
         elliptic_solver.source = source;
         elliptic_solver.ilower = ilower;
         elliptic_solver.iupper = iupper;
         elliptic_solver.soln = array;
-	elliptic_solver.ij_to_I = ij_to_I;
-	elliptic_solver.I_to_ij = I_to_ij;
 	elliptic_solver.size = size;
+	elliptic_solver.solve_front_state = YES;
         elliptic_solver.set_solver_domain();
 	elliptic_solver.solve(array);
 
-        L1 = L2 = L_inf = 0.0;
-
-	double u_max,u_min;
-	u_max = -HUGE;
-	u_min = HUGE;
-	printf("Comparison of solutions:\n");
-	for (i = imin; i <= imax; ++i)
-	for (j = jmin; j <= jmax; ++j)
+	switch (dim)
 	{
-	    k = ij_to_I[i][j];
-	    index = d_index2d(i,j,top_gmax);
-	    if (u_max < array[index]) u_max = array[index];
-	    if (u_min > array[index]) u_min = array[index];
-            err = fabs(array[index] - uex[k]);
-	    L1 += err;
-	    L2 += sqr(err);
-            if (err > L_inf) 
-		L_inf = err;
-        }
-	L1 /= size;
-	L2 /= size;
-	L2 = sqrt(L2);
-        printf("L1 = %18.16f  L2 = %18.16f  L_inf = %18.16f\n",
-				L1,L2,L_inf);
-	printf("u_max = %f  u_min = %f\n",u_max,u_min);
-	numer_soln = array;
-        
-        FT_FreeThese(1,uex);
-
+	case 2:
+	    for (ii = 0; ii <= top_gmax[0]; ++ii)
+	    for (jj = 0; jj <= top_gmax[1]; ++jj)
+	    {
+	    	index = d_index2d(ii,jj,top_gmax);
+	    	field->u[index] = array[index];
+	    }
+	    break;
+	case 3:
+	    for (ii = 0; ii <= top_gmax[0]; ++ii)
+	    for (jj = 0; jj <= top_gmax[1]; ++jj)
+	    for (kk = 0; kk <= top_gmax[2]; ++kk)
+	    {
+	    	index = d_index3d(ii,jj,kk,top_gmax);
+	    	field->u[index] = array[index];
+	    }
+	    break;
+	}
 }	/* end cim_solve2d */
-
-void C_CARTESIAN::cim_solve3d()
-{
-	int ii,jj,kk,k,l,index;
-	double P[MAXD],L1,L2,L_inf,err;
-	int ic[MAXD];
-	static CIM_ELLIPTIC_SOLVER elliptic_solver(*front);
-	double *uex;
-	CIM_PARAMS *jparams = (CIM_PARAMS*)front->extra1;;
-
-	jparams->dim = dim;
-	FT_VectorMemoryAlloc((POINTER*)&uex,size,sizeof(double));
-	FT_VectorMemoryAlloc((POINTER*)&exact_soln,
-		(top_gmax[0]+1)*(top_gmax[1]+1)*(top_gmax[2]+1),
-		sizeof(double));
-	for (ii = imin; ii <= imax; ++ii)
-	for (jj = jmin; jj <= jmax; ++jj)
-	for (kk = kmin; kk <= kmax; ++kk)
-	{
-	    int index,DD;
-	    k = ijk_to_I[ii][jj][kk];
-    	    for (l = 0; l < dim; ++l) 
-	    {
-	    	ic[l] = I_to_ijk[k][l];
-            	P[l] = cell_edge(ic[l],l,top_grid);
-            }
-	    index = d_index(ic,top_gmax,dim);
-	    DD = (top_comp[index] == 2) ? 1 : -1;
-            uex[k] = exact_solution((POINTER)jparams,DD,P);
-	    source[index] = exact_source((POINTER)jparams,DD,P);
-	    diff_coeff[index] = exact_eps(DD);
-	    exact_soln[index] = uex[k];
-	}
-	FT_ParallelExchGridArrayBuffer(exact_soln,front);
-
-	elliptic_solver.w_type = w_type;
-	elliptic_solver.neg_comp = neg_comp;
-	elliptic_solver.pos_comp = pos_comp;
-	elliptic_solver.solutionJump = exact_jump_u;
-	elliptic_solver.gradJumpDotN = exact_jump_eps_gradu_dot_n;
-	elliptic_solver.gradJumpDotT = exact_jump_gradu_dot_t;
-        elliptic_solver.jparams = (POINTER)jparams;
-	elliptic_solver.diff_coeff[0] = exact_eps(1);
-	elliptic_solver.diff_coeff[1] = exact_eps(-1);
-	elliptic_solver.findStateAtCrossing = cim_find_state_at_crossing;
-	elliptic_solver.getStateVar = getStateU;
-        elliptic_solver.source = source;
-        elliptic_solver.ilower = ilower;
-        elliptic_solver.iupper = iupper;
-        elliptic_solver.soln = array;
-	elliptic_solver.ijk_to_I = ijk_to_I;
-	elliptic_solver.I_to_ijk = I_to_ijk;
-	elliptic_solver.size = size;
-        elliptic_solver.set_solver_domain();
-	elliptic_solver.solve(array);
-
-        L1 = L2 = L_inf = 0.0;
-
-	double u_max,u_min;
-	u_max = -HUGE;
-	u_min = HUGE;
-	printf("Comparison of solutions:\n");
-	for (ii = imin; ii <= imax; ++ii)
-	for (jj = jmin; jj <= jmax; ++jj)
-	for (kk = kmin; kk <= kmax; ++kk)
-	{
-	    k = ijk_to_I[ii][jj][kk];
-	    index = d_index3d(ii,jj,kk,top_gmax);
-	    if (u_max < array[index]) u_max = array[index];
-	    if (u_min > array[index]) u_min = array[index];
-	    if (ii == 20 && jj == 20)
-	    	printf("Solns[%d] = %f %f\n",kk,uex[k],array[index]);
-            err = fabs(array[index] - uex[k]);
-	    L1 += err;
-	    L2 += sqr(err);
-            if (err > L_inf) 
-		L_inf = err;
-        }
-	L1 /= size;
-	L2 /= size;
-	L2 = sqrt(L2);
-        printf("L1 = %18.16f  L2 = %18.16f  L_inf = %18.16f\n",
-				L1,L2,L_inf);
-	printf("u_max = %f  u_min = %f\n",u_max,u_min);
-	numer_soln = array;
-        
-        FT_FreeThese(1,uex);
-
-}	/* end cim_solve3d */
-
-void C_CARTESIAN::old_solve()
-{
-	int i,j,k,l,index;
-	double P[MAXD],L1,L2,L_inf,err;
-	int ic[MAXD];
-	static ELLIPTIC_SOLVER elliptic_solver(*front);
-	double *uex;
-	CIM_PARAMS *jparams = (CIM_PARAMS*)front->extra1;
-
-	jparams->dim = dim;
-	FT_VectorMemoryAlloc((POINTER*)&uex,size,sizeof(double));
-	for (i = imin; i <= imax; ++i)
-	for (j = jmin; j <= jmax; ++j)
-	{
-	    int index,DD;
-	    k = ij_to_I[i][j];
-    	    for (l = 0; l < dim; ++l) 
-	    {
-	    	ic[l] = I_to_ij[k][l];
-            	P[l] = cell_edge(ic[l],l,top_grid);
-            }
-	    index = d_index(ic,top_gmax,dim);
-	    DD = (top_comp[index] == 2) ? 1 : -1;
-            uex[k] = exact_solution((POINTER)jparams,DD,P);
-	    source[index] = exact_source((POINTER)jparams,DD,P);
-	    diff_coeff[index] = exact_eps(DD);
-	}
-
-	elliptic_solver.findStateAtCrossing = cim_find_state_at_crossing;
-	elliptic_solver.getStateVar = getStateU;
-        elliptic_solver.source = source;
-        elliptic_solver.D = diff_coeff;
-        elliptic_solver.ilower = ilower;
-        elliptic_solver.iupper = iupper;
-        elliptic_solver.soln = array;
-	elliptic_solver.ij_to_I = ij_to_I;
-        elliptic_solver.set_solver_domain();
-	elliptic_solver.solve(array);
-	viewTopVariable(front,array,NO,0.0,0.0,(char*)"test-cim",
-                                (char*)"array");
-
-        L1 = L2 = L_inf = 0.0;
-
-	double u_max,u_min;
-	u_max = -HUGE;
-	u_min = HUGE;
-	printf("Comparison of solutions:\n");
-	for (i = imin; i <= imax; ++i)
-	for (j = jmin; j <= jmax; ++j)
-	{
-	    k = ij_to_I[i][j];
-	    index = d_index2d(i,j,top_gmax);
-	    if (u_max < array[index]) u_max = array[index];
-	    if (u_min > array[index]) u_min = array[index];
-            err = fabs(array[index] - uex[k]);
-	    L1 += err;
-	    L2 += sqr(err);
-            if (err > L_inf) 
-		L_inf = err;
-        }
-	L1 /= size;
-	L2 /= size;
-	L2 = sqrt(L2);
-        printf("L1 = %18.16f  L2 = %18.16f  L_inf = %18.16f\n",
-				L1,L2,L_inf);
-	printf("u_max = %f  u_min = %f\n",u_max,u_min);
-        
-        FT_FreeThese(1,uex);
-
-}	/* end cim_solve */
 
 static double getStateNumSoln(POINTER);
 static double getStateExcSoln(POINTER);
@@ -550,12 +400,12 @@ void C_CARTESIAN::initMovieVariables()
 				sizeof(double));
 	    sprintf(hdf_movie_var->var_name[n],"numerical_solution");
 	    hdf_movie_var->get_state_var[n] = getStateNumSoln;
-	    hdf_movie_var->top_var[n] = numer_soln;
+	    hdf_movie_var->top_var[n] = field->u;
 	    hdf_movie_var->preset_bound[n] = NO;
 	    hdf_movie_var->num_var = ++n;
 	    sprintf(hdf_movie_var->var_name[n],"exact_solution");
 	    hdf_movie_var->get_state_var[n] = getStateExcSoln;
-	    hdf_movie_var->top_var[n] = exact_soln;
+	    hdf_movie_var->top_var[n] = field->uex;
 	    hdf_movie_var->preset_bound[n] = NO;
 	    hdf_movie_var->num_var = ++n;
 	}
@@ -579,3 +429,312 @@ static double getStateExcSoln(POINTER state)
         STATE *fstate = (STATE*)state;
         return fstate->uex;
 }       /* end getStateNumSoln */
+
+void C_CARTESIAN::readBaseFront(
+	CIM_PARAMS *cim_params,
+	int i)
+{
+	char *dir_name = cim_params->base_dir_name;
+	int RestartStep = cim_params->steps[i];
+	F_BASIC_DATA *f_basic = cim_params->f_basic;
+	char restart_state_name[200];
+
+        FT_ScalarMemoryAlloc((POINTER*)&base_front,sizeof(Front));
+        f_basic->RestartRun = YES;
+	f_basic->size_of_intfc_state = sizeof(STATE);
+
+        sprintf(f_basic->restart_name,"%s/intfc-ts%s",dir_name,
+                        right_flush(RestartStep,7));
+
+        FT_StartUp(base_front,f_basic);
+	sprintf(restart_state_name,"%s/state.ts%s",dir_name,
+                        right_flush(RestartStep,7));
+	printf("restart_state_name = %s\n",restart_state_name);
+	readBaseStates(restart_state_name);
+}	/* end readBaseFront */
+
+
+void C_CARTESIAN::printFrontInteriorStates(char *out_name)
+{
+	int i,j,k,index;
+	char filename[100];
+	FILE *outfile;
+	double *u = field->u;
+
+	sprintf(filename,"%s/state.ts%s",out_name,
+			right_flush(front->step,7));
+#if defined(__MPI__)
+	if (pp_numnodes() > 1)
+            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+#endif /* defined(__MPI__) */
+	sprintf(filename,"%s-u",filename);
+	outfile = fopen(filename,"w");
+	
+	print_front_states(outfile,front);
+
+	fprintf(outfile,"\nInterior u states:\n");
+	switch (dim)
+	{
+	case 1:
+	    for (i = 0; i <= top_gmax[0]; ++i)
+	    {
+		index = d_index1d(i,top_gmax);
+	        fprintf(outfile,"%24.18g\n",u[index]);
+	    }
+	    break;
+	case 2:
+	    for (i = 0; i <= top_gmax[0]; ++i)
+	    for (j = 0; j <= top_gmax[1]; ++j)
+	    {
+		index = d_index2d(i,j,top_gmax);
+	        fprintf(outfile,"%24.18g\n",u[index]);
+	    }
+	    break;
+	case 3:
+	    for (i = 0; i <= top_gmax[0]; ++i)
+	    for (j = 0; j <= top_gmax[1]; ++j)
+	    for (k = 0; k <= top_gmax[2]; ++k)
+	    {
+		index = d_index3d(i,j,k,top_gmax);
+	        fprintf(outfile,"%24.18g\n",u[index]);
+	    }
+	    break;
+	}
+	fclose(outfile);
+}
+
+void C_CARTESIAN::readBaseStates(
+	char *restart_name)
+{
+	FILE *infile;
+	int i,j,k,index;
+	char fname[100];
+	double *u;
+	int *base_gmax;
+	RECT_GRID *base_grid;
+	static CIM_PARAMS params;
+
+	sprintf(fname,"%s-u",restart_name);
+        infile = fopen(fname,"r");
+
+        /* Initialize states in the interior regions */
+
+	read_front_states(infile,base_front);
+
+	FT_MakeGridIntfc(base_front);
+	base_grid = &topological_grid(base_front->grid_intfc);
+	base_gmax = base_grid->gmax;
+	FT_ScalarMemoryAlloc((POINTER*)&params.field,sizeof(FIELD));
+
+	next_output_line_containing_string(infile,"Interior u states:");
+
+	switch (dim)
+	{
+	case 1:
+	    FT_VectorMemoryAlloc((POINTER*)&u,base_gmax[0]+1,FLOAT);
+	    for (i = 0; i <= base_gmax[0]; ++i)
+	    {
+		index = d_index1d(i,base_gmax);
+	    	fscanf(infile,"%lf",&u[index]);
+	    }
+	    break;
+	case 2:
+	    FT_VectorMemoryAlloc((POINTER*)&u,
+                        (base_gmax[0]+1)*(base_gmax[1]+1),FLOAT);
+	    for (i = 0; i <= base_gmax[0]; ++i)
+	    for (j = 0; j <= base_gmax[1]; ++j)
+	    {
+		index = d_index2d(i,j,base_gmax);
+	    	fscanf(infile,"%lf",&u[index]);
+	    }
+	    break;
+	case 3:
+	    FT_VectorMemoryAlloc((POINTER*)&u,(base_gmax[0]+1)*
+			(base_gmax[1]+1)*(base_gmax[2]+1),FLOAT);
+	    for (i = 0; i <= base_gmax[0]; ++i)
+	    for (j = 0; j <= base_gmax[1]; ++j)
+	    for (k = 0; k <= base_gmax[2]; ++k)
+	    {
+		index = d_index3d(i,j,k,base_gmax);
+	    	fscanf(infile,"%lf",&u[index]);
+	    }
+	    break;
+	}
+	params.field->u = u;
+	base_front->extra1 = (POINTER)&params;
+	fclose(infile);
+}	/* end readBaseStates */
+
+void C_CARTESIAN::compareWithExacySoln()
+{
+	int ii,jj,kk,index,k,l,DD;
+	double P[MAXD],L1,L2,L_inf,err;
+	double *uex,*u;
+	double u_max,u_min;
+	CIM_PARAMS *params = (CIM_PARAMS*)front->extra1;
+
+        L1 = L2 = L_inf = 0.0;
+
+	u_max = -HUGE;
+	u_min = HUGE;
+	u   = field->u;
+	uex = field->uex;
+
+	printf("Comparison of solutions:\n");
+	switch (dim)
+	{
+	case 2:
+	    for (ii = imin; ii <= imax; ++ii)
+	    for (jj = jmin; jj <= jmax; ++jj)
+	    {
+            	P[0] = cell_edge(ii,0,top_grid);
+            	P[1] = cell_edge(jj,1,top_grid);
+	    	index = d_index2d(ii,jj,top_gmax);
+	    	DD = (top_comp[index] == 2) ? 1 : -1;
+            	uex[index] = exact_solution((POINTER)params,DD,P);
+	    	if (u_max < u[index]) u_max = u[index];
+	    	if (u_min > u[index]) u_min = u[index];
+            	err = fabs(u[index] - uex[index]);
+	    	L1 += err;
+	    	L2 += sqr(err);
+            	if (err > L_inf) 
+		    L_inf = err;
+            }
+	    break;
+	case 3:
+	    for (ii = imin; ii <= imax; ++ii)
+	    for (jj = jmin; jj <= jmax; ++jj)
+	    for (kk = kmin; kk <= kmax; ++kk)
+	    {
+            	P[0] = cell_edge(ii,0,top_grid);
+            	P[1] = cell_edge(jj,1,top_grid);
+            	P[2] = cell_edge(kk,2,top_grid);
+	    	index = d_index3d(ii,jj,kk,top_gmax);
+	    	DD = (top_comp[index] == 2) ? 1 : -1;
+            	uex[index] = exact_solution((POINTER)params,DD,P);
+	    	if (u_max < u[index]) u_max = u[index];
+	    	if (u_min > u[index]) u_min = u[index];
+            	err = fabs(u[index] - uex[index]);
+	    	L1 += err;
+	    	L2 += sqr(err);
+            	if (err > L_inf) 
+		    L_inf = err;
+            }
+	    break;
+	}
+	L1 /= size;
+	L2 /= size;
+	L2 = sqrt(L2);
+        printf("L1 = %18.16f  L2 = %18.16f  L_inf = %18.16f\n",
+				L1,L2,L_inf);
+	printf("u_max = %f  u_min = %f\n",u_max,u_min);
+}	/* end compareWithExacySoln */
+
+void C_CARTESIAN::compareWithBaseSoln()
+{
+	int ii,jj,kk,index,k,l,DD;
+	double P[MAXD],L1,L2,L_inf,err;
+	double *uex,*u;
+	double u_max,u_min;
+	CIM_PARAMS *params = (CIM_PARAMS*)front->extra1;
+	CIM_PARAMS *base_params;
+	FIELD *base_field;
+	RECT_GRID *base_grid;
+	int *base_gmax;
+	int *base_comp;
+	int base_ic[MAXD];
+	Table *base_T;
+	int N,base_index;
+
+        L1 = L2 = L_inf = 0.0;
+
+	u_max = -HUGE;
+	u_min = HUGE;
+	u   = field->u;
+	uex = field->uex;
+
+	readBaseFront(params,0);
+	base_params = (CIM_PARAMS*)base_front->extra1;
+	base_field = base_params->field;
+	base_grid = &topological_grid(base_front->grid_intfc);
+	base_gmax = base_grid->gmax;
+	base_T = table_of_interface(base_front->grid_intfc);
+	base_comp = base_T->components;
+
+	N = 0;
+	switch (dim)
+	{
+	case 2:
+	    for (ii = imin; ii <= imax; ++ii)
+	    for (jj = jmin; jj <= jmax; ++jj)
+	    {
+		double R;
+            	P[0] = cell_edge(ii,0,top_grid);
+            	P[1] = cell_edge(jj,1,top_grid);
+	    	index = d_index2d(ii,jj,top_gmax);
+		rect_in_which(P,base_ic,base_grid);
+		base_index = d_index(base_ic,base_gmax,2);
+		if (top_comp[index] != base_comp[base_index])
+		    continue;
+
+	    	DD = (top_comp[index] == 2) ? 1 : -1;
+		R = sqrt(sqr(P[0]) + sqr(P[1]));
+		if (R > 0.498 && R < 0.499)
+		    add_to_debug("the_pt");
+		FT_IntrpStateVarAtCoords(base_front,top_comp[index],
+			P,base_field->u,getStateU,&uex[index],NULL);
+		if (R > 0.498 && R < 0.499)
+		    remove_from_debug("the_pt");
+	    	if (u_max < u[index]) u_max = u[index];
+	    	if (u_min > u[index]) u_min = u[index];
+            	err = fabs(u[index] - uex[index]);
+	    	L1 += err;
+	    	L2 += sqr(err);
+            	if (err > L_inf) 
+		{
+		    L_inf = err;
+		}
+		if (err > 0.00012)
+		{
+		    printf("P = %f %f  err = %f  R = %f\n",P[0],P[1],err,R);
+		}
+		else if (R > 0.498 && R < 0.499)
+		    printf("other: P = %f %f  err = %f  R = %f\n",P[0],P[1],err,R);
+		N++;
+            }
+	    break;
+	case 3:
+	    for (ii = imin; ii <= imax; ++ii)
+	    for (jj = jmin; jj <= jmax; ++jj)
+	    for (kk = kmin; kk <= kmax; ++kk)
+	    {
+            	P[0] = cell_edge(ii,0,top_grid);
+            	P[1] = cell_edge(jj,1,top_grid);
+            	P[2] = cell_edge(kk,2,top_grid);
+		rect_in_which(P,base_ic,base_grid);
+		base_index = d_index(base_ic,base_gmax,3);
+		if (top_comp[index] != base_comp[base_index])
+		    continue;
+
+	    	index = d_index3d(ii,jj,kk,top_gmax);
+	    	DD = (top_comp[index] == 2) ? 1 : -1;
+		FT_IntrpStateVarAtCoords(base_front,top_comp[index],
+			P,base_field->u,getStateU,&uex[index],NULL);
+	    	if (u_max < u[index]) u_max = u[index];
+	    	if (u_min > u[index]) u_min = u[index];
+            	err = fabs(u[index] - uex[index]);
+	    	L1 += err;
+	    	L2 += sqr(err);
+            	if (err > L_inf) 
+		    L_inf = err;
+		N++;
+            }
+	    break;
+	}
+	L1 /= N;
+	L2 /= N;
+	L2 = sqrt(L2);
+        printf("L1 = %18.16f  L2 = %18.16f  L_inf = %18.16f\n",
+				L1,L2,L_inf);
+	printf("u_max = %f  u_min = %f\n",u_max,u_min);
+}	/* end compareWithBaseSoln */
