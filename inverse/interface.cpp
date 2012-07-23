@@ -110,20 +110,16 @@ extern int cim_find_state_at_crossing(
 
 	status = FT_StateStructAtGridCrossing(front,icoords,dir,comp,state,hs,
                                        crx_coords);
-	st = (STATE*)*state;
         if (status == NO) return NO_PDE_BOUNDARY;
+	st = (STATE*)*state;
 
         if (wave_type(*hs) == FIRST_PHYSICS_WAVE_TYPE) 
 	    return NO_PDE_BOUNDARY;
 	else if (wave_type(*hs) == DIRICHLET_BOUNDARY)
 	{
-	    if (!cim_params->jump_type == EXACT_JUMP)
-            	return DIRICHLET_PDE_BOUNDARY;
-	    else
-	    {
+	    if (cim_params->jump_type == EXACT_JUMP)
 		st->u = exact_solution((POINTER)cim_params,D,crx_coords);
-        	return DIRICHLET_PDE_BOUNDARY;
-	    }
+            return DIRICHLET_PDE_BOUNDARY;
 	}
 	
 }       /* cim_find_state_at_crossing */

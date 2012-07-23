@@ -2061,6 +2061,7 @@ LOCAL	void f_user_2d_reconstruct_curve_pointers(
 }		/*end f_user_2d_reconstruct_curve_pointers*/
 
 /*ARGSUSED*/
+void print_stateU(POINTER st);
 LOCAL	boolean f_user_2d_insert_point_in_bond(
 	POINT		*p,
 	BOND		*b,

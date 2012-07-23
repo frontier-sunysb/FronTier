@@ -1435,6 +1435,14 @@ EXPORT	double FrontLinIntrp(
 	    	f[2] = max(0.0,f[2]);	f[2] = min(1.0,f[2]);
 	    }
 	    ans = f[0]*var[0] + f[1]*var[1] + f[2]*var[2];
+	    if (debugging("the_pt"))
+	    {
+		printf("p[0] = %f %f\n",p[0][0],p[0][1]);
+		printf("p[1] = %f %f\n",p[1][0],p[1][1]);
+		printf("p[2] = %f %f\n",p[2][0],p[2][1]);
+		printf("f   = %f %f %f\n",f[0],f[1],f[2]);
+		printf("var = %f %f %f\n",var[0],var[1],var[2]);
+	    }
 	}
 	break;
 	case 3:

@@ -23,7 +23,7 @@ static void dirichlet_point_propagate(Front*,POINTER,POINT*,POINT*,
 			HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 static void interior_point_propagate(Front*,POINTER,POINT*,POINT*,	
 			HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
-static void computeDirichletGradient(Front*);
+static void computeDirichletGradient(char*,Front*);
 static void integrateGradient(INTERFACE*,BDRY_INTEGRAL*);
 static void integrateGradient2d(INTERFACE*,BDRY_INTEGRAL*);
 static void integrateGradient3d(INTERFACE*,BDRY_INTEGRAL*);
@@ -126,10 +126,9 @@ static boolean cim_driver(
 
 	FT_ResetTime(front);
 
-	printf("Calling FT_Propagate()\n");
         FT_Propagate(front);
 	c_cartesian.solve();
-	computeDirichletGradient(front);
+	computeDirichletGradient(out_name,front);
 
 	params = (CIM_PARAMS*)front->extra1;
 	field = params->field;
@@ -155,8 +154,8 @@ static boolean cim_driver(
 	    front->dt = 0.02;
             FT_Propagate(front);
 	    c_cartesian.solve();
-	    computeDirichletGradient(front);
 	    FT_AddTimeStepToCounter(front);
+	    computeDirichletGradient(out_name,front);
 	    c_cartesian.initMovieVariables();
 	    FT_AddMovieFrame(front,out_name,binary);
 	    if (count++ == 10) break;
@@ -492,7 +491,9 @@ static  void interior_point_propagate(
 	fourth_order_point_propagate(front,wave,oldp,newp,oldhse,oldhs,dt,V);
 }       /* interior_point_propagate */
 
-static void computeDirichletGradient(Front *front)
+static void computeDirichletGradient(
+	char *outname,
+	Front *front)
 {
 	POINT *p;
 	HYPER_SURF_ELEMENT *hse;
@@ -500,7 +501,12 @@ static void computeDirichletGradient(Front *front)
 	INTERFACE *intfc = front->interf;
 	STATE *sl,*sr;
 	BDRY_INTEGRAL bdry_integral;
-	static FILE *bdry_file = fopen("bdry_file","w");
+	char fname[256];
+	static FILE *bdry_file;
+
+	sprintf(fname,"%s/intGradU.xg",outname);
+	if (bdry_file == NULL)
+	    bdry_file = fopen(fname,"w");
 
 	next_point(intfc,NULL,NULL,NULL);
 	while (next_point(intfc,&p,&hse,&hs))
@@ -542,22 +548,8 @@ static double dirichletPointGradient(
 	dn = grid_size_in_direction(nor,h,dim);
 	for (i = 0; i < dim; ++i)
             p1[i] = Coords(p)[i] + nor[i]*dn;
-	if (fabs(Coords(p)[0] - 1.0) < 0.00001 && 
-		fabs(Coords(p)[1] - 1.0) < 0.00001)
-	{
-	    add_to_debug("the_pt");
-	    printf("p1 = %f %f\n",p1[0],p1[1]);
-	    printf("h = %f %f  dn = %f\n",h[0],h[1],dn);
-	}
         FT_IntrpStateVarAtCoords(front,comp,p1,u,getStateU,&u1,&u0);
 	gradU = (u1 - u0)/dn;
-	if (debugging("the_pt"))
-	{
-	    printf("nor = %f %f  u1 = %f\n",nor[0],nor[1],u1);
-	}
-	if (fabs(Coords(p)[0] - 1.0) < 0.00001 && 
-		fabs(Coords(p)[1] - 1.0) < 0.00001)
-	    remove_from_debug("the_pt");
 	return gradU;
 }	/* end dirichletPointGradient */
 

@@ -979,7 +979,7 @@ int CIM_ELLIPTIC_SOLVER::HCIM_Matrix_Generation_k(
             	}
 	    }
     	}
-}	/* end HCIM_Matrix_Generation */
+}	/* end HCIM_Matrix_Generation_k */
 
 #define EPS    1e-13
 
