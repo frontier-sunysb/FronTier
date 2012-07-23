@@ -44,14 +44,21 @@ struct _CIM_PARAMS {
 	int num_step;
 	int *steps;
 	F_BASIC_DATA *f_basic;
+	boolean prop_intfc;
 };
 typedef struct _CIM_PARAMS CIM_PARAMS;
 
 struct _STATE {
+	double gradU;
 	double u;
 	double uex;
 };
 typedef struct _STATE STATE;
+
+struct _BDRY_INTEGRAL {
+	double gradU;
+};
+typedef struct _BDRY_INTEGRAL BDRY_INTEGRAL;
 
 // Old interface.h
 
@@ -132,6 +139,7 @@ public:
 	// mesh: full cells mesh
 	void solve();
 	void setDomain();
+	void initMesh(void);
 	void setIndexMap(void);
 	void scatMeshArray();
         void setGlobalIndex();

@@ -1599,7 +1599,8 @@ EXPORT  void    FT_StartUp(
        	IMPORT boolean suppress_prompts;
        	int i,j,dim;
         static const int DEFAULT_BUF_WIDTH = 3;
-        static RECT_GRID comp_grid;
+        static RECT_GRID comp_grid[4];	/* Maximum number of calls */
+	static int i_grid = 0;
         static F_INIT_DATA Init;
 	int **rect_bdry_type;
 
@@ -1626,9 +1627,9 @@ EXPORT  void    FT_StartUp(
         	}
 
         	/* Init rectangular grids */
-		comp_grid.dim = dim;
-		i_init_remap_and_rect_grid(&comp_grid);
-        	front->rect_grid = &comp_grid;
+		comp_grid[i_grid].dim = dim;
+		i_init_remap_and_rect_grid(&comp_grid[i_grid]);
+        	front->rect_grid = &comp_grid[i_grid];
 
 		Init._StateSize = front->sizest;
 		set_size_of_intfc_state(front->sizest);
@@ -1684,10 +1685,10 @@ EXPORT  void    FT_StartUp(
 		    IO_TYPE io_type;
 		    int grid_set;
 		    FILE *rfile;
-		    comp_grid.dim = dim;
+		    comp_grid[i_grid].dim = dim;
 		    set_remap_and_rect_grid(ft_basic->L,ft_basic->U,
-			    ft_basic->gmax,IDENTITY_REMAP,&comp_grid);
-        	    front->rect_grid = &comp_grid;
+			    ft_basic->gmax,IDENTITY_REMAP,&comp_grid[i_grid]);
+        	    front->rect_grid = &comp_grid[i_grid];
 		    rfile = fopen(ft_basic->restart_name,"r");
 		    determine_io_type(rfile,&io_type);
 		    read_print_front_time_and_step(front,io_type.file);
@@ -1701,10 +1702,10 @@ EXPORT  void    FT_StartUp(
 		else
 		{
         	    /* Init rectangular grids */
-		    comp_grid.dim = dim;
+		    comp_grid[i_grid].dim = dim;
 		    set_remap_and_rect_grid(ft_basic->L,ft_basic->U,
-			    ft_basic->gmax,IDENTITY_REMAP,&comp_grid);
-        	    front->rect_grid = &comp_grid;
+			    ft_basic->gmax,IDENTITY_REMAP,&comp_grid[i_grid]);
+        	    front->rect_grid = &comp_grid[i_grid];
 
         	    /* Init front interface */
 
@@ -1750,6 +1751,7 @@ EXPORT  void    FT_StartUp(
 	    pp_clip_rect_grids(front,rbt);
 	}
 	stop_clock("FT_StartUp");
+	i_grid++;
 	return;
 }       /* end FT_StartUp */
 

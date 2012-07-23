@@ -16,7 +16,7 @@ Enter the debugging string: step_size
 Enter jump type: CONSTANT_JUMP
 Enter jump of u: 10
 Enter jump of eps gradient u dot n: 10.0
-Enter jump of gradient u dot t: 1.0
+Enter jump of gradient u dot t: 0.0
 Enter interface number: 1
 
 For lower boundary in 0-th dimension
@@ -33,7 +33,7 @@ Enter type of Dirichlet boundary: CONSTANT
 Enter boundary u: 1
 
 Enter comparison method: CAUCHY_COMPARE
-Enter base directory name: out-test2-5
+Enter base directory name: out-test21-5
 Enter number of comparing steps: 1
 Enter index of step 1: 0
 For comparison solution

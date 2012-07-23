@@ -33,3 +33,14 @@ Enter type of Dirichlet boundary: CONSTANT
 Enter boundary u: 1
 
 Enter comparison method: NO_COMPARE
+Enter base directory name: out-test21-5
+Enter number of comparing steps: 1
+Enter index of step 1: 0
+For comparison solution
+Domain limit in 0-th dimension: -1 1
+Domain limit in 1-th dimension: -1 1
+Computational grid: 640 640
+Lower boundary in 0-th dimension: DIRICHLET_BOUNDARY
+Upper boundary in 0-th dimension: DIRICHLET_BOUNDARY
+Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
+Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY

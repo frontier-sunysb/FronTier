@@ -52,6 +52,8 @@ EXPORT	void FT_Propagate(
 	double dt_frac;
 	Front *newfront;
 
+	if (front->grid_intfc == NULL)
+	    FT_MakeGridIntfc(front);
 	FrontAdvance(front->dt,&dt_frac,front,&newfront,
                                 (POINTER)NULL);
 	if (front->grid_intfc != NULL)

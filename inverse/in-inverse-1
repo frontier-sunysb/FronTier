@@ -13,11 +13,11 @@ Enter the debugging string: trace
 Enter the debugging string: CLOCK
 Enter the debugging string: step_size
 
-Enter jump type: CONSTANT_JUMP
-Enter jump of u: 10
-Enter jump of eps gradient u dot n: 10.0
-Enter jump of gradient u dot t: 0.0
+Enter jump type: EXACT_JUMP
+Enter run case number: 7
 Enter interface number: 1
+Enter center of the circle: 0.0 0.0
+Enter radius of the circle: 0.3
 
 For lower boundary in 0-th dimension
 Enter type of Dirichlet boundary: CONSTANT
@@ -33,9 +33,10 @@ Enter type of Dirichlet boundary: CONSTANT
 Enter boundary u: 1
 
 Enter comparison method: CAUCHY_COMPARE
-Enter base directory name: out-test21-5
+Enter base directory name: out-test3-5
 Enter number of comparing steps: 1
 Enter index of step 1: 0
+Enter yes to propagate interface: yes
 For comparison solution
 Domain limit in 0-th dimension: -1 1
 Domain limit in 1-th dimension: -1 1

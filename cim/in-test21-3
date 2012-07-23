@@ -33,7 +33,7 @@ Enter type of Dirichlet boundary: CONSTANT
 Enter boundary u: 1
 
 Enter comparison method: CAUCHY_COMPARE
-Enter base directory name: out-test2-5
+Enter base directory name: out-test21-5
 Enter number of comparing steps: 1
 Enter index of step 1: 0
 For comparison solution

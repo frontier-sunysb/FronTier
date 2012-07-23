@@ -136,6 +136,7 @@ extern void initCimIntfcParams(
 	CIM_PARAMS *cim_params = (CIM_PARAMS*)front->extra1;	
 	static CIRCLE_PARAMS circle_params;
 	int i,dim = front->rect_grid->dim;
+	FILE *infile = fopen(inname,"r");
 
         level_func_pack->wave_type = FIRST_PHYSICS_WAVE_TYPE;
         level_func_pack->neg_component = 1;
@@ -144,9 +145,17 @@ extern void initCimIntfcParams(
 	{
 	case 1:
 	    circle_params.dim = dim;
-            circle_params.R = 0.5;
+	    CursorAfterString(infile,"Enter center of the circle:");
 	    for (i = 0; i < dim; ++i)
+	    {
+		fscanf(infile,"%lf ",&circle_params.cen[i]);
+		(void) printf(" %f",circle_params.cen[i]);
             	circle_params.cen[i] = 0.0;
+	    }
+	    (void) printf("\n");
+	    CursorAfterString(infile,"Enter radius of the circle:");
+	    fscanf(infile,"%lf",&circle_params.R);
+	    (void) printf("%f\n",circle_params.R);
             circle_params.add_plan_surf = NO;
             circle_params.add_perturbation = NO;
             level_func_pack->func = level_circle_func;

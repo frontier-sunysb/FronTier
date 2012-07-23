@@ -679,12 +679,8 @@ void C_CARTESIAN::compareWithBaseSoln()
 
 	    	DD = (top_comp[index] == 2) ? 1 : -1;
 		R = sqrt(sqr(P[0]) + sqr(P[1]));
-		if (R > 0.498 && R < 0.499)
-		    add_to_debug("the_pt");
 		FT_IntrpStateVarAtCoords(base_front,top_comp[index],
 			P,base_field->u,getStateU,&uex[index],NULL);
-		if (R > 0.498 && R < 0.499)
-		    remove_from_debug("the_pt");
 	    	if (u_max < u[index]) u_max = u[index];
 	    	if (u_min > u[index]) u_min = u[index];
             	err = fabs(u[index] - uex[index]);
@@ -694,12 +690,6 @@ void C_CARTESIAN::compareWithBaseSoln()
 		{
 		    L_inf = err;
 		}
-		if (err > 0.00012)
-		{
-		    printf("P = %f %f  err = %f  R = %f\n",P[0],P[1],err,R);
-		}
-		else if (R > 0.498 && R < 0.499)
-		    printf("other: P = %f %f  err = %f  R = %f\n",P[0],P[1],err,R);
 		N++;
             }
 	    break;
@@ -738,3 +728,19 @@ void C_CARTESIAN::compareWithBaseSoln()
 				L1,L2,L_inf);
 	printf("u_max = %f  u_min = %f\n",u_max,u_min);
 }	/* end compareWithBaseSoln */
+
+void C_CARTESIAN::initMesh(void)
+{
+	int i,j,k, index;
+	double crds[MAXD];
+	int num_cells;
+
+	// init vertices,edges & cell_center
+	if (debugging("trace")) printf("Entering initMesh()\n");
+	FT_MakeGridIntfc(front);
+	if (debugging("trace")) printf("Passed FT_MakeGridIntfc()\n");
+	setDomain();
+	if (debugging("trace")) printf("Passed setDomain()\n");
+	FT_FreeGridIntfc(front);
+	if (debugging("trace")) printf("Leaving initMesh()\n");
+}

@@ -4,7 +4,7 @@ Lower boundary in 0-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 0-th dimension: DIRICHLET_BOUNDARY
 Enter name of distribution function: STABLE
 Enter alpha: 1.5
-Enter beta: 0.75
+Enter beta: -0.25
 Enter sigma: 1.0
 Enter mu: 0.0
 Enter number of samples: 1000000

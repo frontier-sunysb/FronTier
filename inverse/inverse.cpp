@@ -23,6 +23,12 @@ static void dirichlet_point_propagate(Front*,POINTER,POINT*,POINT*,
 			HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 static void interior_point_propagate(Front*,POINTER,POINT*,POINT*,	
 			HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
+static void computeDirichletGradient(Front*);
+static void integrateGradient(INTERFACE*,BDRY_INTEGRAL*);
+static void integrateGradient2d(INTERFACE*,BDRY_INTEGRAL*);
+static void integrateGradient3d(INTERFACE*,BDRY_INTEGRAL*);
+static double dirichletPointGradient(Front*,POINT*,HYPER_SURF_ELEMENT*,
+				HYPER_SURF*);
 
 
 int main(int argc, char **argv)
@@ -33,6 +39,8 @@ int main(int argc, char **argv)
 	CIRCLE_PARAMS circle_params;
 	C_CARTESIAN       c_cartesian(front);
 	static CIM_PARAMS cim_params;
+	static RADIAL_MOTION_PARAMS rv_params;
+	static VELO_FUNC_PACK velo_func_pack;
 
 	FT_Init(argc,argv,&f_basic);
 	f_basic.size_of_intfc_state = sizeof(STATE);
@@ -91,7 +99,15 @@ int main(int argc, char **argv)
 	    sprintf(gv_name,"%s/init_intfc-%d",out_name,pp_mynode());
 	    gview_plot_interface(gv_name,front.interf);
 	}
-	front._point_propagate = inverse_point_propagate;
+	c_cartesian.initMesh();	
+	rv_params.dim = f_basic.dim;
+	rv_params.cen[0] = 0.0;
+	rv_params.cen[1] = 0.0;
+	rv_params.speed = 1.0;
+	velo_func_pack.func_params = (POINTER)&rv_params;
+        velo_func_pack.func = radial_motion_vel;
+	velo_func_pack.point_propagate = inverse_point_propagate;
+	FT_InitVeloFunc(&front,&velo_func_pack);
 
 	cim_driver(&front,c_cartesian);
 	clean_up(0);
@@ -103,10 +119,17 @@ static boolean cim_driver(
 {
 	CIM_PARAMS *params;
 	FIELD *field;
+	int count;
+
+	Curve_redistribution_function(front) = full_redistribute;
+	FT_RedistMesh(front);
 
 	FT_ResetTime(front);
+
+	printf("Calling FT_Propagate()\n");
         FT_Propagate(front);
 	c_cartesian.solve();
+	computeDirichletGradient(front);
 
 	params = (CIM_PARAMS*)front->extra1;
 	field = params->field;
@@ -120,9 +143,25 @@ static boolean cim_driver(
 	FT_AddMovieFrame(front,out_name,NO);
 	FT_Save(front,out_name);
 	c_cartesian.printFrontInteriorStates(out_name);
-
 	viewTopVariable(front,field->u,NO,0.0,0.0,
 			out_name,(char*)"solution");
+
+	if (params->prop_intfc == NO)
+	    return YES;
+
+	count = 0;
+	for (;;)
+        {
+	    front->dt = 0.02;
+            FT_Propagate(front);
+	    c_cartesian.solve();
+	    computeDirichletGradient(front);
+	    FT_AddTimeStepToCounter(front);
+	    c_cartesian.initMovieVariables();
+	    FT_AddMovieFrame(front,out_name,binary);
+	    if (count++ == 10) break;
+	}
+
 	return YES;
 }	/* end cim_driver */
 
@@ -370,6 +409,14 @@ static void initCimTestParams(
 	    for (i = 0; i < dim; ++i)
 		cim_params->f_basic->subdomains[i] = front->pp_grid->gmax[i];
 	}
+	cim_params->prop_intfc = NO;
+    	CursorAfterStringOpt(infile,"Enter yes to propagate interface:");
+	fscanf(infile,"%s",string);
+	(void) printf("%s\n",string);
+	if (string[0] == 'y' || string[0] == 'Y')
+	{
+	    cim_params->prop_intfc = YES;
+	}
 	fclose(infile);
 
 	if (cim_params->compare_method == CAUCHY_COMPARE)
@@ -389,33 +436,18 @@ static  void inverse_point_propagate(
 	switch(wave_type(oldhs))
 	{
 	case SUBDOMAIN_BOUNDARY:
-            return;
 	case NEUMANN_BOUNDARY:
-	    neumann_point_propagate(front,wave,oldp,newp,oldhse,
-                                        oldhs,dt,V);
 	    return;
 	case DIRICHLET_BOUNDARY:
 	    dirichlet_point_propagate(front,wave,oldp,newp,oldhse,
                                         oldhs,dt,V);
 	    return;
-	case GROWING_BODY_BOUNDARY:
+	case FIRST_PHYSICS_WAVE_TYPE:
 	    interior_point_propagate(front,wave,oldp,newp,oldhse,
                                         oldhs,dt,V);
 	    return;
 	}
-}	/* end crystal_point_propagate */
-
-static  void neumann_point_propagate(
-        Front *front,
-        POINTER wave,
-        POINT *oldp,
-        POINT *newp,
-        HYPER_SURF_ELEMENT *oldhse,
-        HYPER_SURF         *oldhs,
-        double              dt,
-        double              *V)
-{
-}       /* neumann_point_propagate */
+}	/* end inverse_point_propagate */
 
 static  void dirichlet_point_propagate(
         Front *front,
@@ -433,23 +465,16 @@ static  void dirichlet_point_propagate(
 
         for (i = 0; i < dim; ++i)
             Coords(newp)[i] = Coords(oldp)[i];
-	if (boundary_state(oldhs) != NULL)
-	{
-	    bstate = (STATE*)boundary_state(oldhs);
-       	    FT_GetStatesAtPoint(oldp,oldhse,oldhs,(POINTER*)&sl,(POINTER*)&sr);
-	    state =  (STATE*)left_state(newp);
-	    state->u = bstate->u;
-	    state =  (STATE*)right_state(newp);
-	    state->u = bstate->u;
-	}
-	else
-	{
-       	    FT_GetStatesAtPoint(oldp,oldhse,oldhs,(POINTER*)&sl,(POINTER*)&sr);
-	    state =  (STATE*)left_state(newp);
-	    state->u = sl->u;
-	    state =  (STATE*)right_state(newp);
-	    state->u = sr->u;
-	}
+	if ((bstate = (STATE*)boundary_state(oldhs)) == NULL)
+	    return;
+
+        FT_GetStatesAtPoint(oldp,oldhse,oldhs,(POINTER*)&sl,(POINTER*)&sr);
+
+	state =  (STATE*)left_state(newp);
+	state->u = bstate->u;
+	state =  (STATE*)right_state(newp);
+	state->u = bstate->u;
+
         return;
 }       /* dirichlet_point_propagate */
 
@@ -464,4 +489,128 @@ static  void interior_point_propagate(
         double              dt,
         double              *V)
 {
-}       /* reaction_point_propagate */
+	fourth_order_point_propagate(front,wave,oldp,newp,oldhse,oldhs,dt,V);
+}       /* interior_point_propagate */
+
+static void computeDirichletGradient(Front *front)
+{
+	POINT *p;
+	HYPER_SURF_ELEMENT *hse;
+        HYPER_SURF         *hs;	
+	INTERFACE *intfc = front->interf;
+	STATE *sl,*sr;
+	BDRY_INTEGRAL bdry_integral;
+	static FILE *bdry_file = fopen("bdry_file","w");
+
+	next_point(intfc,NULL,NULL,NULL);
+	while (next_point(intfc,&p,&hse,&hs))
+	{
+	    if (wave_type(hs) != DIRICHLET_BOUNDARY) continue;
+            FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+	    sl->gradU = sr->gradU = dirichletPointGradient(front,p,hse,hs);
+	}
+	integrateGradient(intfc,&bdry_integral);	
+	fprintf(bdry_file,"%f %f\n",front->time,bdry_integral.gradU);
+
+}	/* end computeDirichletGradient */
+
+static double dirichletPointGradient(
+	Front *front,
+	POINT *p,
+	HYPER_SURF_ELEMENT *hse,
+	HYPER_SURF *hs)
+{
+	CIM_PARAMS *cim_params = (CIM_PARAMS*)front->extra1;
+	FIELD *field = cim_params->field;
+	double *u = field->u;
+	double u0,u1;
+	STATE *bstate;
+	double u_in;
+	int comp;
+	double p1[MAXD],nor[MAXD];
+	int i,dim = front->rect_grid->dim;
+	double dn,*h = front->rect_grid->h;
+	double gradU;
+
+	if ((bstate = (STATE*)boundary_state(hs)) == NULL)
+	    return 0.0;
+	comp = (positive_component(hs) != exterior_component(front->interf)) ?
+		positive_component(hs) : negative_component(hs);
+	u0 = bstate->u;
+
+	FT_NormalAtPoint(p,front,nor,comp);
+	dn = grid_size_in_direction(nor,h,dim);
+	for (i = 0; i < dim; ++i)
+            p1[i] = Coords(p)[i] + nor[i]*dn;
+	if (fabs(Coords(p)[0] - 1.0) < 0.00001 && 
+		fabs(Coords(p)[1] - 1.0) < 0.00001)
+	{
+	    add_to_debug("the_pt");
+	    printf("p1 = %f %f\n",p1[0],p1[1]);
+	    printf("h = %f %f  dn = %f\n",h[0],h[1],dn);
+	}
+        FT_IntrpStateVarAtCoords(front,comp,p1,u,getStateU,&u1,&u0);
+	gradU = (u1 - u0)/dn;
+	if (debugging("the_pt"))
+	{
+	    printf("nor = %f %f  u1 = %f\n",nor[0],nor[1],u1);
+	}
+	if (fabs(Coords(p)[0] - 1.0) < 0.00001 && 
+		fabs(Coords(p)[1] - 1.0) < 0.00001)
+	    remove_from_debug("the_pt");
+	return gradU;
+}	/* end dirichletPointGradient */
+
+static void integrateGradient(
+	INTERFACE *intfc,
+	BDRY_INTEGRAL *bdry_integral)
+{
+	int dim = Dimension(intfc);
+	switch (dim)
+	{
+	case 2:
+	    integrateGradient2d(intfc,bdry_integral);
+	    return;
+	case 3:
+	    integrateGradient3d(intfc,bdry_integral);
+	    return;
+	}
+}	/* end integrateGradient */
+
+static void integrateGradient2d(
+	INTERFACE *intfc,
+	BDRY_INTEGRAL *bdry_integral)
+{
+	CURVE **c,*curve;
+	BOND *b;
+	POINT *ps,*pe;
+	HYPER_SURF_ELEMENT *hse;
+	HYPER_SURF *hs;
+	STATE *sl,*sr;
+	double gu_s,gu_e;
+
+	bdry_integral->gradU = 0.0;
+	for (c = intfc->curves; c && *c; ++c)
+	{
+	    if (wave_type(*c) != DIRICHLET_BOUNDARY) continue;
+	    curve = *c;
+	    hs = Hyper_surf(curve);
+	    for (b = curve->first; b != NULL; b = b->next)
+	    {
+		ps = b->start;
+		pe = b->end;
+	 	hse = Hyper_surf_element(b);
+            	FT_GetStatesAtPoint(ps,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		gu_s = sl->gradU;
+            	FT_GetStatesAtPoint(pe,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		gu_e = sl->gradU;
+		bdry_integral->gradU += 0.5*bond_length(b)*(gu_s + gu_e);
+	    }
+	}
+}	/* end integrateGradient2d */
+
+static void integrateGradient3d(
+	INTERFACE *intfc,
+	BDRY_INTEGRAL *bdry_integral)
+{
+}	/* end integrateGradient3d */
