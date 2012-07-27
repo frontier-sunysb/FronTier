@@ -339,6 +339,7 @@ extern void read_iF_prob_type(
 	*prob_type = ERROR_TYPE;
 	CursorAfterString(infile,"Enter problem type:");
 	fscanf(infile,"%s",string);
+	(void) printf("%s\n",string);
 	if (string[0] == 'T' || string[0] == 't')
 	{
 	    if (string[10] == 'B' || string[10] == 'b')

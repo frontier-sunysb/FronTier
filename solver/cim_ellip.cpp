@@ -714,6 +714,7 @@ int CIM_ELLIPTIC_SOLVER::HCIM_Matrix_Generation_k(
 	int idir,nb;
 	double kp;
 	int index_nb;
+	POINTER state;
     
     	row = A.i;
     	col = A.j;
@@ -732,6 +733,7 @@ int CIM_ELLIPTIC_SOLVER::HCIM_Matrix_Generation_k(
             	P[i] = cell_edge(icoords[i],i,top_grid);
             }
 	    index = d_index(icoords,top_gmax,dim);
+	    comp = top_comp[index];
             epi = (D[k] ==  1) ? diff_coeff[0] : diff_coeff[1];
             epo = (D[k] == -1) ? diff_coeff[0] : diff_coeff[1];
             if (Order[k] == 0) 
@@ -743,47 +745,32 @@ int CIM_ELLIPTIC_SOLVER::HCIM_Matrix_Generation_k(
 		{
 		    idir = i/2;
 		    nb = i%2;
+		    status = (*findStateAtCrossing)(front,icoords,
+				dir[idir][nb],comp,&state,&hs,crx_coords);
 		    if (NB[i][k] >= 0 && NB[2*idir+((i+1)%2)][k]>=0) 
 		    {
 			row[*n] = k;
 			col[*n] = NB[i][k];
 			val[*n] = -1.0/sqr(h[idir])*epi;
+			v += 1.0/sqr(h[idir])*epi;
 			(*n)++;
-		    	v += 1.0/sqr(h[idir])*epi;
 		    } 
-		    else if(NB[i][k] < 0)
+		    else if (status == NEUMANN_PDE_BOUNDARY)
+			continue;
+		    else if(NB[i][k] < 0 && (NB[2*idir+((i+1)%2)][k]>=0))
 		    {
-			// boundary treatment
-			HYPER_SURF *hs;
-			GRID_DIRECTION dir[3][2] =
-				{{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
-			POINTER state;
-			double crx_coords[MAXD];
-
-			comp = top_comp[index];
-			status = (*findStateAtCrossing)(front,icoords,
-				dir[idir][nb],comp,&state,&hs,crx_coords);
-			if (status == DIRICHLET_PDE_BOUNDARY)
-			{
-			    
-			    b[k] += 8.0/3/sqr(h[idir])*epi*getStateVar(state);
-			    //b[k] += 1.0/sqr(h[idir])*epi*getStateVar(state);
-			    use_neumann = NO;
-			}
-			else if (status == NEUMANN_PDE_BOUNDARY)
-			{
-			    neumann_nb = YES;
-		    	    v -= 1.0/sqr(h[idir])*epi;
-			}
+			b[k] += 8.0/3/sqr(h[idir])*epi*getStateVar(state);
 		    	v += 8.0/3/sqr(h[idir])*epi;
-		    } else {
+			use_neumann = NO;
+		    } 
+		    else
+		    {
 			row[*n] = k;
 			col[*n] = NB[i][k];
 			val[*n] = -4.0/3/sqr(h[idir])*epi;
-			(*n)++;
 		    	v += 4.0/3/sqr(h[idir])*epi;
+			(*n)++;
 		    }
-		    //v += 1.0/sqr(h[idir])*epi;
 		}
 		row[*n] = col[*n] = k;
 		val[*n] = v;
