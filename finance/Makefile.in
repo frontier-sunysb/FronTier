@@ -24,9 +24,12 @@ solver.o : ../solver/solver.h ../solver/solver.cpp
 fcartsn.o : finance.h fcartsn.cpp
 	${CXX} -c fcartsn.cpp $(incsloc) $(incs) ${Petsc_Include}
 
-finance: finance.h ../solver/solver.h finance.cpp fcartsn.o solver.o
+fvola.o : finance.h fvola.cpp
+	${CXX} -c fvola.cpp $(incsloc) $(incs) ${Petsc_Include}
+
+finance: finance.h ../solver/solver.h finance.cpp fcartsn.o solver.o fvola.o
 	${CXX} -c finance.cpp -I../include $(incs) ${Petsc_Include}
-	$(CXX) -o finance finance.o -I../include -L../lib/${build_cpu}  solver.o fcartsn.o ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
+	$(CXX) -o finance finance.o -I../include -L../lib/${build_cpu}  solver.o fcartsn.o fvola.o ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
 
 -include ../devel-deps.inc
 

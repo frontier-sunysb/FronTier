@@ -193,6 +193,7 @@ $$ME/finance/*.cpp \
 $$ME/finance/*.h \
 $$ME/finance/Makefile.in \
 $$ME/finance/in-* \
+$$ME/finance/mrun \
 $$ME/cell/*.cpp \
 $$ME/cell/*.h \
 $$ME/cell/Makefile.in \
