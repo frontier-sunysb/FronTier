@@ -396,5 +396,70 @@ private:
 	void solve3d(double *soln);
 };
 
+class CIM_PARAB_SOLVER{
+        Front *front;
+public:
+        CIM_PARAB_SOLVER(Front &front);
+
+        int *i_to_I,*I_to_i;            // Index mapping for 1D
+        int **ij_to_I,**I_to_ij;        // Index mapping for 2D
+        int ***ijk_to_I,**I_to_ijk;     // Index mapping for 3D
+	int ilower;
+	int iupper;
+	int size;
+	boolean solve_front_state;
+
+	POINTER jparams;	/* Params for jump functions */
+	double *soln;		/* field variable of new step */
+	double *source;		/* source field */
+	double diff_coeff[2];	/* div(diff_coeff*grad)phi = source */
+	double *kappa;
+	int w_type;
+	COMPONENT pos_comp,neg_comp;
+	void set_solver_domain(void);
+	void solve(double *soln);
+	void (*assignStateVar)(double,POINTER);
+	double (*getStateVar)(POINTER);
+	int (*findStateAtCrossing)(Front*,int*,GRID_DIRECTION,int,
+                                POINTER*,HYPER_SURF**,double*);
+	double (*solutionJump)(POINTER jparams,int D,double *coords);
+	double (*gradJumpDotN)(POINTER jparams,int D,double *N,double *P);
+	double (*gradJumpDotT)(POINTER jparams,int D,int i,double *N,double *P);
+	double (*exactSolution)(POINTER jparams,int D,double *P);
+private:
+        // On topological grid
+        int dim;
+        RECT_GRID *top_grid;
+        COMPONENT *top_comp;
+	double *top_h;
+	double *top_L;
+        int *top_gmax;
+	int imin,jmin,kmin;
+	int imax,jmax,kmax;
+
+	// CIM specific variables
+	int  *NB[2*MAXD],Ord[5];
+	char *D, *S[2*MAXD], *Order;
+	MTX A;
+	double *b, *V;
+	Unknown u;
+	int NEWCIM;
+
+	// CIM specific functions
+	int HCIM_Matrix_Generation();    
+	int HCIM_Matrix_Generation_k(int k,int *n);    
+	int Generate_Domain_and_NB();
+	int Check_Type();
+	int Check_Type_k(int k);
+	void Set_Intersection();
+	int Search_Ghost_Value(int k);
+	void cimSolveFrontState();
+	void cimIntfcPointState(double*,int,double*,double*);
+
+	void solve1d(double *soln);
+	void solve2d(double *soln);
+	void solve3d(double *soln);
+};
+
 extern void viewTopVariable(Front*,double*,boolean,double,double,char*,char*);
 #endif
