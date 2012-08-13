@@ -203,9 +203,6 @@ static  void melting_driver(
 	eqn_params = (PARAMS*)front->extra2;
 
 	front->hdf_movie_var = NULL;
-        cartesian.initMovieVariables();
-        if (debugging("trace"))
-            printf("Passed initMovieVariables()\n");
 
         if (!RestartRun)
         {
@@ -213,7 +210,6 @@ static  void melting_driver(
             FT_SetOutputCounter(front);
             // Front standard output
             FT_Save(front,out_name);
-            FT_AddMovieFrame(front,out_name,binary);
 	    if (dim == 1)
 	    	cartesian.oneDimPlot(out_name);
 	    if (dim == 2)
@@ -246,9 +242,18 @@ static  void melting_driver(
 	    // Problem specific output
 
 	    FT_Propagate(front);
+	    if (debugging("trace"))
+		printf("After FrontAdvance(), before solve()\n");
+	    cartesian.solve(front->dt);
+	    if (debugging("trace"))
+		printf("After solve()\n");
 	    FT_SetTimeStep(front);
 	    cartesian.setAdvectionDt();
 	    front->dt = std::min(front->dt,CFL*cartesian.m_dt);
+            cartesian.initMovieVariables();
+            if (debugging("trace"))
+            	printf("Passed initMovieVariables()\n");
+            FT_AddMovieFrame(front,out_name,binary);
         }
         else
 	    FT_SetOutputCounter(front);
@@ -260,13 +265,15 @@ static  void melting_driver(
         for (;;)
         {
 	    if (debugging("trace"))
-		printf("Before FrontAdvance()\n");
-	    FT_Propagate(front);
-	    if (debugging("trace"))
-		printf("After FrontAdvance(), before solve()\n");
+		printf("Before solve()\n");
 	    cartesian.solve(front->dt);
 	    if (debugging("trace"))
 		printf("After solve()\n");
+	    if (debugging("trace"))
+		printf("Before FT_Propagate()\n");
+	    FT_Propagate(front);
+	    if (debugging("trace"))
+		printf("After FT_Propagate()\n");
 
 	    FT_AddTimeStepToCounter(front);
 

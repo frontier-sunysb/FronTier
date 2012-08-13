@@ -18,9 +18,6 @@ Petsc_Lib=@PETSC_LIB@
 
 melting : @devel@
 
-marray.o : melting.h melting_basic.h marray.cpp
-	${CXX} -c marray.cpp $(incsloc) $(incs) ${Petsc_Include}
-
 minit.o : melting.h melting_basic.h minit.cpp
 	${CXX} -c minit.cpp $(incsloc) $(incs) ${Petsc_Include}
 
@@ -36,9 +33,12 @@ solver.o : ../solver/solver.h ../solver/solver.cpp
 parab.o : ../solver/solver.h ../solver/parab.cpp
 	${CXX} -c ../solver/parab.cpp $(incsloc) $(incs) ${Petsc_Include}
 
-melting: melting.h melting_basic.h melting_basic.h melting.cpp marray.o minit.o solver.o mcartsn.o mprop.o parab.o
+cim_parab.o : ../solver/solver.h ../solver/cim_parab.cpp
+	${CXX} -c ../solver/cim_parab.cpp $(incsloc) $(incs) ${Petsc_Include}
+
+melting: melting.h melting_basic.h melting_basic.h melting.cpp minit.o solver.o mcartsn.o mprop.o parab.o cim_parab.o
 	${CXX} -c melting.cpp -I../include $(incs) ${Petsc_Include}
-	$(CXX) -o melting melting.o -I../include -L../lib/${build_cpu}  solver.o mcartsn.o marray.o minit.o mprop.o parab.o ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
+	$(CXX) -o melting melting.o -I../include -L../lib/${build_cpu}  solver.o mcartsn.o minit.o mprop.o parab.o cim_parab.o ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
 
 -include ../devel-deps.inc
 

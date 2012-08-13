@@ -21,6 +21,7 @@
 enum _NUM_SCHEME {
 	UNSPLIT_EXPLICIT = 1,
 	UNSPLIT_IMPLICIT,
+	UNSPLIT_IMPLICIT_CIM,
 	CRANK_NICOLSON
 };
 typedef enum _NUM_SCHEME NUM_SCHEME;
@@ -129,6 +130,7 @@ public:
 	COMPONENT *top_comp;
 	PARAMS *eqn_params;
 	PHASE_FIELD *field;
+	int comp_size;
 
 	int *lbuf,*ubuf,*gmax;
 	int *i_to_I,*I_to_i;		// Index mapping for 1D
@@ -168,11 +170,12 @@ public:
 	void readFrontInteriorState(char*);
 	void printFrontInteriorState(char*);
 
-	void computeAdvection(COMPONENT);
+	void computeAdvection();
 
 	void computeAdvectionExplicit(COMPONENT);
 	void computeAdvectionImplicit(COMPONENT);
 	void computeAdvectionCN(COMPONENT);
+	void computeAdvectionCim();
 
 	// interface functions
 	void makeGridIntfc();

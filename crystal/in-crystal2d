@@ -8,6 +8,11 @@ Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
 
 *****Crystal Input data*************
+Available interface types are
+	Seed (S)
+	Triangle (S)
+	Rectangle (R)
+Enter initial interface type: S
 Are there seeds grow from floor: N
 Are there seeds grow from ceiling: N
 Are there seeds grow from space: Y
@@ -40,9 +45,6 @@ Choose point propagation scheme
 Enter scheme: MP
 Enter yes to add curvature effect: n
 
-*****Fluid parameters**************
-Enter density and viscosity of the fluid: 1 0.0628
-
 *****Control information***********
 Max time: 0.69
 Max step: 100000
@@ -62,15 +64,10 @@ Type y to make movie of solute: y
 *****Dirichlet boundary condition*********
 For lower boundary in 1-th dimension
 Enter type of Dirichlet boundary: CONSTANT_STATE
-Enter velocity: 0 0
-Enter pressure: 10
 Enter solute concentration: 2.0
 For upper boundary in 1-th dimension
 Enter type of Dirichlet boundary: CONSTANT_STATE
 Enter solute concentration: 2.0
-Enter velocity: 0 -20
-Enter pressure: 10
-Enter solute concentration: 2
 
 ************Debugging options*****************
 

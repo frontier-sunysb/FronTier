@@ -470,7 +470,7 @@ extern	void	read_crystal_params(
 	fscanf(infile,"%lf",&cRparams->gap);
 	(void) printf("%f\n",cRparams->gap);
 	cRparams->num_scheme = UNSPLIT_IMPLICIT;	/* default */
-	cRparams->pde_order = 2;	/* default */
+	cRparams->pde_order = 1;	/* default */
 	if (CursorAfterStringOpt(infile,"Choose PDE scheme"))
 	{
 	    CursorAfterString(infile,"Enter scheme:");
@@ -1004,6 +1004,10 @@ static void setInitialIntfc2d(
 	static RECTANGLE_PARAMS r_params;
 	CRT_PARAMS *cRparams = (CRT_PARAMS*)front->extra2;
 
+	(void) printf("Available initial interface types are:\n");
+	(void) printf("Seed (S)\n");
+	(void) printf("Triangle (T)\n");
+	(void) printf("Rectangle (R)\n");
 	CursorAfterString(infile,"Enter initial interface type: ");
 	fscanf(infile,"%s",string);
 	(void) printf("%s\n",string);

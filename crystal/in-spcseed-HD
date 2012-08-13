@@ -8,6 +8,10 @@ Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
 
 *****Crystal Input data*************
+Available interface types are
+        Seed (S)
+        Triangle (T)
+        Rectangle (R)
 Are there seeds grow from floor: N
 Are there seeds grow from ceiling: N
 Are there seeds grow from space: Y

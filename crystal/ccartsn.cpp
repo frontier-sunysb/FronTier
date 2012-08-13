@@ -10,6 +10,9 @@
 #include "crystal_basic.h"
 #include<solver.h>
 
+static int find_state_at_crossing(Front*,int*,GRID_DIRECTION,int,
+                                POINTER*,HYPER_SURF**,double*);
+
 
 //----------------------------------------------------------------
 //		C_RECTANGLE
@@ -592,6 +595,7 @@ void C_CARTESIAN::computeAdvectionImplicit(void)
 	parab_solver.soln = field->solute;
 	parab_solver.a = cRparams->field->vel;
 	parab_solver.getStateVarFunc = getStateSolute;
+	parab_solver.findStateAtCrossing = find_state_at_crossing;
 	parab_solver.source = NULL;
 	parab_solver.D = cRparams->D;
 	parab_solver.order = cRparams->pde_order;
@@ -1446,3 +1450,32 @@ void read_crt_movie_options(
         }
         fclose(infile);
 }       /* end read_crt_movie_options */
+
+static int find_state_at_crossing(
+	Front *front,
+	int *icoords,
+        GRID_DIRECTION dir,
+        int comp,
+        POINTER *state,
+        HYPER_SURF **hs,
+        double *crx_coords)
+{
+	boolean status;
+
+	status = FT_StateStructAtGridCrossing(front,icoords,dir,comp,state,hs,
+                                       crx_coords);
+        if (status == NO) return NO_PDE_BOUNDARY;
+
+        if (wave_type(*hs) == FIRST_PHYSICS_WAVE_TYPE) 
+	    return NO_PDE_BOUNDARY;
+	else if (wave_type(*hs) == DIRICHLET_BOUNDARY)
+	{
+            return DIRICHLET_PDE_BOUNDARY;
+	}
+	else if (wave_type(*hs) == GROWING_BODY_BOUNDARY)
+	{
+            return DIRICHLET_PDE_BOUNDARY;
+	}
+	else if (wave_type(*hs) == NEUMANN_BOUNDARY)
+            return NEUMANN_PDE_BOUNDARY;
+}       /* find_state_at_crossing */

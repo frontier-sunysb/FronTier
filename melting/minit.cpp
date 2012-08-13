@@ -120,7 +120,7 @@ extern void readPhaseParams(
 	}
 
 	eqn_params->num_scheme = UNSPLIT_IMPLICIT;  // default
-	eqn_params->pde_order = 2; //default
+	eqn_params->pde_order = 1; //default
 
 	if (CursorAfterStringOpt(infile,"Choose numerical scheme"))
 	{
@@ -137,6 +137,9 @@ extern void readPhaseParams(
 	    else if ((scheme[0] == 'C' || scheme[0] == 'c') &&
 	    	(scheme[1] == 'N' || scheme[1] == 'n')) 
 	    	eqn_params->num_scheme = CRANK_NICOLSON;
+	    else if ((scheme[0] == 'C' || scheme[0] == 'c') &&
+	    	(scheme[1] == 'I' || scheme[1] == 'i')) 
+	    	eqn_params->num_scheme = UNSPLIT_IMPLICIT_CIM;
 	}
 	
 	if (eqn_params->num_scheme == UNSPLIT_IMPLICIT)

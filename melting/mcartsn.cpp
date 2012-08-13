@@ -10,6 +10,9 @@
 #include "melting.h"
 #include "melting_basic.h"
 
+static int find_state_at_crossing(Front*,int*,GRID_DIRECTION,int,
+                                POINTER*,HYPER_SURF**,double*);
+
 //----------------------------------------------------------------
 //		RECTANGLE
 //----------------------------------------------------------------
@@ -278,28 +281,28 @@ void CARTESIAN::setIndexMap(COMPONENT sub_comp)
 
 }	/* end setIndexMap */
 
-void CARTESIAN::computeAdvection(COMPONENT sub_comp)
+void CARTESIAN::computeAdvection()
 {
-	switch (sub_comp)
-	{
-	case LIQUID_COMP:
-	    eqn_params->D = eqn_params->k[1]/eqn_params->rho[1]
-				/eqn_params->Cp[1];
-	    break;
-	case SOLID_COMP:
-	    eqn_params->D = eqn_params->k[0]/eqn_params->rho[0]
-				/eqn_params->Cp[0];
-	    break;
-	}
+	int i;
+	COMPONENT sub_comp[2];
 
-	switch (eqn_params->num_scheme)
+	if (eqn_params->num_scheme == UNSPLIT_IMPLICIT_CIM)
+	    return computeAdvectionCim();
+
+	sub_comp[0] = SOLID_COMP;
+	sub_comp[1] = LIQUID_COMP;
+
+	for (i = 0; i < 2; ++i)
 	{
-	case UNSPLIT_EXPLICIT:
-	    return computeAdvectionExplicit(sub_comp);
-	case UNSPLIT_IMPLICIT:
-	    return computeAdvectionImplicit(sub_comp);
-	case CRANK_NICOLSON:
-	    return computeAdvectionCN(sub_comp);
+	    setGlobalIndex(sub_comp[i]);
+	    eqn_params->D = eqn_params->k[i]/eqn_params->rho[i]
+				/eqn_params->Cp[i];
+	    if (eqn_params->num_scheme == UNSPLIT_EXPLICIT)
+	    	computeAdvectionExplicit(sub_comp[i]);
+	    else if (eqn_params->num_scheme == UNSPLIT_IMPLICIT)
+	    	computeAdvectionImplicit(sub_comp[i]);
+	    else if (eqn_params->num_scheme == CRANK_NICOLSON)
+	    	computeAdvectionCN(sub_comp[i]);
 	}
 }
     
@@ -576,10 +579,13 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	stop_clock("computeAdvectionCN");
 }	/* end computeAdvectionCN */
 
-void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
+void CARTESIAN::computeAdvectionCim()
 {
+	//static CIM_PARAB_SOLVER parab_solver(*front);
 	static PARABOLIC_SOLVER parab_solver(*front);
+	COMPONENT sub_comp;
 
+	printf("Entering computeAdvectionCim()\n");
 	if (m_dt < 0.1*sqr(hmin)/eqn_params->D/(double)dim)
 	    return computeAdvectionExplicit(sub_comp);
 
@@ -618,6 +624,84 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
 	return;
 }	/* end computeAdvectionImplicit */
 
+void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
+{
+	static PARABOLIC_SOLVER parab_solver(*front);
+	static double *soln;
+	int i,j,k,index;
+
+	if (m_dt < 0.1*sqr(hmin)/eqn_params->D/(double)dim)
+	    //return computeAdvectionExplicit(sub_comp);
+	    return;
+	if (soln == NULL)
+            FT_VectorMemoryAlloc((POINTER*)&soln,comp_size,FLOAT);
+
+	if (debugging("trace")) printf("Entering computeAdvectionImplicit()\n");
+	start_clock("computeAdvectionImplicit");
+	setIndexMap(sub_comp);
+	parab_solver.soln_comp = sub_comp;
+        parab_solver.obst_comp = ERROR_COMP;
+        parab_solver.var = field->temperature;
+        parab_solver.soln = soln;
+        parab_solver.a = NULL;
+        parab_solver.getStateVarFunc = getStateTemperature;
+        parab_solver.findStateAtCrossing = find_state_at_crossing;
+        parab_solver.source = NULL;
+        parab_solver.D = eqn_params->D;
+        parab_solver.order = eqn_params->pde_order;
+        parab_solver.ilower = ilower;
+        parab_solver.iupper = iupper;
+        parab_solver.dt = m_dt;
+        parab_solver.set_solver_domain();
+
+	switch(dim)
+        {
+        case 1:
+            parab_solver.i_to_I = i_to_I;
+            break;
+        case 2:
+            parab_solver.ij_to_I = ij_to_I;
+            break;
+        case 3:
+            parab_solver.ijk_to_I = ijk_to_I;
+            break;
+        }
+        parab_solver.runge_kutta();
+	switch(dim)
+        {
+        case 1:
+	    for (i = 0; i <= top_gmax[0]; ++i)
+	    {
+	    	index = d_index1d(i,top_gmax);
+	    	if (top_comp[index] == sub_comp)
+		    field->temperature[index] = soln[index];
+	    }
+            break;
+        case 2:
+	    for (i = 0; i <= top_gmax[0]; ++i)
+	    for (j = 0; j <= top_gmax[1]; ++j)
+	    {
+	    	index = d_index2d(i,j,top_gmax);
+	    	if (top_comp[index] == sub_comp)
+		    field->temperature[index] = soln[index];
+	    }
+            break;
+        case 3:
+	    for (i = 0; i <= top_gmax[0]; ++i)
+	    for (j = 0; j <= top_gmax[1]; ++j)
+	    for (k = 0; k <= top_gmax[2]; ++k)
+	    {
+	    	index = d_index3d(i,j,k,top_gmax);
+	    	if (top_comp[index] == sub_comp)
+		    field->temperature[index] = soln[index];
+	    }
+            break;
+        }
+	stop_clock("computeAdvectionImplicit");
+	if (debugging("trace")) printf("Leaving computeAdvectionImplicit()\n");
+	return;
+}	/* end computeAdvectionImplicit */
+
 
 // for initial condition: 
 // 		setInitialCondition();	
@@ -637,15 +721,8 @@ void CARTESIAN::solve(double dt)
 	setComponent();
 	if (debugging("trace")) printf("Passing setComponent()\n");
 
-	setGlobalIndex(LIQUID_COMP);
-	if (debugging("trace")) printf("Passing liquid setGlobalIndex()\n");
-	computeAdvection(LIQUID_COMP);
+	computeAdvection();
 	if (debugging("trace")) printf("Passing liquid computeAdvection()\n");
-
-	setGlobalIndex(SOLID_COMP);
-	if (debugging("trace")) printf("Passing solid setGlobalIndex()\n");
-	computeAdvection(SOLID_COMP);
-	if (debugging("trace")) printf("Passing solid computeAdvection()\n");
 
 	setAdvectionDt();
 	if (debugging("trace")) printf("Passing setAdvectionDt()\n");
@@ -1254,7 +1331,7 @@ void CARTESIAN::vtk_plot_temperature2d(
 {
 	std::vector<int>ph_index;
 	int i,j,k,index;
-	char filename[256];
+	char dirname[256],filename[256];
 	FILE *outfile;
 	double coord_x,coord_y,coord_z,xmin,ymin;
 	COMPONENT comp;
@@ -1268,6 +1345,11 @@ void CARTESIAN::vtk_plot_temperature2d(
 
 	//cell-based liquid phase
 	ph_index.clear();
+	if (!create_directory(filename,NO))
+	{
+	    printf("Cannot create directory %s\n",filename);
+	    clean_up(ERROR);
+	}
 	sprintf(filename,"%s/liquid.vtk",filename);
 	outfile = fopen(filename,"w");
 	fprintf(outfile,"# vtk DataFile Version 3.0\n");
@@ -1601,10 +1683,11 @@ void CARTESIAN::setDomain()
 	case 1:
             if (first)
             {
+		comp_size = top_gmax[0]+1;
 		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(PHASE_FIELD));
-                FT_VectorMemoryAlloc((POINTER*)&array,top_gmax[0]+1,FLOAT);
-                FT_VectorMemoryAlloc((POINTER*)&field->temperature,
-			top_gmax[0]+1,FLOAT);
+                FT_VectorMemoryAlloc((POINTER*)&array,comp_size,FLOAT);
+                FT_VectorMemoryAlloc((POINTER*)&field->temperature,comp_size,
+			FLOAT);
                 first = NO;
             }	
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
@@ -1614,11 +1697,11 @@ void CARTESIAN::setDomain()
 	case 2:
 	    if (first)
 	    {
+		comp_size = (top_gmax[0]+1)*(top_gmax[1]+1);
 		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(PHASE_FIELD));
-	    	FT_VectorMemoryAlloc((POINTER*)&array,
-			(top_gmax[0]+1)*(top_gmax[1]+1),FLOAT);
+	    	FT_VectorMemoryAlloc((POINTER*)&array,comp_size,FLOAT);
 	    	FT_VectorMemoryAlloc((POINTER*)&field->temperature,
-			(top_gmax[0]+1)*(top_gmax[1]+1),FLOAT);
+			comp_size,FLOAT);
 	    	first = NO;
 	    }
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
@@ -1630,11 +1713,11 @@ void CARTESIAN::setDomain()
 	case 3:
 	    if (first)
 	    {
+		comp_size = (top_gmax[0]+1)*(top_gmax[1]+1)*(top_gmax[2]+1);
 		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(PHASE_FIELD));
-	    	FT_VectorMemoryAlloc((POINTER*)&array,
-			(top_gmax[0]+1)*(top_gmax[1]+1)*(top_gmax[2]+1),FLOAT);
+	    	FT_VectorMemoryAlloc((POINTER*)&array,comp_size,FLOAT);
 	    	FT_VectorMemoryAlloc((POINTER*)&field->temperature,
-			(top_gmax[0]+1)*(top_gmax[1]+1)*(top_gmax[2]+1),FLOAT);
+			comp_size,FLOAT);
 	    	first = NO;
 	    }
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
@@ -1759,3 +1842,33 @@ void CARTESIAN::initMovieVariables()
 	    front->hdf_movie_var = hdf_movie_var;
 	}
 }	/* end initMovieVariables */
+
+
+static int find_state_at_crossing(
+	Front *front,
+	int *icoords,
+        GRID_DIRECTION dir,
+        int comp,
+        POINTER *state,
+        HYPER_SURF **hs,
+        double *crx_coords)
+{
+	boolean status;
+
+	status = FT_StateStructAtGridCrossing(front,icoords,dir,comp,state,hs,
+                                       crx_coords);
+        if (status == NO) return NO_PDE_BOUNDARY;
+
+        if (wave_type(*hs) == FIRST_PHYSICS_WAVE_TYPE) 
+	    return NO_PDE_BOUNDARY;
+	else if (wave_type(*hs) == DIRICHLET_BOUNDARY)
+	{
+            return DIRICHLET_PDE_BOUNDARY;
+	}
+	else if (wave_type(*hs) == GROWING_BODY_BOUNDARY)
+	{
+            return DIRICHLET_PDE_BOUNDARY;
+	}
+	else if (wave_type(*hs) == NEUMANN_BOUNDARY)
+            return NEUMANN_PDE_BOUNDARY;
+}       /* find_state_at_crossing */

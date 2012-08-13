@@ -93,11 +93,11 @@ static  void ice_point_propagate(
         double L = eqn_params->L[0];
 	double H;
 
-	printf("Entering ice_point_propagate()\n");
-	printf("oldp = %f %f\n",Coords(oldp)[0],Coords(oldp)[1]);
-	printf("wave_type = %d\n",wave_type(oldhs));
-	printf("FIRST_PHYSICS_WAVE_TYPE = %d\n",FIRST_PHYSICS_WAVE_TYPE);
-	printf("GROWING_BODY_BOUNDARY = %d\n",GROWING_BODY_BOUNDARY);
+	if (debugging("point_propagate"))
+	{
+	    (void) printf("Entering ice_point_propagate()\n");
+	    (void) printf("oldp = %f %f\n",Coords(oldp)[0],Coords(oldp)[1]);
+	}
 
         GetFrontNormal(oldp,oldhse,oldhs,nor_l,front);
         if (negative_component(oldhs) == LIQUID_COMP)
@@ -135,7 +135,8 @@ static  void ice_point_propagate(
 	    else
 		vel[i] = H/L/rho_s*nor_s[i];
 	}
-	printf("H = %f  vel = %f %f\n",H,vel[0],vel[1]);
+	if (debugging("point_propagate"))
+	    (void) printf("H = %f  vel = %f %f\n",H,vel[0],vel[1]);
 
         for (i = 0; i < dim; ++i)
         {
