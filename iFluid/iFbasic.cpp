@@ -160,6 +160,7 @@ void Incompress_Solver_Smooth_Basis::setIndexMap(void)
 	int i,j,k,ic,index;
 	int llbuf[MAXD],uubuf[MAXD];
 	int size = iupper - ilower;
+	static int old_size;
 
 	if (first)
 	{
@@ -177,6 +178,22 @@ void Incompress_Solver_Smooth_Basis::setIndexMap(void)
 		FT_MatrixMemoryAlloc((POINTER*)&I_to_ijk,size,3,INT);
 	    	break;
 	    }
+	    old_size = size;
+	}
+	else if (old_size < size)
+	{
+	    switch (dim)
+	    {
+	    case 2:
+		FT_FreeThese(1,I_to_ij);
+		FT_MatrixMemoryAlloc((POINTER*)&I_to_ij,size,2,INT);
+	    	break;
+	    case 3:
+		FT_FreeThese(1,I_to_ijk);
+		FT_MatrixMemoryAlloc((POINTER*)&I_to_ijk,size,3,INT);
+	    	break;
+	    }
+	    old_size = size;
 	}
 
 	index = 0;

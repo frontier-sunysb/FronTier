@@ -945,10 +945,6 @@ static  void rgbody_point_propagate(
 	    FT_IntrpStateVarAtCoords(front,comp,p1,m_vor3d[2],
 			getStateZvort,&newst->vort3d[2],&oldst->vort3d[2]);
 	}
-	printf("oldp = %f %f %f\n",Coords(oldp)[0],Coords(oldp)[1],
-				Coords(oldp)[2]);
-	printf("newp = %f %f %f\n",Coords(newp)[0],Coords(newp)[1],
-				Coords(newp)[2]);
         return;
 }	/* end rgbody_point_propagate */
 
@@ -1480,6 +1476,10 @@ extern int ifluid_find_state_at_crossing(
 	    return NO_PDE_BOUNDARY;
 	if (wave_type(*hs) == NEUMANN_BOUNDARY) 
 	    return NEUMANN_PDE_BOUNDARY;
+	if (wave_type(*hs) == MOVABLE_BODY_BOUNDARY) 
+	{
+	    return NEUMANN_PDE_BOUNDARY;
+	}
 	if (wave_type(*hs) == DIRICHLET_BOUNDARY) 
 	    return DIRICHLET_PDE_BOUNDARY;
 }	/* ifluid_find_state_at_crossing */
@@ -1530,6 +1530,8 @@ extern int ifluid_find_projection_crossing(
 	    return NO_PDE_BOUNDARY;
 	if (wave_type(*hs) == NEUMANN_BOUNDARY)
 	    return NEUMANN_PDE_BOUNDARY;
+	if (wave_type(*hs) == MOVABLE_BODY_BOUNDARY)
+	    return NEUMANN_PDE_BOUNDARY;
 	if (wave_type(*hs) == DIRICHLET_BOUNDARY)
 	{
 	    if (boundary_state(*hs))
@@ -1541,5 +1543,5 @@ extern int ifluid_find_projection_crossing(
 	    	return DIRICHLET_PDE_BOUNDARY;
 	    }
 	}
-	return YES;
+	return NO_PDE_BOUNDARY;
 }	/* ifluid_find_projection_crossing */

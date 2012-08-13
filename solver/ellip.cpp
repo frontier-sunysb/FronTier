@@ -397,7 +397,6 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 	    else soln[index] = x[I-ilower];
 	    if (max_soln < soln[index]) max_soln = soln[index];
 	    if (min_soln > soln[index]) min_soln = soln[index];
-	    if (i == 20) printf("soln[%d] = %f\n",j,soln[index]);
 	}
 	FT_ParallelExchGridArrayBuffer(soln,front);
 	pp_global_max(&max_soln,1);

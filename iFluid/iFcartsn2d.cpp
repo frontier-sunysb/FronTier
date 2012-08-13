@@ -393,6 +393,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 
 void Incompress_Solver_Smooth_2D_Cartesian::computeProjection(void)
 {
+	setIndexMap();
 	switch (iFparams->num_scheme.ellip_method)
 	{
 	case SIMPLE_ELLIP:
@@ -511,6 +512,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	for (i = 0; i <= top_gmax[0]; i++)
 	{
 	    index  = d_index2d(i,j,top_gmax);
+	    if (!ifluid_comp(top_comp[index]))
+		continue;
 	    vel[l][index] = cell_center[index].m_state.m_U[l];
 	}
 
@@ -521,6 +524,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	    icoords[0] = i;
 	    icoords[1] = j;
 	    index  = d_index(icoords,top_gmax,dim);
+	    if (!ifluid_comp(top_comp[index]))
+		continue;
 	    source[index] = computeFieldPointDiv(icoords,vel);
 	    diff_coeff[index] = 1.0/cell_center[index].m_state.m_rho;
 	}
@@ -530,6 +535,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
         for (i = 0; i <= top_gmax[0]; i++)
 	{
 	    index  = d_index2d(i,j,top_gmax);
+	    if (!ifluid_comp(top_comp[index]))
+		continue;
 	    cell_center[index].m_state.div_U = source[index];
 	    source[index] /= accum_dt;
 	    array[index] = cell_center[index].m_state.m_phi;
@@ -541,6 +548,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	    for (i = imin; i <= imax; i++)
 	    {
 		index = d_index2d(i,j,top_gmax);
+	        if (!ifluid_comp(top_comp[index]))
+		    continue;
 	        value = fabs(cell_center[index].m_state.div_U);
 		sum_div = sum_div + cell_center[index].m_state.div_U;
 	    }
