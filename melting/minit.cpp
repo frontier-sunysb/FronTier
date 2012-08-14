@@ -197,7 +197,7 @@ static void initPhaseIntfc1d(
             pos_comp = (eqn_params->T0[i] > eqn_params->Ti[i]) ?
                                 SOLID_COMP : LIQUID_COMP;
             p = make_point(points[i],neg_comp,pos_comp);
-            wave_type(Hyper_surf(p)) = FIRST_PHYSICS_WAVE_TYPE;
+            wave_type(Hyper_surf(p)) = GROWING_BODY_BOUNDARY;
 	}
 }	/* end initPhaseIntfc1d */
 

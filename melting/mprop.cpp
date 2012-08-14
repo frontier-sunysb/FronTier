@@ -156,6 +156,11 @@ static  void ice_point_propagate(
 	    state->temperature = eqn_params->Ti[1];
 	else if (positive_component(oldhs) == SOLID_COMP)
             state->temperature = eqn_params->Ti[0];
+	if (debugging("point_propagate"))
+	{
+	    (void) printf("Leaving ice_point_propagate()\n");
+	    (void) printf("newp = %f %f\n",Coords(newp)[0],Coords(newp)[1]);
+	}
 }       /* ice_point_propagate */
 
 static  void neumann_point_propagate(
@@ -177,23 +182,27 @@ static  void neumann_point_propagate(
         STATE *sl,*sr,*state;
         PARAMS *params = (PARAMS*)front->extra2;
         double *Temp = params->field->temperature;
+	COMPONENT ext_comp = exterior_component(front->interf);
+	COMPONENT phase_comp;
 
+	phase_comp = (negative_component(oldhs) == ext_comp) ?
+		positive_component(oldhs) : negative_component(oldhs);
         for (i = 0; i < dim; ++i)
             Coords(newp)[i] = Coords(oldp)[i];
         FT_GetStatesAtPoint(oldp,oldhse,oldhs,(POINTER*)&sl,(POINTER*)&sr);
-        state = (negative_component(oldhs) == LIQUID_COMP) ? sl : sr;
+        state = (negative_component(oldhs) == phase_comp) ? sl : sr;
         s0 = state->temperature;
-        FT_NormalAtPoint(oldp,front,nor,LIQUID_COMP);
+        FT_NormalAtPoint(oldp,front,nor,phase_comp);
         dn = grid_size_in_direction(nor,h,dim);
         for (i = 0; i < dim; ++i)
             p1[i] = p0[i] + nor[i]*dn;
-        FT_IntrpStateVarAtCoords(front,LIQUID_COMP,p1,Temp,
+        FT_IntrpStateVarAtCoords(front,phase_comp,p1,Temp,
                         getStateTemperature,&s1,&s0);
         for (i = 0; i < dim; ++i)
             p2[i] = p1[i] + nor[i]*dn;
-        FT_IntrpStateVarAtCoords(front,LIQUID_COMP,p2,Temp,
+        FT_IntrpStateVarAtCoords(front,phase_comp,p2,Temp,
                         getStateTemperature,&s2,&s1);
-        state = (negative_component(oldhs) == LIQUID_COMP) ?
+        state = (negative_component(oldhs) == phase_comp) ?
                 (STATE*)left_state(newp) : (STATE*)right_state(newp);
         state->temperature = (4.0*s1 - s2)/3.0;
         return;

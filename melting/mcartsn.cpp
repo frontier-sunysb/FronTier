@@ -70,7 +70,7 @@ void CARTESIAN::initMesh(void)
 	switch (dim)
 	{
 	case 1:
-	    for (i = 0; i <= top_gmax[0]; j++)
+	    for (i = 0; i <= top_gmax[0]; i++)
 	    {
 	    	crds[0] = top_L[0] + top_h[0]*i;
 		index = d_index1d(i,top_gmax);
@@ -171,15 +171,15 @@ void CARTESIAN::setInitialCondition(void)
         {
             FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
             if (negative_component(hs) == LIQUID_COMP)
-                sl->temperature = eqn_params->Ti[1];
+                sl->temperature = eqn_params->T0[1];
             else if (negative_component(hs) == SOLID_COMP)
-                sl->temperature = eqn_params->Ti[0];
+                sl->temperature = eqn_params->T0[0];
 	    else
 		sl->temperature = 0.0;
             if (positive_component(hs) == LIQUID_COMP)
-                sr->temperature = eqn_params->Ti[1];
+                sr->temperature = eqn_params->T0[1];
             else if (positive_component(hs) == SOLID_COMP)
-                sr->temperature = eqn_params->Ti[0];
+                sr->temperature = eqn_params->T0[0];
 	    else
 		sr->temperature = 0.0;
         }

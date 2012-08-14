@@ -24,7 +24,7 @@ Enter specific heat of phase 1: 0.4
 Enter thermal conductivity of phase 1: 0.02
 
 Enter melting temperature of interface 1: 0.0
-Enter latent heat at interface 1: 1.0
+Enter latent heat at interface 1: 0.1
 
 Enter ambient temperature of phase 2: 3.0
 Enter density of phase 2: 1.0
@@ -48,5 +48,6 @@ Type y to make movie of solute: y
 
 Enter yes for debugging: yes
 Enter the debugging string: trace
+Enter the debugging string: point_propagate
 Enter the debugging string: CLOCK
 Enter the debugging string: step_size
