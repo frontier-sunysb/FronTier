@@ -668,6 +668,11 @@ extern void read_fluid_params(
 	char string[100];
 	FILE *infile = fopen(inname,"r");
 
+	/* defaults numerical schemes */
+        iFparams->num_scheme.projc_method = SIMPLE;
+        iFparams->num_scheme.advec_method = WENO;
+        iFparams->num_scheme.ellip_method = SIMPLE_ELLIP;
+
 	CursorAfterString(infile,"Enter density and viscosity of the fluid:");
 	fscanf(infile,"%lf %lf",&iFparams->rho2,&iFparams->mu2);
 	(void) printf("%f %f\n",iFparams->rho2,iFparams->mu2);
@@ -702,6 +707,29 @@ extern void read_fluid_params(
             iFparams->num_scheme.projc_method = PEROT_BOTELLA;
         }
 	assert(iFparams->num_scheme.projc_method != ERROR_PROJC_SCHEME);
+	(void) printf("The default advection order is WENO-Runge-Kutta 4");
+        iFparams->adv_order = 4;
+        if (CursorAfterStringOpt(infile,"Enter advection order:"))
+        {
+            fscanf(infile,"%d",&iFparams->adv_order);
+            (void) printf("%d\n",iFparams->adv_order);
+        }
+	if (CursorAfterStringOpt(infile,"Enter elliptic method:"))
+        {
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            switch (string[0])
+            {
+            case 'S':
+            case 's':
+                iFparams->num_scheme.ellip_method = SIMPLE_ELLIP;
+                break;
+            case 'c':
+            case 'C':
+                iFparams->num_scheme.ellip_method = CIM_ELLIP;
+                break;
+            }
+        }
 
 	fclose(infile);
 }	/* end read_fluid_properties */
@@ -981,6 +1009,8 @@ extern int ifluid_find_state_at_crossing(
 	    return NO_PDE_BOUNDARY;
 	if (wave_type(*hs) == NEUMANN_BOUNDARY)
             return NEUMANN_PDE_BOUNDARY;
+	if (wave_type(*hs) == GROWING_BODY_BOUNDARY)
+            return NEUMANN_PDE_BOUNDARY;
         if (wave_type(*hs) == DIRICHLET_BOUNDARY)
             return DIRICHLET_PDE_BOUNDARY;
 }     /*ifluid_find_state_at_crossing */
@@ -1029,6 +1059,8 @@ extern int ifluid_find_projection_crossing(
         if (status == NO || wave_type(*hs) == FIRST_PHYSICS_WAVE_TYPE)
             return NO_PDE_BOUNDARY;
         if (wave_type(*hs) == NEUMANN_BOUNDARY)
+            return NEUMANN_PDE_BOUNDARY;
+        if (wave_type(*hs) == GROWING_BODY_BOUNDARY)
             return NEUMANN_PDE_BOUNDARY;
         if (wave_type(*hs) == DIRICHLET_BOUNDARY)
         {

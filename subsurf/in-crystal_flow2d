@@ -8,6 +8,11 @@ Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
 
 *****Crystal Input data*************
+Available initial interface types are:
+Seed (S)
+Triangle (T)
+Rectangle (R)
+Enter initial interface type: s
 Are there seeds grow from floor: N
 Are there seeds grow from ceiling: N
 Are there seeds grow from space: Y
@@ -29,7 +34,7 @@ Enter reaction type: deposition_only
 Diffusion coefficient: 0.1
 Growth rate: 500.0
 Equilibrium concentration: 1.0
-Ambient concentration: 0.5 
+Ambient concentration: 1.5 
 Crystal density: 10.0
 Initial gap: 0.1
 Choose numerical scheme
@@ -75,15 +80,11 @@ Type y to make movie of solute: y
 *****Dirichlet boundary condition*********
 For lower boundary in 1-th dimension
 Enter type of Dirichlet boundary: FLOW_THROUGH
-Enter velocity: 0 0
-Enter pressure: 10
-Enter solute concentration: 0.5 
 For upper boundary in 1-th dimension
 Enter type of Dirichlet boundary: CONSTANT_STATE
-Enter solute concentration: 0.5 
 Enter velocity: 0 -2
 Enter pressure: 10
-Enter solute concentration: 0.5 
+Enter solute concentration: 1.5 
 
 ************Debugging options*****************
 

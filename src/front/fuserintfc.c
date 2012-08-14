@@ -1487,6 +1487,9 @@ LOCAL void assign_boundary_curve_wave_type(
 	case DIRICHLET_BOUNDARY:
 	    wave_type(curve) = DIRICHLET_BOUNDARY;
 	    return;
+	case PASSIVE_BOUNDARY:
+	    wave_type(curve) = PASSIVE_BOUNDARY;
+	    return;
 	case NEUMANN_BOUNDARY:
 	    wave_type(curve) = NEUMANN_BOUNDARY;
 	    return;

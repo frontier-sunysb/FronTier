@@ -8,6 +8,11 @@ Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
 
 *****Crystal Input data*************
+Available initial interface types are:
+Seed (S)
+Triangle (T)
+Rectangle (R)
+Enter initial interface type: S 
 Are there seeds grow from floor: N
 Are there seeds grow from ceiling: N
 Are there seeds grow from space: Y
@@ -17,6 +22,12 @@ Enter yes to add perturbation: n
 Enter radius of seeds: 0.2
 
 *****Physical information***********
+Choose reaction type 
+Available reaction types are:
+        DEPOSITION_ONLY
+        DISSOLUTION_ONLY
+        REVERSIBLE_REACTION
+Enter reaction type: REVERSIBLE_REACTION
 Diffusion coefficient: 0.5
 Growth rate: 80.0
 Equilibrium concentration: 1.0
