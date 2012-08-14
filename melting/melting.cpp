@@ -132,6 +132,7 @@ int main(int argc, char **argv)
 	    FT_InitIntfc(&front,&level_func_pack);
 	}
 	if (debugging("trace")) printf("Passed FT_InitIntfc()\n");
+	read_crt_dirichlet_bdry_data(in_name,&front,f_basic);
 
         Time_step_factor(&front);
 	FT_ReadTimeControl(in_name,&front);

@@ -376,3 +376,74 @@ static	void read_seed_params(
 	fscanf(infile,"%lf",&s_params->seed_radius);
 	(void) printf("%f\n",s_params->seed_radius);
 }	/* end read_seed_params */
+
+extern void read_crt_dirichlet_bdry_data(
+	char *inname,
+	Front *front,
+	F_BASIC_DATA f_basic)
+{
+	char msg[100],s[100];
+	int i,dim = front->rect_grid->dim;
+	FILE *infile = fopen(inname,"r");
+	STATE state;
+	HYPER_SURF *hs;
+
+	for (i = 0; i < dim; ++i)
+	{
+	    if (f_basic.boundary[i][0] == DIRICHLET_BOUNDARY)
+	    {
+		hs = NULL;
+		if (rect_boundary_type(front->interf,i,0) == DIRICHLET_BOUNDARY)
+		    hs = FT_RectBoundaryHypSurf(front->interf,DIRICHLET_BOUNDARY,
+						i,0);
+		sprintf(msg,"For lower boundary in %d-th dimension",i);
+		CursorAfterString(infile,msg);
+		(void) printf("\n");
+		CursorAfterString(infile,"Enter type of Dirichlet boundary:");
+		fscanf(infile,"%s",s);
+		(void) printf("%s\n",s);
+		switch (s[0])
+		{
+		case 'c':			// Constant state
+		case 'C':
+		    CursorAfterString(infile,"Enter temperature:");
+		    fscanf(infile,"%lf",&state.temperature);
+		    (void) printf("%f\n",state.temperature);
+		    FT_SetDirichletBoundary(front,NULL,NULL,NULL,
+					(POINTER)&state,hs);
+		    break;
+		default: 
+		    printf("ERROR: Dirichlet type %s not implemented\n",s);
+		    clean_up(ERROR);
+		}
+	    }
+	    if (f_basic.boundary[i][1] == DIRICHLET_BOUNDARY)
+	    {
+		hs = NULL;
+		if (rect_boundary_type(front->interf,i,1) == DIRICHLET_BOUNDARY)
+		    hs = FT_RectBoundaryHypSurf(front->interf,DIRICHLET_BOUNDARY,
+						i,1);
+		sprintf(msg,"For upper boundary in %d-th dimension",i);
+		CursorAfterString(infile,msg);
+		(void) printf("\n");
+		CursorAfterString(infile,"Enter type of Dirichlet boundary:");
+		fscanf(infile,"%s",s);
+		(void) printf("%s\n",s);
+		switch (s[0])
+		{
+		case 'c':			// Constant state
+		case 'C':
+		    CursorAfterString(infile,"Enter temperature:");
+		    fscanf(infile,"%lf",&state.temperature);
+		    (void) printf("%f\n",state.temperature);
+		    FT_SetDirichletBoundary(front,NULL,NULL,NULL,
+					(POINTER)&state,hs);
+		    break;
+		default: 
+		    printf("ERROR: Dirichlet type %s not implemented\n",s);
+		    clean_up(ERROR);
+		}
+	    }
+	}
+	fclose(infile);
+}	/* end read_crt_dirichlet_bdry_data */

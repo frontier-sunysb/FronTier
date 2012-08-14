@@ -237,3 +237,4 @@ extern void initPhaseIntfc(char*,int,LEVEL_FUNC_PACK*,PARAMS*);
 extern void melting_point_propagate(Front*,POINTER,POINT*,POINT*,
                     HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 extern double getStateTemperature(POINTER);
+extern void read_crt_dirichlet_bdry_data(char*,Front*,F_BASIC_DATA);
