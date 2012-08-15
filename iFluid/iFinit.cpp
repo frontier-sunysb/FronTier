@@ -34,6 +34,7 @@ extern void setInitialIntfc(
             initKHIntfc(front,level_func_pack,inname);
             break;
         case CHANNEL_FLOW:
+	    iFparams->m_comp1 = SOLID_COMP;
             initChannelFlow(front,level_func_pack,inname);
             break;
 	default:
@@ -387,7 +388,8 @@ static void initChannelFlow(
 
 	iFparams = (IF_PARAMS*)front->extra1;
 
-        level_func_pack->neg_component = LIQUID_COMP1;
+	// No interface 
+        level_func_pack->neg_component = LIQUID_COMP2;
         level_func_pack->pos_component = LIQUID_COMP2;
         level_func_pack->func = NULL;
         CursorAfterString(infile,"Enter density and viscosity of the fluid:");

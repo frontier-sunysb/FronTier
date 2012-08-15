@@ -579,14 +579,6 @@ static void plot_growth_data(
 	fclose(ofile);
 }	/* end plot_growth_data */
 
-extern  double getStateTemperature(
-        POINTER state)
-{
-        STATE *T_state = (STATE*)state;
-        return T_state->temperature;
-}       /* end getStateTemperature */
-
-
 static void read_movie_options(
         char *inname,
         PARAMS *params)
@@ -643,3 +635,48 @@ static void read_movie_options(
         }
         fclose(infile);
 }       /* end read_movie_options */
+
+extern  double getStateTemperature(
+        POINTER state)
+{
+        STATE *T_state = (STATE*)state;
+        return T_state->temperature;
+}       /* end getStateTemperature */
+
+extern  void assignStateTemperature(
+	double T,
+        POINTER state)
+{
+        STATE *T_state = (STATE*)state;
+        T_state->temperature = T;
+}       /* end assignStateTemperature */
+
+extern double jumpEpsGradDotNorm(
+        POINTER params,
+        int D,
+        double *N,
+        double *P)
+{
+	printf("Entering jumpEpsGradDotNorm(), to be written\n");
+	clean_up(0);
+}	/* end jumpEpsGradDotNorm */
+
+extern double jumpT(
+        POINTER params,
+        int D,
+        double *P)
+{
+	printf("Entering jumpU(), to be written\n");
+	clean_up(0);
+}	/* end jumpT */
+
+extern double jumpGradDotTan(
+        POINTER params,
+        int D,
+        int i,
+        double *N,
+        double *P)
+{
+	printf("Entering jumpGradDotTan(), to be written\n");
+	clean_up(0);
+}	/* end jumpGradDotTan */

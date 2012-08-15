@@ -125,6 +125,7 @@ public:
 	// On topological grid
 	RECT_GRID *top_grid;
 	double *array;		// for scatter states;
+	double *source;		// for source of parabolic solver;
 	double *top_L,*top_U,*top_h,hmin;
 	int *top_gmax;
 	COMPONENT *top_comp;
@@ -153,6 +154,7 @@ public:
 
 	double m_t;                     // time
 	double m_dt;			// time increment
+	double min_dt;			// Minimum dt to use non-explicit
 
 	// constructor
 	~CARTESIAN();
@@ -236,5 +238,9 @@ extern void readPhaseParams(char*,PARAMS*);
 extern void initPhaseIntfc(char*,int,LEVEL_FUNC_PACK*,PARAMS*);
 extern void melting_point_propagate(Front*,POINTER,POINT*,POINT*,
                     HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
-extern double getStateTemperature(POINTER);
 extern void read_crt_dirichlet_bdry_data(char*,Front*,F_BASIC_DATA);
+extern void assignStateTemperature(double,POINTER);
+extern double getStateTemperature(POINTER);
+extern double jumpT(POINTER,int,double*);
+extern double jumpEpsGradDotNorm(POINTER,int,double*,double*);
+extern double jumpGradDotTan(POINTER,int,int,double*,double*);

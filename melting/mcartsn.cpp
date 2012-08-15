@@ -202,6 +202,7 @@ void CARTESIAN::setIndexMap(COMPONENT sub_comp)
 	static boolean first = YES;
 	int i,j,k,ic,index;
 	int llbuf[MAXD],uubuf[MAXD];
+	int count;
 
 	if (debugging("trace")) printf("Entering setIndexMap()\n");
 	if (first)
@@ -210,15 +211,21 @@ void CARTESIAN::setIndexMap(COMPONENT sub_comp)
 	    switch (dim)
 	    {
 	    case 1:
+		count = (imax - imin + 1);
 	    	FT_VectorMemoryAlloc((POINTER*)&i_to_I,top_gmax[0]+1,INT);
+	    	FT_MatrixMemoryAlloc((POINTER*)&I_to_i,count,1,INT);
 	    	break;
 	    case 2:
+		count = (imax - imin + 1)*(jmax - jmin + 1);
 	    	FT_MatrixMemoryAlloc((POINTER*)&ij_to_I,top_gmax[0]+1,
 					top_gmax[1]+1,INT);
+	    	FT_MatrixMemoryAlloc((POINTER*)&I_to_ij,count,2,INT);
 	    	break;
 	    case 3:
+		count = (imax - imin + 1)*(jmax - jmin + 1)*(kmax - kmin + 1);
 	    	FT_TriArrayMemoryAlloc((POINTER*)&ijk_to_I,top_gmax[0]+1,
 					top_gmax[1]+1,top_gmax[2]+1,INT);
+	    	FT_MatrixMemoryAlloc((POINTER*)&I_to_ijk,count,3,INT);
 	    	break;
 	    }
 	}
@@ -235,7 +242,7 @@ void CARTESIAN::setIndexMap(COMPONENT sub_comp)
 	    for (i = imin; i <= imax; i++)
 	    {
 		ic = d_index1d(i,top_gmax);
-		if (cell_center[ic].comp == sub_comp)
+		if (sub_comp == NO_COMP || cell_center[ic].comp == sub_comp)
 		{
 	    	    i_to_I[i] = index + ilower;
 	    	    index++;
@@ -250,9 +257,11 @@ void CARTESIAN::setIndexMap(COMPONENT sub_comp)
 	    for (j = jmin; j <= jmax; j++)
 	    {
 		ic = d_index2d(i,j,top_gmax);
-		if (cell_center[ic].comp == sub_comp)
+		if (sub_comp == NO_COMP || cell_center[ic].comp == sub_comp)
 		{
 	    	    ij_to_I[i][j] = index + ilower;
+		    I_to_ij[index + ilower][0] = i;
+                    I_to_ij[index + ilower][1] = j;
 	    	    index++;
 		}
 		else
@@ -266,9 +275,12 @@ void CARTESIAN::setIndexMap(COMPONENT sub_comp)
 	    for (k = kmin; k <= kmax; k++)
 	    {
 		ic = d_index3d(i,j,k,top_gmax);
-		if (cell_center[ic].comp == sub_comp)
+		if (sub_comp == NO_COMP || cell_center[ic].comp == sub_comp)
 		{
 	    	    ijk_to_I[i][j][k] = index + ilower;
+		    I_to_ijk[index + ilower][0] = i;
+                    I_to_ijk[index + ilower][1] = j;
+                    I_to_ijk[index + ilower][2] = k;
 	    	    index++;
 		}
 		else
@@ -487,7 +499,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	if (debugging("PETSc"))
 	{
 	    (void) printf("CARTESIAN::computeAdvectionCN: "
-	       		"num_iter = %d, rel_residual = %le \n", 
+	       		"num_iter = %d, rel_residual = %g \n", 
 			num_iter, rel_residual);
 	}
 
@@ -582,45 +594,78 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 void CARTESIAN::computeAdvectionCim()
 {
 	//static CIM_PARAB_SOLVER parab_solver(*front);
-	static PARABOLIC_SOLVER parab_solver(*front);
-	COMPONENT sub_comp;
+	static CIM_PARAB_SOLVER parab_solver(*front);
+	int i,j,k,index;
 
 	printf("Entering computeAdvectionCim()\n");
-	if (m_dt < 0.1*sqr(hmin)/eqn_params->D/(double)dim)
+	printf("m_dt = %f  min_dt = %f\n",m_dt,min_dt);
+	/*
+	if (m_dt < min_dt)
 	    return computeAdvectionExplicit(sub_comp);
+	*/
 
-	if (debugging("trace")) printf("Entering computeAdvectionImplicit()\n");
-	start_clock("computeAdvectionImplicit");
-	setIndexMap(sub_comp);
-	parab_solver.soln_comp = sub_comp;
-        parab_solver.obst_comp = ERROR_COMP;
-        parab_solver.var = field->temperature;
-        parab_solver.soln = field->temperature;
-        parab_solver.a = NULL;
-        parab_solver.getStateVarFunc = getStateTemperature;
-        parab_solver.source = NULL;
-        parab_solver.D = eqn_params->D;
-        parab_solver.order = eqn_params->pde_order;
-        parab_solver.ilower = ilower;
-        parab_solver.iupper = iupper;
-        parab_solver.dt = m_dt;
-        parab_solver.set_solver_domain();
+	if (debugging("trace")) printf("Entering computeAdvectionCim()\n");
+	start_clock("computeAdvectionCim");
+	setGlobalIndex(NO_COMP);
+	setIndexMap(NO_COMP);
 
 	switch(dim)
         {
         case 1:
             parab_solver.i_to_I = i_to_I;
+            parab_solver.I_to_i = I_to_i;
+	    for (i = imin; i <= imax; ++i)
+	    {
+		index = d_index1d(i,top_gmax);
+		source[index] = -field->temperature[index]/m_dt;
+	    }
             break;
         case 2:
             parab_solver.ij_to_I = ij_to_I;
+            parab_solver.I_to_ij = I_to_ij;
+	    for (i = imin; i <= imax; ++i)
+	    for (j = jmin; j <= jmax; ++j)
+	    {
+		index = d_index2d(i,j,top_gmax);
+		source[index] = -field->temperature[index]/m_dt;
+	    }
             break;
         case 3:
             parab_solver.ijk_to_I = ijk_to_I;
+            parab_solver.I_to_ijk = I_to_ijk;
+	    for (i = imin; i <= imax; ++i)
+	    for (j = jmin; j <= jmax; ++j)
+	    for (k = kmin; k <= kmax; ++k)
+	    {
+		index = d_index3d(i,j,k,top_gmax);
+		source[index] = -field->temperature[index]/m_dt;
+	    }
             break;
         }
-        parab_solver.runge_kutta();
-	stop_clock("computeAdvectionImplicit");
-	if (debugging("trace")) printf("Leaving computeAdvectionImplicit()\n");
+	printf("Assigning class variables\n");
+	parab_solver.w_type = GROWING_BODY_BOUNDARY;
+	parab_solver.neg_comp = SOLID_COMP;
+        parab_solver.pos_comp = LIQUID_COMP;
+        parab_solver.source = source;
+	parab_solver.solutionJump = jumpT;
+	parab_solver.gradJumpDotN = jumpEpsGradDotNorm;
+        parab_solver.gradJumpDotT = jumpGradDotTan;
+	parab_solver.findStateAtCrossing = find_state_at_crossing;
+	parab_solver.getStateVar = getStateTemperature;
+        parab_solver.assignStateVar = assignStateTemperature;
+	parab_solver.ilower = ilower;
+        parab_solver.iupper = iupper;
+        parab_solver.soln = field->temperature;
+        parab_solver.size = iupper - ilower;
+	parab_solver.solve_front_state = YES;
+        parab_solver.set_solver_domain();
+	printf("size = %d\n",parab_solver.size);
+	printf("Calling for solve()\n");
+        parab_solver.solve(field->temperature);
+
+	stop_clock("computeAdvectionCim");
+	if (debugging("trace")) printf("Leaving computeAdvectionCim()\n");
+	clean_up(0);
 	return;
 }	/* end computeAdvectionImplicit */
 
@@ -744,6 +789,7 @@ void CARTESIAN::setAdvectionDt()
 	Ds = eqn_params->k[0]/eqn_params->rho[0]/eqn_params->Cp[0];
 	D = std::max(Dl,Ds);
 
+	min_dt = 0.1*sqr(hmin)/D/(double)dim;
 	if (eqn_params->num_scheme == UNSPLIT_EXPLICIT)
 	{
 	    m_dt = 0.5*sqr(hmin)/D/(double)dim;
@@ -996,7 +1042,8 @@ void CARTESIAN::setGlobalIndex(COMPONENT sub_comp)
 	    for (i = imin; i <= imax; i++)
 	    {
 		ic = d_index1d(i,top_gmax);
-		if (cell_center[ic].comp != sub_comp) continue;
+		if (sub_comp != NO_COMP && cell_center[ic].comp != sub_comp) 
+		    continue;
 		NLblocks++;
 	    }
 	    break;
@@ -1005,7 +1052,8 @@ void CARTESIAN::setGlobalIndex(COMPONENT sub_comp)
 	    for (i = imin; i <= imax; i++)
 	    {
 		ic = d_index2d(i,j,top_gmax);
-		if (cell_center[ic].comp != sub_comp) continue;
+		if (sub_comp != NO_COMP && cell_center[ic].comp != sub_comp) 
+		    continue;
 		NLblocks++;
 	    }
 	    break;
@@ -1015,7 +1063,8 @@ void CARTESIAN::setGlobalIndex(COMPONENT sub_comp)
 	    for (i = imin; i <= imax; i++)
 	    {
 		ic = d_index3d(i,j,k,top_gmax);
-		if (cell_center[ic].comp != sub_comp) continue;
+		if (sub_comp != NO_COMP && cell_center[ic].comp != sub_comp) 
+		    continue;
 		NLblocks++;
 	    }
 	    break;
@@ -1686,6 +1735,7 @@ void CARTESIAN::setDomain()
 		comp_size = top_gmax[0]+1;
 		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(PHASE_FIELD));
                 FT_VectorMemoryAlloc((POINTER*)&array,comp_size,FLOAT);
+                FT_VectorMemoryAlloc((POINTER*)&source,comp_size,FLOAT);
                 FT_VectorMemoryAlloc((POINTER*)&field->temperature,comp_size,
 			FLOAT);
                 first = NO;
@@ -1700,6 +1750,7 @@ void CARTESIAN::setDomain()
 		comp_size = (top_gmax[0]+1)*(top_gmax[1]+1);
 		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(PHASE_FIELD));
 	    	FT_VectorMemoryAlloc((POINTER*)&array,comp_size,FLOAT);
+                FT_VectorMemoryAlloc((POINTER*)&source,comp_size,FLOAT);
 	    	FT_VectorMemoryAlloc((POINTER*)&field->temperature,
 			comp_size,FLOAT);
 	    	first = NO;
@@ -1716,6 +1767,7 @@ void CARTESIAN::setDomain()
 		comp_size = (top_gmax[0]+1)*(top_gmax[1]+1)*(top_gmax[2]+1);
 		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(PHASE_FIELD));
 	    	FT_VectorMemoryAlloc((POINTER*)&array,comp_size,FLOAT);
+                FT_VectorMemoryAlloc((POINTER*)&source,comp_size,FLOAT);
 	    	FT_VectorMemoryAlloc((POINTER*)&field->temperature,
 			comp_size,FLOAT);
 	    	first = NO;
