@@ -666,8 +666,7 @@ extern double jumpT(
         int D,
         double *P)
 {
-	printf("Entering jumpU(), to be written\n");
-	clean_up(0);
+	return 0.0;
 }	/* end jumpT */
 
 extern double jumpGradDotTan(
@@ -677,6 +676,5 @@ extern double jumpGradDotTan(
         double *N,
         double *P)
 {
-	printf("Entering jumpGradDotTan(), to be written\n");
-	clean_up(0);
+	return 0.0;
 }	/* end jumpGradDotTan */

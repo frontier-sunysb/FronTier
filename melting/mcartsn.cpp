@@ -650,6 +650,11 @@ void CARTESIAN::computeAdvectionCim()
 	parab_solver.solutionJump = jumpT;
 	parab_solver.gradJumpDotN = jumpEpsGradDotNorm;
         parab_solver.gradJumpDotT = jumpGradDotTan;
+        parab_solver.diff_coeff[0] = eqn_params->k[0]/eqn_params->rho[0]
+                                /eqn_params->Cp[0];
+        parab_solver.diff_coeff[1] = eqn_params->k[1]/eqn_params->rho[1]
+                                /eqn_params->Cp[1];
+	parab_solver.jparams = (POINTER)eqn_params;
 	parab_solver.findStateAtCrossing = find_state_at_crossing;
 	parab_solver.getStateVar = getStateTemperature;
         parab_solver.assignStateVar = assignStateTemperature;
@@ -659,8 +664,6 @@ void CARTESIAN::computeAdvectionCim()
         parab_solver.size = iupper - ilower;
 	parab_solver.solve_front_state = YES;
         parab_solver.set_solver_domain();
-	printf("size = %d\n",parab_solver.size);
-	printf("Calling for solve()\n");
         parab_solver.solve(field->temperature);
 
 	stop_clock("computeAdvectionCim");
