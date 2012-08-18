@@ -410,6 +410,7 @@ public:
 	boolean solve_front_state;
 
 	POINTER jparams;	/* Params for jump functions */
+	double m_dt;		/* Time step for parabolic equation */
 	double *soln;		/* field variable of new step */
 	double *source;		/* source field */
 	double diff_coeff[2];	/* div(diff_coeff*grad)phi = source */
