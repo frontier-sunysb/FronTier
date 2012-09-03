@@ -84,6 +84,7 @@ static void setInitialIntfc3d(
 	level_func_pack->func_params = NULL;
         level_func_pack->func = NULL;
 	af_params->is_parachute_system = NO;
+	af_params->num_opt_round = 20;
 	af_params->spring_model = MODEL1;	// default
 	CursorAfterString(infile,"Enter number of canopy surfaces:");
 	fscanf(infile,"%d",&num_canopy);
@@ -571,6 +572,12 @@ static void setInitialIntfc3d(
 		af_params->pert_params.pert_type = SINE_PERT;
 		break;
 	    }
+	}
+	if (CursorAfterStringOpt(infile,
+	    "Entering number of canopy optimization rounds: "))
+	{
+	    fscanf(infile,"%d",&af_params->num_opt_round);
+	    (void) printf("%d\n",af_params->num_opt_round);
 	}
 }	/* end setInitialIntfc3d */
 

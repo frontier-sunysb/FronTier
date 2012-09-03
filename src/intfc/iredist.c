@@ -62,6 +62,14 @@ LOCAL  	boolean redistribute_surf_o1(SURFACE*,RECT_GRID*,
 			SCALED_REDIST_PARAMS);
 LOCAL	void reset_neighbors_of_adjacent_sides(TRI*,int);
 LOCAL	void dequeue_tris_on_bond(BOND*,POINTER_Q**);
+/*	Functions dealing with tetra tris */
+LOCAL 	boolean is_tetra_point(POINT*,TRI*,INTERFACE*);
+LOCAL 	boolean remove_interior_tetra_pt(POINT*,TRI*,SURFACE*,POINTER_Q**,
+			INTERFACE *);
+LOCAL 	void set_neighbors_from_tetra_tris(TRI*,TRI**,int*,boolean*);
+LOCAL	void dequeue_tris_around_point(POINT*,TRI*,INTERFACE*,POINTER_Q**);
+/*TMP*/ 
+LOCAL	boolean tri_in_intfc(TRI*,INTERFACE*);
 
 EXPORT	void equi_redist_curve_seg(
 	CURVE		*c,
@@ -926,7 +934,9 @@ EXPORT	TRI_STATUS tri_scaled_status(
 	double  N0, N1, N2;
 	double	h0 = gr->h[0], h1 = gr->h[1], h2 = gr->h[2];
 	double	a_ratio,len[3],tri_area;
-	double len_max,len_min;
+	double  len_max,len_min;
+	double	len2[3],cos_angle[3],angle[3],min_angle;
+	int 	i;
 
 	s00 = (p1[0]-p0[0])/h0; s01 = (p1[1]-p0[1])/h1; s02 = (p1[2]-p0[2])/h2;
 	s10 = (p2[0]-p1[0])/h0; s11 = (p2[1]-p1[1])/h1; s12 = (p2[2]-p1[2])/h2;
@@ -944,15 +954,27 @@ EXPORT	TRI_STATUS tri_scaled_status(
 	}
 
 			/* Check aspect ratio	*/
-	len[0] = sqrt(QDot3d(s0,s0));
-	len_max = len_min = len[0];
-	len[1] = sqrt(QDot3d(s1,s1));
-	if (len_max < len[1]) len_max = len[1];
-	if (len_min > len[1]) len_min = len[1];
-	len[2] = sqrt(QDot3d(s2,s2));
-	if (len_max < len[2]) len_max = len[2];
-	if (len_min > len[2]) len_min = len[2];
+	len2[0] = QDot3d(s0,s0);
+	len2[1] = QDot3d(s1,s1);
+	len2[2] = QDot3d(s2,s2);
+	len_max = -HUGE;
+	len_min =  HUGE;
+	min_angle = HUGE;
+	for (i = 0; i < 3; ++i)
+	{
+	    len[i] = sqrt(len2[i]);
+	    cos_angle[i] = (len2[i] + len2[(i+1)%3] - len2[(i+2)%3])
+			/2.0/len[i]/len[(i+1)%3];
+	    angle[i] = acos(cos_angle[i]);
+	    if (len_min > len[i]) len_min = len[i];
+	    if (len_max < len[i]) len_max = len[i];
+	    if (min_angle > angle[i]) min_angle = angle[i];
+	}
 
+	if (min_angle < PI/12.0)
+	{
+	    return BAD_ANGLE;
+	}
 	a_ratio = len_max/len_min;
 	if (a_ratio > scaled_redist_params.aspect_tol)
 	{
@@ -984,6 +1006,7 @@ LOCAL	boolean tri_in_intfc(
 	}
 	return NO;
 }	
+
 LOCAL boolean delete_min_side_of_tri(
 	TRI	  *tri,
 	int	  side,
@@ -1001,8 +1024,9 @@ LOCAL boolean delete_min_side_of_tri(
 	char	fname[100];
 
 	DEBUG_ENTER(delete_min_side_of_tri)
-
+	/*
 	printf("tri = %d  tri_in_intfc = %d\n",tri,tri_in_intfc(tri,intfc));
+	*/
 	if (is_side_bdry(tri,side))
 	{
 	    BOND *b = Bond_on_side(tri,side);
@@ -1023,12 +1047,12 @@ LOCAL boolean delete_min_side_of_tri(
 	    	BOND *bp = Bond_on_side(tri,pside);
 		if (bp == b->next)
 		{
-		    dequeue_tris_on_bond(bp,pq);
+		    dequeue_tris_around_point(bp->start,tri,intfc,pq);
 		    delete_start_of_bond(bp,curve);
 		}
 		else if (b->prev != NULL)
 		{
-		    dequeue_tris_on_bond(b->prev,pq);
+		    dequeue_tris_around_point(b->start,tri,intfc,pq);
 		    delete_start_of_bond(b,curve);
 		}
 		return YES;
@@ -1038,12 +1062,12 @@ LOCAL boolean delete_min_side_of_tri(
 	    	BOND *bn = Bond_on_side(tri,nside);
 		if (bn == b->next)
 		{
-		    dequeue_tris_on_bond(bn,pq);
+		    dequeue_tris_around_point(bn->start,tri,intfc,pq);
 		    delete_start_of_bond(bn,curve);
 		}
 		else if (b->prev != NULL)
 		{
-		    dequeue_tris_on_bond(b->prev,pq);
+		    dequeue_tris_around_point(b->start,tri,intfc,pq);
 		    delete_start_of_bond(b,curve);
 		}
 		return YES;
@@ -1052,12 +1076,12 @@ LOCAL boolean delete_min_side_of_tri(
 	    {
 		if (b->prev != NULL)
 		{
-		    dequeue_tris_on_bond(b->prev,pq);
+		    dequeue_tris_around_point(b->start,tri,intfc,pq);
 		    delete_start_of_bond(b,curve);
 		}
 		else if (b->next != NULL)
 		{
-		    dequeue_tris_on_bond(b->next,pq);
+		    dequeue_tris_around_point(b->end,tri,intfc,pq);
 		    delete_start_of_bond(b->next,curve);
 		}
 	    	return YES;
@@ -1073,7 +1097,19 @@ LOCAL boolean delete_min_side_of_tri(
 		break;
 
 	p[2] = Point_of_tri(tri)[Prev_m3(side)];
+	if (is_tetra_point(p[2],tri,intfc))
+	{
+	    if (debugging("tetra_pt"))
+	    	(void) printf("p[2] is tetra point\n");
+	    return remove_interior_tetra_pt(p[2],tri,s,pq,intfc);
+	}
 	p[3] = Point_of_tri(nbtri)[Prev_m3(nside)];
+	if (is_tetra_point(p[3],nbtri,intfc))
+	{
+	    if (debugging("tetra_pt"))
+	    	(void) printf("p[3] is tetra point\n");
+	    return remove_interior_tetra_pt(p[3],nbtri,s,pq,intfc);
+	}
 
 	for(k=0; k<2; k++)
 	{
@@ -1108,11 +1144,13 @@ LOCAL boolean delete_min_side_of_tri(
 	if(np[0] > 0 && np[1] > 0)
 	{
 	    /*the general case, test duplicate points */
-	    printf("rm_flag = %d position 1\n",rm_flag);
 	    for(i=0; i<np[0]; i++)
 		for(j=0; j<np[1]; j++)
 		    if(plist[0][i] == plist[1][j])
+		    {
+			printf("i = %d  j = %d\n",i,j);
 			rm_flag = YES;
+		    }
 	}
 	else if(np[0] == 0 && np[1] == 0)
 	{
@@ -1123,6 +1161,7 @@ LOCAL boolean delete_min_side_of_tri(
 	if(rm_flag)
 	{
 	    nt = 0;
+	    for(k=0; k<2; k++)
 	    for(k=0; k<2; k++)
 		nt = merge_tris_set(in_tris, nt, tris[k], ntris[k]);
 
@@ -1156,10 +1195,8 @@ LOCAL boolean delete_min_side_of_tri(
 	}
 
 	/*change tri neighbor for tri. */
-	printf("Test reset step 1\n");
 	reset_neighbors_of_adjacent_sides(tri,side);
 	/*change tri neighbor for nbtri. */
-	printf("Test reset step 2\n");
 	reset_neighbors_of_adjacent_sides(nbtri,nside);
 
 	remove_tri_from_surface(tri,s,YES);
@@ -1237,7 +1274,6 @@ LOCAL	int	remove_tris_and_seal(
 	for(i=0; i<nt; i++)
 	    remove_tri_from_surface(tris[i], s, NO);
 	    
-	printf("Test step 1\n");
 	if(num_out_tris == 0)
 	{
 	    DEBUG_LEAVE(remove_tris_and_seal);
@@ -1442,7 +1478,6 @@ LOCAL	void reset_neighbors_of_adjacent_sides(
 	else if (is_side_bdry(tri,prev_side))
 	{
 	    int bside;
-	    printf("Set position 1\n");
 	    b = Bond_on_side(tri,prev_side);
 	    next_tri = Tri_on_side(tri,next_side);
 	    for (i = 0; i < 3; ++i)
@@ -1467,7 +1502,6 @@ LOCAL	void reset_neighbors_of_adjacent_sides(
 	else if (is_side_bdry(tri,next_side))
 	{
 	    int bside;
-	    printf("Set position 2\n");
 	    b = Bond_on_side(tri,next_side);
 	    prev_tri = Tri_on_side(tri,prev_side);
 	    for (i = 0; i < 3; ++i)
@@ -1500,14 +1534,129 @@ LOCAL	void reset_neighbors_of_adjacent_sides(
 	}
 }	/* end reset_neighbors_of_adjacent_sides */
 
-LOCAL	void dequeue_tris_on_bond(
-	BOND *b,
-	POINTER_Q	**pq)
+LOCAL	void dequeue_tris_around_point(
+	POINT *p,
+	TRI *tri,
+	INTERFACE *intfc,
+	POINTER_Q **pq)
 {
-	BOND_TRI **btris;
-	for (btris = Btris(b); btris && *btris; ++btris)
+	int i,nt;
+	TRI **tris;
+	nt = set_tri_list_around_point(p,tri,&tris,intfc);
+	for (i = 0; i < nt; ++i)
 	{
-	    dequeue((*btris)->tri,*pq);
+	    *pq = dequeue(tris[i],*pq);
 	}
-}	/* end dequeue_tris_on_bond */
+}	/* end dequeue_tris_around_point */
 	
+LOCAL boolean is_tetra_point(
+	POINT *p,
+	TRI *tri,
+	INTERFACE *intfc)
+{
+	int nt;
+	TRI **tris;
+	if (Boundary_point(p)) return NO;
+	nt = set_tri_list_around_point(p,tri,&tris,intfc);
+	return (nt == 3) ? YES : NO;
+}	/* end is_tetra_point */
+
+LOCAL boolean remove_interior_tetra_pt(
+	POINT *p,
+	TRI *tri,
+	SURFACE *s,
+	POINTER_Q **pq,
+        INTERFACE *intfc)
+{
+	int i,j,nt;
+	TRI *new_t,*t,**tris;
+	int side[3];
+	boolean is_bdry[3];
+	POINT *pts[3];
+	boolean status;
+
+	if (debugging("tetra_pt"))
+	{
+	    (void) printf("Entering remove_interior_tetra_pt()\n");
+	    status = consistent_interface(intfc);
+	    (void) printf("Consisteny status = %d\n",status);
+	}
+	nt = set_tri_list_around_point(p,tri,&tris,intfc);
+	if (nt != 3 || Boundary_point(p))
+	{
+	    (void) printf("Is not a tetra point, should not have entered"
+			  "this function remove_interior_tetra_pt()\n");
+	}
+	for (i = 0; i < nt; ++i)
+	{
+	    t = tris[i];
+	    for (j = 0; j < 3; ++j)
+	    {
+		if (Point_of_tri(t)[j] == p)
+		{
+		    side[i] = Next_m3(j);
+		    pts[i] = Point_of_tri(t)[side[i]];
+		    if (is_side_bdry(t,side[i]))
+			is_bdry[i] = YES;
+		    else
+			is_bdry[i] = NO;
+		}
+	    }
+	}
+	new_t = make_tri(pts[0],pts[1],pts[2],NULL,NULL,NULL,0);
+	insert_tri_at_tail_of_list(new_t,s);
+	set_neighbors_from_tetra_tris(new_t,tris,side,is_bdry);
+	for (i = 0; i < nt; ++i)
+	{
+	    remove_tri_from_surface(tris[i],s,YES);
+	    *pq = dequeue(tris[i],*pq);
+	}
+	if (debugging("tetra_pt"))
+	{
+	    (void) printf("Leaving remove_interior_tetra_pt()\n");
+	    status = consistent_interface(intfc);
+	    (void) printf("Consisteny status = %d\n",status);
+	}
+	return YES;
+}	/* end remove_interior_tetra_pt */
+
+LOCAL void set_neighbors_from_tetra_tris(
+	TRI *new_tri,
+	TRI **old_tris,
+	int *side,
+	boolean *is_bdry)
+{
+	int i,j;
+	TRI *t,*nbt;
+	BOND *b;
+	BOND_TRI *btri,**bt;
+
+	for (i = 0; i < 3; ++i)
+	{
+	    t = old_tris[i];
+	    if (is_bdry[i])
+	    {
+		b = Bond_on_side(t,side[i]);
+		for (bt = Btris(b); bt && *bt; ++bt)
+		{
+		    btri = *bt;
+		    if (btri->tri == t) break;
+		}
+		link_tri_to_bond(btri,new_tri,btri->surface,b,btri->curve);
+		
+	    }
+	    else
+	    {
+		nbt = Tri_on_side(t,side[i]);
+		Tri_on_side(new_tri,i) = nbt;
+		for (j = 0; j < 3; ++j)
+		{
+		    if (Tri_on_side(nbt,j) == t)
+		    {
+			Tri_on_side(nbt,j) = new_tri;
+			break;
+		    }
+		}
+	    }
+	}
+}	/* end set_neighbors_from_tetra_tris */

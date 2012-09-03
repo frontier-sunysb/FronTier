@@ -525,8 +525,8 @@ static void print_hyper_surf_quality(
 		}
 	    }
 	    (void) printf("\n\nElastic curve quality:\n");
-	    (void) printf("min_length = %f\n",min_length);
-	    (void) printf("max_length = %f\n",max_length);
+	    (void) printf("min_scaled_length = %14.10f\n",min_length);
+	    (void) printf("max_scaled_length = %14.10f\n",max_length);
 
 	    max_length = 0.0;
 	    min_length = HUGE;
@@ -544,8 +544,8 @@ static void print_hyper_surf_quality(
 		}
 	    }
 	    (void) printf("\nElastic string quality:\n");
-	    (void) printf("min_length = %f\n",min_length);
-	    (void) printf("max_length = %f\n",max_length);
+	    (void) printf("min_scaled_length = %14.10f\n",min_length);
+	    (void) printf("max_scaled_length = %14.10f\n",max_length);
 
 	    max_area = max_length = 0.0;
 	    min_area = min_length = HUGE;
@@ -562,16 +562,18 @@ static void print_hyper_surf_quality(
 		    if (scaled_area < min_area) min_area = scaled_area;
 		    for (i = 0; i < 3; ++i)
 		    {
-			if (len[i] > max_length) max_length = len[i];
-			if (len[i] < min_length) min_length = len[i];
+			if (len[i] > max_length) 
+			    max_length = len[i];
+			if (len[i] < min_length) 
+			    min_length = len[i];
 		    }
 		}
 	    }
 	    (void) printf("\nElastic surface quality:\n");
-	    (void) printf("min_area = %f  min_length = %f\n",
-					min_area,min_length);
-	    (void) printf("max_area = %f  max_length = %f\n",
-					max_area,max_length);
+	    (void) printf("min_scaled_area = %14.10f\n",min_area);  
+	    (void) printf("max_scaled_area = %14.10f\n",max_area); 
+	    (void) printf("min_scaled_tri_side = %14.10f\n",sqrt(min_length));
+	    (void) printf("max_scaled_tri_side = %14.10f\n",sqrt(max_length));
 	    (void) printf("\n\n");
 	    break;
 	}
@@ -623,10 +625,23 @@ static void optimizeElasticMesh(
 	SCALED_REDIST_PARAMS scaled_redist_params;
 	int old_string_pts,new_string_pts,old_canopy_pts,new_canopy_pts;
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
+	int num_opt_round;
 
+	if (debugging("optimize_intfc"))
+	{
+	    (void) printf("Quality of mesh before optimization:\n");
+	    print_hyper_surf_quality(front);
+	    (void) printf("Checking consistency of interface\n");
+	    consistent_interface(front->interf);
+	    (void) printf("Checking completed\n");
+	    gview_plot_interface("gview-before-optimize",intfc);
+	    if (debugging("no_optimize"))
+		clean_up(0);
+	}
 	if (debugging("no_optimize")) return;
 	if (gr->dim == 2) return;
 
+	num_opt_round = af_params->num_opt_round;
 	scaled_redist_params.min_scaled_bond_length = 0.45;
 	scaled_redist_params.max_scaled_bond_length = 1.05;
 
@@ -634,7 +649,7 @@ static void optimizeElasticMesh(
 	scaled_redist_params.max_scaled_tri_area = 0.4330;
 	scaled_redist_params.min_scaled_side_length = 0.45;
 	scaled_redist_params.max_scaled_side_length = 1.05;
-	scaled_redist_params.aspect_tol = 4.0;
+	scaled_redist_params.aspect_tol = 3.0;
 
 	old_string_pts = old_canopy_pts = 0;
 	for (s = intfc->surfaces; s && *s; ++s)
@@ -644,9 +659,11 @@ static void optimizeElasticMesh(
 	    if (hsbdry_type(*c) == STRING_HSBDRY)
 		old_string_pts += FT_NumOfCurvePoints(*c) - 2;
 
-	for (i = 0; i < 10; ++i)
+	for (i = 0; i < num_opt_round; ++i)
 	{
 	    status = YES;
+	    if (debugging("optimize_intfc"))
+		(void) printf("Optimization rould %d\n",i);
 	    for (c = intfc->curves; c && *c; ++c)
 	    {
 	    	if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
@@ -667,7 +684,7 @@ static void optimizeElasticMesh(
 	    	status *= (int)nothing_done;
 	    }
 	    FT_ParallelExchIntfcBuffer(front);
-	    if (debugging("opt_elastic_mesh"))
+	    if (debugging("optimize_intfc"))
 	    {
 		(void) printf("Quality of mesh after %d-th round:\n",i);
 	    	print_hyper_surf_quality(front);
@@ -687,4 +704,9 @@ static void optimizeElasticMesh(
 		new_string_pts += FT_NumOfCurvePoints(*c) - 2;
 	af_params->m_s *= (double) old_canopy_pts/new_canopy_pts;
 	af_params->m_c *= (double) old_string_pts/new_string_pts;
+	if (debugging("optimize_intfc"))
+	{
+	    gview_plot_interface("gview-after-optimize",intfc);
+	    clean_up(0);
+	}
 }	/* end optimizeElasticMesh */

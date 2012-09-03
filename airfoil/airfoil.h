@@ -75,6 +75,8 @@ typedef struct {
 	double area_dens;		/* canopy area density */
 	double min_len;
 	int    n_tan;			/* number of sub-steps for tan prop */
+	int    num_opt_round;		/* number of canopy optimizations 
+							rounds*/ 
         IF_FIELD *field;
 } AF_PARAMS;
 
