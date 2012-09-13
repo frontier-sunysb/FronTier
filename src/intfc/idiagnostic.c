@@ -252,30 +252,8 @@ EXPORT boolean the_tri_rot(TRI *tri)
 }	/* end the_tri */
 
 boolean the_tri1(TRI *);
-/*DEBUG_TMP  */
 EXPORT boolean the_tri1(TRI *tri)
 {
-	/*DEBUG_TMP int i,j; */
-	/*DEBUG_TMP double tol = 1.0e-5;	 vertices coords must have at least  */
-				/* five digits after decimal points */
-
-	/*DEBUG_TMP double p[3][3] = {{ -0.07499999999999997,    -0.4987777022673648,     -7.075000000000001  }, */
-			 /*DEBUG_TMP { -0.02499999999999997,    -0.5082727175392801,     -7.125000000000001 }, */
-			 /*DEBUG_TMP { -0.02499999999999997,    -0.5196872723365785,     -7.075000000000001 } }; */
-
-	/*DEBUG_TMP return NO; */
-
-	/*DEBUG_TMP for (i = 0; i < 3; i++) */
-	/*DEBUG_TMP { */
-	    /*DEBUG_TMP for (j = 0; j < 3; j++) */
-	    /*DEBUG_TMP { */
-	    	/*DEBUG_TMP if (fabs(Coords(Point_of_tri(tri)[i])[j] - p[i][j]) > tol) */
-		/*DEBUG_TMP { */
-		    /*DEBUG_TMP return NO; */
-		/*DEBUG_TMP } */
-	    /*DEBUG_TMP } */
-	/*DEBUG_TMP } */
-	/*DEBUG_TMP return YES; */
 }
 
 EXPORT boolean the_tri(TRI *tri)
@@ -284,9 +262,9 @@ EXPORT boolean the_tri(TRI *tri)
 	double tol = 1.0e-5;	/* vertices coords must have at least */
 				/* five digits after decimal points */
 
-	double p[3][3] = {{0.50416,0.0,0.0},
-			  {0.49583,0.00416,0.0},
-			  {0.49583,0.0,0.0}};
+	double p[3][3] = {{6.68241,7.14907,16.0},
+			  {6.84599,7.11666,16.0},
+			  {6.73447,7.20114,16.0}};
 
 	/*return NO; */
 
@@ -326,7 +304,7 @@ EXPORT boolean the_side(TRI  *tri)
 
 	for(i=0; i<3; i++)
 	{
-	    if( (check_pt(Coords(p[i]), p1) && check_pt(Coords(p[Next_m3(i)]), p2))  ||
+	    if((check_pt(Coords(p[i]), p1) && check_pt(Coords(p[Next_m3(i)]), p2))  ||
 	        (check_pt(Coords(p[i]), p2) && check_pt(Coords(p[Next_m3(i)]), p1)) )
 		return YES;
 	}
@@ -450,8 +428,8 @@ LOCAL boolean the_point_one(POINT *pt, double *p)
 
 EXPORT boolean the_point(POINT *pt)
 {
-	double	p1[3] = {0.50208,0.50613,0.49374};
-	double	p2[3] = {0.50208,0.50613,0.49374};
+	double	p1[3] = {11.868969, 5.8628397, 16};
+	double	p2[3] = {11.869, 5.86284, 16};
 
 	if(the_point_one(pt,p1) || the_point_one(pt,p2))
 	    return YES;
@@ -515,3 +493,54 @@ EXPORT boolean search_the_tri_in_surf(SURFACE *s)
         }
 	return the_tri_found;
 }
+
+EXPORT void closest_point_on_curve(
+	POINT **p_closest,
+	BOND **b_closest,
+	double *crds,
+	CURVE *c)
+{
+	BOND *b;
+	double d,dmin;
+	POINT *p,*pmin;
+	BOND *bmin;
+	pmin = p = c->first->start;
+	dmin = d = distance_between_positions(crds,Coords(p),2);
+	bmin = c->first;
+	for (b = c->first; b != NULL; b = b->next)
+	{
+	    p = b->end;
+	    d = distance_between_positions(crds,Coords(p),2);
+	    if (d < dmin)
+	    {
+		dmin = d;
+		pmin = p;
+		bmin = b;
+	    }
+	}
+	*p_closest = pmin;
+	*b_closest = bmin;
+}	/* end closest_point_on_curve */
+
+EXPORT boolean point_on_curve(
+	POINT *p,
+	BOND **b,
+	CURVE *c)
+{
+	BOND *bond;
+	if (p == c->first->start)
+	{
+	    *b = c->first;
+	    return YES;
+	}
+	for (bond = c->first; bond != NULL; bond = bond->next)
+	{
+	    if (p == bond->end)
+	    {
+		*b = bond;
+		return YES;
+	    }
+	}
+	return NO;
+}	/* end point_on_curve */
+

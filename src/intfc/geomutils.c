@@ -304,6 +304,17 @@ EXPORT	double _scaled_separation(
 	return sqrt(ans);
 }		/*end _scaled_separation*/
 
+EXPORT  void direction_vector(
+        double *p1,
+        double *p2,
+        double *vdir,
+        int dim)
+{
+        int i;
+        double d = distance_between_positions(p1,p2,dim);
+        for (i = 0; i < dim; ++i)
+            vdir[i] = (p2[i] - p1[i])/d;
+}       /* end direction */
 
 /*
 *			cal_angle():

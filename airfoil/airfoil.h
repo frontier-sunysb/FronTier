@@ -50,6 +50,7 @@ typedef struct {
         SPRING_MODEL spring_model;
 	boolean no_fluid;
 	boolean is_parachute_system;
+	boolean attach_gores;
 	PERT_PARAMS pert_params;
 	STRING_NODE_TYPE start_type;
 	STRING_NODE_TYPE end_type;
@@ -65,10 +66,13 @@ typedef struct {
         double smoothing_radius;
 	double ks;			/* spring constant of surface */
 	double kl;			/* spring constant of string curves */
+	double kg;                      /* spring constant of gore curves */
 	double lambda_s;		/* damping factor of surface */
 	double lambda_c;		/* damping factor of string curves */
+	double lambda_g;                /* damping factor of gore curves */
 	double m_s;			/* point mass of surface */
 	double m_c;			/* point mass of string curves */
+	double m_g;                     /* point mass of gore curves */
 	double total_string_mass;	/* Total mass of string chord */
 	double total_canopy_mass;	/* Total mass of string chord */
 	double gamma;			/* canopy porosity */
@@ -128,6 +132,7 @@ struct _STRING_PARAMS {
 	double theta;
 	double phi;
 	double L[MAXD],U[MAXD];
+	double P[MAXD];
 };
 typedef struct _STRING_PARAMS STRING_PARAMS;
 
@@ -166,10 +171,12 @@ struct _PARACHUTE_SET{
         SURFACE *canopy;
         CURVE **elas_bdry_curves;
         NODE **string_node;
+	NODE **gore_nodes;
         NODE *load_node;
         CURVE **string_curves;
         int num_elas_bdry_curves;
         int num_strings;
+	int num_gore_nodes;
 	double ks;
 	double kl;
 	double lambda_s;

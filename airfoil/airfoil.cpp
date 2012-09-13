@@ -663,7 +663,7 @@ static void optimizeElasticMesh(
 	{
 	    status = YES;
 	    if (debugging("optimize_intfc"))
-		(void) printf("Optimization rould %d\n",i);
+		(void) printf("Optimization round %d\n",i);
 	    for (c = intfc->curves; c && *c; ++c)
 	    {
 	    	if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&

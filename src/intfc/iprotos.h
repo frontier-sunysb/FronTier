@@ -384,6 +384,10 @@ IMPORT	boolean	cross_bonds(BOND*,BOND*,POINT*);
 IMPORT	void	identify_detached_surface_curve_pair(INTERFACE*);
 IMPORT	int 	next_null_sided_tri(TRI*,POINT*,TRI**);
 IMPORT	int 	prev_null_sided_tri(TRI*,POINT*,TRI**);
+IMPORT 	POINT *insert_point_in_surface(int,double*,SURFACE*);
+IMPORT 	CURVE *insert_curve_in_surface(double*,NODE*,NODE*,SURFACE*);
+IMPORT 	void rotate_point_with_polar_angle(POINT*,double*,double,double,
+						boolean);
 
 /*	setb1d.c*/
 IMPORT  boolean    i_set_boundary1d(INTERFACE*,RECT_GRID*,COMPONENT,double);
@@ -457,6 +461,8 @@ IMPORT  boolean 	search_the_tri_in_intfc(INTERFACE*);
 IMPORT  boolean 	search_the_tri_in_surf(SURFACE*);
 IMPORT	void	print_tri_coords(TRI*);
 IMPORT  void 	find_blk_tri(BLK_TRI *);
+IMPORT	boolean point_on_curve(POINT*,BOND**,CURVE*);
+IMPORT	void closest_point_on_curve(POINT**,BOND**,double*,CURVE*);
 
 	/*igview.c*/
 IMPORT	void	gview_bounding_box(FILE*,const double*,const double*,
@@ -532,6 +538,7 @@ IMPORT  SURFACE *detach_one_surface(SURFACE *);
 IMPORT  void    print_wall_crx(const char*,int*,int,int,CRXING*);
 IMPORT  void    print_wall_curve_crx(const char*,int*,int,int,CRXING*);
 IMPORT  void    print_wall_curve_crx0(const char*,POINT *, int,CRXING*);
+IMPORT  boolean same_bond_tri_orient(BOND*,TRI*,BOND*,TRI*);
 
 /*	iprt3d.c*/
 IMPORT	void	print_c_bond(C_BOND*,INTERFACE*);

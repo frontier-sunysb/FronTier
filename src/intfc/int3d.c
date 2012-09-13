@@ -364,7 +364,6 @@ EXPORT SURFACE *i_copy_surface(
 	return news;
 }		/*end i_copy_surface*/
 
-/*#bjet2 */
 LOCAL	void copy_tris(
 	SURFACE		*s,
 	SURFACE		*news)
@@ -388,10 +387,10 @@ LOCAL	void copy_tris(
 	uni_array(&hash_table,h_size,sizeof(P_LINK));
 	reset_hash_table(hash_table,h_size);
 
-	/*before copy_tris, function i_copy_surface called i_make_surface,  */
-	/*it already adds curves in the surface(install_curve_in_surface_bdry).  */
-	/*It means all the points in curves are already in the new surface news, */
-	/*They should be added to the hash table first */
+	/*before copy_tris, function i_copy_surface called i_make_surface, it */
+	/*already adds curves in the surface(install_curve_in_surface_bdry).  */
+	/*It means all the points in curves are already in the new surface */
+	/* news. They should be added to the hash table first */
 	add_bdry_curve_to_hash_table(s,news,hash_table,h_size);
 
 		/* Copy Tris */
@@ -446,8 +445,8 @@ LOCAL	void copy_tris(
 
 		/*Set Boundary Bonds of Tris  */
 	
-	/*The code assume all curves are already copied to news in the SAME order */
-	/*as in s. Two cases */
+	/*The code assume all curves are already copied to news in the */
+	/* SAME order as in s. Two cases */
 	/*(1) copy_buffer_surface calls the function in the following order */
 	/*so this condition is satisfied. */
 	/*copy_buffer_surface */
@@ -455,7 +454,8 @@ LOCAL	void copy_tris(
 	/*    matching_curve  for negative curves */
 	/*    s = copy_surface(as,pos_curves,neg_curves,YES); */
 	/*(2) i_copy_interface */
-	/*    before calling copy_all_surfaces, i_copy_interface copies all the curves */
+	/*    before calling copy_all_surfaces, i_copy_interface copies */
+	/* all the curves */
 
 	for (oldc = s->pos_curves, newc = news->pos_curves; 
 	     oldc && *oldc; ++oldc, ++newc)
@@ -466,6 +466,8 @@ LOCAL	void copy_tris(
 		for (btris = Btris(bond); btris && *btris; ++btris)
 		{
 		    if (Surface_of_tri((*btris)->tri) != s)
+			continue;
+		    if ((*btris)->orient != POSITIVE_ORIENTATION)
 			continue;
 
 		    newtri = ntris[Tri_index((*btris)->tri)];
@@ -484,6 +486,8 @@ LOCAL	void copy_tris(
 		for (btris = Btris(bond); btris && *btris; ++btris)
 		{
 		    if (Surface_of_tri((*btris)->tri) != s)
+			continue;
+		    if ((*btris)->orient != NEGATIVE_ORIENTATION)
 			continue;
 
 		    newtri = ntris[Tri_index((*btris)->tri)];
@@ -1031,6 +1035,7 @@ EXPORT	void	insert_tri_at_tail_of_list(
 	last_tri(s) = tri;
 	last_tri(s)->next = tail_of_tri_list(s);
 	++s->num_tri;
+	tri->surf = s;
 	for (i = 0; i < 3; ++i)
 	{
 	    if (is_side_bdry(tri,i))
@@ -1040,7 +1045,6 @@ EXPORT	void	insert_tri_at_tail_of_list(
 		    (void) link_tri_to_bond(bt,tri,s,bt->bond,bt->curve);
 	    }
 	}
-	tri->surf = s;
 }		/*end insert_tri_at_tail_of_list*/
 
 EXPORT	void	remove_tri_from_surface(
@@ -2653,10 +2657,7 @@ EXPORT	BOND_TRI *i_link_tri_to_bond(
 	    printf("%llu\n", point_number(p[0]));
 	    printf("%llu\n", point_number(p[1]));
 	    printf("%llu\n", point_number(p[2]));
-	    
 	    print_bond(b);
-	    printf("tri bond %p %p\n", tri, b);
-
 	    if (debugging("link_tri_to_bond"))
 	    {
 	        FILE *xgraph = xgraph_file_open("xg","link_tri_bond",XY_PLANE);
@@ -3133,3 +3134,53 @@ EXPORT boolean link_neighbor_tris(
 	}
 	return NO;
 }	/* end link_neighbor_tris */
+
+EXPORT boolean same_bond_tri_orient(
+        BOND *b1,
+        TRI *t1,
+        BOND *b2,
+        TRI *t2)
+{
+        int i;
+        ORIENTATION orient = ORIENTATION_NOT_SET;
+
+        for (i = 0; i < 3; ++i)
+        {
+            if (Point_of_tri(t1)[i] == b1->start &&
+                Point_of_tri(t1)[(i+1)%3] == b1->end)
+            {
+                orient = POSITIVE_ORIENTATION;
+                break;
+            }
+            if (Point_of_tri(t1)[i] == b1->end &&
+                Point_of_tri(t1)[(i+1)%3] == b1->start)
+            {
+                orient = NEGATIVE_ORIENTATION;
+                break;
+            }
+        }
+        if (orient == ORIENTATION_NOT_SET)
+        {
+	    return NO;
+        }
+        for (i = 0; i < 3; ++i)
+        {
+            if (Point_of_tri(t2)[i] == b2->start &&
+                Point_of_tri(t2)[(i+1)%3] == b2->end)
+            {
+                if (orient == POSITIVE_ORIENTATION)
+                    return YES;
+                else
+                    return NO;
+            }
+            if (Point_of_tri(t2)[i] == b2->end &&
+                Point_of_tri(t2)[(i+1)%3] == b2->start)
+            {
+                if (orient == NEGATIVE_ORIENTATION)
+                    return YES;
+                else
+                    return NO;
+            }
+        }
+	return NO;
+}       /* end same_bond_tri_orient */

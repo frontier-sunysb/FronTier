@@ -1709,6 +1709,7 @@ EXPORT  void    FT_StartUp(
 
         	    /* Init front interface */
 
+		    set_size_of_intfc_state(front->sizest);
         	    i_intfc(&Init) = front->interf = make_interface(dim);
 
         	    copy_rect_grid(computational_grid(front->interf),
@@ -1716,7 +1717,6 @@ EXPORT  void    FT_StartUp(
         	    set_default_front(&Init,front);
 		    set_default_comp(NO);
 		    delete_interface(front->interf);
-		    set_size_of_intfc_state(front->sizest);
         	    i_intfc(&Init) = front->interf = make_interface(dim);
 		    copy_rect_grid(computational_grid(front->interf),
 		        	    front->rect_grid);

@@ -463,8 +463,8 @@ EXPORT boolean  f_assign_btri_states(
         BOND_TRI *newbtri,
         BOND_TRI *btri)
 {
-INTERFACE       *cintfc = current_interface();
-size_t          sizest = size_of_state(cintfc);        
+	INTERFACE       *cintfc = current_interface();
+	size_t          sizest = size_of_state(cintfc);        
 
         if (sizest == 0)
         { 
@@ -477,10 +477,14 @@ size_t          sizest = size_of_state(cintfc);
 	
 	if (copy_intfc_states() == YES)
 	{
-            ft_assign(left_start_btri_state(newbtri),left_start_btri_state(btri),sizest);
-            ft_assign(left_end_btri_state(newbtri),left_end_btri_state(btri),sizest);
-            ft_assign(right_start_btri_state(newbtri),right_start_btri_state(btri),sizest);
-            ft_assign(right_end_btri_state(newbtri),right_end_btri_state(btri),sizest);
+            ft_assign(left_start_btri_state(newbtri),
+			left_start_btri_state(btri),sizest);
+            ft_assign(left_end_btri_state(newbtri),
+			left_end_btri_state(btri),sizest);
+            ft_assign(right_start_btri_state(newbtri),
+			right_start_btri_state(btri),sizest);
+            ft_assign(right_end_btri_state(newbtri),
+			right_end_btri_state(btri),sizest);
         }
 	return YES;
 }

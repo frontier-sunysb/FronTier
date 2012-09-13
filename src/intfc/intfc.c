@@ -3897,11 +3897,17 @@ LOCAL	void split_tris_at_split_bond(
 	    }
 
 	    nt = make_tri(p0,p1,p2,n01,n12,n20,bdry);
-	    /*#bjet2 */
-	    /*insert_tri_at_tail_of_list(nt,surf); */
 
 	    Point_of_tri(t)[ie] = p;
 	    set_normal_of_tri(t);
+	    if (newb->next != NULL)
+	    {
+		/* Check potential change on neighbor reset */
+		BOND_TRI **nbtris;
+		for (nbtris = Btris(newb->next); nbtris && *nbtris; ++nbtris)
+		    if ((*nbtris)->tri == t)
+			(*nbtris)->tri = nt;
+	    }
 
 	    if (link_tri_to_bond(NULL,nt,surf,newb,c) == NULL)
 	    {
@@ -3913,7 +3919,12 @@ LOCAL	void split_tris_at_split_bond(
 	    	clean_up(ERROR);
 	    }
 
-	    insert_tri_at_tail_of_list(nt,surf);
+	    nt->prev = last_tri(surf);
+	    last_tri(surf)->next = nt;
+	    last_tri(surf) = nt;
+	    last_tri(surf)->next = tail_of_tri_list(surf);
+	    ++surf->num_tri;
+	    nt->surf = surf;
 	    
 	    if (is_side_bdry(t,aside))
 	    {
@@ -3935,6 +3946,8 @@ LOCAL	void split_tris_at_split_bond(
 	    }
 	    Tri_on_side(t,aside) = nt;
 	}
+	if (debugging("link_tri"))
+	    printf("Leaving split_tris_at_split_bond(()\n");
 }		/*end split_tris_at_split_bond*/
 
 
@@ -4127,7 +4140,7 @@ LOCAL	boolean	reset_tris_at_deleted_bond(
 	    uni_array(&oldtris,max_n_t+1,sizeof(TRI*));
 	}
 
-	/* Indentify adjacent vertices and tri neighbors */
+	/* Identify adjacent vertices and tri neighbors */
 	for (i = 0; i < nt; ++i)
 	{
 	    oldtris[i] = tris[i];
@@ -4269,16 +4282,19 @@ EXPORT	boolean	retriangulate_polygon(
 	if (pnum_newtris)
 	    *pnum_newtris = 0;
 
+	/* Debugging start */
 	if (debugging("retriang") && oldtris != NULL)
 	{
 	    double mag_tnor;
 
+	    /* Cannot be consistent at this point!
 	    if (!consistent_interface(s->interface))
 	    {
 		screen("ERROR in retriangulate_polygon(), "
 		       "input interface is inconsistent\n");
 		clean_up(ERROR);
 	    }
+	    */
 	    set_tri_list_bounding_box(oldtris,nt,BBL,BBU,NO,YES);
 	    set_tri_list_bounding_box(nb_tri,nv,BBL,BBU,YES,YES);
 	    set_point_list_bounding_box(internal_v,ninternal_v,BBL,BBU,YES,YES);
@@ -4342,7 +4358,9 @@ EXPORT	boolean	retriangulate_polygon(
 		print_tri(nb_tri[i],intfc);
 	    }
 	}
+	/* Debugging end */
 
+	/* Memory allocation and management */
 	if (r == NULL)
 	    bi_array(&r,3,3,FLOAT);
 	if ((nv+ninternal_v) > max_n_v)
@@ -4363,6 +4381,7 @@ EXPORT	boolean	retriangulate_polygon(
 	    in.size_segmentlist = (size_t)2*(max_n_v);
 	    uni_array(&in.segmentlist,in.size_segmentlist,INT);
 	}
+	/* End memory allocation and management */
 
 	for (i = 0; i < nv; ++i)
 	{
@@ -4520,7 +4539,11 @@ EXPORT	boolean	retriangulate_polygon(
 		{
 		  BOND *b = nb_bond_tri[sd]->bond;
 		  POINT *ps = b->start, *pe = b->end;
-		  if ((ps == pts[v1]) && (pe == pts[v2]))
+		  /* if ((ps == pts[v1]) && (pe == pts[v2])) old wrong */
+		  if ((nb_bond_tri[sd]->orient == POSITIVE_ORIENTATION &&
+		       (ps == pts[v1] && pe == pts[v2])) ||
+		      (nb_bond_tri[sd]->orient == NEGATIVE_ORIENTATION &&
+		       (ps == pts[v2] && pe == pts[v1])))
 		  {
 		    if (reversed)
 		    {
@@ -4530,7 +4553,11 @@ EXPORT	boolean	retriangulate_polygon(
 		      return NO;
 		    }
 		  }
-		  else if ((ps == pts[v2]) && (pe == pts[v1]))
+		  /* else if ((ps == pts[v2]) && (pe == pts[v1])) old wrong */
+		  else if ((nb_bond_tri[sd]->orient == POSITIVE_ORIENTATION &&
+		       (ps == pts[v2] && pe == pts[v1])) ||
+		      (nb_bond_tri[sd]->orient == NEGATIVE_ORIENTATION &&
+		       (ps == pts[v1] && pe == pts[v2])))
 		  {
 		    if (reversed_set && !reversed)
 		    {
@@ -4720,6 +4747,7 @@ EXPORT	boolean	retriangulate_polygon(
 			    (void) printf("\tLinking side %d to "
 					  "nb_bond_tri[%d]\n",j,sd);
 			}
+			/* Here is the problem! */
 			(void) link_tri_to_bond(nb_bond_tri[sd],
 						newtris[i],s,
 						nb_bond_tri[sd]->bond,
@@ -5316,8 +5344,12 @@ EXPORT	ORIENTATION orientation_of_bond_at_tri(
 	BOND *b,
 	TRI  *tri)
 {
+	/* This old version does not always work.
 	int side = side_of_tri_with_bond(b,tri);
 	if (side < 3)
+	*/
+	int side;
+	for (side = 0; side < 3; ++side)
 	{
 	    POINT *p = Point_of_tri(tri)[side];
 	    POINT *np = Point_of_tri(tri)[Next_m3(side)];
@@ -6391,7 +6423,6 @@ EXPORT  void  reset_nodes_posn(
 
 	for(c = intfc->curves; c && *c; c++)
 	{
-	    /*DEBUG_TMP printf("#reset_nodes_posn, subdomain curve fixed. Curve %d\n", curve_number(*c)); */
 	    if(is_closed_curve(*c) && (*c)->start->posn != (*c)->first->start)
 	    {
 		(*c)->start->posn = (*c)->first->start;

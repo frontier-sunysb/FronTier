@@ -96,6 +96,29 @@ EXPORT	boolean	f_consistent_interface(
 	  {
 	    for (i = 0, bts = Btris(b); bts && *bts; ++i, ++bts)
 	    {
+	      if (left_start_btri_state(*bts) == left_end_btri_state(*bts))
+	      {
+	        (void) printf("%s left start and end btri states equal\n",warn);
+	        (void) printf("curve = %llu\n",curve_number(*c));
+	        (void) printf("surface = %llu\n",
+				surface_number((*bts)->surface));
+	        (void) printf("orient = %s\n",orientation_name((*bts)->orient));
+	        print_bond(b);
+	        print_tri((*bts)->tri,intfc);
+	        status = NO;
+	      }
+	      if (right_start_btri_state(*bts) == right_end_btri_state(*bts))
+	      {
+	        (void) printf("%s right start and end btri states equal\n",
+				warn);
+	        (void) printf("curve = %llu\n",curve_number(*c));
+	        (void) printf("surface = %llu\n",
+				surface_number((*bts)->surface));
+	        (void) printf("orient = %s\n",orientation_name((*bts)->orient));
+	        print_bond(b);
+	        print_tri((*bts)->tri,intfc);
+	        status = NO;
+	      }
 	      if (left_start_btri_state(*bts) == NULL)
 	      {
 	        (void) printf("%s left start btri state is NULL\n",warn);

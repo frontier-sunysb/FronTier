@@ -539,8 +539,9 @@ LOCAL	boolean	check_curve3d(
 	int      nsides, nbts, i;
 	int      ntris;
 
-	(void) sprintf(warn,"WARNING in check_curve3d(), curve %llu inconsistent ",
-		       curve_number(c));
+	(void) sprintf(warn,
+			"WARNING in check_curve3d(), curve %llu inconsistent",
+		        curve_number(c));
 	if (c->interface != intfc)
 	{
 	    (void) printf("%s c->interface (%llu) != intfc (%llu)\n",
@@ -762,8 +763,7 @@ LOCAL	boolean	check_curve3d(
 		{
 		    if (orientation_of_bond_at_tri(b,tri) != (*bts)->orient)
 		    {
-		        (void) printf("%s inconsistent orientation at "
-				      "bond tri\n",warn);
+		        (void) printf("%s orientation at bond tri\n",warn);
 		        print_tri(tri,intfc);
 		        print_bond(b);
 		        status = NO;

@@ -31,7 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *
 */
 
-#if defined(THREED)
 
 #include <intfc/int.h>
 
@@ -554,4 +553,371 @@ LOCAL	void print_seam(
 	(void) printf("End of SEAM %p.\n",seam);
 	(void) printf("\n");
 }		/*end print_seam*/
-#endif /* defined(THREED) */
+
+EXPORT POINT *insert_point_in_surface(
+	int idir,
+	double *coords,
+	SURFACE *surf)
+{
+	INTERFACE *intfc = surf->interface;
+	RECT_GRID *gr = &topological_grid(intfc);
+	TRI *tri;
+	double crds_start[MAXD],crds_crx[MAXD];
+	double h[MAXD],crds_min,crds_max,dh;
+	int i,iv,ie;
+	POINT *pt = NULL;
+
+	if (debugging("add_gore"))
+	{
+	    (void) printf("Entering insert_point_in_surface()\n");
+	    gview_plot_surf_within_range("gvertex-0",surf,coords,3*h[0]);
+	}
+
+	for (i = 0; i < 3; ++i)
+	{
+	    crds_start[i] = crds_crx[i] = coords[i];
+	    h[i] = gr->h[i];
+	}
+	dh = h[idir];
+
+	for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf);
+				tri = tri->next)
+	{
+	    crds_min = HUGE;	crds_max = -HUGE;
+	    for (i = 0; i < 3; ++i)
+	    {
+		if (crds_min > Coords(Point_of_tri(tri)[i])[idir])
+		    crds_min = Coords(Point_of_tri(tri)[i])[idir];
+		if (crds_max < Coords(Point_of_tri(tri)[i])[idir])
+		    crds_max = Coords(Point_of_tri(tri)[i])[idir];
+	    }
+	    h[idir] = 2*dh + crds_max - crds_min;
+	    crds_start[idir] = crds_crx[idir] = crds_min - dh;
+	    if (tri_edge_crossing(tri,crds_start,crds_crx,idir,&iv,&ie,h))
+	    {
+		if (iv != ERROR)
+		{
+		    if (debugging("add_gore"))
+			(void) printf("Verter case\n");
+		    pt = Point_of_tri(tri)[iv];
+		    break;
+		}
+		else if (ie != ERROR)
+		{
+		    if (debugging("add_gore"))
+			(void) printf("Edge case\n");
+		    pt = Point(crds_crx);
+		    insert_point_in_tri_side(pt,ie,tri,surf);
+		    break;
+		}
+		else
+		{
+		    if (debugging("add_gore"))
+			(void) printf("Tri case\n");
+		    pt = Point(crds_crx);
+		    insert_point_in_tri(pt,tri,surf);
+		    break;
+		}
+	    }
+	}
+	if (debugging("add_gore"))
+	{
+	    (void) printf("Entering insert_point_in_surface()\n");
+	    gview_plot_surf_within_range("gvertex-1",surf,coords,3*h[0]);
+	}
+	return pt;
+}	/* end insert_point_in_surface */
+
+
+/*	This function insert a curve in a surface, the inputs are two
+*	nodes, the start and end nodes, and the surface. This function
+*	is rather expensive and is only used in initialization.
+*/
+
+EXPORT CURVE *insert_curve_in_surface(
+	double *nor,
+	NODE *ns,
+	NODE *ne,
+	SURFACE *surf)
+{
+	CURVE *curve;
+	INTERFACE *intfc = surf->interface;
+	TRI *tri,**tris,**pos_tris,**neg_tris;
+	double *ps = Coords(ns->posn);
+	double *pe = Coords(ne->posn);
+	double v1[MAXD],v2[MAXD],d1,d2;
+	double *p1,*p2;
+	int i,j,k,iv,num_pts,num_tris;
+	double plane[4],pc[MAXD];
+	POINT **cpts,*pnew;
+	boolean within_nodes;
+	RECT_GRID *gr = &topological_grid(intfc);
+	double *h = gr->h;
+	double xdiff;
+	int ix;
+	BOND_TRI *btri;
+	BOND *b;
+
+	if (debugging("insert_curve_in_surf"))
+	{
+	    (void) printf("Entering insert_curve_in_surface()\n");
+	    (void) printf("nor = %f %f %f\n",nor[0],nor[1],nor[2]);
+	    (void) printf("Start and end nodes:\n");
+	    (void) print_node(ns);
+	    (void) print_node(ne);
+	    gview_plot_interface("ginsert_curve-0",intfc);
+	}
+	curve = make_curve(0,0,ns,ne);
+	install_curve_in_surface_bdry(surf,curve,POSITIVE_ORIENTATION);
+
+	num_pts = 2;
+	plane[3] = 0.0;
+	xdiff = 0.0;
+	for (i = 0; i < 3; ++i)
+	{
+	    plane[i] = nor[i];
+	    plane[3] += nor[i]*ps[i];
+	    if (xdiff < fabs(ps[i] - pe[i]))
+	    {
+		xdiff = fabs(ps[i] - pe[i]);
+		ix = i;
+	    }
+	}
+	reset_surface_points(surf);
+	for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
+				tri = tri->next)
+	{
+	    for (i = 0; i < 3; ++i)
+	    {
+		if (plane_side_intersection(plane,tri,i,pc,&iv))
+		{
+		    if (within_interval(ps[ix],pe[ix],pc[ix]))
+			within_nodes = YES;
+		    else
+			within_nodes = NO;
+		    if (!within_nodes) continue;
+		    if (iv != ERROR)
+		    {
+			pnew = Point_of_tri(tri)[iv];
+			if (sorted(pnew)) continue;
+			else
+			{
+			    sorted(pnew) = YES;
+			    num_pts++;
+			    continue;
+			}
+		    }
+		    num_pts++;
+		}
+	    }
+	}
+	FT_VectorMemoryAlloc((POINTER*)&cpts,num_pts,sizeof(POINT*));
+	num_pts = 0;
+	cpts[num_pts++] = ns->posn;
+	for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
+				tri = tri->next)
+	{
+repeat:
+	    for (i = 0; i < 3; ++i)
+	    {
+		if (plane_side_intersection(plane,tri,i,pc,&iv))
+		{
+		    if (within_interval(ps[ix],pe[ix],pc[ix]))
+			within_nodes = YES;
+		    else
+			within_nodes = NO;
+		    if (!within_nodes) continue;
+		    if (iv != ERROR)
+		    {
+			pnew = Point_of_tri(tri)[iv];
+			if (pnew == ns->posn || pnew == ne->posn) 
+			    continue;
+			if (pointer_in_list((POINTER)pnew,num_pts,
+				(POINTER*)cpts))
+			    continue;
+			cpts[num_pts++] = pnew;
+		    }
+		    else
+		    {
+			pnew = Point(pc);
+			insert_point_in_tri_side(pnew,i,tri,surf);
+			cpts[num_pts++] = pnew;
+			goto repeat;
+		    }
+		}
+	    }
+	}
+	cpts[num_pts++] = ne->posn;
+	if (debugging("insert_curve_in_surf"))
+	    (void) printf("Total number of points in curve: %d\n",num_pts);
+
+	/* Make sure all new points are attached to a tri */
+	for (i = 0; i < num_pts; ++i)
+	{
+	    cpts[i]->hse = NULL;
+	    for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
+				tri = tri->next)
+	    {
+	        for (iv = 0; iv < 3; ++iv)
+		{
+		    pnew = Point_of_tri(tri)[iv];
+		    if (pnew == cpts[i])
+		    {
+			cpts[i]->hse = Hyper_surf_element(tri);	
+			break;
+		    }
+		}
+		if (iv < 3) break;
+	    }
+	    if (cpts[i]->hse == NULL)
+	    {
+		(void) printf("cpts[%d] cannot find attached tri!\n");
+		clean_up(ERROR);
+	    }
+	}
+	/* Sort new points along ns-->ne direction */
+	FT_VectorMemoryAlloc((POINTER*)&pos_tris,num_pts-1,sizeof(TRI*));
+	FT_VectorMemoryAlloc((POINTER*)&neg_tris,num_pts-1,sizeof(TRI*));
+	for (i = 0; i < num_pts-1; ++i)
+	{
+	    boolean next_found = NO;
+
+	    tri = Tri_of_hse(cpts[i]->hse);
+	    num_tris = FT_FirstRingTrisAroundPoint(cpts[i],tri,&tris);
+	    for (j = 0; j < num_tris; ++j)
+	    {
+	    	for (iv = 0; iv < 3; ++iv)
+		{
+		    pnew = Point_of_tri(tris[j])[iv];
+		    if (pnew == cpts[i]) continue;	// skip self
+		    for (k = i+1; k < num_pts; ++k)
+		    {
+			if (pnew == cpts[k])
+			{
+			    if (k != i+1)
+			    {
+				pnew = cpts[k];
+				cpts[k] = cpts[i+1];
+				cpts[i+1] = pnew;
+			    }
+			    next_found = YES;
+			    break;
+			}
+		    }
+		    if (next_found) break;
+		}
+		if (next_found) break;
+	    }
+	    if (!next_found)
+	    {
+		(void) printf("Consecutive ordering failed!\n");
+		clean_up(ERROR);
+	    }
+	    pos_tris[i] = neg_tris[i] = NULL;
+	    for (j = 0; j < num_tris; ++j)
+	    {
+		for (k = 0; k < 3; ++k)
+		{
+		    if (cpts[i] == Point_of_tri(tris[j])[k] &&
+			cpts[i+1] == Point_of_tri(tris[j])[(k+1)%3])
+			pos_tris[i] = tris[j];
+		    if (cpts[i+1] == Point_of_tri(tris[j])[k] &&
+			cpts[i] == Point_of_tri(tris[j])[(k+1)%3])
+			neg_tris[i] = tris[j];
+		}
+	    }
+	    if (pos_tris[i] == NULL)
+	    {
+		printf("pos_tris[%d] not found\n",i);
+	    }
+	    if (neg_tris[i] == NULL)
+	    {
+		printf("neg_tris[%d] not found\n",i);
+	    }
+	}
+	if (debugging("insert_curve_in_surf"))
+	{
+	    (void) printf("Sorted points:\n");
+	    (void) printf("ps = %f %f\n",ps[0],ps[1]);
+	    for (i = 1; i < num_pts-1; ++i)
+	    	(void) printf("pc[%d] = %f %f\n",i,Coords(cpts[i])[0],
+				Coords(cpts[i])[1]);
+	    (void) printf("pe = %f %f\n",pe[0],pe[1]);
+	}
+	for (i = 1; i < num_pts-1; ++i)
+	{
+	    insert_point_in_bond(cpts[i],curve->last,curve);
+	}
+	for (i = 0, b = curve->first; b!= NULL; b = b->next, i++)
+	{
+	    btri = link_tri_to_bond(NULL,pos_tris[i],surf,b,curve);
+	    btri = link_tri_to_bond(NULL,neg_tris[i],surf,b,curve);
+	}
+
+	FT_FreeThese(3,cpts,pos_tris,neg_tris);
+	if (debugging("insert_curve_in_surf"))
+	{
+	    (void) printf("Leaving insert_curve_in_surf()\n");
+	    gview_plot_interface("ginsert_curve-1",intfc);
+	}
+	reset_intfc_num_points(surf->interface);
+	return curve;
+}	/* end insert_curve_in_surf */
+
+
+EXPORT void rotate_point_with_polar_angle(
+	POINT *p,
+	double *center,			// Rotation center
+	double phi,			// Polar angle
+	double theta,			// Azimuthal angle
+	boolean first)
+{
+	static double roty_matrix[3][3];
+	static double rotz_matrix[3][3];
+	double pt[3];
+	int i,j;
+
+	if (first == YES)
+	{
+	    /* Set up rotation matrix */
+	    roty_matrix[0][0] = cos(theta);
+	    roty_matrix[0][1] = 0.0;
+	    roty_matrix[0][2] = sin(theta);
+	    roty_matrix[1][0] = 0.0;
+	    roty_matrix[1][1] = 1.0;
+	    roty_matrix[1][2] = 0.0;
+	    roty_matrix[2][0] = -sin(theta);
+	    roty_matrix[2][1] = 0.0;
+	    roty_matrix[2][2] = cos(theta);
+	    
+	    rotz_matrix[0][0] = cos(phi);
+	    rotz_matrix[0][1] = -sin(phi);
+	    rotz_matrix[0][2] = 0.0;
+	    rotz_matrix[1][0] = sin(phi);
+	    rotz_matrix[1][1] = cos(phi);
+	    rotz_matrix[1][2] = 0.0;
+	    rotz_matrix[2][0] = 0.0;
+	    rotz_matrix[2][1] = 0.0;
+	    rotz_matrix[2][2] = 1.0;
+	}
+	for (i = 0; i < 3; i++)
+	    Coords(p)[i] -= center[i];
+	for (i = 0; i < 3; i++)
+	{
+	    pt[i] = 0.0; 
+	    for (j = 0; j < 3; j++)
+	    {
+		pt[i] += roty_matrix[i][j]*Coords(p)[j];
+	    }
+	}
+	for (i = 0; i < 3; i++)
+	{
+	    Coords(p)[i] = 0.0;
+	    for (j = 0; j < 3; j++)
+	    {
+		Coords(p)[i] += rotz_matrix[i][j]*pt[j];
+	    }
+	}
+	for (i = 0; i < 3; i++)
+	    Coords(p)[i] += center[i];
+}	/* end rotate_point */

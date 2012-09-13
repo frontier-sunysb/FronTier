@@ -1314,7 +1314,7 @@ EXPORT	boolean	assign_btri_states(
 	BOND_TRI	*newbtri,
 	BOND_TRI	*btri)
 {
-INTERFACE	*intfc = current_interface();
+	INTERFACE	*intfc = current_interface();
 	
 	if (intfc==NULL ||
 	    i_user_interface(intfc)._assign_btri_states==NULL)

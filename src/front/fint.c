@@ -77,7 +77,6 @@ LOCAL	void 	f_fprint_Dirichlet_bdry_states(FILE*,INTERFACE*);
 LOCAL size_t	size_of_intfc_state = 0;
 LOCAL boolean	copyintfcstates = YES;
 LOCAL boolean      set_copy_from_to_lists = NO;
-/*#bjet2 */
 LOCAL boolean      usewalledge = NO;
 
 LOCAL  void  printf_local_varible(char  *s)
@@ -632,7 +631,7 @@ EXPORT	void	f_user_make_interface(
 	fuh = f_user_hook(dim);
 	f_user_interface(intfc) = *fuh;
 	size_of_state(intfc) = size_of_intfc_state;
-	set_size_of_intfc_state(0);
+	//set_size_of_intfc_state(0);
 }		/*end f_user_make_interface*/
 
 EXPORT  INTERFACE *f_receive_interface(
@@ -1276,12 +1275,6 @@ EXPORT	void f_reconstruct_bond_pointers(
 	if (size_of_state(nintfc) == 0)
 	    return;
 
-	/*for (btris = Btris(b); btris && *btris; ++btris) */
-	/*{ */
-	/*    printf("%d  %d |", left_start_btri_state(*btris), right_start_btri_state(*btris)); */
-	/*} */
-	/*printf("\n"); */
-
 	/*see i_send_interface for consistence */
 	for (btris = Btris(b); btris && *btris; ++btris)
 	{
@@ -1298,7 +1291,6 @@ EXPORT	void f_reconstruct_bond_pointers(
 	    	(Locstate) new_address(nintfc,right_end_btri_state(*btris),
 	    			       ocad,ncad,nchks);
 	}
-
 }		/*end f_reconstruct_bond_pointers*/
 
 EXPORT	boolean f_insert_point_in_bond(
@@ -2362,9 +2354,31 @@ LOCAL	boolean f_user_3d_insert_point_in_bond(
 	double		len,total_len,para;
 	Locstate	start_left_state,end_left_state,mid_left_state;
 	Locstate	start_right_state,end_right_state,mid_right_state;
+	size_t		sizest;
 
 	bnew = b->next;
 	intfc = current_interface();
+	sizest =  size_of_state(intfc);
+	if (size_of_state(intfc) != 0)
+	{
+	    /* This happens when insert in bond already had states */
+	    for (btris = Btris(b), nbtris = Btris(bnew); btris && *btris;
+			++btris, ++nbtris)
+	    {
+		if (left_start_btri_state(*nbtris) == 
+			left_end_btri_state(*nbtris))
+		{
+		    left_start_btri_state(*nbtris) =
+		    left_end_btri_state(*btris) = (Locstate) store(sizest);
+		}
+		if (right_start_btri_state(*nbtris) == 
+			right_end_btri_state(*nbtris))
+		{
+		    right_start_btri_state(*nbtris) =
+		    right_end_btri_state(*btris) = (Locstate) store(sizest);
+		}
+	    }
+	}
 	if (interpolate_intfc_states(intfc) && size_of_state(intfc) != 0)
 	{
 	    len = bond_length(b);
@@ -2789,7 +2803,6 @@ EXPORT	void f_user_read_print_surface(
 	}
 }		/*end f_user_read_print_surface*/
 
-/*#bjet2 */
 EXPORT	BOND_TRI *f_link_tri_to_bond(
 	BOND_TRI *btri,
 	TRI	 *tri,
@@ -2834,9 +2847,11 @@ EXPORT	BOND_TRI *f_link_tri_to_bond(
             if (bp != NULL)
             {
 	        for (j = 0; j < size_of_pointers(Btris(bp)); ++j)
-	            if (btri->surface == (Btris(bp)[j])->surface)
+	            if (btri->surface == (Btris(bp)[j])->surface &&
+			same_bond_tri_orient(b,btri->tri,bp,
+				(Btris(bp)[j])->tri))
 	                break;
-                if(j < size_of_pointers(Btris(bp)))
+                if (j < size_of_pointers(Btris(bp)))
                 {
 	            left_start_btri_state(btri) =
 		        left_end_btri_state(Btris(bp)[j]);
@@ -2852,9 +2867,11 @@ EXPORT	BOND_TRI *f_link_tri_to_bond(
             if (bp != NULL)
             {
 	        for (j = 0; j < size_of_pointers(Btris(bp)); ++j)
-	            if (btri->surface == (Btris(bp)[j])->surface)
+	            if (btri->surface == (Btris(bp)[j])->surface &&
+			same_bond_tri_orient(b,btri->tri,bp,
+				(Btris(bp)[j])->tri))
 	                break;
-                if(j < size_of_pointers(Btris(bp)))
+                if (j < size_of_pointers(Btris(bp)))
                 {
 	            right_start_btri_state(btri) =
 		        right_end_btri_state(Btris(bp)[j]);
@@ -2878,9 +2895,13 @@ EXPORT	BOND_TRI *f_link_tri_to_bond(
             if (bn != NULL)
             {
 	        for (j = 0; j < size_of_pointers(Btris(bn)); ++j)
-	            if (btri->surface == (Btris(bn)[j])->surface)
+		{
+	            if (btri->surface == (Btris(bn)[j])->surface &&
+			same_bond_tri_orient(b,btri->tri,bn,
+				(Btris(bn)[j])->tri))
 	                break;
-                if(j < size_of_pointers(Btris(bn)))
+		}
+                if (j < size_of_pointers(Btris(bn)))
                 {
 	            left_end_btri_state(btri) =
 	                left_start_btri_state(Btris(bn)[j]);
@@ -2896,9 +2917,11 @@ EXPORT	BOND_TRI *f_link_tri_to_bond(
             if (bn != NULL)
             {
 	        for (j = 0; j < size_of_pointers(Btris(bn)); ++j)
-	            if (btri->surface == (Btris(bn)[j])->surface)
+	            if (btri->surface == (Btris(bn)[j])->surface &&
+			same_bond_tri_orient(b,btri->tri,bn,
+				(Btris(bn)[j])->tri))
 	                break;
-                if(j < size_of_pointers(Btris(bn)))
+                if (j < size_of_pointers(Btris(bn)))
                 {
 	            right_end_btri_state(btri) =
 		        right_start_btri_state(Btris(bn)[j]);
@@ -2908,6 +2931,28 @@ EXPORT	BOND_TRI *f_link_tri_to_bond(
             }
 	    else
 	        right_end_btri_state(btri) = (Locstate) store(sizest);
+	}
+	if (debugging("link_tri"))
+	{
+	    BOND *bp,*bn;
+	    bp = b->prev;
+	    bn = b->next;
+	    BOND_TRI **btris,**bptris,**bntris;
+	    for (btris = Btris(b), bptris = Btris(bp), bntris = Btris(bn);
+		btris && *btris; btris++,bptris++,bntris++)
+	    {
+		if (*btris == btri) break;
+	    }
+	    printf("left_end_btri_state(bptri)  = %d\n",
+			left_end_btri_state(*bptris));
+	    printf("left_start_btri_state(btri) = %d\n\n",
+			left_start_btri_state(*btris));
+
+	    printf("left_start_btri_state(bntri)  = %d\n",
+			left_start_btri_state(*bntris));
+	    printf("left_end_btri_state(btri)     = %d\n",
+			left_end_btri_state(*btris));
+	    printf("Leaving f_link_tri_to_bond()\n\n");
 	}
 	
 	return btri;
@@ -2960,7 +3005,8 @@ EXPORT  void f_reorder_curve_link_list(
 	    	for (btris = Btris(b); btris && *btris; btris++)
 		for (bntris = Btris(b->next); bntris && *bntris; bntris++)
 		{
-		    if ((*btris)->surface == (*bntris)->surface)
+		    if ((*btris)->surface == (*bntris)->surface &&
+			(*btris)->orient == (*bntris)->orient)
 		    {
 		        left_start_btri_state(*bntris) =
 		    	    left_end_btri_state(*btris);
@@ -2976,7 +3022,8 @@ EXPORT  void f_reorder_curve_link_list(
 	    for (btris = Btris(c->last); btris && *btris; btris++)
 	    for (bntris = Btris(c->first); bntris && *bntris; bntris++)
 	    {
-	        if ((*btris)->surface == (*bntris)->surface)
+	        if ((*btris)->surface == (*bntris)->surface &&
+			(*btris)->orient == (*bntris)->orient)
 	        {
 	            left_start_btri_state(*bntris) =
 	    	        left_end_btri_state(*btris);
@@ -3126,4 +3173,3 @@ LOCAL	void f_fprint_Dirichlet_bdry_states(
 	(void) fprintf(file,"for interface %llu\n",interface_number(intfc));
 	(void) fprintf(file,"\n\n");
 }		/*end f_fprint_Dirichlet_bdry_states*/
-

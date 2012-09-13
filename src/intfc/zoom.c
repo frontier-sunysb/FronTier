@@ -41,11 +41,9 @@ LOCAL	boolean	is_identity_matrix(double**,int);
 LOCAL	void	calculate_box(double*,double*,double**,double**,double**,int);
 LOCAL	void	rotate_interface(INTERFACE*,double*,double**);
 LOCAL	void	rotate_point(double*,double*,double**,double*,int);
-#if defined(TWOD)
 LOCAL	boolean	exterior_curve(CURVE*,RECT_GRID*);
 LOCAL	boolean	exterior_point(POINT*,RECT_GRID*);
 LOCAL	void	insert_cuts_and_bdry2d(INTERFACE*,double**);
-#endif /* defined(TWOD) */
 
 /*
 *			i_zoom_interface():
@@ -116,12 +114,10 @@ EXPORT INTERFACE *i_zoom_interface(
 	case 1:
 	    /* TODO */
 	    return NULL;
-#if defined(TWOD)
 	case 2:
 	    insert_cuts_and_bdry2d(zoom_intfc,pc);
 	    clip_interface2d(zoom_intfc);
 	    break;
-#endif /* defined(TWOD) */
 	case 3:
 	    /* TODO */
 	    return NULL;
@@ -229,7 +225,6 @@ LOCAL void calculate_box(
 /*
 *			rotate_interface():
 *
-* 	TODO THREED
 */
 
 LOCAL void rotate_interface(
@@ -317,7 +312,6 @@ LOCAL	boolean is_identity_matrix(
 	return YES;
 }		/*end is_identity_matrix*/
 
-#if defined(TWOD)
 
 /*
  *			exterior_point():
@@ -531,4 +525,3 @@ redo_curve_list:
 	set_current_interface(sav_intfc);
 	return;
 }		/*end insert_cuts_and_bdry2d*/
-#endif /* defined(TWOD) */

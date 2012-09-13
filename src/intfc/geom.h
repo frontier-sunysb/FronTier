@@ -592,6 +592,7 @@ IMPORT	void	print_general_vector(const char*,const double*,int,const char*);
 IMPORT	void	print_side(const char*,SIDE,const char*);
 IMPORT	void	print_orientation(const char*,ORIENTATION,const char*);
 IMPORT	double	plane_angle(double*,double*);
+IMPORT  void    direction_vector(double*,double*,double*,int);
 
 /*	igrid.c*/
 IMPORT	GEOMETRY_REMAP	read_remap_from_string(const char*);

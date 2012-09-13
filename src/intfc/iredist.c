@@ -61,13 +61,13 @@ LOCAL 	boolean 	compare_pointers(POINTER_Q*,POINTER_Q*);
 LOCAL  	boolean redistribute_surf_o1(SURFACE*,RECT_GRID*,
 			SCALED_REDIST_PARAMS);
 LOCAL	void reset_neighbors_of_adjacent_sides(TRI*,int);
-LOCAL	void dequeue_tris_on_bond(BOND*,POINTER_Q**);
 /*	Functions dealing with tetra tris */
 LOCAL 	boolean is_tetra_point(POINT*,TRI*,INTERFACE*);
 LOCAL 	boolean remove_interior_tetra_pt(POINT*,TRI*,SURFACE*,POINTER_Q**,
 			INTERFACE *);
 LOCAL 	void set_neighbors_from_tetra_tris(TRI*,TRI**,int*,boolean*);
-LOCAL	void dequeue_tris_around_point(POINT*,TRI*,INTERFACE*,POINTER_Q**);
+LOCAL	void dequeue_tris_around_bond_point(POINT*,BOND*,INTERFACE*,
+			POINTER_Q**);
 /*TMP*/ 
 LOCAL	boolean tri_in_intfc(TRI*,INTERFACE*);
 
@@ -1022,6 +1022,7 @@ LOCAL boolean delete_min_side_of_tri(
 	static	int	cnt = 0;
 	FILE	*file;
 	char	fname[100];
+	int pr_side,nx_side;
 
 	DEBUG_ENTER(delete_min_side_of_tri)
 	/*
@@ -1032,7 +1033,6 @@ LOCAL boolean delete_min_side_of_tri(
 	    BOND *b = Bond_on_side(tri,side);
 	    BOND_TRI **btris = Btris(b);
 	    CURVE *curve;
-	    int pside,nside;
 	    if (!btris || !*btris)
 	    {
 		(void) printf("Warning: in delete_min_side_of_tri():\n");
@@ -1040,34 +1040,34 @@ LOCAL boolean delete_min_side_of_tri(
 		return YES;
 	    }
 	    curve = (*btris)->curve;
-	    pside = Prev_m3(side);
-	    nside = Next_m3(side);
-	    if (is_side_bdry(tri,pside))
+	    pr_side = Prev_m3(side);
+	    nx_side = Next_m3(side);
+	    if (is_side_bdry(tri,pr_side))
 	    {
-	    	BOND *bp = Bond_on_side(tri,pside);
+	    	BOND *bp = Bond_on_side(tri,pr_side);
 		if (bp == b->next)
 		{
-		    dequeue_tris_around_point(bp->start,tri,intfc,pq);
+		    dequeue_tris_around_bond_point(bp->start,bp,intfc,pq);
 		    delete_start_of_bond(bp,curve);
 		}
 		else if (b->prev != NULL)
 		{
-		    dequeue_tris_around_point(b->start,tri,intfc,pq);
+		    dequeue_tris_around_bond_point(b->start,b,intfc,pq);
 		    delete_start_of_bond(b,curve);
 		}
 		return YES;
 	    }
-	    else if (is_side_bdry(tri,nside))
+	    else if (is_side_bdry(tri,nx_side))
 	    {
-	    	BOND *bn = Bond_on_side(tri,nside);
+	    	BOND *bn = Bond_on_side(tri,nx_side);
 		if (bn == b->next)
 		{
-		    dequeue_tris_around_point(bn->start,tri,intfc,pq);
+		    dequeue_tris_around_bond_point(bn->start,bn,intfc,pq);
 		    delete_start_of_bond(bn,curve);
 		}
 		else if (b->prev != NULL)
 		{
-		    dequeue_tris_around_point(b->start,tri,intfc,pq);
+		    dequeue_tris_around_bond_point(b->start,b,intfc,pq);
 		    delete_start_of_bond(b,curve);
 		}
 		return YES;
@@ -1076,12 +1076,12 @@ LOCAL boolean delete_min_side_of_tri(
 	    {
 		if (b->prev != NULL)
 		{
-		    dequeue_tris_around_point(b->start,tri,intfc,pq);
+		    dequeue_tris_around_bond_point(b->start,b,intfc,pq);
 		    delete_start_of_bond(b,curve);
 		}
 		else if (b->next != NULL)
 		{
-		    dequeue_tris_around_point(b->end,tri,intfc,pq);
+		    dequeue_tris_around_bond_point(b->end,b,intfc,pq);
 		    delete_start_of_bond(b->next,curve);
 		}
 	    	return YES;
@@ -1090,11 +1090,15 @@ LOCAL boolean delete_min_side_of_tri(
 
 	p[0] = Point_of_tri(tri)[side];
 	p[1] = Point_of_tri(tri)[Next_m3(side)];
+	if (Boundary_point(p[0]) && Boundary_point(p[1]))
+	    return YES;
 
 	nbtri = Tri_on_side(tri,side);
-	for(nside=0; nside<3; nside++)
+	for (nside = 0; nside < 3; nside++)
+	{
 	    if (Tri_on_side(nbtri,nside) == tri)
 		break;
+	}
 
 	p[2] = Point_of_tri(tri)[Prev_m3(side)];
 	if (is_tetra_point(p[2],tri,intfc))
@@ -1114,7 +1118,7 @@ LOCAL boolean delete_min_side_of_tri(
 	for(k=0; k<2; k++)
 	{
 	    ntris[k] = set_tri_list_around_point(p[k],tri,&tmp_tris,intfc);
-	    for(i=0; i<ntris[k]; i++)
+	    for (i = 0; i < ntris[k]; i++)
 	    {
 		tris[k][i] = tmp_tris[i];
 	        *pq = dequeue(tris[k][i],*pq);
@@ -1125,17 +1129,33 @@ LOCAL boolean delete_min_side_of_tri(
 	    for(i=0; i<ntris[k]; i++)
 	    {
 		t = tris[k][i];
-		j = Vertex_of_point(t, p[k]);
-		pt = Point_of_tri(t)[Prev_m3(j)];
-		
-		for(j=0; j<4; j++)
-		    if(pt == p[j])
-			break;
-		if(j < 4)
-		    continue;
-
-		plist[k][np[k]] = pt;
-		np[k]++;
+		int l;
+		for (l = 0; l < 3; ++l)
+		{
+		    boolean not_in_lists = YES;
+		    pt = Point_of_tri(t)[l];
+		    for (j = 0; j < 4; ++j)
+		    {
+		    	if (pt == p[j])
+			{
+			    not_in_lists = NO;
+			    break;
+			}
+		    }
+		    for (j = 0; j < np[k]; ++j)
+		    {
+		    	if (pt == plist[k][j])
+			{
+			    not_in_lists = NO;
+			    break;
+			}
+		    }
+		    if (not_in_lists == YES)
+		    {
+			plist[k][np[k]] = pt;
+			np[k]++;
+		    }
+		}
 	    }
 	}
 
@@ -1147,10 +1167,7 @@ LOCAL boolean delete_min_side_of_tri(
 	    for(i=0; i<np[0]; i++)
 		for(j=0; j<np[1]; j++)
 		    if(plist[0][i] == plist[1][j])
-		    {
-			printf("i = %d  j = %d\n",i,j);
 			rm_flag = YES;
-		    }
 	}
 	else if(np[0] == 0 && np[1] == 0)
 	{
@@ -1368,7 +1385,7 @@ EXPORT boolean redistribute_curve(
 
 	if (debugging("redist_curve"))
 	{
-	    (void) printf("Entering redistribute_curve()\n");
+	    (void) printf("\nEntering redistribute_curve()\n");
 	    (void) printf("len_ubound = %f  len_lbound = %f\n",
 				len_ubound,len_lbound);
 	}
@@ -1453,7 +1470,9 @@ EXPORT boolean redistribute_curve(
 	if (debugging("redist_curve"))
 	{
 	    (void) printf("Leaving redistribute_curve()\n");
-	    (void) printf("nothing_doe = %d\n",nothing_done);
+	    (void) printf("Checking consistency of interface\n");
+	    consistent_interface(curve->interface);
+	    (void) printf("Check complete\n");
 	}
 	return nothing_done;
 }	/* end redistribute_curve */
@@ -1534,20 +1553,25 @@ LOCAL	void reset_neighbors_of_adjacent_sides(
 	}
 }	/* end reset_neighbors_of_adjacent_sides */
 
-LOCAL	void dequeue_tris_around_point(
+LOCAL	void dequeue_tris_around_bond_point(
 	POINT *p,
-	TRI *tri,
+	BOND *b,
 	INTERFACE *intfc,
 	POINTER_Q **pq)
 {
 	int i,nt;
-	TRI **tris;
-	nt = set_tri_list_around_point(p,tri,&tris,intfc);
-	for (i = 0; i < nt; ++i)
+	BOND_TRI **btris;
+	TRI *tri,**tris;
+	for (btris = Btris(b); btris && *btris; ++btris)
 	{
-	    *pq = dequeue(tris[i],*pq);
+	    tri = (*btris)->tri;
+	    nt = set_tri_list_around_point(p,tri,&tris,intfc);
+	    for (i = 0; i < nt; ++i)
+	    {
+	    	*pq = dequeue(tris[i],*pq);
+	    }
 	}
-}	/* end dequeue_tris_around_point */
+}	/* end dequeue_tris_around_bond_point */
 	
 LOCAL boolean is_tetra_point(
 	POINT *p,
