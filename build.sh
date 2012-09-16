@@ -288,7 +288,8 @@ function config_galaxy {
     export F77="mpif77 ${OPTS}"
     export CC="mpicc ${OPTS} ${COPTS_GCC}"
 
-    export PETSC_DIR=/nfs/user02/ams530/shuwang/petsc-3.0.0-p12
+#    export PETSC_DIR=/nfs/user02/ams530/shuwang/petsc-3.0.0-p12
+    export PETSC_DIR=/nfs/admin/shiqiangqiang/petsc-3.0.0-p12
     export PETSC_ARCH=linux-gnu-c-debug
     export PETSC_INCLUDE="-I${PETSC_DIR}/include -I${PETSC_DIR}/${PETSC_ARCH}/include"
     export PETSC_LIB="-lblas -llapack -L${PETSC_DIR}/${PETSC_ARCH}/lib -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -ldl -lm -L/usr/X11R6/lib -lX11"
