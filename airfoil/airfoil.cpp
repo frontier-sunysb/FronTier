@@ -513,7 +513,8 @@ static void print_hyper_surf_quality(
 	    min_length = HUGE;
 	    for (c = intfc->curves; c && *c; ++c)
 	    {
-		if (hsbdry_type(*c) != MONO_COMP_HSBDRY)
+		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
+		    hsbdry_type(*c) != GORE_HSBDRY)
 		    continue;
 		curve = *c;
 		for (bond = curve->first; bond != NULL; bond = bond->next)
@@ -667,7 +668,8 @@ static void optimizeElasticMesh(
 	    for (c = intfc->curves; c && *c; ++c)
 	    {
 	    	if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
-		    hsbdry_type(*c) != STRING_HSBDRY)
+		    hsbdry_type(*c) != STRING_HSBDRY &&
+		    hsbdry_type(*c) != GORE_HSBDRY)
 		    continue;
 	    	curve = *c;
 	    	nothing_done = FT_OptimizeCurveMesh(front,curve,
@@ -703,7 +705,7 @@ static void optimizeElasticMesh(
 	    if (hsbdry_type(*c) == STRING_HSBDRY)
 		new_string_pts += FT_NumOfCurvePoints(*c) - 2;
 	af_params->m_s *= (double) old_canopy_pts/new_canopy_pts;
-	af_params->m_c *= (double) old_string_pts/new_string_pts;
+	af_params->m_l *= (double) old_string_pts/new_string_pts;
 	if (debugging("optimize_intfc"))
 	{
 	    gview_plot_interface("gview-after-optimize",intfc);

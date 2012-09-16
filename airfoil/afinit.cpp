@@ -1097,7 +1097,7 @@ static boolean install_string_and_rotate_w_gores(
 	STRING_PARAMS *tmp_params = (STRING_PARAMS*)params;
 	STRING_PARAMS *string_params = tmp_params+ip;
 	double *cen = string_params->cen,*cload,coords[MAXD];
-	double *ccanopy;	/* like cload, center on canopy */
+	double ccanopy[MAXD];	/* like cload, center on canopy */
 	double ave_radius_sqr,max_radius_sqr;
 	int i,j,k,num_curves,num_points,num_bonds,num_strings;
 	int nb;
@@ -1237,7 +1237,10 @@ static boolean install_string_and_rotate_w_gores(
 	ccanopy[2] = string_params->P[2]; 
 	gore_vertex = insert_point_in_surface(2,ccanopy,surf);
 	if (gore_vertex != NULL)
+	{
 	    ncanopy = make_node(gore_vertex);
+	    ncanopy->extra = NULL;
+	}
 	else
 	{
 	    (void) printf("Insert point in canopy failed!\n");
@@ -1269,7 +1272,7 @@ static boolean install_string_and_rotate_w_gores(
 	    Cross3d(v1,v2,v3);
 	    gore_curves[i] = insert_curve_in_surface(v3,string_nodes[i],
 					ncanopy,surf);
-	    hsbdry_type(gore_curves[i]) = MONO_COMP_HSBDRY;
+	    hsbdry_type(gore_curves[i]) = GORE_HSBDRY;
 	}
 	FT_FreeThese(6,string_angle,string_pts,string_bonds,string_nodes,
 				string_curves,gore_curves);
@@ -1297,7 +1300,7 @@ static boolean install_string_and_rotate_w_gores_T10(
 	STRING_PARAMS *tmp_params = (STRING_PARAMS*)params;
 	STRING_PARAMS *string_params = tmp_params+ip;
 	double *cen = string_params->cen,*cload,coords[MAXD];
-	double *ccanopy;	/* like cload, center on canopy */
+	double ccanopy[MAXD];	/* like cload, center on canopy */
 	double ave_radius_sqr,max_radius_sqr;
 	int i,j,k,num_curves,num_points,num_bonds,num_strings;
 	int nb;
@@ -1451,7 +1454,7 @@ static boolean install_string_and_rotate_w_gores_T10(
 		b = b->next;
 	    }
 	    gore_curves[i] = make_curve(0,0,string_nodes[i],ncanopy);
-	    hsbdry_type(gore_curves[i]) = MONO_COMP_HSBDRY;
+	    hsbdry_type(gore_curves[i]) = GORE_HSBDRY;
 	    spacing = separation(string_nodes[i]->posn,ncanopy->posn,3);
 	    for (j = 0; j < 3; ++j)
 		dir[j] = (Coords(ncanopy->posn)[j] -

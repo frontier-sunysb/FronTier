@@ -20,6 +20,7 @@ typedef enum _STRING_NODE_TYPE STRING_NODE_TYPE;
 enum _AF_NODE_TYPE {
 	UNKNOWN_AF_NODE = -1,
 	LOAD_NODE	= 1,
+	GORE_NODE,
 	STRING_NODE
 };
 typedef enum _AF_NODE_TYPE AF_NODE_TYPE;
@@ -68,10 +69,10 @@ typedef struct {
 	double kl;			/* spring constant of string curves */
 	double kg;                      /* spring constant of gore curves */
 	double lambda_s;		/* damping factor of surface */
-	double lambda_c;		/* damping factor of string curves */
+	double lambda_l;		/* damping factor of string curves */
 	double lambda_g;                /* damping factor of gore curves */
 	double m_s;			/* point mass of surface */
-	double m_c;			/* point mass of string curves */
+	double m_l;			/* point mass of string curves */
 	double m_g;                     /* point mass of gore curves */
 	double total_string_mass;	/* Total mass of string chord */
 	double total_canopy_mass;	/* Total mass of string chord */
@@ -169,26 +170,30 @@ typedef struct _AF_NODE_EXTRA AF_NODE_EXTRA;
 struct _PARACHUTE_SET{
 	Front *front;
         SURFACE *canopy;
-        CURVE **elas_bdry_curves;
+        CURVE **mono_hsbdry;
+        CURVE **gore_hsbdry;
         NODE **string_node;
 	NODE **gore_nodes;
         NODE *load_node;
         CURVE **string_curves;
-        int num_elas_bdry_curves;
+        int num_mono_hsbdry;
+        int num_gore_hsbdry;
         int num_strings;
 	int num_gore_nodes;
 	double ks;
 	double kl;
+	double kg;
 	double lambda_s;
-	double lambda_c;
+	double lambda_l;
+	double lambda_g;
 	double m_s;
-	double m_c;
+	double m_l;
+	double m_g;
 	double V_surf[MAXD];
 	double V_load[MAXD];
 	int n_cps;		/* Number of points on canopy */
 	int n_sps;		/* Number of points on string */
 	double dt;
-	double V_refs[MAXD];
 };
 
 typedef struct _PARACHUTE_SET PARACHUTE_SET;

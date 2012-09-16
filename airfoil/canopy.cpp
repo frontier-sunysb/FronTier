@@ -498,7 +498,7 @@ extern void fourth_order_parachute_propagate(
 	static int size = 0;
 	static double **x_old,**x_new,**v_old,**v_new,**f_old,**f_new;
         static double **x_mid,**v_mid,**f_mid,**v_end;
-	double lambda_s,m_s,lambda_c,m_c;
+	double lambda_s,m_s,lambda_l,m_l;
 	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
 	int i,j,num_pts;
 	int n,n_tan = af_params->n_tan;
@@ -524,30 +524,50 @@ extern void fourth_order_parachute_propagate(
 	    for (i = 0; i <= 3; ++i)
 		printf("Max front speed(%d) = %f\n",i,spfr[i]);
 	}
+	int ng = old_geom_set->num_gore_nodes;
+	int ns = old_geom_set->num_strings;
+	int nbc = old_geom_set->num_mono_hsbdry;
+	int ngc = old_geom_set->num_gore_hsbdry;
+	printf("ng = %d  ngc = %d  nbc = %d  ns = %d\n",ng,ngc,nbc,ns);
 
 	num_pts = n_cps + n_sps;
 
 	new_geom_set->ks = old_geom_set->ks = af_params->ks;
 	new_geom_set->lambda_s = old_geom_set->lambda_s = af_params->lambda_s;
 	new_geom_set->m_s = old_geom_set->m_s = af_params->m_s;
+
 	new_geom_set->kl = old_geom_set->kl = af_params->kl;
-	new_geom_set->lambda_c = old_geom_set->lambda_c = af_params->lambda_c;
-	new_geom_set->m_c = old_geom_set->m_c = af_params->m_c;
+	new_geom_set->lambda_l = old_geom_set->lambda_l = af_params->lambda_l;
+	new_geom_set->m_l = old_geom_set->m_l = af_params->m_l;
+
+	new_geom_set->kg = old_geom_set->kg = af_params->kg;
+	new_geom_set->lambda_g = old_geom_set->lambda_g = af_params->lambda_g;
+	new_geom_set->m_g = old_geom_set->m_g = af_params->m_g;
+
 	new_geom_set->n_cps = old_geom_set->n_cps = n_cps;
 	new_geom_set->n_sps = old_geom_set->n_sps = n_sps;
 	dt_tol = sqrt((af_params->m_s)/(af_params->ks))/10.0;
-	if (dt_tol > sqrt((af_params->m_c)/(af_params->kl))/10.0)
-	    dt_tol = sqrt((af_params->m_c)/(af_params->kl))/10.0;
+	if (dt_tol > sqrt((af_params->m_l)/(af_params->kl))/10.0)
+	    dt_tol = sqrt((af_params->m_l)/(af_params->kl))/10.0;
 	if (debugging("step_size"))
 	{
+	    (void) printf("Input surface parameters:\n");
 	    (void) printf("ks = %f  m_s = %f  lambda_s = %f\n",
 			new_geom_set->ks,
 			new_geom_set->m_s,
 			new_geom_set->lambda_s);
-	    (void) printf("kl = %f  m_c = %f  lambda_c = %f\n",
+	    (void) printf("Input string parameters:\n");
+	    (void) printf("kl = %f  m_l = %f  lambda_l = %f\n",
 			new_geom_set->kl,
-			new_geom_set->m_c,
-			new_geom_set->lambda_c);
+			new_geom_set->m_l,
+			new_geom_set->lambda_l);
+	    (void) printf("Input gore parameters:\n");
+	    (void) printf("kg = %f  m_g = %f  lambda_g = %f\n",
+			new_geom_set->kg,
+			new_geom_set->m_g,
+			new_geom_set->lambda_g);
+	    (void) printf("n_cps = %d  n_sps = %d  num_pts = %d\n",
+			n_cps,n_sps,num_pts);
 	}
 
 	if (dt > dt_tol)
@@ -673,7 +693,7 @@ static void compute_canopy_accel(
 	double **v)
 {
 	int i,n = 0;
-	int ns,nb;
+	int ns,nbc,ngc,ng;
 	int n_start,n_end;
 	Front *fr = geom_set->front;
 	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
@@ -701,23 +721,34 @@ static void compute_canopy_accel(
             (void) printf("Model function not implemented yet!\n");
             clean_up(ERROR);
         }
+	if (debugging("trace"))
+	    (void) printf("Entering compute_canopy_accel()\n");
 
 	ns = geom_set->num_strings;
-	nb = geom_set->num_elas_bdry_curves;
+	nbc = geom_set->num_mono_hsbdry;
+	ngc = geom_set->num_gore_hsbdry;
+	ng = geom_set->num_gore_nodes;
 
-	if (debugging("string_chord") || debugging("rigid_canopy") || debugging("ave_lift"))
+	if (debugging("string_chord") || debugging("rigid_canopy") || 
+	    debugging("ave_lift"))
 	    n_start = n;
 	compute_surf_accel(geom_set,geom_set->canopy,f,x,v,&n);
+	for (i = 0; i < ng; ++i)
+            compute_node_accel(geom_set,geom_set->gore_nodes[i],f,x,v,&n);
 	for (i = 0; i < ns; ++i)
 	    compute_node_accel(geom_set,geom_set->string_node[i],f,x,v,&n);
-	for (i = 0; i < nb; ++i)
+	for (i = 0; i < ngc; ++i)
+	    compute_curve_accel(geom_set,geom_set->gore_hsbdry[i],f,x,v,&n);
+	for (i = 0; i < nbc; ++i)
 	{
-	    compute_curve_accel(geom_set,geom_set->elas_bdry_curves[i],f,x,v,&n);
-	    if (is_closed_curve(geom_set->elas_bdry_curves[i]))
-		compute_node_accel(geom_set,geom_set->elas_bdry_curves[i]->start,
-				f,x,v,&n);	
+	    compute_curve_accel(geom_set,geom_set->mono_hsbdry[i],f,x,
+				v,&n);
+	    if (is_closed_curve(geom_set->mono_hsbdry[i]))
+		compute_node_accel(geom_set,
+				geom_set->mono_hsbdry[i]->start,f,x,v,&n);	
 	}
-	if (debugging("string_chord") || debugging("rigid_canopy") || debugging("ave_lift"))
+	if (debugging("string_chord") || debugging("rigid_canopy") 
+			|| debugging("ave_lift"))
 	{
 	    n_end = n;
 	    for (i = n_start; i < n_end; ++i)
@@ -727,6 +758,8 @@ static void compute_canopy_accel(
 		    v[i][0] = v[i][1] = v[i][2] = 0.0;
 	    }
 	}
+	if (debugging("trace"))
+	    (void) printf("Leaving compute_canopy_accel()\n");
 }	/* end compute_canopy_accel */
 
 static void compute_string_accel(
@@ -781,25 +814,36 @@ static void compute_string_accel(
 }	/* end  compute_string_accel */
 
 static void assign_canopy_field(
-	 PARACHUTE_SET *geom_set,
+	PARACHUTE_SET *geom_set,
         double **x,
         double **v)
 {
 	int n = 0;
-	int i,ns,nb;
+	int i,ns,nbc,ngc,ng;
+
+	if (debugging("trace"))
+	    (void) printf("Entering assign_canopy_field()\n");
+	ng = geom_set->num_gore_nodes;
 	ns = geom_set->num_strings;
-	nb = geom_set->num_elas_bdry_curves;
+	nbc = geom_set->num_mono_hsbdry;
+	ngc = geom_set->num_gore_hsbdry;
 
 	assign_surf_field(geom_set->canopy,x,v,&n);
+	for (i = 0; i < ng; ++i)
+            assign_node_field(geom_set->gore_nodes[i],x,v,&n);
 	for (i = 0; i < ns; ++i)
 	    assign_node_field(geom_set->string_node[i],x,v,&n);
-	for (i = 0; i < nb; ++i)
+	for (i = 0; i < ngc; ++i)
+	    assign_curve_field(geom_set->gore_hsbdry[i],x,v,&n);
+	for (i = 0; i < nbc; ++i)
 	{
-	    assign_curve_field(geom_set->elas_bdry_curves[i],x,v,&n);
-	    if (is_closed_curve(geom_set->elas_bdry_curves[i]))
-		 assign_node_field(geom_set->elas_bdry_curves[i]->start,
+	    assign_curve_field(geom_set->mono_hsbdry[i],x,v,&n);
+	    if (is_closed_curve(geom_set->mono_hsbdry[i]))
+		 assign_node_field(geom_set->mono_hsbdry[i]->start,
 			x,v,&n);
 	}
+	if (debugging("trace"))
+	    (void) printf("Leaving assign_canopy_field()\n");
 }	/* end assign_canopy_field */
 
 static void assign_string_field(
@@ -814,14 +858,14 @@ static void assign_string_field(
 	n = geom_set->n_cps;
 
 	if (debugging("trace"))
-	    (void) printf("Entering assign_parachute_field()\n");
+	    (void) printf("Entering assign_string_field()\n");
 
 	assign_node_field(geom_set->load_node,x,v,&n);
 	for (i = 0; i < ns; ++i)
 	    assign_curve_field(geom_set->string_curves[i],x,v,&n);
 
 	if (debugging("trace"))
-	    (void) printf("Leaving assign_parachute_field()\n");
+	    (void) printf("Leaving assign_string_field()\n");
 }       /* end assign_string_field */
 
 extern void assign_node_field(
@@ -958,29 +1002,34 @@ extern void compute_curve_accel1(
 	BOND *b;
 	double dir[MAXD],len0,vect[MAXD];
 	int dim = Dimension(curve->interface);
-	double kc,m_c,lambda_c;
-	double *V_refs = geom_set->V_refs;
+	double kl,m_l,lambda_l;
 
 	if (dim == 3)
 	{
 	    if (hsbdry_type(curve) == STRING_HSBDRY)
 	    {
-	    	kc = geom_set->kl;
-	    	m_c = geom_set->m_c;
-	    	lambda_c = geom_set->lambda_c;
+	    	kl = geom_set->kl;
+	    	m_l = geom_set->m_l;
+	    	lambda_l = geom_set->lambda_l;
+	    }
+	    else if (hsbdry_type(curve) == GORE_HSBDRY)
+	    {
+	    	kl = geom_set->kg;
+	    	m_l = geom_set->m_g;
+	    	lambda_l = geom_set->lambda_g;
 	    }
 	    else
 	    {
-	    	kc = geom_set->ks;
-	    	m_c = geom_set->m_s;
-	    	lambda_c = geom_set->lambda_s;
+	    	kl = geom_set->ks;
+	    	m_l = geom_set->m_s;
+	    	lambda_l = geom_set->lambda_s;
 	    }
 	}
 	else
 	{
-	    kc = geom_set->kl;
-	    m_c = geom_set->m_c;
-	    lambda_c = geom_set->lambda_c;
+	    kl = geom_set->kl;
+	    m_l = geom_set->m_l;
+	    lambda_l = geom_set->lambda_l;
 	}
 	i = *n;
 	for (b = curve->first; b != curve->last; b = b->next)
@@ -989,7 +1038,7 @@ extern void compute_curve_accel1(
 	    {
 	    	x[i][j] = Coords(b->end)[j];
 	    	v[i][j] = b->end->vel[j];
-		f[i][j] = -lambda_c*(v[i][j] - V_refs[j])/m_c;
+		f[i][j] = -lambda_l*v[i][j]/m_l;
 	    }
 	    i++;
 	}
@@ -1006,11 +1055,11 @@ extern void compute_curve_accel1(
 		vect[j] = x_diff*dir[j];
 		if (b != curve->first)
 		{
-	    	    f[i-1][j]   += kc*vect[j]/m_c;
+	    	    f[i-1][j]   += kl*vect[j]/m_l;
 		}
 		if (b != curve->last)
 		{
-	    	    f[i][j] -= kc*vect[j]/m_c;
+	    	    f[i][j] -= kl*vect[j]/m_l;
 		}
 	    }
 	    if (b != curve->last) i++;
@@ -1045,8 +1094,8 @@ extern void compute_curve_accel1(
                         	{
                             	    dir[k] = (Coords(p_nb)[k] - 
 						Coords(p)[k])/length;
-                            	    f[i][k] += kc*(length - length0)*
-					dir[k]/m_c;
+                            	    f[i][k] += kl*(length - length0)*
+					dir[k]/m_l;
                         	}
 			    }
 			}
@@ -1070,15 +1119,18 @@ extern void compute_node_accel1(
 	BOND *b;
 	double x_diff,len0,len,dir[MAXD],vect[MAXD];
 	POINT *p,*p_nb;
-	int i,j,dim = Dimension(node->interface);
+	INTERFACE *intfc = geom_set->front->interf;
+	int i,j,dim = Dimension(intfc);
 	double ks = geom_set->ks;
 	double kl = geom_set->kl;
+	double kg = geom_set->kg;
 	double m_s = geom_set->m_s;
-	double m_c = geom_set->m_c;
-	double *V_refs = geom_set->V_refs;
+	double m_l = geom_set->m_l;
+	double m_g = geom_set->m_g;
 	double lambda_s = geom_set->lambda_s;
-	double lambda_c = geom_set->lambda_c;
-	double m_l;
+	double lambda_l = geom_set->lambda_l;
+	double lambda_g = geom_set->lambda_g;
+	double payload;
 
 	if (dim == 3)
 	{
@@ -1088,7 +1140,7 @@ extern void compute_node_accel1(
 	    	Front *front = geom_set->front;
 	    	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 
-	    	m_l = af_params->payload;
+	    	payload = af_params->payload;
 	    }
 	}
 
@@ -1111,14 +1163,16 @@ extern void compute_node_accel1(
 		if (dim == 3)
 		{
 		    if (is_load_node(node) == YES)
-		    	f[*n][j]   += kl*vect[j]/m_l;
+		    	f[*n][j]   += kl*vect[j]/payload;
 		    else if (hsbdry_type(*c) == STRING_HSBDRY)
 	    	    	f[*n][j]   += kl*vect[j]/m_s;
 		    else if (hsbdry_type(*c) == MONO_COMP_HSBDRY)
 	    	    	f[*n][j]   += ks*vect[j]/m_s;
+		    else if (hsbdry_type(*c) == GORE_HSBDRY)
+	    	    	f[*n][j]   += kg*vect[j]/m_g;
 		}
 		else
-		    f[*n][j]   += kl*vect[j]/m_c;
+		    f[*n][j]   += kl*vect[j]/m_l;
 	    }
 	}
 	for (c = node->in_curves; c && *c; ++c)
@@ -1134,14 +1188,16 @@ extern void compute_node_accel1(
 		if (dim == 3)
 		{
 		    if (is_load_node(node) == YES)
-		    	f[*n][j]   -= kl*vect[j]/m_l;
+		    	f[*n][j]   -= kl*vect[j]/payload;
 		    else if (hsbdry_type(*c) == STRING_HSBDRY)
 	    	    	f[*n][j]   -= kl*vect[j]/m_s;
 		    else if (hsbdry_type(*c) == MONO_COMP_HSBDRY)
 	    	    	f[*n][j]   -= ks*vect[j]/m_s;
+		    else if (hsbdry_type(*c) == GORE_HSBDRY)
+	    	    	f[*n][j]   -= kg*vect[j]/m_g;
 		}
 		else
-		    f[*n][j]   -= kl*vect[j]/m_c;
+		    f[*n][j]   -= kl*vect[j]/m_l;
 	    }
 	}
 	if (dim == 3)
@@ -1222,13 +1278,13 @@ extern void compute_node_accel1(
 	    if (!is_load_node(node))
 	    {
 	    	for (i = 0; i < 3; ++i)
-	    	    f[*n][i] -= lambda_s*(v[*n][i] - V_refs[i])/m_s;
+	    	    f[*n][i] -= lambda_s*v[*n][i]/m_s;
 	    }
 	}
 	else
 	{
 	    for (i = 0; i < 3; ++i)
-	    	f[*n][i] -= lambda_c*(v[*n][i] - V_refs[i])/m_c;
+	    	f[*n][i] -= lambda_l*v[*n][i]/m_l;
 	}
 	(*n)++;
 }	/* end compute_node_accel1 */
@@ -1253,7 +1309,7 @@ static void propagate_canopy(
 	int dim = front->rect_grid->dim;
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
 	double *g = iFparams->gravity;
-	int ns,n = 0;
+	int ng,ngc,ns,n = 0;
 
 	if (debugging("string_chord") || debugging("folding"))
 	    return;
@@ -1281,6 +1337,19 @@ static void propagate_canopy(
 	    	++n;
 	    }
 	}
+	ng = geom_set->num_gore_nodes;
+	for (i = 0; i < ng; ++i)
+	{
+	    node = geom_set->gore_nodes[i];
+	    sl = (STATE*)left_state(node->posn);
+	    sr = (STATE*)right_state(node->posn);
+	    for (j = 0; j < 3; ++j)
+            {
+	    	x[n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
+	    	sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt; 
+            }
+	    ++n;
+	}
 	ns = geom_set->num_strings;
 	for (i = 0; i < ns; ++i)
 	{
@@ -1294,9 +1363,26 @@ static void propagate_canopy(
             }
 	    ++n;
 	}
+	ngc = geom_set->num_gore_hsbdry;
+	for (i = 0; i < ngc; ++i)
+        {
+	    curve = geom_set->gore_hsbdry[i];
+	    for (b = curve->first; b != curve->last; b = b->next)
+	    {
+		p = b->end;
+		sl = (STATE*)left_state(p);
+		sr = (STATE*)right_state(p);
+		for (j = 0; j < dim; ++j)
+		{
+	    	    x[n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
+	    	    sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt; 
+		}
+		++n;
+	    }
+	}
 	for (i = 0; i < ns; ++i)
         {
-	    curve = geom_set->elas_bdry_curves[i];
+	    curve = geom_set->mono_hsbdry[i];
 	    for (b = curve->first; b != curve->last; b = b->next)
 	    {
 		p = b->end;
@@ -1477,7 +1563,7 @@ static void set_canopy_velocity(
 	int dim = front->rect_grid->dim;
 	double nor[MAXD],nor_speed,max_speed;
 	double *vel;
-	int n,ns,nb;
+	int n,ng,ngc,ns,nbc;
 
 	if (debugging("trace"))
 	    (void) printf("Entering set_canopy_velocity()\n");
@@ -1524,6 +1610,53 @@ static void set_canopy_velocity(
 	    }
 	}
 
+	ng = geom_set->num_gore_nodes;
+	printf("Gore nodes\n");
+	for (i = 0; i < ng; ++i)
+	{
+	    node = geom_set->gore_nodes[i];
+	    for (c = node->out_curves; c && *c; ++c)
+            {
+		if (hsbdry_type(*c) != GORE_HSBDRY) continue;
+                b = (*c)->first;
+                p = b->start;
+		for (btris = Btris(b); btris && *btris; ++btris)
+		{
+                    p->hse = hse = Hyper_surf_element((*btris)->tri);
+                    p->hs = hs = Hyper_surf((*btris)->surface);
+                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		    FT_NormalAtPoint(p,front,nor,NO_COMP);
+		    vel = v[n];
+		    nor_speed = scalar_product(vel,nor,dim);
+		    if (max_speed < fabs(nor_speed)) 
+			max_speed = fabs(nor_speed);
+                    for (j = 0; j < dim; ++j)
+		    	sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
+		}
+            }
+            for (c = node->in_curves; c && *c; ++c)
+            {
+		if (hsbdry_type(*c) != GORE_HSBDRY) continue;
+                b = (*c)->last;
+                p = b->end;
+                btris = Btris(b);
+		for (btris = Btris(b); btris && *btris; ++btris)
+		{
+                    p->hse = hse = Hyper_surf_element((*btris)->tri);
+                    p->hs = hs = Hyper_surf((*btris)->surface);
+                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		    FT_NormalAtPoint(p,front,nor,NO_COMP);
+		    vel = v[n];
+		    nor_speed = scalar_product(vel,nor,dim);
+		    if (max_speed < fabs(nor_speed)) 
+			max_speed = fabs(nor_speed);
+                    for (j = 0; j < dim; ++j)
+		    	sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
+		}
+            }
+	    n++;
+	}
+
 	ns = geom_set->num_strings;
 	for (i = 0; i < ns; ++i)
 	{
@@ -1562,10 +1695,33 @@ static void set_canopy_velocity(
             }
 	    n++;
 	}
-	nb = geom_set->num_elas_bdry_curves;
-	for (i = 0; i < nb; ++i)
+
+	ngc = geom_set->num_gore_hsbdry;
+	for (i = 0; i < ngc; ++i)
 	{
-	    curve = geom_set->elas_bdry_curves[i];
+	    curve = geom_set->gore_hsbdry[i];
+	    for (b = curve->first; b != curve->last; b = b->next)
+            {
+            	p = b->end;
+		for (btris = Btris(b); btris && *btris; ++btris)
+            	{
+                    p->hse = hse = Hyper_surf_element((*btris)->tri);
+                    p->hs = hs = Hyper_surf((*btris)->surface);
+                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		    FT_NormalAtPoint(p,front,nor,NO_COMP);
+		    vel = v[n];
+		    nor_speed = scalar_product(vel,nor,dim);
+                    for (j = 0; j < dim; ++j)
+		    	sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
+            	}
+            	n++;
+            }
+	}
+
+	nbc = geom_set->num_mono_hsbdry;
+	for (i = 0; i < nbc; ++i)
+	{
+	    curve = geom_set->mono_hsbdry[i];
 	    for (b = curve->first; b != curve->last; b = b->next)
             {
             	p = b->end;
@@ -1584,7 +1740,6 @@ static void set_canopy_velocity(
             	n++;
             }
 	}
-
 
 	if (debugging("step_size"))
 	{
@@ -1743,12 +1898,14 @@ extern void compute_node_accel2(
 	int i,j,dim = Dimension(node->interface);
 	double ks = geom_set->ks;
 	double kl = geom_set->kl;
+	double kg = geom_set->kg;
 	double m_s = geom_set->m_s;
-	double m_c = geom_set->m_c;
-	double *V_refs = geom_set->V_refs;
+	double m_l = geom_set->m_l;
+	double m_g = geom_set->m_g;
 	double lambda_s = geom_set->lambda_s;
-	double lambda_c = geom_set->lambda_c;
-	double m_l;
+	double lambda_l = geom_set->lambda_l;
+	double lambda_g = geom_set->lambda_g;
+	double payload;
 
 	if (dim == 3)
 	{
@@ -1758,7 +1915,7 @@ extern void compute_node_accel2(
 	    	Front *front = geom_set->front;
 	    	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 
-	    	m_l = af_params->payload;
+	    	payload = af_params->payload;
 	    }
 	}
 
@@ -1779,14 +1936,16 @@ extern void compute_node_accel2(
 		if (dim == 3)
 		{
 		    if (is_load_node(node) == YES)
-		    	f[*n][j]   += kl*vect[j]/m_l;
+		    	f[*n][j]   += kl*vect[j]/payload;
 		    else if (hsbdry_type(*c) == STRING_HSBDRY)
 	    	    	f[*n][j]   += kl*vect[j]/m_s;
 		    else if (hsbdry_type(*c) == MONO_COMP_HSBDRY)
 	    	    	f[*n][j]   += ks*vect[j]/m_s;
+		    else if (hsbdry_type(*c) == GORE_HSBDRY)
+	    	    	f[*n][j]   += kg*vect[j]/m_g;
 		}
 		else
-		    f[*n][j]   += kl*vect[j]/m_c;
+		    f[*n][j]   += kl*vect[j]/m_l;
 	    }
 	}
 	for (c = node->in_curves; c && *c; ++c)
@@ -1800,14 +1959,16 @@ extern void compute_node_accel2(
 		if (dim == 3)
 		{
 		    if (is_load_node(node) == YES)
-		    	f[*n][j]   -= kl*vect[j]/m_l;
+		    	f[*n][j]   -= kl*vect[j]/payload;
 		    else if (hsbdry_type(*c) == STRING_HSBDRY)
 	    	    	f[*n][j]   -= kl*vect[j]/m_s;
 		    else if (hsbdry_type(*c) == MONO_COMP_HSBDRY)
 	    	    	f[*n][j]   -= ks*vect[j]/m_s;
+		    else if (hsbdry_type(*c) == GORE_HSBDRY)
+	    	    	f[*n][j]   -= kg*vect[j]/m_g;
 		}
 		else
-		    f[*n][j]   -= kl*vect[j]/m_c;
+		    f[*n][j]   -= kl*vect[j]/m_l;
 	    }
 	}
 	if (dim == 3)
@@ -1893,13 +2054,13 @@ extern void compute_node_accel2(
 	    if (!is_load_node(node))
 	    {
 	    	for (i = 0; i < 3; ++i)
-	    	    f[*n][i] -= lambda_s*(v[*n][i] - V_refs[i])/m_s;
+	    	    f[*n][i] -= lambda_s*v[*n][i]/m_s;
 	    }
 	}
 	else
 	{
 	    for (i = 0; i < 3; ++i)
-	    	f[*n][i] -= lambda_c*(v[*n][i] - V_refs[i])/m_c;
+	    	f[*n][i] -= lambda_l*v[*n][i]/m_l;
 	}
 	(*n)++;
 }	/* end compute_node_accel2 */
@@ -1917,29 +2078,34 @@ extern void compute_curve_accel2(
 	BOND *b;
 	double dir[MAXD],len0,vect[MAXD];
 	int dim = Dimension(curve->interface);
-	double kc,m_c,lambda_c;
-	double *V_refs = geom_set->V_refs;
+	double kl,m_l,lambda_l;
 
 	if (dim == 3)
 	{
 	    if (hsbdry_type(curve) == STRING_HSBDRY)
 	    {
-	    	kc = geom_set->kl;
-	    	m_c = geom_set->m_c;
-	    	lambda_c = geom_set->lambda_c;
+	    	kl = geom_set->kl;
+	    	m_l = geom_set->m_l;
+	    	lambda_l = geom_set->lambda_l;
+	    }
+	    else if (hsbdry_type(curve) == GORE_HSBDRY)
+	    {
+	    	kl = geom_set->kg;
+	    	m_l = geom_set->m_g;
+	    	lambda_l = geom_set->lambda_g;
 	    }
 	    else
 	    {
-	    	kc = geom_set->ks;
-	    	m_c = geom_set->m_s;
-	    	lambda_c = geom_set->lambda_s;
+	    	kl = geom_set->ks;
+	    	m_l = geom_set->m_s;
+	    	lambda_l = geom_set->lambda_s;
 	    }
 	}
 	else
 	{
-	    kc = geom_set->kl;
-	    m_c = geom_set->m_c;
-	    lambda_c = geom_set->lambda_c;
+	    kl = geom_set->kl;
+	    m_l = geom_set->m_l;
+	    lambda_l = geom_set->lambda_l;
 	}
 	i = *n;
 	for (b = curve->first; b != curve->last; b = b->next)
@@ -1948,7 +2114,7 @@ extern void compute_curve_accel2(
 	    {
 	    	x[i][j] = Coords(b->end)[j];
 	    	v[i][j] = b->end->vel[j];
-		f[i][j] = -lambda_c*(v[i][j] - V_refs[j])/m_c;
+		f[i][j] = -lambda_l*v[i][j]/m_l;
 	    }
 	    i++;
 	}
@@ -1963,11 +2129,11 @@ extern void compute_curve_accel2(
 				len0*b->dir0[j];
 		if (b != curve->first)
 		{
-	    	    f[i-1][j]   += kc*vect[j]/m_c;
+	    	    f[i-1][j]   += kl*vect[j]/m_l;
 		}
 		if (b != curve->last)
 		{
-	    	    f[i][j] -= kc*vect[j]/m_c;
+	    	    f[i][j] -= kl*vect[j]/m_l;
 		}
 	    }
 	    if (b != curve->last) i++;
@@ -2004,9 +2170,7 @@ extern void compute_curve_accel2(
 						Coords(p)[k])/length;
 				    vect[k] = Coords(p_nb)[k] - Coords(p)[k]
 					- length0*tris[j]->side_dir0[side][k];
-                            	    //f[i][k] += kc*(length - length0)*
-					//dir[k]/m_c;
-                            	    f[i][k] += kc*vect[k]/m_c;
+                            	    f[i][k] += kl*vect[k]/m_l;
                         	}
 			    }
 			}
@@ -2117,11 +2281,10 @@ extern void compute_node_accel3(
 	double ks = geom_set->ks;
 	double kl = geom_set->kl;
 	double m_s = geom_set->m_s;
-	double m_c = geom_set->m_c;
-	double *V_refs = geom_set->V_refs;
+	double m_l = geom_set->m_l;
 	double lambda_s = geom_set->lambda_s;
-	double lambda_c = geom_set->lambda_c;
-	double m_l;
+	double lambda_l = geom_set->lambda_l;
+	double payload;
 
 	if (dim == 3)
 	{
@@ -2131,7 +2294,7 @@ extern void compute_node_accel3(
 	    	Front *front = geom_set->front;
 	    	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 
-	    	m_l = af_params->payload;
+	    	payload = af_params->payload;
 	    }
 	}
 
@@ -2152,14 +2315,14 @@ extern void compute_node_accel3(
 		if (dim == 3)
 		{
 		    if (is_load_node(node) == YES)
-		    	f[*n][j]   += kl*vect[j]/m_l;
+		    	f[*n][j]   += kl*vect[j]/payload;
 		    else if (hsbdry_type(*c) == STRING_HSBDRY)
 	    	    	f[*n][j]   += kl*vect[j]/m_s;
 		    else if (hsbdry_type(*c) == MONO_COMP_HSBDRY)
 	    	    	f[*n][j]   += ks*vect[j]/m_s;
 		}
 		else
-		    f[*n][j]   += kl*vect[j]/m_c;
+		    f[*n][j]   += kl*vect[j]/m_l;
 	    }
 	}
 	for (c = node->in_curves; c && *c; ++c)
@@ -2173,14 +2336,14 @@ extern void compute_node_accel3(
 		if (dim == 3)
 		{
 		    if (is_load_node(node) == YES)
-		    	f[*n][j]   -= kl*vect[j]/m_l;
+		    	f[*n][j]   -= kl*vect[j]/payload;
 		    else if (hsbdry_type(*c) == STRING_HSBDRY)
 	    	    	f[*n][j]   -= kl*vect[j]/m_s;
 		    else if (hsbdry_type(*c) == MONO_COMP_HSBDRY)
 	    	    	f[*n][j]   -= ks*vect[j]/m_s;
 		}
 		else
-		    f[*n][j]   -= kl*vect[j]/m_c;
+		    f[*n][j]   -= kl*vect[j]/m_l;
 	    }
 	}
 	if (dim == 3)
@@ -2265,13 +2428,13 @@ extern void compute_node_accel3(
 	    if (!is_load_node(node))
 	    {
 	    	for (i = 0; i < 3; ++i)
-	    	    f[*n][i] -= lambda_s*(v[*n][i] - V_refs[i])/m_s;
+	    	    f[*n][i] -= lambda_s*v[*n][i]/m_s;
 	    }
 	}
 	else
 	{
 	    for (i = 0; i < 3; ++i)
-	    	f[*n][i] -= lambda_c*(v[*n][i] - V_refs[i])/m_c;
+	    	f[*n][i] -= lambda_l*v[*n][i]/m_l;
 	}
 	(*n)++;
 }	/* end compute_node_accel3 */
@@ -2289,29 +2452,28 @@ extern void compute_curve_accel3(
 	BOND *b;
 	double dir[MAXD],len0,vect[MAXD];
 	int dim = Dimension(curve->interface);
-	double kc,m_c,lambda_c;
-	double *V_refs = geom_set->V_refs;
+	double kl,m_l,lambda_l;
 
 	if (dim == 3)
 	{
 	    if (hsbdry_type(curve) == STRING_HSBDRY)
 	    {
-	    	kc = geom_set->kl;
-	    	m_c = geom_set->m_c;
-	    	lambda_c = geom_set->lambda_c;
+	    	kl = geom_set->kl;
+	    	m_l = geom_set->m_l;
+	    	lambda_l = geom_set->lambda_l;
 	    }
 	    else
 	    {
-	    	kc = geom_set->ks;
-	    	m_c = geom_set->m_s;
-	    	lambda_c = geom_set->lambda_s;
+	    	kl = geom_set->ks;
+	    	m_l = geom_set->m_s;
+	    	lambda_l = geom_set->lambda_s;
 	    }
 	}
 	else
 	{
-	    kc = geom_set->kl;
-	    m_c = geom_set->m_c;
-	    lambda_c = geom_set->lambda_c;
+	    kl = geom_set->kl;
+	    m_l = geom_set->m_l;
+	    lambda_l = geom_set->lambda_l;
 	}
 	i = *n;
 	for (b = curve->first; b != curve->last; b = b->next)
@@ -2320,7 +2482,7 @@ extern void compute_curve_accel3(
 	    {
 	    	x[i][j] = Coords(b->end)[j];
 	    	v[i][j] = b->end->vel[j];
-		f[i][j] = -lambda_c*(v[i][j] - V_refs[j])/m_c;
+		f[i][j] = -lambda_l*v[i][j]/m_l;
 	    }
 	    i++;
 	}
@@ -2335,11 +2497,11 @@ extern void compute_curve_accel3(
 				/bond_length(b) - b->dir0[j]);
 		if (b != curve->first)
 		{
-	    	    f[i-1][j]   += kc*vect[j]/m_c;
+	    	    f[i-1][j]   += kl*vect[j]/m_l;
 		}
 		if (b != curve->last)
 		{
-	    	    f[i][j] -= kc*vect[j]/m_c;
+	    	    f[i][j] -= kl*vect[j]/m_l;
 		}
 	    }
 	    if (b != curve->last) i++;
@@ -2377,7 +2539,7 @@ extern void compute_curve_accel3(
 						Coords(p)[k])/length;
 				    vect[k] = length0*(dir[k]
 					- tris[j]->side_dir0[side][k]);
-                            	    f[i][k] += kc*vect[k]/m_c;
+                            	    f[i][k] += kl*vect[k]/m_l;
                         	}
 			    }
 			}

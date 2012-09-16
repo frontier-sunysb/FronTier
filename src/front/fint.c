@@ -1072,6 +1072,9 @@ EXPORT	void f_fprint_hsbdry_type(
 	case STRING_HSBDRY:
 	    (void) fprintf(file,"STRING_%s",suffix);
 	    break;
+	case GORE_HSBDRY:
+	    (void) fprintf(file,"GORE_%s",suffix);
+	    break;
 	case UNKNOWN_HSBDRY_TYPE:
 	    (void) fprintf(file,"UNKNOWN_HSBDRY_TYPE\t\t");
 	    break;
@@ -1117,6 +1120,9 @@ EXPORT	int f_read_hsbdry_type_from_string(
 	    break;
 	case 'M':
 	    hsb_type = MONO_COMP_HSBDRY;
+	    break;
+	case 'G':
+	    hsb_type = GORE_HSBDRY;
 	    break;
 	case 'C':
 	    hsb_type = CLOSED_HSBDRY;

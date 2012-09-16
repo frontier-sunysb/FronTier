@@ -110,8 +110,8 @@ extern void second_order_elastic_curve_propagate(
 
 	geom_set.front = fr;
         geom_set.kl = af_params->kl;
-        geom_set.lambda_c = af_params->lambda_c;
-        geom_set.m_c = mass = af_params->m_c;
+        geom_set.lambda_l = af_params->lambda_l;
+        geom_set.m_l = mass = af_params->m_l;
         geom_set.dt = dt;
 
 	ns = newc->start;	ne = newc->end;
@@ -222,8 +222,8 @@ extern void second_order_elastic_surf_propagate(
         geom_set.lambda_s = af_params->lambda_s;
         geom_set.m_s = af_params->m_s;
         geom_set.kl = af_params->kl;
-        geom_set.lambda_c = af_params->lambda_c;
-        geom_set.m_c = af_params->m_c;
+        geom_set.lambda_l = af_params->lambda_l;
+        geom_set.m_l = af_params->m_l;
 	geom_set.front = fr;
 	geom_set.dt = dt;
 	
@@ -645,7 +645,7 @@ static void print_airfoil_stat2d_1(
 	char fname[256];
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 	double ek,ep,enp;
-	double kl,m_c,x_diff;
+	double kl,m_l,x_diff;
 	int i,dim = intfc->dim;
 	double str_length;
 	STRING_NODE_TYPE start_type = af_params->start_type;
@@ -672,7 +672,7 @@ static void print_airfoil_stat2d_1(
         }
 
 	kl = af_params->kl;
-        m_c = af_params->m_c;
+        m_l = af_params->m_l;
 	payload = af_params->payload;
 	g = af_params->gravity;
 	ek = ep = enp = str_length = 0.0;
@@ -687,7 +687,7 @@ static void print_airfoil_stat2d_1(
 		{
 		    for (i = 0; i < dim; ++i)
 		    {
-		    	ek += 0.5*m_c*sqr(p->vel[i]);
+		    	ek += 0.5*m_l*sqr(p->vel[i]);
 		    }
 		}
 		else if(start_type == LOADED_END)
@@ -703,7 +703,7 @@ static void print_airfoil_stat2d_1(
 		{
 		    for (i = 0; i < dim; ++i)
 		    {
-		    	ek += 0.5*m_c*sqr(p->vel[i]);
+		    	ek += 0.5*m_l*sqr(p->vel[i]);
 		    }
 		}
 		else if(end_type == LOADED_END)
@@ -723,7 +723,7 @@ static void print_airfoil_stat2d_1(
 		    {
 		    	for (i = 0; i < dim; ++i)
 			{
-		    	    ek += 0.5*m_c*sqr(p->vel[i]);
+		    	    ek += 0.5*m_l*sqr(p->vel[i]);
 			}
 		    }
 		    ep += 0.5*kl*sqr(x_diff);
@@ -784,7 +784,7 @@ static void print_airfoil_stat3d_1(
 	char fname[256];
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 	double esk,esp,epi,epb,egp,exk,enk;
-	double ks,m_s,kl,m_c,x_diff,side_length;
+	double ks,m_s,kl,m_l,x_diff,side_length;
 	int j,k,nc,dim = intfc->dim;
 	double cnp_area,str_length,pz,pv;
 	double zcom,vcom;
@@ -906,12 +906,12 @@ static void print_airfoil_stat3d_1(
 	    if (hsbdry_type(*c) == STRING_HSBDRY)
 	    {
 		kl = af_params->kl;
-        	m_c = af_params->m_c;
+        	m_l = af_params->m_l;
 	    }
 	    else if (hsbdry_type(*c) == MONO_COMP_HSBDRY)
 	    {
 		kl = af_params->ks;
-        	m_c = af_params->m_s;
+        	m_l = af_params->m_s;
 	    }
 	    else
 		continue;
@@ -923,11 +923,11 @@ static void print_airfoil_stat3d_1(
 		if (b != curve->last)
 		    for (k = 0; k < dim; ++k)
 		    {
-		    	esk += 0.5*m_c*sqr(b->end->vel[k]);
-			egp += -g[k]*m_c*Coords(b->end)[k];
+		    	esk += 0.5*m_l*sqr(b->end->vel[k]);
+			egp += -g[k]*m_l*Coords(b->end)[k];
 			st = (STATE*)left_state(b->end);
-			exk += 0.5*m_c*sqr(st->Impct[k]);
-			enk += 0.5*m_c*sqr(b->end->vel[k] + st->Impct[k]);
+			exk += 0.5*m_l*sqr(st->Impct[k]);
+			enk += 0.5*m_l*sqr(b->end->vel[k] + st->Impct[k]);
 		    }
 	    }
 	    node = curve->start;
@@ -935,11 +935,11 @@ static void print_airfoil_stat3d_1(
 	    {
 	    	for (k = 0; k < dim; ++k)
 	    	{
-		    esk += 0.5*m_c*sqr(node->posn->vel[k]);
-		    egp += -g[k]*m_c*Coords(node->posn)[k];
+		    esk += 0.5*m_l*sqr(node->posn->vel[k]);
+		    egp += -g[k]*m_l*Coords(node->posn)[k];
 		    st = (STATE*)left_state(node->posn);
-		    exk += 0.5*m_c*sqr(st->Impct[k]);
-		    enk += 0.5*m_c*sqr(node->posn->vel[k] + st->Impct[k]);
+		    exk += 0.5*m_l*sqr(st->Impct[k]);
+		    enk += 0.5*m_l*sqr(node->posn->vel[k] + st->Impct[k]);
 	    	}
 	    }
 	    if (!is_closed_curve(curve))
@@ -949,11 +949,11 @@ static void print_airfoil_stat3d_1(
 	    	{
 		    for (k = 0; k < dim; ++k)
 		    {
-		    	esk += 0.5*m_c*sqr(node->posn->vel[k]);
-		    	egp += -g[k]*m_c*Coords(node->posn)[k];
+		    	esk += 0.5*m_l*sqr(node->posn->vel[k]);
+		    	egp += -g[k]*m_l*Coords(node->posn)[k];
 			st = (STATE*)left_state(node->posn);
-			exk += 0.5*m_c*sqr(st->Impct[k]);
-		        enk += 0.5*m_c*sqr(node->posn->vel[k] + st->Impct[k]);
+			exk += 0.5*m_l*sqr(st->Impct[k]);
+		        enk += 0.5*m_l*sqr(node->posn->vel[k] + st->Impct[k]);
 		    }
 	    	}
 	    }
@@ -1051,7 +1051,7 @@ static void print_airfoil_stat3d_2(
 	char fname[256];
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 	double esk,esp,epi,epb,egp,exk,enk;
-	double ks,m_s,kl,m_c,x_diff,x_sqr,side_length,vect[3];
+	double ks,m_s,kl,m_l,x_diff,x_sqr,side_length,vect[3];
 	int j,k,nc,dim = intfc->dim;
 	double cnp_area,str_length,pz,pv;
 	double zcom,vcom;
@@ -1158,12 +1158,12 @@ static void print_airfoil_stat3d_2(
 	    if (hsbdry_type(*c) == STRING_HSBDRY)
 	    {
 		kl = af_params->kl;
-        	m_c = af_params->m_c;
+        	m_l = af_params->m_l;
 	    }
 	    else if (hsbdry_type(*c) == MONO_COMP_HSBDRY)
 	    {
 		kl = af_params->ks;
-        	m_c = af_params->m_s;
+        	m_l = af_params->m_s;
 	    }
 	    else
 		continue;
@@ -1183,11 +1183,11 @@ static void print_airfoil_stat3d_2(
 		if (b != curve->last)
 		    for (k = 0; k < dim; ++k)
 		    {
-		    	esk += 0.5*m_c*sqr(b->end->vel[k]);
-			egp += -g[k]*m_c*Coords(b->end)[k];
+		    	esk += 0.5*m_l*sqr(b->end->vel[k]);
+			egp += -g[k]*m_l*Coords(b->end)[k];
 			st = (STATE*)left_state(b->end);
-			exk += 0.5*m_c*sqr(st->Impct[k]);
-			enk += 0.5*m_c*sqr(b->end->vel[k] + st->Impct[k]);
+			exk += 0.5*m_l*sqr(st->Impct[k]);
+			enk += 0.5*m_l*sqr(b->end->vel[k] + st->Impct[k]);
 		    }
 	    }
 	    node = curve->start;
@@ -1195,11 +1195,11 @@ static void print_airfoil_stat3d_2(
 	    {
 	    	for (k = 0; k < dim; ++k)
 	    	{
-		    esk += 0.5*m_c*sqr(node->posn->vel[k]);
-		    egp += -g[k]*m_c*Coords(node->posn)[k];
+		    esk += 0.5*m_l*sqr(node->posn->vel[k]);
+		    egp += -g[k]*m_l*Coords(node->posn)[k];
 		    st = (STATE*)left_state(node->posn);
-		    exk += 0.5*m_c*sqr(st->Impct[k]);
-		    enk += 0.5*m_c*sqr(node->posn->vel[k] + st->Impct[k]);
+		    exk += 0.5*m_l*sqr(st->Impct[k]);
+		    enk += 0.5*m_l*sqr(node->posn->vel[k] + st->Impct[k]);
 	    	}
 	    }
 	    if (!is_closed_curve(curve))
@@ -1209,11 +1209,11 @@ static void print_airfoil_stat3d_2(
 	    	{
 		    for (k = 0; k < dim; ++k)
 		    {
-		    	esk += 0.5*m_c*sqr(node->posn->vel[k]);
-		    	egp += -g[k]*m_c*Coords(node->posn)[k];
+		    	esk += 0.5*m_l*sqr(node->posn->vel[k]);
+		    	egp += -g[k]*m_l*Coords(node->posn)[k];
 			st = (STATE*)left_state(node->posn);
-			exk += 0.5*m_c*sqr(st->Impct[k]);
-		        enk += 0.5*m_c*sqr(node->posn->vel[k] + st->Impct[k]);
+			exk += 0.5*m_l*sqr(st->Impct[k]);
+		        enk += 0.5*m_l*sqr(node->posn->vel[k] + st->Impct[k]);
 		    }
 	    	}
 	    }
@@ -1354,8 +1354,8 @@ extern void fourth_order_elastic_curve_propagate(
 
 	geom_set.front = fr;
 	geom_set.kl = af_params->kl;
-	geom_set.lambda_c = af_params->lambda_c;
-	geom_set.m_c = mass = af_params->m_c;
+	geom_set.lambda_l = af_params->lambda_l;
+	geom_set.m_l = mass = af_params->m_l;
 	geom_set.dt = dt;
 
 	ns = newc->start;	ne = newc->end;
@@ -1567,7 +1567,7 @@ extern void fourth_order_elastic_surf_propagate(
 	PARACHUTE_SET geom_set;
 	CURVE **oc,**nc,*oldc[MAX_SURF_CURVES],*newc[MAX_SURF_CURVES];
 	NODE *oldn[MAX_SURF_NODES],*newn[MAX_SURF_NODES];
-	int num_nodes,num_curves;	/* Numbers of nodes and curves */
+	int num_nodes,num_lurves;	/* Numbers of nodes and curves */
 	void (*compute_node_accel)(PARACHUTE_SET*,NODE*,double**,
 				double**,double **,int*);
 	void (*compute_curve_accel)(PARACHUTE_SET*,CURVE*,double**,
@@ -1604,30 +1604,30 @@ extern void fourth_order_elastic_surf_propagate(
 	geom_set.lambda_s = af_params->lambda_s;
 	geom_set.m_s = af_params->m_s;
 	geom_set.kl = af_params->kl;
-	geom_set.lambda_c = af_params->lambda_c;
-	geom_set.m_c = mass = af_params->m_c;
+	geom_set.lambda_l = af_params->lambda_l;
+	geom_set.m_l = mass = af_params->m_l;
 	geom_set.front = fr;
 	geom_set.dt = dt;
 
 	/* Assume there is only one closed boundary curve */
-	num_nodes = num_curves = 0;
+	num_nodes = num_lurves = 0;
 	for (oc = olds->pos_curves, nc = news->pos_curves; oc && *oc; 
 				++oc, ++nc)
 	{
 	    if (hsbdry_type(*oc) == FIXED_HSBDRY) continue;
-	    oldc[num_curves] = *oc;
-	    newc[num_curves] = *nc;
-	    num_curves++;
+	    oldc[num_lurves] = *oc;
+	    newc[num_lurves] = *nc;
+	    num_lurves++;
 	}
 	for (oc = olds->neg_curves, nc = news->neg_curves; oc && *oc; 
 				++oc, ++nc)
 	{
 	    if (hsbdry_type(*oc) == FIXED_HSBDRY) continue;
-	    oldc[num_curves] = *oc;
-	    newc[num_curves] = *nc;
-	    num_curves++;
+	    oldc[num_lurves] = *oc;
+	    newc[num_lurves] = *nc;
+	    num_lurves++;
 	}
-	for (i = 0; i < num_curves; ++i)
+	for (i = 0; i < num_lurves; ++i)
 	{
 	    if (!pointer_in_list((POINTER)oldc[i]->start,num_nodes,
 				(POINTER*)oldn))
@@ -1668,7 +1668,7 @@ extern void fourth_order_elastic_surf_propagate(
 
 	count = 0;
 	compute_surf_accel(&geom_set,news,f_old,x_old,v_old,&count);
-	for (i = 0; i < num_curves; ++i)
+	for (i = 0; i < num_lurves; ++i)
 	{
 	    n0 = count;
 	    compute_curve_accel(&geom_set,newc[i],f_old,x_old,v_old,&count);
@@ -1693,13 +1693,13 @@ extern void fourth_order_elastic_surf_propagate(
             }
 	    count = 0;
             assign_surf_field(news,x_mid,v_mid,&count);
-	    for (i = 0; i < num_curves; ++i)
+	    for (i = 0; i < num_lurves; ++i)
             	assign_curve_field(newc[i],x_mid,v_mid,&count);
 	    for (i = 0; i < num_nodes; ++i)
             	assign_node_field(newn[i],x_mid,v_mid,&count);
 	    count = 0;
 	    compute_surf_accel(&geom_set,news,f_mid,x_mid,v_mid,&count);
-	    for (i = 0; i < num_curves; ++i)
+	    for (i = 0; i < num_lurves; ++i)
 	    {
 		n0 = count;
 	    	compute_curve_accel(&geom_set,newc[i],f_mid,x_mid,v_mid,&count);
@@ -1722,7 +1722,7 @@ extern void fourth_order_elastic_surf_propagate(
             }
 	    count = 0;
             assign_surf_field(news,x_mid,v_mid,&count);
-	    for (i = 0; i < num_curves; ++i)
+	    for (i = 0; i < num_lurves; ++i)
 	    {
             	assign_curve_field(newc[i],x_mid,v_mid,&count);
 	    }
@@ -1730,7 +1730,7 @@ extern void fourth_order_elastic_surf_propagate(
             	assign_node_field(newn[i],x_mid,v_mid,&count);
 	    count = 0;
 	    compute_surf_accel(&geom_set,news,f_mid,x_mid,v_mid,&count);
-	    for (i = 0; i < num_curves; ++i)
+	    for (i = 0; i < num_lurves; ++i)
 	    {
 		n0 = count;
 	    	compute_curve_accel(&geom_set,newc[i],f_mid,x_mid,v_mid,&count);
@@ -1753,13 +1753,13 @@ extern void fourth_order_elastic_surf_propagate(
             }
 	    count = 0;
             assign_surf_field(news,x_mid,v_mid,&count);
-	    for (i = 0; i < num_curves; ++i)
+	    for (i = 0; i < num_lurves; ++i)
             	assign_curve_field(newc[i],x_mid,v_mid,&count);
 	    for (i = 0; i < num_nodes; ++i)
             	assign_node_field(newn[i],x_mid,v_mid,&count);
 	    count = 0;
 	    compute_surf_accel(&geom_set,news,f_mid,x_mid,v_mid,&count);
-	    for (i = 0; i < num_curves; ++i)
+	    for (i = 0; i < num_lurves; ++i)
 	    {
 		n0 = count;
 	    	compute_curve_accel(&geom_set,newc[i],f_mid,x_mid,v_mid,&count);
@@ -1780,7 +1780,7 @@ extern void fourth_order_elastic_surf_propagate(
             }
 	    count = 0;
             assign_surf_field(news,x_new,v_new,&count);
-	    for (i = 0; i < num_curves; ++i)
+	    for (i = 0; i < num_lurves; ++i)
             	assign_curve_field(newc[i],x_new,v_new,&count);
 	    for (i = 0; i < num_nodes; ++i)
             	assign_node_field(newn[i],x_new,v_new,&count);
@@ -1788,7 +1788,7 @@ extern void fourth_order_elastic_surf_propagate(
 	    {
 	    	count = 0;
 	    	compute_surf_accel(&geom_set,news,f_old,x_old,v_old,&count);
-	    	for (i = 0; i < num_curves; ++i)
+	    	for (i = 0; i < num_lurves; ++i)
 		{
 		    n0 = count;
 	    	    compute_curve_accel(&geom_set,newc[i],f_old,x_old,
@@ -1976,7 +1976,7 @@ static void print_airfoil_stat2d_2(
 	char fname[256];
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 	double ek,ep,enp;
-	double kl,m_c,x_diff;
+	double kl,m_l,x_diff;
 	int i,dim = intfc->dim;
 	double str_length;
 	STRING_NODE_TYPE start_type = af_params->start_type;
@@ -2004,7 +2004,7 @@ static void print_airfoil_stat2d_2(
         }
 
 	kl = af_params->kl;
-        m_c = af_params->m_c;
+        m_l = af_params->m_l;
 	payload = af_params->payload;
 	g = af_params->gravity;
 	ek = ep = enp = str_length = 0.0;
@@ -2019,7 +2019,7 @@ static void print_airfoil_stat2d_2(
 		{
 		    for (i = 0; i < dim; ++i)
 		    {
-		    	ek += 0.5*m_c*sqr(p->vel[i]);
+		    	ek += 0.5*m_l*sqr(p->vel[i]);
 		    }
 		}
 		else if(start_type == LOADED_END)
@@ -2035,7 +2035,7 @@ static void print_airfoil_stat2d_2(
 		{
 		    for (i = 0; i < dim; ++i)
 		    {
-		    	ek += 0.5*m_c*sqr(p->vel[i]);
+		    	ek += 0.5*m_l*sqr(p->vel[i]);
 		    }
 		}
 		else if(end_type == LOADED_END)
@@ -2055,7 +2055,7 @@ static void print_airfoil_stat2d_2(
 		    {
 		    	for (i = 0; i < dim; ++i)
 			{
-		    	    ek += 0.5*m_c*sqr(p->vel[i]);
+		    	    ek += 0.5*m_l*sqr(p->vel[i]);
 			}
 		    }
 		    len0 = bond_length0(b);

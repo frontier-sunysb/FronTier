@@ -656,7 +656,8 @@ enum {
 	SINK_HSBDRY,
 	MONO_COMP_HSBDRY,
 	STRING_HSBDRY,
-	FIRST_PHYSICS_HSBDRY_TYPE = 10,
+	GORE_HSBDRY,
+	FIRST_PHYSICS_HSBDRY_TYPE = 20,
 
 	/* Possible values for the node_type of a NODE */
 

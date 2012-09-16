@@ -8,6 +8,13 @@ static double (*getStateVort3d[3])(POINTER) = {getStateXvort,getStateYvort,
 static SURFACE *canopy_of_string_node(NODE*);
 static void convert_to_point_mass(Front*,AF_PARAMS*);
 static void airfoil_curve_propagate(Front*,POINTER,CURVE*,CURVE*,double);
+static 	int numOfGoreHsbdry(INTERFACE*);
+static 	int numOfMonoHsbdry(INTERFACE*);
+static 	int numOfGoreNodes(INTERFACE*);
+static	int arrayOfMonoHsbdry(INTERFACE*,CURVE**);
+static	int arrayOfGoreHsbdry(INTERFACE*,CURVE**);
+static 	int getGoreNodes(INTERFACE*,NODE**);
+
 
 typedef struct {
 	double cen[MAXD];
@@ -288,16 +295,28 @@ extern void initVelocityFunc(
             CursorAfterString(infile,"Enter fabric point mass:");
             fscanf(infile,"%lf",&af_params->m_s);
             (void) printf("%f\n",af_params->m_s);
+	    if (af_params->attach_gores == YES)
+	    {
+		CursorAfterString(infile,"Enter gore spring constant:");
+        	fscanf(infile,"%lf",&af_params->kg);
+        	(void) printf("%f\n",af_params->kg);
+        	CursorAfterString(infile,"Enter gore friction constant:");
+        	fscanf(infile,"%lf",&af_params->lambda_g);
+        	(void) printf("%f\n",af_params->lambda_g);
+        	CursorAfterString(infile,"Enter gore point mass:");
+        	fscanf(infile,"%lf",&af_params->m_g);
+        	(void) printf("%f\n",af_params->m_g);
+	    }
 	}
 	CursorAfterString(infile,"Enter string spring constant:");
         fscanf(infile,"%lf",&af_params->kl);
         (void) printf("%f\n",af_params->kl);
         CursorAfterString(infile,"Enter string friction constant:");
-        fscanf(infile,"%lf",&af_params->lambda_c);
-        (void) printf("%f\n",af_params->lambda_c);
+        fscanf(infile,"%lf",&af_params->lambda_l);
+        (void) printf("%f\n",af_params->lambda_l);
         CursorAfterString(infile,"Enter string point mass:");
-        fscanf(infile,"%lf",&af_params->m_c);
-        (void) printf("%f\n",af_params->m_c);
+        fscanf(infile,"%lf",&af_params->m_l);
+        (void) printf("%f\n",af_params->m_l);
 	//convert_to_point_mass(front,af_params);
 	fclose(infile);
 }	/* end initVelocityFunc */
@@ -364,6 +383,7 @@ extern void elastic_point_propagate(
 	double area_dens = af_params->area_dens;
 	double left_nor_speed,right_nor_speed;
 	double dv;
+	/*TMP*/
 	double r;
 	int j;
 	static double Z[20],R[21];
@@ -373,10 +393,10 @@ extern void elastic_point_propagate(
 	static double min_lift,max_lift,ave_lift;
 	static double Ave_lift;
 
-	/*TMP*/
+
 	if (debugging("ave_lift"))
 	{
-	    if (first)
+ 	    if (first)
 	    {
 	    	first = NO;
 	    	for (i = 0; i < 21; ++i)
@@ -394,9 +414,9 @@ extern void elastic_point_propagate(
 	    	ave_lift = 0.0;
 	    	total_np = 0;
 	    	if (front->step == 2)
-		    Ave_lift = ave_lift;
+		Ave_lift = ave_lift;
 	    	else
-		    Ave_lift = 0.0;
+		Ave_lift = 0.0;
 	    }
 	    if (step != front->step)
 	    {
@@ -513,106 +533,6 @@ extern void elastic_point_propagate(
 	    }
 	}
 }       /* elastic_point_propagate */
-
-extern int af_node_propagate(
-	Front *front,
-	POINTER wave,
-	NODE *oldn,
-	NODE *newn,
-	RPROBLEM **rp,
-	double dt,
-	double *dt_frac,
-	NODE_FLAG flag,
-	POINTER user)
-{
-	AF_NODE_EXTRA *extra = (AF_NODE_EXTRA*)oldn->extra;
-	CURVE **old_str_curves,**old_elas_bdry_curves;
-	CURVE **new_str_curves,**new_elas_bdry_curves;
-	NODE **old_str_nodes,**new_str_nodes;
-	SURFACE *olds,*news;
-	int i,num_str_curves,num_elas_bdry;
-	PARACHUTE_SET old_geom_set;
-	PARACHUTE_SET new_geom_set;
-
-	if (extra == NULL) return GOOD_NODE;
-	if (extra->af_node_type != LOAD_NODE) return GOOD_NODE;
-
-	if (debugging("trace"))
-	{
-	    (void) printf("Entering af_node_propagate()\n");
-	    (void) printf("posn = %f %f %f\n",Coords(oldn->posn)[0],
-				Coords(oldn->posn)[1],Coords(oldn->posn)[2]);
-	}
-	old_geom_set.load_node = oldn;
-	new_geom_set.load_node = newn;
-
-	num_str_curves = FT_NumOfNodeCurves(oldn);
-	if (num_str_curves != FT_NumOfNodeCurves(newn))
-	{
-	    (void) printf("ERROR in af_node_propagate(): "
-			  "old and new number of string curves not equal!\n");
-	    clean_up(ERROR);
-	}
-	FT_VectorMemoryAlloc((POINTER*)&old_str_curves,num_str_curves,
-			sizeof(CURVE*));
-	FT_VectorMemoryAlloc((POINTER*)&new_str_curves,num_str_curves,
-			sizeof(CURVE*));
-	FT_VectorMemoryAlloc((POINTER*)&old_str_nodes,num_str_curves,
-			sizeof(NODE*));
-	FT_VectorMemoryAlloc((POINTER*)&new_str_nodes,num_str_curves,
-			sizeof(NODE*));
-	FT_ArrayOfNodeCurves(oldn,old_str_curves);
-	FT_ArrayOfNodeCurves(newn,new_str_curves);
-
-	old_geom_set.num_strings = num_str_curves;
-	new_geom_set.num_strings = num_str_curves;
-	old_geom_set.string_node = old_str_nodes;
-	new_geom_set.string_node = new_str_nodes;
-	old_geom_set.string_curves = old_str_curves;
-	new_geom_set.string_curves = new_str_curves;
-
-	for (i = 0; i < num_str_curves; ++i)
-	{
-	    old_str_nodes[i] = (old_str_curves[i]->start == oldn) ? 
-			old_str_curves[i]->end : old_str_curves[i]->start;
-	    new_str_nodes[i] = (new_str_curves[i]->start == newn) ? 
-			new_str_curves[i]->end : new_str_curves[i]->start;
-	}
-	olds = canopy_of_string_node(old_str_nodes[0]);
-	news = canopy_of_string_node(new_str_nodes[0]);
-
-	printf("olds = %p  news = %p\n",(POINTER)olds,(POINTER)news);
-	num_elas_bdry = FT_NumOfSurfCurves(olds);
-	if (num_str_curves != FT_NumOfSurfCurves(news))
-	{
-	    (void) printf("ERROR in af_node_propagate(): "
-			  "old and new number of canopy bady not equal!\n");
-	    clean_up(ERROR);
-	}
-	FT_VectorMemoryAlloc((POINTER*)&old_elas_bdry_curves,num_elas_bdry,
-			sizeof(CURVE*));
-	FT_VectorMemoryAlloc((POINTER*)&new_elas_bdry_curves,num_elas_bdry,
-			sizeof(CURVE*));
-	FT_ArrayOfSurfCurves(olds,old_elas_bdry_curves);
-	FT_ArrayOfSurfCurves(news,new_elas_bdry_curves);
-
-	old_geom_set.num_elas_bdry_curves = num_elas_bdry;
-	new_geom_set.num_elas_bdry_curves = num_elas_bdry;
-	old_geom_set.elas_bdry_curves = old_elas_bdry_curves;
-	new_geom_set.elas_bdry_curves = new_elas_bdry_curves;
-	old_geom_set.canopy = olds;
-	new_geom_set.canopy = news;
-	old_geom_set.front = front;
-	new_geom_set.front = front;
-
-	fourth_order_parachute_propagate(front,&old_geom_set,&new_geom_set);
-	FT_FreeThese(6,old_str_curves,new_str_curves,old_str_nodes,
-		new_str_nodes,old_elas_bdry_curves,new_elas_bdry_curves);
-	
-	if (debugging("trace"))
-	    (void) printf("Leaving af_node_propagate()\n");
-	return GOOD_NODE;
-}	/* end af_node_propagate */
 
 /*	Given string node, the function finds the corresponding
 *	canopy surface.
@@ -755,7 +675,6 @@ extern int singular_velo(
 	double R = para_params->R;
 	double *cen = para_params->cen;
 	double r = 0.0;
-
 	for (i = 0; i < dim-1; ++i)
 	{
 	    r += sqr(coords[i] - cen[i]);
@@ -799,13 +718,15 @@ extern void fourth_order_elastic_set_propagate(
 	INTERFACE *new_intfc = news->interface;
 	NODE *oldn,*newn;	/* old and new payload nodes */
 	AF_NODE_EXTRA *extra;
-	CURVE **old_str_curves,**old_elas_bdry_curves;
-	CURVE **new_str_curves,**new_elas_bdry_curves;
-	NODE **old_str_nodes,**new_str_nodes;
-	int i,dim,num_str_curves,num_elas_bdry;
-	PARACHUTE_SET old_geom_set;
-	PARACHUTE_SET new_geom_set;
+	CURVE **old_str_curves,**old_mono_hsbdry,**old_gore_hsbdry;
+	CURVE **new_str_curves,**new_mono_hsbdry,**new_gore_hsbdry;
+	NODE **old_str_nodes,**old_gore_nodes;
+	NODE **new_str_nodes,**new_gore_nodes;
+	int i,num_str_curves,num_mono_hsbdry,num_gore_hsbdry;
+	static PARACHUTE_SET old_geom_set;
+	static PARACHUTE_SET new_geom_set;
 	NODE **n;
+	int num_gore_nodes;
 
 	if (wave_type(news) != ELASTIC_BOUNDARY) return;
 	if (debugging("trace"))
@@ -829,16 +750,9 @@ extern void fourth_order_elastic_set_propagate(
 
 	old_geom_set.load_node = oldn;
 	new_geom_set.load_node = newn;
-	dim = front->rect_grid->dim;
-	/*
-	for (i = 0; i < dim; ++i)
-	    old_geom_set.V_refs[i] = new_geom_set.V_refs[i] =
-			oldn->posn->vel[i];
-	*/
-	for (i = 0; i < dim; ++i)
-	    old_geom_set.V_refs[i] = new_geom_set.V_refs[i] = 0.0;
 
 	num_str_curves = FT_NumOfNodeCurves(oldn);
+
 	if (num_str_curves != FT_NumOfNodeCurves(newn))
 	{
 	    (void) printf("ERROR in af_node_propagate(): "
@@ -853,13 +767,19 @@ extern void fourth_order_elastic_set_propagate(
 			sizeof(NODE*));
 	FT_VectorMemoryAlloc((POINTER*)&new_str_nodes,num_str_curves,
 			sizeof(NODE*));
+	FT_VectorMemoryAlloc((POINTER*)&old_gore_nodes,num_gore_nodes,
+			sizeof(NODE*));
+	FT_VectorMemoryAlloc((POINTER*)&new_gore_nodes,num_gore_nodes,
+			sizeof(NODE*));
 	FT_ArrayOfNodeCurves(oldn,old_str_curves);
 	FT_ArrayOfNodeCurves(newn,new_str_curves);
 
 	old_geom_set.num_strings = num_str_curves;
 	new_geom_set.num_strings = num_str_curves;
+
 	old_geom_set.string_node = old_str_nodes;
 	new_geom_set.string_node = new_str_nodes;
+
 	old_geom_set.string_curves = old_str_curves;
 	new_geom_set.string_curves = new_str_curves;
 
@@ -872,26 +792,56 @@ extern void fourth_order_elastic_set_propagate(
 	}
 	news = canopy_of_string_node(new_str_nodes[0]);
 
-	num_elas_bdry = FT_NumOfSurfCurves(news);
-	FT_VectorMemoryAlloc((POINTER*)&old_elas_bdry_curves,num_elas_bdry,
-			sizeof(CURVE*));
-	FT_VectorMemoryAlloc((POINTER*)&new_elas_bdry_curves,num_elas_bdry,
-			sizeof(CURVE*));
-	FT_ArrayOfSurfCurves(news,old_elas_bdry_curves);
-	FT_ArrayOfSurfCurves(news,new_elas_bdry_curves);
+	num_gore_nodes = numOfGoreNodes(old_intfc);
+	num_gore_hsbdry = numOfGoreHsbdry(old_intfc);
+	num_mono_hsbdry = numOfMonoHsbdry(old_intfc);
 
-	old_geom_set.num_elas_bdry_curves = num_elas_bdry;
-	new_geom_set.num_elas_bdry_curves = num_elas_bdry;
-	old_geom_set.elas_bdry_curves = old_elas_bdry_curves;
-	new_geom_set.elas_bdry_curves = new_elas_bdry_curves;
+	FT_VectorMemoryAlloc((POINTER*)&old_mono_hsbdry,num_mono_hsbdry,
+			sizeof(CURVE*));
+	FT_VectorMemoryAlloc((POINTER*)&new_mono_hsbdry,num_mono_hsbdry,
+			sizeof(CURVE*));
+	num_mono_hsbdry = arrayOfMonoHsbdry(old_intfc,old_mono_hsbdry);
+	num_mono_hsbdry = arrayOfMonoHsbdry(new_intfc,new_mono_hsbdry);
+	FT_VectorMemoryAlloc((POINTER*)&old_gore_hsbdry,num_gore_hsbdry,
+			sizeof(CURVE*));
+	FT_VectorMemoryAlloc((POINTER*)&new_gore_hsbdry,num_gore_hsbdry,
+			sizeof(CURVE*));
+	num_gore_hsbdry = arrayOfGoreHsbdry(old_intfc,old_gore_hsbdry);
+	num_gore_hsbdry = arrayOfGoreHsbdry(new_intfc,new_gore_hsbdry);
+
+	old_geom_set.num_mono_hsbdry = num_mono_hsbdry;
+	new_geom_set.num_mono_hsbdry = num_mono_hsbdry;
+	old_geom_set.num_gore_hsbdry = num_gore_hsbdry;
+	new_geom_set.num_gore_hsbdry = num_gore_hsbdry;
+	old_geom_set.num_gore_nodes = num_gore_nodes;
+	new_geom_set.num_gore_nodes = num_gore_nodes;
+
+	old_geom_set.mono_hsbdry = old_mono_hsbdry;
+	new_geom_set.mono_hsbdry = new_mono_hsbdry;
+	old_geom_set.gore_hsbdry = old_gore_hsbdry;
+	new_geom_set.gore_hsbdry = new_gore_hsbdry;
+	getGoreNodes(old_intfc,old_gore_nodes);
+	getGoreNodes(new_intfc,new_gore_nodes);
+	old_geom_set.gore_nodes = old_gore_nodes;
+	new_geom_set.gore_nodes = new_gore_nodes;
 	old_geom_set.canopy = news;
 	new_geom_set.canopy = news;
 	old_geom_set.front = newfr;
 	new_geom_set.front = newfr;
 
+	if (debugging("para_set"))
+	{
+	    (void) printf("The parachute contains:\n");
+	    (void) printf("%d string chord curves\n",num_str_curves);
+	    (void) printf("%d canopy boundary curves\n",num_mono_hsbdry);
+	    (void) printf("%d canopy gore curves\n",num_gore_hsbdry);
+	}
 	fourth_order_parachute_propagate(newfr,&old_geom_set,&new_geom_set);
-	FT_FreeThese(6,old_str_curves,new_str_curves,old_str_nodes,
-		new_str_nodes,old_elas_bdry_curves,new_elas_bdry_curves);
+	FT_FreeThese(10,old_str_curves,new_str_curves,
+		       old_str_nodes,new_str_nodes,
+		       old_mono_hsbdry,new_mono_hsbdry,
+		       old_gore_hsbdry,new_gore_hsbdry,
+		       old_gore_nodes,new_gore_nodes);
 	
 	if (debugging("trace"))
 	    (void) printf("Leaving fourth_order_elastic_set_propagate()\n");
@@ -902,6 +852,7 @@ static void convert_to_point_mass(
 	AF_PARAMS *af_params)
 {
 	INTERFACE *intfc;
+	int num_str_pts,num_fabric_pts;
 	SURFACE **s;
 	int dim = Dimension(intfc);
 	
@@ -930,9 +881,6 @@ extern void airfoil_curve_propagate(
 	BOND *oldb,*newb;
 	POINT *oldp,*newp;
 	int dim = front->rect_grid->dim;
-
-	if (debugging("string"))
-	    (void) printf("Entering airfoil_curve_propagate()\n");
 	if (dim != 3) return;
 	if (hsbdry_type(oldc) != STRING_HSBDRY &&
 	    hsbdry_type(oldc) != MONO_COMP_HSBDRY) 
@@ -956,7 +904,128 @@ extern void airfoil_curve_propagate(
 	    ft_assign(left_state(newp),left_state(oldp),front->sizest);
 	    ft_assign(right_state(newp),right_state(oldp),front->sizest);
 	}
-	if (debugging("string"))
-	    (void) printf("Leaving airfoil_curve_propagate()\n");
 }	/* end airfoil_curve_propagate */
+
+static boolean is_gore_node(NODE*);
+
+static int numOfMonoHsbdry(
+	INTERFACE *intfc)
+{
+	CURVE **c;
+	int nc = 0;
+	for (c = intfc->curves; c && *c; ++c)
+	{
+	    if (hsbdry_type(*c) == MONO_COMP_HSBDRY) nc++;
+	} 
+	return nc;
+}	/* end numOfMonoBdry */
+
+static int numOfGoreHsbdry(
+	INTERFACE *intfc)
+{
+	CURVE **c;
+	int nc = 0;
+	for (c = intfc->curves; c && *c; ++c)
+	{
+	    if (hsbdry_type(*c) == GORE_HSBDRY) nc++;
+	} 
+	return nc;
+}	/* end numOfMonoBdry */
+
+static int arrayOfMonoHsbdry(
+	INTERFACE *intfc,
+	CURVE **mono_curves)
+{
+	CURVE **c;
+	int nc = 0;
+	for (c = intfc->curves; c && *c; ++c)
+	{
+	    if (hsbdry_type(*c) == MONO_COMP_HSBDRY) 
+	    {
+		mono_curves[nc] = *c;
+		nc++;
+	    }
+	} 
+	return nc;
+}	/* end arrayOfMonoBdry */
+
+static int arrayOfGoreHsbdry(
+	INTERFACE *intfc,
+	CURVE **gore_curves)
+{
+	CURVE **c;
+	int nc = 0;
+	for (c = intfc->curves; c && *c; ++c)
+	{
+	    if (hsbdry_type(*c) == GORE_HSBDRY) 
+	    {
+		gore_curves[nc] = *c;
+		nc++;
+	    }
+	} 
+	return nc;
+}	/* end arrayOfGoreBdry */
+
+static int numOfGoreNodes(
+	INTERFACE *intfc)
+{
+	CURVE **c;
+	NODE **n;
+	int num_gore_nodes = 0;
+	boolean is_gore_node;
+
+	for (n = intfc->nodes; n && *n; ++n)
+	{
+	    is_gore_node = YES;
+	    for (c = (*n)->in_curves; c && *c; ++c)
+		if (hsbdry_type(*c) != GORE_HSBDRY)
+		    is_gore_node = NO;
+	    for (c = (*n)->out_curves; c && *c; ++c)
+		if (hsbdry_type(*c) != GORE_HSBDRY)
+		    is_gore_node = NO;
+	    if (is_gore_node) num_gore_nodes++;
+	}
+	return num_gore_nodes;
+}	/* numOfGoreNodes */
+
+static boolean is_gore_node(
+	NODE *node)
+{
+	CURVE **c;
+	boolean is_gore_vertex = YES;
+
+	if (node->in_curves == NULL && node->out_curves == NULL)
+	    is_gore_vertex = NO;
+
+	for (c = node->in_curves; c && *c; ++c)
+	{
+	    if (hsbdry_type(*c) != GORE_HSBDRY)
+	    {
+		is_gore_vertex = NO;
+	    }
+	}
+	for (c = node->out_curves; c && *c; ++c)
+	{
+	    if (hsbdry_type(*c) != GORE_HSBDRY)
+	    {
+		is_gore_vertex = NO;
+	    }
+	}
+	return is_gore_vertex;
+}	/* end is_gore_node */
+
+static int getGoreNodes(
+	INTERFACE *intfc,
+	NODE **gore_nodes)
+{
+	NODE **n;
+	int num_nodes = 0;
+
+	for (n = intfc->nodes; n && *n; ++n)
+	{
+	    if (is_gore_node(*n))
+		gore_nodes[num_nodes++] = *n;
+	}
+	return num_nodes;
+}	/* getGoreNodes */
 
