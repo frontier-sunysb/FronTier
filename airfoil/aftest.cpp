@@ -406,6 +406,7 @@ static void set_equilibrium_mesh3d(
 	INTERFACE *intfc = front->interf;
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 	BOND *b;
+	double gore_len_fac = af_params->gore_len_fac;
 
 	for (c = intfc->curves; c && *c; ++c)
 	{
@@ -413,6 +414,8 @@ static void set_equilibrium_mesh3d(
 	    {
 		set_bond_length(b,3);
 		b->length0 = bond_length(b);
+		if (hsbdry_type(*c) == GORE_HSBDRY)
+		    b->length0 *= gore_len_fac;
 		for (i = 0; i < 3; ++i)
 		    b->dir0[i] = (Coords(b->end)[i] - Coords(b->start)[i])/
 					b->length0;	

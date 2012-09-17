@@ -237,6 +237,10 @@ static void setInitialIntfc3d(
 		    	level_func_pack->string_func = 
 		    		install_string_and_rotate_w_gores_T10;
 		    	af_params->attach_gores = YES;
+			CursorAfterStringOpt(infile,
+				"Enter gore length factor:");
+		    	fscanf(infile,"%lf",&(af_params->gore_len_fac));
+		    	(void) printf("%f\n",af_params->gore_len_fac);
 		    }
 		    else 
 		    	level_func_pack->string_func = 
@@ -326,6 +330,11 @@ static void setInitialIntfc3d(
 			    level_func_pack->string_func = 
 			    		install_string_and_rotate_w_gores;
 			    af_params->attach_gores = YES;
+			    af_params->gore_len_fac = 1.0; //default
+			    CursorAfterStringOpt(infile,
+				"Enter gore length factor:");
+		    	    fscanf(infile,"%lf",&(af_params->gore_len_fac));
+		    	    (void) printf("%f\n",af_params->gore_len_fac);
 		    	}
 		    	else 
 			    level_func_pack->string_func = 

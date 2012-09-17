@@ -55,6 +55,7 @@ typedef struct {
 	PERT_PARAMS pert_params;
 	STRING_NODE_TYPE start_type;
 	STRING_NODE_TYPE end_type;
+	double gore_len_fac;
         double rho1;
         double rho2;
         double mu1;
