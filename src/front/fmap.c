@@ -3394,7 +3394,8 @@ EXPORT void FT_ArrayOfCurveBonds(
 
 EXPORT CURVE *FT_CurveOfPoint(
 	INTERFACE *intfc,
-	POINT *point)
+	POINT *point,
+	BOND **bond)
 {
 	CURVE **c,*curve;
 	BOND *b;
@@ -3402,10 +3403,18 @@ EXPORT CURVE *FT_CurveOfPoint(
 	{
 	    curve = *c;
 	    if (curve->first->start == point) 
+	    {
+		*bond = curve->first;
 		return curve;
+	    }
 	    for (b = curve->first; b != NULL; b = b->next)
+	    {
 		if (b->end == point) 
+		{
+		    *bond = (b->next != NULL) ? b->next : b;
 		    return curve;
+		}
+	    }
 	}
 	return NULL;
 }	/* end FT_CurveOfPoint */

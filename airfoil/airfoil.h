@@ -52,6 +52,7 @@ typedef struct {
 	boolean no_fluid;
 	boolean is_parachute_system;
 	boolean attach_gores;
+	boolean cut_vent;
 	PERT_PARAMS pert_params;
 	STRING_NODE_TYPE start_type;
 	STRING_NODE_TYPE end_type;

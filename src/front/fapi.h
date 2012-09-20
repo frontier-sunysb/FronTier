@@ -893,16 +893,17 @@ extern "C" {
 
    IMPORT  int FT_FirstRingTrisAroundPoint(POINT *p, TRI *tri, TRI ***tris);
 
-/*! \fn CURVE* FT_CurveOfPoint(INTERFACE *intfc, POINT *point)
+/*! \fn CURVE* FT_CurveOfPoint(INTERFACE *intfc, POINT *point, BOND **bond)
  *  \ingroup QUERY
     \brief This function looks for the curve on which the point 
      is located. If found, it will return the handle (pointer) of 
      the curve, otherwise it will return NULL.
     \param intfc @b in	Pointer to the front interface.
     \param point @b in point on which the curve to be returned.
+    \param bond @b out bond on which the point is at.
  */
 
-   IMPORT  CURVE* FT_CurveOfPoint(INTERFACE *intfc,POINT *point);
+   IMPORT  CURVE* FT_CurveOfPoint(INTERFACE *intfc,POINT *point, BOND **bond);
 
 /*! \fn NODE* FT_NodeOfPoint(INTERFACE *intfc, POINT *point)
  *  \ingroup QUERY

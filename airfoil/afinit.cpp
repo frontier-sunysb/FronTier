@@ -28,6 +28,8 @@ static boolean install_strings(INTERFACE*,SURFACE*,POINTER,int);
 static boolean change_mono_boundary(INTERFACE*,SURFACE*,POINTER,int);
 static void set_side_curves(double*,double*,SURFACE*,CURVE**,CURVE**,CURVE**,
 				CURVE **);
+static boolean bond_intersect_with_polar_angle(double*,double,CURVE*,BOND**,
+                                double*);
 
 extern void setInitialIntfc(
         Front *front,
@@ -86,8 +88,10 @@ static void setInitialIntfc3d(
 	level_func_pack->func_params = NULL;
         level_func_pack->func = NULL;
 	af_params->is_parachute_system = NO;
+	af_params->cut_vent = NO;
 	af_params->num_opt_round = 20;
         af_params->spring_model = MODEL1;	// default
+	af_params->attach_gores = NO;		// default
 	CursorAfterString(infile,"Enter number of canopy surfaces:");
 	fscanf(infile,"%d",&num_canopy);
 	(void) printf("%d\n",num_canopy);
@@ -135,6 +139,7 @@ static void setInitialIntfc3d(
 	    (void) printf("%s\n",string);
 	    if (string[0] == 'y' || string[0] == 'Y')
 	    {
+		af_params->cut_vent = YES;
 	    	constr_params.cen[0] = cen[0];
 	    	constr_params.cen[1] = cen[1];
 	    	CursorAfterString(infile,"Enter radius of the vent:");
@@ -154,6 +159,7 @@ static void setInitialIntfc3d(
 		{
 		    string_params[i].cen[0] = cen[0];
 		    string_params[i].cen[1] = cen[1];
+		    string_params[i].cen[1] = cen[2];
 	    	    CursorAfterString(infile,"Enter number of chords:");
 	    	    fscanf(infile,"%d",&string_params[i].num_strings);
 	    	    (void) printf("%d\n",string_params[i].num_strings);
@@ -213,6 +219,7 @@ static void setInitialIntfc3d(
 	    (void) printf("%s\n",string);
 	    if (string[0] == 'y' || string[0] == 'Y')
 	    {
+		af_params->cut_vent = YES;
 	    	constr_params.cen[0] = cen[0];
 	    	constr_params.cen[1] = cen[1];
 	    	CursorAfterString(infile,"Enter radius of the vent:");
@@ -237,6 +244,7 @@ static void setInitialIntfc3d(
 		    	level_func_pack->string_func = 
 		    		install_string_and_rotate_w_gores_T10;
 		    	af_params->attach_gores = YES;
+			af_params->gore_len_fac = 1.0;
 			CursorAfterStringOpt(infile,
 				"Enter gore length factor:");
 		    	fscanf(infile,"%lf",&(af_params->gore_len_fac));
@@ -253,6 +261,7 @@ static void setInitialIntfc3d(
 		{
 		    string_params[i].cen[0] = cen[0];
 		    string_params[i].cen[1] = cen[1];
+		    string_params[i].cen[2] = cen[2];
 	    	    CursorAfterString(infile,"Enter number of chords:");
 	    	    fscanf(infile,"%d",&string_params[i].num_strings);
 	    	    (void) printf("%d\n",string_params[i].num_strings);
@@ -929,14 +938,13 @@ static boolean install_string_and_rotate(
 	POINTER params,
 	int ip)
 {
-	CURVE **c,*canopy_bdry,**string_curves;
+	CURVE **c,*canopy_bdry,*curve;
 	POINT **pts,**string_pts;
-	BOND **bonds,**string_bonds;
 	STRING_PARAMS *tmp_params = (STRING_PARAMS*)params;
 	STRING_PARAMS *string_params = tmp_params+ip;
 	double *cen = string_params->cen,*cload,coords[MAXD];
 	double ave_radius_sqr,max_radius_sqr;
-	int i,j,k,num_curves,num_points,num_bonds,num_strings;
+	int i,j,k,num_curves,num_points,num_strings;
 	int nb;
 	double *string_angle,start_angle,d_angle;
 	double theta1,theta2,d1,d2,rot_theta,rot_phi;
@@ -963,12 +971,8 @@ static boolean install_string_and_rotate(
 				sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&string_pts,num_strings,
 				sizeof(POINT*));
-	FT_VectorMemoryAlloc((POINTER*)&string_bonds,num_strings,
-				sizeof(BOND*));
 	FT_VectorMemoryAlloc((POINTER*)&string_nodes,num_strings,
 				sizeof(NODE*));
-	FT_VectorMemoryAlloc((POINTER*)&string_curves,num_strings,
-				sizeof(CURVE*));
 	for (i = 0; i < num_strings; ++i)
 	{
 	    string_angle[i] = start_angle + i*d_angle;
@@ -1004,84 +1008,61 @@ static boolean install_string_and_rotate(
 	}
 	FT_FreeThese(1,c);
 
-	num_bonds = FT_NumOfCurveBonds(canopy_bdry);
-	FT_VectorMemoryAlloc((POINTER*)&bonds,num_bonds,sizeof(BOND*));
-	FT_ArrayOfCurveBonds(canopy_bdry,bonds);
-	for (i = 0; i < num_bonds; ++i)
-	{
-	    theta1 = plane_angle(cen,Coords(bonds[i]->start));
-	    theta2 = plane_angle(cen,Coords(bonds[i]->end));
-	    if (fabs(theta1 - theta2) > PI) 
-	    {
-		if (theta2 > theta1) theta2 -= 2*PI;
-		else theta1 -= 2*PI;
-	    }
-	    for (j = 0; j < num_strings; ++j)
-	    {
-		if (within_interval(theta1,theta2,string_angle[j]) ||
-		    within_interval(theta1,theta2,string_angle[j]-2*PI))
-		{
-	    	    d1 = distance_between_positions(cen,								Coords(bonds[i]->start),2);
-	    	    d2 = distance_between_positions(cen,								Coords(bonds[i]->end),2);
-		    d1 = 0.5*(d1 + d2);
-		    coords[0] = cen[0] + d1*cos(string_angle[j]);
-		    coords[1] = cen[1] + d1*sin(string_angle[j]);
-		    coords[2] = 0.5*(Coords(bonds[i]->start)[2] + 
-					Coords(bonds[i+1]->end)[2]);
-		    string_pts[j] = Point(coords);
-		    string_bonds[j] = bonds[i];
-		} 
-	    }
-	}
-	FT_FreeThese(1,bonds);
+	for (j = 0; j < num_strings; ++j)
+        {
+            if (!bond_intersect_with_polar_angle(cen,string_angle[j],
+                                canopy_bdry,&b,coords))
+            {
+                printf("Cannot find intersecting bond\n");
+                clean_up(ERROR);
+            }
+            string_pts[j] = Point(coords);
+            insert_point_in_bond(string_pts[j],b,canopy_bdry);
+        }
 
-	for (i = 0; i < num_strings; ++i)
-	{
-	    insert_point_in_bond(string_pts[i],string_bonds[i],canopy_bdry);
-	    string_bonds[i] = string_bonds[i]->next;
-	}
 	node_moved = NO;
 	for (i = 0; i < num_strings; ++i)
 	{
-	    canopy_bdry = FT_CurveOfPoint(intfc,string_pts[i]);
+	    canopy_bdry = FT_CurveOfPoint(intfc,string_pts[i],&b);
 	    if (is_closed_curve(canopy_bdry) && !node_moved)
 	    {
-		move_closed_loop_node(canopy_bdry,string_bonds[i]);
+		move_closed_loop_node(canopy_bdry,b);
 	        string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
 		node_moved = YES;
-		continue;
 	    }
-	    c = split_curve(string_pts[i],string_bonds[i],canopy_bdry,0,0,0,0);
-	    string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
-	    FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
-	    extra->af_node_type = STRING_NODE;
-	    string_nodes[i]->extra = (POINTER)extra;
+	    else
+	    {
+	    	c = split_curve(string_pts[i],b,canopy_bdry,0,0,0,0);
+	    	string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
+	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+	    	extra->af_node_type = STRING_NODE;
+	    	string_nodes[i]->extra = (POINTER)extra;
+	    }
 	}
 	for (i = 0; i < num_strings; ++i)
 	{
-	    string_curves[i] = make_curve(0,0,string_nodes[i],nload);
-	    hsbdry_type(string_curves[i]) = STRING_HSBDRY;
+	    curve = make_curve(0,0,string_nodes[i],nload);
+	    hsbdry_type(curve) = STRING_HSBDRY;
 	    spacing = separation(string_nodes[i]->posn,nload->posn,3);
 	    for (j = 0; j < 3; ++j)
 		dir[j] = (Coords(nload->posn)[j] - 
 			Coords(string_nodes[i]->posn)[j])/spacing;
 	    nb = (int)spacing/(1.1*h[0]);
 	    spacing /= (double)nb;
-	    b = string_curves[i]->first;
+	    b = curve->first;
 	    for (j = 1; j < nb; ++j)
 	    {
 	    	for (k = 0; k < 3; ++k)
 		    coords[k] = Coords(string_nodes[i]->posn)[k] + 
 					j*dir[k]*spacing;
-		insert_point_in_bond(Point(coords),b,string_curves[i]);
+		insert_point_in_bond(Point(coords),b,curve);
 		b = b->next;
 	    }
 	}
-	FT_FreeThese(5,string_angle,string_pts,string_bonds,string_nodes,
-				string_curves);
+	FT_FreeThese(3,string_angle,string_pts,string_nodes);
 
 	num_points = FT_NumOfSurfPoints(surf);
 	FT_VectorMemoryAlloc((POINTER*)&pts,num_points,sizeof(POINT*));
@@ -1100,18 +1081,17 @@ static boolean install_string_and_rotate_w_gores(
 	POINTER params,
 	int ip)
 {
-	CURVE **c,*canopy_bdry,**string_curves,**gore_curves;
+	CURVE **c,*canopy_bdry,*curve;
 	POINT *gore_vertex,**pts,**string_pts;
-	BOND **bonds,**string_bonds;
 	STRING_PARAMS *tmp_params = (STRING_PARAMS*)params;
 	STRING_PARAMS *string_params = tmp_params+ip;
 	double *cen = string_params->cen,*cload,coords[MAXD];
 	double ccanopy[MAXD];	/* like cload, center on canopy */
 	double ave_radius_sqr,max_radius_sqr;
-	int i,j,k,num_curves,num_points,num_bonds,num_strings;
+	int i,j,k,num_curves,num_points,num_strings;
 	int nb;
-	double *string_angle,start_angle,d_angle;
-	double theta1,theta2,d1,d2,rot_theta,rot_phi;
+	double *string_angle;
+	double start_angle,d_angle,rot_theta,rot_phi;
 	NODE *nload,**string_nodes;
 	NODE *ncanopy;	/* like nload */
 	boolean node_moved;
@@ -1138,14 +1118,8 @@ static boolean install_string_and_rotate_w_gores(
 				sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&string_pts,num_strings,
 				sizeof(POINT*));
-	FT_VectorMemoryAlloc((POINTER*)&string_bonds,num_strings,
-				sizeof(BOND*));
 	FT_VectorMemoryAlloc((POINTER*)&string_nodes,num_strings,
 				sizeof(NODE*));
-	FT_VectorMemoryAlloc((POINTER*)&string_curves,num_strings,
-				sizeof(CURVE*));
-	FT_VectorMemoryAlloc((POINTER*)&gore_curves,num_strings,
-				sizeof(CURVE*));
 	for (i = 0; i < num_strings; ++i)
 	{
 	    string_angle[i] = start_angle + i*d_angle;
@@ -1181,63 +1155,39 @@ static boolean install_string_and_rotate_w_gores(
 	}
 	FT_FreeThese(1,c);
 
-	num_bonds = FT_NumOfCurveBonds(canopy_bdry);
-	FT_VectorMemoryAlloc((POINTER*)&bonds,num_bonds,sizeof(BOND*));
-	FT_ArrayOfCurveBonds(canopy_bdry,bonds);
-	for (i = 0; i < num_bonds; ++i)
+	for (j = 0; j < num_strings; ++j)
 	{
-	    theta1 = plane_angle(cen,Coords(bonds[i]->start));
-	    theta2 = plane_angle(cen,Coords(bonds[i]->end));
-	    if (fabs(theta1 - theta2) > PI) 
-	    {
-		if (theta2 > theta1) theta2 -= 2*PI;
-		else theta1 -= 2*PI;
-	    }
-	    for (j = 0; j < num_strings; ++j)
-	    {
-		if (within_interval(theta1,theta2,string_angle[j]) ||
-		    within_interval(theta1,theta2,string_angle[j]-2*PI))
-		{
-	    	    d1 = distance_between_positions(cen,
-					Coords(bonds[i]->start),2);
-	    	    d2 = distance_between_positions(cen,
-					Coords(bonds[i]->end),2);
-		    d1 = 0.5*(d1 + d2);
-		    coords[0] = cen[0] + d1*cos(string_angle[j]);
-		    coords[1] = cen[1] + d1*sin(string_angle[j]);
-		    coords[2] = 0.5*(Coords(bonds[i]->start)[2] + 
-					Coords(bonds[i+1]->end)[2]);
-		    string_pts[j] = Point(coords);
-		    string_bonds[j] = bonds[i];
-		} 
-	    }
+	    if (!bond_intersect_with_polar_angle(cen,string_angle[j],
+                                canopy_bdry,&b,coords))
+            {
+                printf("Cannot find intersecting bond\n");
+                clean_up(ERROR);
+            }
+	    string_pts[j] = Point(coords);
+	    insert_point_in_bond(string_pts[j],b,canopy_bdry);
 	}
-	FT_FreeThese(1,bonds);
 
-	for (i = 0; i < num_strings; ++i)
-	{
-	    insert_point_in_bond(string_pts[i],string_bonds[i],canopy_bdry);
-	    string_bonds[i] = string_bonds[i]->next;
-	}
 	node_moved = NO;
 	for (i = 0; i < num_strings; ++i)
 	{
-	    canopy_bdry = FT_CurveOfPoint(intfc,string_pts[i]);
+	    canopy_bdry = FT_CurveOfPoint(intfc,string_pts[i],&b);
 	    if (is_closed_curve(canopy_bdry) && !node_moved)
 	    {
-		move_closed_loop_node(canopy_bdry,string_bonds[i]);
+		move_closed_loop_node(canopy_bdry,b);
 	        string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
 		node_moved = YES;
-		continue;
 	    }
-	    c = split_curve(string_pts[i],string_bonds[i],canopy_bdry,0,0,0,0);
-	    string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
-	    FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
-	    extra->af_node_type = STRING_NODE;
-	    string_nodes[i]->extra = (POINTER)extra;
+	    else
+	    {
+	    	c = split_curve(string_pts[i],b,canopy_bdry,0,0,0,0);
+	    	string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
+	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+	    	extra->af_node_type = STRING_NODE;
+	    	string_nodes[i]->extra = (POINTER)extra;
+	    }
 	}
 
 	/* Insert gore vertex on canopy */
@@ -1259,32 +1209,31 @@ static boolean install_string_and_rotate_w_gores(
 
 	for (i = 0; i < num_strings; ++i)
 	{
-	    string_curves[i] = make_curve(0,0,string_nodes[i],nload);
-	    hsbdry_type(string_curves[i]) = STRING_HSBDRY;
+	    curve = make_curve(0,0,string_nodes[i],nload);
+	    hsbdry_type(curve) = STRING_HSBDRY;
 	    spacing = separation(string_nodes[i]->posn,nload->posn,3);
 	    for (j = 0; j < 3; ++j)
 		dir[j] = (Coords(nload->posn)[j] - 
 			Coords(string_nodes[i]->posn)[j])/spacing;
 	    nb = (int)spacing/(1.1*h[0]);
 	    spacing /= (double)nb;
-	    b = string_curves[i]->first;
+	    b = curve->first;
 	    for (j = 1; j < nb; ++j)
 	    {
 	    	for (k = 0; k < 3; ++k)
 		    coords[k] = Coords(string_nodes[i]->posn)[k] + 
 					j*dir[k]*spacing;
-		insert_point_in_bond(Point(coords),b,string_curves[i]);
+		insert_point_in_bond(Point(coords),b,curve);
 		b = b->next;
 	    }
 	    direction_vector(Coords(string_nodes[i]->posn),
 				Coords(ncanopy->posn),v2,3);
 	    Cross3d(v1,v2,v3);
-	    gore_curves[i] = insert_curve_in_surface(v3,string_nodes[i],
+	    curve = insert_curve_in_surface(v3,string_nodes[i],
 					ncanopy,surf);
-	    hsbdry_type(gore_curves[i]) = GORE_HSBDRY;
+	    hsbdry_type(curve) = GORE_HSBDRY;
 	}
-	FT_FreeThese(6,string_angle,string_pts,string_bonds,string_nodes,
-				string_curves,gore_curves);
+	FT_FreeThese(3,string_angle,string_pts,string_nodes);
 
 	num_points = FT_NumOfSurfPoints(surf);
 	FT_VectorMemoryAlloc((POINTER*)&pts,num_points,sizeof(POINT*));
@@ -1303,24 +1252,25 @@ static boolean install_string_and_rotate_w_gores_T10(
 	POINTER params,
 	int ip)
 {
-	CURVE **c,*canopy_bdry,**string_curves,**gore_curves;
-	POINT **pts,**string_pts;
-	BOND **bonds,**string_bonds;
+	CURVE **c,*canopy_bdry,*vent_bdry,*string_curve,*gore_curve;
+	POINT **pts,**string_pts,**vent_pts,*gore_vertex;
 	STRING_PARAMS *tmp_params = (STRING_PARAMS*)params;
 	STRING_PARAMS *string_params = tmp_params+ip;
 	double *cen = string_params->cen,*cload,coords[MAXD];
 	double ccanopy[MAXD];	/* like cload, center on canopy */
-	double ave_radius_sqr,max_radius_sqr;
-	int i,j,k,num_curves,num_points,num_bonds,num_strings;
+	int i,j,k,num_curves,num_points,num_strings;
 	int nb;
 	double *string_angle,start_angle,d_angle;
 	double theta1,theta2,d1,d2,rot_theta,rot_phi;
-	NODE *nload,**string_nodes;
+	NODE *nload,**string_nodes, **vent_nodes;
 	NODE *ncanopy;	/* like nload */
-	boolean node_moved;
+	boolean str_node_moved,vnt_node_moved;
 	AF_NODE_EXTRA *extra;
 	double spacing,dir[MAXD],*h = computational_grid(intfc)->h;
 	BOND *b;
+	CURVE *mono_c[2];
+	double ave_radius_sqr[2];
+	double v1[MAXD], v2[MAXD], v3[MAXD];
 
 	num_strings = string_params->num_strings;
 	start_angle = string_params->start_angle;
@@ -1328,10 +1278,8 @@ static boolean install_string_and_rotate_w_gores_T10(
 	rot_phi   = string_params->phi;
 	cload = string_params->coords_load;
 	d_angle = 2*PI/num_strings;
-	ccanopy[0] = cen[0]; ccanopy[1] = cen[1]; 
-	ccanopy[2] = string_params->P[2];
 
-	canopy_bdry = NULL;
+	canopy_bdry = vent_bdry = NULL;
 	nload = make_node(Point(cload));
 	ncanopy = make_node(Point(ccanopy));
 	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
@@ -1342,14 +1290,13 @@ static boolean install_string_and_rotate_w_gores_T10(
 				sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&string_pts,num_strings,
 				sizeof(POINT*));
-	FT_VectorMemoryAlloc((POINTER*)&string_bonds,num_strings,
-				sizeof(BOND*));
+	FT_VectorMemoryAlloc((POINTER*)&vent_pts,num_strings,
+				sizeof(POINT*));
 	FT_VectorMemoryAlloc((POINTER*)&string_nodes,num_strings,
 				sizeof(NODE*));
-	FT_VectorMemoryAlloc((POINTER*)&string_curves,num_strings,
-				sizeof(CURVE*));
-	FT_VectorMemoryAlloc((POINTER*)&gore_curves,num_strings,
-				sizeof(CURVE*));
+	FT_VectorMemoryAlloc((POINTER*)&vent_nodes, num_strings,
+				sizeof(NODE*));
+
 	for (i = 0; i < num_strings; ++i)
 	{
 	    string_angle[i] = start_angle + i*d_angle;
@@ -1361,127 +1308,156 @@ static boolean install_string_and_rotate_w_gores_T10(
 	FT_VectorMemoryAlloc((POINTER*)&c,num_curves,sizeof(CURVE*));
 	FT_ArrayOfSurfCurves(surf,c);
 
-	max_radius_sqr = 0.0;
+	k = 0;
 	for (i = 0; i < num_curves; ++i)
 	{
 	    if (hsbdry_type(c[i]) != MONO_COMP_HSBDRY)
 		continue;
+	    mono_c[k] = c[i];
 	    num_points = FT_NumOfCurvePoints(c[i]);
 	    FT_VectorMemoryAlloc((POINTER*)&pts,num_points,sizeof(POINT*));
 	    FT_ArrayOfCurvePoints(c[i],pts);
-	    ave_radius_sqr = 0.0;
+	    ave_radius_sqr[k] = 0.0;
 	    for (j = 0; j < num_points; ++j)
 	    {
-		ave_radius_sqr += sqr(Coords(pts[j])[0] - cen[0]) +
+		ave_radius_sqr[k] += sqr(Coords(pts[j])[0] - cen[0]) +
 			      sqr(Coords(pts[j])[1] - cen[1]);
 	    }
-	    ave_radius_sqr /= (double)num_points;
-	    if (ave_radius_sqr > max_radius_sqr)
-	    {
-		max_radius_sqr = ave_radius_sqr;
-		canopy_bdry = c[i];
-	    }
+	    ave_radius_sqr[k] /= (double)num_points;
 	    FT_FreeThese(1,pts);
+	    if (++k > 2)
+	    {
+		(void) printf("More than two bdry curves at the beginning!\n");
+		clean_up(ERROR);
+	    }
+	}
+	if (k == 2)     /* There exist vent */
+        {
+            canopy_bdry = (ave_radius_sqr[0] > ave_radius_sqr[1]) ? mono_c[0]
+                                : mono_c[1];
+            vent_bdry = (ave_radius_sqr[0] > ave_radius_sqr[1]) ? mono_c[1]
+                                : mono_c[0];
+        }
+        else    /* No vent */
+	{
+            canopy_bdry = mono_c[0];
+	    ccanopy[0] = cen[0]; ccanopy[1] = cen[1]; ccanopy[2] = cen[2];
+	    gore_vertex = insert_point_in_surface(2,ccanopy,surf);
+	    ncanopy = make_node(gore_vertex);
+	    ncanopy->extra = NULL;
 	}
 	FT_FreeThese(1,c);
 
-/* make on_canopy_bdry */
-
-	num_bonds = FT_NumOfCurveBonds(canopy_bdry);
-	FT_VectorMemoryAlloc((POINTER*)&bonds,num_bonds,sizeof(BOND*));
-	FT_ArrayOfCurveBonds(canopy_bdry,bonds);
-	for (i = 0; i < num_bonds; ++i)
-	{
-	    theta1 = plane_angle(cen,Coords(bonds[i]->start));
-	    theta2 = plane_angle(cen,Coords(bonds[i]->end));
-	    if (fabs(theta1 - theta2) > PI) 
-	    {
-		if (theta2 > theta1) theta2 -= 2*PI;
-		else theta1 -= 2*PI;
-	    }
-	    for (j = 0; j < num_strings; ++j)
-	    {
-		if (within_interval(theta1,theta2,string_angle[j]) ||
-		    within_interval(theta1,theta2,string_angle[j]-2*PI))
-		{
-	    	    d1 = distance_between_positions(cen,Coords(bonds[i]->start),2);
-	    	    d2 = distance_between_positions(cen,Coords(bonds[i]->end),2);
-		    d1 = 0.5*(d1 + d2);
-		    coords[0] = cen[0] + d1*cos(string_angle[j]);
-		    coords[1] = cen[1] + d1*sin(string_angle[j]);
-		    coords[2] = 0.5*(Coords(bonds[i]->start)[2] + 
-					Coords(bonds[i+1]->end)[2]);
-		    string_pts[j] = Point(coords);
-		    string_bonds[j] = bonds[i];
-		} 
-	    }
-	}
-	FT_FreeThese(1,bonds);
-
 	for (i = 0; i < num_strings; ++i)
 	{
-	    insert_point_in_bond(string_pts[i],string_bonds[i],canopy_bdry);
-	    string_bonds[i] = string_bonds[i]->next;
+	    if (!bond_intersect_with_polar_angle(cen,string_angle[i],
+                        	canopy_bdry,&b,coords))
+            {
+                printf("Cannot find intersecting bond\n");
+                clean_up(ERROR);
+            }
+	    string_pts[i] = Point(coords);
+	    insert_point_in_bond(string_pts[i],b,canopy_bdry);
+	    /* If vent exist */
+	    if (vent_bdry != NULL)
+	    {
+	    	if (!bond_intersect_with_polar_angle(cen,string_angle[i],
+                        	vent_bdry,&b,coords))
+            	{
+                    printf("Cannot find intersecting bond\n");
+                    clean_up(ERROR);
+            	}
+	    	vent_pts[i] = Point(coords);
+	    	insert_point_in_bond(vent_pts[i],b,canopy_bdry);
+	    }
 	}
-	node_moved = NO;
+
+	str_node_moved = vnt_node_moved = NO;
 	for (i = 0; i < num_strings; ++i)
 	{
-	    canopy_bdry = FT_CurveOfPoint(intfc,string_pts[i]);
-	    if (is_closed_curve(canopy_bdry) && !node_moved)
+	    canopy_bdry = FT_CurveOfPoint(intfc,string_pts[i],&b);
+	    if (is_closed_curve(canopy_bdry) && !str_node_moved)
 	    {
-		move_closed_loop_node(canopy_bdry,string_bonds[i]);
+		move_closed_loop_node(canopy_bdry,b);
 	        string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
-		node_moved = YES;
-		continue;
+		str_node_moved = YES;
 	    }
-	    c = split_curve(string_pts[i],string_bonds[i],canopy_bdry,0,0,0,0);
-	    string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
-	    FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
-	    extra->af_node_type = STRING_NODE;
-	    string_nodes[i]->extra = (POINTER)extra;
+	    else
+	    {
+	    	c = split_curve(string_pts[i],b,canopy_bdry,0,0,0,0);
+	    	string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
+	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+	    	extra->af_node_type = STRING_NODE;
+	    	string_nodes[i]->extra = (POINTER)extra;
+	    }
 	}
+	if (vent_bdry != NULL)
+	{
+	    for (i = 0; i < num_strings; ++i)
+	    {
+	    	vent_bdry = FT_CurveOfPoint(intfc,vent_pts[i],&b);
+	    	if (is_closed_curve(canopy_bdry) && !vnt_node_moved)
+	    	{
+		    move_closed_loop_node(vent_bdry,b);
+	            vent_nodes[i] = FT_NodeOfPoint(intfc,vent_pts[i]);
+	    	    FT_ScalarMemoryAlloc((POINTER*)&extra,
+				sizeof(AF_NODE_EXTRA));
+	    	    extra->af_node_type = GORE_NODE;
+	    	    vent_nodes[i]->extra = (POINTER)extra;
+		    vnt_node_moved = YES;
+	    	}
+	    	else
+	    	{
+	    	    c = split_curve(vent_pts[i],b,vent_bdry,0,0,0,0);
+	    	    vent_nodes[i] = FT_NodeOfPoint(intfc,vent_pts[i]);
+	    	    FT_ScalarMemoryAlloc((POINTER*)&extra,
+				sizeof(AF_NODE_EXTRA));
+	    	    extra->af_node_type = GORE_NODE;
+	    	    vent_nodes[i]->extra = (POINTER)extra;
+	    	}
+	    }
+	}
+
+	v1[0] = v1[1] = 0.0;	v1[2] = 1.0;
 	for (i = 0; i < num_strings; ++i)
 	{
-	    string_curves[i] = make_curve(0,0,string_nodes[i],nload);
-	    hsbdry_type(string_curves[i]) = STRING_HSBDRY;
+	    string_curve = make_curve(0,0,string_nodes[i],nload);
+	    hsbdry_type(string_curve) = STRING_HSBDRY;
 	    spacing = separation(string_nodes[i]->posn,nload->posn,3);
 	    for (j = 0; j < 3; ++j)
 		dir[j] = (Coords(nload->posn)[j] - 
 			Coords(string_nodes[i]->posn)[j])/spacing;
 	    nb = (int)spacing/(1.1*h[0]);
 	    spacing /= (double)nb;
-	    b = string_curves[i]->first;
+	    b = string_curve->first;
 	    for (j = 1; j < nb; ++j)
 	    {
 	    	for (k = 0; k < 3; ++k)
 		    coords[k] = Coords(string_nodes[i]->posn)[k] + 
 					j*dir[k]*spacing;
-		insert_point_in_bond(Point(coords),b,string_curves[i]);
+		insert_point_in_bond(Point(coords),b,string_curve);
 		b = b->next;
 	    }
-	    gore_curves[i] = make_curve(0,0,string_nodes[i],ncanopy);
-	    hsbdry_type(gore_curves[i]) = GORE_HSBDRY;
-	    spacing = separation(string_nodes[i]->posn,ncanopy->posn,3);
-	    for (j = 0; j < 3; ++j)
-		dir[j] = (Coords(ncanopy->posn)[j] -
-			Coords(string_nodes[i]->posn)[j])/spacing;
-	    nb = (int)spacing/(1.1*h[0]);
-	    spacing /= (double)nb;
-	    b = gore_curves[i]->first;
-	    for (j = 1; j < nb; ++j)
-	    {
-		for (k = 0; k < 3; ++k)
-		    coords[k] = Coords(string_nodes[i]->posn)[k] +
-					j*dir[k]*spacing;
-		insert_point_in_bond(Point(coords),b,gore_curves[i]);
-		b = b->next;
-	    }
+	    if (vent_bdry != NULL)
+	    	direction_vector(Coords(string_nodes[i]->posn),
+				Coords(vent_nodes[i]->posn),v2,3);
+	    else
+	    	direction_vector(Coords(string_nodes[i]->posn),
+				Coords(gore_vertex),v2,3);
+	    Cross3d(v1,v2,v3);
+	    if (vent_bdry != NULL)
+	    	gore_curve = insert_curve_in_surface(v3,string_nodes[i],
+				vent_nodes[i],surf);
+	    else
+	    	gore_curve = insert_curve_in_surface(v3,string_nodes[i],
+				ncanopy,surf);
+	    hsbdry_type(gore_curve) = GORE_HSBDRY;
 	}
-	FT_FreeThese(5,string_angle,string_pts,string_bonds,string_nodes,
-				string_curves);
+	FT_FreeThese(5, string_angle, string_pts,string_nodes,vent_pts, 
+				vent_nodes);
 
 	num_points = FT_NumOfSurfPoints(surf);
 	FT_VectorMemoryAlloc((POINTER*)&pts,num_points,sizeof(POINT*));
@@ -1502,7 +1478,7 @@ static boolean install_strings(
 {
 	CURVE **c,*canopy_bdry,**string_curves;
 	POINT **pts,**string_pts;
-	BOND **bonds,**string_bonds;
+	BOND **bonds;
 	STRING_PARAMS *tmp_params = (STRING_PARAMS*)params;
 	STRING_PARAMS *string_params = tmp_params+ip;
 	double *cen = string_params->cen,*cload,coords[MAXD];
@@ -1527,7 +1503,6 @@ static boolean install_strings(
 	U = string_params->U;
 	L = string_params->L;
 	width = U[1]-L[1];
-	printf("width=%f\n",width);
 
 	canopy_bdry = NULL;
 	nload = make_node(Point(cload));
@@ -1539,8 +1514,6 @@ static boolean install_strings(
 				sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&string_pts,num_strings,
 				sizeof(POINT*));
-	FT_VectorMemoryAlloc((POINTER*)&string_bonds,num_strings,
-				sizeof(BOND*));
 	FT_VectorMemoryAlloc((POINTER*)&string_nodes,num_strings,
 				sizeof(NODE*));
 	FT_VectorMemoryAlloc((POINTER*)&string_curves,num_strings,
@@ -1617,24 +1590,19 @@ static boolean install_strings(
 		    coords[2] = 0.5*(Coords(bonds[i]->start)[2] + 
 					Coords(bonds[i+1]->end)[2]);
 		    string_pts[j] = Point(coords);
-		    string_bonds[j] = bonds[i];
+	    	    insert_point_in_bond(string_pts[j],bonds[i],canopy_bdry);
 		} 
 	    }
 	}
 	FT_FreeThese(1,bonds);
 
-	for (i = 0; i < num_strings; ++i)
-	{
-	    insert_point_in_bond(string_pts[i],string_bonds[i],canopy_bdry);
-	    string_bonds[i] = string_bonds[i]->next;
-	}
 	node_moved = NO;
 	for (i = 0; i < num_strings; ++i)
 	{
-	    canopy_bdry = FT_CurveOfPoint(intfc,string_pts[i]);
+	    canopy_bdry = FT_CurveOfPoint(intfc,string_pts[i],&b);
 	    if (is_closed_curve(canopy_bdry) && !node_moved)
 	    {
-		move_closed_loop_node(canopy_bdry,string_bonds[i]);
+		move_closed_loop_node(canopy_bdry,b);
 	        string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
@@ -1642,7 +1610,7 @@ static boolean install_strings(
 		node_moved = YES;
 		continue;
 	    }
-	    c = split_curve(string_pts[i],string_bonds[i],canopy_bdry,0,0,0,0);
+	    c = split_curve(string_pts[i],b,canopy_bdry,0,0,0,0);
 	    string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
 	    FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    extra->af_node_type = STRING_NODE;
@@ -1668,8 +1636,7 @@ static boolean install_strings(
 		b = b->next;
 	    }
 	}
-	FT_FreeThese(5,string_angle,string_pts,string_bonds,string_nodes,
-				string_curves);
+	FT_FreeThese(4,string_angle,string_pts,string_nodes,string_curves);
 	return YES;
 }	/* end install_strings */
 
@@ -1935,3 +1902,64 @@ static void set_side_curves(
 		*cside11 = curves[i];
 	}
 }	/* end set_side_curves */
+
+LOCAL boolean bond_intersect_with_polar_angle(
+        double *cen,
+        double angle,
+        CURVE *c,
+        BOND **the_b,
+        double *coords)
+{
+        BOND *bond;
+        double theta1,theta2;
+        double *p1,*p2;
+        double k1,k2;
+
+        for (bond = c->first; bond != NULL; bond = bond->next)
+        {
+            theta1 = plane_angle(cen,Coords(bond->start));
+            theta2 = plane_angle(cen,Coords(bond->end));
+            if (fabs(theta1 - theta2) > PI)
+            {
+                if (theta2 > theta1) theta2 -= 2*PI;
+                else theta1 -= 2*PI;
+            }
+
+            if (within_interval(theta1,theta2,angle) ||
+                within_interval(theta1,theta2,angle-2*PI))
+            {
+                *the_b = bond;
+                p1 = Coords(bond->start);
+                p2 = Coords(bond->end);
+
+                k1 = tan(angle);
+                k2 = (p2[1] - p1[1])/(p2[0] - p1[0]);
+
+                if( fabs(p1[0] - p2[0]) < 1e-6 )  //k2 = inf
+                {
+                    coords[0] = p1[0];
+                    coords[1] = k1*(coords[0] - cen[0]) + cen[1];
+                    coords[2] = (p1[2] - p2[2])*(coords[1] - p2[1])/
+				(p1[1] - p2[1])+ p2[2];
+                }
+                else if( fabs(angle - 0.5 * PI) < 1e-6 ) //k1 = inf
+                {
+                    coords[0] = cen[0];
+                    coords[1] = k2*(coords[0] - p1[0]) + p1[1];
+                    coords[2] = (p1[2] - p2[2])*(coords[0] - p2[0])/
+				(p1[0] - p2[0])+ p2[2];
+                }
+                else
+                {
+                    coords[0] = (k1*cen[0] - k2*p1[0] + p1[1] - cen[1])/
+				(k1 - k2);
+                    coords[1] = k1*(coords[0] - cen[0]) + cen[1];
+                    coords[2] = (p1[2] - p2[2])*(coords[0] - p2[0])/
+				(p1[0] - p2[0])+ p2[2];
+                }
+                return YES;
+            }
+        }
+        return NO;
+}       /* bond_intersect_with_polar_angle */
+
