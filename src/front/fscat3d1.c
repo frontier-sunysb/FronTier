@@ -4120,13 +4120,13 @@ EXPORT	void cut_out_curves_in_buffer(
 	{
 	    for (bs = (*c)->first; bs != NULL; bs = bs->next)
 	        if (Btris(bs) == NULL && hsbdry_type(*c) <
-                        FIRST_PHYSICS_WAVE_TYPE)
+                        FIRST_PHYSICS_HSBDRY_TYPE)
 		    break;
 	    if (bs == NULL)
 		continue;
 	    for (be = bs; be->next != NULL; be = be->next)
 		if (Btris(be->next) != NULL && hsbdry_type(*c) <
-                        FIRST_PHYSICS_WAVE_TYPE)
+                        FIRST_PHYSICS_HSBDRY_TYPE)
 		    break;
 	    if ((bs == (*c)->first) && (be == (*c)->last))
 	    {

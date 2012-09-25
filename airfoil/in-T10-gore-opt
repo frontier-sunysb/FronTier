@@ -1,7 +1,7 @@
 Domain limit in 0-th dimension: 0 14
 Domain limit in 1-th dimension: 0 14
 Domain limit in 2-th dimension: -14 28
-Computational grid: 50 50 150
+Computational grid: 60 60 180
 Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
 Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
 Lower boundary in 1-th dimension: PERIODIC_BOUNDARY
@@ -46,7 +46,7 @@ Enter surface tension: 0.0
 Enter factor of smoothing radius: 1.0
 Enter porosity of canopy: 0.0
 Enter area density of canopy: 1.0
-Enter tangential sub step number: 500
+Enter tangential sub step number: 10
 
 Enter fabric spring constant: 5000
 Enter fabric friction constant: 0.1 
