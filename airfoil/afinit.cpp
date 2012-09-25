@@ -1198,7 +1198,9 @@ static boolean install_string_and_rotate_w_gores(
 	if (gore_vertex != NULL)
 	{
 	    ncanopy = make_node(gore_vertex);
-	    ncanopy->extra = NULL;
+	    FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+	    extra->af_node_type = GORE_NODE;
+	    ncanopy->extra = (POINTER)extra;
 	}
 	else
 	{
@@ -1268,8 +1270,8 @@ static boolean install_string_and_rotate_w_gores_T10(
 	AF_NODE_EXTRA *extra;
 	double spacing,dir[MAXD],*h = computational_grid(intfc)->h;
 	BOND *b;
-	CURVE *mono_c[2];
-	double ave_radius_sqr[2];
+	CURVE *mono_c[10];
+	double ave_radius_sqr[10];
 	double v1[MAXD], v2[MAXD], v3[MAXD];
 
 	num_strings = string_params->num_strings;
@@ -1281,7 +1283,6 @@ static boolean install_string_and_rotate_w_gores_T10(
 
 	canopy_bdry = vent_bdry = NULL;
 	nload = make_node(Point(cload));
-	ncanopy = make_node(Point(ccanopy));
 	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	extra->af_node_type = LOAD_NODE;
 	nload->extra = (POINTER)extra;
@@ -1344,7 +1345,9 @@ static boolean install_string_and_rotate_w_gores_T10(
 	    ccanopy[0] = cen[0]; ccanopy[1] = cen[1]; ccanopy[2] = cen[2];
 	    gore_vertex = insert_point_in_surface(2,ccanopy,surf);
 	    ncanopy = make_node(gore_vertex);
-	    ncanopy->extra = NULL;
+	    FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+	    extra->af_node_type = GORE_NODE;
+	    ncanopy->extra = (POINTER)extra;
 	}
 	FT_FreeThese(1,c);
 
@@ -1368,7 +1371,7 @@ static boolean install_string_and_rotate_w_gores_T10(
                     clean_up(ERROR);
             	}
 	    	vent_pts[i] = Point(coords);
-	    	insert_point_in_bond(vent_pts[i],b,canopy_bdry);
+	    	insert_point_in_bond(vent_pts[i],b,vent_bdry);
 	    }
 	}
 
@@ -1399,7 +1402,7 @@ static boolean install_string_and_rotate_w_gores_T10(
 	    for (i = 0; i < num_strings; ++i)
 	    {
 	    	vent_bdry = FT_CurveOfPoint(intfc,vent_pts[i],&b);
-	    	if (is_closed_curve(canopy_bdry) && !vnt_node_moved)
+	    	if (is_closed_curve(vent_bdry) && !vnt_node_moved)
 	    	{
 		    move_closed_loop_node(vent_bdry,b);
 	            vent_nodes[i] = FT_NodeOfPoint(intfc,vent_pts[i]);

@@ -44,7 +44,8 @@ LOCAL  	void equi_redist_curve_seg_o1(CURVE*,BOND*,BOND*,int,double,double,
 
 enum _SPQ_FLAG {
         SHORTEST = 0,
-        LONGEST  = 1
+        MIDDLE = 1,
+        LONGEST  = 2
 };
 typedef enum _SPQ_FLAG SPQ_FLAG;
 
@@ -52,7 +53,7 @@ typedef enum _SPQ_FLAG SPQ_FLAG;
 LOCAL   int     find_scaled_extrem_edge(TRI*,RECT_GRID*,SPQ_FLAG);
 LOCAL   boolean    is_tri_in_queue(TRI*,POINTER_Q*);
 LOCAL   boolean    delete_min_side_of_tri(TRI*,int,SURFACE*,POINTER_Q**,
-                                        INTERFACE*);
+                                        INTERFACE*,boolean*);
 LOCAL   void    sort_pointer_queue(POINTER_Q*,INTERFACE*,SPQ_FLAG);
 LOCAL	int	remove_tris_and_seal(TRI**,TRI**,int,SURFACE*,POINTER_Q**,
 					INTERFACE*);
@@ -68,6 +69,7 @@ LOCAL 	boolean remove_interior_tetra_pt(POINT*,TRI*,SURFACE*,POINTER_Q**,
 LOCAL 	void set_neighbors_from_tetra_tris(TRI*,TRI**,int*,boolean*);
 LOCAL	void dequeue_tris_around_bond_point(POINT*,BOND*,INTERFACE*,
 			POINTER_Q**);
+LOCAL 	boolean will_form_foldback(POINT**,TRI*,TRI*,SURFACE*,TRI***,int*);
 /*TMP*/ 
 LOCAL	boolean tri_in_intfc(TRI*,INTERFACE*);
 
@@ -763,6 +765,7 @@ LOCAL  boolean redistribute_surf_o1(
 	int	  dim;
 	FILE	  *db_file;
 	double	  coords[3];
+	boolean	  status,change_side;
 
 	DEBUG_ENTER(redistribute_surf_o1)
 
@@ -812,7 +815,6 @@ LOCAL  boolean redistribute_surf_o1(
 	}
 
 	sort_pointer_queue(insert_queue,intfc,LONGEST);
-
 	while (insert_queue)
 	{
 	    insert_queue = head_of_pointer_queue(insert_queue);
@@ -856,7 +858,27 @@ LOCAL  boolean redistribute_surf_o1(
 		
 	    delete_queue = dequeue(tri, delete_queue);
 
-	    if(!delete_min_side_of_tri(tri,nside,s,&delete_queue,intfc))
+	    status = delete_min_side_of_tri(tri,nside,s,&delete_queue,intfc,
+					&change_side);
+	    if (!status && change_side)
+	    {
+		if (debugging("foldback"))
+		    (void) printf("WARNING: delete shortest side failed\n");
+	    	nside = find_scaled_extrem_edge(tri,gr,MIDDLE);
+	    	status = delete_min_side_of_tri(tri,nside,s,&delete_queue,
+					intfc,&change_side);
+		if (!status && debugging("foldback"))
+		    (void) printf("WARNING: delete middle side also failed\n");
+	    }
+	    if (!status && change_side)
+	    {
+	    	nside = find_scaled_extrem_edge(tri,gr,LONGEST);
+	    	status = delete_min_side_of_tri(tri,nside,s,&delete_queue,
+					intfc,&change_side);
+		if (!status && debugging("foldback"))
+		    (void) printf("WARNING: delete longest side also failed\n");
+	    }
+	    if (!status)
 	    {
 		printf("WARNING, redistribute_surf_o1, "
 		       "delete_min_side_of_tri fails.\n");
@@ -894,6 +916,13 @@ LOCAL  int find_scaled_extrem_edge(
 	    return (len0<len1) ? ((len1<len2) ? 2:1) : ((len0<len2) ? 2:0);
 	case SHORTEST:
 	    return (len0>len1) ? ((len1>len2) ? 2:1) : ((len0>len2) ? 2:0);
+	case MIDDLE:
+	    if (len0 < len1 && len0 < len2)
+		return (len1 < len2) ? 1 : 2;
+	    else if (len1 < len0 && len1 < len2)
+		return (len0 < len2) ? 0 : 2;
+	    else
+		return (len0 < len1) ? 0 : 1;
 	default:
 	    return -1;
 	}
@@ -1012,10 +1041,11 @@ LOCAL boolean delete_min_side_of_tri(
 	int	  side,
 	SURFACE	  *s,
 	POINTER_Q **pq,
-	INTERFACE *intfc)
+	INTERFACE *intfc,
+	boolean	  *change_side)
 {
 	TRI	*nbtri, *t, *nbt, **tmp_tris;
-	TRI	*new_tris[500], *in_tris[200], *tris[2][100];
+	static TRI **new_tris, **in_tris, ***tris;
 	POINT	*p[4], *pt, *pmid, *plist[2][100];
 	int	i, j, k, nt, np[2], nside, ntris[2];
 	boolean	rm_flag;
@@ -1028,6 +1058,7 @@ LOCAL boolean delete_min_side_of_tri(
 	/*
 	printf("tri = %d  tri_in_intfc = %d\n",tri,tri_in_intfc(tri,intfc));
 	*/
+	*change_side = NO;
 	if (is_side_bdry(tri,side))
 	{
 	    BOND *b = Bond_on_side(tri,side);
@@ -1086,6 +1117,12 @@ LOCAL boolean delete_min_side_of_tri(
 		}
 	    	return YES;
 	    }
+	}
+	if (new_tris == NULL)
+	{
+	    stat_vector(&new_tris,500,sizeof(TRI*));
+	    stat_vector(&in_tris,200,sizeof(TRI*));
+	    stat_matrix(&tris,2,200,sizeof(TRI*));
 	}
 
 	p[0] = Point_of_tri(tri)[side];
@@ -1188,6 +1225,13 @@ LOCAL boolean delete_min_side_of_tri(
 	    return   nt==-1 ? NO : YES;
 	}
 
+	if (will_form_foldback(p,tri,nbtri,s,tris,ntris))
+	{
+	    *change_side = YES;
+	    return NO;
+	}
+		
+
 	/*collapse two tris. */
 	if (Boundary_point(p[0]))
 	    pmid = p[0];
@@ -1207,7 +1251,9 @@ LOCAL boolean delete_min_side_of_tri(
 		k = Vertex_of_point(t,p[i]);
 		Point_of_tri(t)[k] = pmid;
 		if ((t != tri) && (t != nbtri))
+		{
 		    set_normal_of_tri(t);
+		}
 	    }
 	}
 
@@ -1221,7 +1267,7 @@ LOCAL boolean delete_min_side_of_tri(
 	
 	DEBUG_LEAVE(delete_min_side_of_tri)
 	return YES;
-}
+}	/* end delete_min_side_of_tri */
 
 
 /*ARGSUSED*/
@@ -1684,3 +1730,77 @@ LOCAL void set_neighbors_from_tetra_tris(
 	    }
 	}
 }	/* end set_neighbors_from_tetra_tris */
+
+LOCAL boolean will_form_foldback(
+	POINT **p,
+	TRI *tri,
+	TRI *nbtri,
+	SURFACE *s,
+	TRI ***tris,
+	int *ntris)
+{
+	int i,j,k;
+	TRI *t;
+	double old_nor[MAXD],new_nor[MAXD];
+	double v1[MAXD],v2[MAXD],ptmp[MAXD],*p1,*p2;
+	double length,angle;
+
+	/* First attempt */
+	if (Boundary_point(p[0]))
+	{
+	    for (i = 0; i < 3; ++i)
+		ptmp[i] = Coords(p[0])[i];
+	}
+	else if (Boundary_point(p[1]))
+	{
+	    for (i = 0; i < 3; ++i)
+		ptmp[i] = Coords(p[1])[i];
+	}
+	else
+	{
+	    for (i = 0; i < 3; ++i)
+		ptmp[i] = 0.5*(Coords(p[0])[i] + Coords(p[1])[i]);
+	}
+
+	for (i = 0; i < 2; ++i)
+	{
+	    for (j = 0; j < ntris[i]; ++j)
+	    {
+		t = tris[i][j];
+		for (k = 0; k < 3; ++k)
+		    old_nor[k] = Tri_normal(t)[k];
+		length = Mag3d(old_nor);
+		for (k = 0; k < 3; ++k)
+		    old_nor[k] /= length;
+		if ((t != tri) && (t != nbtri))
+		{
+		    k = Vertex_of_point(t,p[i]);
+		    p1 = Coords(Point_of_tri(t)[Next_m3(k)]);
+		    p2 = Coords(Point_of_tri(t)[Prev_m3(k)]);
+		    for (k = 0; k < 3; ++k)
+		    {
+			v1[k] = p1[k] - ptmp[k];
+			v2[k] = p2[k] - ptmp[k];
+		    }
+		    Cross3d(v1,v2,new_nor);
+		    length = Mag3d(new_nor);
+		    for (k = 0; k < 3; ++k)
+			new_nor[k] /= length;
+		    angle = acos(Dot3d(old_nor,new_nor));
+		    if (angle > PI/2.0)
+		    {
+		    	if (debugging("foldback"))
+		    	{
+		    	    (void) printf("old_nor = %f %f %f\n",old_nor[0],
+					old_nor[1],old_nor[2]);
+		    	    (void) printf("new_nor = %f %f %f\n",new_nor[0],
+					new_nor[1],new_nor[2]);
+			    (void) printf("angle = %f\n",angle);
+		    	}
+			return YES;
+		    }
+		}
+	    }
+	}
+	return NO;
+}	/* end will_form_foldback */

@@ -8,9 +8,6 @@ static double (*getStateVort3d[3])(POINTER) = {getStateXvort,getStateYvort,
 static SURFACE *canopy_of_string_node(NODE*);
 static void convert_to_point_mass(Front*,AF_PARAMS*);
 static void airfoil_curve_propagate(Front*,POINTER,CURVE*,CURVE*,double);
-static 	int numOfGoreHsbdry(INTERFACE*);
-static 	int numOfMonoHsbdry(INTERFACE*);
-static 	int numOfGoreNodes(INTERFACE*);
 static	int arrayOfMonoHsbdry(INTERFACE*,CURVE**);
 static	int arrayOfGoreHsbdry(INTERFACE*,CURVE**);
 static 	int getGoreNodes(INTERFACE*,NODE**);
@@ -726,7 +723,7 @@ extern void fourth_order_elastic_set_propagate(
 	static PARACHUTE_SET old_geom_set;
 	static PARACHUTE_SET new_geom_set;
 	NODE **n;
-	int num_gore_nodes;
+	int num_gore_nodes = numOfGoreNodes(intfc);
 
 	if (wave_type(news) != ELASTIC_BOUNDARY) return;
 	if (debugging("trace"))
@@ -792,7 +789,7 @@ extern void fourth_order_elastic_set_propagate(
 	}
 	news = canopy_of_string_node(new_str_nodes[0]);
 
-	num_gore_nodes = numOfGoreNodes(old_intfc);
+	num_gore_nodes  = numOfGoreNodes(old_intfc);
 	num_gore_hsbdry = numOfGoreHsbdry(old_intfc);
 	num_mono_hsbdry = numOfMonoHsbdry(old_intfc);
 
@@ -908,7 +905,7 @@ extern void airfoil_curve_propagate(
 
 static boolean is_gore_node(NODE*);
 
-static int numOfMonoHsbdry(
+extern int numOfMonoHsbdry(
 	INTERFACE *intfc)
 {
 	CURVE **c;
@@ -920,7 +917,7 @@ static int numOfMonoHsbdry(
 	return nc;
 }	/* end numOfMonoBdry */
 
-static int numOfGoreHsbdry(
+extern int numOfGoreHsbdry(
 	INTERFACE *intfc)
 {
 	CURVE **c;
@@ -966,24 +963,20 @@ static int arrayOfGoreHsbdry(
 	return nc;
 }	/* end arrayOfGoreBdry */
 
-static int numOfGoreNodes(
+extern int numOfGoreNodes(
 	INTERFACE *intfc)
 {
-	CURVE **c;
 	NODE **n;
 	int num_gore_nodes = 0;
-	boolean is_gore_node;
+	AF_NODE_EXTRA *extra;
 
 	for (n = intfc->nodes; n && *n; ++n)
 	{
-	    is_gore_node = YES;
-	    for (c = (*n)->in_curves; c && *c; ++c)
-		if (hsbdry_type(*c) != GORE_HSBDRY)
-		    is_gore_node = NO;
-	    for (c = (*n)->out_curves; c && *c; ++c)
-		if (hsbdry_type(*c) != GORE_HSBDRY)
-		    is_gore_node = NO;
-	    if (is_gore_node) num_gore_nodes++;
+	    if ((*n)->extra == NULL)
+		continue;
+	    extra = (AF_NODE_EXTRA*)(*n)->extra;
+	    if (extra->af_node_type == GORE_NODE)
+		num_gore_nodes++;
 	}
 	return num_gore_nodes;
 }	/* numOfGoreNodes */
@@ -992,26 +985,15 @@ static boolean is_gore_node(
 	NODE *node)
 {
 	CURVE **c;
-	boolean is_gore_vertex = YES;
+	AF_NODE_EXTRA *extra;
 
-	if (node->in_curves == NULL && node->out_curves == NULL)
-	    is_gore_vertex = NO;
-
-	for (c = node->in_curves; c && *c; ++c)
-	{
-	    if (hsbdry_type(*c) != GORE_HSBDRY)
-	    {
-		is_gore_vertex = NO;
-	    }
-	}
-	for (c = node->out_curves; c && *c; ++c)
-	{
-	    if (hsbdry_type(*c) != GORE_HSBDRY)
-	    {
-		is_gore_vertex = NO;
-	    }
-	}
-	return is_gore_vertex;
+	if ((node)->extra == NULL)
+	    return NO;
+	extra = (AF_NODE_EXTRA*)(node)->extra;
+	if (extra->af_node_type == GORE_NODE)
+	    return YES;
+	else 
+	    return NO;
 }	/* end is_gore_node */
 
 static int getGoreNodes(

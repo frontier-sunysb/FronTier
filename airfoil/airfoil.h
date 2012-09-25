@@ -275,3 +275,6 @@ extern void compute_curve_accel3(PARACHUTE_SET*,CURVE*,double**,double**,
 extern void compute_node_accel3(PARACHUTE_SET*,NODE*,double**,double**,double**,
 				int*);
 extern boolean is_load_node(NODE*);
+extern  int numOfGoreHsbdry(INTERFACE*);
+extern  int numOfMonoHsbdry(INTERFACE*);
+extern  int numOfGoreNodes(INTERFACE*);
