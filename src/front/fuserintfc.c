@@ -185,7 +185,7 @@ EXPORT	F_USER_INTERFACE *f_user_hook(
 	    Fuser_hooks[1]._interface_normal_function._normal = 
 			f_wlsp_normal;
 	    Fuser_hooks[1]._interface_normal_function._normal_name =
-	        	strdup("first_order_normal2d");
+	        	strdup("f_wlsp_normal");
 
 	    Fuser_hooks[2]._slsr = slsr3d;
 	    Fuser_hooks[2]._state_along_hypersurface_element = state_in_tri;
@@ -928,7 +928,8 @@ EXPORT	void	f_set_normal_function(
 	    nf->_normal = first_order_normal2d;
 	    nf->_normal_name = strdup("first_order_normal2d");
 	}
-	else if (strstr(s,"wlsp_normal2d"))
+	else if (strstr(s,"wlsp_normal2d") ||
+		 strstr(s,"f_wlsp_normal"))
 	{
 	    nf->_normal = f_wlsp_normal;
 	    nf->_normal_name = strdup("f_wlsp_normal");

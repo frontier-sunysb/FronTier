@@ -4,7 +4,7 @@ function parse_arguments {
  # Parse command-line arguments
     if [[ "$1" == "-h" ]]; then
         echo "$0    High-level build script for FronTier."
-        echo "Usage: $0 [-d] [-n] [-g] [--with-cgns]  [--with-hdf]"
+        echo "Usage: $0 [-d] [-n] [-g] [--with-hdf]"
         echo
         echo "    -d          Enable debugging."
         echo "    -n          Just configure. Do not run make."
@@ -31,11 +31,6 @@ function parse_arguments {
 	    CONF="$CONF --enable-imesh"
         elif [[ "$arg" == "-g" ]]; then
 	    CONF="$CONF --with-gas"
-        elif [[ "$arg" == "--with-cgns" ]]; then
-            CONF="$CONF --with-cgns"
-        elif [[ "$arg" == "--with-hdf5" ]]; then
-            CONF="$CONF --with-cgns"
-            WITHHDF5=1
         elif [[ "$arg" == "--with-hdf" ]]; then
             WITHHDF=1
         elif [[ "$arg" == "--with-gd" ]]; then

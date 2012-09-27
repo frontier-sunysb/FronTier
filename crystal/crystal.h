@@ -68,9 +68,33 @@ struct _CRT_PARAMS {
 	double max_solute,min_solute;
 	double (*func)(POINTER,double*);
         POINTER func_params;
+	double (*crystal_dens_func)(POINTER,double*);
+        POINTER crystal_dens_params;
 };
 typedef struct _CRT_PARAMS CRT_PARAMS;
 
+/*	Crystal density functions */
+struct _HALF_MOON_PARAMS {
+	int dir;
+	double cutline;
+	double lower_dens;
+	double upper_dens;
+};
+typedef struct _HALF_MOON_PARAMS HALF_MOON_PARAMS;
+
+struct _FUEL_SAMPLE_PARAMS {
+        Front *front;
+	double rho_1;
+	double rho_2;
+	double rho_3;
+};
+typedef struct _FUEL_SAMPLE_PARAMS FUEL_SAMPLE_PARAMS;
+
+extern double   half_moon_density(POINTER,double*);
+extern double   perturbed_density(POINTER,double*);
+extern double   fuel_sample_density(POINTER,double*);
+
+/*	Crystal curve functions */
 extern double   crystal_seed_curve(POINTER,double*);
 
 typedef class C_CARTESIAN C_CARTESIAN_EB;
@@ -171,6 +195,7 @@ public:
 	// Extra plot functions
 	void oneDimPlot(char*);
 	void xgraphOneDimPlot(char*);
+	void vtk_plot_concentration2d(char*);
 
 	// Extra movie functions
         void initMovieVariables(void);
@@ -225,5 +250,6 @@ extern void 	read_seed_params(int,FILE*,SEED_PARAMS*);
 extern void 	read_crt_dirichlet_bdry_data(char*,Front*,F_BASIC_DATA);
 extern boolean 	fractal_dimension(Front*,SEED_PARAMS,double*,double*);
 extern void	setInitialIntfc(Front*,LEVEL_FUNC_PACK*,char*);
+extern void	initFrontStates(Front*);
 
 #endif

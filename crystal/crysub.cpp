@@ -41,6 +41,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "crystal.h"
 #include "crystal_basic.h"
 
+enum _FUEL_SAMPLE {
+    	Void = 1,
+	Metal,
+	MetOx,
+	Oxide
+};
+typedef enum _FUEL_SAMPLE FUEL_SAMPLE;
+
+struct _SAMPLE_BDRY_PARAMS {
+    	int bdry_type;
+};
+typedef struct _SAMPLE_BDRY_PARAMS SAMPLE_BDRY_PARAMS;
+
 /********************************************************************
  *	Level function parameters for the initial interface 	    *
  ********************************************************************/
@@ -70,6 +83,7 @@ static void 	constant_state(CRT_PARAMS*,double,double,double,double,
 static void 	setInitialIntfc1d(Front*,LEVEL_FUNC_PACK*,char*);
 static void 	setInitialIntfc2d(Front*,LEVEL_FUNC_PACK*,char*);
 static void 	setInitialIntfc3d(Front*,LEVEL_FUNC_PACK*,char*);
+static double   level_sample_func(POINTER,double*);
 
 extern  double getStateSolute(
         POINTER state)
@@ -224,7 +238,7 @@ static  void reaction_point_propagate(
         double D = cRparams->D;
         double k = cRparams->k;
         double C_eq = cRparams->C_eq;
-        double rho_s = cRparams->rho_s;
+        double rho_s;
 	double kappa;
 	POINT_PROP_SCHEME point_prop_scheme = cRparams->point_prop_scheme;
 	static void (*reaction_scheme)(CRT_PARAMS*,double,double,double,
@@ -232,6 +246,7 @@ static  void reaction_point_propagate(
 	static boolean first = YES;
 	static double max_nor_speed = 0.0;
 	REACTION_TYPE reaction_type = cRparams->reaction_type;
+	double CFL;
 
 	if (first)
 	{
@@ -274,6 +289,12 @@ static  void reaction_point_propagate(
 				getStateSolute,&s1,&state->solute);
 
         grad_s = (s1 - s0)/dn;
+	if (cRparams->crystal_dens_func != NULL)
+	    rho_s = (*cRparams->crystal_dens_func)(
+			cRparams->crystal_dens_params,Coords(oldp));
+	else
+	    rho_s = cRparams->rho_s;
+	
 	switch (reaction_type)
 	{
 	case DEPOSITION_ONLY:
@@ -298,6 +319,11 @@ static  void reaction_point_propagate(
 	    (void) printf("Unknow reaction type!\n");
 	    clean_up(ERROR);
 	}
+
+	CFL = Time_step_factor(front);
+	if (nor_speed*dt > CFL*dn)
+	    nor_speed = CFL*dn/dt;
+
         for (i = 0; i < dim; ++i)
         {
             vel[i] = nor[i]*nor_speed;
@@ -316,7 +342,13 @@ static  void reaction_point_propagate(
 
 	state = (negative_component(oldhs) == CRYSTAL_COMP) ? 
 			(STATE*)left_state(newp) : (STATE*)right_state(newp);
-        state->solute = rho_s;
+        if (cRparams->crystal_dens_func != NULL)
+	    rho_s = (*cRparams->crystal_dens_func)(
+		    	cRparams->crystal_dens_params,Coords(newp));
+	else
+	    rho_s = cRparams->rho_s;
+
+	state->solute = rho_s;
 
 	state = (negative_component(oldhs) == SOLUTE_COMP) ? 
 			(STATE*)left_state(newp) : (STATE*)right_state(newp);
@@ -412,12 +444,14 @@ static 	void constant_state(
 	*ans = C_eq;
 }	/* end middle_point_scheme */
 
-extern	void	read_crystal_params(
+extern	void read_crystal_params(
 	char *in_name,
 	CRT_PARAMS *cRparams)
 {
 	FILE *infile;
-	char string[200];
+	char string[200],s[100];
+	static HALF_MOON_PARAMS half_moon_params;
+	static FUEL_SAMPLE_PARAMS fuel_sample_params;
 
 	infile = fopen(in_name,"r");
 	CursorAfterString(infile,"Choose reaction type");
@@ -427,6 +461,7 @@ extern	void	read_crystal_params(
 	(void) printf("\tREVERSIBLE_REACTION\n");
         CursorAfterString(infile,"Enter reaction type:");
         fscanf(infile,"%s",string);
+	(void) printf("%s\n",string);
 	switch (string[0])
 	{
 	case 'd':
@@ -462,15 +497,84 @@ extern	void	read_crystal_params(
 	CursorAfterString(infile,"Ambient concentration:");
 	fscanf(infile,"%lf",&cRparams->C_0);
 	(void) printf("%f\n",cRparams->C_0);
-	CursorAfterString(infile,"Crystal density:");
-	fscanf(infile,"%lf",&cRparams->rho_s);
-	(void) printf("%f\n",cRparams->rho_s);
-	cRparams->gap = 0.1;
+	cRparams->crystal_dens_func = NULL;
+	cRparams->crystal_dens_params = NULL;
+	if (cRparams->reaction_type == DISSOLUTION_ONLY)
+	{
+	    CursorAfterString(infile,
+		"Enter yes for varying crystal density:");
+	    fscanf(infile,"%s",s);
+	    (void) printf("%s\n",s);
+	    if (s[0] == 'y' || s[0] == 'Y')
+	    {
+		CursorAfterString(infile,
+			"Enter crystal density function type:");
+		fscanf(infile,"%s",string);
+		(void) printf("%s\n",string);
+		switch (string[0])
+		{
+		case 'h':
+		case 'H':
+		    CursorAfterString(infile,
+			"Enter direction of the cut-line:");
+		    fscanf(infile,"%d",&half_moon_params.dir);
+		    (void) printf("%d\n",half_moon_params.dir);
+		    CursorAfterString(infile,
+			"Enter coordinate of the cut-line:");
+		    fscanf(infile,"%lf",&half_moon_params.cutline);
+		    (void) printf("%f\n",half_moon_params.cutline);
+		    CursorAfterString(infile,
+			"Enter lower and upper density:");
+		    fscanf(infile,"%lf %lf",&half_moon_params.lower_dens,
+				&half_moon_params.upper_dens);
+		    (void) printf("%f %f\n",half_moon_params.lower_dens,
+				half_moon_params.upper_dens);
+		    cRparams->crystal_dens_func = half_moon_density;
+		    cRparams->crystal_dens_params = (POINTER)&half_moon_params;
+		    break;
+		case 'p':
+		case 'P':
+		    cRparams->crystal_dens_func = perturbed_density;
+		    cRparams->crystal_dens_params = NULL; 
+		    break;
+		case 'f':
+		case 'F':
+		    CursorAfterString(infile,
+			"Enter crystal density of three samples:");
+		    fscanf(infile,"%lf %lf %lf",&fuel_sample_params.rho_1,
+			    			&fuel_sample_params.rho_2,
+						&fuel_sample_params.rho_3);
+		    (void) printf("%f %f %f\n", fuel_sample_params.rho_1,
+			    			fuel_sample_params.rho_2,
+						fuel_sample_params.rho_3);
+		    cRparams->crystal_dens_func = fuel_sample_density;
+		    cRparams->crystal_dens_params = 
+					(POINTER)&fuel_sample_params;
+		    break;
+		default:
+		    (void) printf("Unknow crystal density function!\n");
+		    clean_up(ERROR);
+		}
+	    }
+	    else
+	    {
+		CursorAfterString(infile,"Crystal density:");
+		fscanf(infile,"%lf",&cRparams->rho_s);
+		(void) printf("%f\n",cRparams->rho_s);
+	    }
+	}
+	else
+	{
+	    CursorAfterString(infile,"Crystal density:");
+	    fscanf(infile,"%lf",&cRparams->rho_s);
+	    (void) printf("%f\n",cRparams->rho_s);
+	}
+	cRparams->gap = 0.0;     //No gap for dissolution
 	CursorAfterStringOpt(infile,"Initial gap:");
 	fscanf(infile,"%lf",&cRparams->gap);
 	(void) printf("%f\n",cRparams->gap);
 	cRparams->num_scheme = UNSPLIT_IMPLICIT;	/* default */
-	cRparams->pde_order = 1;	/* default */
+	cRparams->pde_order = 2;	/* default */
 	if (CursorAfterStringOpt(infile,"Choose PDE scheme"))
 	{
 	    CursorAfterString(infile,"Enter scheme:");
@@ -912,7 +1016,7 @@ extern void read_crt_dirichlet_bdry_data(
 }	/* end read_crt_dirichlet_bdry_data */
 
 
-static void initFrontStates(
+extern void initFrontStates(
 	Front *front)
 {
 	INTERFACE *intfc = front->interf;
@@ -921,21 +1025,40 @@ static void initFrontStates(
         HYPER_SURF_ELEMENT *hse;
         STATE *sl,*sr;
 	CRT_PARAMS *cRparams = (CRT_PARAMS*)front->extra2;
-        double rho_s = cRparams->rho_s;
+        double rho_s;
 
 	next_point(intfc,NULL,NULL,NULL);
         while (next_point(intfc,&p,&hse,&hs))
         {
-            FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+	    if (cRparams->crystal_dens_func != NULL)
+	    	rho_s = (*cRparams->crystal_dens_func)(
+			cRparams->crystal_dens_params,Coords(p));
+	    else
+		rho_s = cRparams->rho_s;
+            
+	    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
 
             if (positive_component(hs) == SOLUTE_COMP)
-                sr->solute = cRparams->C_eq;
+	    {
+		if (wave_type(hs) == GROWING_BODY_BOUNDARY)
+		    sr->solute = cRparams->C_0; 
+	    	    //no gap for dissolution, C_eq for precipitation
+		else
+		    sr->solute = cRparams->C_0;
+	    }
             else if (positive_component(hs) == CRYSTAL_COMP)
                 sr->solute = rho_s;
             else
                 sr->solute = 0.0;
-            if (negative_component(hs) == SOLUTE_COMP)
-                sl->solute = cRparams->C_eq;
+            
+	    if (negative_component(hs) == SOLUTE_COMP)
+	    {
+		if (wave_type(hs) == GROWING_BODY_BOUNDARY)
+		    sl->solute = cRparams->C_0;	
+	            //no gap for dissolution, C_eq for precipitation
+		else
+		    sl->solute = cRparams->C_0;
+	    }
             else if (negative_component(hs) == CRYSTAL_COMP)
                 sl->solute = rho_s;
             else
@@ -996,18 +1119,16 @@ static void setInitialIntfc2d(
 	char *inname)
 {
 	FILE *infile = fopen(inname,"r");
-        char string[256];
+        char string[256],s[200];
 	RECT_GRID *gr = front->rect_grid;
 	int dim = gr->dim;
 	static SEED_PARAMS s_params;
 	static TRIANGLE_PARAMS t_params;
 	static RECTANGLE_PARAMS r_params;
+	static SLOTTED_CIRCLE_PARAMS sc_params;
+	static SAMPLE_BDRY_PARAMS sb_params;
 	CRT_PARAMS *cRparams = (CRT_PARAMS*)front->extra2;
 
-	(void) printf("Available initial interface types are:\n");
-	(void) printf("Seed (S)\n");
-	(void) printf("Triangle (T)\n");
-	(void) printf("Rectangle (R)\n");
 	CursorAfterString(infile,"Enter initial interface type: ");
 	fscanf(infile,"%s",string);
 	(void) printf("%s\n",string);
@@ -1015,11 +1136,77 @@ static void setInitialIntfc2d(
 	{
 	case 's':
 	case 'S':
-	    read_seed_params(2,infile,&s_params);
-	    level_func_pack->func_params = (POINTER)&s_params;
-            level_func_pack->func = seed_func;
-	    cRparams->func_params = (POINTER)&s_params;
-	    cRparams->func = seed_func;
+	    if (string[1] == 'e' || string[1] == 'E')
+	    {
+	        read_seed_params(2,infile,&s_params);
+	    	level_func_pack->func_params = (POINTER)&s_params;
+            	level_func_pack->func = seed_func;
+	    	cRparams->func_params = (POINTER)&s_params;
+	    	cRparams->func = seed_func;
+	    }
+	    else if (string[1] == 'l' || string[1] == 'L')
+	    {
+		CursorAfterString(infile,"Enter center coordinates of the circle:");
+		fscanf(infile,"%lf %lf\n",&sc_params.x0,&sc_params.y0);
+		(void) printf("%f %f\n",sc_params.x0,sc_params.y0);
+		CursorAfterString(infile,"Enter the radius of the circle:");
+		fscanf(infile,"%lf\n",&sc_params.r);
+		(void) printf("%f\n",sc_params.r);
+		CursorAfterString(infile,"Enter the width and depth of the notch:");
+		fscanf(infile,"%lf %lf\n",&sc_params.w,&sc_params.h);
+		(void) printf("%f %f\n",sc_params.w,sc_params.h);
+		sc_params.add_pert = NO;     		//default
+		CursorAfterString(infile,"Enter yes to add perturbation:");
+		fscanf(infile,"%s",s);
+		(void) printf("%s\n",s);
+		if (s[0] == 'y' || s[0] == 'Y')
+		{
+                    sc_params.add_pert = YES;
+                    CursorAfterString(infile,"Enter number of period:");
+                    fscanf(infile,"%lf ",&sc_params.nu);
+                    (void) printf("%f\n",sc_params.nu);
+                    CursorAfterString(infile,"Enter amplitude:");
+                    fscanf(infile,"%lf ",&sc_params.amp);
+                    (void) printf("%f\n",sc_params.amp);
+                    CursorAfterString(infile,"Enter phase shift:");
+                    fscanf(infile,"%lf ",&sc_params.phase);
+                    (void) printf("%f\n",sc_params.phase);
+		}
+		
+		level_func_pack->func_params = (POINTER)&sc_params;
+		level_func_pack->func = slotted_circle_func;
+		cRparams->func_params = NULL;
+		cRparams->func = NULL;
+	    }
+	    else
+	    {
+		(void) printf("Unknow type of initial interface!\n");
+		clean_up(ERROR);
+	    }
+	    break;
+	case 'o':               // ORNL sample problem
+	case 'O':
+	    CursorAfterString(infile,"Enter sample boundary type:");
+	    fscanf(infile,"%s",s);
+	    (void) printf("%s\n",s);
+	    switch (s[0])
+	    {
+	    case 'r':
+	    case 'R':
+		sb_params.bdry_type = REFLECTION_BOUNDARY;
+		break;
+	    case 'd':
+	    case 'D':
+		sb_params.bdry_type = DIRICHLET_BOUNDARY;
+		break;
+	    default:
+		(void) printf("Unknown sample boundary %s\n",string);
+		clean_up(ERROR);
+	    }
+	    level_func_pack->func_params = (POINTER)&sb_params;
+	    level_func_pack->func = level_sample_func;
+	    cRparams->func_params = NULL;
+	    cRparams->func = NULL;
 	    break;
 	case 't':
 	case 'T':
@@ -1054,6 +1241,24 @@ static void setInitialIntfc2d(
 
 	    level_func_pack->func_params = (POINTER)&r_params;
 	    level_func_pack->func = rectangle_func;
+	    cRparams->func_params = NULL;
+	    cRparams->func = NULL;
+	    break;
+	case 'f':
+	case 'F':
+	    CursorAfterString(infile,"Enter center coordinates of the circle:");
+	    fscanf(infile,"%lf %lf\n",&sc_params.x0,&sc_params.y0);
+	    (void) printf("%f %f\n",sc_params.x0,sc_params.y0);
+	    CursorAfterString(infile,"Enter the radius of the circle:");
+	    fscanf(infile,"%lf\n",&sc_params.r);
+	    (void) printf("%f\n",sc_params.r);
+	    CursorAfterString(infile,"Enter the width and depth of four slots:");
+	    fscanf(infile,"%lf %lf\n",&sc_params.w,&sc_params.h);
+	    (void) printf("%f %f\n",sc_params.w,sc_params.h);
+	    sc_params.add_pert = NO;
+
+	    level_func_pack->func_params = (POINTER)&sc_params;
+	    level_func_pack->func = four_slotted_circle_func;
 	    cRparams->func_params = NULL;
 	    cRparams->func = NULL;
 	    break;
@@ -1117,3 +1322,467 @@ static void setInitialIntfc3d(
 
 	fclose(infile);
 }	/* end setInitialIntfc3d */
+
+extern double half_moon_density(
+	POINTER params,
+	double *coords)
+{
+	HALF_MOON_PARAMS *hm_params = (HALF_MOON_PARAMS*)params;
+	int dir = hm_params->dir;
+	double cutline = hm_params->cutline;
+
+	return (coords[dir] < cutline) ? hm_params->lower_dens :
+					 hm_params->upper_dens;
+}	/* end half_moon_density */
+
+extern double perturbed_density(
+	POINTER params,
+	double *coords)
+{
+	double x = coords[0] - 2.0;
+	double y = coords[1] - 3.0;
+	
+	double average,perturbed;
+
+	average = 5*sin(310*x*2.5+(1.0/6.0)*PI)*sin(207*y*2.5+(1.0/5.0)*PI)+8;
+	perturbed = 10*sin(100000*PI*x*2.5+(1.0/4.0)*PI)*sin(1000011*y*2.5+(3.0/10.0)*PI);
+	if (perturbed < 0.0 && average + perturbed > 0.0)
+	{
+	    if (average + perturbed > 0.6 && average + perturbed < 9.5)
+	    {
+		return 13.0;
+	    }
+	    else if (average + perturbed >= 9.5 && average + perturbed < 11.8)
+	    {
+		return 0.5;
+	    }
+	    else
+     	    {
+		return average + perturbed;
+	    }
+	}
+	else
+	{
+	    if (average > 0.6 && average < 9.8)
+	    {
+		return 13.0;
+	    }
+	    else if (average >= 9.8 && average < 11.8)
+	    {	
+		return 0.5;
+	    }
+	    else
+	    {
+		return average;
+	    }
+	}
+}
+
+struct _QUAD {
+        double *verts[4];
+	FUEL_SAMPLE quad_sample;
+};
+typedef struct _QUAD QUAD;
+
+static boolean is_in_quad(double*,QUAD*);
+static void vert_icoords(double*,double*,double*,int*);
+extern boolean sample_func(POINTER,double*,QUAD*);
+
+extern double fuel_sample_density(
+	POINTER params,
+	double *coords)
+{
+        QUAD qad;
+	FUEL_SAMPLE_PARAMS *fparams = (FUEL_SAMPLE_PARAMS*)params;
+	if (!sample_func(NULL,coords,&qad))
+	    return fparams->rho_2;
+	switch (qad.quad_sample)
+	{
+	case Metal:
+	    return fparams->rho_2;				
+	case Void:
+	case Oxide:		
+	    return fparams->rho_2;	        
+	case MetOx:		
+	    return fparams->rho_3;				
+	}
+}       /* end fuel_sample_density */
+
+static double level_sample_func(
+	POINTER func_params,
+	double *coords)
+{
+        QUAD qad;
+	if (!sample_func(func_params,coords,&qad)) return 1.0;
+	if (qad.quad_sample == Metal) return 1.0;
+	else return -1.0;
+}       /* end level_sample_func */
+
+extern boolean sample_func(
+	POINTER params,
+	double *coords,
+	QUAD *qad)
+{
+        int i,nq;
+	static boolean first = YES;
+	static double **verts;
+	static int **quads,**quad_store;
+	static double L[MAXD],U[MAXD],h[MAXD];
+	static int **num_quads,****mesh_quads;
+	static int gmax[MAXD];
+	static double epsilon;
+	int **pq,icoords[MAXD];
+	double crds[MAXD];
+	SAMPLE_BDRY_PARAMS *sb_params = (SAMPLE_BDRY_PARAMS*)params;
+
+	if (first)
+        {
+            FILE *infile;
+            char string[200];
+            double x[MAXD];
+            boolean recorded;
+            int j,k,nv,count;
+            int quad[4];
+            int **icoords_quad;						
+	    
+	    if (debugging("trace"))
+	        (void) printf("Entering sample_func() first time\n");
+            first = NO;
+            for (i = 0; i < 2; ++i)
+            {
+                L[i] =  HUGE;
+                U[i] = -HUGE;
+            }
+            infile = fopen("sample/fuel-test1.mesh","r");
+            fgetstring(infile,"vertices = [");
+            nv = 0;
+            while (YES)
+            {
+                nv++;
+                fgetstring(infile,"[");
+                fscanf(infile,"%lf",&x[0]);
+                string[0] = getc(infile);
+                fscanf(infile,"%lf",&x[1]);
+                fscanf(infile,"%s",string);
+                if (L[0] > x[0]) L[0] = x[0];
+                if (L[1] > x[1]) L[1] = x[1];
+                if (U[0] < x[0]) U[0] = x[0];
+                if (U[1] < x[1]) U[1] = x[1];
+                if (string[0] == '}')
+                    break;
+                else
+                    fscanf(infile,"%*s %*s %*s");
+            }
+
+	    fgetstring(infile,"elements = [");
+	    nq = 0;
+	    while (YES)
+	    {
+	    	nq++;
+		fgetstring(infile,"[");
+		for (i = 0; i < 4; ++i)
+		{
+		    fscanf(infile,"%d",&quad[i]);
+		    fgetstring(infile,",");
+		}
+		fgetstring(infile,"\"");
+		fscanf(infile,"%s",string);
+		if (strncmp(string,"MetOx",5) == 0)
+		{
+		    if (string[7] != ',') break;
+		}
+		else if (strncmp(string,"Oxide",5) == 0)
+		{
+		    if (string[7] != ',') break;
+		}
+		else if (strncmp(string,"Metal",5) == 0)
+		{
+		    if (string[7] != ',') break;
+		}
+		else if (strncmp(string,"Void",4) == 0)
+		{
+		    if (string[6] != ',') break;
+		}
+		fscanf(infile,"%*s %*s %*s");
+	    }
+	    if (debugging("fuel_sample"))
+	    {
+	        (void) printf("L = %f %f  U = %f %f\n",L[0],L[1],U[0],U[1]);
+	        (void) printf("Number of vertices = %d\n",nv);
+	        (void) printf("Number of quads = %d\n",nq);
+	        clean_up(0);
+	    }
+	    FT_MatrixMemoryAlloc((POINTER*)&verts,nv,MAXD,sizeof(double));
+	    FT_MatrixMemoryAlloc((POINTER*)&quads,nq,5,sizeof(int));
+
+	    rewind(infile);
+	    nv = 0;
+	    fgetstring(infile,"vertices = [");
+	    while (YES)
+	    {
+	        fgetstring(infile,"[");
+		fscanf(infile,"%lf",&verts[nv][0]);
+		string[0] = getc(infile);
+		fscanf(infile,"%lf",&verts[nv][1]);
+		fscanf(infile,"%s",string);
+		if (string[0] == '}')
+		    break;
+		else
+		    fscanf(infile,"%*s %*s %*s");
+		nv++;
+	    }
+	    nv++;
+	
+	    for (i = 0; i < 2; ++i)
+	    {
+	    	gmax[i] = 200;
+		h[i] = (U[i] - L[i])/200.0;
+	    }
+	    epsilon = 0.00000001*h[0];
+	    FT_MatrixMemoryAlloc((POINTER*)&num_quads,gmax[0],gmax[1],
+		    			sizeof(int));
+	    FT_MatrixMemoryAlloc((POINTER*)&icoords_quad,4,MAXD,sizeof(int));
+
+	    nq = count = 0;
+	    fgetstring(infile,"elements = [");
+	    while (YES)
+	    {
+		fgetstring(infile,"[");
+		for (i = 0; i < 4; ++i)
+		{
+		    fscanf(infile,"%d",&quads[nq][i]);
+		    fgetstring(infile,",");
+		    vert_icoords(L,h,verts[quads[nq][i]],icoords_quad[i]);
+		    for (j = 0; j < 2; ++j)
+		    {
+		        if (icoords_quad[i][j] < 0)
+			    icoords_quad[i][j] = 0;
+			if (icoords_quad[i][j] >= gmax[j])
+			    icoords_quad[i][j] = gmax[j] - 1;
+		    }
+		}
+		for (i = 0; i < 4; ++i)
+		{
+		    recorded = NO;
+		    for (j = 0; j < i; ++j)
+		    {
+		        if (icoords_quad[i][0] == icoords_quad[j][0] &&
+			    icoords_quad[i][1] == icoords_quad[j][1])
+			    recorded = YES;
+		    }
+		    if (!recorded)
+		    {
+		        num_quads[icoords_quad[i][0]][icoords_quad[i][1]]++;
+			count++;
+		    }
+		}
+		fgetstring(infile,"\"");
+		fscanf(infile,"%s",string);
+		if (strncmp(string,"MetOx",5) == 0)
+		{
+		    quads[nq][4] = (int)MetOx;
+		    if (string[7] != ',') break;
+		}
+		else if (strncmp(string,"Oxide",5) == 0)
+		{
+		    quads[nq][4] = (int)Oxide;
+		    if (string[7] != ',') break;
+		}
+		else if (strncmp(string,"Metal",5) == 0)
+		{
+		    quads[nq][4] = (int)Metal;
+		    if (string[7] != ',') break;
+		}
+		else if (strncmp(string,"Void",4) == 0)
+		{
+		    quads[nq][4] = (int)Void;
+		    if (string[6] != ',') break;
+		}
+		fscanf(infile,"%*s %*s %*s");
+		nq++;
+	    }
+	    nq++;
+	    FT_VectorMemoryAlloc((POINTER*)&quad_store,count,sizeof(int*));
+	    FT_MatrixMemoryAlloc((POINTER*)&mesh_quads,gmax[0],gmax[1],
+		    			sizeof(int**));
+	    pq = quad_store;
+	    count = 0;
+	    for (i = 0; i < gmax[0]; ++i)
+	    for (j = 0; j < gmax[1]; ++j)
+	    {
+	        mesh_quads[i][j] = pq;
+		pq += num_quads[i][j];
+		num_quads[i][j] = 0;
+	    }
+	    for (i = 0; i < nq; ++i)
+	    {
+	        for (j = 0; j < 4; ++j)
+		{
+		    vert_icoords(L,h,verts[quads[i][j]],icoords_quad[j]);
+		    for (k = 0; k < 2; ++k)
+		    {
+		        if (icoords_quad[j][k] < 0)
+			    icoords_quad[j][k] = 0;
+			if (icoords_quad[j][k] >= gmax[k])
+			    icoords_quad[j][k] = gmax[k] - 1;
+		    }
+		    recorded = NO;
+		    for (k = 0; k < j; ++k)
+		    {
+		        if (icoords_quad[j][0] == icoords_quad[k][0] &&
+			    icoords_quad[j][1] == icoords_quad[k][1])
+			    recorded = YES;
+		    }
+		    if (!recorded)
+		    {
+		        int ii,jj;
+			ii = icoords_quad[j][0];
+			jj = icoords_quad[j][1];
+			mesh_quads[ii][jj][num_quads[ii][jj]++] = quads[i];
+			count++;
+		    }
+		}
+	    }
+	    if (debugging("gview_sample"))
+	    {
+	        FILE *gfile = fopen("sample.list","w");
+		fprintf(gfile,"{ LIST \n");
+		fprintf(gfile,"{ OFF\n");
+		fprintf(gfile,"%d %d %d\n",nv,nq,0);
+		for (i = 0; i < nv; ++i)
+		    fprintf(gfile,"%f %f %f\n",verts[i][0],verts[i][1],0.0);
+		for (i = 0; i < nq; ++i)
+		{
+		    fprintf(gfile,"4 %d %d %d %d ",quads[i][0],quads[i][1],
+			    		quads[i][2],quads[i][3]);
+		    switch (quads[i][4])
+		    {
+		    case Void:
+			fprintf(gfile,"%f %f %f %f\n",1.0,1.0,1.0,0.5);
+			break;
+		    case Metal:
+			fprintf(gfile,"%f %f %f %f\n",1.0,0.0,0.0,0.5);
+			break;
+		    case MetOx:
+			fprintf(gfile,"%f %f %f %f\n",0.0,1.0,0.0,0.5);
+			break;
+		    case Oxide:
+			fprintf(gfile,"%f %f %f %f\n",0.0,0.0,1.0,0.5);
+			break;
+		    }
+		}
+		fprintf(gfile,"}\n}\n");
+		fclose(gfile);
+	    }
+	}
+
+	/* For possible reflection */
+	for (i = 0; i < 2; ++i)
+	{
+	    crds[i] = coords[i];
+	    if (coords[i] < L[i])
+	    {
+	        if (sb_params == NULL)
+		    return NO;
+		else if (sb_params->bdry_type == DIRICHLET_BOUNDARY)
+		    return NO;
+		else if (sb_params->bdry_type == REFLECTION_BOUNDARY)
+		    crds[i] = L[i] + (L[i] - coords[i]);
+	    }
+	    if (coords[i] > U[i])
+	    {
+	        if (sb_params == NULL)
+		    return NO;
+		else if (sb_params->bdry_type == DIRICHLET_BOUNDARY)
+		    return NO;
+		else if (sb_params->bdry_type == REFLECTION_BOUNDARY)
+		    crds[i] = U[i] - (coords[i] - U[i]);
+	    }
+	    if (coords[i] == L[i]) crds[i] = L[i] + epsilon;
+	    if (coords[i] == U[i]) crds[i] = U[i] - epsilon;
+	}
+	vert_icoords(L,h,crds,icoords);
+	for (i = 0; i < 2; ++i)
+	{
+	    if (icoords[i] < 0)
+		icoords[i] = 0;
+	    if (icoords[i] >= gmax[i])
+		icoords[i] = gmax[i] - 1;
+	}
+	nq = num_quads[icoords[0]][icoords[1]];
+	pq = mesh_quads[icoords[0]][icoords[1]];
+	for (i = 0; i < nq; ++i)
+	{
+	    qad->verts[0] = verts[pq[i][0]];
+	    qad->verts[1] = verts[pq[i][1]];
+	    qad->verts[2] = verts[pq[i][2]];
+	    qad->verts[3] = verts[pq[i][3]];
+	    if (is_in_quad(crds,qad))
+	    {
+	        qad->quad_sample = (FUEL_SAMPLE)pq[i][4];
+		if (debugging("sample_func"))
+		{
+		    (void) printf("coords = %f %f\n",coords[0],coords[1]);
+		    (void) printf("icoords = %d %d\n",icoords[0],icoords[1]);
+		    (void) printf("Number of quad in cell: %d\n",nq);
+		    (void) printf("In quads[%d]:\n",i);
+		    (void) printf("Vertices:\n");
+		    (void) printf("qad.verts[0] = %f %f\n",
+			    		qad->verts[0][0],qad->verts[0][1]);
+		    (void) printf("qad.verts[1] = %f %f\n",
+			    		qad->verts[1][0],qad->verts[1][1]);
+		    (void) printf("qad.verts[2] = %f %f\n",
+			    		qad->verts[2][0],qad->verts[2][1]);
+		    (void) printf("qad.verts[3] = %f %f\n",
+			    		qad->verts[3][0],qad->verts[3][1]);
+		    (void) printf("Quad sample: %d\n",qad->quad_sample);
+		}
+		return YES;
+	    }
+	}
+	if (debugging("sample_func"))
+	{
+	    (void) printf("No quad found!\n");
+	}
+	return NO;
+}       /* end sample_func */
+
+static boolean is_in_quad(
+	double *coords,
+	QUAD *quad)
+{
+	double **verts = quad->verts;
+	double v1[MAXD],v2[MAXD],c0,cr;
+	int i,j;
+
+	for (j = 0; j < 2; ++j)
+	{
+	    v1[j] = coords[j] - verts[0][j];
+	    v2[j] = verts[1][j] - verts[0][j];
+	}
+	Cross2d(v1,v2,c0);
+	for (i = 1; i < 4; ++i)
+	{
+	    for (j = 0; j < 2; ++j)
+	    {
+	        v1[j] = coords[j] - verts[i][j];
+		v2[j] = verts[(i+1)%4][j] - verts[i][j];
+	    }
+	    Cross2d(v1,v2,cr);
+	    if (!same_sign(c0,cr)) return NO;
+	}
+	return YES;
+}       /* end is_in_quad */
+
+static void vert_icoords(
+	double *L,
+	double *h,
+	double *vert,
+	int *icoords)
+{
+	int i;
+	for (i = 0; i < 2; ++i)
+	{
+	    icoords[i] = irint(floor((vert[i] - L[i])/h[i]));
+	}
+}       /* end vert_icoords */

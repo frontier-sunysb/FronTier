@@ -474,6 +474,18 @@ typedef struct {
 } TDISK_PARAMS;
 
 typedef struct {
+	double x0;
+	double y0;
+	double r;
+	double w;
+	double h;
+	boolean add_pert;
+	double nu;
+	double amp;
+	double phase;
+} SLOTTED_CIRCLE_PARAMS;
+
+typedef struct {
 	int dim;
 	int num_cir;
 	double **cen;

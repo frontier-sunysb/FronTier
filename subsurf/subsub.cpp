@@ -262,7 +262,7 @@ void read_dirichlet_bdry_data(
 	char msg[100],s[100];
 	int i,dim = front->rect_grid->dim;
 	FILE *infile = fopen(inname,"r");
-	STATE state;
+	static STATE state;
 	HYPER_SURF *hs;
 
 	for (i = 0; i < dim; ++i)
@@ -283,8 +283,8 @@ void read_dirichlet_bdry_data(
 		case 'C':
 		    CursorAfterString(infile,"Enter solute concentration:");
 		    fscanf(infile,"%lf",&state.solute);
-		    FT_SetDirichletBoundary(front,NULL,NULL,NULL,
-					(POINTER)&state,hs);
+		    FT_InsertDirichletBoundary(front,NULL,NULL,NULL,
+					(POINTER)&state,hs,i,0);
 		    break;
 		default: 
 		    printf("ERROR: Dirichlet type %s not implemented\n",s);
@@ -307,8 +307,8 @@ void read_dirichlet_bdry_data(
 		case 'C':
 		    CursorAfterString(infile,"Enter solute concentration:");
 		    fscanf(infile,"%lf",&state.solute);
-		    FT_SetDirichletBoundary(front,NULL,NULL,NULL,
-					(POINTER)&state,hs);
+		    FT_InsertDirichletBoundary(front,NULL,NULL,NULL,
+					(POINTER)&state,hs,i,1);
 		    break;
 		default: 
 		    printf("ERROR: Dirichlet type %s not implemented\n",s);
@@ -409,13 +409,13 @@ void read_ss_dirichlet_bdry_data(
 		    CursorAfterString(infile,"Enter solute concentration:");
                     fscanf(infile,"%lf",&state.solute);
 		    (void) printf("%f\n",state.solute);
-		    FT_SetDirichletBoundary(front,NULL,NULL,NULL,
-				(POINTER)&state,hs);
+		    FT_InsertDirichletBoundary(front,NULL,NULL,NULL,
+				(POINTER)&state,hs,i,0);
 		    break;
 		case 'f':			// Flow through state
 		case 'F':
-		    FT_SetDirichletBoundary(front,ss_flowThroughBoundaryState,
-				"flowThroughBoundaryState",NULL,NULL,hs);
+		    FT_InsertDirichletBoundary(front,ss_flowThroughBoundaryState,
+				"flowThroughBoundaryState",NULL,NULL,hs,i,0);
 		    break;
 		}
 	    }
@@ -447,13 +447,13 @@ void read_ss_dirichlet_bdry_data(
 		    CursorAfterString(infile,"Enter solute concentration:");
                     fscanf(infile,"%lf",&state.solute);
 		    (void) printf("%f\n",state.solute);
-		    FT_SetDirichletBoundary(front,NULL,NULL,NULL,
-				(POINTER)&state,hs);
+		    FT_InsertDirichletBoundary(front,NULL,NULL,NULL,
+				(POINTER)&state,hs,i,1);
 		    break;
 		case 'f':			// Flow through state
 		case 'F':
-		    FT_SetDirichletBoundary(front,ss_flowThroughBoundaryState,
-				"flowThroughBoundaryState",NULL,NULL,hs);
+		    FT_InsertDirichletBoundary(front,ss_flowThroughBoundaryState,
+				"flowThroughBoundaryState",NULL,NULL,hs,i,1);
 		    break;
 		}
 	    }
@@ -732,49 +732,7 @@ extern void read_fluid_params(
         }
 
 	fclose(infile);
-}	/* end read_fluid_properties */
-
-void initFrontStates(
-        Front *front)
-{
-        INTERFACE *intfc = front->interf;
-        POINT *p;
-        HYPER_SURF *hs;
-        HYPER_SURF_ELEMENT *hse;
-        STATE *sl,*sr;
-        CRT_PARAMS *cRparams = (CRT_PARAMS*)front->extra2;
-        double rho_s = cRparams->rho_s;
-
-        next_point(intfc,NULL,NULL,NULL);
-        while (next_point(intfc,&p,&hse,&hs))
-        {
-            FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-
-            if (positive_component(hs) == SOLUTE_COMP)
-	    {
-		if (wave_type(hs) == GROWING_BODY_BOUNDARY)
-                    sr->solute = cRparams->C_eq;
-		else
-                    sr->solute = cRparams->C_0;
-	    }
-            else if (positive_component(hs) == CRYSTAL_COMP)
-                sr->solute = rho_s;
-            else
-                sr->solute = 0.0;
-            if (negative_component(hs) == SOLUTE_COMP)
-	    {
-		if (wave_type(hs) == GROWING_BODY_BOUNDARY)
-                    sr->solute = cRparams->C_eq;
-		else
-                    sr->solute = cRparams->C_0;
-	    }
-            else if (negative_component(hs) == CRYSTAL_COMP)
-                sl->solute = rho_s;
-            else
-                sl->solute = 0.0;
-        }
-}       /* end initFrontStates */
-
+}	/* end read_fluid_params */
 
 extern double getStatePres(POINTER state)
 {
@@ -991,7 +949,6 @@ extern boolean isDirichletPresetBdry(
         return YES;
 }       /* end isDirichletPresetBdry */
 
-// Yijing Hu
 extern int ifluid_find_state_at_crossing(
 	Front *front,
 	int *icoords,

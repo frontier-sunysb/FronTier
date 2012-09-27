@@ -54,7 +54,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 	/*  Local Application Function Declarations */
 
 static void 	solute_main_driver(Front*,C_CARTESIAN&);
-static void 	initFrontStates(Front*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -230,6 +229,8 @@ static  void solute_main_driver(
 	    printf("Passed initMovieVariables()\n");
 
         FT_AddMovieFrame(front,out_name,binary);
+	if (dim == 2 && cRparams->movie_option->plot_solute)
+            c_cartesian.vtk_plot_concentration2d(out_name);
 	if (dim == 1)
             c_cartesian.oneDimPlot(out_name);
 	if (debugging("trace"))
@@ -357,6 +358,8 @@ static  void solute_main_driver(
 		// Front standard output
 		c_cartesian.initMovieVariables();
                 FT_AddMovieFrame(front,out_name,binary);
+		if (dim == 2 && cRparams->movie_option->plot_solute)
+                    c_cartesian.vtk_plot_concentration2d(out_name);
 		if (dim == 1)
 	    	    c_cartesian.oneDimPlot(out_name);
 	    }
@@ -411,37 +414,6 @@ static  void solute_main_driver(
 	    }
         } 
 }       /* end solute_main_driver */
-
-static void initFrontStates(
-	Front *front)
-{
-	INTERFACE *intfc = front->interf;
-        POINT *p;
-        HYPER_SURF *hs;
-        HYPER_SURF_ELEMENT *hse;
-        STATE *sl,*sr;
-	CRT_PARAMS *cRparams = (CRT_PARAMS*)front->extra2;
-        double rho_s = cRparams->rho_s;
-
-	next_point(intfc,NULL,NULL,NULL);
-        while (next_point(intfc,&p,&hse,&hs))
-        {
-            FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-
-            if (positive_component(hs) == SOLUTE_COMP)
-                sr->solute = cRparams->C_eq;
-            else if (positive_component(hs) == CRYSTAL_COMP)
-                sr->solute = rho_s;
-            else
-                sr->solute = 0.0;
-            if (negative_component(hs) == SOLUTE_COMP)
-                sl->solute = cRparams->C_eq;
-            else if (negative_component(hs) == CRYSTAL_COMP)
-                sl->solute = rho_s;
-            else
-                sl->solute = 0.0;
-        }
-}	/* end initFrontStates */
 
 void solute_read_front_states(
 	FILE *infile,

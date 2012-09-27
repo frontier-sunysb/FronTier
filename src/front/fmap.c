@@ -1866,6 +1866,38 @@ EXPORT  void FT_SetDirichletBoundary(
             bstate_index(hs) = index;
 }       /* end FT_SetDirichletBoundary */
 
+EXPORT  void FT_InsertDirichletBoundary(
+        Front *front,
+        void (*state_func)(double*,HYPER_SURF*,Front*,POINTER,POINTER),
+        const char *state_func_name,
+	POINTER state_func_params,
+        Locstate state,
+        HYPER_SURF *hs,
+	int dir,
+	int nb)
+{
+        BOUNDARY_STATE  Bstate;
+	int index;
+        INTERFACE *intfc = front->interf;
+	int istate = 2*dir + nb;
+
+	zero_scalar(&Bstate,sizeof(BOUNDARY_STATE));
+	if (state_func != NULL)
+	{
+            Bstate._boundary_state_function = state_func;
+            Bstate._boundary_state_function_name = strdup(state_func_name);
+            Bstate._boundary_state_function_params = state_func_params;
+	}
+	if (state != NULL)
+	{
+            Bstate._boundary_state = state;
+	}
+	Bstate._fprint_boundary_state_data = f_fprint_boundary_state_data;
+	index = add_bstate_to_list(&Bstate,intfc,istate);
+	if (hs)
+            bstate_index(hs) = index;
+}       /* end FT_SetDirichletBoundary */
+
 
 EXPORT HYPER_SURF *BoundaryHyperSurf(
 	INTERFACE *intfc,
@@ -2710,7 +2742,7 @@ EXPORT	void FT_TimeControlFilter(Front *front)
             front->time_limit_reached = YES;
         }
 	front->dt = new_dt;
-}	/* end FrontOutputTimeControl */
+}	/* end FT_TimeControlFilter */
 
 EXPORT void FT_AddTimeStepToCounter(Front *front)
 {

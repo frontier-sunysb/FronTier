@@ -301,8 +301,9 @@ EXPORT	void	pp_clip_rect_grids(
 	    intfc->table->new_grid = YES;
 	    copy_rect_grid(c_gr,zoom_gr);
 	    copy_rect_grid(front->rect_grid,zoom_gr);
-	    set_dual_grid(&Dual_grid,c_gr);
-	    set_expanded_grid(&Dual_grid,t_gr);
+	    //set_dual_grid(&Dual_grid,c_gr);
+	    set_topological_grid(intfc,c_gr);
+	    //set_expanded_grid(&Dual_grid,t_gr);
 	    /*(void) adjust_top_grid_for_square(t_gr,zoom_gr);*/
 	}
 	else

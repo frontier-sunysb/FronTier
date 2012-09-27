@@ -57,6 +57,7 @@ static void 	subsurf_main_driver(Front*,C_CARTESIAN&,
 			Incompress_Solver_Smooth_Basis*);
 static void	solute_point_propagate(Front*,POINTER,POINT*,POINT*,	
 			HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
+static void     print_area_density(Front*,char*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -279,18 +280,21 @@ static  void subsurf_main_driver(
 	    fflush(FracDim_file);
 	}
 
-	if (debugging("restart"))
-	{
-	    // Front standard output
-            FT_Save(front,out_name);
-	    // Problem specific output
-	    c_cartesian.printFrontInteriorStates(out_name);
-	    l_cartesian->printFrontInteriorStates(out_name);
-	}
-
 	if (!RestartRun)
 	{
 	    FT_ResetTime(front);
+	    //Output the initial interface and data. 
+            FT_Save(front,out_name);
+            c_cartesian.printFrontInteriorStates(out_name);
+            l_cartesian->printFrontInteriorStates(out_name);
+            c_cartesian.initMovieVariables();
+            l_cartesian->augmentMovieVariables();
+            FT_AddMovieFrame(front,out_name,binary);
+            if (dim == 2 && cRparams->movie_option->plot_solute)
+                c_cartesian.vtk_plot_concentration2d(out_name);
+            if (dim == 2)
+                print_area_density(front,out_name);
+
 	    if (debugging("trace"))
 		printf("Before FT_Propagate() front->dt = %f\n",front->dt);
 	    FT_Propagate(front);
@@ -298,34 +302,38 @@ static  void subsurf_main_driver(
 	    c_cartesian.solve(front->dt);
 	    if (debugging("trace")) printf("Calling iFluid solve()\n");
 	    l_cartesian->solve(front->dt);
+	    FT_SetOutputCounter(front);
 	    FT_SetTimeStep(front);
 	    c_cartesian.setAdvectionDt();
 	    front->dt = std::min(front->dt,CFL*c_cartesian.max_dt);
 	    l_cartesian->setAdvectionDt();
 	    front->dt = std::min(front->dt,CFL*l_cartesian->max_dt);
         }
+	else
+        {
+            FT_SetOutputCounter(front);
+        }
 	if (debugging("trace"))
 	    printf("Passed second restart check()\n");
 
-	FT_SetOutputCounter(front);
 	FT_TimeControlFilter(front);
+	(void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
+                        front->time,front->step,front->dt);
 
-	if (debugging("step_size"))
-		printf("Time step from start: %f\n",front->dt);
         for (;;)
         {
-	    if (debugging("trace"))
-		printf("Before FT_Propagate()\n");
-
+	    if (debugging("trace")) printf("Before FT_Propagate()\n");
 	    FT_Propagate(front);
             if (debugging("trace")) printf("Passed FT_Propagate()\n");
 
 	    if (debugging("trace")) printf("Calling Cystal solve()\n");
 	    c_cartesian.solve(front->dt);
 	    if (debugging("trace")) printf("Passed Cystal solve()\n");
+
 	    if (debugging("trace")) printf("Calling iFluid solve()\n");
 	    l_cartesian->solve(front->dt);
 	    if (debugging("trace")) printf("Passed iFluid solve()\n");
+
 	    if (debugging("trace"))
             {
                 printf("After solve()\n");
@@ -333,6 +341,10 @@ static  void subsurf_main_driver(
             }
 
 	    FT_AddTimeStepToCounter(front);
+	    if (dim == 2)
+                //calculate perimeter & area
+                print_area_density(front,out_name);
+
 	    FT_SetTimeStep(front);
 
 	    if (debugging("step_size"))
@@ -343,10 +355,6 @@ static  void subsurf_main_driver(
 	    front->dt = std::min(front->dt,CFL*l_cartesian->max_dt);
 	    if (debugging("step_size"))
 		printf("Time step from l_cartesian->max_dt(): %f\n",front->dt);
-
-            printf("\ntime = %f   step = %7d   dt = %f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
 
             if (FT_IsSaveTime(front))
 	    {
@@ -376,6 +384,8 @@ static  void subsurf_main_driver(
 		    if (debugging("trace"))
                     	printf("Calling FT_AddMovieFrame()\n");
                     FT_AddMovieFrame(front,out_name,binary);
+		    if (dim == 2 && cRparams->movie_option->plot_solute)
+                        c_cartesian.vtk_plot_concentration2d(out_name);
 		}
 	    	else
 	    	    c_cartesian.oneDimPlot(out_name);
@@ -407,6 +417,9 @@ static  void subsurf_main_driver(
 
             if (FT_TimeLimitReached(front))
 	    {
+		(void) printf("\ntime = %20.14f   step = %5d   ",
+                                front->time,front->step);
+                (void) printf("next dt = %20.14f\n",front->dt);
 		if (dim == 1)
 		    plot_growth_data(out_name,growth_data,count);
                 break;
@@ -416,6 +429,9 @@ static  void subsurf_main_driver(
 	    /* Output section, next dt may be modified */
 
 	    FT_TimeControlFilter(front);
+
+	    (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
+                        front->time,front->step,front->dt);
 
 	    if (debugging("step_size"))
 		printf("Time step from FrontOutputTimeControl(): %f\n",
@@ -444,3 +460,62 @@ static  void solute_point_propagate(
 	ifluid_point_propagate(front,wave,oldp,newp,oldhse,oldhs,dt,V);
 	crystal_point_propagate(front,wave,oldp,newp,oldhse,oldhs,dt,V);
 }	/* end solute_point_propagate */
+
+static void print_area_density(
+        Front *front,
+        char *out_name)
+{
+        INTERFACE *intfc = front->interf;
+        CURVE **c, *curve;
+        double total_length, vol_frac, area_density;
+        char fname[100];
+        static FILE *lfile;
+        static FILE *vfile;
+        static FILE *afile;
+
+        total_length = 0.0;
+        vol_frac = 0.0;
+        area_density = 0.0;
+
+        if (lfile == NULL)
+	{
+            sprintf(fname,"%s/total_length",out_name);
+            lfile = fopen(fname,"w");
+            fprintf(lfile,"\"Total length vs. time\"\n");
+        }
+
+        if (vfile == NULL)
+        {
+            sprintf(fname,"%s/vol_frac",out_name);
+            vfile = fopen(fname,"w");
+            fprintf(vfile,"\"Volume fraction vs. time\"\n");
+        }
+
+        if (afile == NULL)
+        {
+            sprintf(fname,"%s/area_density",out_name);
+            afile = fopen(fname,"w");
+            fprintf(afile,"\"Area density vs. time\"\n");
+        }
+
+        curve = NULL;
+        for (c = intfc->curves; c && *c; ++c)
+        {
+            if (wave_type(*c) == GROWING_BODY_BOUNDARY)
+            {
+                curve = *c;
+                total_length += curve_length(curve);
+            }
+        }
+
+        vol_frac = FT_ComputeTotalVolumeFraction(front,CRYSTAL_COMP);
+
+        area_density = total_length/vol_frac;
+
+        fprintf(lfile,"%lf %lf\n",front->time,total_length);
+        fprintf(vfile,"%lf %lf\n",front->time,vol_frac);
+        fprintf(afile,"%lf %lf\n",front->time,area_density);
+        fflush(lfile);
+        fflush(vfile);
+        fflush(afile);
+}       /* end print_area_density */

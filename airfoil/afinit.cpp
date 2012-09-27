@@ -1776,6 +1776,7 @@ extern void setRestartAirfoilIntfc(
 	NODE **n,*payload_node,*string_node;
 	CURVE **c;
 	boolean is_payload_node;
+	boolean is_gore_node;
 	STRING_PARAMS *string_params;
 
 	string_params = (STRING_PARAMS*)level_func_pack->string_params;
@@ -1784,27 +1785,32 @@ extern void setRestartAirfoilIntfc(
 	for (n = intfc->nodes; n && *n; ++n)
 	{
 	    is_payload_node = YES;
+	    is_gore_node = YES;
 	    for (c = (*n)->in_curves; c && *c; ++c)
 	    {
 		if (hsbdry_type(*c) != STRING_HSBDRY)
-		{
 		    is_payload_node = NO;
-		    break;
-		}
+		else if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
+			 hsbdry_type(*c) != GORE_HSBDRY)
+		    is_gore_node = NO;
 	    } 
-	    if (is_payload_node == NO) continue;
 	    for (c = (*n)->out_curves; c && *c; ++c)
 	    {
 		if (hsbdry_type(*c) != STRING_HSBDRY)
-		{
 		    is_payload_node = NO;
-		    break;
-		}
+		else if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
+			 hsbdry_type(*c) != GORE_HSBDRY)
+		    is_gore_node = NO;
 	    } 
 	    if (is_payload_node == YES)
 	    {
 		payload_node = *n;
-		break;
+	    }
+	    if (is_gore_node == YES)
+	    {
+	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+	    	extra->af_node_type = GORE_NODE;
+	    	(*n)->extra = (POINTER)extra;
 	    }
 	}
 	if (payload_node != NULL)
@@ -1966,3 +1972,160 @@ LOCAL boolean bond_intersect_with_polar_angle(
         return NO;
 }       /* bond_intersect_with_polar_angle */
 
+extern void printAfExtraDada(
+	Front *front,
+	char *out_name)
+{
+	INTERFACE *intfc = front->interf;
+        STATE *sl,*sr;
+        POINT *p;
+        HYPER_SURF *hs;
+        HYPER_SURF_ELEMENT *hse;
+	int i,dim = intfc->dim;
+	FILE *outfile;
+	char filename[200];
+	CURVE **c;
+	NODE **n;
+	BOND *b;
+
+	sprintf(filename,"%s/state.ts%s",out_name,
+                        right_flush(front->step,7));
+#if defined(__MPI__)
+        if (pp_numnodes() > 1)
+            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+#endif /* defined(__MPI__) */
+        sprintf(filename,"%s-afdata",filename);
+        outfile = fopen(filename,"w");
+
+	fprintf(outfile,"\nAirfoil extra front state data:\n");
+
+	next_point(intfc,NULL,NULL,NULL);
+        while (next_point(intfc,&p,&hse,&hs))
+        {
+            if (wave_type(hs) != ELASTIC_BOUNDARY) continue;
+            FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+            for (i = 0; i < dim; ++i)
+                fprintf(outfile,"%24.18g %24.18g\n",sl->Impct[i],sr->Impct[i]);
+            for (i = 0; i < dim; ++i)
+                fprintf(outfile,"%24.18g ",p->vel[i]);
+	    fprintf(outfile,"\n");
+        }
+	for (c = intfc->curves; c && *c; ++c)
+	{
+	    b = (*c)->first;	p = b->start;
+	    sl = (STATE*)left_state(p);
+	    sr = (STATE*)right_state(p);
+            for (i = 0; i < dim; ++i)
+                fprintf(outfile,"%24.18g ",p->vel[i]);
+	    fprintf(outfile,"\n");
+            for (i = 0; i < dim; ++i)
+                fprintf(outfile,"%24.18g ",sl->Impct[i]);
+	    fprintf(outfile,"\n");
+            for (i = 0; i < dim; ++i)
+                fprintf(outfile,"%24.18g ",sr->Impct[i]);
+	    fprintf(outfile,"\n");
+	    for (b = (*c)->first; b != NULL; b = b->next)
+	    {
+		p = b->end;
+	    	sl = (STATE*)left_state(p);
+	    	sr = (STATE*)right_state(p);
+            	for (i = 0; i < dim; ++i)
+                    fprintf(outfile,"%24.18g ",p->vel[i]);
+	    	fprintf(outfile,"\n");
+            	for (i = 0; i < dim; ++i)
+                    fprintf(outfile,"%24.18g ",sl->Impct[i]);
+	    	fprintf(outfile,"\n");
+            	for (i = 0; i < dim; ++i)
+                    fprintf(outfile,"%24.18g ",sr->Impct[i]);
+	    	fprintf(outfile,"\n");
+	    }
+	}
+	for (n = intfc->nodes; n && *n; ++n)
+	{
+	    p = (*n)->posn;
+	    sl = (STATE*)left_state(p);
+	    sr = (STATE*)right_state(p);
+            for (i = 0; i < dim; ++i)
+                fprintf(outfile,"%24.18g ",p->vel[i]);
+	    fprintf(outfile,"\n");
+            for (i = 0; i < dim; ++i)
+                fprintf(outfile,"%24.18g ",sl->Impct[i]);
+	    fprintf(outfile,"\n");
+            for (i = 0; i < dim; ++i)
+                fprintf(outfile,"%24.18g ",sr->Impct[i]);
+	    fprintf(outfile,"\n");
+	}
+}	/* end printAfExtraDada */
+
+extern void readAfExtraDada(
+	Front *front,
+	char *restart_name)
+{
+	INTERFACE *intfc = front->interf;
+        STATE *sl,*sr;
+        POINT *p;
+        HYPER_SURF *hs;
+        HYPER_SURF_ELEMENT *hse;
+	int i,dim = intfc->dim;
+	FILE *infile;
+	char filename[200];
+	CURVE **c;
+	NODE **n;
+	BOND *b;
+
+        sprintf(filename,"%s-afdata",restart_name);
+        infile = fopen(filename,"r");
+
+	printf("filename = %s\n",filename);
+	next_output_line_containing_string(infile,
+		"Airfoil extra front state data:");
+
+	next_point(intfc,NULL,NULL,NULL);
+        while (next_point(intfc,&p,&hse,&hs))
+        {
+            if (wave_type(hs) != ELASTIC_BOUNDARY) continue;
+            FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+            for (i = 0; i < dim; ++i)
+                fscanf(infile,"%lf %lf\n",&sl->Impct[i],&sr->Impct[i]);
+            for (i = 0; i < dim; ++i)
+                fscanf(infile,"%lf ",&p->vel[i]);
+	    fscanf(infile,"\n");
+        }
+	for (c = intfc->curves; c && *c; ++c)
+	{
+	    b = (*c)->first;	p = b->start;
+	    sl = (STATE*)left_state(p);
+	    sr = (STATE*)right_state(p);
+            for (i = 0; i < dim; ++i)
+                fscanf(infile,"%lf ",&p->vel[i]);
+            for (i = 0; i < dim; ++i)
+                fscanf(infile,"%lf ",&sl->Impct[i]);
+            for (i = 0; i < dim; ++i)
+                fscanf(infile,"%lf ",&sr->Impct[i]);
+	    fscanf(infile,"\n");
+	    for (b = (*c)->first; b != NULL; b = b->next)
+	    {
+		p = b->end;
+	    	sl = (STATE*)left_state(p);
+	    	sr = (STATE*)right_state(p);
+            	for (i = 0; i < dim; ++i)
+                    fscanf(infile,"%lf ",&p->vel[i]);
+            	for (i = 0; i < dim; ++i)
+               	    fscanf(infile,"%lf ",&sl->Impct[i]);
+            	for (i = 0; i < dim; ++i)
+                    fscanf(infile,"%lf ",&sr->Impct[i]);
+	    }
+	}
+	for (n = intfc->nodes; n && *n; ++n)
+	{
+	    p = (*n)->posn;
+	    sl = (STATE*)left_state(p);
+	    sr = (STATE*)right_state(p);
+            for (i = 0; i < dim; ++i)
+                fscanf(infile,"%lf ",&p->vel[i]);
+            for (i = 0; i < dim; ++i)
+                fscanf(infile,"%lf ",&sl->Impct[i]);
+            for (i = 0; i < dim; ++i)
+                fscanf(infile,"%lf ",&sr->Impct[i]);
+	}
+}	/* end readAfExtraDada */

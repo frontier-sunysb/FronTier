@@ -1,8 +1,6 @@
 CC=@CC@
 F77=@F77@
 all:
-	if [ @build_cgns@ -eq 1 ]; then cd pak/cgnslib_3.0 && $(MAKE); fi
-	if [ @build_cgns@ -eq 1 ]; then cd pak/pcgnslib_0.2.0 && $(MAKE); fi
 	cd front  && $(MAKE)
 	@gass@ 
 	if [ @build_linpak@ -eq 1 ]; then cd pak/linpak && $(MAKE); fi
@@ -15,8 +13,6 @@ clean:
 	@gasclean@
 	if [ @build_linpak@ -eq 1 ]; then cd pak/linpak && $(MAKE) clean; fi
 	if [ @build_linpak@ -eq 1 ]; then cd pak/blas && $(MAKE) clean; fi
-	if [ @build_cgns@ -eq 1 ]; then cd pak/cgnslib_3.0 && $(MAKE) clean; fi
-	if [ @build_cgns@ -eq 1 ]; then cd pak/pcgnslib_0.2.0 && $(MAKE) clean; fi
 
 diff:
 	cd driver && $(MAKE) diff

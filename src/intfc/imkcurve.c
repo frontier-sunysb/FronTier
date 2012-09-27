@@ -2011,3 +2011,132 @@ EXPORT double projectile_func(
 	}
 	return dist;
 }	/* end projectile_func */
+
+EXPORT double slotted_circle_func(
+	POINTER func_params,
+	double *coords)
+{
+	SLOTTED_CIRCLE_PARAMS *sc_params = (SLOTTED_CIRCLE_PARAMS*)func_params;
+	double dist_min, dist, dist1, dist2, dist3, theta;
+	double radius = sc_params->r;
+	boolean add_pert = sc_params->add_pert;
+	double nu = sc_params->nu;
+	double amp = sc_params->amp;
+	double phase = sc_params->phase*2.0*PI/360.0;
+	double xl,xr,yh;
+
+	dist_min = HUGE;
+	dist = 0.0;
+	dist = sqrt(sqr(coords[0]-sc_params->x0)+
+		sqr(coords[1]-sc_params->y0));
+	if (dist <= dist_min)
+	    dist_min = dist;
+
+	if (add_pert == YES)
+	{
+	    theta = asin(fabs(coords[1]-sc_params->y0)/dist_min);
+	    if (coords[0]-sc_params->x0 < 0 &&
+		coords[1]-sc_params->y0 > 0)
+		theta = PI - theta;
+	    else if (coords[0]-sc_params->x0 < 0 &&
+		     coords[1]-sc_params->y0 < 0)
+		theta = PI + theta;
+	    else if (coords[0]-sc_params->x0 > 0 &&
+		     coords[1]-sc_params->y0 < 0)
+		theta = 2*PI - theta;
+	    radius -= amp*sin(nu*theta + phase);
+	}
+
+	dist1 = dist_min - radius;
+	
+	xl = sc_params->x0 - sc_params->w/2.0;
+	xr = sc_params->x0 + sc_params->w/2.0;
+	yh = sc_params->y0 + radius - sc_params->h;
+	
+	dist2 = (coords[0] < sc_params->x0) ? coords[0] - xl :
+	        xr - coords[0];
+	dist3 = coords[1] - yh;
+
+	if (dist1 > 0.0) 
+	    return dist1;
+	else if (dist2 > 0.0 && dist3 > 0.0)
+	    return min(dist2,dist3);
+	else if (dist2 > 0.0 && dist3 < 0.0)
+	    return max(dist1,dist3);
+	else if (dist2 < 0.0 && dist3 > 0.0)
+	    return max(dist1,dist2);
+	else
+	    return max(dist1,max(dist2,dist3));
+}         /* end slotted_circle_func */
+
+EXPORT double four_slotted_circle_func(
+	POINTER func_params,
+	double *coords)
+{
+        SLOTTED_CIRCLE_PARAMS *sc_params = (SLOTTED_CIRCLE_PARAMS*)func_params;
+        double dist1,dist2,dist3,dist4,dist5,dist6,dist7;
+	double x0 = sc_params->x0;
+	double y0 = sc_params->y0;
+        double r = sc_params->r;
+	double w = sc_params->w;
+	double h = sc_params->h;
+        double xl,xr,yu,yl,xw_l,xw_r,yh_u,yh_l;
+
+	xl = x0 - w/2.0;
+	xr = x0 + w/2.0;
+	yu = y0 + w/2.0;
+	yl = y0 - w/2.0;
+	xw_l = x0 - r + h;
+	xw_r = x0 + r - h;
+	yh_u = y0 + r - h;
+	yh_l = y0 - r + h;
+
+	dist1 = sqrt(sqr(coords[0]-x0)+sqr(coords[1]-y0)) - r;
+	dist2 = (coords[0] <= x0) ? coords[0] - xl : xr - coords[0];
+	dist3 = coords[1] - yh_u;
+	dist4 = coords[1] - yu;
+	dist5 = (coords[0] <= x0) ? coords[0] - xw_l : xw_r - coords[0];
+	dist6 = coords[1] - yl;
+	dist7 = coords[1] - yh_l;
+
+	if (r - h < w/2.0)
+	{
+	    (void) printf("failed to make a four-slotted circle\n");
+	    clean_up(ERROR);
+	}
+
+	if (dist1 > 0.0)
+	{
+	    return dist1;
+	}
+	else if (dist1 < 0.0)
+	{
+	    if (dist2 > 0.0 && dist3 > 0.0)
+		return min(dist2,dist3);
+	    else if (dist2 < 0.0 && dist3 >= 0.0)
+		return max(dist1,dist2);
+	    else if (dist3 < 0.0 && dist4 > 0.0)
+		return max(dist1,dist3);
+	    else if (dist5 < 0.0 && dist4 < 0.0 && dist6 > 0.0)
+		return dist6;
+	    else if (dist5 > 0.0 && dist4 < 0.0 && dist6 >= 0.0)
+		return max(dist1,dist4);
+	    else if (dist5 > 0.0 && dist4 == 0.0)
+		return dist1;
+	    else if (dist6 < 0.0 && dist7 > 0.0)
+		return max(dist1,dist6);
+	    else if (dist2 < 0.0 && dist7 == 0.0)
+		return max(dist1,dist2);
+	    else if (dist2 < 0.0 && dist7 < 0.0)
+		return max(dist1,max(dist2,dist7));
+	    else if (dist2 > 0.0 && dist7 < 0.0)
+		return dist2;
+	}
+	else
+	{
+	    if (dist2 > 0.0)
+		return dist2;
+	    else if (dist4 < 0.0 && dist6 > 0.0)
+		return dist6;
+	}
+}       /* end four_slotted_circle_func */

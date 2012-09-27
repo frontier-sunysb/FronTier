@@ -421,7 +421,6 @@ IMPORT  void    gd_closeplot();
 IMPORT  void    gd_2d_intfc(char*,char*,INTERFACE*,RECT_GRID*,int,boolean);
 #endif /* defined __GD__ */
 IMPORT	char	*get_vtk_file_name(char*,const char*,const char*,size_t*);
-IMPORT	char	*get_cgns_file_name(char*,const char*,const char*,size_t*);
 IMPORT	void	gview_plot_surf_within_range(const char*,SURFACE*,double*,
         			double);
 IMPORT	FILE	*current_gd_file();
@@ -782,7 +781,8 @@ IMPORT	double 	projectile_func(POINTER,double*);
 IMPORT	double 	projectile_func(POINTER,double*);
 IMPORT	double 	seed_func(POINTER,double*);
 IMPORT	double 	rect_box_func(POINTER,double*);
-
+IMPORT  double  slotted_circle_func(POINTER,double*);
+IMPORT  double  four_slotted_circle_func(POINTER,double*);
 
 /*      imksurf.c */
 IMPORT  boolean 	make_bdry_surfaces(INTERFACE*,RECT_GRID*);

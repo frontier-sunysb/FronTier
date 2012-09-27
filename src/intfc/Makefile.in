@@ -59,7 +59,6 @@ libext =
 OBJEXT = o
 ftlibincs =  @ftlibincs@
 
-if [ @build_cgns@ -eq 1 ]; then cgnslibincs="-L../../lib/$(build_cpu)/libcgnslib.a" fi
 build_cpu = @build_cpu@
 RANLIB = ranlib
 all:  ../../lib/$(build_cpu)/lib$(name)$(libext).a
@@ -93,7 +92,7 @@ diff:
 	-diff -r . $(diffdir)/src/$(name) > DIFF
 
 $(FT_C_OBJECTS):%.o: %.c
-	$(CC) $(ftlibincs) $(cgnslibincs) -c $< -o $(build_cpu)/$@
+	$(CC) $(ftlibincs) -c $< -o $(build_cpu)/$@
 ######## END FT BUILD INSTRUCTIONS ##############################
 
 
@@ -111,7 +110,6 @@ clean:
 	cd  $(build_cpu)/; rm -rf *.o
 	rm -rf testintfc
 	cd ../util; $(MAKE) clean
-	cd ../pak/cgnslib_3.0 $(MAKE) clean
 tagsfile:
 	ctags *.c ../util/*.c *.h ../util/*.h 
  

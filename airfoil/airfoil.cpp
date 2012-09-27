@@ -160,7 +160,10 @@ int main(int argc, char **argv)
         if (debugging("trace"))
             (void) printf("Passed l_cartesian->initMesh()\n");
         if (RestartRun)
+	{
             l_cartesian->readFrontInteriorStates(restart_state_name);
+	    readAfExtraDada(&front,restart_state_name);
+	}
         else
 	{
             l_cartesian->setInitialCondition();
@@ -205,16 +208,21 @@ static  void airfoil_driver(
 
 	    if (debugging("trace"))
                 (void) printf("Calling FT_Save()\n");
-		FT_Save(front,out_name);
+	    FT_Save(front,out_name);
+
             if (debugging("trace"))
                 (void) printf("Calling printFrontInteriorStates()\n");
-                l_cartesian->printFrontInteriorStates(out_name);
+            l_cartesian->printFrontInteriorStates(out_name);
+	    printAfExtraDada(front,out_name);
+
 	    if (debugging("trace"))
                 (void) printf("Calling initMovieVariable()\n");
             l_cartesian->initMovieVariables();
+
             if (debugging("trace"))
                 (void) printf("Calling FT_AddMovieFrame()\n");
             FT_AddMovieFrame(front,out_name,binary);
+
 	    FT_Propagate(front);
 	    if (!af_params->no_fluid)
 	    {
@@ -232,11 +240,10 @@ static  void airfoil_driver(
 	{
 	    FT_SetOutputCounter(front);
 	}
-
 	FT_TimeControlFilter(front);
-
-	if (debugging("step_size"))
-                (void) printf("Time step from start: %f\n",front->dt);
+        (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
+                        front->time,front->step,front->dt);
+	
         for (;;)
         {
 	    /* Propagating interface for time step dt */
@@ -289,15 +296,13 @@ static  void airfoil_driver(
 
 	    /* Output section */
 
-            (void) printf("\ntime = %f   step = %5d   next dt = %f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
 	    print_airfoil_stat(front,out_name);
 
             if (FT_IsSaveTime(front))
 	    {
 		FT_Save(front,out_name);
                 l_cartesian->printFrontInteriorStates(out_name);
+	    	printAfExtraDada(front,out_name);
 	    }
 	    if (debugging("trace"))
                 (void) printf("After print output()\n");
@@ -312,11 +317,20 @@ static  void airfoil_driver(
 	    }
 
             if (FT_TimeLimitReached(front))
-                    break;
+	    {
+            	(void) printf("\ntime = %20.14f   step = %5d   ",
+				front->time,front->step);
+		(void) printf("next dt = %20.14f\n",front->dt);
+                break;
+	    }
 
 	    /* Time and step control section */
 
 	    FT_TimeControlFilter(front);
+
+            (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
+                        front->time,front->step,front->dt);
+            fflush(stdout);
         }
         (void) delete_interface(front->interf);
 }       /* end airfoil_driver */
@@ -704,8 +718,6 @@ static void optimizeElasticMesh(
 	for (c = intfc->curves; c && *c; ++c)
 	    if (hsbdry_type(*c) == STRING_HSBDRY)
 		new_string_pts += FT_NumOfCurvePoints(*c) - 2;
-	af_params->m_s *= (double) old_canopy_pts/new_canopy_pts;
-	af_params->m_l *= (double) old_string_pts/new_string_pts;
 	if (debugging("optimize_intfc"))
 	{
 	    gview_plot_interface("gview-after-optimize",intfc);

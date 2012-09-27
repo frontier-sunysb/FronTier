@@ -70,7 +70,7 @@ void C_CARTESIAN::initMesh(void)
 	switch (dim)
 	{
 	case 1:
-	    for (j = 0; j <= top_gmax[1]; j++)
+	    for (i = 0; i <= top_gmax[0]; i++)
 	    {
 	    	crds[0] = top_L[0] + top_h[0]*i;
 		index = d_index1d(i,top_gmax);
@@ -145,7 +145,7 @@ void C_CARTESIAN::setInitialCondition(void)
 {
 	int i,j;
 	COMPONENT c;
-	double rho_s = cRparams->rho_s;
+	double rho_s;
 	double coords[MAXD],distance;
 	int size = (int)cell_center.size();
 	double **point;
@@ -159,12 +159,13 @@ void C_CARTESIAN::setInitialCondition(void)
 	/* Initialize states at the interface */
 	FT_MakeGridIntfc(front);
 	setDomain();
-
-	h = gr->h[0];
-	for (j = 0; j < dim; j++)
-	    h = std::min(gr->h[j],h);
-	range = (int)(2*cRparams->gap/h+1);
-	// cell_center
+	if (cRparams->reaction_type == DEPOSITION_ONLY)
+	{
+	    h = gr->h[0];
+	    for (j = 0; j < dim; j++)
+	    	h = std::min(gr->h[j],h);
+	    range = (int)(2*cRparams->gap/h+1);
+	} // Needed only for deposition
 	for (i = 0; i < size; i++)
 	{
 	    c = top_comp[i];
@@ -172,41 +173,54 @@ void C_CARTESIAN::setInitialCondition(void)
 	    if (c == SOLUTE_COMP)
 	    {
 	    	getRectangleCenter(i,coords);
-
-		if (dim == 1) 
+		if (cRparams->reaction_type == DEPOSITION_ONLY)
 		{
-		    POINT **p,*pc;
-		    for (p = front->interf->points; p && *p; ++p)
-			if (wave_type(*p) == GROWING_BODY_BOUNDARY)
-			{
-			   pc = *p;
-			   break;
-			}
-		    distance = coords[0] - Coords(pc)[0];
-		}
-		else
-		{
-		    if (FT_FindNearestIntfcPointInRange(front,c,coords,
-				ans,t,&hse,&hs,range))
+		    if (dim == 1) 
 		    {
-			distance = 0.0;
-			for (j = 0; j < dim; j++)
-			    distance += sqr(coords[j] - ans[j]);
-		    	distance = sqrt(distance);
+		    	POINT **p,*pc;
+		    	for (p = front->interf->points; p && *p; ++p)
+			    if (wave_type(*p) == GROWING_BODY_BOUNDARY)
+			    {
+			   	pc = *p;
+			   	break;
+			    }
+
+		    	distance = coords[0] - Coords(pc)[0];
 		    }
-		}
-		if (distance < cRparams->gap)
-	    	    field->solute[i] = cRparams->C_eq;
+		    else
+		    {
+		    	if (FT_FindNearestIntfcPointInRange(front,c,coords,
+				ans,t,&hse,&hs,range))
+		    	{
+			    distance = 0.0;
+			    for (j = 0; j < dim; j++)
+			    	distance += sqr(coords[j] - ans[j]);
+		    	    distance = sqrt(distance);
+		    	}
+		    }
+		    if (distance < cRparams->gap)
+	    	    	field->solute[i] = cRparams->C_eq;
+	            else
+	    	    	field->solute[i] = cRparams->C_0;
+		} // No need for dissolution, need for precipitation		
 		else
 	    	    field->solute[i] = cRparams->C_0;
 
 	    }
 	    else if (c == CRYSTAL_COMP)
-	    	field->solute[i] = rho_s;
+	    {
+	    	getRectangleCenter(i,coords);
+		if (cRparams->crystal_dens_func != NULL)
+		    rho_s = (*cRparams->crystal_dens_func)(
+			    	cRparams->crystal_dens_params,coords);
+		else
+		    rho_s = cRparams->rho_s;
+		field->solute[i] = rho_s;
+	    }
 	    else
 	    	field->solute[i] = 0.0;
 	}
-}	/* end setInteriorStates */
+}	/* end setInitialCondition */
 
 void C_CARTESIAN::setIndexMap(void)
 {
@@ -321,9 +335,10 @@ void C_CARTESIAN::computeAdvectionCN(void)
         boolean fr_crx_grid_seg;
         const GRID_DIRECTION dir[3][2] =
                 {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
+	double coords[MAXD];
 
 	D = cRparams->D;
-	rho_s = cRparams->rho_s;
+	rho_s = 0.0;
 
 	if (m_dt < 0.1*sqr(hmin)/D/(double)dim)
 	    return computeAdvectionExplicit();
@@ -348,6 +363,12 @@ void C_CARTESIAN::computeAdvectionCN(void)
 	    	comp = top_comp[ic];
 	    	if (comp != SOLUTE_COMP) 
 	    	{
+		    getRectangleCenter(ic,coords);
+		    if (cRparams->crystal_dens_func != NULL)
+			rho_s = (*cRparams->crystal_dens_func)(
+				    cRparams->crystal_dens_params,coords);
+		    else
+			rho_s = cRparams->rho_s;
 		    array[ic] = rho_s;
 	    	    continue;
 	        }
@@ -397,6 +418,12 @@ void C_CARTESIAN::computeAdvectionCN(void)
 		I = ij_to_I[i][j];
 	    	if (comp != SOLUTE_COMP) 
 	    	{
+		    getRectangleCenter(ic,coords);
+		    if (cRparams->crystal_dens_func != NULL)
+			rho_s = (*cRparams->crystal_dens_func)(
+				    cRparams->crystal_dens_params,coords);
+		    else
+			rho_s = cRparams->rho_s;
 		    array[ic] = rho_s;
 	    	    continue;
 	        }
@@ -447,6 +474,12 @@ void C_CARTESIAN::computeAdvectionCN(void)
 		I = ijk_to_I[i][j][k];
 	    	if (comp != SOLUTE_COMP) 
 	    	{
+		    getRectangleCenter(ic,coords);
+		    if (cRparams->crystal_dens_func != NULL)
+			rho_s = (*cRparams->crystal_dens_func)(
+				    cRparams->crystal_dens_params,coords);
+		    else
+			rho_s = cRparams->rho_s;
 		    array[ic] = rho_s;
 	    	    continue;
 	        }
@@ -513,7 +546,15 @@ void C_CARTESIAN::computeAdvectionCN(void)
 	    	if (comp == SOLUTE_COMP)
 	    	    array[ic] = x[I-ilower];
 	    	else
+		{
+		    getRectangleCenter(ic,coords);
+		    if (cRparams->crystal_dens_func != NULL)
+			rho_s = (*cRparams->crystal_dens_func)(
+				    cRparams->crystal_dens_params,coords);
+		    else
+			rho_s = cRparams->rho_s;
 	    	    array[ic] = rho_s;
+		}
 	    }
 	    break;
         case 2:
@@ -526,7 +567,15 @@ void C_CARTESIAN::computeAdvectionCN(void)
 	    	if (comp == SOLUTE_COMP)
 	    	    array[ic] = x[I-ilower];
 	    	else
+		{
+		    getRectangleCenter(ic,coords);
+	    	    if (cRparams->crystal_dens_func != NULL)
+			rho_s = (*cRparams->crystal_dens_func)(
+				    cRparams->crystal_dens_params,coords);
+		    else
+			rho_s = cRparams->rho_s;
 	    	    array[ic] = rho_s;
+		}
 	    }
 	    break;
         case 3:
@@ -540,7 +589,15 @@ void C_CARTESIAN::computeAdvectionCN(void)
 	    	if (comp == SOLUTE_COMP)
 	    	    array[ic] = x[I-ilower];
 	    	else
+		{
+		    getRectangleCenter(ic,coords);
+	    	    if (cRparams->crystal_dens_func != NULL)
+			rho_s = (*cRparams->crystal_dens_func)(
+				    cRparams->crystal_dens_params,coords);
+		    else
+			rho_s = cRparams->rho_s;
 	    	    array[ic] = rho_s;
+		}
 	    }
 	    break;
 	}
@@ -941,7 +998,10 @@ void C_CARTESIAN::initMovieVariables()
 	    	    sprintf(hdf_movie_var->var_name[0],"solute");
 	    	    hdf_movie_var->get_state_var[0] = getStateSolute;
 		    hdf_movie_var->top_var[0] = cRparams->field->solute;
-		    hdf_movie_var->obstacle_comp[0] = CRYSTAL_COMP;
+		    if (cRparams->crystal_dens_func != NULL)
+			hdf_movie_var->obstacle_comp[0] = ERROR_COMP;
+		    else
+		    	hdf_movie_var->obstacle_comp[0] = CRYSTAL_COMP;
 		}
 		break;
 	    case 3:
@@ -1223,17 +1283,20 @@ void C_CARTESIAN::computeAdvectionExplicit(void)
 	int i,j,k,l,m,ic,icn,icoords[MAXD];
 	int gmin[MAXD],ipn[MAXD];
 	double crx_coords[MAXD];
-	double solute,solute_nb[2],dgrad[MAXD];
+	double solute,solute_nb[2],dgrad[MAXD],grad_plus[MAXD],grad_minus[MAXD];
 	double rho_s,coef;
 	COMPONENT comp;
 	boolean fr_crx_grid_seg;
 	const GRID_DIRECTION dir[3][2] = 
 		{{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
+	double coords[MAXD];
+	double v[MAXD],**vel,v_plus[MAXD],v_minus[MAXD];
 
 	start_clock("computeAdvectionExplicit");
 
 	coef = cRparams->D*m_dt;
-	rho_s = cRparams->rho_s;
+	rho_s = 0.0;
+	vel = cRparams->field->vel;
 
 	for (i = 0; i < dim; ++i) gmin[i] = 0;
 
@@ -1247,13 +1310,38 @@ void C_CARTESIAN::computeAdvectionExplicit(void)
                 comp = top_comp[ic];
                 if (comp != SOLUTE_COMP)
                 {
-                     array[ic] = rho_s;
-                     continue;
+		    getRectangleCenter(ic,coords);
+		    if (cRparams->crystal_dens_func != NULL)
+			rho_s = (*cRparams->crystal_dens_func)(
+				    cRparams->crystal_dens_params,coords);
+		    else
+			rho_s = cRparams->rho_s;
+                    array[ic] = rho_s;
+                    continue;
                 }
                 array[ic] = solute = field->solute[ic];
                 for (l = 0; l < dim; ++l)
                 {
+		    v[l] = 0.0;
+		    v_plus[l] = 0.0;
+		    v_minus[l] = 0.0;
+		}
+		if (vel != NULL)
+		{
+		    for (l = 0; l < dim; ++l)
+		    {
+			v[l] = vel[l][ic];
+			v_plus[l] = std::max(0.0,v[l]);
+			v_minus[l] = std::min(0.0,v[l]);
+		    }
+
+		}
+		for (l = 0; l < dim; ++l)
+		{
                     dgrad[l] = 0.0;
+		    grad_plus[l] = 0.0;
+		    grad_minus[l] = 0.0;
+
                     for (m = 0; m < 2; ++m)
                     {
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
@@ -1268,7 +1356,11 @@ void C_CARTESIAN::computeAdvectionExplicit(void)
                         }
                         dgrad[l] += (solute_nb[m] - solute)/top_h[l];
                     }
-                    array[ic] += coef*dgrad[l]/top_h[l];
+			
+		    grad_plus[l] = (solute_nb[1] - solute)/top_h[l];
+		    grad_minus[l] = (solute - solute_nb[0])/top_h[l];
+                    
+		    array[ic] += coef*dgrad[l]/top_h[l]-m_dt*(v_plus[l]*grad_minus[l]+v_minus[l]*grad_plus[l]);
                 }
             }
             break;
@@ -1282,13 +1374,37 @@ void C_CARTESIAN::computeAdvectionExplicit(void)
 	    	comp = top_comp[ic];
 	    	if (comp != SOLUTE_COMP) 
 	    	{
+		    getRectangleCenter(ic,coords);
+		    if (cRparams->crystal_dens_func != NULL)
+			rho_s = (*cRparams->crystal_dens_func)(
+				    cRparams->crystal_dens_params,coords);
+		    else
+			rho_s = cRparams->rho_s;
 		    array[ic] = rho_s;
 	    	    continue;
 	        }
                 array[ic] = solute = field->solute[ic];
 		for (l = 0; l < dim; ++l)
 		{
+		    v[l] = 0.0;
+		    v_plus[l] = 0.0;
+		    v_minus[l] = 0.0;
+		}
+		if (vel != NULL)
+		{
+		    for (l = 0; l < dim; ++l)
+		    {
+			v[l] = vel[l][ic];
+			v_plus[l] = std::max(0.0,v[l]);
+			v_minus[l] = std::min(0.0,v[l]);
+		    }
+		}
+		for (l = 0; l < dim; ++l)
+		{
 	            dgrad[l] = 0.0;
+	 	    grad_plus[l] = 0.0;
+		    grad_minus[l] = 0.0;
+
                     for (m = 0; m < 2; ++m)
                     {
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
@@ -1302,7 +1418,10 @@ void C_CARTESIAN::computeAdvectionExplicit(void)
                         }
                         dgrad[l] += (solute_nb[m] - solute)/top_h[l];
                     }
-		    array[ic] += coef*dgrad[l]/top_h[l];
+		    grad_plus[l] = (solute_nb[1] - solute)/top_h[l];
+		    grad_minus[l] = (solute - solute_nb[0])/top_h[l];
+
+		    array[ic] += coef*dgrad[l]/top_h[l] - m_dt*(v_plus[l]*grad_minus[l]+v_minus[l]*grad_plus[l]);
 		}
 	    }
 	    break;
@@ -1318,13 +1437,37 @@ void C_CARTESIAN::computeAdvectionExplicit(void)
 	    	comp = top_comp[ic];
 	    	if (comp != SOLUTE_COMP) 
 	    	{
+		    getRectangleCenter(ic,coords);
+		    if (cRparams->crystal_dens_func != NULL)
+			rho_s = (*cRparams->crystal_dens_func)(
+				    cRparams->crystal_dens_params,coords);
+		    else
+			rho_s = cRparams->rho_s;
 		    array[ic] = rho_s;
 	    	    continue;
 	        }
                 array[ic] = solute = field->solute[ic];
 		for (l = 0; l < dim; ++l)
 		{
+		    v[l] = 0.0;
+		    v_plus[l] = 0.0;
+		    v_minus[l] = 0.0;
+		}
+		if (vel != NULL)
+		{
+		    for ( l = 0; l < dim; ++l)
+		    {	
+			v[l] = vel[l][ic];
+			v_plus[l] = std::max(0.0,v[l]);
+			v_minus[l] = std::min(0.0,v[l]);
+		    }
+		}
+		for (l = 0; l < dim; ++l)
+		{
 	            dgrad[l] = 0.0;
+	            grad_plus[l] = 0.0;
+		    grad_minus[l] = 0.0;
+
                     for (m = 0; m < 2; ++m)
                     {
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
@@ -1338,7 +1481,11 @@ void C_CARTESIAN::computeAdvectionExplicit(void)
                         }
                         dgrad[l] += (solute_nb[m] - solute)/top_h[l];
                     }
-		    array[ic] += coef*dgrad[l]/top_h[l];
+
+		    grad_plus[l] = (solute_nb[1] - solute)/top_h[l];
+		    grad_minus[l] = (solute - solute_nb[0])/top_h[l];
+
+		    array[ic] += coef*dgrad[l]/top_h[l] - m_dt*(v_plus[l]*grad_minus[l]+v_minus[l]*grad_plus[l]);
 		}
 	    }
 	    break;
@@ -1406,6 +1553,187 @@ void C_CARTESIAN::xgraphOneDimPlot(char *outname)
 	if (debugging("trace"))
 	    printf("Leaving xgraphSolute1()\n");
 }	/* end xgraphOneDimPlot */
+
+void C_CARTESIAN::vtk_plot_concentration2d(
+	char *outname)
+{
+
+    	std::vector<int> ph_index;
+	int i,j,k,index;
+	char filename[256];
+	FILE *outfile;
+	double coord_x,coord_y,coord_z,rho_s,xmin,ymin;
+	COMPONENT comp;
+	int pointsx,pointsy,num_points,num_cells,num_cell_list;
+	int icoords[2],p_gmax[2];
+	int count = 0;
+
+	sprintf(filename,"%s/vtk.ts%s",outname,
+		right_flush(front->step,7));
+	if (pp_numnodes() > 1)
+	    sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+
+	//cell-based liquid phase
+	ph_index.clear();
+	sprintf(filename,"%s/liquid.vtk",filename);
+	outfile = fopen(filename,"w");
+	fprintf(outfile,"# vtk DataFile Version 3.0\n");
+	fprintf(outfile,"Solute concentration\n");        
+	fprintf(outfile,"ASCII\n");
+	fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
+
+	// No buffer considered to plot
+	for (j = jmin; j <= jmax; j++)
+	for (i = imin; i <= imax; i++)
+	{
+	    index = d_index2d(i,j,top_gmax);
+	    comp = cell_center[index].comp;
+	    if (comp == SOLUTE_COMP)
+		ph_index.push_back(index);
+	}
+
+	pointsx = imax - imin + 2;
+	pointsy = jmax - jmin + 2;
+	num_points = pointsx*pointsy;
+
+	num_cells = (int) ph_index.size();
+	num_cell_list = 5*num_cells;
+
+	p_gmax[0] = pointsx - 1;
+	p_gmax[1] = pointsy - 1;
+
+	index = d_index2d(imin,jmin,top_gmax);
+	xmin = cell_center[index].coords[0] - top_h[0]/2.0;
+	ymin = cell_center[index].coords[1] - top_h[1]/2.0;
+
+	fprintf(outfile, "POINTS %d double\n", num_points);
+	for (j = 0; j < pointsy; j++)
+	for (i = 0; i < pointsx; i++)
+	{
+	    coord_x = xmin + i*top_h[0];
+	    coord_y = ymin + j*top_h[1];
+	    coord_z = 0.0;
+	    fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+	}
+	
+	fprintf(outfile, "CELLS %i %i\n", num_cells, num_cell_list);
+	for (i = 0; i < (int)ph_index.size(); i++)
+	{
+	    int index0,index1,index2,index3;
+	    index = ph_index[i];
+	    icoords[0] = cell_center[index].icoords[0];
+	    icoords[1] = cell_center[index].icoords[1];
+	    index0 = d_index2d(icoords[0]-4,icoords[1]-1,p_gmax);
+	    index1 = d_index2d(icoords[0]-4+1,icoords[1]-1,p_gmax);
+	    index2 = d_index2d(icoords[0]-4,icoords[1]-1+1,p_gmax);
+	    index3 = d_index2d(icoords[0]-4+1,icoords[1]-1+1,p_gmax);
+
+	    fprintf(outfile, "4 %i %i %i %i\n",
+	    	index0,index1,index2,index3);
+	}
+	
+	fprintf(outfile, "CELL_TYPES %i\n", num_cells);
+	for (i = 0; i < num_cells; i++)
+	    fprintf(outfile, "8\n");
+
+	fprintf(outfile, "CELL_DATA %i\n", num_cells);
+	fprintf(outfile,"SCALARS concentration double\n");
+	fprintf(outfile,"LOOKUP_TABLE default\n");
+	for (i = 0; i < num_cells; i++)
+	{
+	    index = ph_index[i];
+	    fprintf(outfile,"%f\n",cRparams->field->solute[index]/cRparams->C_eq);
+	}
+
+	fclose(outfile);
+
+	//cell-based solid phase
+	sprintf(filename,"%s/vtk.ts%s",outname,
+		right_flush(front->step,7));
+	if (pp_numnodes() > 1)
+	    sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+	
+	ph_index.clear();
+	sprintf(filename,"%s/solid.vtk",filename);
+	outfile = fopen(filename,"w");
+	fprintf(outfile,"# vtk DataFile Version 3.0\n");
+	fprintf(outfile,"Solid density\n");
+	fprintf(outfile,"ASCII\n");
+	fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
+
+	for (j = jmin; j <= jmax; j++)
+	for (i = imin; i <= imax; i++)
+	{
+	    index = d_index2d(i,j,top_gmax);
+	    if (cell_center[index].comp == CRYSTAL_COMP)
+		ph_index.push_back(index);
+	}
+
+	pointsx = imax - imin + 2;
+	pointsy = jmax - jmin + 2;
+	num_points = pointsx*pointsy;
+
+	num_cells = (int) ph_index.size();
+	num_cell_list = 5*num_cells;
+
+	p_gmax[0] = pointsx - 1;
+	p_gmax[1] = pointsy - 1;
+
+	index = d_index2d(imin,jmin,top_gmax);
+	xmin = cell_center[index].coords[0] - top_h[0]/2.0;
+	ymin = cell_center[index].coords[1] - top_h[1]/2.0;
+
+	fprintf(outfile,"POINTS %d double\n", num_points);
+	for (j = 0; j < pointsy; j++)
+	for (i = 0; i < pointsx; i++)
+	{
+	    coord_x = xmin + i*top_h[0];
+	    coord_y = ymin + j*top_h[1];
+	    coord_z = 0.0;
+	    fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+	}
+
+	fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
+	for (i = 0; i < num_cells; i++)
+	{
+	    int index0,index1,index2,index3;
+	    index = ph_index[i];
+	    icoords[0] = cell_center[index].icoords[0];
+	    icoords[1] = cell_center[index].icoords[1];
+	    index0 = d_index2d(icoords[0]-4,icoords[1]-1,p_gmax); 
+	    index1 = d_index2d(icoords[0]-4+1,icoords[1]-1,p_gmax);
+	    index2 = d_index2d(icoords[0]-4,icoords[1]-1+1,p_gmax);
+	    index3 = d_index2d(icoords[0]-4+1,icoords[1]-1+1,p_gmax);
+		
+	    fprintf(outfile,"4 %i %i %i %i\n",
+		    index0,index1,index2,index3);
+	}
+
+	fprintf(outfile, "CELL_TYPES %i\n", num_cells);
+	for (i = 0; i < num_cells; i++)
+	    fprintf(outfile, "8\n");
+	
+	fprintf(outfile, "CELL_DATA %i\n", num_cells);
+	fprintf(outfile, "SCALARS density double\n");
+	fprintf(outfile, "LOOKUP_TABLE default\n");
+	for (i = 0; i < num_cells; i++)
+	{
+	    index = ph_index[i];
+	    if (cRparams->crystal_dens_func != NULL)
+		rho_s = (*cRparams->crystal_dens_func)(
+			cRparams->crystal_dens_params,
+			cell_center[index].coords);
+	    else
+		rho_s = cRparams->rho_s;
+	    fprintf(outfile,"%f\n",rho_s);
+	    
+	    if (rho_s <= 0.6)
+		count++;
+	}
+	printf("The porosity is %f\n", (double)count/num_cells);
+
+	fclose(outfile);
+}       /* end vtk_plot_concentration2d */   
 
 void read_crt_movie_options(
         char *inname,

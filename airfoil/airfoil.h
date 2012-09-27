@@ -278,3 +278,5 @@ extern boolean is_load_node(NODE*);
 extern  int numOfGoreHsbdry(INTERFACE*);
 extern  int numOfMonoHsbdry(INTERFACE*);
 extern  int numOfGoreNodes(INTERFACE*);
+extern void printAfExtraDada(Front*,char*);
+extern void readAfExtraDada(Front*,char*);

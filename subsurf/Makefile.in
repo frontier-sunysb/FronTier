@@ -68,10 +68,10 @@ gif :
 	hdf2gif out/intfc.hdf out/intfc.gif
 
 TagsFile:
-	ctags *.h *.cpp ../iFluid/iFluid.h ../solver/solver.h ../solver/solver.cpp ../solver/ellip.cpp ../solver/cim_ellip.cpp ../solver/parab.cpp ../solver/hyperb.cpp ../iFluid/iFbasic.cpp ../iFluid/iFcartsn2d.cpp ../iFluid/iFcartsn3d.cpp ../crystal/crystal.h ../crystal/ccartsn.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+	ctags *.h *.cpp ../iFluid/iFluid.h ../solver/solver.h ../solver/solver.cpp ../solver/ellip.cpp ../solver/cim_ellip.cpp ../solver/parab.cpp ../solver/hyperb.cpp ../iFluid/iFbasic.cpp ../iFluid/iFcartsn2d.cpp ../iFluid/iFcartsn3d.cpp ../crystal/crystal.h ../crystal/ccartsn.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch] ../crystal/*.h ../crystal/*.cpp
 
 tagsfile:
-	ctags *.h *.cpp ../iFluid/iFluid.h ../solver/solver.h ../solver/solver.cpp ../solver/ellip.cpp ../solver/cim_ellip.cpp ../solver/parab.cpp ../solver/hyperb.cpp ../iFluid/iFbasic.cpp ../iFluid/iFcartsn2d.cpp ../iFluid/iFcartsn3d.cpp ../crystal/crystal.h ../crystal/ccartsn.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+	ctags *.h *.cpp ../iFluid/iFluid.h ../solver/solver.h ../solver/solver.cpp ../solver/ellip.cpp ../solver/cim_ellip.cpp ../solver/parab.cpp ../solver/hyperb.cpp ../iFluid/iFbasic.cpp ../iFluid/iFcartsn2d.cpp ../iFluid/iFcartsn3d.cpp ../crystal/crystal.h ../crystal/ccartsn.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch] ../crystal/*.h ../crystal/*.cpp
 
 etagsfile:
-	etags *.h *.cpp ../iFluid/iFluid.h ../solver/solver.h ../solver/solver.cpp ../solver/ellip.cpp ../solver/cim_ellip.cpp ../solver/parab.cpp ../solver/hyperb.cpp ../iFluid/iFbasic.cpp ../iFluid/iFcartsn2d.cpp ../iFluid/iFcartsn3d.cpp ../crystal/crystal.h ../crystal/ccartsn.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+	etags *.h *.cpp ../iFluid/iFluid.h ../solver/solver.h ../solver/solver.cpp ../solver/ellip.cpp ../solver/cim_ellip.cpp ../solver/parab.cpp ../solver/hyperb.cpp ../iFluid/iFbasic.cpp ../iFluid/iFcartsn2d.cpp ../iFluid/iFcartsn3d.cpp ../crystal/crystal.h ../crystal/ccartsn.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch] ../crystal/*.h ../crystal/*.cpp
