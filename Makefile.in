@@ -22,6 +22,7 @@ all:
 	cd melting && $(MAKE)
 	cd pde && $(MAKE)
 	cd MonteCarlo && $(MAKE)
+	cd timeSeries && $(MAKE)
 	cd poisson && $(MAKE)
 	cd subsurf && $(MAKE)
 clean:
@@ -41,6 +42,7 @@ clean:
 	cd melting && $(MAKE) clean
 	cd pde && $(MAKE) clean
 	cd MonteCarlo && $(MAKE) clean
+	cd timeSeries && $(MAKE) clean
 	cd poisson && $(MAKE) clean
 	cd subsurf && $(MAKE) clean
 	cd iTaps && $(MAKE) clean
@@ -210,6 +212,11 @@ $$ME/MonteCarlo/*.h \
 $$ME/MonteCarlo/*.cpp \
 $$ME/MonteCarlo/in-* \
 $$ME/MonteCarlo/Makefile.in \
+$$ME/timeSeries/*.h \
+$$ME/timeSeries/*.cpp \
+$$ME/timeSeries/in-* \
+$$ME/timeSeries/Makefile.in \
+$$ME/timeSeries/mrun \
 $$ME/poisson/*.cpp \
 $$ME/poisson/*.h \
 $$ME/poisson/Makefile.in \

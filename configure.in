@@ -590,6 +590,7 @@ curvature/Makefile
 cell/Makefile
 pde/Makefile
 MonteCarlo/Makefile
+timeSeries/Makefile
 iFluid/Makefile
 frgb/Makefile
 poisson/Makefile
@@ -639,6 +640,7 @@ curvature/Makefile
 cell/Makefile
 pde/Makefile
 MonteCarlo/Makefile
+timeSeries/Makefile
 iFluid/Makefile
 frgb/Makefile
 subsurf/Makefile

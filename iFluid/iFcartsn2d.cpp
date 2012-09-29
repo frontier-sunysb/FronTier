@@ -484,8 +484,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionCim(void)
 	elliptic_solver.size = iupper - ilower;
 	elliptic_solver.set_solver_domain();
 	elliptic_solver.solve(array);
-	viewTopVariable(front,array,NO,0.0,0.0,(char*)"test-cim",
-				(char*)"array");
+	//viewTopVariable(front,array,NO,0.0,0.0,(char*)"test-cim",
+	//			(char*)"array");
 
 	for (j = 0; j <= top_gmax[1]; j++)
 	for (i = 0; i <= top_gmax[0]; i++)
@@ -571,8 +571,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	elliptic_solver.getStateVar = getStatePres;
 	elliptic_solver.findStateAtCrossing = ifluid_find_projection_crossing;
 	elliptic_solver.solve(array);
-	viewTopVariable(front,array,NO,0.0,0.0,(char*)"test-simple",
-				(char*)"array");
+	//viewTopVariable(front,array,NO,0.0,0.0,(char*)"test-simple",
+	//			(char*)"array");
 
 	for (j = 0; j <= top_gmax[1]; j++)
 	for (i = 0; i <= top_gmax[0]; i++)
