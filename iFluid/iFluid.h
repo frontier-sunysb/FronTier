@@ -700,6 +700,7 @@ protected:
 };
 
 extern double getStatePres(POINTER);
+extern double getStatePhi(POINTER);
 extern double getStateVort(POINTER);
 extern double getStateXvel(POINTER);
 extern double getStateYvel(POINTER);
@@ -711,6 +712,7 @@ extern double getStateXvort(POINTER);
 extern double getStateYvort(POINTER);
 extern double getStateZvort(POINTER);
 extern double getStateComp(POINTER);
+extern double getPhiFromPres(Front*,double);
 extern double burger_flux(double,double,double);
 extern double linear_flux(double,double,double,double);
 extern void fluid_print_front_states(FILE*,Front*);

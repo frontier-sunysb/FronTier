@@ -721,7 +721,7 @@ static void compute_canopy_accel(
             (void) printf("Model function not implemented yet!\n");
             clean_up(ERROR);
         }
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Entering compute_canopy_accel()\n");
 
 	ns = geom_set->num_strings;
@@ -758,7 +758,7 @@ static void compute_canopy_accel(
 		    v[i][0] = v[i][1] = v[i][2] = 0.0;
 	    }
 	}
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Leaving compute_canopy_accel()\n");
 }	/* end compute_canopy_accel */
 
@@ -799,7 +799,7 @@ static void compute_string_accel(
             clean_up(ERROR);
         }
 
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Entering compute_string_accel()\n");
 
 	n = geom_set->n_cps;
@@ -809,7 +809,7 @@ static void compute_string_accel(
 	    compute_curve_accel(geom_set,geom_set->string_curves[i],f,x,v,&n);
 	}
 
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Leaving compute_string_accel()\n");
 }	/* end  compute_string_accel */
 
@@ -821,7 +821,7 @@ static void assign_canopy_field(
 	int n = 0;
 	int i,ns,nbc,ngc,ng;
 
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Entering assign_canopy_field()\n");
 	ng = geom_set->num_gore_nodes;
 	ns = geom_set->num_strings;
@@ -842,7 +842,7 @@ static void assign_canopy_field(
 		 assign_node_field(geom_set->mono_hsbdry[i]->start,
 			x,v,&n);
 	}
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Leaving assign_canopy_field()\n");
 }	/* end assign_canopy_field */
 
@@ -857,14 +857,14 @@ static void assign_string_field(
 	ns = geom_set->num_strings;
 	n = geom_set->n_cps;
 
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Entering assign_string_field()\n");
 
 	assign_node_field(geom_set->load_node,x,v,&n);
 	for (i = 0; i < ns; ++i)
 	    assign_curve_field(geom_set->string_curves[i],x,v,&n);
 
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Leaving assign_string_field()\n");
 }       /* end assign_string_field */
 
@@ -1314,7 +1314,7 @@ static void propagate_canopy(
 	if (debugging("string_chord") || debugging("folding"))
 	    return;
 
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Entering propagate_canopy()\n");
 
 	unsort_surf_point(canopy);
@@ -1408,7 +1408,7 @@ static void propagate_canopy(
 	    	++n;
 	    }
 	}
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Leaving propagate_canopy()\n");
 }	/* end propagate_canopy */
 
@@ -1432,7 +1432,7 @@ static void propagate_string(
 	double ext_force[MAXD];
 	int n,ns;
 
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Entering propagate_string()\n");
 	n = geom_set->n_cps;
 	ns = geom_set->num_strings;
@@ -1464,7 +1464,7 @@ static void propagate_string(
 		++n;
 	    }
 	}
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Leaving propagate_string()\n");
 }	/* end propagate_string */
 
@@ -1484,7 +1484,7 @@ static void compute_center_of_mass_velo(
 	double area,mass_canopy,payload;
 	double *xcom,*vcom;
 
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Entering compute_center_of_mass_velo()\n");
 
 	for (j = 0; j < 3; ++j)
@@ -1540,7 +1540,7 @@ static void compute_center_of_mass_velo(
 	    xcom[j] = (xcan[j]*mass_canopy + xload[j]*payload)/
 				(mass_canopy + payload);
 	}
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Leaving compute_center_of_mass_velo()\n");
 }	/* end compute_center_of_mass_velo */
 
@@ -1565,7 +1565,7 @@ static void set_canopy_velocity(
 	double *vel;
 	int n,ng,ngc,ns,nbc;
 
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Entering set_canopy_velocity()\n");
 
 	if (debugging("string_chord") || debugging("folding"))
@@ -1762,7 +1762,7 @@ static void set_canopy_velocity(
 	    sl->vel[j] = vel[j];
 	    sr->vel[j] = vel[j];
 	}
-	if (debugging("trace"))
+	if (debugging("canopy"))
 	    (void) printf("Leaving set_canopy_velocity()\n");
 }	/* end set_canopy_velocity */
 

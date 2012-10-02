@@ -162,6 +162,7 @@ extern void read_iF_dirichlet_bdry_data(
 		    CursorAfterString(infile,"Enter pressure:");
 		    fscanf(infile,"%lf",&state->pres);
 		    (void) printf("%f\n",state->pres);
+		    state->phi = getPhiFromPres(front,state->pres);
 		    FT_SetDirichletBoundary(front,NULL,NULL,
 					NULL,(POINTER)state,hs);
 		    break;
@@ -209,6 +210,7 @@ extern void read_iF_dirichlet_bdry_data(
 		    CursorAfterString(infile,"Enter pressure:");
 		    fscanf(infile,"%lf",&state->pres);
 		    (void) printf("%f\n",state->pres);
+		    state->phi = getPhiFromPres(front,state->pres);
 		    FT_SetDirichletBoundary(front,NULL,NULL,
 					NULL,(POINTER)state,hs);
 		    break;
@@ -1545,3 +1547,23 @@ extern int ifluid_find_projection_crossing(
 	}
 	return NO_PDE_BOUNDARY;
 }	/* ifluid_find_projection_crossing */
+
+extern double getPhiFromPres(
+        Front *front,
+        double pres)
+{
+        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+        switch (iFparams->num_scheme.projc_method)
+        {
+        case BELL_COLELLA:
+            return 0.0;
+        case KIM_MOIN:
+            return 0.0;
+        case SIMPLE:
+        case PEROT_BOTELLA:
+            return pres;
+        default:
+            (void) printf("Unknown projection type\n");
+            clean_up(0);
+        }
+}       /* end getPhiFromPres */

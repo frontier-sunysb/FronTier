@@ -426,7 +426,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 
 	    rhs += m_dt*state.m_U[0];
 	    rhs += m_dt*cell_center[index].m_state.f_surf[0];
-	    rhs -= m_dt*cell_center[index].m_state.grad_q[0]/rho;
+	    //rhs -= m_dt*cell_center[index].m_state.grad_q[0]/rho;
 
 	    solver.Set_b(I*3, rhs);
 
@@ -487,7 +487,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 
 	    rhs += m_dt*state.m_U[1];
 	    rhs += m_dt*cell_center[index].m_state.f_surf[1];
-	    rhs -= m_dt*cell_center[index].m_state.grad_q[1]/rho;
+	    //rhs -= m_dt*cell_center[index].m_state.grad_q[1]/rho;
 
 	    solver.Set_b(I*3+1, rhs);
 
@@ -548,7 +548,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 
 	    rhs += m_dt*state.m_U[2];
 	    rhs += m_dt*cell_center[index].m_state.f_surf[2];
-	    rhs -= m_dt*cell_center[index].m_state.grad_q[2]/rho;
+	    //rhs -= m_dt*cell_center[index].m_state.grad_q[2]/rho;
 
 	    solver.Set_b(I*3+2, rhs);
         }
@@ -1048,7 +1048,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 		}
 		rhs += m_dt*state.m_U[l];
 		rhs += m_dt*cell_center[index].m_state.f_surf[l];
-		rhs -= m_dt*cell_center[index].m_state.grad_q[l]/rho;
+		//rhs -= m_dt*cell_center[index].m_state.grad_q[l]/rho;
             	solver.Set_A(I,I,aII);
 
 		solver.Set_b(I, rhs);
@@ -1214,7 +1214,8 @@ void Incompress_Solver_Smooth_3D_Cartesian::computePressure(void)
 	    break;
 	case SIMPLE:
 	case PEROT_BOTELLA:
-	    computePressurePmIII();
+	    //computePressurePmIII();
+	    computePressurePmI();
 	    break;
 	case ERROR_PROJC_SCHEME:
 	default:
@@ -1394,7 +1395,8 @@ double Incompress_Solver_Smooth_3D_Cartesian::computeFieldPointDiv(
 	{
 	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
                 wave_type(hs) == GROWING_BODY_BOUNDARY ||
-                wave_type(hs) == MOVABLE_BODY_BOUNDARY)
+                wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
+		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
             {
                 u_nb[0] = getStateXvel(intfc_state);
             }
@@ -1414,7 +1416,8 @@ double Incompress_Solver_Smooth_3D_Cartesian::computeFieldPointDiv(
 	{
 	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
                 wave_type(hs) == GROWING_BODY_BOUNDARY ||
-                wave_type(hs) == MOVABLE_BODY_BOUNDARY)
+                wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
+		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
             {
                 u_nb[1] = getStateXvel(intfc_state);
             }
@@ -1435,7 +1438,8 @@ double Incompress_Solver_Smooth_3D_Cartesian::computeFieldPointDiv(
 	{
 	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
                 wave_type(hs) == GROWING_BODY_BOUNDARY ||
-                wave_type(hs) == MOVABLE_BODY_BOUNDARY)
+                wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
+		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
             {
                 v_nb[0] = getStateYvel(intfc_state);
             }
@@ -1455,7 +1459,8 @@ double Incompress_Solver_Smooth_3D_Cartesian::computeFieldPointDiv(
 	{
 	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
                 wave_type(hs) == GROWING_BODY_BOUNDARY ||
-                wave_type(hs) == MOVABLE_BODY_BOUNDARY)
+                wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
+		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
             {
                 v_nb[1] = getStateYvel(intfc_state);
             }
@@ -1476,7 +1481,8 @@ double Incompress_Solver_Smooth_3D_Cartesian::computeFieldPointDiv(
 	{
 	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
                 wave_type(hs) == GROWING_BODY_BOUNDARY ||
-                wave_type(hs) == MOVABLE_BODY_BOUNDARY)
+                wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
+		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
             {
                 w_nb[0] = getStateZvel(intfc_state);
             }
@@ -1496,7 +1502,8 @@ double Incompress_Solver_Smooth_3D_Cartesian::computeFieldPointDiv(
 	{
 	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
                 wave_type(hs) == GROWING_BODY_BOUNDARY ||
-                wave_type(hs) == MOVABLE_BODY_BOUNDARY)
+                wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
+		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
             {
                 w_nb[1] = getStateZvel(intfc_state);
             }
@@ -2714,7 +2721,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
         elliptic_solver.soln = array;
         elliptic_solver.ijk_to_I = ijk_to_I;
         elliptic_solver.set_solver_domain();
-        elliptic_solver.getStateVar = getStatePres;
+        elliptic_solver.getStateVar = getStatePhi;
         elliptic_solver.findStateAtCrossing = findStateAtCrossing;
         elliptic_solver.solve(array);
 

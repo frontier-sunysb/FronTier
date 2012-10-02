@@ -266,7 +266,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 
 	    rhs += m_dt*state.m_U[0];
 	    rhs += m_dt*cell_center[index].m_state.f_surf[0];
-	    rhs -= m_dt*cell_center[index].m_state.grad_q[0]/rho;
+	    //rhs -= m_dt*cell_center[index].m_state.grad_q[0]/rho;
 
 	    solver.Set_b(I*2, rhs);
 
@@ -312,7 +312,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 
 	    rhs += m_dt*state.m_U[1];
 	    rhs += m_dt*cell_center[index].m_state.f_surf[1];
-	    rhs -= m_dt*cell_center[index].m_state.grad_q[1]/rho;
+	    //rhs -= m_dt*cell_center[index].m_state.grad_q[1]/rho;
 
 	    solver.Set_b(I*2+1, rhs);
 	}
@@ -479,7 +479,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionCim(void)
         elliptic_solver.soln = array;
         elliptic_solver.ij_to_I = ij_to_I;
         elliptic_solver.I_to_ij = I_to_ij;
-	elliptic_solver.getStateVar = getStatePres;
+	elliptic_solver.getStateVar = getStatePhi;
 	elliptic_solver.findStateAtCrossing = ifluid_find_state_at_crossing;
 	elliptic_solver.size = iupper - ilower;
 	elliptic_solver.set_solver_domain();
@@ -929,7 +929,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 		}
             	rhs += m_dt*state.m_U[l];
 		rhs += m_dt*cell_center[index].m_state.f_surf[l];
-	    	rhs -= m_dt*cell_center[index].m_state.grad_q[l]/rho;
+	    	//rhs -= m_dt*cell_center[index].m_state.grad_q[l]/rho;
 
 		solver.Set_A(I,I,aII);
             	solver.Set_b(I, rhs);
@@ -1236,7 +1236,8 @@ double Incompress_Solver_Smooth_2D_Cartesian::computeFieldPointDiv(
 	{
 	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
 		wave_type(hs) == GROWING_BODY_BOUNDARY ||
-		wave_type(hs) == MOVABLE_BODY_BOUNDARY)
+		wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
+		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
 	    {
 	    	u_nb[0] = getStateXvel(intfc_state);
 	    }
@@ -1254,7 +1255,8 @@ double Incompress_Solver_Smooth_2D_Cartesian::computeFieldPointDiv(
 	{
 	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
 		wave_type(hs) == GROWING_BODY_BOUNDARY ||
-		wave_type(hs) == MOVABLE_BODY_BOUNDARY)
+		wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
+		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
 	    {
 	    	u_nb[1] = getStateXvel(intfc_state);
 	    }
@@ -1273,7 +1275,8 @@ double Incompress_Solver_Smooth_2D_Cartesian::computeFieldPointDiv(
 	{
 	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
 		wave_type(hs) == GROWING_BODY_BOUNDARY ||
-		wave_type(hs) == MOVABLE_BODY_BOUNDARY)
+		wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
+		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
 	    {
 	    	v_nb[0] = getStateYvel(intfc_state);
 	    }
@@ -1291,7 +1294,8 @@ double Incompress_Solver_Smooth_2D_Cartesian::computeFieldPointDiv(
 	{
 	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
 		wave_type(hs) == GROWING_BODY_BOUNDARY ||
-		wave_type(hs) == MOVABLE_BODY_BOUNDARY)
+		wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
+		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
 	    {
 	    	v_nb[1] = getStateYvel(intfc_state);
 	    }
@@ -1718,7 +1722,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 	   
    	    rhs += m_dt*state.m_U[1];
 	    rhs += m_dt*cell_center[index].m_state.f_surf[1];
-	    rhs -= m_dt*cell_center[index].m_state.grad_q[1]/rho;
+	    //rhs -= m_dt*cell_center[index].m_state.grad_q[1]/rho;
 	    rhs -= m_dt*cell_center[index].m_state.m_adv[1];
 
 	    solver.Set_b(I*2+1, rhs);
@@ -1925,7 +1929,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 		rhs += m_dt*source_term.m_U[l];
 		rhs += m_dt*cell_center[index].m_state.f_surf[l];
 
-		rhs -= m_dt*cell_center[index].m_state.grad_q[l]/rho;
+		//rhs -= m_dt*cell_center[index].m_state.grad_q[l]/rho;
 		rhs -= m_dt * cell_center[index].m_state.m_adv[l];
 
 		solver.Add_A(I, I, 1.0);

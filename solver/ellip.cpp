@@ -136,8 +136,9 @@ void ELLIPTIC_SOLVER::solve1d(double *soln)
                 {
                     if (!boundary_state(hs))
                     {
-                        aII += -coeff[l];
-                        use_neumann_solver = NO;
+                    	aII += -coeff[l];
+			rhs += -coeff[l]*getStateVar(intfc_state);
+			use_neumann_solver = NO;
                     }
                 }
 	    }
@@ -313,8 +314,9 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
                 {
                     if (!boundary_state(hs))
                     {
-                        aII += -coeff[l];
-                        use_neumann_solver = NO;
+                    	aII += -coeff[l];
+			rhs += -coeff[l]*getStateVar(intfc_state);
+			use_neumann_solver = NO;
                     }
                 }
 	    }
@@ -495,6 +497,7 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 		    if (!boundary_state(hs))
 		    {
                     	aII += -coeff[l];
+			rhs += -coeff[l]*getStateVar(intfc_state);
 			use_neumann_solver = NO;
 		    }
 		}
