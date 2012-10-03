@@ -772,6 +772,7 @@ static  void dirichlet_point_propagate(
 	    speed = mag_vector(newst->vel,dim);
 	    FT_RecordMaxFrontSpeed(dim,speed,NULL,Coords(newp),front);
             newst->pres = bstate->pres;
+	    newst->phi = bstate->phi;
             newst->vort = 0.0;
 
 	    if (debugging("dirichlet_bdry"))
@@ -1037,6 +1038,7 @@ extern void read_iFparams(
 {
 	char string[100];
 	FILE *infile = fopen(inname,"r");
+	int i,dim = iFparams->dim;
 
 	/* defaults numerical schemes */
 	iFparams->num_scheme.projc_method = SIMPLE;
@@ -1089,6 +1091,17 @@ extern void read_iFparams(
 	    	break;
 	    }
 	}
+
+	for (i = 0; i < dim; ++i) iFparams->U_ambient[i] = 0.0;
+        if (CursorAfterStringOpt(infile,"Enter fluid ambient velocity:"))
+        {
+            for (i = 0; i < dim; ++i)
+            {
+                fscanf(infile,"%lf ",&iFparams->U_ambient[i]);
+                (void) printf("%f ",iFparams->U_ambient[i]);
+            }
+            (void) printf("\n");
+        }
 
 	fclose(infile);
 }	/* end read_iFparams */
@@ -1567,3 +1580,61 @@ extern double getPhiFromPres(
             clean_up(0);
         }
 }       /* end getPhiFromPres */
+
+extern double getPressure(
+        Front *front,
+        double *coords,
+        double *base_coords)
+{
+        INTERFACE *intfc = front->interf;
+        int i,dim = Dimension(intfc);
+        POINT *p0;
+        double pres,pres0;
+        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+        double *g = iFparams->gravity;
+        double rho = iFparams->rho2;
+        boolean hyper_surf_found = NO;
+
+        return 0.0;
+        pres0 = 1.0;
+        if (dim == 2)
+        {
+            CURVE **c;
+            for (c = intfc->curves; c && *c; ++c)
+            {
+                if (wave_type(*c) == DIRICHLET_BOUNDARY &&
+                    boundary_state(*c) != NULL)
+                {
+                    p0 = (*c)->first->start;
+                    pres0 = getStatePres(boundary_state(*c));
+                    hyper_surf_found = YES;
+                }
+            }
+        }
+        else if (dim == 3)
+        {
+            SURFACE **s;
+            for (s = intfc->surfaces; s && *s; ++s)
+            {
+                if (wave_type(*s) == DIRICHLET_BOUNDARY &&
+                    boundary_state(*s) != NULL)
+                {
+                    p0 = Point_of_tri(first_tri(*s))[0];
+                    pres0 = getStatePres(boundary_state(*s));
+                    hyper_surf_found = YES;
+                }
+            }
+        }
+        pres = pres0;
+        if (hyper_surf_found)
+        {
+            for (i = 0; i < dim; ++i)
+                pres -= rho*(coords[i] - Coords(p0)[i])*g[i];
+        }
+        else if (base_coords != NULL)
+        {
+            for (i = 0; i < dim; ++i)
+                pres -= rho*(coords[i] - Coords(p0)[i])*g[i];
+        }
+        return pres;
+}       /* end getPressure */

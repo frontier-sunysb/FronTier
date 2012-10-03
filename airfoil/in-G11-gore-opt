@@ -10,7 +10,7 @@ Lower boundary in 2-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 2-th dimension: DIRICHLET_BOUNDARY
 
 Max time: 20.0
-Max step: 1
+Max step: 200
 Print interval: 0.1
 Movie frame interval: 0.1
 CFL factor: 0.5
@@ -32,6 +32,7 @@ Enter circle center: 7 7
 Enter circle radius: 5
 Enter yes to attach strings to canopy: yes
 Enter yes to attach gores on canopy: yes
+Enter gore length factor: 0.9
 Enter number of chords: 30
 Enter start angle of chord: 6.263185
 Enter initial position of load: 7 7 2
@@ -47,10 +48,10 @@ Enter porosity of canopy: 0.0
 Enter area density of canopy: 1.0
 Enter tangential sub step number: 10
 
-Enter fabric spring constant: 5000
+Enter fabric spring constant: 2500
 Enter fabric friction constant: 0.1 
 Enter fabric point mass: 0.01
-Enter gore spring constant: 5000
+Enter gore spring constant: 8000
 Enter gore friction constant: 0.1 
 Enter gore point mass: 0.01
 Enter string spring constant: 5000
@@ -76,7 +77,7 @@ Type y to make vector velocity field movie: y
 ************Debugging options*****************
 
 Enter yes for debugging: yes
-Enter the debugging string: optimize_intfc
+Enter the debugging string: toptimize_intfc
 Enter the debugging string: tno_optimize
 Enter the debugging string: tredist_curve
 Enter the debugging string: tretriang

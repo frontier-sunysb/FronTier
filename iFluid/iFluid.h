@@ -89,6 +89,7 @@ typedef struct {
 	double U1[MAXD];
 	double U2[MAXD];
 	double gravity[MAXD];
+	double U_ambient[MAXD];
 	double surf_tension;
 	double smoothing_radius;
 	COMPONENT m_comp1;
@@ -212,6 +213,7 @@ public:
 	double min_dt;
 	double *top_h;
 	int dim;
+	int icrds_max[MAXD];
 
 	void initMesh(void);
 	void setAdvectionDt(void); 
@@ -299,12 +301,7 @@ protected:
 
 	virtual void copyMeshStates(void) = 0;
 	virtual void computeAdvection(void) = 0;
-	virtual void compDiffWithSmoothProperty_1st_coupled(void) = 0; 
-	//1st order coupled diffusion solver
 	virtual void compDiffWithSmoothProperty_1st_decoupled(void) = 0;
-        virtual void compDiffWithSmoothProperty_2nd_coupled(void) = 0;
-        virtual void compDiffWithSmoothProperty_2nd_decoupled(void) = 0;
-        //2nd order decoupled diffusion solver
 	virtual void computeProjection(void) = 0;
 	virtual void computeProjectionCim(void) = 0;
 	virtual void computeProjectionSimple(void) = 0;
@@ -371,12 +368,7 @@ protected:
 
 	virtual void copyMeshStates(void) = 0;
 	virtual void computeAdvection(void) = 0;
-	virtual void compDiffWithSmoothProperty_1st_coupled(void) = 0; 
-	//1st order coupled diffusion solver
 	virtual void compDiffWithSmoothProperty_1st_decoupled(void) = 0;
-        virtual void compDiffWithSmoothProperty_2nd_coupled(void) = 0;
-        virtual void compDiffWithSmoothProperty_2nd_decoupled(void) = 0;
-        //2nd order decoupled diffusion solver
 	virtual void computeProjection(void) = 0;
 	virtual void computeProjectionCim(void) = 0;
 	virtual void computeProjectionSimple(void) = 0;
@@ -413,12 +405,7 @@ protected:
 
 	virtual void copyMeshStates(void) = 0;
 	virtual void computeAdvection(void) = 0;
-	virtual void compDiffWithSmoothProperty_1st_coupled(void) = 0; 
-	//1st order coupled diffusion solver
 	virtual void compDiffWithSmoothProperty_1st_decoupled(void) = 0;
-        virtual void compDiffWithSmoothProperty_2nd_coupled(void) = 0;
-        virtual void compDiffWithSmoothProperty_2nd_decoupled(void) = 0;
-        //2nd order decoupled diffusion solver
 
 	virtual void computeProjection(void) = 0;
 	virtual void computeProjectionCim(void) = 0;
@@ -448,12 +435,7 @@ public:
 protected:
 	void copyMeshStates(void);
 	void computeAdvection(void);
-	void compDiffWithSmoothProperty_1st_coupled(void); 
-	//1st order coupled diffusion solver
 	void compDiffWithSmoothProperty_1st_decoupled(void);
-        void compDiffWithSmoothProperty_2nd_coupled(void);
-        void compDiffWithSmoothProperty_2nd_decoupled(void);
-        //2nd order decoupled diffusion solver
 	void computeProjection(void);
 	void computeProjectionCim(void);
 	void computeProjectionSimple(void);
@@ -486,12 +468,7 @@ public:
 protected:
 	void copyMeshStates(void);
 	void computeAdvection(void);
-	void compDiffWithSmoothProperty_1st_coupled(void); 
-	//1st order coupled diffusion solver
 	void compDiffWithSmoothProperty_1st_decoupled(void);
-        void compDiffWithSmoothProperty_2nd_coupled(void);
-        void compDiffWithSmoothProperty_2nd_decoupled(void);
-        //2nd order decoupled diffusion solver
 	void computeProjection(void);
 	void computeProjectionCim(void);
 	void computeProjectionSimple(void);
@@ -712,6 +689,7 @@ extern double getStateXvort(POINTER);
 extern double getStateYvort(POINTER);
 extern double getStateZvort(POINTER);
 extern double getStateComp(POINTER);
+extern double getPressure(Front*,double*,double*);
 extern double getPhiFromPres(Front*,double);
 extern double burger_flux(double,double,double);
 extern double linear_flux(double,double,double,double);
