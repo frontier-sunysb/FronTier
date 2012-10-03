@@ -25,8 +25,6 @@ iFcartsn2d.o : iFluid.h ../solver/solver.h iFcartsn2d.cpp
 	${CXX} -c iFcartsn2d.cpp $(incsloc) $(incs) ${Petsc_Include}
 iFcartsn3d.o : iFluid.h ../solver/solver.h iFcartsn3d.cpp
 	${CXX} -c iFcartsn3d.cpp $(incsloc) $(incs) ${Petsc_Include}
-iFcylin3d.o : iFluid.h iFcylin3d.cpp
-	${CXX} -c iFcylin3d.cpp $(incsloc) $(incs) ${Petsc_Include}
 solver.o : ../solver/solver.h ../solver/solver.cpp
 	${CXX} -c ../solver/solver.cpp $(incsloc) $(incs) ${Petsc_Include}
 ellip.o : ../solver/solver.h ../solver/ellip.cpp
@@ -43,7 +41,7 @@ iFluid: iFluid.h ifluid_basic.h iFluid.cpp iFsub.o iFinit.o ../lib/libiF.a ../li
 	${CXX} -c iFluid.cpp $(incsloc) $(incs) ${Petsc_Include}
 	$(CXX) -o iFluid iFluid.o iFsub.o iFinit.o -I../include -L../lib/${build_cpu} -liF -lSolver ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
 
-../lib/libiF.a: iFbasic.o iFcartsn2d.o iFcartsn3d.o iFcylin3d.o
+../lib/libiF.a: iFbasic.o iFcartsn2d.o iFcartsn3d.o
 	$(AR) cru libiF.a $^
 	ranlib libiF.a; mv libiF.a ../lib/$(build_cpu)/libiF.a
 

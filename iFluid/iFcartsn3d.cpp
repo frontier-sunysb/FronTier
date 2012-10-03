@@ -72,7 +72,13 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeAdvection(void)
 	    speed = sqrt(sqr(field->vel[0][index]) +
 			 sqr(field->vel[1][index]) +
 			 sqr(field->vel[2][index]));
-	    if (max_speed < speed) max_speed = speed;
+	    if (max_speed < speed) 
+	    {
+		max_speed = speed;
+		icrds_max[0] = i;
+		icrds_max[1] = j;
+		icrds_max[2] = k;
+	    }
 	}
 }
 
@@ -118,7 +124,12 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 		speed += fabs(cell_center[index].m_state.m_U[l]);
 	    }
 	    if (speed > max_speed)
+	    {
+		icrds_max[0] = i;
+		icrds_max[1] = j;
+		icrds_max[2] = k;
 		max_speed = speed;
+	    }
 	}
 	for (l = 0; l < 3; ++l)
 	{
@@ -197,8 +208,12 @@ void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
 	computeAdvection();
 	stop_clock("computeAdvection");
 	if (debugging("step_size"))
+	{
 	    (void) printf("max_speed after computeAdvection(): %20.14f\n",
 				max_speed);
+	    (void) printf("max speed occured at (%d %d %d)\n",icrds_max[0],
+				icrds_max[1],icrds_max[2]);
+	}
 	if (debugging("sample_velocity"))
 	    sampleVelocity();
 	
@@ -206,8 +221,12 @@ void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
 	compDiffWithSmoothProperty_1st_decoupled();
 	stop_clock("compDiffWithSmoothProperty");
 	if (debugging("step_size"))
+	{
 	    (void) printf("max_speed after compDiffusion(): %20.14f\n",
 				max_speed);
+	    (void) printf("max speed occured at (%d %d %d)\n",icrds_max[0],
+				icrds_max[1],icrds_max[2]);
+	}
 	if (debugging("sample_velocity"))
 	    sampleVelocity();
 
@@ -216,8 +235,12 @@ void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
         stop_clock("compSGS");
 
 	if (debugging("step_size"))
-	    printf("max_speed after compDiffWithSmoothProperty(): %20.14f\n",
+	{
+	    (void) printf("max_speed after compDiffWithSmoothProperty(): %20.14f\n",
 				max_speed);
+	    (void) printf("max speed occured at (%d %d %d)\n",icrds_max[0],
+				icrds_max[1],icrds_max[2]);
+	}
 
 	// 2) projection step
 	accum_dt += m_dt;
@@ -241,8 +264,12 @@ void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
 	}
 
 	if (debugging("step_size"))
+	{
 	    printf("max_speed after computeNewVelocity(): %20.14f\n",
 				max_speed);
+	    (void) printf("max speed occured at (%d %d %d)\n",icrds_max[0],
+				icrds_max[1],icrds_max[2]);
+	}
 	if (debugging("sample_velocity"))
 	    sampleVelocity();
 
@@ -569,7 +596,12 @@ void Incompress_Solver_Smooth_3D_Cartesian::
                     fabs(cell_center[index].m_state.m_U[1]) +
                     fabs(cell_center[index].m_state.m_U[2]);
             if (speed > max_speed)
-                    max_speed = speed;
+	    {
+		icrds_max[0] = i;
+		icrds_max[1] = j;
+		icrds_max[2] = k;
+                max_speed = speed;
+	    }
 	}
         pp_global_max(&max_speed,1);
         FT_FreeThese(1,x);

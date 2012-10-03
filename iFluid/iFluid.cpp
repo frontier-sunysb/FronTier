@@ -85,14 +85,7 @@ int main(int argc, char **argv)
 	if (f_basic.dim == 2)
 	    l_cartesian = new Incompress_Solver_Smooth_2D_Cartesian(front);
 	else if (f_basic.dim == 3)
-	{
-	    if (f_basic.coord_system == CYLINDRICAL_REMAP)
-	    	l_cartesian = 
-			new Incompress_Solver_Smooth_3D_Cylindrical(front);
-	    else
-	    	l_cartesian = 
-			new Incompress_Solver_Smooth_3D_Cartesian(front);
-	}
+	    l_cartesian = new Incompress_Solver_Smooth_3D_Cartesian(front);
 	
         in_name                 = f_basic.in_name;
         restart_state_name      = f_basic.restart_state_name;
