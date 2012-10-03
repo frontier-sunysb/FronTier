@@ -301,7 +301,7 @@ protected:
 
 	virtual void copyMeshStates(void) = 0;
 	virtual void computeAdvection(void) = 0;
-	virtual void compDiffWithSmoothProperty_1st_decoupled(void) = 0;
+	virtual void computeDiffusion(void) = 0;
 	virtual void computeProjection(void) = 0;
 	virtual void computeProjectionCim(void) = 0;
 	virtual void computeProjectionSimple(void) = 0;
@@ -368,7 +368,7 @@ protected:
 
 	virtual void copyMeshStates(void) = 0;
 	virtual void computeAdvection(void) = 0;
-	virtual void compDiffWithSmoothProperty_1st_decoupled(void) = 0;
+	virtual void computeDiffusion(void) = 0;
 	virtual void computeProjection(void) = 0;
 	virtual void computeProjectionCim(void) = 0;
 	virtual void computeProjectionSimple(void) = 0;
@@ -405,7 +405,7 @@ protected:
 
 	virtual void copyMeshStates(void) = 0;
 	virtual void computeAdvection(void) = 0;
-	virtual void compDiffWithSmoothProperty_1st_decoupled(void) = 0;
+	virtual void computeDiffusion(void) = 0;
 
 	virtual void computeProjection(void) = 0;
 	virtual void computeProjectionCim(void) = 0;
@@ -435,7 +435,7 @@ public:
 protected:
 	void copyMeshStates(void);
 	void computeAdvection(void);
-	void compDiffWithSmoothProperty_1st_decoupled(void);
+	void computeDiffusion(void);
 	void computeProjection(void);
 	void computeProjectionCim(void);
 	void computeProjectionSimple(void);
@@ -468,7 +468,7 @@ public:
 protected:
 	void copyMeshStates(void);
 	void computeAdvection(void);
-	void compDiffWithSmoothProperty_1st_decoupled(void);
+	void computeDiffusion(void);
 	void computeProjection(void);
 	void computeProjectionCim(void);
 	void computeProjectionSimple(void);

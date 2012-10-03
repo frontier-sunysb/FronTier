@@ -367,10 +367,9 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 	if (debugging("sample_velocity"))
 	    sampleVelocity();
 	
-	start_clock("compDiffWithSmoothProperty");
-	compDiffWithSmoothProperty_1st_decoupled();
-	//compDiffWithSmoothProperty();
-	stop_clock("compDiffWithSmoothProperty");
+	start_clock("computeDiffusion");
+	computeDiffusion();
+	stop_clock("computeDiffusion");
 	if (debugging("sample_velocity"))
 	    sampleVelocity();
 
@@ -379,7 +378,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
         stop_clock("compSGS");
 
 	if (debugging("step_size"))
-	    printf("max_speed after compDiffWithSmoothProperty(): %20.14f\n",
+	    printf("max_speed after computeDiffusion(): %20.14f\n",
 				max_speed);
 
 	// 2) projection step
@@ -476,7 +475,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::copyMeshStates(void)
 
 
 void Incompress_Solver_Smooth_2D_Cartesian::
-	compDiffWithSmoothProperty_1st_decoupled(void)
+	computeDiffusion(void)
 {
 	COMPONENT comp;
         int index,index_nb[4],size;
@@ -631,7 +630,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 
             if (debugging("PETSc"))
                 (void) printf("Incompress_Solver_Smooth_2D_Cartesian::"
-			"compDiffWithSmoothProperty_decoupled: "
+			"computeDiffusion: "
                         "num_iter = %d, rel_residual = %g. \n",
                         num_iter,rel_residual);
 
@@ -676,7 +675,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
         pp_global_max(&max_speed,1);
 
         FT_FreeThese(1,x);
-}       /* end compDiffWithSmoothProperty2d_decoupled */
+}       /* end computeDiffusion */
 
 
 void Incompress_Solver_Smooth_2D_Cartesian::computePressurePmI(void)

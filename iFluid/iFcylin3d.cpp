@@ -3099,7 +3099,7 @@ void Incompress_Solver_Smooth_3D_Cylindrical::computeAdvection_test(void)
 
 
 
-void Incompress_Solver_Smooth_3D_Cylindrical::compDiffWithSmoothProperty_1st_decoupled_test(void)
+void Incompress_Solver_Smooth_3D_Cylindrical::computeDiffusion_test(void)
 {
         COMPONENT comp;
         int index,index_nb[6],size;
@@ -3362,7 +3362,7 @@ void Incompress_Solver_Smooth_3D_Cylindrical::compDiffWithSmoothProperty_1st_dec
         solver.Get_x(x);
 
         if (debugging("PETSc"))
-            (void) printf("Incompress_Solver_Smooth_3D_Cylindrical::compDiffWithSmoothProperty_1st_decoupled_test: "
+            (void) printf("Incompress_Solver_Smooth_3D_Cylindrical::computeDiffusion_test: "
                         "num_iter = %d, rel_residual = %g. \n",
                         num_iter,rel_residual);
 
@@ -3645,7 +3645,7 @@ void Incompress_Solver_Smooth_3D_Cylindrical::computeAdvection(void)
 
 
 
-void Incompress_Solver_Smooth_3D_Cylindrical::compDiffWithSmoothProperty_1st_decoupled(void)
+void Incompress_Solver_Smooth_3D_Cylindrical::computeDiffusion(void)
 {
         COMPONENT comp;
         int index,index_nb[6],size;
@@ -3942,7 +3942,7 @@ void Incompress_Solver_Smooth_3D_Cylindrical::compDiffWithSmoothProperty_1st_dec
         solver.Get_x(x);
 
         if (debugging("PETSc"))
-            (void) printf("Incompress_Solver_Smooth_3D_Cartesian::compDiffWithSmoothProperty_1st_decoupled: "
+            (void) printf("Incompress_Solver_Smooth_3D_Cartesian::computeDiffusion: "
                         "num_iter = %d, rel_residual = %g. \n",
                         num_iter,rel_residual);
 
@@ -4363,9 +4363,9 @@ void Incompress_Solver_Smooth_3D_Cylindrical::solve(double dt)
 				max_speed);
 
 	start_clock("compDiffWithSmoothProperty");
-	//compDiffWithSmoothProperty_1st_decoupled_source();
-	//compDiffWithSmoothProperty_1st_decoupled_test(); //Discretize the equatino using the cylindrical Paper, result seems to be similar
-	//compDiffWithSmoothProperty_1st_decoupled();
+	//computeDiffusion_source();
+	//computeDiffusion_test(); //Discretize the equatino using the cylindrical Paper, result seems to be similar
+	//computeDiffusion();
 	//compDiffWithSmoothProperty_2nd_decoupled(); //2nd order diffusion solver with the advection source terms
 	compDiffWithSmoothProperty_2nd_coupled();
 	//compDiffWithSmoothProperty_2nd_decoupled_Shuqiang(); //2nd order diffusion solver by Shuqiang
@@ -4531,7 +4531,7 @@ void Incompress_Solver_Smooth_3D_Cylindrical::copyMeshStates()
 
 
 void Incompress_Solver_Smooth_3D_Cylindrical::
-	compDiffWithSmoothProperty_1st_decoupled_source(void)
+	computeDiffusion_source(void)
 {
         COMPONENT comp;
         int index,index_nb[6],size;
@@ -4718,7 +4718,7 @@ void Incompress_Solver_Smooth_3D_Cylindrical::
 
             if (debugging("PETSc"))
                 (void) printf("L_CARTESIAN::"
-			"compDiffWithSmoothProperty_1st_decoupled_source: "
+			"computeDiffusion_source: "
                         "num_iter = %d, rel_residual = %g. \n",
                         num_iter,rel_residual);
 

@@ -217,12 +217,12 @@ void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
 	if (debugging("sample_velocity"))
 	    sampleVelocity();
 	
-	start_clock("compDiffWithSmoothProperty");
-	compDiffWithSmoothProperty_1st_decoupled();
-	stop_clock("compDiffWithSmoothProperty");
+	start_clock("computeDiffusion");
+	computeDiffusion();
+	stop_clock("computeDiffusion");
 	if (debugging("step_size"))
 	{
-	    (void) printf("max_speed after compDiffusion(): %20.14f\n",
+	    (void) printf("max_speed after computeDiffusion(): %20.14f\n",
 				max_speed);
 	    (void) printf("max speed occured at (%d %d %d)\n",icrds_max[0],
 				icrds_max[1],icrds_max[2]);
@@ -236,7 +236,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
 
 	if (debugging("step_size"))
 	{
-	    (void) printf("max_speed after compDiffWithSmoothProperty(): %20.14f\n",
+	    (void) printf("max_speed after computeDiffusion(): %20.14f\n",
 				max_speed);
 	    (void) printf("max speed occured at (%d %d %d)\n",icrds_max[0],
 				icrds_max[1],icrds_max[2]);
@@ -395,7 +395,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::copyMeshStates()
 
 
 void Incompress_Solver_Smooth_3D_Cartesian::
-	compDiffWithSmoothProperty_1st_decoupled(void)
+	computeDiffusion(void)
 {
         COMPONENT comp;
         int index,index_nb[6],size;
@@ -415,7 +415,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 
 	if (debugging("trace"))
 	    (void) printf("Entering Incompress_Solver_Smooth_3D_Cartesian::"
-			"compDiffWithSmoothProperty_1st_decoupled()\n");
+			"computeDiffusion()\n");
 
         setIndexMap();
 	max_speed = 0.0;
@@ -551,7 +551,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 
             if (debugging("PETSc"))
                 (void) printf("L_CARTESIAN::"
-			"compDiffWithSmoothProperty_decoupled: "
+			"computeDiffusion: "
                         "num_iter = %d, rel_residual = %g. \n",
                         num_iter,rel_residual);
 
@@ -608,8 +608,8 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 
 	if (debugging("trace"))
 	    (void) printf("Leaving Incompress_Solver_Smooth_3D_Cartesian::"
-			"compDiffWithSmoothProperty_1st_decoupled()\n");
-}       /* end compDiffWithSmoothProperty3d_decoupled */
+			"computeDiffusion()\n");
+}       /* end computeDiffusion */
 
 
 void Incompress_Solver_Smooth_3D_Cartesian::computePressurePmI(void)
