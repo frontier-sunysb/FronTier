@@ -59,6 +59,7 @@ static void spring_force_at_point1(
 	
 	PointAndFirstRingTris(p,Hyper_surf_element(tri),Hyper_surf(surf),
 				&nt,tris);
+	printf("nt = %d\n",nt);
 	for (k = 0; k < 3; ++k) f[k] = 0.0;
 	for (i = 0; i < nt; ++i)
 	{
@@ -1611,7 +1612,7 @@ static void set_canopy_velocity(
 		{
 		    max_speed = Mag3d(sl->vel);
 		    for (j = 0; j < 3; ++j)
-			crds_max[i] = Coords(p)[i];
+			crds_max[j] = Coords(p)[j];
 		}
 		sorted(p) = YES;
 		n++;
@@ -1639,7 +1640,7 @@ static void set_canopy_velocity(
 		    {
 			max_speed = fabs(nor_speed);
 		    	for (j = 0; j < 3; ++j)
-			    crds_max[i] = Coords(p)[i];
+			    crds_max[j] = Coords(p)[j];
 		    }
                     for (j = 0; j < dim; ++j)
 		    	sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
@@ -1663,7 +1664,7 @@ static void set_canopy_velocity(
 		    {
 			max_speed = fabs(nor_speed);
 		    	for (j = 0; j < 3; ++j)
-			    crds_max[i] = Coords(p)[i];
+			    crds_max[j] = Coords(p)[j];
 		    }
                     for (j = 0; j < dim; ++j)
 		    	sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
@@ -1692,7 +1693,7 @@ static void set_canopy_velocity(
 		{
 		    max_speed = fabs(nor_speed);
 		    for (j = 0; j < 3; ++j)
-			crds_max[i] = Coords(p)[i];
+			crds_max[j] = Coords(p)[j];
 		}
                 for (j = 0; j < dim; ++j)
 		    sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
@@ -1713,7 +1714,7 @@ static void set_canopy_velocity(
 		{
 		    max_speed = fabs(nor_speed);
 		    for (j = 0; j < 3; ++j)
-			crds_max[i] = Coords(p)[i];
+			crds_max[j] = Coords(p)[j];
 		}
                 for (j = 0; j < dim; ++j)
 		    sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
