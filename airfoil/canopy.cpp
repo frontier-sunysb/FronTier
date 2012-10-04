@@ -59,7 +59,6 @@ static void spring_force_at_point1(
 	
 	PointAndFirstRingTris(p,Hyper_surf_element(tri),Hyper_surf(surf),
 				&nt,tris);
-	printf("nt = %d\n",nt);
 	for (k = 0; k < 3; ++k) f[k] = 0.0;
 	for (i = 0; i < nt; ++i)
 	{
