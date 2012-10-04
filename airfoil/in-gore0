@@ -45,7 +45,7 @@ Enter density and viscosity of the fluid: 1.2 0.000628
 Enter surface tension: 0.0
 Enter factor of smoothing radius: 1.0
 Enter porosity of canopy: 0.0
-Enter area density of canopy: 1.0
+Enter area density of canopy: 5.0
 Enter tangential sub step number: 10
 
 Enter fabric spring constant: 2000

@@ -549,6 +549,8 @@ extern void fourth_order_parachute_propagate(
 	dt_tol = sqrt((af_params->m_s)/(af_params->ks))/10.0;
 	if (dt_tol > sqrt((af_params->m_l)/(af_params->kl))/10.0)
 	    dt_tol = sqrt((af_params->m_l)/(af_params->kl))/10.0;
+	if (dt_tol > sqrt((af_params->m_g)/(af_params->kg))/10.0)
+	    dt_tol = sqrt((af_params->m_g)/(af_params->kg))/10.0;
 	if (debugging("step_size"))
 	{
 	    (void) printf("Input surface parameters:\n");
@@ -1564,6 +1566,7 @@ static void set_canopy_velocity(
 	double nor[MAXD],nor_speed,max_speed;
 	double *vel;
 	int n,ng,ngc,ns,nbc;
+	double crds_max[MAXD];
 
 	if (debugging("canopy"))
 	    (void) printf("Entering set_canopy_velocity()\n");
@@ -1604,14 +1607,18 @@ static void set_canopy_velocity(
 	    	    FT_RecordMaxFrontSpeed(j,sl->vel[j],NULL,Coords(p),front);
 		}
 	    	FT_RecordMaxFrontSpeed(3,Mag3d(sl->vel),NULL,Coords(p),front);
-		if (max_speed < Mag3d(sl->vel)) max_speed = Mag3d(sl->vel);
+		if (max_speed < Mag3d(sl->vel)) 
+		{
+		    max_speed = Mag3d(sl->vel);
+		    for (j = 0; j < 3; ++j)
+			crds_max[i] = Coords(p)[i];
+		}
 		sorted(p) = YES;
 		n++;
 	    }
 	}
 
 	ng = geom_set->num_gore_nodes;
-	printf("Gore nodes\n");
 	for (i = 0; i < ng; ++i)
 	{
 	    node = geom_set->gore_nodes[i];
@@ -1629,7 +1636,11 @@ static void set_canopy_velocity(
 		    vel = v[n];
 		    nor_speed = scalar_product(vel,nor,dim);
 		    if (max_speed < fabs(nor_speed)) 
+		    {
 			max_speed = fabs(nor_speed);
+		    	for (j = 0; j < 3; ++j)
+			    crds_max[i] = Coords(p)[i];
+		    }
                     for (j = 0; j < dim; ++j)
 		    	sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
 		}
@@ -1649,7 +1660,11 @@ static void set_canopy_velocity(
 		    vel = v[n];
 		    nor_speed = scalar_product(vel,nor,dim);
 		    if (max_speed < fabs(nor_speed)) 
+		    {
 			max_speed = fabs(nor_speed);
+		    	for (j = 0; j < 3; ++j)
+			    crds_max[i] = Coords(p)[i];
+		    }
                     for (j = 0; j < dim; ++j)
 		    	sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
 		}
@@ -1673,7 +1688,12 @@ static void set_canopy_velocity(
 		FT_NormalAtPoint(p,front,nor,NO_COMP);
 		vel = v[n];
 		nor_speed = scalar_product(vel,nor,dim);
-		if (max_speed < fabs(nor_speed)) max_speed = fabs(nor_speed);
+		if (max_speed < fabs(nor_speed)) 
+		{
+		    max_speed = fabs(nor_speed);
+		    for (j = 0; j < 3; ++j)
+			crds_max[i] = Coords(p)[i];
+		}
                 for (j = 0; j < dim; ++j)
 		    sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
             }
@@ -1689,7 +1709,12 @@ static void set_canopy_velocity(
 		FT_NormalAtPoint(p,front,nor,NO_COMP);
 		vel = v[n];
 		nor_speed = scalar_product(vel,nor,dim);
-		if (max_speed < fabs(nor_speed)) max_speed = fabs(nor_speed);
+		if (max_speed < fabs(nor_speed)) 
+		{
+		    max_speed = fabs(nor_speed);
+		    for (j = 0; j < 3; ++j)
+			crds_max[i] = Coords(p)[i];
+		}
                 for (j = 0; j < dim; ++j)
 		    sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
             }
@@ -1752,6 +1777,8 @@ static void set_canopy_velocity(
                 (void) printf("front: spfr[%d] %g\n",i,spfr[i]);
             }
             (void) printf("front: spfr[%d] %g\n",i,spfr[i]);
+	    (void) printf("Coordinate of max speed: %f %f %f\n",
+				crds_max[0],crds_max[1],crds_max[2]);
 	}
 	n = geom_set->n_cps;
 	sl = (STATE*)left_state(load_node->posn);

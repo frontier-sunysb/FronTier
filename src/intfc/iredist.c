@@ -990,9 +990,8 @@ EXPORT	TRI_STATUS tri_scaled_status(
 	len_min =  HUGE;
 	min_angle = HUGE;
 	for (i = 0; i < 3; ++i)
-	    len[i] = sqrt(len2[i]);
-	for (i = 0; i < 3; ++i)
 	{
+	    len[i] = sqrt(len2[i]);
 	    cos_angle[i] = (len2[i] + len2[(i+1)%3] - len2[(i+2)%3])
 			/2.0/len[i]/len[(i+1)%3];
 	    angle[i] = acos(cos_angle[i]);

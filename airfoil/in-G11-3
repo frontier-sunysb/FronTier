@@ -64,7 +64,7 @@ Enter gravity: 0 0 -9.8
 Enter surface tension: 0.0
 Enter factor of smoothing radius: 1.0
 Enter porosity of canopy: 0.0
-Enter area density of canopy: 1.0
+Enter area density of canopy: 5.0
 
 Enter fabric spring constant: 1000
 Enter fabric friction constant: 40.0 
