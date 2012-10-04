@@ -1102,6 +1102,12 @@ extern void read_iFparams(
             }
             (void) printf("\n");
         }
+	iFparams->ub_speed = HUGE;
+        if (CursorAfterStringOpt(infile,"Enter upper bound for speed:"))
+	{
+            fscanf(infile,"%lf ",&iFparams->ub_speed);
+            (void) printf("%f\n",iFparams->ub_speed);
+	}
 
 	fclose(infile);
 }	/* end read_iFparams */

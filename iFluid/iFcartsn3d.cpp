@@ -123,6 +123,13 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 	    	cell_center[index].m_state.m_U[l] -= accum_dt/rho*grad_phi[l];
 		speed += fabs(cell_center[index].m_state.m_U[l]);
 	    }
+	    if (speed > iFparams->ub_speed)
+	    {
+	    	for (l = 0; l < 3; ++l)
+		    cell_center[index].m_state.m_U[l] *= 
+				iFparams->ub_speed/speed;
+		speed = iFparams->ub_speed;
+	    }
 	    if (speed > max_speed)
 	    {
 		icrds_max[0] = i;

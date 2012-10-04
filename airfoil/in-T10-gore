@@ -23,6 +23,8 @@ Projection type can be
         KIM_MOIN
         PEROT_BOTELLA
 Enter projection type: SIMPLE
+Enter fluid ambient velocity: 0 0 3
+Enter upper bound for speed: 20
 
 Enter number of canopy surfaces: 1
 Enter initial canopy surface type: T10

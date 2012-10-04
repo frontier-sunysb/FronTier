@@ -880,7 +880,7 @@ extern void airfoil_curve_propagate(
 	int dim = front->rect_grid->dim;
 	if (dim != 3) return;
 	if (hsbdry_type(oldc) != STRING_HSBDRY &&
-	    hsbdry_type(oldc) != MONO_COMP_HSBDRY ||
+	    hsbdry_type(oldc) != MONO_COMP_HSBDRY &&
 	    hsbdry_type(oldc) != GORE_HSBDRY) 
 	    return;
 

@@ -92,6 +92,7 @@ typedef struct {
 	double U_ambient[MAXD];
 	double surf_tension;
 	double smoothing_radius;
+	double ub_speed;
 	COMPONENT m_comp1;
 	COMPONENT m_comp2;
 	IF_FIELD *field;
