@@ -8,6 +8,10 @@ static double (*getStateVort3d[3])(POINTER) = {getStateXvort,getStateYvort,
 static SURFACE *canopy_of_string_node(NODE*);
 static void convert_to_point_mass(Front*,AF_PARAMS*);
 static void airfoil_curve_propagate(Front*,POINTER,CURVE*,CURVE*,double);
+static void curve_prop_without_interaction(Front*,POINTER,CURVE*,CURVE*,double);
+static void curve_prop_with_interaction(Front*,POINTER,CURVE*,CURVE*,double);
+static void curve_point_prop_with_interaction(Front*,POINT*,POINT*,BOND*,
+					double);
 static	int arrayOfMonoHsbdry(INTERFACE*,CURVE**);
 static	int arrayOfGoreHsbdry(INTERFACE*,CURVE**);
 static 	int getGoreNodes(INTERFACE*,NODE**);
@@ -489,7 +493,7 @@ extern void elastic_point_propagate(
 		dv = 0.0;
 	    else if (debugging("ave_lift") && i == 2)
 		dv = Ave_lift*dt;
-	    else if (front->step > 15)
+	    else if (front->step > 5)
 		dv = (sl->pres - sr->pres)*nor[i]*dt/area_dens;
 	    newsr->Impct[i] = newsl->Impct[i] = sl->Impct[i] + dv;
 	    if (i == 2)
@@ -873,16 +877,32 @@ extern void airfoil_curve_propagate(
         POINTER wave,
 	CURVE *oldc,
 	CURVE *newc,
-        double              dt)
+        double dt)
+{
+	int dim = front->rect_grid->dim;
+
+	if (dim != 3) return;
+	switch (hsbdry_type(oldc))
+	{
+	case STRING_HSBDRY:
+	case MONO_COMP_HSBDRY:
+	    return curve_prop_without_interaction(front,wave,oldc,newc,dt);
+	case GORE_HSBDRY:
+	    return curve_prop_with_interaction(front,wave,oldc,newc,dt);
+	default:
+	    return;
+	}
+}	/* end airfoil_curve_propagate */
+
+static void curve_prop_without_interaction(
+        Front *front,
+        POINTER wave,
+	CURVE *oldc,
+	CURVE *newc,
+        double dt)
 {
 	BOND *oldb,*newb;
 	POINT *oldp,*newp;
-	int dim = front->rect_grid->dim;
-	if (dim != 3) return;
-	if (hsbdry_type(oldc) != STRING_HSBDRY &&
-	    hsbdry_type(oldc) != MONO_COMP_HSBDRY &&
-	    hsbdry_type(oldc) != GORE_HSBDRY) 
-	    return;
 
 	oldp = oldc->start->posn;
 	newp = newc->start->posn;
@@ -902,7 +922,118 @@ extern void airfoil_curve_propagate(
 	    ft_assign(left_state(newp),left_state(oldp),front->sizest);
 	    ft_assign(right_state(newp),right_state(oldp),front->sizest);
 	}
-}	/* end airfoil_curve_propagate */
+}	/* end curve_prop_without_interaction */
+
+static void curve_prop_with_interaction(
+        Front *front,
+        POINTER wave,
+	CURVE *oldc,
+	CURVE *newc,
+        double dt)
+{
+	BOND *oldb,*newb;
+	POINT *oldp,*newp;
+
+	if (debugging("interact_curve"))
+	{
+	    (void) printf("Entering curve_prop_with_interaction()\n");
+	}
+	oldp = oldc->start->posn;
+	newp = newc->start->posn;
+	ft_assign(left_state(newp),left_state(oldp),front->sizest);
+	ft_assign(right_state(newp),right_state(oldp),front->sizest);
+
+	oldp = oldc->end->posn;
+	newp = newc->end->posn;
+	ft_assign(left_state(newp),left_state(oldp),front->sizest);
+	ft_assign(right_state(newp),right_state(oldp),front->sizest);
+
+	for (oldb = oldc->first, newb = newc->first; oldb != oldc->last;
+		oldb = oldb->next, newb = newb->next)
+	{
+	    oldp = oldb->end;
+	    newp = newb->end;
+	    curve_point_prop_with_interaction(front,oldp,newp,oldb,dt);
+	}
+	if (debugging("interact_curve"))
+	{
+	    (void) printf("Leaving curve_prop_with_interaction()\n");
+	}
+}	/* end curve_prop_with_interaction */
+
+static void curve_point_prop_with_interaction(
+	Front *front,
+	POINT *oldp,
+	POINT *newp,
+	BOND *oldb,
+	double dt)
+{
+	BOND_TRI **btris;
+	HYPER_SURF_ELEMENT *oldhse;
+	HYPER_SURF         *oldhs;
+	STATE *sl,*sr,*newsl,*newsr;
+	double mag_nor,branch_nor[MAXD],nor[MAXD];
+	double pm[MAXD],pp[MAXD],h;
+	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
+	IF_FIELD *field = iFparams->field;
+	double **vel = field->vel;
+        double *pres = field->pres;
+	double area_dens = af_params->area_dens;
+	double left_nor_speed,right_nor_speed,dv;
+	COMPONENT base_comp;
+	int i;
+
+	sl = (STATE*)left_state(oldp);		
+	sr = (STATE*)right_state(oldp);
+	newsl = (STATE*)left_state(newp);	
+	newsr = (STATE*)right_state(newp);
+
+	for (i = 0; i < 3; ++i) nor[i] = 0.0;
+	for (btris = Btris(oldb); btris && *btris; ++btris)
+	{
+	    oldp->hse = oldhse = Hyper_surf_element((*btris)->tri);
+	    oldp->hs = oldhs = Hyper_surf((*btris)->surface);
+	    FT_NormalAtPoint(oldp,front,branch_nor,NO_COMP);
+	    base_comp = positive_component(oldhs);
+	    for (i = 0; i < 3; ++i) nor[i] += branch_nor[i];
+	}
+	mag_nor = Mag3d(nor);
+	for (i = 0; i < 3; ++i) nor[i] /= mag_nor;
+	h = FT_GridSizeInDir(nor,front);
+	for (i = 0; i < 3; ++i)
+	{
+	    pm[i] = Coords(oldp)[i] - h*nor[i];
+            pp[i] = Coords(oldp)[i] + h*nor[i];
+	}
+	FT_IntrpStateVarAtCoords(front,base_comp-1,pm,pres,
+                        getStatePres,&newsl->pres,&sl->pres);
+        FT_IntrpStateVarAtCoords(front,base_comp+1,pp,pres,
+                        getStatePres,&newsr->pres,&sr->pres);
+	for (i = 0; i < 3; ++i)
+        {
+            FT_IntrpStateVarAtCoords(front,base_comp-1,pm,vel[i],
+                        getStateVel[i],&newsl->vel[i],&sl->vel[i]);
+            FT_IntrpStateVarAtCoords(front,base_comp+1,pp,vel[i],
+                        getStateVel[i],&newsr->vel[i],&sr->vel[i]);
+        }
+        left_nor_speed = Dot3d(newsl->vel,nor);
+        right_nor_speed = Dot3d(newsr->vel,nor);
+	for (i = 0; i < 3; ++i)
+        {
+            newsl->vel[i] -= left_nor_speed*nor[i];
+            newsr->vel[i] -= right_nor_speed*nor[i];
+        }
+	/* Impulse is incremented by the fluid pressure force */
+        for (i = 0; i < 3; ++i)
+        {
+	    if (front->step > 5)
+	    	dv = (sl->pres - sr->pres)*nor[i]*dt/area_dens;
+	    if (debugging("rigid_canopy"))
+	    	dv = 0.0;
+	    newsr->Impct[i] = newsl->Impct[i] = sl->Impct[i] + dv;
+	}
+}	/* end curve_point_prop_with_interaction */
 
 static boolean is_gore_node(NODE*);
 
