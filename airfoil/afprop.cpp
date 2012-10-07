@@ -1027,6 +1027,7 @@ static void curve_point_prop_with_interaction(
 	/* Impulse is incremented by the fluid pressure force */
         for (i = 0; i < 3; ++i)
         {
+	    dv = 0.0;
 	    if (front->step > 5)
 	    	dv = (sl->pres - sr->pres)*nor[i]*dt/area_dens;
 	    if (debugging("rigid_canopy"))

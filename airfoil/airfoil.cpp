@@ -615,6 +615,8 @@ static void reset_front_velocity(Front *front)
 	HYPER_SURF *hs;
 	STATE *sl,*sr;
 	int i,dim = front->rect_grid->dim;
+	CURVE **c;
+	BOND *b;
 
 	next_point(intfc,NULL,NULL,NULL);
 	while (next_point(intfc,&p,&hse,&hs))
@@ -625,6 +627,42 @@ static void reset_front_velocity(Front *front)
 		p->vel[i] = 0.0;
 		sl->vel[i] = sr->vel[i] = 0.0;
 		sl->Impct[i] = sr->Impct[i] = 0.0;
+	    }
+	}
+	if (dim == 3)
+	{
+	    for (c = intfc->curves; c && *c; ++c)
+	    {
+		p = (*c)->start->posn;
+		sl = (STATE*)left_state(p);
+		sr = (STATE*)right_state(p);
+	        for (i = 0; i < dim; ++i)
+		{
+		    p->vel[i] = 0.0;
+		    sl->vel[i] = sr->vel[i] = 0.0;
+		    sl->Impct[i] = sr->Impct[i] = 0.0;
+		}
+		for (b = (*c)->first; b != (*c)->last; b = b->next)
+		{
+		    p = b->end;
+		    sl = (STATE*)left_state(p);
+		    sr = (STATE*)right_state(p);
+	            for (i = 0; i < dim; ++i)
+		    {
+		    	p->vel[i] = 0.0;
+		    	sl->vel[i] = sr->vel[i] = 0.0;
+		    	sl->Impct[i] = sr->Impct[i] = 0.0;
+		    }
+		}
+		p = (*c)->end->posn;
+		sl = (STATE*)left_state(p);
+		sr = (STATE*)right_state(p);
+	        for (i = 0; i < dim; ++i)
+		{
+		    p->vel[i] = 0.0;
+		    sl->vel[i] = sr->vel[i] = 0.0;
+		    sl->Impct[i] = sr->Impct[i] = 0.0;
+		}
 	    }
 	}
 }	/* end reset_velocity */
