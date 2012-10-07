@@ -10,7 +10,7 @@ static double (*getStateVel[3])(POINTER) = {getStateXvel,getStateYvel,
 
 void Incompress_Solver_Smooth_2D_Cartesian::computeAdvection(void)
 {
-	int i,j,l,index;
+	int i,j,index;
 	static HYPERB_SOLVER hyperb_solver(*front);
 
 	static double *rho;
@@ -23,9 +23,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeAdvection(void)
 	for (i = 0; i <= top_gmax[0]; i++)
 	{
 	    index = d_index2d(i,j,top_gmax);
-	    rho[index] = cell_center[index].m_state.m_rho;
-	    for (l = 0; l < dim; ++l)
-                field->vel[l][index] = cell_center[index].m_state.m_U[l];
+	    rho[index] = field->rho[index];
 	}
 	hyperb_solver.rho = rho;
 
@@ -56,14 +54,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeAdvection(void)
 	hyperb_solver.rho2 = iFparams->rho2;
 	hyperb_solver.findStateAtCrossing = ifluid_find_state_at_crossing;
 	hyperb_solver.solveRungeKutta();
-
-	for (j = 0; j <= top_gmax[1]; j++)
-	for (i = 0; i <= top_gmax[0]; i++)
-	{
-	    index = d_index2d(i,j,top_gmax);
-	    cell_center[index].m_state.m_U[0] = field->vel[0][index];
-	    cell_center[index].m_state.m_U[1] = field->vel[1][index];
-	}
 }
 
 void Incompress_Solver_Smooth_2D_Cartesian::computeProjection(void)
@@ -85,20 +75,14 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionCim(void)
 	static CIM_ELLIPTIC_SOLVER elliptic_solver(*front);
 	int index;
 	int i,j,l,icoords[MAXD];
-	double **vel = iFparams->field->vel;
+	double **vel = field->vel;
+	double *phi = field->phi;
+	double *div_U = field->div_U;
 	double sum_div;
 	double value;
 
 	sum_div = 0.0;
 	max_value = 0.0;
-
-	for (l = 0; l < dim; ++l)
-	for (j = 0; j <= top_gmax[1]; j++)
-	for (i = 0; i <= top_gmax[0]; i++)
-	{
-	    index  = d_index2d(i,j,top_gmax);
-	    vel[l][index] = cell_center[index].m_state.m_U[l];
-	}
 
 	/* Compute velocity divergence */
 	for (j = jmin; j <= jmax; j++)
@@ -108,7 +92,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionCim(void)
 	    icoords[1] = j;
 	    index  = d_index(icoords,top_gmax,dim);
 	    source[index] = computeFieldPointDiv(icoords,vel);
-	    diff_coeff[index] = 1.0/cell_center[index].m_state.m_rho;
+	    diff_coeff[index] = 1.0/field->rho[index];
 	}
 	FT_ParallelExchGridArrayBuffer(source,front);
 	FT_ParallelExchGridArrayBuffer(diff_coeff,front);
@@ -116,9 +100,9 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionCim(void)
         for (i = 0; i <= top_gmax[0]; i++)
 	{
 	    index  = d_index2d(i,j,top_gmax);
-	    cell_center[index].m_state.div_U = source[index];
+	    div_U[index] = source[index];
 	    source[index] /= -accum_dt;
-	    array[index] = cell_center[index].m_state.m_phi;
+	    array[index] = phi[index];
 	}
 
 	if(debugging("step_size"))
@@ -127,8 +111,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionCim(void)
 	    for (i = imin; i <= imax; i++)
 	    {
 		index = d_index2d(i,j,top_gmax);
-	        value = fabs(cell_center[index].m_state.div_U);
-		sum_div = sum_div + cell_center[index].m_state.div_U;
+	        value = fabs(div_U[index]);
+		sum_div = sum_div + div_U[index];
 	    }
 	    pp_global_sum(&sum_div,1);
 	    (void) printf("\nThe summation of divergence of U is %.16g\n",
@@ -166,7 +150,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionCim(void)
 	for (i = 0; i <= top_gmax[0]; i++)
 	{
 	    index  = d_index2d(i,j,top_gmax);
-	    cell_center[index].m_state.m_phi = array[index];
+	    phi[index] = array[index];
 	}
 }	/* end computeProjectionCim */
 
@@ -175,22 +159,14 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	static ELLIPTIC_SOLVER elliptic_solver(*front);
 	int index;
 	int i,j,l,icoords[MAXD];
-	double **vel = iFparams->field->vel;
+	double **vel = field->vel;
+	double *phi = field->phi;
+	double *div_U = field->div_U;
 	double sum_div;
 	double value;
 
 	sum_div = 0.0;
 	max_value = 0.0;
-
-	for (l = 0; l < dim; ++l)
-	for (j = 0; j <= top_gmax[1]; j++)
-	for (i = 0; i <= top_gmax[0]; i++)
-	{
-	    index  = d_index2d(i,j,top_gmax);
-	    if (!ifluid_comp(top_comp[index]))
-		continue;
-	    vel[l][index] = cell_center[index].m_state.m_U[l];
-	}
 
 	/* Compute velocity divergence */
 	for (j = jmin; j <= jmax; j++)
@@ -202,7 +178,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	    if (!ifluid_comp(top_comp[index]))
 		continue;
 	    source[index] = computeFieldPointDiv(icoords,vel);
-	    diff_coeff[index] = 1.0/cell_center[index].m_state.m_rho;
+	    diff_coeff[index] = 1.0/field->rho[index];
 	}
 	FT_ParallelExchGridArrayBuffer(source,front);
 	FT_ParallelExchGridArrayBuffer(diff_coeff,front);
@@ -212,9 +188,9 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	    index  = d_index2d(i,j,top_gmax);
 	    if (!ifluid_comp(top_comp[index]))
 		continue;
-	    cell_center[index].m_state.div_U = source[index];
+	    div_U[index] = source[index];
 	    source[index] /= accum_dt;
-	    array[index] = cell_center[index].m_state.m_phi;
+	    array[index] = phi[index];
 	}
 
 	if(debugging("step_size"))
@@ -225,8 +201,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 		index = d_index2d(i,j,top_gmax);
 	        if (!ifluid_comp(top_comp[index]))
 		    continue;
-	        value = fabs(cell_center[index].m_state.div_U);
-		sum_div = sum_div + cell_center[index].m_state.div_U;
+	        value = fabs(div_U[index]);
+		sum_div = sum_div + div_U[index];
 	    }
 	    pp_global_sum(&sum_div,1);
 	    (void) printf("\nThe summation of divergence of U is %.16g\n",
@@ -253,7 +229,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	for (i = 0; i <= top_gmax[0]; i++)
 	{
 	    index  = d_index2d(i,j,top_gmax);
-	    cell_center[index].m_state.m_phi = array[index];
+	    phi[index] = array[index];
 	}
 }	/* end computeProjectionSimple */
 
@@ -264,6 +240,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocity(void)
 	COMPONENT comp;
 	double speed;
 	int icoords[MAXD];
+	double **vel = field->vel;
+	double *phi = field->phi;
 
 	max_speed = 0.0;
 
@@ -271,7 +249,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocity(void)
 	for (i = 0; i <= top_gmax[0]; i++)
 	{
 	    index  = d_index2d(i,j,top_gmax);
-	    array[index] = cell_center[index].m_state.m_phi;
+	    array[index] = phi[index];
 	}
 	for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
@@ -280,18 +258,17 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocity(void)
 	    comp = top_comp[index];
 	    if (!ifluid_comp(comp))
 	    {
-		cell_center[index].m_state.m_U[0] = 0.0;
-		cell_center[index].m_state.m_U[1] = 0.0;
+		vel[0][index] = 0.0;
+		vel[1][index] = 0.0;
 		continue;
 	    }
-	    rho = cell_center[index].m_state.m_rho;
+	    rho = field->rho[index];
 	    icoords[0] = i;
 	    icoords[1] = j;
 	    computeFieldPointGrad(icoords,array,grad_phi);
-	    cell_center[index].m_state.m_U[0] -= accum_dt/rho*grad_phi[0];
-	    cell_center[index].m_state.m_U[1] -= accum_dt/rho*grad_phi[1];
-	    speed = fabs(cell_center[index].m_state.m_U[0]) +
-		    fabs(cell_center[index].m_state.m_U[1]);
+	    vel[0][index] -= accum_dt/rho*grad_phi[0];
+	    vel[1][index] -= accum_dt/rho*grad_phi[1];
+	    speed = fabs(vel[0][index]) + fabs(vel[1][index]);
 	    if (speed > max_speed)
 		max_speed = speed;
 	}
@@ -301,39 +278,29 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocity(void)
             for (i = imin; i <= imax; i++)
 	    {	
 	    	index  = d_index2d(i,j,top_gmax);
-	    	array[index] = cell_center[index].m_state.m_U[k];
+	    	array[index] = vel[k][index];
 	    }
 	    scatMeshArray();
 	    for (j = 0; j <= top_gmax[1]; j++)
 	    for (i = 0; i <= top_gmax[0]; i++)
 	    {	
 	    	index  = d_index2d(i,j,top_gmax);
-	    	cell_center[index].m_state.m_U[k] = array[index];
+	    	vel[k][index] = array[index];
 	    }
 	}
 	pp_global_max(&max_speed,1);
 }	/* end computeNewVelocity2d */
 
 
-void Incompress_Solver_Smooth_2D_Cartesian::computeSourceTerm(double *coords, L_STATE &state) 
+void Incompress_Solver_Smooth_2D_Cartesian::computeSourceTerm(
+	double *coords, 
+	double *source) 
 {
 	int i;
 	for (i = 0; i < dim; ++i)
-	    state.m_U[i] = iFparams->gravity[i];
+	    source[i] = iFparams->gravity[i];
+}	/* end computeSourceTerm */
 
-	state.m_P = HUGE_VAL;
-}
-void Incompress_Solver_Smooth_2D_Cartesian::computeSourceTerm(double *coords, double t, L_STATE &state) 
-{
-	computeSourceTerm(coords, state);
-}
-
-
-// for initial condition: 
-// 		setInitialCondition();	
-// this function should be called before solve()
-// for the source term of the momentum equation: 	
-// 		computeSourceTerm();
 void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 {
 	static boolean first = YES;
@@ -424,6 +391,7 @@ double Incompress_Solver_Smooth_2D_Cartesian::getVorticity(int i, int j)
 	double v00,v01,v10,v11;
 	double dx,dy;
 	double vorticity;
+	double **vel = field->vel;
 
 	dx = top_h[0];
 	dy = top_h[1];
@@ -432,10 +400,10 @@ double Incompress_Solver_Smooth_2D_Cartesian::getVorticity(int i, int j)
 	index01 = d_index2d(i+1,j,top_gmax);
 	index10 = d_index2d(i,j-1,top_gmax);
 	index11 = d_index2d(i,j+1,top_gmax);
-	v00 = -cell_center[index00].m_state.m_U[1];
-	v01 =  cell_center[index01].m_state.m_U[1];
-	v10 =  cell_center[index10].m_state.m_U[0];
-	v11 = -cell_center[index11].m_state.m_U[0];
+	v00 = -vel[1][index00];
+	v01 =  vel[1][index01];
+	v10 =  vel[0][index10];
+	v11 = -vel[0][index11];
 
 	vorticity = (v00 + v01)/2.0/dy + (v10 + v11)/2.0/dx;
 	return vorticity;
@@ -454,10 +422,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::copyMeshStates(void)
 	    index  = d_index2d(i,j,top_gmax);
 	    if (ifluid_comp(top_comp[index]))
 	    {
-		pres[index] = cell_center[index].m_state.m_P;
-		//phi[index] = cell_center[index].m_state.m_phi;
-	    	vel[0][index] = cell_center[index].m_state.m_U[0];
-	    	vel[1][index] = cell_center[index].m_state.m_U[1];
 		vort[index] = getVorticity(i,j);
 	    }
 	    else
@@ -483,7 +447,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::
         int index,index_nb[4],size;
         int I,I_nb[4];
         int i,j,l,nb,icoords[MAXD];
-        L_STATE state;
         double coords[MAXD],crx_coords[MAXD];
 	double coeff[4],mu[4],mu0,rho,rhs,U_nb[4];
         double speed;
@@ -495,6 +458,9 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 	double rel_residual;
 	double aII;
 	int status;
+	double source[MAXD];
+	double **vel = field->vel;
+	double **f_surf = field->f_surf;
 
 	max_speed = 0.0;
 
@@ -532,8 +498,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::
             	I_nb[3] = ij_to_I[i][j+1]; // up or north
 
 
-		mu0 = cell_center[index].m_state.m_mu;
-		rho = cell_center[index].m_state.m_rho;
+		mu0 = field->mu[index];
+		rho = field->rho[index];
 
             	for (nb = 0; nb < 4; nb++)
             	{
@@ -546,7 +512,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
                             strcmp(boundary_state_function_name(hs),
                             "flowThroughBoundaryState") == 0)
                         {
-                            U_nb[nb] = cell_center[index].m_state.m_U[l];
+                            U_nb[nb] = vel[l][index];
                         }
                         else
                             U_nb[nb] = getStateVel[l](intfc_state);
@@ -554,14 +520,12 @@ void Incompress_Solver_Smooth_2D_Cartesian::
                             wave_type(hs) == NEUMANN_BOUNDARY)
                             mu[nb] = mu0;
 			else
-			    mu[nb] = 1.0/2*(mu0 + 
-				cell_center[index_nb[nb]].m_state.m_mu);
+			    mu[nb] = 1.0/2*(mu0 + field->mu[index_nb[nb]]);
                     }
                     else
 		    {
-                        U_nb[nb] = cell_center[index_nb[nb]].m_state.m_U[l];
-			mu[nb] = 1.0/2*(mu0 + 
-				cell_center[index_nb[nb]].m_state.m_mu);
+                        U_nb[nb] = vel[l][index_nb[nb]];
+			mu[nb] = 1.0/2*(mu0 + field->mu[index_nb[nb]]);
 		    }
             	}
 
@@ -571,12 +535,12 @@ void Incompress_Solver_Smooth_2D_Cartesian::
             	coeff[3] = 0.5*m_dt/rho*mu[3]/(top_h[1]*top_h[1]);
 
             	getRectangleCenter(index, coords);
-            	computeSourceTerm(coords, state);
+            	computeSourceTerm(coords, source);
 
         	//first equation  decoupled, some terms may be lost
 		aII = 1+coeff[0]+coeff[1]+coeff[2]+coeff[3];
             	rhs = (1-coeff[0]-coeff[1]-coeff[2]-coeff[3])
-				*cell_center[index].m_state.m_U[l];
+				*vel[l][index];
 
             	for (nb = 0; nb < 4; nb++)
             	{
@@ -601,9 +565,9 @@ void Incompress_Solver_Smooth_2D_Cartesian::
                             rhs += 2.0*coeff[nb]*U_nb[nb];
                     }
 		}
-            	rhs += m_dt*state.m_U[l];
-		rhs += m_dt*cell_center[index].m_state.f_surf[l];
-	    	//rhs -= m_dt*cell_center[index].m_state.grad_q[l]/rho;
+            	rhs += m_dt*source[l];
+		rhs += m_dt*f_surf[l][index];
+	    	//rhs -= m_dt*grad_q[l][index]/rho;
 
 		solver.Set_A(I,I,aII);
             	solver.Set_b(I, rhs);
@@ -643,11 +607,11 @@ void Incompress_Solver_Smooth_2D_Cartesian::
                 index = d_index2d(i,j,top_gmax);
                 if (I >= 0)
                 {
-                    cell_center[index].m_state.m_U[l] = x[I-ilower];
+                    vel[l][index] = x[I-ilower];
                 }
                 else
                 {
-                    cell_center[index].m_state.m_U[l] = 0.0;
+                    vel[l][index] = 0.0;
                 }
             }
 
@@ -655,22 +619,21 @@ void Incompress_Solver_Smooth_2D_Cartesian::
             for (i = imin; i <= imax; i++)
             {
                 index  = d_index2d(i,j,top_gmax);
-                array[index] = cell_center[index].m_state.m_U[l];
+                array[index] = vel[l][index];
             }
             scatMeshArray();
             for (j = 0; j <= top_gmax[1]; j++)
             for (i = 0; i <= top_gmax[0]; i++)
             {
                 index  = d_index2d(i,j,top_gmax);
-                cell_center[index].m_state.m_U[l] = array[index];
+                vel[l][index] = array[index];
             }
         }
         for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
 	{
 	    index = d_index2d(i,j,top_gmax);
-            speed = fabs(cell_center[index].m_state.m_U[0]) +
-                    fabs(cell_center[index].m_state.m_U[1]);
+            speed = fabs(vel[0][index]) + fabs(vel[1][index]);
             if (speed > max_speed)
                 max_speed = speed;
 	}
@@ -683,13 +646,16 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 void Incompress_Solver_Smooth_2D_Cartesian::computePressurePmI(void)
 {
         int i,j,index;
+	double *pres = field->pres;
+	double *phi = field->phi;
+	double *q = field->q;
 
 	for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
 	{
             index = d_index2d(i,j,top_gmax);
-            cell_center[index].m_state.m_P += cell_center[index].m_state.m_phi;
-	    cell_center[index].m_state.m_q = cell_center[index].m_state.m_P;
+            pres[index] += phi[index];
+	    q[index] = pres[index];
 	}
 }        /* end computePressurePmI2d */
 
@@ -698,16 +664,18 @@ void Incompress_Solver_Smooth_2D_Cartesian::computePressurePmII(void)
 {
         int i,j,index;
         double mu0;
+	double *pres = field->pres;
+	double *phi = field->phi;
+	double *q = field->q;
+	double *div_U = field->div_U;
 
 	for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
 	{
             index = d_index2d(i,j,top_gmax);
-            mu0 = 0.5*cell_center[index].m_state.m_mu;
-	    cell_center[index].m_state.m_P +=
-			cell_center[index].m_state.m_phi -
-                        accum_dt*mu0*cell_center[index].m_state.div_U;
-	    cell_center[index].m_state.m_q = cell_center[index].m_state.m_P;
+            mu0 = 0.5*field->mu[index];
+	    pres[index] += phi[index] - accum_dt*mu0*div_U[index];
+	    q[index] = pres[index];
 	}
 }        /* end computePressurePmII2d */
 
@@ -715,16 +683,19 @@ void Incompress_Solver_Smooth_2D_Cartesian::computePressurePmIII(void)
 {
         int i,j,index;
         double mu0;
+	double *pres = field->pres;
+	double *phi = field->phi;
+	double *q = field->q;
+	double *div_U = field->div_U;
 
 	for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
 	{
             index = d_index2d(i,j,top_gmax);
-            mu0 = 0.5*cell_center[index].m_state.m_mu;
-            cell_center[index].m_state.m_P = 
-				cell_center[index].m_state.m_phi -
-                        	accum_dt*mu0*cell_center[index].m_state.div_U;
-	    cell_center[index].m_state.m_q = 0.0;
+            mu0 = 0.5*field->mu[index];
+            pres[index] = phi[index] -
+                        	accum_dt*mu0*div_U[index];
+	    q[index] = 0.0;
 	}
 }        /* end computePressurePmIII2d */
 
@@ -755,23 +726,24 @@ void Incompress_Solver_Smooth_2D_Cartesian::computePressure(void)
 void Incompress_Solver_Smooth_2D_Cartesian::computeGradientQ(void)
 {
 	int i,j,l,index;
-	double *grad_q;
+	double **grad_q = field->grad_q;
 	int icoords[MAXD];
+	double *q = field->q;
+	double point_grad_q[MAXD];
 
 	for (j = 0; j < top_gmax[1]; ++j)
 	for (i = 0; i < top_gmax[0]; ++i)
 	{
 	    index = d_index2d(i,j,top_gmax);
-	    array[index] = cell_center[index].m_state.m_q;
+	    array[index] = q[index];
 	}
 	for (j = jmin; j <= jmax; j++)
 	for (i = imin; i <= imax; i++)
 	{
 	    index = d_index2d(i,j,top_gmax);
-	    grad_q = cell_center[index].m_state.grad_q;
 	    icoords[0] = i;
 	    icoords[1] = j;
-	    computeFieldPointGrad(icoords,array,grad_q);
+	    computeFieldPointGrad(icoords,array,point_grad_q);
 	}
 	for (l = 0; l < dim; ++l)
 	{
@@ -779,14 +751,14 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeGradientQ(void)
 	    for (i = imin; i <= imax; i++)
 	    {
 	    	index = d_index2d(i,j,top_gmax);
-		array[index] = cell_center[index].m_state.grad_q[l];
+		array[index] = grad_q[l][index];
 	    }
 	    scatMeshArray();
 	    for (j = 0; j <= top_gmax[1]; j++)
 	    for (i = 0; i <= top_gmax[0]; i++)
 	    {
 	    	index = d_index2d(i,j,top_gmax);
-		cell_center[index].m_state.grad_q[l] = array[index];
+		grad_q[l][index] = array[index];
 	    }
 	}
 }	/* end computeGradientQ2d */
@@ -867,11 +839,10 @@ void Incompress_Solver_Smooth_2D_Cartesian::setInitialCondition()
         for (i = 0; i < size; i++)
         {
             getRectangleCenter(i, coords);
-	    cell_center[i].m_state.setZero();
+	    //cell_center[i].m_state.setZero();
 	    comp = top_comp[i];
 	    if (getInitialState != NULL)
-	    	(*getInitialState)(comp,coords,cell_center[i].m_state,dim,
-						iFparams);
+	    	(*getInitialState)(comp,coords,field,i,dim,iFparams);
         }
 	computeGradientQ();
         copyMeshStates();

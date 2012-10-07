@@ -13,7 +13,7 @@ static double (*getStateVel[3])(POINTER) = {getStateXvel,getStateYvel,
 
 void Incompress_Solver_Smooth_3D_Cartesian::computeAdvection(void)
 {
-	int i,j,k,l,index;
+	int i,j,k,index;
 	static HYPERB_SOLVER hyperb_solver(*front);
 	double speed;
 
@@ -28,9 +28,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeAdvection(void)
 	for (i = 0; i <= top_gmax[0]; i++)
 	{
 	    index = d_index3d(i,j,k,top_gmax);
-	    rho[index] = cell_center[index].m_state.m_rho;
-	    for (l = 0; l < dim; ++l)
-                field->vel[l][index] = cell_center[index].m_state.m_U[l];
+	    rho[index] = field->rho[index];
 	}
 	hyperb_solver.rho = rho;
 
@@ -68,9 +66,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeAdvection(void)
 	for (i = 0; i <= top_gmax[0]; i++)
 	{
 	    index = d_index3d(i,j,k,top_gmax);
-	    cell_center[index].m_state.m_U[0] = field->vel[0][index];
-	    cell_center[index].m_state.m_U[1] = field->vel[1][index];
-	    cell_center[index].m_state.m_U[2] = field->vel[2][index];
 	    speed = sqrt(sqr(field->vel[0][index]) +
 			 sqr(field->vel[1][index]) +
 			 sqr(field->vel[2][index]));
@@ -87,10 +82,12 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeAdvection(void)
 void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 {
 	int i, j, k, l, index;
-	double grad_phi[3], rho;
+	double grad_phi[MAXD], rho;
 	COMPONENT comp;
 	double speed;
 	int icoords[MAXD];
+	double **vel = field->vel;
+	double *phi = field->phi;
 
 	max_speed = 0.0;
 
@@ -99,7 +96,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 	for (i = 0; i <= top_gmax[0]; i++)
 	{
 	    index = d_index3d(i,j,k,top_gmax);
-	    array[index] = cell_center[index].m_state.m_phi;
+	    array[index] = phi[index];
 	}
 	for (k = kmin; k <= kmax; k++)
 	for (j = jmin; j <= jmax; j++)
@@ -110,10 +107,10 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 	    if (!ifluid_comp(comp))
 	    {
 		for (l = 0; l < 3; ++l)
-		    cell_center[index].m_state.m_U[l] = 0.0;
+		    vel[l][index] = 0.0;
 		continue;
 	    }
-	    rho = cell_center[index].m_state.m_rho;
+	    rho = field->rho[index];
 	    icoords[0] = i;
 	    icoords[1] = j;
 	    icoords[2] = k;
@@ -122,14 +119,13 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 	    speed = 0.0;
 	    for (l = 0; l < 3; ++l)
 	    {
-	    	cell_center[index].m_state.m_U[l] -= accum_dt/rho*grad_phi[l];
-		speed += fabs(cell_center[index].m_state.m_U[l]);
+	    	vel[l][index] -= accum_dt/rho*grad_phi[l];
+		speed += fabs(vel[l][index]);
 	    }
 	    if (speed > iFparams->ub_speed)
 	    {
 	    	for (l = 0; l < 3; ++l)
-		    cell_center[index].m_state.m_U[l] *= 
-				iFparams->ub_speed/speed;
+		    vel[l][index] *= iFparams->ub_speed/speed;
 		speed = iFparams->ub_speed;
 	    }
 	    if (speed > max_speed)
@@ -147,7 +143,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
             for (i = imin; i <= imax; i++)
 	    {	
 	    	index  = d_index3d(i,j,k,top_gmax);
-	    	array[index] = cell_center[index].m_state.m_U[l];
+	    	array[index] = vel[l][index];
 	    }
 	    scatMeshArray();
 	    for (k = 0; k <= top_gmax[2]; k++)
@@ -155,7 +151,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 	    for (i = 0; i <= top_gmax[0]; i++)
 	    {	
 	    	index  = d_index3d(i,j,k,top_gmax);
-	    	cell_center[index].m_state.m_U[l] = array[index];
+	    	vel[l][index] = array[index];
 	    }
 	}
 	pp_global_max(&max_speed,1);
@@ -163,24 +159,13 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 
 
 void Incompress_Solver_Smooth_3D_Cartesian::
-	computeSourceTerm(double *coords, L_STATE &state) 
+	computeSourceTerm(double *coords, double *source) 
 {
 	int i;
 	for (i = 0; i < dim; ++i)
-	    state.m_U[i] = iFparams->gravity[i];
-}
+	    source[i] = iFparams->gravity[i];
+} 	/* computeSourceTerm */
 
-void Incompress_Solver_Smooth_3D_Cartesian::
-	computeSourceTerm(double *coords, double t, L_STATE &state) 
-{
-	computeSourceTerm(coords, state);
-}
-
-// for initial condition: 
-// 		setInitialCondition();	
-// this function should be called before solve()
-// for the source term of the momentum equation: 	
-// 		computeSourceTerm();
 void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
 {
 	static boolean first = YES;
@@ -192,6 +177,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
 	m_dt = dt;
 	max_speed = 0.0;
 
+	int i,j,k,index;
 	start_clock("solve");
 	setDomain();
 
@@ -297,6 +283,7 @@ double Incompress_Solver_Smooth_3D_Cartesian::getVorticityX(int i, int j, int k)
 	double v00,v01,v10,v11;
 	double dy,dz;
 	double vorticity;
+	double **vel = field->vel;
 
 	dy = top_h[1];
 	dz = top_h[2];
@@ -305,10 +292,10 @@ double Incompress_Solver_Smooth_3D_Cartesian::getVorticityX(int i, int j, int k)
 	index01 = d_index3d(i,j+1,k,top_gmax);
 	index10 = d_index3d(i,j,k-1,top_gmax);
 	index11 = d_index3d(i,j,k+1,top_gmax);
-	v00 = -cell_center[index00].m_state.m_U[2];
-	v01 =  cell_center[index01].m_state.m_U[2];
-	v10 =  cell_center[index10].m_state.m_U[1];
-	v11 = -cell_center[index11].m_state.m_U[1];
+	v00 = -vel[2][index00];
+	v01 =  vel[2][index01];
+	v10 =  vel[1][index10];
+	v11 = -vel[1][index11];
 
 	vorticity = (v00 + v01)/2.0/dz + (v10 + v11)/2.0/dy;
 	return vorticity;
@@ -320,6 +307,7 @@ double Incompress_Solver_Smooth_3D_Cartesian::getVorticityY(int i, int j, int k)
 	double v00,v01,v10,v11;
 	double dx,dz;
 	double vorticity;
+	double **vel = field->vel;
 
 	dx = top_h[0];
 	dz = top_h[2];
@@ -328,10 +316,10 @@ double Incompress_Solver_Smooth_3D_Cartesian::getVorticityY(int i, int j, int k)
 	index01 = d_index3d(i,j,k+1,top_gmax);
 	index10 = d_index3d(i-1,j,k,top_gmax);
 	index11 = d_index3d(i+1,j,k,top_gmax);
-	v00 = -cell_center[index00].m_state.m_U[0];
-	v01 =  cell_center[index01].m_state.m_U[0];
-	v10 =  cell_center[index10].m_state.m_U[2];
-	v11 = -cell_center[index11].m_state.m_U[2];
+	v00 = -vel[0][index00];
+	v01 =  vel[0][index01];
+	v10 =  vel[2][index10];
+	v11 = -vel[2][index11];
 
 	vorticity = (v00 + v01)/2.0/dx + (v10 + v11)/2.0/dz;
 	return vorticity;
@@ -343,6 +331,7 @@ double Incompress_Solver_Smooth_3D_Cartesian::getVorticityZ(int i, int j, int k)
 	double v00,v01,v10,v11;
 	double dx,dy;
 	double vorticity;
+	double **vel = field->vel;
 
 	dx = top_h[0];
 	dy = top_h[1];
@@ -351,10 +340,10 @@ double Incompress_Solver_Smooth_3D_Cartesian::getVorticityZ(int i, int j, int k)
 	index01 = d_index3d(i+1,j,k,top_gmax);
 	index10 = d_index3d(i,j-1,k,top_gmax);
 	index11 = d_index3d(i,j+1,k,top_gmax);
-	v00 = -cell_center[index00].m_state.m_U[1];
-	v01 =  cell_center[index01].m_state.m_U[1];
-	v10 =  cell_center[index10].m_state.m_U[0];
-	v11 = -cell_center[index11].m_state.m_U[0];
+	v00 = -vel[1][index00];
+	v01 =  vel[1][index01];
+	v10 =  vel[0][index10];
+	v11 = -vel[0][index11];
 
 	vorticity = (v00 + v01)/2.0/dy + (v10 + v11)/2.0/dx;
 	return vorticity;
@@ -375,10 +364,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::copyMeshStates()
 	    index  = d_index3d(i,j,k,top_gmax);
 	    if (ifluid_comp(top_comp[index]))
 	    {
-		pres[index] = cell_center[index].m_state.m_P;
-	    	vel[0][index] = cell_center[index].m_state.m_U[0];
-	    	vel[1][index] = cell_center[index].m_state.m_U[1];
-	    	vel[2][index] = cell_center[index].m_state.m_U[2];
 		vort3d[0][index] = getVorticityX(i,j,k);
 		vort3d[1][index] = getVorticityY(i,j,k);
 		vort3d[2][index] = getVorticityZ(i,j,k);
@@ -410,7 +395,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::
         int index,index_nb[6],size;
         int I,I_nb[6];
 	int i,j,k,l,nb,icoords[MAXD];
-        L_STATE state;
 	double coords[MAXD], crx_coords[MAXD];
 	double coeff[6],mu[6],mu0,rho,rhs,U_nb[6];
         double speed;
@@ -421,6 +405,9 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 	PetscInt num_iter;
 	double rel_residual;
 	double aII;
+	double source[MAXD];
+	double **vel = field->vel;
+	double **f_surf = field->f_surf;
 
 	if (debugging("trace"))
 	    (void) printf("Entering Incompress_Solver_Smooth_3D_Cartesian::"
@@ -468,8 +455,8 @@ void Incompress_Solver_Smooth_3D_Cartesian::
             	I_nb[5] = ijk_to_I[i][j][k+1]; //upper
 
 
-            	mu0   = cell_center[index].m_state.m_mu;
-            	rho   = cell_center[index].m_state.m_rho;
+            	mu0   = field->mu[index];
+            	rho   = field->rho[index];
 
             	for (nb = 0; nb < 6; nb++)
             	{
@@ -482,7 +469,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
                     	    strcmp(boundary_state_function_name(hs),
                     	    "flowThroughBoundaryState") == 0)
 			{
-                    	    U_nb[nb] = cell_center[index].m_state.m_U[l];
+                    	    U_nb[nb] = vel[l][index];
 			}
 			else
 			    U_nb[nb] = getStateVel[l](intfc_state);
@@ -490,14 +477,12 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 			    wave_type(hs) == NEUMANN_BOUNDARY)
 			    mu[nb] = mu0;
 			else
-			    mu[nb] = 1.0/2*(mu0 + 
-				cell_center[index_nb[nb]].m_state.m_mu);
+			    mu[nb] = 1.0/2*(mu0 + field->mu[index_nb[nb]]);
 		    }
                     else
 		    {
-                    	U_nb[nb] = cell_center[index_nb[nb]].m_state.m_U[l];
-			mu[nb] = 1.0/2*(mu0 + 
-				cell_center[index_nb[nb]].m_state.m_mu);
+                    	U_nb[nb] = vel[l][index_nb[nb]];
+			mu[nb] = 1.0/2*(mu0 + field->mu[index_nb[nb]]);
 		    }
             	}
 
@@ -509,11 +494,11 @@ void Incompress_Solver_Smooth_3D_Cartesian::
             	coeff[5] = 0.5*m_dt/rho*mu[5]/(top_h[2]*top_h[2]);
 
             	getRectangleCenter(index, coords);
-            	computeSourceTerm(coords, state);
+            	computeSourceTerm(coords, source);
 
 		aII = 1+coeff[0]+coeff[1]+coeff[2]+coeff[3]+coeff[4]+coeff[5];
 		rhs = (1-coeff[0]-coeff[1]-coeff[2]-coeff[3]-coeff[4]-coeff[5])*
-		      		cell_center[index].m_state.m_U[l];
+		      		vel[l][index];
 
 		for(nb = 0; nb < 6; nb++)
 		{
@@ -537,9 +522,9 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 			    rhs += 2.0*coeff[nb]*U_nb[nb];
 		    }
 		}
-		rhs += m_dt*state.m_U[l];
-		rhs += m_dt*cell_center[index].m_state.f_surf[l];
-		//rhs -= m_dt*cell_center[index].m_state.grad_q[l]/rho;
+		rhs += m_dt*source[l];
+		rhs += m_dt*f_surf[l][index];
+		//rhs -= m_dt*grad_q[l][index]/rho;
             	solver.Set_A(I,I,aII);
 
 		solver.Set_b(I, rhs);
@@ -572,11 +557,11 @@ void Incompress_Solver_Smooth_3D_Cartesian::
                 index = d_index3d(i,j,k,top_gmax);
                 if (I >= 0)
                 {
-                    cell_center[index].m_state.m_U[l] = x[I-ilower];
+                    vel[l][index] = x[I-ilower];
                 }
                 else
                 {
-                    cell_center[index].m_state.m_U[l] = 0.0;
+                    vel[l][index] = 0.0;
                 }
             }
 
@@ -585,7 +570,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
             for (i = imin; i <= imax; i++)
             {
                 index  = d_index3d(i,j,k,top_gmax);
-                array[index] = cell_center[index].m_state.m_U[l];
+                array[index] = vel[l][index];
             }
             scatMeshArray();
 	    for (k = 0; k <= top_gmax[2]; k++)
@@ -593,7 +578,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
             for (i = 0; i <= top_gmax[0]; i++)
             {
                 index  = d_index3d(i,j,k,top_gmax);
-                cell_center[index].m_state.m_U[l] = array[index];
+                vel[l][index] = array[index];
             }
         }
 	for (k = kmin; k <= kmax; k++)
@@ -601,9 +586,8 @@ void Incompress_Solver_Smooth_3D_Cartesian::
         for (i = imin; i <= imax; i++)
 	{
 	    index = d_index3d(i,j,k,top_gmax);
-            speed = fabs(cell_center[index].m_state.m_U[0]) +
-                    fabs(cell_center[index].m_state.m_U[1]) +
-                    fabs(cell_center[index].m_state.m_U[2]);
+            speed = fabs(vel[0][index]) + fabs(vel[1][index]) +
+                    fabs(vel[2][index]);
             if (speed > max_speed)
 	    {
 		icrds_max[0] = i;
@@ -624,6 +608,9 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 void Incompress_Solver_Smooth_3D_Cartesian::computePressurePmI(void)
 {
         int i,j,k,index;
+	double *pres = field->pres;
+	double *phi = field->phi;
+	double *q = field->q;
 
 	if (debugging("trace"))
 	    (void) printf("Entering computePressurePmI()\n");
@@ -632,12 +619,12 @@ void Incompress_Solver_Smooth_3D_Cartesian::computePressurePmI(void)
         for (i = 0; i <= top_gmax[0]; i++)
 	{
             index = d_index3d(i,j,k,top_gmax);
-            cell_center[index].m_state.m_P += cell_center[index].m_state.m_phi;
-	    cell_center[index].m_state.m_q = cell_center[index].m_state.m_P;
-	    if (min_pressure > cell_center[index].m_state.m_P)
-		min_pressure = cell_center[index].m_state.m_P;
-	    if (max_pressure < cell_center[index].m_state.m_P)
-		max_pressure = cell_center[index].m_state.m_P;
+            pres[index] += phi[index];
+	    q[index] = pres[index];
+	    if (min_pressure > pres[index])
+		min_pressure = pres[index];
+	    if (max_pressure < pres[index])
+		max_pressure = pres[index];
 	}
 	if (debugging("trace"))
 	    (void) printf("Leaving computePressurePmI()\n");
@@ -647,6 +634,10 @@ void Incompress_Solver_Smooth_3D_Cartesian::computePressurePmII(void)
 {
         int i,j,k,index;
         double mu0;
+	double *pres = field->pres;
+	double *phi = field->phi;
+	double *q = field->q;
+	double *div_U = field->div_U;
 
 	if (debugging("trace"))
 	    (void) printf("Entering computePressurePmII()\n");
@@ -655,15 +646,13 @@ void Incompress_Solver_Smooth_3D_Cartesian::computePressurePmII(void)
         for (i = 0; i <= top_gmax[0]; i++)
 	{
             index = d_index3d(i,j,k,top_gmax);
-            mu0 = 0.5*cell_center[index].m_state.m_mu;
-            cell_center[index].m_state.m_P += 
-				cell_center[index].m_state.m_phi -
-                        	accum_dt*mu0*cell_center[index].m_state.div_U;
-	    cell_center[index].m_state.m_q = cell_center[index].m_state.m_P;
-	    if (min_pressure > cell_center[index].m_state.m_P)
-		min_pressure = cell_center[index].m_state.m_P;
-	    if (max_pressure < cell_center[index].m_state.m_P)
-		max_pressure = cell_center[index].m_state.m_P;
+            mu0 = 0.5*field->mu[index];
+            pres[index] += phi[index] - accum_dt*mu0*div_U[index];
+	    q[index] = pres[index];
+	    if (min_pressure > pres[index])
+		min_pressure = pres[index];
+	    if (max_pressure < pres[index])
+		max_pressure = pres[index];
 	}
 	if (debugging("trace"))
 	    (void) printf("Leaving computePressurePmII()\n");
@@ -673,6 +662,10 @@ void Incompress_Solver_Smooth_3D_Cartesian::computePressurePmIII(void)
 {
         int i,j,k,index;
         double mu0;
+	double *pres = field->pres;
+	double *phi = field->phi;
+	double *q = field->q;
+	double *div_U = field->div_U;
 
 	if (debugging("trace"))
 	    (void) printf("Entering computePressurePmIII()\n");
@@ -681,15 +674,13 @@ void Incompress_Solver_Smooth_3D_Cartesian::computePressurePmIII(void)
         for (i = 0; i <= top_gmax[0]; i++)
 	{
             index = d_index3d(i,j,k,top_gmax);
-            mu0 = 0.5*cell_center[index].m_state.m_mu;
-            cell_center[index].m_state.m_P = 
-				cell_center[index].m_state.m_phi -
-                        	accum_dt*mu0*cell_center[index].m_state.div_U;
-	    cell_center[index].m_state.m_q = cell_center[index].m_state.m_P;
-	    if (min_pressure > cell_center[index].m_state.m_P)
-		min_pressure = cell_center[index].m_state.m_P;
-	    if (max_pressure < cell_center[index].m_state.m_P)
-		max_pressure = cell_center[index].m_state.m_P;
+            mu0 = 0.5*field->mu[index];
+            pres[index] = phi[index] - accum_dt*mu0*div_U[index];
+	    q[index] = pres[index];
+	    if (min_pressure > pres[index])
+		min_pressure = pres[index];
+	    if (max_pressure < pres[index])
+		max_pressure = pres[index];
 	}
 	if (debugging("trace"))
 	    (void) printf("Leaving computePressurePmIII()\n");
@@ -698,6 +689,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computePressurePmIII(void)
 void Incompress_Solver_Smooth_3D_Cartesian::computePressure(void)
 {
         int i,j,k,index;
+	double *pres = field->pres;
 	min_pressure =  HUGE;
 	max_pressure = -HUGE;
         for (k = 0; k <= top_gmax[2]; k++)
@@ -705,10 +697,10 @@ void Incompress_Solver_Smooth_3D_Cartesian::computePressure(void)
         for (i = 0; i <= top_gmax[0]; i++)
 	{
             index = d_index3d(i,j,k,top_gmax);
-	    if (min_pressure > cell_center[index].m_state.m_P)
-		min_pressure = cell_center[index].m_state.m_P;
-	    if (max_pressure < cell_center[index].m_state.m_P)
-		max_pressure = cell_center[index].m_state.m_P;
+	    if (min_pressure > pres[index])
+		min_pressure = pres[index];
+	    if (max_pressure < pres[index])
+		max_pressure = pres[index];
 	}
 	min_pressure =  HUGE;
 	max_pressure = -HUGE;
@@ -736,27 +728,30 @@ void Incompress_Solver_Smooth_3D_Cartesian::computePressure(void)
 void Incompress_Solver_Smooth_3D_Cartesian::computeGradientQ(void)
 {
 	int i,j,k,l,index;
-	double *grad_q;
+	double **grad_q = field->grad_q;
 	int icoords[MAXD];
+	double *q = field->q;
+	double point_grad_q[MAXD];
 
 	for (k = 0; k < top_gmax[2]; ++k)
 	for (j = 0; j < top_gmax[1]; ++j)
 	for (i = 0; i < top_gmax[0]; ++i)
 	{
 	    index = d_index3d(i,j,k,top_gmax);
-	    array[index] = cell_center[index].m_state.m_q;
+	    array[index] = q[index];
 	}
 	for (k = kmin; k <= kmax; k++)
 	for (j = jmin; j <= jmax; j++)
 	for (i = imin; i <= imax; i++)
 	{
 	    index = d_index3d(i,j,k,top_gmax);
-	    grad_q = cell_center[index].m_state.grad_q;
 	    icoords[0] = i;
 	    icoords[1] = j;
 	    icoords[2] = k;
 
-	    computeFieldPointGrad(icoords,array,grad_q);
+	    computeFieldPointGrad(icoords,array,point_grad_q);
+	    for (l = 0; l < 3; ++l)
+		grad_q[l][index] = point_grad_q[l];
 	}
 	for (l = 0; l < dim; ++l)
 	{
@@ -765,7 +760,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeGradientQ(void)
 	    for (i = imin; i <= imax; i++)
 	    {
 	    	index = d_index3d(i,j,k,top_gmax);
-		array[index] = cell_center[index].m_state.grad_q[l];
+		array[index] = grad_q[l][index];
 	    }
 	    scatMeshArray();
 	    for (k = 0; k <= top_gmax[2]; k++)
@@ -773,7 +768,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeGradientQ(void)
 	    for (i = 0; i <= top_gmax[0]; i++)
 	    {
 	    	index = d_index3d(i,j,k,top_gmax);
-		cell_center[index].m_state.grad_q[l] = array[index];
+		grad_q[l][index] = array[index];
 	    }
 	}
 }	/* end computeGradientQ3d */
@@ -831,6 +826,8 @@ void Incompress_Solver_Smooth_3D_Cartesian::setInitialCondition()
 	COMPONENT comp;
 	double coords[MAXD];
 	int size = (int)cell_center.size();
+	double *pres = field->pres;
+	double *phi = field->phi;
 
 	FT_MakeGridIntfc(front);
 	setDomain();
@@ -857,15 +854,13 @@ void Incompress_Solver_Smooth_3D_Cartesian::setInitialCondition()
         for (i = 0; i < size; i++)
         {
             getRectangleCenter(i, coords);
-	    cell_center[i].m_state.setZero();
+	    //cell_center[i].m_state.setZero();
 	    comp = top_comp[i];
 	    if (getInitialState != NULL)
 	    {
-	    	(*getInitialState)(comp,coords,cell_center[i].m_state,dim,
-						iFparams);
-		cell_center[i].m_state.m_P = getPressure(front,coords,NULL);
-                cell_center[i].m_state.m_phi = getPhiFromPres(front,
-                                cell_center[i].m_state.m_P);
+	    	(*getInitialState)(comp,coords,field,i,dim,iFparams);
+		pres[i] = getPressure(front,coords,NULL);
+                phi[i] = getPhiFromPres(front,pres[i]);
 	    }
         }
 	computeGradientQ();
@@ -1111,19 +1106,12 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
 	static ELLIPTIC_SOLVER elliptic_solver(*front);
         int index;
         int i,j,k,l,icoords[MAXD];
-        double **vel = iFparams->field->vel;
+        double **vel = field->vel;
+        double *phi = field->phi;
+        double *div_U = field->div_U;
         double sum_div;
         double value;
 	double min_phi,max_phi;
-
-        for (l = 0; l < dim; ++l)
-        for (k = 0; k <= top_gmax[2]; k++)
-        for (j = 0; j <= top_gmax[1]; j++)
-        for (i = 0; i <= top_gmax[0]; i++)
-        {
-            index  = d_index3d(i,j,k,top_gmax);
-            vel[l][index] = cell_center[index].m_state.m_U[l];
-        }
 
 	if (debugging("trace"))
 	    (void) printf("Entering computeProjectionSimple()\n");
@@ -1137,7 +1125,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
             icoords[2] = k;
             index  = d_index(icoords,top_gmax,dim);
             source[index] = computeFieldPointDiv(icoords,vel);
-            diff_coeff[index] = 1.0/cell_center[index].m_state.m_rho;
+            diff_coeff[index] = 1.0/field->rho[index];
         }
 	FT_ParallelExchGridArrayBuffer(source,front);
         FT_ParallelExchGridArrayBuffer(diff_coeff,front);
@@ -1146,11 +1134,12 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
         for (i = 0; i <= top_gmax[0]; i++)
         {
             index  = d_index3d(i,j,k,top_gmax);
-            cell_center[index].m_state.div_U = source[index];
+            div_U[index] = source[index];
             source[index] /= accum_dt;
-            array[index] = cell_center[index].m_state.m_phi;
+            array[index] = phi[index];
         }
 
+	int icrds[MAXD];
         if(debugging("step_size"))
         {
             sum_div = 0.0;
@@ -1163,16 +1152,21 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
             for (i = imin; i <= imax; i++)
             {
                 index = d_index3d(i,j,k,top_gmax);
-                value = fabs(cell_center[index].m_state.div_U);
-                sum_div = sum_div + cell_center[index].m_state.div_U;
-            	if (min_phi > cell_center[index].m_state.m_phi)
-		    min_phi = cell_center[index].m_state.m_phi;
-            	if (max_phi < cell_center[index].m_state.m_phi)
-		    max_phi = cell_center[index].m_state.m_phi;
-	    	if (min_value > cell_center[index].m_state.div_U) 
-		    min_value = cell_center[index].m_state.div_U;
-	    	if (max_value < cell_center[index].m_state.div_U) 
-		    max_value = cell_center[index].m_state.div_U;
+                value = fabs(div_U[index]);
+                sum_div = sum_div + div_U[index];
+            	if (min_phi > phi[index])
+		    min_phi = phi[index];
+            	if (max_phi < phi[index])
+		    max_phi = phi[index];
+	    	if (min_value > div_U[index]) 
+		    min_value = div_U[index];
+	    	if (max_value < div_U[index]) 
+		{
+		    max_value = div_U[index];
+		    icrds[0] = i;
+		    icrds[1] = j;
+		    icrds[2] = k;
+		}
             }
             pp_global_sum(&sum_div,1);
             pp_global_min(&min_value,1);
@@ -1184,6 +1178,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
                                         min_value);
             (void) printf("\nThe max value of divergence of U is %.16g\n",
                                         max_value);
+	    printf("occuring at %d %d %d\n",icrds[0],icrds[1],icrds[2]);
 	    (void) printf("min_phi = %f  max_phi = %f\n",min_phi,max_phi);
         }
         elliptic_solver.D = diff_coeff;
@@ -1204,11 +1199,11 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
         for (i = 0; i <= top_gmax[0]; i++)
         {
             index  = d_index3d(i,j,k,top_gmax);
-            cell_center[index].m_state.m_phi = array[index];
-            if (min_phi > cell_center[index].m_state.m_phi)
-		min_phi = cell_center[index].m_state.m_phi;
-            if (max_phi < cell_center[index].m_state.m_phi)
-		max_phi = cell_center[index].m_state.m_phi;
+            phi[index] = array[index];
+            if (min_phi > phi[index])
+		min_phi = phi[index];
+            if (max_phi < phi[index])
+		max_phi = phi[index];
         }
         if(debugging("step_size"))
 	{
@@ -1218,3 +1213,16 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
 	if (debugging("trace"))
 	    (void) printf("Leaving computeProjectionSimple()\n");
 }	/* end computeProjectionSimple */
+
+void Incompress_Solver_Smooth_Basis::solveTest(const char *msg)
+{
+	// This function is reserved for various debugging tests.
+	(void) printf("%s\n",msg);
+	int i,j,k,index;
+	i = 14;		j = 26;
+	for (k = kmin; k <= kmax; ++k)
+	{
+	    index = d_index3d(i,j,k,top_gmax);
+	    printf("vz[%d] = %20.14f\n",k,field->vel[2][index]);
+	}
+}	/* end solveTest */

@@ -27,10 +27,15 @@ enum EBM_COORD
 struct _IF_FIELD {
 	double **vel;			/* Velocities */
 	double *phi;
+	double *q;
 	double *pres;			/* Pressure */
 	double *vort;			/* Vorticity in 2D */
+	double *mu;
+	double *rho;
 	double **vort3d;		/* Vorticity in 3D */
-	double *div;
+	double *div_U;
+	double **grad_q;
+	double **f_surf;		// Surface force (such as tension)
 };
 typedef struct _IF_FIELD IF_FIELD;
 
@@ -137,49 +142,9 @@ typedef struct _TIME_DEPENDENT_PARAMS TIME_DEPENDENT_PARAMS;
 class SOLVER;
 class Incompress_Solver_Basis;
 
-//enum VISITED_TYPE {UNVISITED, VISITED, PARTIAL_VISITED, FULL_VISITED};
-
-//-------------------------------------------------
-//		STATES
-// NOTE:
-//      L_STATE/L_STATE_RECT_EDGEshould be put into 
-// lcartsn.h. However, there are some trouble
-// to compile in that way.
-//-------------------------------------------------
-// states inside a cell
-
-class L_STATE{
-public:
-	double m_U[MAXD];		// velocity vector
-	double m_exactU[MAXD];
-	double m_P;			// pressure
-	double m_exactP;
-	double m_phi;			// (Brown's) phi*dt
-	double m_q;
-	double m_adv[MAXD];
-
-	double m_mu;		// smoothed 
-	double m_rho;		// smoothed
-	double div_U;			// Velocity divergence
-	double grad_q[MAXD];		// Gradient of q
-	double f_surf[MAXD];		// Surface force (such as tension)
-
-	L_STATE();
-	void setZero(void);
-};
-// states on edge
-
-//------------------------------------------------------
-//		MESH
-//------------------------------------------------------
-// note that the following VERTEX2D/RECT_EDGE are different 
-// from those defined in MESH2D.h
-
 class L_RECTANGLE {
 public:
-	int m_index;			// rectangle index
 	int comp;			 
-	L_STATE m_state;
 	double m_coords[MAXD];	
 	int icoords[MAXD];
 
@@ -227,18 +192,20 @@ public:
 	void initSampleVelocity(char *in_name);
 
 	//Initialization of States
-	void (*getInitialState) (COMPONENT,double*,L_STATE&,int,IF_PARAMS*);
+	void (*getInitialState) (COMPONENT,double*,IF_FIELD*,int,int,
+				IF_PARAMS*);
 	int (*findStateAtCrossing)(Front*,int*,GRID_DIRECTION,int,
 				POINTER*,HYPER_SURF**,double*);
 	void applicationSetComponent();
 	void applicationSetStates();
 
 	//For debugging test
-        void solveTest(const char *msg);
+	void solveTest(const char *msg);
 
 	//User interface
 	virtual void setInitialCondition(void) = 0;
 	virtual void solve(double dt) = 0; // main step function
+
 
 protected:
 	Front *front;
@@ -314,16 +281,13 @@ protected:
 	virtual void computePressurePmIII(void) = 0;
 	virtual void computeGradientQ(void) = 0;
 	virtual void computeNewVelocity(void) = 0;
-	virtual void computeSourceTerm(double *coords, L_STATE &state) = 0;
-	virtual void computeSourceTerm(double *coords, double t, L_STATE 
-		&state) = 0;
+	virtual void computeSourceTerm(double *coords, double *source) = 0;
 	virtual void surfaceTension(double*, HYPER_SURF_ELEMENT*,
 		HYPER_SURF*, double*, double) = 0;
 
 	
 /***********************  Utility functions  *******************/
 
-	void   computeExactSolution(double *coords, L_STATE &state);
 	void   getRectangleIndex(int indexRectangle, int &i, int &j);
 	void   getRectangleIndex(int indexRectangle, int &i, int &j, int &k);
 	int    getRectangleComponent(int index);	// the center component
@@ -381,9 +345,7 @@ protected:
 	virtual void computePressurePmIII(void) = 0;
 	virtual void computeGradientQ(void) = 0;
 	virtual void computeNewVelocity(void) = 0;
-	virtual void computeSourceTerm(double *coords, L_STATE &state) = 0;
-	virtual void computeSourceTerm(double *coords, double t, L_STATE 
-		&state) = 0;
+	virtual void computeSourceTerm(double *coords, double *source) = 0;
 	virtual void surfaceTension(double*, HYPER_SURF_ELEMENT*,
 		HYPER_SURF*, double*, double) = 0;
 };
@@ -419,9 +381,7 @@ protected:
 	virtual void computePressurePmIII(void) = 0;
 	virtual void computeGradientQ(void) = 0;
 	virtual void computeNewVelocity(void) = 0;
-	virtual void computeSourceTerm(double *coords, L_STATE &state) = 0;
-	virtual void computeSourceTerm(double *coords, double t, L_STATE 
-		&state) = 0;
+	virtual void computeSourceTerm(double *coords, double *source) = 0;
 	virtual void surfaceTension(double*, HYPER_SURF_ELEMENT*,
 		HYPER_SURF*, double*, double) = 0;
 };
@@ -448,9 +408,9 @@ protected:
 	void computePressurePmIII(void);
 	void computeGradientQ(void);
 	void computeNewVelocity(void);
-	void computeSourceTerm(double *coords, L_STATE &state);
-	void computeSourceTerm(double *coords, double t, L_STATE &state);
-	void surfaceTension(double*, HYPER_SURF_ELEMENT*, HYPER_SURF*, double*, double);
+	void computeSourceTerm(double *coords, double *source);
+	void surfaceTension(double*, HYPER_SURF_ELEMENT*, HYPER_SURF*, 
+				double*, double);
 
 	/***************   Low level computation functions  *************/
 	double computeFieldPointDiv(int*, double**);
@@ -481,8 +441,7 @@ protected:
 	void computePressurePmIII(void);
 	void computeGradientQ(void);
 	void computeNewVelocity(void);
-	void computeSourceTerm(double *coords, L_STATE &state);
-	void computeSourceTerm(double *coords, double t, L_STATE &state);
+	void computeSourceTerm(double *coords, double *source);
 	void surfaceTension(double*, HYPER_SURF_ELEMENT*, HYPER_SURF*, 
 				double*, double);
 	double computeFieldPointDiv(int*, double**);

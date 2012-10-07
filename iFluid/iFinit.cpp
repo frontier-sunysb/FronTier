@@ -1,8 +1,8 @@
 #include <iFluid.h>
 #include <ifluid_basic.h>
 
-static void kh_state(COMPONENT,double*,L_STATE&,int,IF_PARAMS*);
-static void zero_state(COMPONENT,double*,L_STATE&,int,IF_PARAMS*);
+static void kh_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
+static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void initRayleiTaylorIntfc(Front*,LEVEL_FUNC_PACK*,char*);
 static void initKHIntfc(Front*,LEVEL_FUNC_PACK*,char*);
 static void initCirclePlaneIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
@@ -304,29 +304,34 @@ extern void init_fluid_state_func(
 static void kh_state(
 	COMPONENT comp,
 	double *coords,
-	L_STATE& state,
+	IF_FIELD *field,
+	int index,
 	int dim,
 	IF_PARAMS *iFparams)
 {
 	int i;
+	double **vel = field->vel;
+
 	for (i = 0; i < dim-1; ++i)
 	{
-	    state.m_U[i] = (comp == LIQUID_COMP1) ? iFparams->U1[i] :
+	    vel[i][index] = (comp == LIQUID_COMP1) ? iFparams->U1[i] :
 				iFparams->U2[i];
 	}
-	state.m_U[dim-1] = 0.0;
+	vel[dim-1][index] = 0.0;
 }	/* end kh_state */
 
 static void zero_state(
 	COMPONENT comp,
 	double *coords,
-	L_STATE& state,
+	IF_FIELD *field,
+	int index,
 	int dim,
 	IF_PARAMS *iFparams)
 {
 	int i;
+	double **vel = field->vel;
 	for (i = 0; i < dim; ++i)
-	    state.m_U[i] = 0.0;
+	    vel[i][index] = 0.0;
 }	/* end zero_state */
 
 

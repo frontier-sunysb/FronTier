@@ -14,7 +14,7 @@ typedef struct {
         double U[MAXD];         /* Upper bounds of box */
 } RECT_CONSTR_PARAMS;
 
-static void zero_state(COMPONENT,double*,L_STATE&,int,IF_PARAMS*);
+static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void setInitialIntfc2d(Front*,LEVEL_FUNC_PACK*,char*);
 static void setInitialIntfc3d(Front*,LEVEL_FUNC_PACK*,char*);
 static boolean parachute_constr_func(POINTER,double*);
@@ -1757,14 +1757,15 @@ static void rotate_point(
 static void zero_state(
         COMPONENT comp,
         double *coords,
-        L_STATE& state,
+	IF_FIELD *field,
+	int index,
         int dim,
         IF_PARAMS *af_params)
 {
         int i;
         for (i = 0; i < dim; ++i)
-            state.m_U[i] = 0.0;
-        state.m_U[1] = 0.0;
+            field->vel[i][index] = 0.0;
+        field->vel[1][index] = 0.0;
 }       /* end zero_state */
 
 extern void setRestartAirfoilIntfc(

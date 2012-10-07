@@ -4,29 +4,11 @@
 #include "iFluid.h"
 #include "solver.h"
 
-//-------------------------------------------------------------------
-//		L_STATE
-//-------------------------------------------------------------------
-L_STATE::L_STATE(): m_P(0)
-{
-	int i;
-	for (i = 0; i < MAXD; ++i)
-	    m_U[i] = 0;
-}
-void L_STATE::setZero()
-{
-	int i;
-	for (i = 0; i < MAXD; ++i)
-	    m_U[i] = 0;
-	m_P = 0;
-}
-
-
 //----------------------------------------------------------------
 //		L_RECTANGLE
 //----------------------------------------------------------------
 
-L_RECTANGLE::L_RECTANGLE(): m_index(-1), comp(-1)
+L_RECTANGLE::L_RECTANGLE(): comp(-1)
 {
 }
 
@@ -117,15 +99,14 @@ void Incompress_Solver_Smooth_Basis::setComponent(void)
 	static POINTER state;
         double coords[MAXD];
 	int size = (int)cell_center.size();
+	double **vel = field->vel;
+	double *pres = field->pres;
 	
 	for (i = 0; i < size; i++)
 	{
             cell_center[i].comp =
                         getComponent(cell_center[i].icoords);
         }
-	return;
-	//The rest is not working yet
-	// cell center components
 	if(state == NULL)
             FT_ScalarMemoryAlloc((POINTER*)&state,front->sizest);
 
@@ -144,11 +125,11 @@ void Incompress_Solver_Smooth_Basis::setComponent(void)
                                         cell_center[i].comp,top_comp[i]);
                     clean_up(ERROR);
                 }
-		cell_center[i].m_state.m_U[0] = getStateXvel(state);
-		cell_center[i].m_state.m_U[1] = getStateYvel(state);
+		vel[0][i] = getStateXvel(state);
+		vel[1][i] = getStateYvel(state);
 		if (dim == 3)
-		    cell_center[i].m_state.m_U[2] = getStateZvel(state);
-		cell_center[i].m_state.m_P = getStatePres(state);
+		    vel[3][i] = getStateZvel(state);
+		pres[i] = getStatePres(state);
             }
             cell_center[i].comp = top_comp[i];
 	}
@@ -245,11 +226,6 @@ void Incompress_Solver_Smooth_Basis::setIndexMap(void)
 	    break;
 	}
 }	/* end setIndexMap */
-
-void Incompress_Solver_Smooth_Basis::computeExactSolution(double *coords, L_STATE &state) 
-{
-	state.setZero();
-}
 
 // for initial condition: 
 // 		setInitialCondition();	
@@ -487,13 +463,25 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 	    	FT_VectorMemoryAlloc((POINTER*)&array,size,sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&source,size,sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&diff_coeff,size,sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&field->mu,size,
+					sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&field->rho,size,
+					sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&field->pres,size,
 					sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&field->phi,size,
 					sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&field->q,size,
+					sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&field->div_U,size,
+					sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&field->vort,size,
 					sizeof(double));
 	    	FT_MatrixMemoryAlloc((POINTER*)&field->vel,2,size,
+					sizeof(double));
+	    	FT_MatrixMemoryAlloc((POINTER*)&field->grad_q,2,size,
+					sizeof(double));
+	    	FT_MatrixMemoryAlloc((POINTER*)&field->f_surf,2,size,
 					sizeof(double));
 	    	first = NO;
 	    }
@@ -510,11 +498,23 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 	    	FT_VectorMemoryAlloc((POINTER*)&array,size,sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&source,size,sizeof(double));
 		FT_VectorMemoryAlloc((POINTER*)&diff_coeff,size,sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&field->mu,size,
+					sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&field->rho,size,
+					sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&field->pres,size,
 					sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&field->phi,size,
 					sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&field->q,size,
+					sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&field->div_U,size,
+					sizeof(double));
 	    	FT_MatrixMemoryAlloc((POINTER*)&field->vel,3,size,
+					sizeof(double));
+	    	FT_MatrixMemoryAlloc((POINTER*)&field->grad_q,3,size,
+					sizeof(double));
+	    	FT_MatrixMemoryAlloc((POINTER*)&field->f_surf,3,size,
 					sizeof(double));
 	    	FT_MatrixMemoryAlloc((POINTER*)&field->vort3d,3,size,
 					sizeof(double));
@@ -597,6 +597,7 @@ void Incompress_Solver_Smooth_Basis::printFrontInteriorStates(char *out_name)
 	int i,j,k,l,index;
 	char filename[100];
 	FILE *outfile;
+	double **vel = field->vel;
 
 	sprintf(filename,"%s/state.ts%s",out_name,
 			right_flush(front->step,7));
@@ -617,15 +618,11 @@ void Incompress_Solver_Smooth_Basis::printFrontInteriorStates(char *out_name)
 	    for (j = 0; j <= top_gmax[1]; ++j)
 	    {
 		index = d_index2d(i,j,top_gmax);
-	        fprintf(outfile,"%24.18g\n",
-			cell_center[index].m_state.m_rho);
-	        fprintf(outfile,"%24.18g\n",
-			cell_center[index].m_state.m_P);
-	        fprintf(outfile,"%24.18g\n",
-			cell_center[index].m_state.m_mu);
+	        fprintf(outfile,"%24.18g\n",field->rho[index]);
+	        fprintf(outfile,"%24.18g\n",field->pres[index]);
+	        fprintf(outfile,"%24.18g\n",field->mu[index]);
 	    	for (l = 0; l < dim; ++l)
-	            fprintf(outfile,"%24.18g\n",
-			    cell_center[index].m_state.m_U[l]);
+	            fprintf(outfile,"%24.18g\n",vel[l][index]);
 	    }
 	    break;
 	case 3:
@@ -634,15 +631,11 @@ void Incompress_Solver_Smooth_Basis::printFrontInteriorStates(char *out_name)
 	    for (k = 0; k <= top_gmax[2]; ++k)
 	    {
 		index = d_index3d(i,j,k,top_gmax);
-	        fprintf(outfile,"%24.18g\n",
-			cell_center[index].m_state.m_rho);
-	        fprintf(outfile,"%24.18g\n",
-			cell_center[index].m_state.m_P);
-	        fprintf(outfile,"%24.18g\n",
-			cell_center[index].m_state.m_mu);
+	        fprintf(outfile,"%24.18g\n",field->rho[index]);
+	        fprintf(outfile,"%24.18g\n",field->pres[index]);
+	        fprintf(outfile,"%24.18g\n",field->mu[index]);
 	    	for (l = 0; l < dim; ++l)
-	            fprintf(outfile,"%24.18g\n",
-			    cell_center[index].m_state.m_U[l]);
+	            fprintf(outfile,"%24.18g\n",vel[l][index]);
 	    }
 	}
 	fclose(outfile);
@@ -653,6 +646,7 @@ void Incompress_Solver_Smooth_Basis::readFrontInteriorStates(char *restart_name)
 	FILE *infile;
 	int i,j,k,l,index;
 	char fname[100];
+	double **vel = field->vel;
 
 
 	m_rho[0] = iFparams->rho1;		
@@ -691,11 +685,11 @@ void Incompress_Solver_Smooth_Basis::readFrontInteriorStates(char *restart_name)
 	    for (j = 0; j <= top_gmax[1]; ++j)
 	    {
 		index = d_index2d(i,j,top_gmax);
-	    	fscanf(infile,"%lf",&cell_center[index].m_state.m_rho);
-	    	fscanf(infile,"%lf",&cell_center[index].m_state.m_P);
-	    	fscanf(infile,"%lf",&cell_center[index].m_state.m_mu);
+	    	fscanf(infile,"%lf",&field->rho[index]);
+	    	fscanf(infile,"%lf",&field->pres[index]);
+	    	fscanf(infile,"%lf",&field->mu[index]);
 		for (l = 0; l < dim; ++l)
-	    	    fscanf(infile,"%lf",&cell_center[index].m_state.m_U[l]);
+	    	    fscanf(infile,"%lf",&vel[l][index]);
 	    }
 	    break;
 	case 3:
@@ -704,11 +698,11 @@ void Incompress_Solver_Smooth_Basis::readFrontInteriorStates(char *restart_name)
 	    for (k = 0; k <= top_gmax[2]; ++k)
 	    {
 		index = d_index3d(i,j,k,top_gmax);
-	    	fscanf(infile,"%lf",&cell_center[index].m_state.m_rho);
-	    	fscanf(infile,"%lf",&cell_center[index].m_state.m_P);
-	    	fscanf(infile,"%lf",&cell_center[index].m_state.m_mu);
+	    	fscanf(infile,"%lf",&field->rho[index]);
+	    	fscanf(infile,"%lf",&field->pres[index]);
+	    	fscanf(infile,"%lf",&field->mu[index]);
 		for (l = 0; l < dim; ++l)
-	    	    fscanf(infile,"%lf",&cell_center[index].m_state.m_U[l]);
+	    	    fscanf(infile,"%lf",&vel[l][index]);
 	    }
 	}
 	fclose(infile);
@@ -1166,7 +1160,6 @@ void Incompress_Solver_Smooth_Basis::initMovieVariables()
 void Incompress_Solver_Smooth_Basis::computeSubgridModel(void)
 {
         int i,j,k,index,index0,index1,index2,index3,index4,size;  
-        L_STATE state;
         double *u, *v;
         double ulx,urx,vlx,vrx;
         double uly,ury,vly,vry;
@@ -1184,6 +1177,7 @@ void Incompress_Solver_Smooth_Basis::computeSubgridModel(void)
         int    ii,jj,iii,jjj;
         const int nn = pp_numnodes();
         num_r = (int)(((top_U[1]-top_L[1])/top_h[1])+1);
+	double **vel = field->vel;
 
         size = (top_gmax[0]+1)*(top_gmax[1]+1);
         FT_VectorMemoryAlloc((POINTER*)&u,size,sizeof(double));
@@ -1219,8 +1213,8 @@ void Incompress_Solver_Smooth_Basis::computeSubgridModel(void)
         for (i = 0; i <= top_gmax[0]; i++)
         {
             index = d_index2d(i,j,top_gmax);
-            u[index] = cell_center[index].m_state.m_U[0];
-            v[index] = cell_center[index].m_state.m_U[1];
+            u[index] = vel[0][index];
+            v[index] = vel[1][index];
             getRectangleCenter(index, coords);
             co_coords_y[index] = coords[1] + (top_h[1]/2.0);
         }
@@ -1389,10 +1383,10 @@ void Incompress_Solver_Smooth_Basis::computeSubgridModel(void)
             index3 = d_index2d(i,j-1,top_gmax);
             index4 = d_index2d(i,j+1,top_gmax);
 
-            cell_center[index0].m_state.m_U[0] += -m_dt*(
+            vel[0][index0] += -m_dt*(
                               ((tau00[index2]-tau00[index1])/(2.0*top_h[0])) + 
                                 ((tau01[index4]-tau01[index3])/(2.0*top_h[1])));
-            cell_center[index0].m_state.m_U[1] += -m_dt*(
+            vel[1][index0] += -m_dt*(
                               ((tau10[index2]-tau10[index1])/(2.0*top_h[0])) + 
                               ((tau11[index4]-tau11[index3])/(2.0*top_h[1])));
         }
@@ -1473,6 +1467,7 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
         static int l = -1;
         static double lambda;
 	char dirname[256];
+	double **vel = field->vel;
 
 	if (front->step < sample->start_step || front->step > sample->end_step)
 	    return;
@@ -1516,9 +1511,9 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
             for (j = jmin; j <= jmax; ++j)
             {
                 index = d_index2d(i,j,top_gmax);
-                var1 = cell_center[index].m_state.m_U[0];
+                var1 = vel[0][index];
                 index = d_index2d(i+1,j,top_gmax);
-                var2 = cell_center[index].m_state.m_U[0];
+                var2 = vel[0][index];
                 var = (var1 + lambda*var2) / (1.0 + lambda);
                 getRectangleCenter(index,coords);
                 fprintf(sfile,"%20.14f   %20.14f\n",coords[1],var);
@@ -1529,9 +1524,9 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
             for (j = jmin; j <= jmax; ++j)
             {
                 index = d_index2d(i,j,top_gmax);
-                var1 = cell_center[index].m_state.m_U[1];
+                var1 = vel[1][index];
                 index = d_index2d(i+1,j,top_gmax);
-                var2 = cell_center[index].m_state.m_U[1];
+                var2 = vel[1][index];
                 var = (var1 + lambda*var2) / (1.0 + lambda);
                 getRectangleCenter(index,coords);
                 fprintf(sfile,"%20.14f   %20.14f\n",coords[1],var);
@@ -1542,9 +1537,9 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
             for (j = jmin; j <= jmax; ++j)
             {
                 index = d_index2d(i,j,top_gmax);
-                var1 = cell_center[index].m_state.m_P;
+                var1 = field->pres[index];
                 index = d_index2d(i+1,j,top_gmax);
-                var2 = cell_center[index].m_state.m_P;
+                var2 = field->pres[index];
                 var = (var1 + lambda*var2) / (1.0 + lambda);
                 getRectangleCenter(index,coords);
                 fprintf(sfile,"%20.14f   %20.14f\n",coords[1],var);
@@ -1576,9 +1571,9 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
             for (i = imin; i <= imax; ++i)
             {
                 index = d_index2d(i,j,top_gmax);
-                var1 = cell_center[index].m_state.m_U[0];
+                var1 = vel[0][index];
                 index = d_index2d(i,j+1,top_gmax);
-                var2 = cell_center[index].m_state.m_U[0];
+                var2 = vel[0][index];
                 var = (var1 + lambda*var2) / (1.0 + lambda);
                 getRectangleCenter(index,coords);
                 fprintf(sfile,"%20.14f   %20.14f\n",coords[0],var);
@@ -1589,9 +1584,9 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
             for (i = imin; i <= imax; ++i)
             {
                 index = d_index2d(i,j,top_gmax);
-                var1 = cell_center[index].m_state.m_U[1];
+                var1 = vel[1][index];
                 index = d_index2d(i,j+1,top_gmax);
-                var2 = cell_center[index].m_state.m_U[1];
+                var2 = vel[1][index];
                 var = (var1 + lambda*var2) / (1.0 + lambda);
                 getRectangleCenter(index,coords);
                 fprintf(sfile,"%20.14f   %20.14f\n",coords[0],var);
@@ -1602,9 +1597,9 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
             for (i = imin; i <= imax; ++i)
             {
                 index = d_index2d(i,j,top_gmax);
-                var1 = cell_center[index].m_state.m_P;
+                var1 = field->pres[index];
                 index = d_index2d(i,j+1,top_gmax);
-                var2 = cell_center[index].m_state.m_P;
+                var2 = field->pres[index];
                 var = (var1 + lambda*var2) / (1.0 + lambda);
                 getRectangleCenter(index,coords);
                 fprintf(sfile,"%20.14f   %20.14f\n",coords[0],var);
@@ -1620,11 +1615,14 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 	boolean status;
 	int i,j,l,index,sign;
 	COMPONENT comp;
-	double t[MAXD],*force;
+	double t[MAXD],force[MAXD];
 	double center[MAXD],point[MAXD],H,D;
 	HYPER_SURF_ELEMENT *hse;
 	HYPER_SURF *hs;
 	int range = (int)(m_smoothing_radius+1);
+	double **f_surf = field->f_surf;
+	double *mu = field->mu;
+	double *rho = field->rho;
 
 	for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
@@ -1637,7 +1635,6 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 	    status = FT_FindNearestIntfcPointInRange(front,comp,center,point,
 				t,&hse,&hs,range);
 
-	    force = cell_center[index].m_state.f_surf;
 	    for (l = 0; l < dim; ++l) force[l] = 0.0;
 
 	    if (status == YES && 
@@ -1648,17 +1645,16 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 		sign = (comp == m_comp[0]) ? -1 : 1;
 		D = smoothedDeltaFunction(center,point);
 		H = smoothedStepFunction(center,point,sign);
-		cell_center[index].m_state.m_mu = m_mu[0]  + 
-					(m_mu[1]-m_mu[0])*H;
-		cell_center[index].m_state.m_rho = m_rho[0] + 
-					(m_rho[1]-m_rho[0])*H; 
+		mu[index] = m_mu[0] + (m_mu[1]-m_mu[0])*H;
+		rho[index] = m_rho[0] + (m_rho[1]-m_rho[0])*H; 
 		
 		if (m_sigma != 0.0 && D != 0.0)
 		{
 		    surfaceTension(center,hse,hs,force,m_sigma);
 		    for (l = 0; l < dim; ++l)
 		    {
-			force[l] /= -cell_center[index].m_state.m_rho;
+			force[l] /= -rho[index];
+			f_surf[l][index] = force[l];
 		    }
 		}
 	    }
@@ -1667,12 +1663,12 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 		switch (comp)
 		{
 		case LIQUID_COMP1:
-		    cell_center[index].m_state.m_mu = m_mu[0];
-		    cell_center[index].m_state.m_rho = m_rho[0];
+		    mu[index] = m_mu[0];
+		    rho[index] = m_rho[0];
 		    break;
 		case LIQUID_COMP2:
-		    cell_center[index].m_state.m_mu = m_mu[1];
-		    cell_center[index].m_state.m_rho = m_rho[1];
+		    mu[index] = m_mu[1];
+		    rho[index] = m_rho[1];
 		    break;
 		}
 	    }
@@ -1681,27 +1677,27 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
         for (i = imin; i <= imax; i++)
 	{	
 	    index  = d_index2d(i,j,top_gmax);
-	    array[index] = cell_center[index].m_state.m_mu;
+	    array[index] = mu[index];
 	}
 	scatMeshArray();
 	for (j = 0; j <= top_gmax[1]; j++)
 	for (i = 0; i <= top_gmax[0]; i++)
 	{	
 	    index  = d_index2d(i,j,top_gmax);
-	    cell_center[index].m_state.m_mu = array[index];
+	    mu[index] = array[index];
 	}
 	for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
 	{
 	    index  = d_index2d(i,j,top_gmax);
-	    array[index] = cell_center[index].m_state.m_rho;
+	    array[index] = rho[index];
 	}
 	scatMeshArray();
 	for (j = 0; j <= top_gmax[1]; j++)
 	for (i = 0; i <= top_gmax[0]; i++)
 	{
 	    index  = d_index2d(i,j,top_gmax);
-	    cell_center[index].m_state.m_rho = array[index];
+	    rho[index] = array[index];
 	}
 	for (l = 0; l < dim; ++l)
 	{
@@ -1709,14 +1705,14 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
             for (i = imin; i <= imax; i++)
 	    {
 	    	index  = d_index2d(i,j,top_gmax);
-	    	array[index] = cell_center[index].m_state.f_surf[l];
+	    	array[index] = f_surf[l][index];
 	    }
 	    scatMeshArray();
 	    for (j = 0; j <= top_gmax[1]; j++)
 	    for (i = 0; i <= top_gmax[0]; i++)
 	    {
 	    	index  = d_index2d(i,j,top_gmax);
-	    	cell_center[index].m_state.f_surf[l] = array[index];
+	    	f_surf[l][index] = array[index];
 	    }
 	}
 }	/* end setSmoothedProperties2d */
@@ -1792,6 +1788,7 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
 	double *sample_line = sample->sample_coords;
 	char *out_name = front-> out_name;
 	char dirname[256];
+	double **vel = field->vel;
 
 	if (front->step < sample->start_step || front->step > sample->end_step)
 	    return;
@@ -1859,15 +1856,15 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     for (k = kmin; k <= kmax; ++k)
                     {
                         index = d_index3d(i,j,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[0];
+                        velo1 = vel[0][index];
                         index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[0];
+                        velo2 = vel[0][index];
                         velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         index = d_index3d(i,j+1,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[0];
+                        velo1 = vel[0][index];
                         index = d_index3d(i+1,j+1,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[0];
+                        velo2 = vel[0][index];
                         velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
@@ -1881,15 +1878,15 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     for (k = kmin; k <= kmax; ++k)
                     {
                         index = d_index3d(i,j,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[1];
+                        velo1 = vel[1][index];
                         index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[1];
+                        velo2 = vel[1][index];
                         velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         index = d_index3d(i,j+1,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[1];
+                        velo1 = vel[1][index];
                         index = d_index3d(i+1,j+1,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[1];
+                        velo2 = vel[1][index];
                         velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
@@ -1903,15 +1900,15 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     for (k = kmin; k <= kmax; ++k)
                     {
                         index = d_index3d(i,j,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[2];
+                        velo1 = vel[2][index];
                         index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[2];
+                        velo2 = vel[2][index];
                         velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         index = d_index3d(i,j+1,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[2];
+                        velo1 = vel[2][index];
                         index = d_index3d(i+1,j+1,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[2];
+                        velo2 = vel[2][index];
                         velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
@@ -1925,15 +1922,15 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     for (k = kmin; k <= kmax; ++k)
                     {
                         index = d_index3d(i,j,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_P;
+                        velo1 = field->pres[index];
                         index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_P;
+                        velo2 = field->pres[index];
                         velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         index = d_index3d(i,j+1,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_P;
+                        velo1 = field->pres[index];
                         index = d_index3d(i+1,j+1,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_P;
+                        velo2 = field->pres[index];
                         velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
@@ -1973,15 +1970,15 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     for (j = jmin; j <= jmax; ++j)
                     {
                         index = d_index3d(i,j,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[0];
+                        velo1 = vel[0][index];
                         index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[0];
+                        velo2 = vel[0][index];
                         velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[0];
+                        velo1 = vel[0][index];
                         index = d_index3d(i+1,j,k+1,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[0];
+                        velo2 = vel[0][index];
                         velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
@@ -1995,15 +1992,15 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     for (j = jmin; j <= jmax; ++j)
                     {
                         index = d_index3d(i,j,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[1];
+                        velo1 = vel[1][index];
                         index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[1];
+                        velo2 = vel[1][index];
                         velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[1];
+                        velo1 = vel[1][index];
                         index = d_index3d(i+1,j,k+1,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[1];
+                        velo2 = vel[1][index];
                         velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
@@ -2017,15 +2014,15 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     for (j = jmin; j <= jmax; ++j)
                     {
                         index = d_index3d(i,j,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[2];
+                        velo1 = vel[2][index];
                         index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[2];
+                        velo2 = vel[2][index];
                         velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[2];
+                        velo1 = vel[2][index];
                         index = d_index3d(i+1,j,k+1,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[2];
+                        velo2 = vel[2][index];
                         velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
@@ -2039,15 +2036,15 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     for (j = jmin; j <= jmax; ++j)
                     {
                         index = d_index3d(i,j,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_P;
+                        velo1 = field->pres[index];
                         index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_P;
+                        velo2 = field->pres[index];
                         velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = cell_center[index].m_state.m_P;
+                        velo1 = field->pres[index];
                         index = d_index3d(i+1,j,k+1,top_gmax);
-                        velo2 = cell_center[index].m_state.m_P;
+                        velo2 = field->pres[index];
                         velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
@@ -2116,15 +2113,15 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     for (i = imin; i <= imax; ++i)
                     {
                         index = d_index3d(i,j,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[0];
+                        velo1 = vel[0][index];
                         index = d_index3d(i,j+1,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[0];
+                        velo2 = vel[0][index];
                         velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[0];
+                        velo1 = vel[0][index];
                         index = d_index3d(i,j+1,k+1,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[0];
+                        velo2 = vel[0][index];
                         velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
@@ -2138,15 +2135,15 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     for (i = imin; i <= imax; ++i)
                     {
                         index = d_index3d(i,j,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[1];
+                        velo1 = vel[1][index];
                         index = d_index3d(i,j+1,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[1];
+                        velo2 = vel[1][index];
                         velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[1];
+                        velo1 = vel[1][index];
                         index = d_index3d(i,j+1,k+1,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[1];
+                        velo2 = vel[1][index];
                         velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
@@ -2160,15 +2157,15 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     for (i = imin; i <= imax; ++i)
                     {
                         index = d_index3d(i,j,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[2];
+                        velo1 = vel[2][index];
                         index = d_index3d(i,j+1,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[2];
+                        velo2 = vel[2][index];
                         velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = cell_center[index].m_state.m_U[2];
+                        velo1 = vel[2][index];
                         index = d_index3d(i,j+1,k+1,top_gmax);
-                        velo2 = cell_center[index].m_state.m_U[2];
+                        velo2 = vel[2][index];
                         velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
@@ -2182,15 +2179,15 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     for (i = imin; i <= imax; ++i)
                     {
                         index = d_index3d(i,j,k,top_gmax);
-                        velo1 = cell_center[index].m_state.m_P;
+                        velo1 = field->pres[index];
                         index = d_index3d(i,j+1,k,top_gmax);
-                        velo2 = cell_center[index].m_state.m_P;
+                        velo2 = field->pres[index];
                         velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = cell_center[index].m_state.m_P;
+                        velo1 = field->pres[index];
                         index = d_index3d(i,j+1,k+1,top_gmax);
-                        velo2 = cell_center[index].m_state.m_P;
+                        velo2 = field->pres[index];
                         velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
                         velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
@@ -2263,44 +2260,49 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
 	boolean status;
 	int i,j,k,l,index,sign; 
 	COMPONENT comp;
-        double t[MAXD],*force;
+        double t[MAXD],force[MAXD];
 	double center[MAXD],point[MAXD],H,D;
 	HYPER_SURF_ELEMENT *hse;
         HYPER_SURF *hs;
+	double **f_surf = field->f_surf;
+	double *mu = field->mu;
+	double *rho = field->rho;
 
+	printf("Before setSmoothedProperties()\n");
 	for (k = kmin; k <= kmax; k++)
 	for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
 	{
 	    index  = d_index3d(i,j,k,top_gmax);			
 	    comp  = cell_center[index].comp;
+	    if (i == 14 && j == 26)
+                printf("vz[%d] = %20.14f rho[%d] = %20.14f\n",k,
+                                field->vel[2][index],k,rho[index]);
 	    if (!ifluid_comp(comp)) continue;
 
 	    getRectangleCenter(index, center);
             status = FT_FindNearestIntfcPointInRange(front,comp,center,point,
 				t,&hse,&hs,(int)m_smoothing_radius);
-	    force = cell_center[index].m_state.f_surf;
             for (l = 0; l < dim; ++l) force[l] = 0.0;
 
 	    if (status  == YES && 
 		ifluid_comp(positive_component(hs)) &&
-                ifluid_comp(negative_component(hs)) &&
+                ifluid_comp(negative_component(hs)) && 
 		positive_component(hs) != negative_component(hs))
 	    {
 		sign = (comp == m_comp[0]) ? -1 : 1;
                 D = smoothedDeltaFunction(center,point);
                 H = smoothedStepFunction(center,point,sign);
-                cell_center[index].m_state.m_mu = m_mu[0]  +
-                                        (m_mu[1]-m_mu[0])*H;
-                cell_center[index].m_state.m_rho = m_rho[0] +
-                                        (m_rho[1]-m_rho[0])*H;
+                mu[index] = m_mu[0] + (m_mu[1]-m_mu[0])*H;
+                rho[index] = m_rho[0] + (m_rho[1]-m_rho[0])*H;
 
                 if (m_sigma != 0.0 && D != 0.0)
                 {
                     surfaceTension(center,hse,hs,force,m_sigma);
                     for (l = 0; l < dim; ++l)
                     {
-                        force[l] /= -cell_center[index].m_state.m_rho;
+                        force[l] /= -rho[index];
+			f_surf[l][index] = force[l];
                     }
                 }
 	    }
@@ -2309,12 +2311,12 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
 		switch (comp)
 		{
 		case LIQUID_COMP1:
-		    cell_center[index].m_state.m_mu = m_mu[0];
-		    cell_center[index].m_state.m_rho = m_rho[0];
+		    mu[index] = m_mu[0];
+		    rho[index] = m_rho[0];
 		    break;
 		case LIQUID_COMP2:
-		    cell_center[index].m_state.m_mu = m_mu[1];
-		    cell_center[index].m_state.m_rho = m_rho[1];
+		    mu[index] = m_mu[1];
+		    rho[index] = m_rho[1];
 		    break;
 		}
 	    }
@@ -2324,7 +2326,7 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
         for (i = imin; i <= imax; i++)
 	{	
 	    index  = d_index3d(i,j,k,top_gmax);
-	    array[index] = cell_center[index].m_state.m_mu;
+	    array[index] = mu[index];
 	}
 	scatMeshArray();
 	for (k = 0; k <= top_gmax[2]; k++)
@@ -2332,14 +2334,14 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
 	for (i = 0; i <= top_gmax[0]; i++)
 	{	
 	    index  = d_index3d(i,j,k,top_gmax);
-	    cell_center[index].m_state.m_mu = array[index];
+	    mu[index] = array[index];
 	}
 	for (k = kmin; k <= kmax; k++)
 	for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
 	{
 	    index  = d_index3d(i,j,k,top_gmax);
-	    array[index] = cell_center[index].m_state.m_rho;
+	    array[index] = rho[index];
 	}
 	scatMeshArray();
 	for (k = 0; k <= top_gmax[2]; k++)
@@ -2347,7 +2349,7 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
 	for (i = 0; i <= top_gmax[0]; i++)
 	{
 	    index  = d_index3d(i,j,k,top_gmax);
-	    cell_center[index].m_state.m_rho = array[index];
+	    rho[index] = array[index];
 	}
 	for (l = 0; l < dim; ++l)
 	{
@@ -2356,7 +2358,7 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
             for (i = imin; i <= imax; i++)
 	    {
 	    	index  = d_index3d(i,j,k,top_gmax);
-	    	array[index] = cell_center[index].m_state.f_surf[l];
+	    	array[index] = f_surf[l][index];
 	    }
 	    scatMeshArray();
 	    for (k = 0; k <= top_gmax[2]; k++)
@@ -2364,23 +2366,10 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
 	    for (i = 0; i <= top_gmax[0]; i++)
 	    {
 	    	index  = d_index3d(i,j,k,top_gmax);
-	    	cell_center[index].m_state.f_surf[l] = array[index];
+	    	f_surf[l][index] = array[index];
 	    }
 	}
 }	/* end setSmoothedProperties in 3D */
-
-void Incompress_Solver_Smooth_Basis::solveTest(const char *msg)
-{
-        // This function is reserved for various debugging tests.
-        (void) printf("%s\n",msg);
-        int i,j,k,index;
-        i = 14;         j = 26;
-        for (k = kmin; k <= kmax; ++k)
-        {
-            index = d_index3d(i,j,k,top_gmax);
-            printf("vz[%d] = %20.14f\n",k,cell_center[index].m_state.m_U[2]);
-        }
-}       /* end solveTest */
 
 // Flux of Riemann solution of Burgers equation u_t + uu_x = 0
 

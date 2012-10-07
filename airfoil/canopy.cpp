@@ -1836,6 +1836,9 @@ void Incompress_Solver_Smooth_Basis::applicationSetStates(void)
 	HYPER_SURF_ELEMENT *hse;
 	HYPER_SURF *hs;
 	double dist;
+	double **vel = field->vel;
+	double *pres = field->pres;
+	double *phi = field->phi;
 	
 	setDomain();
 	for (i = 0; i < size; i++)
@@ -1890,20 +1893,17 @@ void Incompress_Solver_Smooth_Basis::applicationSetStates(void)
 
 		if (debugging("set_crossed_state"))
 		{
-		    printf("Old velocity  : %f %f %f\n",
-				cell_center[id].m_state.m_U[0],
-				cell_center[id].m_state.m_U[1],
-				cell_center[id].m_state.m_U[2]);
+		    printf("Old velocity  : %f %f %f\n",vel[0][id],
+				vel[1][id],vel[2][id]);
 		    printf("Intfc velocity: %f %f %f\n",state.vel[0],
 			state.vel[1],state.vel[2]);
 		    printf("Old pressure   = %f  Old phi   = %f\n",
-				cell_center[id].m_state.m_P,
-				cell_center[id].m_state.m_phi);
+				pres[id],phi[id]);
 		    printf("Intfc pressure = %f  Intfc phi = %f\n",
 				state.pres,state.phi);
 		}
 		for (j = 0; j < dim; ++j)
-		    cell_center[id].m_state.m_U[j] = state.vel[j];
+		    vel[j][id] = state.vel[j];
 	    }
         }
 	FT_FreeGridIntfc(front);

@@ -43,7 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 static void airfoil_driver(Front*,Incompress_Solver_Smooth_Basis*);
 static void print_hyper_surf_quality(Front*);
 static void optimizeElasticMesh(Front*);
-static void zero_state(COMPONENT,double*,L_STATE&,int,IF_PARAMS*);
+static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void reset_front_velocity(Front*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
@@ -598,13 +598,15 @@ static void print_hyper_surf_quality(
 static void zero_state(
         COMPONENT comp,
         double *coords,
-        L_STATE& state,
+	IF_FIELD *field,
+	int index,
         int dim,
         IF_PARAMS *iFparams)
 {
         int i;
         for (i = 0; i < dim; ++i)
-            state.m_U[i] = 0.0;
+            field->vel[i][index] = 0.0;
+        field->pres[index] = 0.0;
 }       /* end zero_state */
 
 static void reset_front_velocity(Front *front)
