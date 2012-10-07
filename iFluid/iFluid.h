@@ -233,6 +233,8 @@ public:
 	void applicationSetComponent();
 	void applicationSetStates();
 
+	//For debugging test
+        void solveTest(const char *msg);
 
 	//User interface
 	virtual void setInitialCondition(void) = 0;

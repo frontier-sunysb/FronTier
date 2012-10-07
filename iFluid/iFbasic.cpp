@@ -1642,7 +1642,8 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 
 	    if (status == YES && 
 		ifluid_comp(positive_component(hs)) &&
-		ifluid_comp(negative_component(hs)))
+		ifluid_comp(negative_component(hs)) &&
+		positive_component(hs) != negative_component(hs))
 	    {
 		sign = (comp == m_comp[0]) ? -1 : 1;
 		D = smoothedDeltaFunction(center,point);
@@ -2283,7 +2284,8 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
 
 	    if (status  == YES && 
 		ifluid_comp(positive_component(hs)) &&
-                ifluid_comp(negative_component(hs)))
+                ifluid_comp(negative_component(hs)) &&
+		positive_component(hs) != negative_component(hs))
 	    {
 		sign = (comp == m_comp[0]) ? -1 : 1;
                 D = smoothedDeltaFunction(center,point);
@@ -2366,6 +2368,19 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
 	    }
 	}
 }	/* end setSmoothedProperties in 3D */
+
+void Incompress_Solver_Smooth_Basis::solveTest(const char *msg)
+{
+        // This function is reserved for various debugging tests.
+        (void) printf("%s\n",msg);
+        int i,j,k,index;
+        i = 14;         j = 26;
+        for (k = kmin; k <= kmax; ++k)
+        {
+            index = d_index3d(i,j,k,top_gmax);
+            printf("vz[%d] = %20.14f\n",k,cell_center[index].m_state.m_U[2]);
+        }
+}       /* end solveTest */
 
 // Flux of Riemann solution of Burgers equation u_t + uu_x = 0
 

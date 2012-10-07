@@ -10,7 +10,7 @@ static double (*getStateVel[3])(POINTER) = {getStateXvel,getStateYvel,
 
 void Incompress_Solver_Smooth_2D_Cartesian::computeAdvection(void)
 {
-	int i,j,index;
+	int i,j,l,index;
 	static HYPERB_SOLVER hyperb_solver(*front);
 
 	static double *rho;
@@ -24,6 +24,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeAdvection(void)
 	{
 	    index = d_index2d(i,j,top_gmax);
 	    rho[index] = cell_center[index].m_state.m_rho;
+	    for (l = 0; l < dim; ++l)
+                field->vel[l][index] = cell_center[index].m_state.m_U[l];
 	}
 	hyperb_solver.rho = rho;
 
