@@ -261,7 +261,6 @@ LOCAL	void	add_bdry_curve_to_hash_table(SURFACE*, SURFACE*, P_LINK*, int);
 LOCAL	void	copy_tris(SURFACE*, SURFACE*);
 LOCAL	void	fprint_tris_on_surface(FILE*,SURFACE*);
 LOCAL	void	fprint_triangle_numbers(FILE*, TRI*);
-LOCAL	void	reset_sort_status(INTERFACE*);
 LOCAL	void	reset_tri_points_at_bond(TRI*,BOND*);
 
 
@@ -360,6 +359,7 @@ EXPORT SURFACE *i_copy_surface(
 
 	user_copy_hyper_surf(Hyper_surf(news),Hyper_surf(s));
 	news->extra = s->extra;
+	Gindex(news) = Gindex(s);
 	debug_print("copy_surface","Left copy_surface\n");
 	return news;
 }		/*end i_copy_surface*/
@@ -2978,7 +2978,7 @@ EXPORT	boolean tris_on_side_of_bond_for_join(
 	return status;
 }		/*end tris_on_side_of_bond_for_join*/
 
-LOCAL void reset_sort_status(
+EXPORT void reset_sort_status(
 	INTERFACE	*intfc)
 {
 	SURFACE		**s;

@@ -17,6 +17,7 @@ void ELLIPTIC_SOLVER::set_solver_domain(void)
         top_comp = T->components;
         top_gmax = rgr->gmax;
 	top_h = rgr->h;
+	top_L = rgr->L;
 	if (first)
 	{
 	    first = NO;
@@ -124,7 +125,7 @@ void ELLIPTIC_SOLVER::solve1d(double *soln)
 	    aII = 0.0;
 	    for (l = 0; l < 2; ++l)
 	    {
-		if (num_nb < 1) break;
+		if (num_nb == 0) break;
 		status = (*findStateAtCrossing)(front,icoords,dir[l],comp,
                                 &intfc_state,&hs,crx_coords);
                 if (status == NO_PDE_BOUNDARY)
@@ -148,13 +149,14 @@ void ELLIPTIC_SOLVER::solve1d(double *soln)
 	     * handle such case. If we have better understanding, this should
 	     * be changed back.
 	     */
-	    if(num_nb >= 1)
+	    if(num_nb > 0)
 	    {
                 solver.Set_A(I,I,aII);
 	    }
             else
             {
 	
+		(void) printf("WARNING: isolated value!\n");
                 solver.Set_A(I,I,1.0);
 		rhs = soln[index];
             }
@@ -302,7 +304,7 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 	    aII = 0.0;
 	    for (l = 0; l < 4; ++l)
 	    {
-		if (num_nb < 2) break;
+		if (num_nb == 0) break;
 		status = (*findStateAtCrossing)(front,icoords,dir[l],comp,
                                 &intfc_state,&hs,crx_coords);
 		if (status == NO_PDE_BOUNDARY)
@@ -326,13 +328,13 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 	     * handle such case. If we have better understanding, this should
 	     * be changed back.
 	     */
-	    if(num_nb >= 2)
+	    if(num_nb > 0)
 	    {
                 solver.Set_A(I,I,aII);
 	    }
             else
             {
-	
+		(void) printf("WARNING: isolated value!\n");
                 solver.Set_A(I,I,1.0);
 		rhs = soln[index];
             }
@@ -484,7 +486,7 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 	    aII = 0.0;
 	    for (l = 0; l < 6; ++l)
 	    {
-		if (num_nb < 2) break;
+		if (num_nb == 0) break;
 		status = (*findStateAtCrossing)(front,icoords,dir[l],comp,
                                 &intfc_state,&hs,crx_coords);
                 if (status == NO_PDE_BOUNDARY)
@@ -508,14 +510,13 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 	     * handle such case. If we have better understanding, this should
 	     * be changed back.
 	     */
-	    if(num_nb >= 2)
+	    if(num_nb > 0)
 	    {
                 solver.Set_A(I,I,aII);
 	    }
             else
             {
-	
-		printf("WARNING isolated value\n");
+		(void) printf("WARNING: isolated value!\n");
                 solver.Set_A(I,I,1.0);
 		rhs = soln[index];
             }

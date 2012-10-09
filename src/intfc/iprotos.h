@@ -538,6 +538,7 @@ IMPORT  void    print_wall_crx(const char*,int*,int,int,CRXING*);
 IMPORT  void    print_wall_curve_crx(const char*,int*,int,int,CRXING*);
 IMPORT  void    print_wall_curve_crx0(const char*,POINT *, int,CRXING*);
 IMPORT  boolean same_bond_tri_orient(BOND*,TRI*,BOND*,TRI*);
+IMPORT  void    reset_sort_status(INTERFACE*);
 
 /*	iprt3d.c*/
 IMPORT	void	print_c_bond(C_BOND*,INTERFACE*);

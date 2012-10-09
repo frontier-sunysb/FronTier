@@ -1110,13 +1110,20 @@ extern "C" {
 				int n6,
 				int size);
 
+/*! \fn void FT_SetGlobalIndex(Front *front)
+ *  \ingroup INITIALIZATION
+    \brief This function set global index for all point in the interface.
+    \param n @b in Number of items whose memory are to be freed.
+    \param ... @b Pointers to the addresses of these items.
+ */
+   IMPORT  void FT_SetGlobalIndex(Front *front);
+
 /*! \fn void FT_FreeThese(int n, ...)
  *  \ingroup MEMORY
     \brief This function free memory of items allocated by FT_...MemoryAlloc()
      functions. The number of arguments is flexible, but needs to equal to
      the input integer n.
-    \param n @b in Number of items whose memory are to be freed.
-    \param ... @b Pointers to the addresses of these items.
+    \param front @b inout front in which the interfac global index is to be set.
  */
    IMPORT  void FT_FreeThese(int n,...);
 

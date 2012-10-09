@@ -2211,6 +2211,7 @@ EXPORT CURVE *i_copy_curve(
 	    new_curve->redist_order = curve->redist_order;
 	}
 	new_curve->extra = curve->extra;
+	Gindex(new_curve) = Gindex(curve);
 	return new_curve;
 }		/*end i_copy_curve*/
 
@@ -2862,6 +2863,8 @@ LOCAL  CURVE **split_curve3d(
 	}
 	curves[1]->first = bond->next;
 	curves[1]->last = curve->last;
+	Gindex(curves[0]) = Gindex(curve);
+	Gindex(curves[1]) = Gindex(curve);
 	
 	if (user_split_curve(is_a_node,p,bond,curve,curves) != YES)
 	{
@@ -3375,6 +3378,7 @@ EXPORT POINT *i_copy_point(
 
 	Point_flags(newp) = Point_flags(p);
 	Boundary(newp) = Boundary(p);
+	Gindex(newp) = Gindex(p);
 
 	if (newp == NULL)
 	    return NULL;

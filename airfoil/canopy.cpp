@@ -665,24 +665,9 @@ extern void fourth_order_parachute_propagate(
 	    	compute_canopy_accel(new_geom_set,f_old,x_old,v_old);
 	    	compute_string_accel(new_geom_set,f_old,x_old,v_old);
 	    }
-	    else
-	    {
-	    	if (dt == 0.0)
-		{
-	    	    for (i = 0; i < size; ++i)
-            	    for (j = 0; j < 3; ++j)
-		    	v_end[i][j] = 0.0;
-		}
-		else
-		{
-	    	    for (i = 0; i < size; ++i)
-            	    for (j = 0; j < 3; ++j)
-		    	v_end[i][j] = (x_new[i][j] - x_old[i][j])/dt;
-		}
-	    }
 	}
 	compute_center_of_mass_velo(new_geom_set);
-	set_canopy_velocity(new_geom_set,v_end);
+	set_canopy_velocity(new_geom_set,v_new);
 
 	if (debugging("trace"))
 	    (void) printf("Leaving fourth_order_parachute_propagate()\n");
@@ -1602,8 +1587,8 @@ static void set_canopy_velocity(
 		nor_speed = scalar_product(vel,nor,dim);
 		for (j = 0; j < 3; ++j)
 		{
-		    sl->vel[j] = nor_speed*nor[j];
-		    sr->vel[j] = nor_speed*nor[j];
+		    sl->vel[j] = sl->Impct[j] + nor_speed*nor[j];
+		    sr->vel[j] = sr->Impct[j] + nor_speed*nor[j];
 	    	    FT_RecordMaxFrontSpeed(j,sl->vel[j],NULL,Coords(p),front);
 		}
 	    	FT_RecordMaxFrontSpeed(3,Mag3d(sl->vel),NULL,Coords(p),front);
@@ -1642,7 +1627,7 @@ static void set_canopy_velocity(
 			    crds_max[j] = Coords(p)[j];
 		    }
                     for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
+		    	sl->vel[j] = sr->vel[j] = sl->Impct[j] + nor_speed*nor[j];
 		}
             }
             for (c = node->in_curves; c && *c; ++c)
@@ -1666,7 +1651,7 @@ static void set_canopy_velocity(
 			    crds_max[j] = Coords(p)[j];
 		    }
                     for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
+		    	sl->vel[j] = sr->vel[j] = sl->Impct[j] + nor_speed*nor[j];
 		}
             }
 	    n++;
@@ -1695,7 +1680,7 @@ static void set_canopy_velocity(
 			crds_max[j] = Coords(p)[j];
 		}
                 for (j = 0; j < dim; ++j)
-		    sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
+		    sl->vel[j] = sr->vel[j] = sl->Impct[j] + nor_speed*nor[j];
             }
             for (c = node->in_curves; c && *c; ++c)
             {
@@ -1716,7 +1701,7 @@ static void set_canopy_velocity(
 			crds_max[j] = Coords(p)[j];
 		}
                 for (j = 0; j < dim; ++j)
-		    sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
+		    sl->vel[j] = sr->vel[j] = sl->Impct[j] + nor_speed*nor[j];
             }
 	    n++;
 	}
@@ -1737,7 +1722,7 @@ static void set_canopy_velocity(
 		    vel = v[n];
 		    nor_speed = scalar_product(vel,nor,dim);
                     for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
+		    	sl->vel[j] = sr->vel[j] = sl->Impct[j] + nor_speed*nor[j];
             	}
             	n++;
             }
@@ -1760,7 +1745,7 @@ static void set_canopy_velocity(
 		    vel = v[n];
 		    nor_speed = scalar_product(vel,nor,dim);
                     for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = nor_speed*nor[j];
+		    	sl->vel[j] = sr->vel[j] = sl->Impct[j] + nor_speed*nor[j];
             	}
             	n++;
             }

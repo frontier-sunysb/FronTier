@@ -510,3 +510,100 @@ static	void backward_curve_seg_len_constr(
 	}
 	return;
 }		/*end backward_curve_seg_len_constr*/
+
+EXPORT	void FT_SetGlobalIndex(
+	Front *front)
+{
+	INTERFACE *intfc = front->interf;
+	RECT_GRID *gr = front->rect_grid;
+	SURFACE **s;
+	CURVE **c;
+	NODE **n;
+	TRI *t;
+	BOND *b;
+	POINT *p;
+	double *L = gr->L;
+	double *U = gr->U;
+	boolean is_subdomain_bdry[MAXD][2];
+	int i,j,iv,dim = gr->dim;
+	int gindex = 0;
+	int cindex = 0;
+	int sindex = 0;
+	boolean out_domain;
+
+	reset_sort_status(intfc);
+	for (i = 0; i < dim; ++i)
+	for (j = 0; j < 2; ++j)
+	{
+	    if (rect_boundary_type(intfc,i,j) == SUBDOMAIN_BOUNDARY)
+		is_subdomain_bdry[i][j] = YES;
+	    else
+		is_subdomain_bdry[i][j] = NO;
+	}
+
+	for (n = intfc->nodes; n && *n; ++n)
+	{
+	    p = (*n)->posn;
+	    if (sorted(p)) continue;
+	    sorted(p) = YES;
+	    out_domain = NO;
+	    for (i = 0; i < dim; ++i)
+	    {
+		if ((is_subdomain_bdry[i][0] && Coords(p)[i] < L[i]) ||
+		    (is_subdomain_bdry[i][1] && Coords(p)[i] >= U[i]))
+		    out_domain = YES;
+	    }
+	    if (out_domain) continue;
+	    Gindex(p) = gindex++;
+	}
+	for (c = intfc->curves; c && *c; ++c)
+	{
+	    for (b = (*c)->first; b != (*c)->last; b = b->next)
+	    {
+		p = b->end;
+	    	if (sorted(p)) continue;
+	    	sorted(p) = YES;
+	    	out_domain = NO;
+	    	for (i = 0; i < dim; ++i)
+	    	{
+		    if ((is_subdomain_bdry[i][0] && Coords(p)[i] < L[i]) ||
+		    	(is_subdomain_bdry[i][1] && Coords(p)[i] >= U[i]))
+		    	out_domain = YES;
+	    	}
+	    	if (out_domain) continue;
+	    	Gindex(p) = gindex++;
+	    }
+	}
+	cindex = 0;
+	for (c = intfc->curves; c && *c; ++c)
+	{
+	    Gindex(*c) = cindex++;
+	}
+
+	if (dim < 3) return;
+
+	for (s = intfc->surfaces; s && *s; ++s)
+	{
+	    for (t = first_tri(*s); !at_end_of_tri_list(t,*s); t = t->next)
+	    {
+		for (iv = 0; iv < 3; ++iv)
+		{
+		    p = Point_of_tri(t)[iv];
+	    	    if (sorted(p)) continue;
+	    	    sorted(p) = YES;
+		    out_domain = NO;
+		    for (i = 0; i < dim; ++i)
+		    {
+			if ((is_subdomain_bdry[i][0] && Coords(p)[i] < L[i]) ||
+			    (is_subdomain_bdry[i][1] && Coords(p)[i] >= U[i]))
+			    out_domain = YES;
+		    }
+		    if (out_domain) continue;
+		    Gindex(p) = gindex++;
+		}
+	    }
+	}
+	sindex = 0;
+	for (s = intfc->surfaces; s && *s; ++s)
+	    Gindex(*s) = sindex++;
+}	/* end FT_SetGlobalIndex */

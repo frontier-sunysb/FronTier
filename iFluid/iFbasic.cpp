@@ -2268,16 +2268,12 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
 	double *mu = field->mu;
 	double *rho = field->rho;
 
-	printf("Before setSmoothedProperties()\n");
 	for (k = kmin; k <= kmax; k++)
 	for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
 	{
 	    index  = d_index3d(i,j,k,top_gmax);			
 	    comp  = cell_center[index].comp;
-	    if (i == 14 && j == 26)
-                printf("vz[%d] = %20.14f rho[%d] = %20.14f\n",k,
-                                field->vel[2][index],k,rho[index]);
 	    if (!ifluid_comp(comp)) continue;
 
 	    getRectangleCenter(index, center);

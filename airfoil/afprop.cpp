@@ -383,62 +383,7 @@ extern void elastic_point_propagate(
 	double pp[MAXD],pm[MAXD],nor[MAXD],h;
 	double area_dens = af_params->area_dens;
 	double left_nor_speed,right_nor_speed;
-	double dv;
-	/*TMP*/
-	double r;
-	int j;
-	static double Z[20],R[21];
-	static int np[20],total_np;
-	static int step = 0;
-	static boolean first = YES;
-	static double min_lift,max_lift,ave_lift;
-	static double Ave_lift;
-
-
-	if (debugging("ave_lift"))
-	{
- 	    if (first)
-	    {
-	    	first = NO;
-	    	for (i = 0; i < 21; ++i)
-	    	{
-		    R[i] = i*5.0/20.0;
-		    printf("R[%d] = %f\n",i,R[i]);
-	    	}
-	    	for (i = 0; i < 20; ++i)
-	    	{
-		    Z[i] = 0.0;
-		    np[i] = 0;
-	    	}
-	    	max_lift = -HUGE;
-	    	min_lift = HUGE;
-	    	ave_lift = 0.0;
-	    	total_np = 0;
-	    	if (front->step == 2)
-		Ave_lift = ave_lift;
-	    	else
-		Ave_lift = 0.0;
-	    }
-	    if (step != front->step)
-	    {
-	    	step = front->step;
-	    	printf("Impact vs. radius:\n");
-	    	for (i = 0; i < 20; ++i)
-	    	{
-		    Z[i] /= (double)np[i];
-		    printf("%f  %f\n",R[i]+0.125,Z[i]);
-		    Z[i] = 0.0;
-		    np[i] = 0;
-	    	}
-	    	ave_lift /= (double)total_np;
-	    	printf("Max lift = %f  Min lift = %f  Ave lift = %f\n",
-			max_lift,min_lift,ave_lift);
-	    	max_lift = -HUGE;
-	    	min_lift = HUGE;
-	    	ave_lift = 0.0;
-	    	total_np = 0;
-	    }
-	}
+	double dv[MAXD];
 
 	if (af_params->no_fluid)
 	{
@@ -465,54 +410,17 @@ extern void elastic_point_propagate(
 			getStatePres,&newsl->pres,&sl->pres);
         FT_IntrpStateVarAtCoords(front,base_comp+1,pp,pres,
 			getStatePres,&newsr->pres,&sr->pres);
-	for (i = 0; i < dim; ++i)
-	{
-            FT_IntrpStateVarAtCoords(front,base_comp-1,pm,vel[i],
-			getStateVel[i],&newsl->vel[i],&sl->vel[i]);
-            FT_IntrpStateVarAtCoords(front,base_comp+1,pp,vel[i],
-			getStateVel[i],&newsr->vel[i],&sr->vel[i]);
-	}
-	left_nor_speed = scalar_product(newsl->vel,nor,dim);
-	right_nor_speed = scalar_product(newsr->vel,nor,dim);
-	for (i = 0; i < dim; ++i)
-	{
-	    newsl->vel[i] -= left_nor_speed*nor[i];
-	    newsr->vel[i] -= right_nor_speed*nor[i];
-	}
-
-	r = 0.0;
-	for (i = 0; i < dim-1; ++i)
-	    r += sqr(Coords(oldp)[i] - 7.0);
-	r = sqrt(r);
 
 	/* Impulse is incremented by the fluid pressure force */
 	for (i = 0; i < dim; ++i)
 	{
-	    dv = 0.0;
+	    dv[i] = 0.0;
 	    if (debugging("rigid_canopy"))
-		dv = 0.0;
-	    else if (debugging("ave_lift") && i == 2)
-		dv = Ave_lift*dt;
+		dv[i] = 0.0;
 	    else if (front->step > 5)
-		dv = (sl->pres - sr->pres)*nor[i]*dt/area_dens;
-	    newsr->Impct[i] = newsl->Impct[i] = sl->Impct[i] + dv;
-	    if (i == 2)
-	    {
-	    	for (j = 0; j < 20; ++j)
-		{
-		    if (R[j] < r && r < R[j+1])
-		    {
-			Z[j] += (sl->pres - sr->pres)*nor[i]/area_dens;
-			np[j]++;
-		    }
-		}
-		if (max_lift < (sl->pres - sr->pres)*nor[i]/area_dens)
-		    max_lift = (sl->pres - sr->pres)*nor[i]/area_dens;
-		if (min_lift > (sl->pres - sr->pres)*nor[i]/area_dens)
-		    min_lift = (sl->pres - sr->pres)*nor[i]/area_dens;
-		ave_lift += (sl->pres - sr->pres)*nor[i]/area_dens;
-		total_np++;
-	    }
+		dv[i] = (sl->pres - sr->pres)*nor[i]*dt/area_dens;
+	    newsr->Impct[i] = newsl->Impct[i] = sl->Impct[i] + dv[i];
+	    newsr->vel[i] = newsl->vel[i] = sl->vel[i];
 	}
 
 	/* Interpolating vorticity for the hyper surface point */

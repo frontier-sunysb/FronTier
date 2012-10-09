@@ -196,6 +196,7 @@ static  void airfoil_driver(
 	(void) printf("Frequency_of_redistribution(front,GENERAL_WAVE) = %d\n",
 		Frequency_of_redistribution(front,GENERAL_WAVE));
 
+	FT_SetGlobalIndex(front);
 	if (!RestartRun || ReSetTime)
 	{
 	    FT_ResetTime(front);

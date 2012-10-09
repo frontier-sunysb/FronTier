@@ -144,6 +144,7 @@ private:
         int dim;
         COMPONENT *top_comp;
 	double *top_h;
+	double *top_L;
         int *top_gmax;
 	int imin,jmin,kmin;
 	int imax,jmax,kmax;
@@ -180,6 +181,7 @@ private:
         int dim;
         COMPONENT *top_comp;
 	double *top_h;
+	double *top_L;
         int *top_gmax;
 	int imin,jmin,kmin;
 	int imax,jmax,kmax;

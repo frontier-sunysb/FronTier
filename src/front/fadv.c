@@ -2920,7 +2920,7 @@ LOCAL void propagate_surface_points(
              next_point(intfc_new,&newp,&newhse,&newhs))
         {
 	    /*if(Boundary_point(newp))*/
-	    if (Boundary_point(newp) && wave_type(oldhs) < 
+	    if (Boundary_point(newp) && wave_type(oldhs) != 
 			FIRST_PHYSICS_WAVE_TYPE)
 	    {
 		ft_assign(left_state(newp),left_state(oldp),front->sizest);

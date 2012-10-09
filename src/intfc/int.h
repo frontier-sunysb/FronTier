@@ -92,6 +92,7 @@ struct _POINT
 	double           vel[3];
 	boolean		crx;
 	int		indx;
+	long            global_index;
 };
 typedef struct _POINT POINT;
 
@@ -175,6 +176,7 @@ struct _CURVE
 	/* Quality indicators */
 	double min_bond_length;
 	double max_bond_length;
+	int global_index;
 };
 typedef struct _CURVE CURVE;
 
@@ -332,6 +334,7 @@ struct _SURFACE
 
 	int num_tri;
 	POINTER extra;
+	int global_index;
 };
 typedef struct _SURFACE SURFACE;
 
@@ -1078,6 +1081,7 @@ enum {
 
 #define Coords(p)	((p)->_coords)
 #define COORDS(P)	((P)._coords)
+#define Gindex(P)       ((P)->global_index)
 
 /* Stored normal vector at point */
 #define	normal_at_point(p) ((p)->_nor)

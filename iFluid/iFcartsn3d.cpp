@@ -194,9 +194,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
 	stop_clock("setSmoothedProperties");
 	if (debugging("trace"))
 	    printf("Passed setSmoothedProperties()\n");
-	if (debugging("sample_velocity"))
-	    sampleVelocity();
-	
 	
 	// 1) solve for intermediate velocity
 	start_clock("computeAdvection");
@@ -224,18 +221,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
 	}
 	if (debugging("sample_velocity"))
 	    sampleVelocity();
-
-        start_clock("compSGS");
-        //compSGS();	//Subgrid model by Hyunkyun Lim
-        stop_clock("compSGS");
-
-	if (debugging("step_size"))
-	{
-	    (void) printf("max_speed after computeDiffusion(): %20.14f\n",
-				max_speed);
-	    (void) printf("max speed occured at (%d %d %d)\n",icrds_max[0],
-				icrds_max[1],icrds_max[2]);
-	}
 
 	// 2) projection step
 	accum_dt += m_dt;
