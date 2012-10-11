@@ -43,14 +43,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 	/* LOCAL Function Declarations */
-LOCAL	int	old_read_print_boundary_state_data_list(INIT_DATA*,
-                                                        const IO_TYPE*,
-                                                        INTERFACE*);
 LOCAL	int	read_print_boundary_state_data_list(INIT_DATA*,const IO_TYPE*,
                                                     INTERFACE*);
 LOCAL	void	copy_excluded_comps_lists(COMP_LIST*,COMP_LIST*);
-LOCAL	void	old_read_print_boundary_state_data(INIT_DATA*,const IO_TYPE*,
-                                                   INTERFACE*,int);
 
 LOCAL	CURVE*	f_user_2d_make_curve(CURVE*);
 LOCAL	INTERFACE*	f_user_2d_copy_interface(INTERFACE*,INTERFACE*);
@@ -424,8 +419,6 @@ EXPORT	int	f_user_read_print_interface(
 	return YES;
 }		/*end f_user_read_print_interface*/
 
-LOCAL	int	old_style_boundary_data_list;
-
 LOCAL	int	read_print_boundary_state_data_list(
 	INIT_DATA     *init,
 	const IO_TYPE *io_type,
@@ -447,10 +440,9 @@ LOCAL	int	read_print_boundary_state_data_list(
 	search_string = "Boundary state data for interface";
 	if (next_output_line_containing_string(file,search_string) == NULL)
 	{
-	    old_style_boundary_data_list = YES;
-	    return old_read_print_boundary_state_data_list(init,io_type,intfc);
+	    (void) printf("Cannot find the string %s\n",search_string);
+	    clean_up(ERROR);
 	}
-	old_style_boundary_data_list = NO;
 	(void) fgetstring(file,"num_bstates =");
 	(void) fscanf(file,"%d",&nbstates);
 	(void) getc(file);/*trailing newline*/
@@ -467,61 +459,6 @@ LOCAL	int	read_print_boundary_state_data_list(
 	return YES;
 }		/*end read_print_boundary_state_data_list*/
 
-LOCAL	int	old_read_print_boundary_state_data_list(
-	INIT_DATA     *init,
-	const IO_TYPE *io_type,
-	INTERFACE     *intfc)
-{
-	FILE       *file = io_type->file;
-	const char *search_string;
-	int	   dim = intfc->dim;
-	int	   i, j, index;
-
-	/* Check for restart from old style file, only needed for TWOD */
-	if (dim == 2)
-	{
-	    for (i = 0; i < dim; ++i)
-	    {
-	        for (j = 0; j < 2; ++j)
-	        {
-	            if (rect_boundary_type(intfc,i,j) == UNKNOWN_BOUNDARY_TYPE)
-	            {
-	                set_2d_rect_bdry_types_from_curves(intfc);
-	    	        return YES;
-	            }
-	        }
-	    }
-	}
-
-	search_string = "Dirichlet rectangular boundary state information ";
-
-	if (next_output_line_containing_string(file,search_string) == NULL)
-	{
-	    return YES;
-	}
-	for (i = 0; i < dim; ++i)
-	{
-	    for (j = 0; j < 2; ++j)
-	    {
-	        if (rect_boundary_type(intfc,i,j) != DIRICHLET_BOUNDARY)
-	            continue;
-		index = 2*i + j;
-		(void) fgetstring(file,
-				  "Rect boundary state information for the ");
-		(*read_print_boundary_state_data(intfc))(init,io_type,
-		                                         intfc,index);
-	    }
-	}
-	search_string = "End Dirichlet rectangular boundary state information";
-	if (next_output_line_containing_string(file,search_string) == NULL)
-	{
-	    screen("ERROR in old_read_print_boundary_state_data_list(), "
-	           "can't find End Dirichlet boundary state data\n");
-	    return NO;
-	}
-	return YES;
-}		/*end old_read_print_boundary_state_data_list*/
-
 EXPORT	void	f_read_print_boundary_state_data(
 	INIT_DATA     *init,
 	const IO_TYPE *io_type,
@@ -532,11 +469,6 @@ EXPORT	void	f_read_print_boundary_state_data(
 	BOUNDARY_STATE Bstate;
 	char	       c, s[120];
 
-	if (old_style_boundary_data_list == YES)
-	{
-	    old_read_print_boundary_state_data(init,io_type,intfc,index);
-	    return;
-	}
 	Bstate._fprint_boundary_state_data = f_fprint_boundary_state_data;
 	Bstate._boundary_state_data = NULL;
 	Bstate._boundary_state_function = NULL;
@@ -569,37 +501,6 @@ EXPORT	void	f_read_print_boundary_state_data(
 	}
 	(void) add_bstate_to_list(&Bstate,intfc,index);
 }		/*end f_read_print_boundary_state_data*/
-
-LOCAL	void	old_read_print_boundary_state_data(
-	INIT_DATA     *init,
-	const IO_TYPE *io_type,
-	INTERFACE     *intfc,
-	int	      index)
-{
-	FILE	  *file = io_type->file;
-	BOUNDARY_STATE	Bstate;
-	char		s[120];
-
-	Bstate._fprint_boundary_state_data = f_fprint_boundary_state_data;
-	Bstate._boundary_state_data = NULL;
-	Bstate._boundary_state =
-	    read_print_state_data(init,io_type,NULL,intfc);
-	(void) fgetstring(file,"Rect boundary state function = ");
-	(void) fscanf(file,"%s",s);
-	if (strcmp(s,"NULL") == 0 || strcmp(s,"null") == 0 ||
-		       strcmp(s,"(NULL)") == 0 || strcmp(s,"(null)") == 0)
-	{
-	    Bstate._boundary_state_function = NULL;
-	    Bstate._boundary_state_function_name = NULL;
-	}
-	else
-	{
-	    Bstate._boundary_state_function_name = s;
-	    if (strcmp(s,"fixed_boundary_state") == 0)
-	    	Bstate._boundary_state_function = fixed_boundary_state;
-	}
-	(void) add_bstate_to_list(&Bstate,intfc,index);
-}		/*end old_read_print_boundary_state_data*/
 
 
 /*ARGSUSED*/

@@ -10,7 +10,7 @@ static void make_rigid_body3d(Front*,char*,POINTER,
 static void prompt_for_rigid_body_params(int,char*,RG_PARAMS*);
 static void set_rgbody_params(RG_PARAMS,HYPER_SURF*);
 static POINTER get_propeller_params(FILE *);
-static void zero_state(COMPONENT,double*,L_STATE&,int,IF_PARAMS*);
+static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void initRotorIntfc(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
 static void initWindMillIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
 static void initBeeIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
@@ -274,13 +274,15 @@ extern void init_fluid_state_func(
 static void zero_state(
         COMPONENT comp,
         double *coords,
-        L_STATE& state,
+        IF_FIELD *field,
+        int index,
         int dim,
         IF_PARAMS *iFparams)
 {
         int i;
+        double **vel = field->vel;
         for (i = 0; i < dim; ++i)
-            state.m_U[i] = 0.0;
+            vel[i][index] = 0.0;
 }       /* end zero_state */
 
 static void make_rigid_body(

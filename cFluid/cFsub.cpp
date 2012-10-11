@@ -33,7 +33,7 @@ static void dirichlet_point_propagate(Front*,POINTER,POINT*,POINT*,
                         HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 static void contact_point_propagate(Front*,POINTER,POINT*,POINT*,
                         HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
-static void promptForDirichletBdryState(FILE*,Front*,HYPER_SURF**,int);
+static void promptForDirichletBdryState(FILE*,Front*,HYPER_SURF**,int,int);
 
 static void cfluid_compute_force_and_torque2d(Front*,HYPER_SURF*,double,
                         double*,double*);
@@ -145,6 +145,7 @@ void read_dirichlet_bdry_data(
 	FILE *infile = fopen(inname,"r");
 	HYPER_SURF *hs,**hss;
 	INTERFACE *intfc = front->interf;
+	int i_hs = 0;
 
 	for (i = 0; i < dim; ++i)
 	for (j = 0; j < 2; ++j)
@@ -164,7 +165,8 @@ void read_dirichlet_bdry_data(
 		    sprintf(msg,"For upper boundary in %d-th dimension",i);
 		CursorAfterString(infile,msg);
 		(void) printf("\n");
-		promptForDirichletBdryState(infile,front,&hs,1);
+		promptForDirichletBdryState(infile,front,&hs,1,i_hs);
+		i_hs++;
 	    }
 	    else if (rect_boundary_type(intfc,i,j) == MIXED_TYPE_BOUNDARY)
 	    {
@@ -183,7 +185,8 @@ void read_dirichlet_bdry_data(
 				  Coords(c->start->posn)[1],
 				  Coords(c->end->posn)[0],
 				  Coords(c->end->posn)[1]);
-			promptForDirichletBdryState(infile,front,hss+k,1);
+			promptForDirichletBdryState(infile,front,hss+k,1,i_hs);
+			i_hs++;
 		    }
 		}
 	    }
@@ -194,25 +197,9 @@ void read_dirichlet_bdry_data(
 	sprintf(msg,"For interior Dirichlet boundary:");
 	CursorAfterString(infile,msg);
 	(void) printf("\n");
-	promptForDirichletBdryState(infile,front,hss,nhs);
+	promptForDirichletBdryState(infile,front,hss,nhs,i_hs);
+	i_hs++;
 }	/* end read_dirichlet_bdry_data */
-
-void restart_set_dirichlet_bdry_function(Front *front)
-{
-	INTERFACE *intfc = front->interf;
-	int i;
-	BOUNDARY_STATE  *bstate;
-	const char *s;
-	for (i = 0; i < num_bstates(intfc); ++i)
-	{
-	    bstate = bstate_list(intfc)[i];
-	    if (bstate == NULL) continue;
-	    s = bstate->_boundary_state_function_name;
-	    if (s == NULL) continue;
-	    if (strcmp(s,"cF_flowThroughBoundaryState") == 0)
-            	bstate->_boundary_state_function = cF_flowThroughBoundaryState;
-	}
-}	/* end restart_set_dirichlet_bdry_function */
 
 void cF_variableBoundaryState(
         double          *p0,
@@ -651,13 +638,12 @@ static  void neumann_point_propagate(
 	    newst->vel[i] = vel[i];
             FT_RecordMaxFrontSpeed(i,fabs(vel[i]),NULL,Coords(newp),front);
 	}
-	FT_IntrpStateVarAtCoords(front,comp,p1,m_pres,
-			getStatePres,&newst->pres,&oldst->pres);
 	FT_IntrpStateVarAtCoords(front,comp,p1,m_dens,
 			getStateDens,&newst->dens,&oldst->dens);
 	FT_IntrpStateVarAtCoords(front,comp,p1,m_engy,
 			getStateEngy,&newst->engy,&oldst->engy);
         newst->eos = oldst->eos;
+	newst->pres = EosPressure(newst);
 	for (i = 0; i < dim; ++i)
 	{
 	    newst->vel[i] = vel[i];
@@ -942,28 +928,16 @@ void readFrontStates(
 	    
 	    comp = negative_component(hs);
 	    lstate->eos = &eos[comp];
-
+	    lstate->dim = dim;
 	    if(gas_comp(comp))
 	    	lstate->pres = EosPressure(lstate);
-	    /*
-	    if(gas_comp(comp))
-		lstate->eos = &eos[comp];
-	    else
-		lstate->eos = NULL;
-	    */
 		
 	    comp = positive_component(hs);
-	    rstate->eos = &eos[comp];
 
+	    rstate->eos = &eos[comp];
+	    rstate->dim = dim;
 	    if(gas_comp(comp))
 	    	rstate->pres = EosPressure(rstate);
-	    /*
-	    if(gas_comp(comp))
-		rstate->eos = &eos[comp];
-	    else
-		rstate->eos = NULL;
-	    */
-
 	    lstate->dim = rstate->dim = dim;
         }
 	FT_MakeGridIntfc(front);
@@ -1041,7 +1015,8 @@ static void promptForDirichletBdryState(
 	FILE *infile,
 	Front *front,
 	HYPER_SURF **hs,
-	int nhs)
+	int nhs,
+	int i_hs)
 {
 	static STATE *state;
 	EQN_PARAMS *eqn_params = (EQN_PARAMS*)front->extra1;
@@ -1080,23 +1055,23 @@ static void promptForDirichletBdryState(
 	    for (k = 0; k < dim; ++k)
                        state->momn[k] = state->dens*state->vel[k];
 	    state->engy = EosEnergy(state);
-	    FT_SetDirichletBoundary(front,NULL,NULL,NULL,
-			(POINTER)state,hs[0]);
+	    FT_InsertDirichletBoundary(front,NULL,NULL,NULL,
+			(POINTER)state,hs[0],i_hs);
 	    for (i = 1; i < nhs; ++i)
 		bstate_index(hs[i]) = bstate_index(hs[0]);
 	    break;
 	case 'f':			// Flow through state
 	case 'F':
-	    FT_SetDirichletBoundary(front,cF_flowThroughBoundaryState,
-			"cF_flowThroughBoundaryState",NULL,NULL,hs[0]);
+	    FT_InsertDirichletBoundary(front,cF_flowThroughBoundaryState,
+			"cF_flowThroughBoundaryState",NULL,NULL,hs[0],i_hs);
 	    for (i = 1; i < nhs; ++i)
 		bstate_index(hs[i]) = bstate_index(hs[0]);
 	    break;
 	case 'v':			// Flow through state
 	case 'V':
 	    get_variable_bdry_params(dim,infile,&func_params);
-	    FT_SetDirichletBoundary(front,cF_variableBoundaryState,
-			"cF_variableBoundaryState",func_params,NULL,hs[0]);
+	    FT_InsertDirichletBoundary(front,cF_variableBoundaryState,
+			"cF_variableBoundaryState",func_params,NULL,hs[0],i_hs);
 	    for (i = 1; i < nhs; ++i)
 		bstate_index(hs[i]) = bstate_index(hs[0]);
 	    break;
@@ -1466,3 +1441,21 @@ static void get_variable_bdry_params(
 	*func_params = (POINTER)&params;
 }	/* end get_variable_bdry_params */
 
+extern void restart_set_dirichlet_bdry_function(Front *front)
+{
+        INTERFACE *intfc = front->interf;
+        int i;
+        BOUNDARY_STATE  *bstate;
+        const char *s;
+        for (i = 0; i < num_bstates(intfc); ++i)
+        {
+            bstate = bstate_list(intfc)[i];
+            if (bstate == NULL) continue;
+            s = bstate->_boundary_state_function_name;
+            if (s == NULL) continue;
+            if (strcmp(s,"cF_flowThroughBoundaryState") == 0)
+                bstate->_boundary_state_function = cF_flowThroughBoundaryState;
+	    else if (strcmp(s,"cF_variableBoundaryState") == 0)
+                bstate->_boundary_state_function = cF_variableBoundaryState;
+        }
+}       /* end restart_set_dirichlet_bdry_function */

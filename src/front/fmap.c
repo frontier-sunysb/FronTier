@@ -1873,13 +1873,12 @@ EXPORT  void FT_InsertDirichletBoundary(
 	POINTER state_func_params,
         Locstate state,
         HYPER_SURF *hs,
-	int dir,
-	int nb)
+	int istate)
 {
         BOUNDARY_STATE  Bstate;
 	int index;
         INTERFACE *intfc = front->interf;
-	int istate = 2*dir + nb;
+	//int istate = 2*dir + nb;
 
 	zero_scalar(&Bstate,sizeof(BOUNDARY_STATE));
 	if (state_func != NULL)

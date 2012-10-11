@@ -954,12 +954,14 @@ extern void read_crt_dirichlet_bdry_data(
 	FILE *infile = fopen(inname,"r");
 	STATE state;
 	HYPER_SURF *hs;
+	int i_surf;
 
 	for (i = 0; i < dim; ++i)
 	{
 	    if (f_basic.boundary[i][0] == DIRICHLET_BOUNDARY)
 	    {
 		hs = NULL;
+		i_surf = 2*i;
 		if (rect_boundary_type(front->interf,i,0) == DIRICHLET_BOUNDARY)
 		    hs = FT_RectBoundaryHypSurf(front->interf,DIRICHLET_BOUNDARY,
 						i,0);
@@ -976,8 +978,8 @@ extern void read_crt_dirichlet_bdry_data(
 		    CursorAfterString(infile,"Enter solute concentration:");
 		    fscanf(infile,"%lf",&state.solute);
 		    (void) printf("%f\n",state.solute);
-		    FT_SetDirichletBoundary(front,NULL,NULL,NULL,
-					(POINTER)&state,hs);
+		    FT_InsertDirichletBoundary(front,NULL,NULL,NULL,
+					(POINTER)&state,hs,i_surf);
 		    break;
 		default: 
 		    printf("ERROR: Dirichlet type %s not implemented\n",s);
@@ -987,6 +989,7 @@ extern void read_crt_dirichlet_bdry_data(
 	    if (f_basic.boundary[i][1] == DIRICHLET_BOUNDARY)
 	    {
 		hs = NULL;
+		i_surf = 2*i + 1;
 		if (rect_boundary_type(front->interf,i,1) == DIRICHLET_BOUNDARY)
 		    hs = FT_RectBoundaryHypSurf(front->interf,DIRICHLET_BOUNDARY,
 						i,1);
@@ -1003,8 +1006,8 @@ extern void read_crt_dirichlet_bdry_data(
 		    CursorAfterString(infile,"Enter solute concentration:");
 		    fscanf(infile,"%lf",&state.solute);
 		    (void) printf("%f\n",state.solute);
-		    FT_SetDirichletBoundary(front,NULL,NULL,NULL,
-					(POINTER)&state,hs);
+		    FT_InsertDirichletBoundary(front,NULL,NULL,NULL,
+					(POINTER)&state,hs,i_surf);
 		    break;
 		default: 
 		    printf("ERROR: Dirichlet type %s not implemented\n",s);

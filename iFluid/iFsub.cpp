@@ -132,12 +132,14 @@ extern void read_iF_dirichlet_bdry_data(
 	static STATE *state;
 	POINTER func_params;
 	HYPER_SURF *hs;
+	int i_surf;
 
 	for (i = 0; i < dim; ++i)
 	{
 	    if (f_basic.boundary[i][0] == DIRICHLET_BOUNDARY)
 	    {
 		hs = NULL;
+		i_surf = 2*i;
 	        if (rect_boundary_type(front->interf,i,0) == DIRICHLET_BOUNDARY)
 		    hs = FT_RectBoundaryHypSurf(front->interf,DIRICHLET_BOUNDARY,
 					i,0);
@@ -163,21 +165,21 @@ extern void read_iF_dirichlet_bdry_data(
 		    fscanf(infile,"%lf",&state->pres);
 		    (void) printf("%f\n",state->pres);
 		    state->phi = getPhiFromPres(front,state->pres);
-		    FT_SetDirichletBoundary(front,NULL,NULL,
-					NULL,(POINTER)state,hs);
+		    FT_InsertDirichletBoundary(front,NULL,NULL,
+					NULL,(POINTER)state,hs,i_surf);
 		    break;
 		case 'f':			// Flow through state
 		case 'F':
-		    FT_SetDirichletBoundary(front,iF_flowThroughBoundaryState,
+		    FT_InsertDirichletBoundary(front,iF_flowThroughBoundaryState,
 					"flowThroughBoundaryState",NULL,
-					NULL,hs);
+					NULL,hs,i_surf);
 		    break;
 		case 't':			// Flow through state
 		case 'T':
 		    get_time_dependent_params(dim,infile,&func_params);
-		    FT_SetDirichletBoundary(front,iF_timeDependBoundaryState,
+		    FT_InsertDirichletBoundary(front,iF_timeDependBoundaryState,
 					"iF_timeDependBoundaryState",
-					func_params,NULL,hs);
+					func_params,NULL,hs,i_surf);
 		    break;
 		default:
 		    (void) printf("Unknown Dirichlet boundary!\n");
@@ -187,6 +189,7 @@ extern void read_iF_dirichlet_bdry_data(
             if (f_basic.boundary[i][1] == DIRICHLET_BOUNDARY)
 	    {
 		hs = NULL;
+		i_surf = 2*i + 1;
                 if (rect_boundary_type(front->interf,i,1) == DIRICHLET_BOUNDARY)                    hs = FT_RectBoundaryHypSurf(front->interf,DIRICHLET_BOUNDARY,
                                                 i,1);
 		sprintf(msg,"For upper boundary in %d-th dimension",i);
@@ -211,21 +214,21 @@ extern void read_iF_dirichlet_bdry_data(
 		    fscanf(infile,"%lf",&state->pres);
 		    (void) printf("%f\n",state->pres);
 		    state->phi = getPhiFromPres(front,state->pres);
-		    FT_SetDirichletBoundary(front,NULL,NULL,
-					NULL,(POINTER)state,hs);
+		    FT_InsertDirichletBoundary(front,NULL,NULL,
+					NULL,(POINTER)state,hs,i_surf);
 		    break;
 		case 'f':			// Flow through state
 		case 'F':
-		    FT_SetDirichletBoundary(front,iF_flowThroughBoundaryState,
+		    FT_InsertDirichletBoundary(front,iF_flowThroughBoundaryState,
 					"flowThroughBoundaryState",NULL,
-					NULL,hs);
+					NULL,hs,i_surf);
 		    break;
 		case 't':			// Flow through state
 		case 'T':
 		    get_time_dependent_params(dim,infile,&func_params);
-		    FT_SetDirichletBoundary(front,iF_timeDependBoundaryState,
+		    FT_InsertDirichletBoundary(front,iF_timeDependBoundaryState,
 					"iF_timeDependBoundaryState",
-					func_params,NULL,hs);
+					func_params,NULL,hs,i_surf);
 		    break;
 		default:
 		    (void) printf("Unknown Dirichlet boundary!\n");

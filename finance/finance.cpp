@@ -827,12 +827,14 @@ static void read_dirichlet_bdry_data(
 	POINTER func_params;
 	HYPER_SURF *hs;
 	PARAMS *eqn_params = (PARAMS*)front->extra1;
+	int i_surf;
 
 	for (i = 0; i < dim; ++i)
 	{
 	    if (f_basic.boundary[i][0] == DIRICHLET_BOUNDARY)
 	    {
 		hs = NULL;
+		i_surf = 2*i;
 	        if (rect_boundary_type(front->interf,i,0) == DIRICHLET_BOUNDARY)
 		    hs = FT_RectBoundaryHypSurf(front->interf,
 					DIRICHLET_BOUNDARY,i,0);
@@ -849,15 +851,15 @@ static void read_dirichlet_bdry_data(
 		    CursorAfterString(infile,"Enter option value:");
 		    fscanf(infile,"%lf",&state);
 		    (void) printf("%f\n",state);
-		    FT_SetDirichletBoundary(front,NULL,NULL,
-					NULL,(POINTER)&state,hs);
+		    FT_InsertDirichletBoundary(front,NULL,NULL,
+					NULL,(POINTER)&state,hs,i_surf);
 		    break;
 		case 't':			// Time dependent state
 		case 'T':
 		    get_time_dependent_params(infile,&func_params,eqn_params);
-		    FT_SetDirichletBoundary(front,timeDependBoundaryState,
+		    FT_InsertDirichletBoundary(front,timeDependBoundaryState,
 					"timeDependBoundaryState",
-					func_params,NULL,hs);
+					func_params,NULL,hs,i_surf);
 		    break;
 		default:
 		    (void) printf("Unknown Dirichlet boundary!\n");
@@ -867,6 +869,7 @@ static void read_dirichlet_bdry_data(
             if (f_basic.boundary[i][1] == DIRICHLET_BOUNDARY)
 	    {
 		hs = NULL;
+		i_surf = 2*i + 1;
                 if (rect_boundary_type(front->interf,i,1) == DIRICHLET_BOUNDARY)
                     hs = FT_RectBoundaryHypSurf(front->interf,
 					DIRICHLET_BOUNDARY,i,1);
@@ -883,15 +886,15 @@ static void read_dirichlet_bdry_data(
 		    CursorAfterString(infile,"Enter option value:");
 		    fscanf(infile,"%lf",&state);
 		    (void) printf("%f\n",state);
-		    FT_SetDirichletBoundary(front,NULL,NULL,
-					NULL,(POINTER)&state,hs);
+		    FT_InsertDirichletBoundary(front,NULL,NULL,
+					NULL,(POINTER)&state,hs,i_surf);
 		    break;
 		case 't':			// Time dependent state
 		case 'T':
 		    get_time_dependent_params(infile,&func_params,eqn_params);
-		    FT_SetDirichletBoundary(front,timeDependBoundaryState,
+		    FT_InsertDirichletBoundary(front,timeDependBoundaryState,
 					"timeDependBoundaryState",
-					func_params,NULL,hs);
+					func_params,NULL,hs,i_surf);
 		    break;
 		default:
 		    (void) printf("Unknown Dirichlet boundary!\n");

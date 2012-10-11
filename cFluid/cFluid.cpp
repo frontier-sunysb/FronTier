@@ -153,6 +153,8 @@ int main(int argc, char **argv)
                 }
 	    }
 	}
+	else
+	    restart_set_dirichlet_bdry_function(&front);
 
 	/* Initialize velocity field function */
 
@@ -217,6 +219,8 @@ static  void gas_driver(
 	    FT_SetOutputCounter(front);
 
 	FT_TimeControlFilter(front);
+	(void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
+                        front->time,front->step,front->dt);
 
 	if (debugging("trace"))
 	{
@@ -225,8 +229,6 @@ static  void gas_driver(
 			Frequency_of_redistribution(front,GENERAL_WAVE));
 	}
 
-        (void) printf("\ntime = %f   step = %5d   next dt = %20.14f\n",
-                        front->time,front->step,front->dt);
 	if (debugging("trace")) printf("Before time loop\n");
         for (;;)
         {
@@ -262,10 +264,6 @@ static  void gas_driver(
             front->dt = std::min(front->dt,CFL*g_cartesian.max_dt);
 	
             /* Output section */
-
-            (void) printf("\ntime = %f   step = %5d   next dt = %20.14f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
 
             if (FT_IsSaveTime(front))
 	    {
@@ -303,9 +301,15 @@ static  void gas_driver(
                     	printf("Calling FT_AddMovieFrame()\n");
                     FT_AddMovieFrame(front,out_name,binary);
 		}
+		(void) printf("\ntime = %20.14f   step = %5d   ",
+                                front->time,front->step);
+                (void) printf("next dt = %20.14f\n",front->dt);
                 break;
 	    }
 	    FT_TimeControlFilter(front);
+	    (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
+                        front->time,front->step,front->dt);
+            fflush(stdout);
         }
 	if (debugging("trace")) printf("After time loop\n");
 }       /* end gas_driver */

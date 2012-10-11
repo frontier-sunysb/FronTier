@@ -645,7 +645,7 @@ extern "C" {
 				POINTER state ,
 				HYPER_SURF *hs );
 
-/*! \fn void FT_InsertDirichletBoundary(Front *front, void (*state_func)(double*,HYPER_SURF*,Front*,POINTER,POINTER), const char *state_func_name, POINTER state_func_params, POINTER state, HYPER_SURF *hs, int dir, int bdry_side)
+/*! \fn void FT_InsertDirichletBoundary(Front *front, void (*state_func)(double*,HYPER_SURF*,Front*,POINTER,POINTER), const char *state_func_name, POINTER state_func_params, POINTER state, HYPER_SURF *hs, int index)
  *  \ingroup BOUNDARY
     \brief This function insert state to a Dirichlet boundary.
      The six (four for 2D) sides of the boundary memory has been allocated, 
@@ -663,8 +663,7 @@ extern "C" {
     \param state_func_params @b in	Associated function parameters, for option (b).
     \param state @b in	The address of the constant state, for option (a).
     \param hs @b inout	The pointer to the boundary as a hyper surface structure.
-    \param dir @b in The x, y, or z direction of the domain.
-    \param bdry_side @b in Lower (0) or upper (1) side of the boundary in the direction.
+    \param index @b The boundary surface index.
  */
 
    IMPORT  void FT_InsertDirichletBoundary(Front *front ,
@@ -673,8 +672,7 @@ extern "C" {
 				POINTER state_func_params ,
 				POINTER state ,
 				HYPER_SURF *hs ,
-				int dir ,
-				int bdry_side);
+				int index);
 
 /*! \fn void FT_MixedBoundaryHypSurfs(INTERFACE *intfc, int idir, int nb, int w_type, int *num_hs)
  *  \ingroup BOUNDARY

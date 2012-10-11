@@ -35,7 +35,7 @@ static void dirichlet_point_propagate(Front*,POINTER,POINT*,POINT*,
                         HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 static void contact_point_propagate(Front*,POINTER,POINT*,POINT*,
                         HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
-static void zero_state(COMPONENT,double*,L_STATE&,int,IF_PARAMS*);
+static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 
 static  void neumann_point_propagate(
         Front *front,
@@ -264,12 +264,14 @@ void read_dirichlet_bdry_data(
 	FILE *infile = fopen(inname,"r");
 	static STATE state;
 	HYPER_SURF *hs;
+	int i_surf;
 
 	for (i = 0; i < dim; ++i)
 	{
 	    if (f_basic.boundary[i][0] == DIRICHLET_BOUNDARY)
 	    {
 		hs = NULL;
+		i_surf = 2*i;
 		if (rect_boundary_type(front->interf,i,0) == DIRICHLET_BOUNDARY)
 		    hs = FT_RectBoundaryHypSurf(front->interf,DIRICHLET_BOUNDARY,
 						i,0);
@@ -284,7 +286,7 @@ void read_dirichlet_bdry_data(
 		    CursorAfterString(infile,"Enter solute concentration:");
 		    fscanf(infile,"%lf",&state.solute);
 		    FT_InsertDirichletBoundary(front,NULL,NULL,NULL,
-					(POINTER)&state,hs,i,0);
+					(POINTER)&state,hs,i_surf);
 		    break;
 		default: 
 		    printf("ERROR: Dirichlet type %s not implemented\n",s);
@@ -294,6 +296,7 @@ void read_dirichlet_bdry_data(
 	    if (f_basic.boundary[i][1] == DIRICHLET_BOUNDARY)
 	    {
 		hs = NULL;
+		i_surf = 2*i + 1;
 		if (rect_boundary_type(front->interf,i,1) == DIRICHLET_BOUNDARY)
 		    hs = FT_RectBoundaryHypSurf(front->interf,DIRICHLET_BOUNDARY,
 						i,1);
@@ -308,7 +311,7 @@ void read_dirichlet_bdry_data(
 		    CursorAfterString(infile,"Enter solute concentration:");
 		    fscanf(infile,"%lf",&state.solute);
 		    FT_InsertDirichletBoundary(front,NULL,NULL,NULL,
-					(POINTER)&state,hs,i,1);
+					(POINTER)&state,hs,i_surf);
 		    break;
 		default: 
 		    printf("ERROR: Dirichlet type %s not implemented\n",s);
@@ -377,12 +380,14 @@ void read_ss_dirichlet_bdry_data(
 	FILE *infile = fopen(inname,"r");
 	STATE state;
 	HYPER_SURF *hs;
+	int i_surf;
 
 	for (i = 0; i < dim; ++i)
 	{
 	    if (f_basic.boundary[i][0] == DIRICHLET_BOUNDARY)
 	    {
 		hs = NULL;
+		i_surf = 2*i;
 	        if (rect_boundary_type(front->interf,i,0) == DIRICHLET_BOUNDARY)
 		    hs = FT_RectBoundaryHypSurf(front->interf,DIRICHLET_BOUNDARY,
 					i,0);
@@ -410,18 +415,19 @@ void read_ss_dirichlet_bdry_data(
                     fscanf(infile,"%lf",&state.solute);
 		    (void) printf("%f\n",state.solute);
 		    FT_InsertDirichletBoundary(front,NULL,NULL,NULL,
-				(POINTER)&state,hs,i,0);
+				(POINTER)&state,hs,i_surf);
 		    break;
 		case 'f':			// Flow through state
 		case 'F':
 		    FT_InsertDirichletBoundary(front,ss_flowThroughBoundaryState,
-				"flowThroughBoundaryState",NULL,NULL,hs,i,0);
+				"flowThroughBoundaryState",NULL,NULL,hs,i_surf);
 		    break;
 		}
 	    }
             if (f_basic.boundary[i][1] == DIRICHLET_BOUNDARY)
 	    {
 		hs = NULL;
+		i_surf = 2*i + 1;
                 if (rect_boundary_type(front->interf,i,1) == DIRICHLET_BOUNDARY)                    hs = FT_RectBoundaryHypSurf(front->interf,DIRICHLET_BOUNDARY,
                                                 i,1);
 		sprintf(msg,"For upper boundary in %d-th dimension",i);
@@ -448,12 +454,12 @@ void read_ss_dirichlet_bdry_data(
                     fscanf(infile,"%lf",&state.solute);
 		    (void) printf("%f\n",state.solute);
 		    FT_InsertDirichletBoundary(front,NULL,NULL,NULL,
-				(POINTER)&state,hs,i,1);
+				(POINTER)&state,hs,i_surf);
 		    break;
 		case 'f':			// Flow through state
 		case 'F':
 		    FT_InsertDirichletBoundary(front,ss_flowThroughBoundaryState,
-				"flowThroughBoundaryState",NULL,NULL,hs,i,1);
+				"flowThroughBoundaryState",NULL,NULL,hs,i_surf);
 		    break;
 		}
 	    }
@@ -471,15 +477,16 @@ void init_fluid_state_func(
 static void zero_state(
         COMPONENT comp,
         double *coords,
-        L_STATE& state,
+        IF_FIELD *field,
+        int index,
         int dim,
         IF_PARAMS *iFparams)
 {
         int i;
         for (i = 0; i < dim; ++i)
-            state.m_U[i] = 0.0;
+            field->vel[i][index] = 0.0;
+        field->pres[index] = 0.0;
 }       /* end zero_state */
-
 
 static double (*getStateVel[MAXD])(POINTER) = {getStateXvel,getStateYvel,
                                         getStateZvel};
@@ -739,6 +746,12 @@ extern double getStatePres(POINTER state)
 	STATE *fstate = (STATE*)state;
 	return fstate->pres;
 }	/* end getStatePres */
+
+extern double getStatePhi(POINTER state)
+{
+        STATE *fstate = (STATE*)state;
+        return fstate->phi;
+}       /* end getStatePres */
 
 extern double getStateVort(POINTER state)
 {
@@ -1033,3 +1046,80 @@ extern int ifluid_find_projection_crossing(
         return YES;
 }       /* ifluid_find_projection_crossing */
 
+extern double getPhiFromPres(
+        Front *front,
+        double pres)
+{
+        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+        switch (iFparams->num_scheme.projc_method)
+        {
+        case BELL_COLELLA:
+            return 0.0;
+        case KIM_MOIN:
+            return 0.0;
+        case SIMPLE:
+        case PEROT_BOTELLA:
+            return pres;
+        default:
+            (void) printf("Unknown projection type\n");
+            clean_up(0);
+        }
+}       /* end getPhiFromPres */
+
+extern double getPressure(
+        Front *front,
+        double *coords,
+        double *base_coords)
+{
+        INTERFACE *intfc = front->interf;
+        int i,dim = Dimension(intfc);
+        POINT *p0;
+        double pres,pres0;
+        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+        double *g = iFparams->gravity;
+        double rho = iFparams->rho2;
+        boolean hyper_surf_found = NO;
+
+        return 0.0;
+        pres0 = 1.0;
+        if (dim == 2)
+        {
+            CURVE **c;
+            for (c = intfc->curves; c && *c; ++c)
+            {
+                if (wave_type(*c) == DIRICHLET_BOUNDARY &&
+                    boundary_state(*c) != NULL)
+                {
+                    p0 = (*c)->first->start;
+                    pres0 = getStatePres(boundary_state(*c));
+                    hyper_surf_found = YES;
+                }
+            }
+        }
+        else if (dim == 3)
+        {
+            SURFACE **s;
+            for (s = intfc->surfaces; s && *s; ++s)
+            {
+                if (wave_type(*s) == DIRICHLET_BOUNDARY &&
+                    boundary_state(*s) != NULL)
+                {
+                    p0 = Point_of_tri(first_tri(*s))[0];
+                    pres0 = getStatePres(boundary_state(*s));
+                    hyper_surf_found = YES;
+                }
+            }
+        }
+        pres = pres0;
+        if (hyper_surf_found)
+        {
+            for (i = 0; i < dim; ++i)
+                pres -= rho*(coords[i] - Coords(p0)[i])*g[i];
+        }
+        else if (base_coords != NULL)
+        {
+            for (i = 0; i < dim; ++i)
+                pres -= rho*(coords[i] - Coords(p0)[i])*g[i];
+        }
+        return pres;
+}       /* end getPressure */
