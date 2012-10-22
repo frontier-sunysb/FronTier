@@ -4950,3 +4950,107 @@ EXPORT void gview_plot_surf_within_range(
 	gview_plot_tri_list(dname,tris,num_tris);
 	free_these(1,tris);
 }	/* end gview_plot_surf_within_range */
+
+
+	/*	
+	This function plot point-tri and its neighbors within the
+	distance range*max-tri-side. The tri will be marked with
+	a different color from its beighbors.  
+	*/
+
+EXPORT void gview_plot_pt_tri_within_range(
+	const char *dname,
+	POINT *vertex,
+	TRI *tri,
+	int range)
+{
+	int i,j,num_tris;
+	TRI **tris,*t;
+	POINT *p;
+	double d;
+	double *center = Coords(vertex);
+	double radius = 0.0;
+	static const char *indent = "    ";
+	char       fname[256];
+	FILE       *file;
+	SURFACE *surf = Surface_of_tri(tri);
+
+	for (i = 0; i < 3; ++i)
+	{
+	    d = separation(Point_of_tri(tri)[i],Point_of_tri(tri)[(i+1)%3],3);
+	    if (d > radius) radius = d;
+	}
+	radius *= range;
+		
+	num_tris = 1;
+	for (t = first_tri(surf); !at_end_of_tri_list(t,surf); t = t->next)
+	{
+	    if (t == tri) continue;
+	    for (i = 0; i < 3; ++i)
+	    {
+		p = Point_of_tri(t)[i];	
+		d = distance_between_positions(center,Coords(p),3);
+		if (d < radius) 
+		{
+		    num_tris++;
+		    break;
+		}
+	    }
+	}
+	uni_array(&tris,num_tris,sizeof(TRI*));
+	tris[0] = tri;
+	num_tris = 1;
+	for (t = first_tri(surf); !at_end_of_tri_list(t,surf); t = t->next)
+	{
+	    if (t == tri) continue;
+	    for (i = 0; i < 3; ++i)
+	    {
+		p = Point_of_tri(t)[i];	
+		d = distance_between_positions(center,Coords(p),3);
+		if (d < radius) 
+		{
+		    tris[num_tris++] = t;
+		    break;
+		}
+	    }
+	}
+
+	if (create_directory(dname,YES) == FUNCTION_FAILED)
+	{
+	    screen("WARNING in gview_plot_tri_list(), "
+	           "directory %s doesn't exist and can't be created\n",dname);
+	    return;
+	}
+	(void) sprintf(fname,"%s/tri.list",dname);
+	if ((file = fopen(fname,"w")) == NULL)
+	{
+	    screen("WARNING in gview_plot_tri_list(), "
+	           "can't open %s\n",fname);
+	    return;
+	}
+	(void) fprintf(file,"{ LIST\n");
+	(void) fprintf(file,"%s{\n%s%sOFF\n%s%s%6d %6d %6d\n",
+			indent,indent,indent,
+			indent,indent,3*num_tris,num_tris,0);
+	for (i = 0; i < num_tris; ++i)
+	{
+	    for (j = 0; j < 3; ++j)
+	    {
+		p = Point_of_tri(tris[i])[j];
+		(void) fprintf(file, "%s%s%-9g %-9g %-9g\n",
+			indent,indent,
+			Coords(p)[0],Coords(p)[1],Coords(p)[2]);
+	    }
+	}
+	(void) fprintf(file,"%s%s%-4d %-4d %-4d %-4d  ",indent,indent,3,0,1,2);
+	write_color(file,pGREEN,0.75);
+	for (i = 1; i < num_tris; ++i)
+	{
+	    (void) fprintf(file,"%s%s%-4d %-4d %-4d %-4d\n",indent,indent,
+					3,3*i,3*i+1,3*i+2);
+	}
+	(void) fprintf(file,"%s}\n",indent);
+	(void) fprintf(file,"}\n");
+	(void) fclose(file);
+	free_these(1,tris);
+}	/* end gview_plot_surf_within_range */

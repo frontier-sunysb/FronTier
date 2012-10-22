@@ -990,8 +990,9 @@ EXPORT	TRI_STATUS tri_scaled_status(
 	len_min =  HUGE;
 	min_angle = HUGE;
 	for (i = 0; i < 3; ++i)
-	{
 	    len[i] = sqrt(len2[i]);
+	for (i = 0; i < 3; ++i)
+	{
 	    cos_angle[i] = (len2[i] + len2[(i+1)%3] - len2[(i+2)%3])
 			/2.0/len[i]/len[(i+1)%3];
 	    angle[i] = acos(cos_angle[i]);
@@ -1743,7 +1744,7 @@ LOCAL boolean will_form_foldback(
 	TRI *t;
 	double old_nor[MAXD],new_nor[MAXD];
 	double v1[MAXD],v2[MAXD],ptmp[MAXD],*p1,*p2;
-	double length,angle;
+	double old_length,new_length,angle;
 
 	/* First attempt */
 	if (Boundary_point(p[0]))
@@ -1767,13 +1768,13 @@ LOCAL boolean will_form_foldback(
 	    for (j = 0; j < ntris[i]; ++j)
 	    {
 		t = tris[i][j];
-		for (k = 0; k < 3; ++k)
-		    old_nor[k] = Tri_normal(t)[k];
-		length = Mag3d(old_nor);
-		for (k = 0; k < 3; ++k)
-		    old_nor[k] /= length;
 		if ((t != tri) && (t != nbtri))
 		{
+		    for (k = 0; k < 3; ++k)
+		    	old_nor[k] = Tri_normal(t)[k];
+		    old_length = Mag3d(old_nor);
+		    for (k = 0; k < 3; ++k)
+		    	old_nor[k] /= old_length;
 		    k = Vertex_of_point(t,p[i]);
 		    p1 = Coords(Point_of_tri(t)[Next_m3(k)]);
 		    p2 = Coords(Point_of_tri(t)[Prev_m3(k)]);
@@ -1783,9 +1784,11 @@ LOCAL boolean will_form_foldback(
 			v2[k] = p2[k] - ptmp[k];
 		    }
 		    Cross3d(v1,v2,new_nor);
-		    length = Mag3d(new_nor);
+		    new_length = Mag3d(new_nor);
 		    for (k = 0; k < 3; ++k)
-			new_nor[k] /= length;
+			new_nor[k] /= new_length;
+		    if (new_length < 1.0e-8*old_length)
+                        return YES;
 		    angle = acos(Dot3d(old_nor,new_nor));
 		    if (angle > PI/2.0)
 		    {

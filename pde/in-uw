@@ -11,7 +11,7 @@ Max time: 1.5
 Max step: 1000
 Print interval: 1
 Movie frame interval: 0.1
-CFL factor: 0.75
+CFL factor: 1.2
 Redistribution interval: 0
 
 ***************Called by init_wave_params****************

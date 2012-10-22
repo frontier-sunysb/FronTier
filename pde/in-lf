@@ -1,7 +1,7 @@
 ****************Called by FrontReadRegularDomainInfo*****
 
 Domain limit in 0-th dimension: 0 6
-Computational grid: 200
+Computational grid: 100
 Lower boundary in 0-th dimension: PERIODIC
 Upper boundary in 0-th dimension: PERIODIC
 

@@ -423,6 +423,7 @@ IMPORT  void    gd_2d_intfc(char*,char*,INTERFACE*,RECT_GRID*,int,boolean);
 IMPORT	char	*get_vtk_file_name(char*,const char*,const char*,size_t*);
 IMPORT	void	gview_plot_surf_within_range(const char*,SURFACE*,double*,
         			double);
+IMPORT  void    gview_plot_pt_tri_within_range(const char*,POINT*,TRI*,int);
 IMPORT	FILE	*current_gd_file();
 IMPORT	void	set_current_gd_file();
 
