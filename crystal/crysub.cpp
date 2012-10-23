@@ -321,8 +321,13 @@ static  void reaction_point_propagate(
 	}
 
 	CFL = Time_step_factor(front);
-	if (nor_speed*dt > CFL*dn)
-	    nor_speed = CFL*dn/dt;
+	if (fabs(nor_speed*dt) > CFL*dn)
+	{
+	    (void) printf("WARNING: speed higher than allowed by CFL\n");
+	    (void) printf("CFL*dn/dt = %f  nor_speed = %f\n",
+				CFL*dn/dt,nor_speed);
+	    nor_speed = nor_speed*CFL*dn/dt/fabs(nor_speed);
+	}
 
         for (i = 0; i < dim; ++i)
         {

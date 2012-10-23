@@ -512,9 +512,9 @@ static void print_area_density(
 
         area_density = total_length/vol_frac;
 
-        fprintf(lfile,"%lf %lf\n",front->time,total_length);
-        fprintf(vfile,"%lf %lf\n",front->time,vol_frac);
-        fprintf(afile,"%lf %lf\n",front->time,area_density);
+        fprintf(lfile,"%f %f\n",front->time,total_length);
+        fprintf(vfile,"%f %f\n",front->time,vol_frac);
+        fprintf(afile,"%f %f\n",front->time,area_density);
         fflush(lfile);
         fflush(vfile);
         fflush(afile);
