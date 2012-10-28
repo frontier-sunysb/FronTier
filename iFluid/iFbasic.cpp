@@ -196,8 +196,8 @@ void Incompress_Solver_Smooth_Basis::setIndexMap(void)
                 if (cell_center[ic].comp != SOLID_COMP)
                 {
                     ij_to_I[i][j] = index + ilower;
-		    I_to_ij[index + ilower][0] = i;
-                    I_to_ij[index + ilower][1] = j;
+		    I_to_ij[index][0] = i;
+                    I_to_ij[index][1] = j;
                     index++;
                 }
 	    }
@@ -216,9 +216,9 @@ void Incompress_Solver_Smooth_Basis::setIndexMap(void)
 		if (cell_center[ic].comp != SOLID_COMP)
 		{
                     ijk_to_I[i][j][k] = index + ilower;
-		    I_to_ijk[index + ilower][0] = i;
-                    I_to_ijk[index + ilower][1] = j;
-                    I_to_ijk[index + ilower][2] = k;
+		    I_to_ijk[index][0] = i;
+                    I_to_ijk[index][1] = j;
+                    I_to_ijk[index][2] = k;
                     index++;
                 }
 	    }
@@ -1469,6 +1469,8 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
 	char dirname[256];
 	double **vel = field->vel;
 
+	if (pp_numnodes() > 1)
+	    return;
 	if (front->step < sample->start_step || front->step > sample->end_step)
 	    return;
 	if ((front->step - sample->start_step)%sample->step_interval)
@@ -1790,6 +1792,8 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
 	char dirname[256];
 	double **vel = field->vel;
 
+	if (pp_numnodes() > 1)
+	    return;
 	if (front->step < sample->start_step || front->step > sample->end_step)
 	    return;
 	if ((front->step - sample->start_step)%sample->step_interval)

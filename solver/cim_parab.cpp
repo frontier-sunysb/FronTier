@@ -727,9 +727,9 @@ int CIM_PARAB_SOLVER::HCIM_Matrix_Generation_k(
 	    for (i = 0; i < dim; ++i) 
 	    {
 		if (dim == 2)
-		    icoords[i] = I_to_ij[k][i];
+		    icoords[i] = I_to_ij[k-ilower][i];
 		else if (dim == 3)
-		    icoords[i] = I_to_ijk[k][i];
+		    icoords[i] = I_to_ijk[k-ilower][i];
             	P[i] = cell_edge(icoords[i],i,top_grid);
             }
 	    index = d_index(icoords,top_gmax,dim);
