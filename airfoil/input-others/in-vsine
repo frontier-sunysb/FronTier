@@ -1,0 +1,57 @@
+Domain limit in 0-th dimension: 0 1
+Domain limit in 1-th dimension: 0 1
+Computational grid: 200 200
+Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
+Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
+Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
+Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
+
+Max time: 0.4
+Max step: 10000
+Print interval: 0.1
+Movie frame interval: 0.01
+CFL factor: 0.75
+Redistribution interval: 5
+
+Problem type can be
+        REVERSAL_VELO
+        DOUBLE_VORTEX_VELO
+        FLIP_FLAP
+	LEAF_FALL
+        PARACHUTE
+Enter problem type: DOUBLE_VORTEX_VELO
+Projection type can be
+        SIMPLE
+        BELL_COLELLA
+        KIM_MOIN
+        PEROT_BOTELLA
+Enter projection type: SIMPLE
+Initial surface type can be
+	ELLIPSE
+	SINE_WAVE
+	CIRCULAR_PERT
+Enter initial canopy surface type: SINE_WAVE
+Enter density and viscosity of the fluid: 1 0.00628
+Enter gravity: 0.0 -100.0
+Enter surface tension: 0.0
+Enter factor of smoothing radius: 1
+
+For lower boundary in 1-th dimension
+Enter type of Dirichlet boundary: CONSTANT_STATE
+Enter velocity: 0 10
+Enter pressure: 10
+For upper boundary in 1-th dimension
+Enter type of Dirichlet boundary: FLOW_THROUGH
+
+Type y to make movie of pressure: n
+Type y to make movie of vorticity: y
+Type y to make movie of velocity: n
+Type y to make vector velocity field movie: y
+
+************Debugging options*****************
+
+Enter yes for debugging: no
+Enter the debugging string: trace
+Enter the debugging string: CLOCK
+Enter the debugging string: step_size
+Enter the debugging string: sample_velocity

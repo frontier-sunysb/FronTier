@@ -1,5 +1,40 @@
 #include <FronTier.h>
 
+typedef struct {
+        double N[MAXD];         /* normal of the plane */
+        double P[MAXD];         /* a point on the plane */
+        double cen[MAXD];       /* center of the vent */
+        double radius;          /* radius of the vent */
+} CONSTR_PARAMS;
+
+typedef struct {
+        int dim;
+        double L[MAXD];         /* Lower bounds of box */
+        double U[MAXD];         /* Upper bounds of box */
+} RECT_CONSTR_PARAMS;
+
+// Yan Li
+typedef struct {
+        int dim;
+        double cen[MAXD];       /* center of the ellipse */
+        double radii[MAXD];     /* radii of the ellipse */
+} ELLIPSE_CONSTR_PARAMS;
+
+// Yan Li
+// In this initializaion we use two half-ellipses to construct a wing.
+// The parameters of the ellipse are given by radius[2]
+// Todo: need to generalize the construction.
+typedef struct {
+        int dim;
+        double x_sym;   /* symetric axis of the wing: x = x_sym */
+        double y_constraint;
+        double x_devi;  /* two center are (x_sym +- x_devi, y_constrain) */
+        double radius[2];
+
+        double cen_curve_start[2];
+        double cen_curve_end[2];
+
+} WING_CONSTR_PARAMS;
 enum _PERTURBATION_TYPE {
 	NO_PERT		=	1,
 	PARALLEL_RAND_PERT,
@@ -278,5 +313,12 @@ extern boolean is_load_node(NODE*);
 extern  int numOfGoreHsbdry(INTERFACE*);
 extern  int numOfMonoHsbdry(INTERFACE*);
 extern  int numOfGoreNodes(INTERFACE*);
+
+/* afinit.cpp */
 extern void printAfExtraDada(Front*,char*);
 extern void readAfExtraDada(Front*,char*);
+
+/* afinit3d.cpp */
+extern void initEllipticSurf(FILE*,Front*,LEVEL_FUNC_PACK*);
+extern void initParabolicSurf(FILE*,Front*,LEVEL_FUNC_PACK*);
+extern void initPlaneSurf(FILE*,Front*,LEVEL_FUNC_PACK*);

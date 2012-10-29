@@ -38,15 +38,17 @@ iFsub.o : ../iFluid/iFluid.h ../iFluid/ifluid_basic.h ../iFluid/iFsub.cpp
 	${CXX} -c ../iFluid/iFsub.cpp $(incsloc) $(incs) ${Petsc_Include}
 afinit.o : airfoil.h ../iFluid/iFluid.h afinit.cpp
 	${CXX} -c afinit.cpp $(incsloc) $(incs) ${Petsc_Include}
+afinit3d.o : airfoil.h ../iFluid/iFluid.h afinit3d.cpp
+	${CXX} -c afinit3d.cpp $(incsloc) $(incs) ${Petsc_Include}
 afprop.o : airfoil.h ../iFluid/iFluid.h afprop.cpp
 	${CXX} -c afprop.cpp $(incsloc) $(incs) ${Petsc_Include}
 aftest.o : airfoil.h ../iFluid/iFluid.h aftest.cpp
 	${CXX} -c aftest.cpp $(incsloc) $(incs) ${Petsc_Include}
 canopy.o : airfoil.h ../iFluid/iFluid.h canopy.cpp
 	${CXX} -c canopy.cpp $(incsloc) $(incs) ${Petsc_Include}
-airfoil: ../iFluid/iFluid.h ../solver/solver.h airfoil.h airfoil.cpp afinit.o afprop.o aftest.o canopy.o iFsub.o ../lib/libiF.a
+airfoil: ../iFluid/iFluid.h ../solver/solver.h airfoil.h airfoil.cpp afinit.o afinit3d.o afprop.o aftest.o canopy.o iFsub.o ../lib/libiF.a
 	${CXX} -c airfoil.cpp $(incsloc) $(incs) ${Petsc_Include}
-	$(CXX) -o airfoil airfoil.o afinit.o afprop.o aftest.o canopy.o iFsub.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
+	$(CXX) -o airfoil airfoil.o afinit.o afinit3d.o afprop.o aftest.o canopy.o iFsub.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
 
 ../lib/libiF.a: solver.o cim_ellip.o ellip.o hyperb.o iFbasic.o iFcartsn2d.o iFcartsn3d.o
 	$(AR) cru libiF.a $^

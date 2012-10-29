@@ -152,6 +152,7 @@ $$ME/airfoil/*.cpp \
 $$ME/airfoil/*.h \
 $$ME/airfoil/Makefile.in \
 $$ME/airfoil/in-* \
+$$ME/airfoil/input-*/* \
 $$ME/airfoil/mrun* \
 $$ME/crystal/*.cpp \
 $$ME/crystal/*.h \
