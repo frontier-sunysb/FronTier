@@ -53,8 +53,7 @@ LOCAL 	int 	mixed_advance_front3d(double,double*,Front*,Front**,POINTER);
 LOCAL	int	preserve_front_advance_front3d(double,double*,Front*,
 					       Front**,POINTER);
 LOCAL	int	propagate_3d_front(POINTER,Front*,Front*,double,double*,boolean);
-LOCAL   void    init_intfc_curvature3d1(Front*,INTERFACE*); /*for serial mode */
-LOCAL   void    init_intfc_curvature3d2(Front*,INTERFACE*);
+LOCAL   void    reset_intfc_curvature3d(Front*,INTERFACE*);
 LOCAL   int	propagate_node_points(Front*,Front*,POINTER,double,double*);
 LOCAL 	int 	propagate_points_tangentially(Front*,Front*,int,double,double*,
 						  int);
@@ -637,7 +636,7 @@ begin_advance_front2d:
 	    	     (correspond_curve(newc) != NULL))
 	        {
 	    	    if (debugging("propagate"))
-	                (void) printf("\t\tpropagating curve %llu\n",
+	                (void) printf("\t\tpropagating curve %lld\n",
 		                      curve_number(oldc));
 		    curve_propagate(front,wave,oldc,newc,dt);
 		    /*f_curve_propagate2d */
@@ -1835,53 +1834,6 @@ LOCAL int mixed_advance_front3d(
 	return status;
 }		/*end mixed_advance_front3d*/
 
-LOCAL int test_lgb_interface(
-	Front		*front,
-	Front		**newfront)
-{
-	static const char *fname = "test_lgb_interface";
-	int	   status;
-	boolean	   do_redist = YES;
-	
-	DEBUG_ENTER(test_lgb_interface)
-
-	*newfront = copy_front(front);
-	
-	start_clock("copy_interface");
-	set_size_of_intfc_state(size_of_state(front->interf));
-	set_copy_intfc_states(YES);
-	
-	(*newfront)->interf = pp_copy_interface(front->interf);
-	if ((*newfront)->interf == NULL)
-	{
-	    (void) printf("ERROR in test_lgb_interface, "
-	                  "unable to copy interface\n");
-	    clean_up(ERROR);
-	}
-	
-	stop_clock("copy_interface");
-
-	interpolate_intfc_states((*newfront)->interf) = YES;
-	
-	make_interface_topology_lists((*newfront)->interf);
-	status = repair_front_at_grid_crossing(*newfront);
-	make_interface_topology_lists((*newfront)->interf);
-	
-	if (status == GOOD_STEP)
-	    reset_normal_on_intfc((*newfront)->interf);
-	else
-	{
-	    printf("ERROR test_lgb_interface, "
-	    	   "repair_front_at_grid_crossing fails.\n");
-	    clean_up(ERROR);
-	}
-
-	/*delete_interface((*newfront)->interf); */
-	free_front(*newfront);
-
-	DEBUG_LEAVE(test_lgb_interface)
-}
-
 LOCAL int preserve_front_advance_front3d(
 	double		dt,
 	double		*dt_frac,
@@ -1998,7 +1950,7 @@ LOCAL int preserve_front_advance_front3d(
 	    break;
 	}
 	if (status == GOOD_STEP)
-	    reset_normal_on_intfc((*newfront)->interf);
+	    init_intfc_curvature3d(*newfront,(*newfront)->interf);
 	if (debugging("final_front"))
 	    print_Front_structure(front);
 	
@@ -2058,11 +2010,8 @@ LOCAL int propagate_3d_front(
 
 	intfc_old = front->interf;
 
- 	if (front->step == 0)
-            init_intfc_curvature3d2(newfront,newfront->interf);
-
 	/*after redistribute or restart, the curvature is not calculated. */
-        init_intfc_curvature3d(front, front->interf);
+        init_intfc_curvature3d(front,front->interf);
 	
 	if (front->_point_propagate != NULL)
 	{
@@ -2108,7 +2057,7 @@ LOCAL int propagate_3d_front(
 		    return step_status;
 		}
 	    }
-	    reset_normal_on_intfc(newfront->interf);
+	    init_intfc_curvature3d(newfront,newfront->interf);
 	    debug_front("np_front","after normal propagation",newfront);
 	    stop_clock("normal_propagate");
 	}
@@ -2199,6 +2148,20 @@ LOCAL int propagate_3d_front(
             }
 	    stop_clock("tangentiall");
 	}
+	start_clock("scatter_front");
+	if (!scatter_front(newfront))
+	{
+	    stop_clock("scatter_front");
+	    (void) printf("WARNING in propagate_3d_front(), "
+	                  "2nd scatter_front() failed\n"
+	                  "MODIFY_TIME_STEP\n");  
+	    *dt_frac *= TIME_STEP_REDUCTION_FACTOR(front->interf);
+	    DEBUG_LEAVE(propagate_3d_front)
+	    return MODIFY_TIME_STEP; 
+	}
+	stop_clock("scatter_front");
+
+        init_intfc_curvature3d(newfront,newfront->interf);
 
 	debug_print("front","Left propagate_3d_front()\n");
 	DEBUG_LEAVE(propagate_3d_front)
@@ -2215,6 +2178,8 @@ EXPORT void   init_intfc_curvature3d(
        POINT                   *p;
      
       
+	intfc->normal_unset = YES;
+	reset_normal_on_intfc(intfc);
        	(void) next_point(intfc,NULL,NULL,NULL);
        	while (next_point(intfc,&p,&hse,&hs))
            p->curvature = mean_curvature_at_point(p,hse,hs,front);
@@ -2249,7 +2214,7 @@ EXPORT void   init_intfc_curvature3d(
         intfc->curvature_unset = NO;
 }      /* end init_intfc_curvature3d */
 
-LOCAL void   init_intfc_curvature3d2(
+LOCAL void   reset_intfc_curvature3d(
        Front               *front,
        INTERFACE           *intfc)
 {
@@ -2263,7 +2228,9 @@ LOCAL void   init_intfc_curvature3d2(
         {
             p->curvature = 0.0;
         }
-}
+	intfc->normal_unset = YES;
+        intfc->curvature_unset = YES;
+}	/* reset_intfc_curvature3d */
 
 
 	  

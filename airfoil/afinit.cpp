@@ -408,7 +408,7 @@ extern void setRestartAirfoilIntfc(
 	    {
 		if (hsbdry_type(*c) != STRING_HSBDRY)
 		    is_payload_node = NO;
-		else if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
+		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
 			 hsbdry_type(*c) != GORE_HSBDRY)
 		    is_gore_node = NO;
 	    } 
@@ -416,7 +416,7 @@ extern void setRestartAirfoilIntfc(
 	    {
 		if (hsbdry_type(*c) != STRING_HSBDRY)
 		    is_payload_node = NO;
-		else if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
+		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
 			 hsbdry_type(*c) != GORE_HSBDRY)
 		    is_gore_node = NO;
 	    } 

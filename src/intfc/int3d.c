@@ -255,7 +255,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 	/* LOCAL Function Declarations */
 LOCAL	COMPONENT	new_pp_index(COMPONENT,INTERFACE*);
-LOCAL	TRI	*tri_at_bond(BOND*,SURFACE*);
+LOCAL	TRI	*tri_at_bond(BOND*,SURFACE*,ORIENTATION);
 LOCAL	boolean	update_neighbor_tris(TRI_NEIGHBOR*,TRI*,TRI*,int);
 LOCAL	void	add_bdry_curve_to_hash_table(SURFACE*, SURFACE*, P_LINK*, int);
 LOCAL	void	copy_tris(SURFACE*, SURFACE*);
@@ -2269,14 +2269,16 @@ LIB_LOCAL boolean next_point3d(
 	        {
 	    	    *P = (*T->cur_curve)->last->end;
 	    	    *HSE = Hyper_surf_element(
-			tri_at_bond((*(T->cur_curve))->last,*T->cur_surface));
+			tri_at_bond((*(T->cur_curve))->last,*T->cur_surface,
+			POSITIVE_ORIENTATION));
 	    	    sorted(*P) = YES;
 	        }
 	        else
 		{
 		    *P = T->cur_bond->start;
 		    *HSE = Hyper_surf_element(
-			tri_at_bond(T->cur_bond,*T->cur_surface));
+			tri_at_bond(T->cur_bond,*T->cur_surface,
+			POSITIVE_ORIENTATION));
 		    sorted(*P) = YES;
 	        }
 		return YES;
@@ -2308,14 +2310,16 @@ LIB_LOCAL boolean next_point3d(
 	        {
 	    	    *P = (*(T->cur_curve))->last->end;
 	    	    *HSE = Hyper_surf_element(
-			tri_at_bond((*T->cur_curve)->last,*T->cur_surface));
+			tri_at_bond((*T->cur_curve)->last,*T->cur_surface,
+			NEGATIVE_ORIENTATION));
 	    	    sorted(*P) = YES;
 	        }
 	        else
 	        {
 	    	    *P = T->cur_bond->start;
 	    	    *HSE = Hyper_surf_element(
-			tri_at_bond(T->cur_bond,*T->cur_surface));
+			tri_at_bond(T->cur_bond,*T->cur_surface,
+			NEGATIVE_ORIENTATION));
 	    	    sorted(*P) = YES;
 	        }
 	        return YES;
@@ -2422,14 +2426,16 @@ LIB_LOCAL	boolean	next_hypersurface3d(
 
 LOCAL	TRI*	tri_at_bond(
 	BOND		*b,
-	SURFACE		*s)
+	SURFACE		*s,
+	ORIENTATION	orient)
 {
 	BOND_TRI	**btris;
 
 	for (btris = Btris(b); btris && *btris; ++btris)
 	    if (Surface_of_tri((*btris)->tri) == s)
 	    {
-	    	return (*btris)->tri;
+		if (orientation_of_bond_at_tri(b,(*btris)->tri) == orient)
+	    	    return (*btris)->tri;
 	    }
 	return NULL;
 }		/*end tri_at_bond*/

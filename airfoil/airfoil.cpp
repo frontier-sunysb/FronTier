@@ -191,7 +191,6 @@ static  void airfoil_driver(
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 
         CFL = Time_step_factor(front);
-	Frequency_of_redistribution(front,GENERAL_WAVE) = 100;
 
 	(void) printf("Frequency_of_redistribution(front,GENERAL_WAVE) = %d\n",
 		Frequency_of_redistribution(front,GENERAL_WAVE));

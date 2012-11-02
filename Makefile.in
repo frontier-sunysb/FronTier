@@ -151,7 +151,6 @@ $$ME/subsurf/in-* \
 $$ME/airfoil/*.cpp \
 $$ME/airfoil/*.h \
 $$ME/airfoil/Makefile.in \
-$$ME/airfoil/in-* \
 $$ME/airfoil/input-*/* \
 $$ME/airfoil/mrun* \
 $$ME/crystal/*.cpp \
@@ -239,5 +238,5 @@ $$ME/src/pak/sn_ellip/*.h \
 $$ME/src/pak/sn_ellip/Makefile.in \
 
 tar:
-	cd ./ && ME=`basename $$PWD` && cd .. && tar -cf "`date +FronTier.Lite.%m_%d_%y.tar`" ${TARFLIST} && \
-	gzip "`date +FronTier.Lite.%m_%d_%y.tar`" && mv `date +FronTier.Lite.%m_%d_%y.tar`.gz $$ME/.
+	cd ./ && ME=`basename $$PWD` && cd .. && tar -cf "`date +FronTier++.%m_%d_%y.tar`" ${TARFLIST} && \
+	gzip "`date +FronTier++.%m_%d_%y.tar`" && mv `date +FronTier++.%m_%d_%y.tar`.gz $$ME/.

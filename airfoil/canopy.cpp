@@ -1552,6 +1552,7 @@ static void set_canopy_velocity(
 	double *vel;
 	int n,ng,ngc,ns,nbc;
 	double crds_max[MAXD];
+	int gindex_max;
 
 	if (debugging("canopy"))
 	    (void) printf("Entering set_canopy_velocity()\n");
@@ -1595,6 +1596,7 @@ static void set_canopy_velocity(
 		if (max_speed < Mag3d(sl->vel)) 
 		{
 		    max_speed = Mag3d(sl->vel);
+		    gindex_max = Gindex(p);
 		    for (j = 0; j < 3; ++j)
 			crds_max[j] = Coords(p)[j];
 		}
@@ -1623,6 +1625,7 @@ static void set_canopy_velocity(
 		    if (max_speed < fabs(nor_speed)) 
 		    {
 			max_speed = fabs(nor_speed);
+		    	gindex_max = Gindex(p);
 		    	for (j = 0; j < 3; ++j)
 			    crds_max[j] = Coords(p)[j];
 		    }
@@ -1647,11 +1650,13 @@ static void set_canopy_velocity(
 		    if (max_speed < fabs(nor_speed)) 
 		    {
 			max_speed = fabs(nor_speed);
+		    	gindex_max = Gindex(p);
 		    	for (j = 0; j < 3; ++j)
 			    crds_max[j] = Coords(p)[j];
 		    }
                     for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = sl->Impct[j] + nor_speed*nor[j];
+		    	sl->vel[j] = sr->vel[j] = 
+				sl->Impct[j] + nor_speed*nor[j];
 		}
             }
 	    n++;
@@ -1663,45 +1668,57 @@ static void set_canopy_velocity(
 	    node = geom_set->string_node[i];
 	    for (c = node->out_curves; c && *c; ++c)
             {
-		if (hsbdry_type(*c) != MONO_COMP_HSBDRY) continue;
+		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
+		    hsbdry_type(*c) != GORE_HSBDRY) 
+		    continue;
                 b = (*c)->first;
                 p = b->start;
-                btris = Btris(b);
-                p->hse = hse = Hyper_surf_element((*btris)->tri);
-                p->hs = hs = Hyper_surf((*btris)->surface);
-                FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		FT_NormalAtPoint(p,front,nor,NO_COMP);
-		vel = v[n];
-		nor_speed = scalar_product(vel,nor,dim);
-		if (max_speed < fabs(nor_speed)) 
+		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    max_speed = fabs(nor_speed);
-		    for (j = 0; j < 3; ++j)
-			crds_max[j] = Coords(p)[j];
+                    p->hse = hse = Hyper_surf_element((*btris)->tri);
+                    p->hs = hs = Hyper_surf((*btris)->surface);
+                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		    FT_NormalAtPoint(p,front,nor,NO_COMP);
+		    vel = v[n];
+		    nor_speed = scalar_product(vel,nor,dim);
+		    if (max_speed < fabs(nor_speed)) 
+		    {
+		    	max_speed = fabs(nor_speed);
+		    	gindex_max = Gindex(p);
+		    	for (j = 0; j < 3; ++j)
+			    crds_max[j] = Coords(p)[j];
+		    }
+                    for (j = 0; j < dim; ++j)
+		    	sl->vel[j] = sr->vel[j] = 
+				sl->Impct[j] + nor_speed*nor[j];
 		}
-                for (j = 0; j < dim; ++j)
-		    sl->vel[j] = sr->vel[j] = sl->Impct[j] + nor_speed*nor[j];
             }
             for (c = node->in_curves; c && *c; ++c)
             {
-		if (hsbdry_type(*c) != MONO_COMP_HSBDRY) continue;
+		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
+		    hsbdry_type(*c) != GORE_HSBDRY) 
+		    continue;
                 b = (*c)->last;
                 p = b->end;
-                btris = Btris(b);
-                p->hse = hse = Hyper_surf_element((*btris)->tri);
-                p->hs = hs = Hyper_surf((*btris)->surface);
-                FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		FT_NormalAtPoint(p,front,nor,NO_COMP);
-		vel = v[n];
-		nor_speed = scalar_product(vel,nor,dim);
-		if (max_speed < fabs(nor_speed)) 
+		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    max_speed = fabs(nor_speed);
-		    for (j = 0; j < 3; ++j)
-			crds_max[j] = Coords(p)[j];
-		}
-                for (j = 0; j < dim; ++j)
-		    sl->vel[j] = sr->vel[j] = sl->Impct[j] + nor_speed*nor[j];
+                    p->hse = hse = Hyper_surf_element((*btris)->tri);
+                    p->hs = hs = Hyper_surf((*btris)->surface);
+                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		    FT_NormalAtPoint(p,front,nor,NO_COMP);
+		    vel = v[n];
+		    nor_speed = scalar_product(vel,nor,dim);
+		    if (max_speed < fabs(nor_speed)) 
+		    {
+		    	max_speed = fabs(nor_speed);
+		    	gindex_max = Gindex(p);
+		    	for (j = 0; j < 3; ++j)
+			    crds_max[j] = Coords(p)[j];
+		    }
+                    for (j = 0; j < dim; ++j)
+		    	sl->vel[j] = sr->vel[j] = 
+				sl->Impct[j] + nor_speed*nor[j];
+		    }
             }
 	    n++;
 	}
@@ -1722,7 +1739,8 @@ static void set_canopy_velocity(
 		    vel = v[n];
 		    nor_speed = scalar_product(vel,nor,dim);
                     for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = sl->Impct[j] + nor_speed*nor[j];
+		    	sl->vel[j] = sr->vel[j] = 
+				sl->Impct[j] + nor_speed*nor[j];
             	}
             	n++;
             }
@@ -1764,6 +1782,7 @@ static void set_canopy_velocity(
             (void) printf("front: spfr[%d] %g\n",i,spfr[i]);
 	    (void) printf("Coordinate of max speed: %f %f %f\n",
 				crds_max[0],crds_max[1],crds_max[2]);
+	    (void) printf("Global index of point-max: %d\n",gindex_max);
 	}
 	n = geom_set->n_cps;
 	sl = (STATE*)left_state(load_node->posn);
