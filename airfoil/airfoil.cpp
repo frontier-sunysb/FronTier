@@ -191,6 +191,7 @@ static  void airfoil_driver(
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 
         CFL = Time_step_factor(front);
+	Tracking_algorithm(front) = STRUCTURE_TRACKING;
 
 	(void) printf("Frequency_of_redistribution(front,GENERAL_WAVE) = %d\n",
 		Frequency_of_redistribution(front,GENERAL_WAVE));

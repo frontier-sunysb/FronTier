@@ -170,20 +170,17 @@ extern void second_order_elastic_curve_propagate(
 }	/* end second_order_elastic_curve_propagate */
 
 extern void second_order_elastic_surf_propagate(
-	Front           *fr,
         Front           *newfr,
-        INTERFACE       *intfc,
-        SURFACE         *olds,
-        SURFACE         *news,
         double           fr_dt)
 {
 	static int size = 0;
 	static double **v_old,**v_new,**x_old,**x_new,**f_old,**f_new;
-	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
+	AF_PARAMS *af_params = (AF_PARAMS*)newfr->extra2;
 	int i,j,num_pts,count;
 	int n,n_tan = af_params->n_tan;
 	double dt = fr_dt/(double)n_tan;
 	PARACHUTE_SET geom_set;
+	SURFACE *olds,*news,**s;
 	CURVE **oc,**nc,*oldc,*newc;
         NODE *oldn,*newn;
 	void (*compute_node_accel)(PARACHUTE_SET*,NODE*,double**,
@@ -211,8 +208,14 @@ extern void second_order_elastic_surf_propagate(
 	    clean_up(ERROR);
 	}
 
-	if (wave_type(olds) != ELASTIC_BOUNDARY)
-	    return;
+	for (s = newfr->interf->surfaces; s && *s; ++s)
+	{
+	    if (wave_type(*s) == ELASTIC_BOUNDARY)
+	    {
+		olds = news = *s;
+		break;
+	    }
+	}
 
 	if (debugging("trace"))
 	    (void) printf("Entering "
@@ -224,7 +227,7 @@ extern void second_order_elastic_surf_propagate(
         geom_set.kl = af_params->kl;
         geom_set.lambda_l = af_params->lambda_l;
         geom_set.m_l = af_params->m_l;
-	geom_set.front = fr;
+	geom_set.front = newfr;
 	geom_set.dt = dt;
 	
 	/* Assume there is only one closed boundary curve */
@@ -1551,17 +1554,13 @@ extern void fixed_length_tan_curve_propagate(
 #define		MAX_SURF_NODES		20
 
 extern void fourth_order_elastic_surf_propagate(
-	Front           *fr,
         Front           *newfr,
-        INTERFACE       *intfc,
-        SURFACE         *olds,
-        SURFACE         *news,
         double           fr_dt)
 {
 	static int size = 0;
 	static double **x_old,**x_new,**v_old,**v_new,**f_old,**f_new;
         static double **x_mid,**v_mid,**f_mid;
-	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
+	AF_PARAMS *af_params = (AF_PARAMS*)newfr->extra2;
         double *g = af_params->gravity;
 	double mass;
 	int i,j,num_pts,count;
@@ -1569,6 +1568,7 @@ extern void fourth_order_elastic_surf_propagate(
 	double dt = fr_dt/(double)n_tan;
 	PARACHUTE_SET geom_set;
 	CURVE **oc,**nc,*oldc[MAX_SURF_CURVES],*newc[MAX_SURF_CURVES];
+	SURFACE *news,*olds,**s;
 	NODE *oldn[MAX_SURF_NODES],*newn[MAX_SURF_NODES];
 	int num_nodes,num_lurves;	/* Numbers of nodes and curves */
 	void (*compute_node_accel)(PARACHUTE_SET*,NODE*,double**,
@@ -1578,8 +1578,14 @@ extern void fourth_order_elastic_surf_propagate(
 	void (*compute_surf_accel)(PARACHUTE_SET*,SURFACE*,double**,
 				double**,double **,int*);
 
-	if (wave_type(olds) != ELASTIC_BOUNDARY)
-	    return;
+	for (s = newfr->interf->surfaces; s && *s; ++s)
+	{
+	    if (wave_type(*s) == ELASTIC_BOUNDARY)
+	    {
+		olds = news = *s;
+		break;
+	    }
+	}
 
 	switch (af_params->spring_model)
 	{
@@ -1609,7 +1615,7 @@ extern void fourth_order_elastic_surf_propagate(
 	geom_set.kl = af_params->kl;
 	geom_set.lambda_l = af_params->lambda_l;
 	geom_set.m_l = mass = af_params->m_l;
-	geom_set.front = fr;
+	geom_set.front = newfr;
 	geom_set.dt = dt;
 
 	/* Assume there is only one closed boundary curve */

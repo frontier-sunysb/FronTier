@@ -219,6 +219,7 @@ typedef struct _SAMPLE SAMPLE;
 
 enum _TRACKING_ALGORITHM {
 	NO_DYNAMIC_TRACKING,
+	STRUCTURE_TRACKING,
 	GRID_FREE_TRACKING,
 	GRID_BASED_TRACKING,
 	THREE_COMP_GRID_BASED_TRACKING,
@@ -553,6 +554,7 @@ struct _Front {
 				CURVE*,CURVE*,double);
 	void (*tan_surface_propagate)(struct _Front*,struct _Front*,INTERFACE*,
 				SURFACE*,SURFACE*,double);
+	void (*interior_propagate)(struct _Front*,double);
 	boolean (*_tan_point_propagate)(struct _Front*,POINT*,POINT*,
 				HYPER_SURF_ELEMENT*,HYPER_SURF*,double,int);
 	void (*_npt_tang_solver)(double,double,Tan_stencil*,

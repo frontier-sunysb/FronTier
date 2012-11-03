@@ -254,12 +254,9 @@ extern void second_order_elastic_curve_propagate(Front*,Front*,INTERFACE*,
                                 CURVE*,CURVE*,double);
 extern void fourth_order_elastic_curve_propagate(Front*,Front*,INTERFACE*,
                                 CURVE*,CURVE*,double);
-extern void second_order_elastic_surf_propagate(Front*,Front*,INTERFACE*,
-                                SURFACE*,SURFACE*,double);
-extern void fourth_order_elastic_surf_propagate(Front*,Front*,INTERFACE*,
-                                SURFACE*,SURFACE*,double);
-extern void fourth_order_elastic_set_propagate(Front*,Front*,INTERFACE*,
-                                SURFACE*,SURFACE*,double);
+extern void second_order_elastic_surf_propagate(Front*,double);
+extern void fourth_order_elastic_surf_propagate(Front*,double);
+extern void fourth_order_elastic_set_propagate(Front*,double);
 extern void set_equilibrium_mesh(Front*);
 extern void init_fluid_state_func(Front*,Incompress_Solver_Smooth_Basis*);
 extern void print_airfoil_stat(Front*,char*);

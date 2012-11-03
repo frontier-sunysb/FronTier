@@ -231,15 +231,15 @@ extern void initVelocityFunc(
 	    	case 'e':
 	    	case 'E':
 	    	    if (string[1] == '2')
-	    	    	front->tan_surface_propagate 
+	    	    	front->interior_propagate 
 				= second_order_elastic_surf_propagate;
 	    	    else
-	    	    	front->tan_surface_propagate 
+	    	    	front->interior_propagate 
 				= fourth_order_elastic_surf_propagate;
 	    	    break;
 	    	case 'p':
 	    	case 'P':
-	    	    front->tan_surface_propagate 
+	    	    front->interior_propagate 
 				= fourth_order_elastic_set_propagate;
 	    	    break;
 	    	default:
@@ -249,7 +249,7 @@ extern void initVelocityFunc(
 	    }
 	}
 	else
-	    front->tan_surface_propagate = fourth_order_elastic_set_propagate;
+	    front->interior_propagate = fourth_order_elastic_set_propagate;
 
 	CursorAfterString(infile,"Enter gravity:");
         for (i = 0; i < dim; ++i)
@@ -616,28 +616,24 @@ extern void airfoil_point_propagate(
 }       /* airfoil_point_propagate */
 
 extern void fourth_order_elastic_set_propagate(
-	Front *front,
 	Front           *newfr,
-        INTERFACE       *intfc,
-        SURFACE         *olds,
-        SURFACE         *news,
         double           fr_dt)
 {
-	INTERFACE *old_intfc = news->interface;
-	INTERFACE *new_intfc = news->interface;
+	INTERFACE *old_intfc = newfr->interf;
+	INTERFACE *new_intfc = newfr->interf;
 	NODE *oldn,*newn;	/* old and new payload nodes */
 	AF_NODE_EXTRA *extra;
 	CURVE **old_str_curves,**old_mono_hsbdry,**old_gore_hsbdry;
 	CURVE **new_str_curves,**new_mono_hsbdry,**new_gore_hsbdry;
 	NODE **old_str_nodes,**old_gore_nodes;
 	NODE **new_str_nodes,**new_gore_nodes;
+	SURFACE *news;
 	int i,num_str_curves,num_mono_hsbdry,num_gore_hsbdry;
 	static PARACHUTE_SET old_geom_set;
 	static PARACHUTE_SET new_geom_set;
 	NODE **n;
-	int num_gore_nodes = numOfGoreNodes(intfc);
+	int num_gore_nodes = numOfGoreNodes(old_intfc);
 
-	if (wave_type(news) != ELASTIC_BOUNDARY) return;
 	if (debugging("trace"))
 	    (void) printf("Entering fourth_order_elastic_set_propagate()\n");
 	for (n = old_intfc->nodes; n && *n; ++n)

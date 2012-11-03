@@ -53,11 +53,12 @@ LOCAL 	int 	mixed_advance_front3d(double,double*,Front*,Front**,POINTER);
 LOCAL	int	preserve_front_advance_front3d(double,double*,Front*,
 					       Front**,POINTER);
 LOCAL	int	propagate_3d_front(POINTER,Front*,Front*,double,double*,boolean);
-LOCAL   void    reset_intfc_curvature3d(Front*,INTERFACE*);
 LOCAL   int	propagate_node_points(Front*,Front*,POINTER,double,double*);
 LOCAL 	int 	propagate_points_tangentially(Front*,Front*,int,double,double*,
 						  int);
 LOCAL	int	reconstruct_front_advance_front3d(double,double*,Front*,
+						  Front**,POINTER);
+LOCAL	int	advance_structure_front3d(double,double*,Front*,
 						  Front**,POINTER);
 LOCAL	void	EnforceFlowSpecifedStates3d(Front*);
 LOCAL	void	debug_propagate_3d_front(Front*);
@@ -636,7 +637,7 @@ begin_advance_front2d:
 	    	     (correspond_curve(newc) != NULL))
 	        {
 	    	    if (debugging("propagate"))
-	                (void) printf("\t\tpropagating curve %lld\n",
+	                (void) printf("\t\tpropagating curve %llu\n",
 		                      curve_number(oldc));
 		    curve_propagate(front,wave,oldc,newc,dt);
 		    /*f_curve_propagate2d */
@@ -1653,6 +1654,11 @@ LOCAL 	int 	advance_front3d_tracking_control(
 	    step_status = GOOD_STEP;
 	    break;
 
+	case STRUCTURE_TRACKING:
+	    step_status = advance_structure_front3d(dt,dt_frac,front,
+							 newfront,wave);
+	    break;
+
 	case GRID_FREE_TRACKING:
 	    step_status = preserve_front_advance_front3d(dt,dt_frac,front,
 							 newfront,wave);
@@ -2011,7 +2017,7 @@ LOCAL int propagate_3d_front(
 	intfc_old = front->interf;
 
 	/*after redistribute or restart, the curvature is not calculated. */
-        init_intfc_curvature3d(front,front->interf);
+        init_intfc_curvature3d(front, front->interf);
 	
 	if (front->_point_propagate != NULL)
 	{
@@ -2148,26 +2154,11 @@ LOCAL int propagate_3d_front(
             }
 	    stop_clock("tangentiall");
 	}
-	start_clock("scatter_front");
-	if (!scatter_front(newfront))
-	{
-	    stop_clock("scatter_front");
-	    (void) printf("WARNING in propagate_3d_front(), "
-	                  "2nd scatter_front() failed\n"
-	                  "MODIFY_TIME_STEP\n");  
-	    *dt_frac *= TIME_STEP_REDUCTION_FACTOR(front->interf);
-	    DEBUG_LEAVE(propagate_3d_front)
-	    return MODIFY_TIME_STEP; 
-	}
-	stop_clock("scatter_front");
-
-        init_intfc_curvature3d(newfront,newfront->interf);
 
 	debug_print("front","Left propagate_3d_front()\n");
 	DEBUG_LEAVE(propagate_3d_front)
 	return GOOD_STEP; 
 }		/*end propagate_3d_front*/
-
 
 EXPORT void   init_intfc_curvature3d(
        Front               *front,
@@ -2213,25 +2204,6 @@ EXPORT void   init_intfc_curvature3d(
 	intfc->normal_unset = NO;
         intfc->curvature_unset = NO;
 }      /* end init_intfc_curvature3d */
-
-LOCAL void   reset_intfc_curvature3d(
-       Front               *front,
-       INTERFACE           *intfc)
-{
-       HYPER_SURF              *hs;
-       HYPER_SURF_ELEMENT      *hse;
-       POINT                   *p;
-       int                     i;
-
-       (void) next_point(intfc,NULL,NULL,NULL);
-        while (next_point(intfc,&p,&hse,&hs))
-        {
-            p->curvature = 0.0;
-        }
-	intfc->normal_unset = YES;
-        intfc->curvature_unset = YES;
-}	/* reset_intfc_curvature3d */
-
 
 	  
 /*
@@ -2912,3 +2884,94 @@ LOCAL	void check_2d_orientation(INTERFACE *intfc)
 			area_of_closed_curve(*c));
 	}
 }
+
+LOCAL int advance_structure_front3d(
+	double		dt,
+	double		*dt_frac,
+	Front		*front,
+	Front		**newfront,
+	POINTER		wave)
+{
+	static const char *fname = "advance_structure_front3d";
+	boolean	   has_tracked_surfaces;
+	int	   status;
+	double	   V[MAXD];
+
+	*newfront = copy_front(front);
+	has_tracked_surfaces = (front->interf->surfaces != NULL) ? YES : NO;
+	if (pp_max_status(has_tracked_surfaces) == NO)
+	{
+	    set_size_of_intfc_state(size_of_state(front->interf));
+	    set_copy_intfc_states(YES);
+	    (*newfront)->interf = pp_copy_interface(front->interf);
+	    status = ((*newfront)->interf != NULL) ? GOOD_STEP : ERROR_IN_STEP;
+	    return return_advance_front(front,newfront,status,fname);
+	}
+
+		/* Initialize Newfront */
+
+	start_clock("copy_interface");
+	set_size_of_intfc_state(size_of_state(front->interf));
+	set_copy_intfc_states(NO);
+	(*newfront)->interf = pp_copy_interface(front->interf);
+	if ((*newfront)->interf == NULL)
+	{
+	    (void) printf("WARNING in advance_3d_front(), "
+	                  "unable to copy interface\n");
+	    return return_advance_front(front,newfront,ERROR_IN_STEP,fname);
+	}
+	stop_clock("copy_interface");
+
+		/* Propagate points on surfaces */
+
+	start_clock("propagate");
+	set_copy_intfc_states(YES);
+	init_intfc_curvature3d(front, front->interf);
+	set_propagation_limits(front,*newfront);
+
+	if (front->_point_propagate != NULL)
+	    propagate_surface_points(front,*newfront,wave,dt,V);
+	if (front->curve_propagate != NULL)
+	    propagate_curve_points(front,*newfront,wave,dt);
+	if (front->node_propagate != NULL)
+	    propagate_node_points(front,*newfront,wave,dt,dt_frac);
+
+	start_clock("scatter_front");
+	if (!scatter_front(*newfront))
+	{
+	    stop_clock("scatter_front");
+            (void) printf("ERROR in advance_structure_front3d(), "
+                          "scatter_front() failed\n");
+	    clean_up(ERROR);
+	}
+	else
+	{
+	    stop_clock("scatter_front");
+	    status = GOOD_STEP;
+	}
+
+	init_intfc_curvature3d(*newfront,(*newfront)->interf);
+	if (front->interior_propagate != NULL)
+	    (*front->interior_propagate)(*newfront,dt);
+
+	start_clock("scatter_front");
+	if (!scatter_front(*newfront))
+	{
+	    stop_clock("scatter_front");
+            (void) printf("ERROR in advance_structure_front3d(), "
+                          "scatter_front() failed\n");
+	    clean_up(ERROR);
+	}
+	else
+	{
+	    stop_clock("scatter_front");
+	    status = GOOD_STEP;
+	}
+
+	stop_clock("propagate");
+
+	if (status == GOOD_STEP)
+	    init_intfc_curvature3d(*newfront,(*newfront)->interf);
+	
+	return return_advance_front(front,newfront,status,fname);
+}	/* end advance_structure_front3d */
