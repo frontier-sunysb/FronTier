@@ -18,8 +18,8 @@ Redistribution interval: 100000
 Type yes to turn off auto-redistribution: y
 Entering yes to turn off fluid solver: yes
 Enter velocity function: zero_velo
-Enter tangential propagator: e
-Enter tangential sub step number: 10
+Enter interior propagator: e
+Enter interior sub step number: 10
 
 Projection type can be
         SIMPLE
@@ -58,7 +58,7 @@ Entering yes to turn off fluid solver: y
 Enter density and viscosity of the fluid: 1 0.00628
 Enter gravity: 0.0 0.0 0.0
 Enter payload: 0.0
-Enter tangential sub step number: 1
+Enter interior sub step number: 1
 Enter surface tension: 0.0
 Enter factor of smoothing radius: 1
 

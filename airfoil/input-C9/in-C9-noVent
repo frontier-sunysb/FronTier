@@ -46,7 +46,7 @@ Enter surface tension: 0.0
 Enter factor of smoothing radius: 1.0
 Enter porosity of canopy: 0.0
 Enter area density of canopy: 5.0
-Enter tangential sub step number: 10
+Enter interior sub step number: 10
 
 Enter fabric spring constant: 5000
 Enter fabric friction constant: 0.01 

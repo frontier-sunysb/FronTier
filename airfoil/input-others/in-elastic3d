@@ -16,7 +16,7 @@ Movie frame interval: 0.025
 CFL factor: 0.1
 Redistribution interval: 100000
 Type yes to turn off auto-redistribution: n
-Enter tangential propagator: e
+Enter interior propagator: e
 
 Problem type can be
         REVERSAL_VELO
@@ -50,10 +50,10 @@ Enter the box upper boundary: 0.81 0.81 0.81
 Entering perturbation type: P
 Entering yes to turn off fluid solver: y
 Enter velocity function: zero
-Enter tangential propagator: e2
+Enter interior propagator: e2
 Enter gravity: 0.0 0.0 -100.0
 Enter payload: 0.0
-Enter tangential sub step number: 10
+Enter interior sub step number: 10
 
 Enter surface tension: 0.0
 Enter factor of smoothing radius: 1

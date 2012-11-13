@@ -630,7 +630,6 @@ src/gas/gnode/Makefile
 src/gas/gprop/Makefile 
 src/gas/gprt/Makefile 
 src/gas/gstate/Makefile 
-testfront/Makefile 
 example/Makefile
 example3d/Makefile
 iTaps/Makefile

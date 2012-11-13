@@ -54,6 +54,14 @@ extern void initVelocityFunc(
 	{
 	    front->curve_propagate = airfoil_curve_propagate;
 	    velo_func_pack.point_propagate = airfoil_point_propagate;
+	    (void) printf("Available velocity functions are:\n");
+	    (void) printf("\tVortex velocity (R)\n");
+	    (void) printf("\tDouble vortex velocity (D)\n");
+	    (void) printf("\tVertical velocity (V)\n");
+	    (void) printf("\tToroidal velocity (T)\n");
+	    (void) printf("\tParabolic velocity (P)\n");
+	    (void) printf("\tSingular velocity (S)\n");
+	    (void) printf("\tZero velocity (Z)\n");
             CursorAfterString(infile,"Enter velocity function: ");
 	    fscanf(infile,"%s",string);
 	    (void) printf("%s\n",string);
@@ -190,7 +198,7 @@ extern void initVelocityFunc(
 	FT_InitVeloFunc(front,&velo_func_pack);
 	if (af_params->no_fluid == YES || af_params->is_parachute_system == NO)
 	{
-            CursorAfterString(infile,"Enter tangential propagator:");
+            CursorAfterString(infile,"Enter interior propagator:");
 	    fscanf(infile,"%s",string);
 	    (void) printf("%s\n",string);
 	    if (dim == 2)
@@ -216,7 +224,7 @@ extern void initVelocityFunc(
 				= fourth_order_elastic_curve_propagate;
 	    	    break;
 	    	default:
-		    (void) printf("Unknown tangential propagator!\n");
+		    (void) printf("Unknown interior propagator!\n");
 		    clean_up(ERROR);
 	    	}
 	    }
@@ -226,7 +234,7 @@ extern void initVelocityFunc(
 	    	{
 	    	case 'n':
 	    	case 'N':
-	    	    front->tan_curve_propagate = NULL;
+	    	    front->interior_propagate = NULL;
 	    	    break;
 	    	case 'e':
 	    	case 'E':
@@ -243,7 +251,7 @@ extern void initVelocityFunc(
 				= fourth_order_elastic_set_propagate;
 	    	    break;
 	    	default:
-		    (void) printf("Unknown tangential propagator!\n");
+		    (void) printf("Unknown interior propagator!\n");
 		    clean_up(ERROR);
 	    	}
 	    }
@@ -282,7 +290,7 @@ extern void initVelocityFunc(
             (void) printf("%f\n",af_params->area_dens);
 	}
 	af_params->n_tan = 1;
-	CursorAfterString(infile,"Enter tangential sub step number:");
+	CursorAfterString(infile,"Enter interior sub step number:");
 	fscanf(infile,"%d",&af_params->n_tan);
 	(void) printf("%d\n",af_params->n_tan);
 	if (dim == 3)
@@ -940,8 +948,6 @@ static void curve_point_prop_with_interaction(
 	}
 }	/* end curve_point_prop_with_interaction */
 
-static boolean is_gore_node(NODE*);
-
 extern int numOfMonoHsbdry(
 	INTERFACE *intfc)
 {
@@ -1018,13 +1024,38 @@ extern int numOfGoreNodes(
 	return num_gore_nodes;
 }	/* numOfGoreNodes */
 
-static boolean is_gore_node(
+extern boolean is_bdry_node(
+	NODE *node)
+{
+	CURVE **c;
+	for (c = node->in_curves; c && *c; ++c)
+	{
+	    if (hsbdry_type(*c) == NEUMANN_HSBDRY ||
+		hsbdry_type(*c) == DIRICHLET_HSBDRY ||
+		hsbdry_type(*c) == SUBDOMAIN_HSBDRY) 
+	    {
+		return YES;
+	    }
+	} 
+	for (c = node->out_curves; c && *c; ++c)
+	{
+	    if (hsbdry_type(*c) == NEUMANN_HSBDRY ||
+		hsbdry_type(*c) == DIRICHLET_HSBDRY ||
+		hsbdry_type(*c) == SUBDOMAIN_HSBDRY) 
+	    {
+		return YES;
+	    }
+	} 
+	return NO;
+}	/* is_bdry_node */
+
+extern boolean is_gore_node(
 	NODE *node)
 {
 	CURVE **c;
 	AF_NODE_EXTRA *extra;
 
-	if ((node)->extra == NULL)
+	if (node->extra == NULL)
 	    return NO;
 	extra = (AF_NODE_EXTRA*)(node)->extra;
 	if (extra->af_node_type == GORE_NODE)

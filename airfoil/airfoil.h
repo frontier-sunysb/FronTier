@@ -18,6 +18,9 @@ typedef struct {
         int dim;
         double cen[MAXD];       /* center of the ellipse */
         double radii[MAXD];     /* radii of the ellipse */
+	int gores_n;
+        double gores_start_x;
+        double gores_dis;
 } ELLIPSE_CONSTR_PARAMS;
 
 // Yan Li
@@ -30,11 +33,11 @@ typedef struct {
         double y_constraint;
         double x_devi;  /* two center are (x_sym +- x_devi, y_constrain) */
         double radius[2];
-
-        double cen_curve_start[2];
-        double cen_curve_end[2];
-
+	int gores_n;
+        double gores_start_x;
+        double gores_dis;
 } WING_CONSTR_PARAMS;
+
 enum _PERTURBATION_TYPE {
 	NO_PERT		=	1,
 	PARALLEL_RAND_PERT,
@@ -87,6 +90,7 @@ typedef struct {
 	boolean no_fluid;
 	boolean is_parachute_system;
 	boolean attach_gores;
+	boolean attach_fixer;
 	boolean cut_vent;
 	PERT_PARAMS pert_params;
 	STRING_NODE_TYPE start_type;
@@ -307,6 +311,8 @@ extern void compute_curve_accel3(PARACHUTE_SET*,CURVE*,double**,double**,
 extern void compute_node_accel3(PARACHUTE_SET*,NODE*,double**,double**,double**,
 				int*);
 extern boolean is_load_node(NODE*);
+extern boolean is_gore_node(NODE*);
+extern boolean is_bdry_node(NODE*);
 extern  int numOfGoreHsbdry(INTERFACE*);
 extern  int numOfMonoHsbdry(INTERFACE*);
 extern  int numOfGoreNodes(INTERFACE*);

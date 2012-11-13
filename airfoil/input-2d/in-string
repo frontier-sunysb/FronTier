@@ -15,10 +15,10 @@ CFL factor: 0.75
 Redistribution interval: 10000000
 Entering yes to turn off fluid solver: y
 Enter velocity function: zero_velo
-Enter tangential propagator: e4
+Enter interior propagator: e4
 Enter gravity: 0.0 -9.8
 Enter payload: 100.0
-Enter tangential sub step number: 10
+Enter interior sub step number: 10
 Enter string spring constant: 1000
 Enter string friction constant: 0.0
 Enter string point mass: 0.05

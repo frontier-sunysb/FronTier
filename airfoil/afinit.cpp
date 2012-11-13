@@ -57,6 +57,7 @@ static void setInitialIntfc3d(
 	af_params->num_opt_round = 20;
         af_params->spring_model = MODEL1;	// default
 	af_params->attach_gores = NO;		// default
+	af_params->gore_len_fac = 1.0;		// default
 	CursorAfterString(infile,"Enter number of canopy surfaces:");
 	fscanf(infile,"%d",&num_canopy);
 	(void) printf("%d\n",num_canopy);
@@ -89,6 +90,14 @@ static void setInitialIntfc3d(
 	    break;
 	}
 	af_params->pert_params.pert_type = NO_PERT;
+	(void) printf("Available perturbation types are:\n");
+	(void) printf("\tNo perturbation (N)\n");
+	(void) printf("\tParallel random perturbation (P)\n");
+	(void) printf("\tOrthogonal random perturbation (O)\n");
+	(void) printf("\tRadial perturbation (R)\n");
+	(void) printf("\tLinear perturbation (L)\n");
+	(void) printf("\tSine perturbation (S)\n");
+	(void) printf("\tDefault is no perturbation\n");
 	if (CursorAfterStringOpt(infile,
 	    "Entering perturbation type: "))
 	{
@@ -146,6 +155,26 @@ static void setInitialIntfc3d(
 		af_params->pert_params.pert_type = SINE_PERT;
 		break;
 	    }
+	}
+	if (CursorAfterStringOpt(infile,
+            "Entering type of spring model: "))
+        {
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            switch (string[0])
+            {
+            case '1':
+                af_params->spring_model = MODEL1;
+                break;
+            case '2':
+                af_params->spring_model = MODEL2;
+                break;
+            case '3':
+                af_params->spring_model = MODEL3;
+                break;
+            default:
+                break;
+            }
 	}
 	if (CursorAfterStringOpt(infile,
             "Entering number of canopy optimization rounds: "))

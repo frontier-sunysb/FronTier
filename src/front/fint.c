@@ -987,6 +987,70 @@ EXPORT	void f_fprint_hsbdry_type(
 	    (void) fprintf(file,"%s",mesg2);
 }		/*end f_fprint_hsbdry_type*/
 
+EXPORT	char *f_hsbdry_type_as_string(
+	int		hsb_type)
+{
+	const char *suffix;
+	static char string[100];
+	INTERFACE *intfc = current_interface();
+
+	zero_scalar(string,100);
+	switch (intfc->dim)
+	{
+	case 3:
+	    suffix = "HSBDRY";
+	    break;
+	case 2:
+	    suffix = "NODE";
+	    break;
+	case 1:
+	    screen("ERROR in f_fprint_hsbdry_type(), "
+	           "invalid dimension %d\n",intfc->dim);
+	           clean_up(ERROR);
+	}
+	switch(hsb_type) 
+	{
+	case PASSIVE_HSBDRY:
+	    (void) sprintf(string,"PASSIVE_%s",suffix);
+	    break;
+	case FIXED_HSBDRY:
+	    (void) sprintf(string,"FIXED_%s",suffix);
+	    break;
+	case CLOSED_HSBDRY:
+	    (void) sprintf(string,"CLOSED_%s",suffix);
+	    break;
+	case NEUMANN_HSBDRY:
+	    (void) sprintf(string,"NEUMANN_%s",suffix);
+	    break;
+	case DIRICHLET_HSBDRY:
+	    (void) sprintf(string,"DIRICHLET_%s",suffix);
+	    break;
+	case SOURCE_HSBDRY:
+	    (void) sprintf(string,"SOURCE_%s",suffix);
+	    break;
+	case SINK_HSBDRY:
+	    (void) sprintf(string,"SINK_%s",suffix);
+	    break;
+	case SUBDOMAIN_HSBDRY:
+	    (void) sprintf(string,"SUBDOMAIN_%s",suffix);
+	    break;
+	case MONO_COMP_HSBDRY:
+	    (void) sprintf(string,"MONO_COMP_%s",suffix);
+	    break;
+	case STRING_HSBDRY:
+	    (void) sprintf(string,"STRING_%s",suffix);
+	    break;
+	case GORE_HSBDRY:
+	    (void) sprintf(string,"GORE_%s",suffix);
+	    break;
+	case UNKNOWN_HSBDRY_TYPE:
+	default:
+	    (void) printf("UNKNOWN_HSBDRY_TYPE\n");
+	    clean_up(ERROR);
+	}
+	return string;
+}		/*end f_hsbdry_type_as_string*/
+
 /*ARGSUSED*/
 EXPORT	int f_read_hsbdry_type_from_string(
 	const char *type,

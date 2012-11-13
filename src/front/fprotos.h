@@ -297,6 +297,7 @@ IMPORT	int	f_delete_interface(INTERFACE*);
 IMPORT	boolean	f_nearest_intfc_state(double*,COMPONENT,INTERFACE*,
 				      Locstate,double*,HYPER_SURF**);
 IMPORT	const char *f_wave_type_as_string(int);
+IMPORT	char *f_hsbdry_type_as_string(int);
 IMPORT	int	f_read_hsbdry_type_from_string(const char*,INTERFACE*);
 IMPORT	int	f_read_wave_type_from_string(const char*);
 IMPORT	int	f_user_read_print_interface(INIT_DATA*,const IO_TYPE*,
@@ -323,7 +324,6 @@ IMPORT	void	fixed_boundary_state(double*,HYPER_SURF*,Front*,
 IMPORT	void	set_computational_grid(INTERFACE*,RECT_GRID*);
 IMPORT	void	set_copy_intfc_states(boolean);
 IMPORT	void	set_size_of_intfc_state(size_t);
-/*#bjet2 */
 IMPORT	int	get_size_of_intfc_state(void);
 IMPORT  void    set_use_wall_edge(boolean);
 IMPORT  boolean    use_wall_edge(void);
@@ -352,7 +352,6 @@ IMPORT	void	f_user_fprint_node(FILE*,NODE*);
 IMPORT	void	f_user_read_curve(CURVE*);
 IMPORT	void	f_user_read_print_node(NODE*,const IO_TYPE*,boolean);
 IMPORT	void	set_interpolate_states_at_split_curve_node(boolean);
-/*#bjet2 */
 IMPORT SURFACE *f_detach_one_surface(SURFACE *);
 IMPORT	POINT	*f_make_point(double*,COMPONENT,COMPONENT);
 IMPORT	void	test_for_mono_comp_curves(INTERFACE*);

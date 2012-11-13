@@ -18,8 +18,8 @@ CFL factor: 0.75
 Redistribution interval: 1000000
 Type yes to turn off auto-redistribution: y
 Enter velocity function: zero_velo
-Enter tangential propagator: e
-Enter tangential sub step number: 10
+Enter interior propagator: e
+Enter interior sub step number: 10
 
 Projection type can be
         SIMPLE

@@ -14,8 +14,8 @@ Max step: 200
 Print interval: 0.1
 Movie frame interval: 0.1
 Type yes to turn off auto-redistribution: y
-Enter tangential propagator: n
-Enter tangential sub step number: 2000
+Enter interior propagator n
+Enter interior sub step number: 2000
 
 CFL factor: 0.5
 Redistribution interval: 10000000

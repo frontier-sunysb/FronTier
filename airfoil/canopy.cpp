@@ -42,6 +42,7 @@ static void compute_total_canopy_force2d(Front*,double*,double*);
 static void compute_total_canopy_force3d(Front*,double*,double*);
 static void compute_center_of_mass_velo(PARACHUTE_SET*);
 static void set_canopy_velocity(PARACHUTE_SET*,double**);
+static boolean curve_in_pointer_list(CURVE*,CURVE**);
 
 #define 	MAX_NUM_RING1		30
 
@@ -581,7 +582,7 @@ extern void fourth_order_parachute_propagate(
 	{
 	    (void) printf("fr_dt = %f  dt_tol = %20.14f  dt = %20.14f\n",
 				fr_dt,dt_tol,dt);
-	    (void) printf("Number of tangential sub-steps = %d\n",n_tan);
+	    (void) printf("Number of interior sub-steps = %d\n",n_tan);
 	}
 	new_geom_set->dt = old_geom_set->dt = dt;
 
@@ -1059,6 +1060,7 @@ extern void compute_curve_accel1(
 	    TRI **tris;
 	    int j,k,side,nt;
 	    double length0,length;
+	    double ks = geom_set->ks;
 	    i = *n;
 	    for (b = curve->first; b != curve->last; b = b->next)
 	    {
@@ -1081,7 +1083,7 @@ extern void compute_curve_accel1(
                         	{
                             	    dir[k] = (Coords(p_nb)[k] - 
 						Coords(p)[k])/length;
-                            	    f[i][k] += kl*(length - length0)*
+                            	    f[i][k] += ks*(length - length0)*
 					dir[k]/m_l;
                         	}
 			    }
@@ -1111,25 +1113,30 @@ extern void compute_node_accel1(
 	double ks = geom_set->ks;
 	double kl = geom_set->kl;
 	double kg = geom_set->kg;
-	double m_s = geom_set->m_s;
-	double m_l = geom_set->m_l;
-	double m_g = geom_set->m_g;
+	double mass;
 	double lambda_s = geom_set->lambda_s;
 	double lambda_l = geom_set->lambda_l;
 	double lambda_g = geom_set->lambda_g;
-	double payload;
 
 	if (dim == 3)
 	{
 	    AF_NODE_EXTRA *extra = (AF_NODE_EXTRA*)node->extra;
-	    if (extra != NULL && extra->af_node_type == LOAD_NODE)
+	    if (extra != NULL)
 	    {
-	    	Front *front = geom_set->front;
-	    	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
-
-	    	payload = af_params->payload;
+		if (extra->af_node_type == LOAD_NODE)
+		{
+	    	    Front *front = geom_set->front;
+	    	    AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
+		    mass = af_params->payload;
+		}
+		else if (extra->af_node_type == GORE_NODE)
+                    mass = geom_set->m_g;
 	    }
+	    else
+                mass = geom_set->m_s;
 	}
+	else
+            mass = geom_set->m_l;
 
 	for (i = 0; i < dim; ++i)
 	{
@@ -1150,20 +1157,23 @@ extern void compute_node_accel1(
 		if (dim == 3)
 		{
 		    if (is_load_node(node) == YES)
-		    	f[*n][j]   += kl*vect[j]/payload;
+		    	f[*n][j]   += kl*vect[j]/mass;
 		    else if (hsbdry_type(*c) == STRING_HSBDRY)
-	    	    	f[*n][j]   += kl*vect[j]/m_s;
+	    	    	f[*n][j]   += kl*vect[j]/mass;
 		    else if (hsbdry_type(*c) == MONO_COMP_HSBDRY)
-	    	    	f[*n][j]   += ks*vect[j]/m_s;
+	    	    	f[*n][j]   += ks*vect[j]/mass;
 		    else if (hsbdry_type(*c) == GORE_HSBDRY)
-	    	    	f[*n][j]   += kg*vect[j]/m_g;
+	    	    	f[*n][j]   += kg*vect[j]/mass;
 		}
 		else
-		    f[*n][j]   += kl*vect[j]/m_l;
+		    f[*n][j]   += kl*vect[j]/mass;
 	    }
 	}
 	for (c = node->in_curves; c && *c; ++c)
 	{
+	    if (curve_in_pointer_list(*c,node->out_curves) && 
+		!is_closed_curve(*c)) 
+		continue;
 	    b = (*c)->last;
 	    len0 = bond_length0(b);
 	    x_diff = bond_length(b) - len0; 
@@ -1175,103 +1185,87 @@ extern void compute_node_accel1(
 		if (dim == 3)
 		{
 		    if (is_load_node(node) == YES)
-		    	f[*n][j]   -= kl*vect[j]/payload;
+		    	f[*n][j]   -= kl*vect[j]/mass;
 		    else if (hsbdry_type(*c) == STRING_HSBDRY)
-	    	    	f[*n][j]   -= kl*vect[j]/m_s;
+	    	    	f[*n][j]   -= kl*vect[j]/mass;
 		    else if (hsbdry_type(*c) == MONO_COMP_HSBDRY)
-	    	    	f[*n][j]   -= ks*vect[j]/m_s;
+	    	    	f[*n][j]   -= ks*vect[j]/mass;
 		    else if (hsbdry_type(*c) == GORE_HSBDRY)
-	    	    	f[*n][j]   -= kg*vect[j]/m_g;
+	    	    	f[*n][j]   -= kg*vect[j]/mass;
 		}
 		else
-		    f[*n][j]   -= kl*vect[j]/m_l;
+		    f[*n][j]   -= kl*vect[j]/mass;
 	    }
 	}
 	if (dim == 3)
 	{
 	    BOND_TRI **btris;
-	    TRI **tris;
-	    int k,side,nt,ns;
-	    SURFACE *out_surfs[10];
+	    TRI **tris,*tri_list[500];
+	    int k,side,nt,num_tris;
+	    TRI *tri;
 
-	    ns = 0;
+	    num_tris = 0;
+	    p = node->posn;
 	    for (c = node->out_curves; c && *c; ++c)
 	    {
 		b = (*c)->first;
-		p = b->start;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    out_surfs[ns++] = (*btris)->surface;
 		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
-			for (side = 0; side < 3; ++side)
-			{
-			    if (p == Point_of_tri(tris[j])[side])
-			    {
-				if (is_side_bdry(tris[j],side))
-				    continue;
-				p_nb = Point_of_tri(tris[j])[(side+1)%3];
-				len0 = tris[j]->side_length0[side];
-				len = separation(p,p_nb,3);
-	    			x_diff = len - len0; 
-				for (k = 0; k < 3; ++k)
-                        	{
-                            	    dir[k] = (Coords(p_nb)[k] - 
-						Coords(p)[k])/len;
-                            	    f[*n][k] += ks*x_diff*dir[k]/m_s;
-                        	}
-			    }
-			}
+			if (!pointer_in_list((POINTER)tris[j],num_tris,
+					(POINTER*)tri_list))
+			    tri_list[num_tris++] = tris[j];
 		    }
 		}
 	    }
 	    for (c = node->in_curves; c && *c; ++c)
 	    {
-		if (is_closed_curve(*c)) continue;
 		b = (*c)->last;
-		p = b->end;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    boolean duplicate_surf = NO;
-		    for (j = 0; j < ns; ++j)
-			if ((*btris)->surface == out_surfs[j])
-			    duplicate_surf = YES;
-		    if (duplicate_surf == YES) continue;
 		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
-			for (side = 0; side < 3; ++side)
-			{
-			    if (p == Point_of_tri(tris[j])[side])
-			    {
-				if (is_side_bdry(tris[j],side))
-				    continue;
-				p_nb = Point_of_tri(tris[j])[(side+1)%3];
-				len0 = tris[j]->side_length0[side];
-				len = separation(p,p_nb,3);
-				x_diff = len - len0;
-				for (k = 0; k < 3; ++k)
-                        	{
-                            	    dir[k] = (Coords(p_nb)[k] - 
-						Coords(p)[k])/len;
-                            	    f[*n][k] += ks*x_diff*dir[k]/m_s;
-                        	}
-			    }
-			}
+			if (!pointer_in_list((POINTER)tris[j],num_tris,
+					(POINTER*)tri_list))
+			    tri_list[num_tris++] = tris[j];
+		    }
+		}
+	    }
+	    for (i = 0; i < num_tris; ++i)
+	    {
+		tri = tri_list[i];
+		for (side = 0; side < 3; ++side)
+		{
+		    if (p == Point_of_tri(tri)[side])
+		    {
+			if (is_side_bdry(tri,side))
+			    continue;
+			p_nb = Point_of_tri(tri)[(side+1)%3];
+			len0 = tri->side_length0[side];
+			len = separation(p,p_nb,3);
+    			x_diff = len - len0; 
+			for (k = 0; k < 3; ++k)
+                       	{
+                       	    dir[k] = (Coords(p_nb)[k] - 
+					Coords(p)[k])/len;
+                       	    f[*n][k] += ks*x_diff*dir[k]/mass;
+                       	}
 		    }
 		}
 	    }
 	    if (!is_load_node(node))
 	    {
 	    	for (i = 0; i < 3; ++i)
-	    	    f[*n][i] -= lambda_s*v[*n][i]/m_s;
+	    	    f[*n][i] -= lambda_s*v[*n][i]/mass;
 	    }
 	}
 	else
 	{
 	    for (i = 0; i < 3; ++i)
-	    	f[*n][i] -= lambda_l*v[*n][i]/m_l;
+	    	f[*n][i] -= lambda_l*v[*n][i]/mass;
 	}
 	(*n)++;
 }	/* end compute_node_accel1 */
@@ -1635,6 +1629,7 @@ static void set_canopy_velocity(
             }
             for (c = node->in_curves; c && *c; ++c)
             {
+	    	//if (curve_in_pointer_list(*c,node->out_curves)) continue;
 		if (hsbdry_type(*c) != GORE_HSBDRY) continue;
                 b = (*c)->last;
                 p = b->end;
@@ -1695,6 +1690,7 @@ static void set_canopy_velocity(
             }
             for (c = node->in_curves; c && *c; ++c)
             {
+	    	//if (curve_in_pointer_list(*c,node->out_curves)) continue;
 		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
 		    hsbdry_type(*c) != GORE_HSBDRY) 
 		    continue;
@@ -1930,25 +1926,30 @@ extern void compute_node_accel2(
 	double ks = geom_set->ks;
 	double kl = geom_set->kl;
 	double kg = geom_set->kg;
-	double m_s = geom_set->m_s;
-	double m_l = geom_set->m_l;
-	double m_g = geom_set->m_g;
+	double mass;
 	double lambda_s = geom_set->lambda_s;
 	double lambda_l = geom_set->lambda_l;
 	double lambda_g = geom_set->lambda_g;
-	double payload;
 
 	if (dim == 3)
 	{
 	    AF_NODE_EXTRA *extra = (AF_NODE_EXTRA*)node->extra;
-	    if (extra != NULL && extra->af_node_type == LOAD_NODE)
+	    if (extra != NULL)
 	    {
-	    	Front *front = geom_set->front;
-	    	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
-
-	    	payload = af_params->payload;
+		if (extra->af_node_type == LOAD_NODE)
+		{
+	    	    Front *front = geom_set->front;
+	    	    AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
+	    	    mass = af_params->payload;
+		}
+		else if (extra->af_node_type == GORE_NODE)
+		    mass = geom_set->m_g;
 	    }
+	    else
+		mass = geom_set->m_s;
 	}
+	else
+	    mass = geom_set->m_l;
 
 	for (i = 0; i < dim; ++i)
 	{
@@ -1967,20 +1968,23 @@ extern void compute_node_accel2(
 		if (dim == 3)
 		{
 		    if (is_load_node(node) == YES)
-		    	f[*n][j]   += kl*vect[j]/payload;
+		    	f[*n][j]   += kl*vect[j]/mass;
 		    else if (hsbdry_type(*c) == STRING_HSBDRY)
-	    	    	f[*n][j]   += kl*vect[j]/m_s;
+	    	    	f[*n][j]   += kl*vect[j]/mass;
 		    else if (hsbdry_type(*c) == MONO_COMP_HSBDRY)
-	    	    	f[*n][j]   += ks*vect[j]/m_s;
+	    	    	f[*n][j]   += ks*vect[j]/mass;
 		    else if (hsbdry_type(*c) == GORE_HSBDRY)
-	    	    	f[*n][j]   += kg*vect[j]/m_g;
+	    	    	f[*n][j]   += kg*vect[j]/mass;
 		}
 		else
-		    f[*n][j]   += kl*vect[j]/m_l;
+		    f[*n][j]   += kl*vect[j]/mass;
 	    }
 	}
 	for (c = node->in_curves; c && *c; ++c)
 	{
+	    if (curve_in_pointer_list(*c,node->out_curves) && 
+		!is_closed_curve(*c)) 
+		continue;
 	    b = (*c)->last;
 	    len0 = bond_length0(b);
 	    for (j = 0; j < dim; ++j)
@@ -1990,108 +1994,88 @@ extern void compute_node_accel2(
 		if (dim == 3)
 		{
 		    if (is_load_node(node) == YES)
-		    	f[*n][j]   -= kl*vect[j]/payload;
+		    	f[*n][j]   -= kl*vect[j]/mass;
 		    else if (hsbdry_type(*c) == STRING_HSBDRY)
-	    	    	f[*n][j]   -= kl*vect[j]/m_s;
+	    	    	f[*n][j]   -= kl*vect[j]/mass;
 		    else if (hsbdry_type(*c) == MONO_COMP_HSBDRY)
-	    	    	f[*n][j]   -= ks*vect[j]/m_s;
+	    	    	f[*n][j]   -= ks*vect[j]/mass;
 		    else if (hsbdry_type(*c) == GORE_HSBDRY)
-	    	    	f[*n][j]   -= kg*vect[j]/m_g;
+	    	    	f[*n][j]   -= kg*vect[j]/mass;
 		}
 		else
-		    f[*n][j]   -= kl*vect[j]/m_l;
+		    f[*n][j]   -= kl*vect[j]/mass;
 	    }
 	}
 	if (dim == 3)
 	{
 	    BOND_TRI **btris;
-	    TRI **tris;
-	    int k,side,nt,ns;
-	    SURFACE *out_surfs[10];
+	    TRI **tris,*tri_list[500];
+	    int k,side,nt,num_tris;
+	    TRI *tri;
 
-	    ns = 0;
+	    num_tris = 0;
+	    p = node->posn;
 	    for (c = node->out_curves; c && *c; ++c)
 	    {
 		b = (*c)->first;
-		p = b->start;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    out_surfs[ns++] = (*btris)->surface;
 		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
-			for (side = 0; side < 3; ++side)
-			{
-			    if (p == Point_of_tri(tris[j])[side])
-			    {
-				if (is_side_bdry(tris[j],side))
-				    continue;
-				p_nb = Point_of_tri(tris[j])[(side+1)%3];
-				len0 = tris[j]->side_length0[side];
-				len = separation(p,p_nb,3);
-	    			x_diff = len - len0; 
-				for (k = 0; k < 3; ++k)
-                        	{
-                            	    dir[k] = (Coords(p_nb)[k] - 
-						Coords(p)[k])/len;
-                            	    vect[k] = (Coords(p_nb)[k] - Coords(p)[k])
-					- len0*tris[j]->side_dir0[side][k];
-                            	    //f[*n][k] += ks*x_diff*dir[k]/m_s;
-                            	    f[*n][k] += ks*vect[k]/m_s;
-                        	}
-			    }
-			}
+			if (!pointer_in_list((POINTER)tris[j],num_tris,
+					(POINTER*)tri_list))
+			    tri_list[num_tris++] = tris[j];
 		    }
 		}
 	    }
 	    for (c = node->in_curves; c && *c; ++c)
 	    {
-		if (is_closed_curve(*c)) continue;
 		b = (*c)->last;
-		p = b->end;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    boolean duplicate_surf = NO;
-		    for (j = 0; j < ns; ++j)
-			if ((*btris)->surface == out_surfs[j])
-			    duplicate_surf = YES;
-		    if (duplicate_surf == YES) continue;
 		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
-			for (side = 0; side < 3; ++side)
-			{
-			    if (p == Point_of_tri(tris[j])[side])
-			    {
-				if (is_side_bdry(tris[j],side))
-				    continue;
-				p_nb = Point_of_tri(tris[j])[(side+1)%3];
-				len0 = tris[j]->side_length0[side];
-				len = separation(p,p_nb,3);
-				x_diff = len - len0;
-				for (k = 0; k < 3; ++k)
-                        	{
-                            	    dir[k] = (Coords(p_nb)[k] - 
-						Coords(p)[k])/len;
-                            	    vect[k] = (Coords(p_nb)[k] - Coords(p)[k])
-					- len0*tris[j]->side_dir0[side][k];
-                            	    f[*n][k] += ks*vect[k]/m_s;
-                        	}
-			    }
-			}
+			if (!pointer_in_list((POINTER)tris[j],num_tris,
+					(POINTER*)tri_list))
+			    tri_list[num_tris++] = tris[j];
+		    }
+		}
+	    }
+	    for (i = 0; i < num_tris; ++i)
+	    {
+		tri = tri_list[i];
+		for (side = 0; side < 3; ++side)
+		{
+		    if (p == Point_of_tri(tri)[side])
+		    {
+			if (is_side_bdry(tri,side))
+			    continue;
+			p_nb = Point_of_tri(tri)[(side+1)%3];
+			len0 = tri->side_length0[side];
+			len = separation(p,p_nb,3);
+			x_diff = len - len0;
+			for (k = 0; k < 3; ++k)
+                       	{
+                       	    dir[k] = tri->side_dir0[side][k]; 
+                       	    vect[k] = (Coords(p_nb)[k] - Coords(p)[k])
+					- len0*dir[k];
+                       	    f[*n][k] += ks*vect[k]/mass;
+                       	}
 		    }
 		}
 	    }
 	    if (!is_load_node(node))
 	    {
 	    	for (i = 0; i < 3; ++i)
-	    	    f[*n][i] -= lambda_s*v[*n][i]/m_s;
+	    	    f[*n][i] -= lambda_s*v[*n][i]/mass;
 	    }
 	}
 	else
 	{
 	    for (i = 0; i < 3; ++i)
-	    	f[*n][i] -= lambda_l*v[*n][i]/m_l;
+	    	f[*n][i] -= lambda_l*v[*n][i]/mass;
 	}
 	(*n)++;
 }	/* end compute_node_accel2 */
@@ -2109,7 +2093,7 @@ extern void compute_curve_accel2(
 	BOND *b;
 	double dir[MAXD],len0,vect[MAXD];
 	int dim = Dimension(curve->interface);
-	double kl,m_l,lambda_l;
+	double kl,m_l,lambda_l,ks,lambda_s;
 
 	if (dim == 3)
 	{
@@ -2131,6 +2115,8 @@ extern void compute_curve_accel2(
 	    	m_l = geom_set->m_s;
 	    	lambda_l = geom_set->lambda_s;
 	    }
+	    ks = geom_set->ks;
+	    lambda_s = geom_set->lambda_s;
 	}
 	else
 	{
@@ -2194,14 +2180,12 @@ extern void compute_curve_accel2(
 				    continue;
 				p_nb = Point_of_tri(tris[j])[(side+1)%3];
 				length0 = tris[j]->side_length0[side];
-				length = separation(p,p_nb,3);
 				for (k = 0; k < 3; ++k)
                         	{
-                            	    dir[k] = (Coords(p_nb)[k] - 
-						Coords(p)[k])/length;
+                            	    dir[k] = tris[j]->side_dir0[side][k]; 
 				    vect[k] = Coords(p_nb)[k] - Coords(p)[k]
-					- length0*tris[j]->side_dir0[side][k];
-                            	    f[i][k] += kl*vect[k]/m_l;
+					- length0*dir[k];
+                            	    f[i][k] += ks*vect[k]/m_l;
                         	}
 			    }
 			}
@@ -2280,15 +2264,16 @@ static void spring_force_at_point2(
 		    length = separation(p,p_nb,3);
 	    	    for (k = 0; k < 3; ++k)
 		    {
-			dir[k] = (Coords(p_nb)[k] - Coords(p)[k])/length;
+			dir[k] = tris[i]->side_dir0[j][k];
 			vect[k] = (Coords(p_nb)[k] - Coords(p)[k]) -
-				length0*tris[i]->side_dir0[j][k];
+				//length0*tris[i]->side_dir0[j][k];
+				length0*dir[k];
 			f[k] += ks*vect[k];
 		    }
 		    if (is_side_bdry(tris[i],(j+2)%3))
 		    {
 			(void) printf("Detect boundary "
-				"in spring_force_at_point1()\n");
+				"in spring_force_at_point2()\n");
 			clean_up(ERROR);
 		    }
 		}
@@ -2358,6 +2343,7 @@ extern void compute_node_accel3(
 	}
 	for (c = node->in_curves; c && *c; ++c)
 	{
+	    //if (curve_in_pointer_list(*c,node->out_curves)) continue;
 	    b = (*c)->last;
 	    len0 = bond_length0(b);
 	    for (j = 0; j < dim; ++j)
@@ -2420,6 +2406,7 @@ extern void compute_node_accel3(
 	    }
 	    for (c = node->in_curves; c && *c; ++c)
 	    {
+	   	//if (curve_in_pointer_list(*c,node->out_curves)) continue;
 		if (is_closed_curve(*c)) continue;
 		b = (*c)->last;
 		p = b->end;
@@ -2582,3 +2569,15 @@ extern void compute_curve_accel3(
 	*n = i;
 }	/* end compute_curve_accel3 */
 
+static boolean curve_in_pointer_list(
+	CURVE *c,
+	CURVE **c_list)
+{
+	CURVE **pc;
+	if (c_list == NULL) return NO;
+	for (pc = c_list; pc && *pc; ++pc)
+	{
+	    if (c == *pc) return YES;
+	}
+	return NO;
+}	/* end curve_in_pointer_list */

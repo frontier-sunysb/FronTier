@@ -41,14 +41,14 @@ Enter center of velocity: 7.0 7.0
 Enter center velocity: 1.0
 Enter radius of center: 0.8
 Enter stop motion time: 24.0
-Enter tangential propagator: p
+Enter interior propagator p
 Enter density and viscosity of the fluid: 1.2 0.000628
 Enter gravity: 0 0 -9.8
 Enter payload: 100
 Enter surface tension: 0.0
 Enter factor of smoothing radius: 1.0
 Enter porosity of canopy: 0.0
-Enter tangential sub step number: 400
+Enter interior sub step number: 400
 
 Enter fabric spring constant: 1000
 Enter fabric friction constant: 20.0 

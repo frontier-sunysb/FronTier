@@ -14,8 +14,8 @@ Max step: 1
 Print interval: 0.5
 Movie frame interval: 0.5
 Type yes to turn off auto-redistribution: y
-Enter tangential propagator: n
-Enter tangential sub step number: 50
+Enter interior propagator n
+Enter interior sub step number: 50
 
 CFL factor: 0.5
 Redistribution interval: 10000000
@@ -43,8 +43,8 @@ Enter initial position of load: 10 10 15
 Enter rotation angles: 0 0
 
 Entering yes to turn off fluid solver: no
-Enter tangential propagator: n
-Enter tangential sub step number: 50
+Enter interior propagator n
+Enter interior sub step number: 50
 
 Enter gravity: 0 0 0
 Enter payload: 150
@@ -53,7 +53,7 @@ Enter surface tension: 0.0
 Enter factor of smoothing radius: 1.0
 Enter porosity of canopy: 0.05
 Enter area density of canopy: 1.0
-Enter tangential sub step number: 10
+Enter interior sub step number: 10
 
 
 Enter fabric spring constant: 1000
