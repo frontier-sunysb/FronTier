@@ -488,6 +488,23 @@ LOCAL	int split_bond_at_cross(
 
 	if (d_s < min_sc_sep && !force_split)
 	{
+	    printf("Warning: old code deleted, revisit split_bond_at_cross()"
+		   " if failure follows on this warning!\n");
+	}
+	else if (d_e < min_sc_sep && !force_split)
+	{
+	    printf("Warning: old code deleted, revisit split_bond_at_cross()"
+		   " if failure follows on this warning!\n");
+	}
+
+	/* This part of code could change topology and
+	   make untangle function completely confused.
+	   This is deleted, but I put a warning here so
+	   that if the function fails due to min_sc_sep,
+	   we can revisit the ramification of this change. XL Li
+
+	if (d_s < min_sc_sep && !force_split)
+	{
 	    Coords(b->start)[0] = Coords(cr->p)[0];
 	    Coords(b->start)[1] = Coords(cr->p)[1];
 	    set_bond_length(b,dim);
@@ -508,6 +525,7 @@ LOCAL	int split_bond_at_cross(
 	     cr->p = b->end;
 	}
 	else
+	*/
 	{
 	    if (insert_point_in_bond(cr->p,b,c) != FUNCTION_SUCCEEDED)
 	    {

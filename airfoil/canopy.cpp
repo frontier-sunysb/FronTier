@@ -493,7 +493,6 @@ static boolean is_pore(
 
 extern void fourth_order_parachute_propagate(
 	Front *fr,
-        PARACHUTE_SET *old_geom_set,
         PARACHUTE_SET *new_geom_set)
 {
 	static int size = 0;
@@ -505,16 +504,19 @@ extern void fourth_order_parachute_propagate(
 	int n,n_tan = af_params->n_tan;
 	double fr_dt = fr->dt;
 	double dt = fr_dt/(double)n_tan;
-	int num_strings = old_geom_set->num_strings;
+	int num_strings = new_geom_set->num_strings;
 	int n_cps,n_sps;
 	double dt_tol;
 	double xcom[MAXD],vcom[MAXD];
 	double coeff1,coeff2;
 
-	n_cps = FT_NumOfSurfPoints(old_geom_set->canopy);  /* canopy pts */
+	n_cps = FT_NumOfSurfPoints(new_geom_set->canopy);  /* canopy pts */
 	n_sps = 1;				/* load node */
 	for (i = 0; i < num_strings; ++i)	/* string interior pts */
-	    n_sps += FT_NumOfCurvePoints(old_geom_set->string_curves[i]) - 2;
+	{
+	    n_sps += FT_NumOfCurvePoints(new_geom_set->string_curves[i]) - 2;
+	    printf("n_sps = %d\n",n_sps);
+	}
 
 	if (debugging("trace"))
 	    (void) printf("Entering fourth_order_parachute_propagate()\n");
@@ -525,32 +527,29 @@ extern void fourth_order_parachute_propagate(
 	    for (i = 0; i <= 3; ++i)
 		printf("Max front speed(%d) = %f\n",i,spfr[i]);
 	}
-	int ng = old_geom_set->num_gore_nodes;
-	int ns = old_geom_set->num_strings;
-	int nbc = old_geom_set->num_mono_hsbdry;
-	int ngc = old_geom_set->num_gore_hsbdry;
-	printf("ng = %d  ngc = %d  nbc = %d  ns = %d\n",ng,ngc,nbc,ns);
 
 	num_pts = n_cps + n_sps;
 
-	new_geom_set->ks = old_geom_set->ks = af_params->ks;
-	new_geom_set->lambda_s = old_geom_set->lambda_s = af_params->lambda_s;
-	new_geom_set->m_s = old_geom_set->m_s = af_params->m_s;
+	new_geom_set->ks = af_params->ks;
+	new_geom_set->lambda_s = af_params->lambda_s;
+	new_geom_set->m_s = af_params->m_s;
 
-	new_geom_set->kl = old_geom_set->kl = af_params->kl;
-	new_geom_set->lambda_l = old_geom_set->lambda_l = af_params->lambda_l;
-	new_geom_set->m_l = old_geom_set->m_l = af_params->m_l;
+	new_geom_set->kl = af_params->kl;
+	new_geom_set->lambda_l = af_params->lambda_l;
+	new_geom_set->m_l = af_params->m_l;
 
-	new_geom_set->kg = old_geom_set->kg = af_params->kg;
-	new_geom_set->lambda_g = old_geom_set->lambda_g = af_params->lambda_g;
-	new_geom_set->m_g = old_geom_set->m_g = af_params->m_g;
+	new_geom_set->kg = af_params->kg;
+	new_geom_set->lambda_g = af_params->lambda_g;
+	new_geom_set->m_g = af_params->m_g;
 
-	new_geom_set->n_cps = old_geom_set->n_cps = n_cps;
-	new_geom_set->n_sps = old_geom_set->n_sps = n_sps;
+	new_geom_set->n_cps = n_cps;
+	new_geom_set->n_sps = n_sps;
 	dt_tol = sqrt((af_params->m_s)/(af_params->ks))/10.0;
-	if (dt_tol > sqrt((af_params->m_l)/(af_params->kl))/10.0)
+	if (af_params->m_l != 0.0 &&
+	    dt_tol > sqrt((af_params->m_l)/(af_params->kl))/10.0)
 	    dt_tol = sqrt((af_params->m_l)/(af_params->kl))/10.0;
-	if (dt_tol > sqrt((af_params->m_g)/(af_params->kg))/10.0)
+	if (af_params->m_g != 0.0 &&
+	    dt_tol > sqrt((af_params->m_g)/(af_params->kg))/10.0)
 	    dt_tol = sqrt((af_params->m_g)/(af_params->kg))/10.0;
 	if (debugging("step_size"))
 	{
@@ -584,7 +583,7 @@ extern void fourth_order_parachute_propagate(
 				fr_dt,dt_tol,dt);
 	    (void) printf("Number of interior sub-steps = %d\n",n_tan);
 	}
-	new_geom_set->dt = old_geom_set->dt = dt;
+	new_geom_set->dt = dt;
 
 	if (size < num_pts)
 	{
@@ -606,8 +605,8 @@ extern void fourth_order_parachute_propagate(
             FT_MatrixMemoryAlloc((POINTER*)&v_end,size,3,sizeof(double));
 	}
 
-	compute_canopy_accel(old_geom_set,f_old,x_old,v_old);
-	compute_string_accel(old_geom_set,f_old,x_old,v_old);
+	compute_canopy_accel(new_geom_set,f_old,x_old,v_old);
+	compute_string_accel(new_geom_set,f_old,x_old,v_old);
 
 	for (n = 0; n < n_tan; ++n)
 	{
@@ -717,6 +716,7 @@ static void compute_canopy_accel(
 	ngc = geom_set->num_gore_hsbdry;
 	ng = geom_set->num_gore_nodes;
 
+	printf("ng = %d  ngc = %d  ns = %d  nbs = %d\n",ng,ngc,ns,nbc);
 	if (debugging("string_chord") || debugging("rigid_canopy") || 
 	    debugging("ave_lift"))
 	    n_start = n;
@@ -1131,6 +1131,8 @@ extern void compute_node_accel1(
 		}
 		else if (extra->af_node_type == GORE_NODE)
                     mass = geom_set->m_g;
+		else if (extra->af_node_type == STRING_NODE)
+                    mass = geom_set->m_s;
 	    }
 	    else
                 mass = geom_set->m_s;
@@ -1944,6 +1946,8 @@ extern void compute_node_accel2(
 		}
 		else if (extra->af_node_type == GORE_NODE)
 		    mass = geom_set->m_g;
+		else if (extra->af_node_type == STRING_NODE)
+		    mass = geom_set->m_s;
 	    }
 	    else
 		mass = geom_set->m_s;

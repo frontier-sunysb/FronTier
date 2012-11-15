@@ -627,31 +627,19 @@ extern void fourth_order_elastic_set_propagate(
 	Front           *newfr,
         double           fr_dt)
 {
-	INTERFACE *old_intfc = newfr->interf;
 	INTERFACE *new_intfc = newfr->interf;
-	NODE *oldn,*newn;	/* old and new payload nodes */
+	NODE *newn;	/* new payload nodes */
 	AF_NODE_EXTRA *extra;
-	CURVE **old_str_curves,**old_mono_hsbdry,**old_gore_hsbdry;
 	CURVE **new_str_curves,**new_mono_hsbdry,**new_gore_hsbdry;
-	NODE **old_str_nodes,**old_gore_nodes;
 	NODE **new_str_nodes,**new_gore_nodes;
 	SURFACE *news;
 	int i,num_str_curves,num_mono_hsbdry,num_gore_hsbdry;
-	static PARACHUTE_SET old_geom_set;
 	static PARACHUTE_SET new_geom_set;
 	NODE **n;
-	int num_gore_nodes = numOfGoreNodes(old_intfc);
+	int num_gore_nodes = numOfGoreNodes(new_intfc);
 
 	if (debugging("trace"))
 	    (void) printf("Entering fourth_order_elastic_set_propagate()\n");
-	for (n = old_intfc->nodes; n && *n; ++n)
-	{
-	    extra = (AF_NODE_EXTRA*)(*n)->extra;
-	    if (extra == NULL || extra->af_node_type != LOAD_NODE) 
-		continue;
-	    oldn = *n;
-	    break;
-	}
 	for (n = new_intfc->nodes; n && *n; ++n)
 	{
 	    extra = (AF_NODE_EXTRA*)(*n)->extra;
@@ -661,85 +649,57 @@ extern void fourth_order_elastic_set_propagate(
 	    break;
 	}
 
-	old_geom_set.load_node = oldn;
 	new_geom_set.load_node = newn;
 
-	num_str_curves = FT_NumOfNodeCurves(oldn);
+	num_str_curves = FT_NumOfNodeCurves(newn);
 
 	if (num_str_curves != FT_NumOfNodeCurves(newn))
 	{
 	    (void) printf("ERROR in af_node_propagate(): "
-			  "old and new number of string curves not equal!\n");
+			  "new number of string curves not equal!\n");
 	    clean_up(ERROR);
 	}
-	FT_VectorMemoryAlloc((POINTER*)&old_str_curves,num_str_curves,
-			sizeof(CURVE*));
 	FT_VectorMemoryAlloc((POINTER*)&new_str_curves,num_str_curves,
 			sizeof(CURVE*));
-	FT_VectorMemoryAlloc((POINTER*)&old_str_nodes,num_str_curves,
-			sizeof(NODE*));
 	FT_VectorMemoryAlloc((POINTER*)&new_str_nodes,num_str_curves,
-			sizeof(NODE*));
-	FT_VectorMemoryAlloc((POINTER*)&old_gore_nodes,num_gore_nodes,
 			sizeof(NODE*));
 	FT_VectorMemoryAlloc((POINTER*)&new_gore_nodes,num_gore_nodes,
 			sizeof(NODE*));
-	FT_ArrayOfNodeCurves(oldn,old_str_curves);
 	FT_ArrayOfNodeCurves(newn,new_str_curves);
 
-	old_geom_set.num_strings = num_str_curves;
 	new_geom_set.num_strings = num_str_curves;
 
-	old_geom_set.string_node = old_str_nodes;
 	new_geom_set.string_node = new_str_nodes;
 
-	old_geom_set.string_curves = old_str_curves;
 	new_geom_set.string_curves = new_str_curves;
 
 	for (i = 0; i < num_str_curves; ++i)
 	{
-	    old_str_nodes[i] = (old_str_curves[i]->start == oldn) ? 
-			old_str_curves[i]->end : old_str_curves[i]->start;
 	    new_str_nodes[i] = (new_str_curves[i]->start == newn) ? 
 			new_str_curves[i]->end : new_str_curves[i]->start;
 	}
 	news = canopy_of_string_node(new_str_nodes[0]);
 
-	num_gore_nodes  = numOfGoreNodes(old_intfc);
-	num_gore_hsbdry = numOfGoreHsbdry(old_intfc);
-	num_mono_hsbdry = numOfMonoHsbdry(old_intfc);
+	num_gore_nodes  = numOfGoreNodes(new_intfc);
+	num_gore_hsbdry = numOfGoreHsbdry(new_intfc);
+	num_mono_hsbdry = numOfMonoHsbdry(new_intfc);
 
-	FT_VectorMemoryAlloc((POINTER*)&old_mono_hsbdry,num_mono_hsbdry,
-			sizeof(CURVE*));
 	FT_VectorMemoryAlloc((POINTER*)&new_mono_hsbdry,num_mono_hsbdry,
 			sizeof(CURVE*));
-	num_mono_hsbdry = arrayOfMonoHsbdry(old_intfc,old_mono_hsbdry);
 	num_mono_hsbdry = arrayOfMonoHsbdry(new_intfc,new_mono_hsbdry);
-	FT_VectorMemoryAlloc((POINTER*)&old_gore_hsbdry,num_gore_hsbdry,
-			sizeof(CURVE*));
 	FT_VectorMemoryAlloc((POINTER*)&new_gore_hsbdry,num_gore_hsbdry,
 			sizeof(CURVE*));
-	num_gore_hsbdry = arrayOfGoreHsbdry(old_intfc,old_gore_hsbdry);
 	num_gore_hsbdry = arrayOfGoreHsbdry(new_intfc,new_gore_hsbdry);
 
-	old_geom_set.num_mono_hsbdry = num_mono_hsbdry;
 	new_geom_set.num_mono_hsbdry = num_mono_hsbdry;
-	old_geom_set.num_gore_hsbdry = num_gore_hsbdry;
 	new_geom_set.num_gore_hsbdry = num_gore_hsbdry;
-	old_geom_set.num_gore_nodes = num_gore_nodes;
 	new_geom_set.num_gore_nodes = num_gore_nodes;
 
-	old_geom_set.mono_hsbdry = old_mono_hsbdry;
 	new_geom_set.mono_hsbdry = new_mono_hsbdry;
-	old_geom_set.gore_hsbdry = old_gore_hsbdry;
 	new_geom_set.gore_hsbdry = new_gore_hsbdry;
-	getGoreNodes(old_intfc,old_gore_nodes);
 	getGoreNodes(new_intfc,new_gore_nodes);
-	old_geom_set.gore_nodes = old_gore_nodes;
 	new_geom_set.gore_nodes = new_gore_nodes;
-	old_geom_set.canopy = news;
 	new_geom_set.canopy = news;
-	old_geom_set.front = newfr;
 	new_geom_set.front = newfr;
 
 	if (debugging("para_set"))
@@ -749,12 +709,9 @@ extern void fourth_order_elastic_set_propagate(
 	    (void) printf("%d canopy boundary curves\n",num_mono_hsbdry);
 	    (void) printf("%d canopy gore curves\n",num_gore_hsbdry);
 	}
-	fourth_order_parachute_propagate(newfr,&old_geom_set,&new_geom_set);
-	FT_FreeThese(10,old_str_curves,new_str_curves,
-		       old_str_nodes,new_str_nodes,
-		       old_mono_hsbdry,new_mono_hsbdry,
-		       old_gore_hsbdry,new_gore_hsbdry,
-		       old_gore_nodes,new_gore_nodes);
+	fourth_order_parachute_propagate(newfr,&new_geom_set);
+	FT_FreeThese(5,new_str_curves,new_str_nodes,new_mono_hsbdry,
+		       new_gore_hsbdry,new_gore_nodes);
 	
 	if (debugging("trace"))
 	    (void) printf("Leaving fourth_order_elastic_set_propagate()\n");

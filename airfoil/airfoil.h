@@ -286,8 +286,7 @@ extern int af_find_state_at_crossing(Front*,int*,GRID_DIRECTION,
                         int,POINTER*,HYPER_SURF**,double*);
 extern void elastic_point_propagate(Front*,POINTER,POINT*,POINT*,
                         HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
-extern void fourth_order_parachute_propagate(Front*,PARACHUTE_SET*,
-			PARACHUTE_SET*);
+extern void fourth_order_parachute_propagate(Front*,PARACHUTE_SET*);
 extern void unsort_surf_point(SURFACE*);
 extern void airfoil_point_propagate(Front*,POINTER,POINT*,POINT*,
                         HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);

@@ -97,4 +97,4 @@ Enter the sample line type: xy
 Enter the sample line coordinate: 6.0 7.0
 Enter the start step for sample: 0
 Enter the end step for sample: 10000
-Enter the step interval for sample: 1
+Enter the step interval for sample: 10
