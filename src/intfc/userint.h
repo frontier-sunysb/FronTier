@@ -146,6 +146,7 @@ struct _I_USER_INTERFACE {
 	/* Bond utilities */
 	BOND	*(*_Bond)(POINT*,POINT*);
 	BOND_TRI *(*_link_tri_to_bond)(BOND_TRI*,TRI*,SURFACE*,BOND*,CURVE*);
+	void 	(*_switch_btris_of_bond)(BOND_TRI*,BOND_TRI*);
 	void 	(*_reverse_bond)(BOND*);
 	void 	(*_reorder_curve_link_list)(CURVE*);
 

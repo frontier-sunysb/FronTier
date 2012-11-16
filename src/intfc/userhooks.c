@@ -570,6 +570,17 @@ EXPORT	BOND_TRI *link_tri_to_bond(
 	return (*i_user_interface(intfc)._link_tri_to_bond)(btri,tri,s,b,c);
 }		/*end link_tri_to_bond*/
 
+EXPORT	void switch_btris_of_bond(
+	BOND_TRI *btri1,
+	BOND_TRI *btri2)
+{
+	INTERFACE *intfc = current_interface();
+
+	if (intfc == NULL)
+	    return NULL;
+	return (*i_user_interface(intfc)._switch_btris_of_bond)(btri1,btri2);
+}		/*end link_tri_to_bond*/
+
 EXPORT	void reverse_bond(
 	BOND *b)
 {

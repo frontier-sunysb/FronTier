@@ -708,6 +708,7 @@ IMPORT	boolean sort_bond_tris(INTERFACE*);
 IMPORT	boolean	undo_insert_point_in_tri(POINT*,TRI*,SURFACE*);
 IMPORT	boolean	undo_insert_point_in_tri_side(POINT*,int,TRI*,SURFACE*);
 IMPORT	int	delete_surface(SURFACE*);
+IMPORT	void 	switch_btris_of_bond(BOND_TRI*,BOND_TRI*);
 IMPORT	void 	reverse_bond(BOND*);
 IMPORT	void 	reorder_curve_link_list(CURVE*);
 IMPORT	void	assign_curve_boundary_flag(CURVE*);

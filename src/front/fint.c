@@ -2929,7 +2929,95 @@ EXPORT	BOND_TRI *f_link_tri_to_bond(
 	return btri;
 }		/*end f_link_tri_to_bond*/
 
+EXPORT	void f_switch_btris_of_bond(
+	BOND_TRI *btri1,
+	BOND_TRI *btri2)
+{
+	TRI *tri1,*tri2;
+	SURFACE *s1,*s2;
+	BOND *b;
+	CURVE *c;
+	BOND_TRI **btris;
+	Locstate st_tmp;
 
+	if (btri1->curve != btri2->curve)
+	    return;
+	else
+	    c = btri1->curve;
+	if (btri1->bond != btri2->bond)
+	    return;
+	else
+	    b = btri1->bond;
+	tri1 = btri1->tri;
+	tri2 = btri2->tri;
+	s1 = btri1->surface;
+	s2 = btri2->surface;
+	btri1 = i_link_tri_to_bond(btri1,tri2,s2,b,c);
+	btri2 = i_link_tri_to_bond(btri2,tri1,s1,b,c);
+
+	if (b->prev != NULL)
+	{
+	    for (btris = Btris(b->prev); btris && *btris; ++btris)
+	    {
+	        if (btri1->surface == (*btris)->surface &&
+		    same_bond_tri_orient(b,btri1->tri,b->prev,(*btris)->tri))
+		{
+	            left_start_btri_state(btri1) = 
+				left_end_btri_state(*btris);
+	            right_start_btri_state(btri1) = 
+				right_end_btri_state(*btris);
+		}
+	        if (btri2->surface == (*btris)->surface &&
+		    same_bond_tri_orient(b,btri2->tri,b->prev,(*btris)->tri))
+		{
+	            left_start_btri_state(btri2) = 
+				left_end_btri_state(*btris);
+	            right_start_btri_state(btri2) = 
+				right_end_btri_state(*btris);
+		}
+	    }
+	}
+	else
+	{
+	    st_tmp = left_start_btri_state(btri1);
+	    left_start_btri_state(btri1) = left_start_btri_state(btri2);
+	    left_start_btri_state(btri2) = st_tmp;
+	    st_tmp = right_start_btri_state(btri1);
+	    right_start_btri_state(btri1) = right_start_btri_state(btri2);
+	    right_start_btri_state(btri2) = st_tmp;
+	}
+	if (b->next != NULL)
+	{
+	    for (btris = Btris(b->next); btris && *btris; ++btris)
+	    {
+	        if (btri1->surface == (*btris)->surface &&
+		    same_bond_tri_orient(b,btri1->tri,b->next,(*btris)->tri))
+		{
+	            left_end_btri_state(btri1) = 
+				left_start_btri_state(*btris);
+	            right_end_btri_state(btri1) = 
+				right_start_btri_state(*btris);
+		}
+	        if (btri2->surface == (*btris)->surface &&
+		    same_bond_tri_orient(b,btri2->tri,b->next,(*btris)->tri))
+		{
+	            left_end_btri_state(btri2) = 
+				left_start_btri_state(*btris);
+	            right_end_btri_state(btri2) = 
+				right_start_btri_state(*btris);
+		}
+	    }
+	}
+	else
+	{
+	    st_tmp = left_end_btri_state(btri1);
+	    left_end_btri_state(btri1) = left_end_btri_state(btri2);
+	    left_end_btri_state(btri2) = st_tmp;
+	    st_tmp = right_end_btri_state(btri1);
+	    right_end_btri_state(btri1) = right_end_btri_state(btri2);
+	    right_end_btri_state(btri2) = st_tmp;
+	}
+}	/* end f_switch_btris_of_bond */
 
 EXPORT	void f_reverse_bond(
 	BOND	 *b)

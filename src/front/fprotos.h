@@ -356,6 +356,7 @@ IMPORT SURFACE *f_detach_one_surface(SURFACE *);
 IMPORT	POINT	*f_make_point(double*,COMPONENT,COMPONENT);
 IMPORT	void	test_for_mono_comp_curves(INTERFACE*);
 IMPORT	BOND_TRI *f_link_tri_to_bond(BOND_TRI*,TRI*,SURFACE*,BOND*,CURVE*);
+IMPORT	void 	f_switch_btris_of_bond(BOND_TRI*,BOND_TRI*);
 IMPORT	C_BOND	*f_CBond(C_BOND*,POINT*,POINT*,TRI*,TRI*);
 IMPORT	SURFACE	*f_join_surfaces(CURVE*);
 IMPORT	SURFACE	*f_make_surface(COMPONENT,COMPONENT,CURVE**,CURVE**);

@@ -340,6 +340,7 @@ EXPORT	void f_set_interface_hooks(
 	    iuh->_insert_point_in_tri = f_insert_point_in_tri;
 	    iuh->_insert_point_in_tri_side = f_insert_point_in_tri_side;
 	    iuh->_link_tri_to_bond = f_link_tri_to_bond;
+	    iuh->_switch_btris_of_bond = f_switch_btris_of_bond;
 	    iuh->_reverse_bond = f_reverse_bond;
 	    iuh->_reorder_curve_link_list = f_reorder_curve_link_list;
 	    iuh->_join_surfaces = f_join_surfaces;

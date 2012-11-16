@@ -44,6 +44,7 @@ LOCAL	void 	assign_two_comp_domain(double (*func)(POINTER,double*),POINTER,
 LOCAL	boolean 	install_bdry_objects(INTERFACE*,NODE****,CURVE****,
 			SURFACE***,RECT_GRID*,RECT_GRID*);
 LOCAL   void    stitch_curves_of_blk(int*,BLK_TRI****,CURVE**,int);
+LOCAL 	void 	adjust_corner_bond_btris(CURVE*);
 LOCAL	boolean 	is_positive_bdry_curve(int,int,int,NODE*,NODE*);
 LOCAL   boolean    face_crx_in_dir(double (*func1)(POINTER,double*),POINTER,
                         double (*func2)(POINTER,double*),POINTER,
@@ -193,6 +194,13 @@ EXPORT	boolean make_bdry_surfaces(
 	}
 
 	install_subdomain_bdry_curves(intfc);
+	for (i = 0; i < 3; ++i)
+	for (j = 0; j < 2; ++j)
+	for (k = 0; k < 2; ++k)
+	{
+	    if (edges[i][j][k] != NULL)
+		adjust_corner_bond_btris(edges[i][j][k]);
+	}
 	reset_intfc_num_points(intfc);
 
 	free_grid_crx_mem(&Eg_crx,YES);
@@ -202,6 +210,70 @@ EXPORT	boolean make_bdry_surfaces(
 	DEBUG_LEAVE(install_faces)
 	return YES;
 }	/* end make_bdry_surfaces */
+
+/*	
+	This function is only for 3D boundary edges only.
+	Caution: not to use it else where.
+*/
+
+LOCAL void adjust_corner_bond_btris(CURVE *curve)
+{
+	BOND *b0,*b;
+	BOND_TRI **btris0,**btris,**btris_tmp;
+	boolean switch_success;
+	int i;
+
+	b0 = curve->first;
+	b = b0->next;
+	if (b == NULL) return;
+	for (btris0 = Btris(b0), btris = Btris(b); btris0 && *btris0;
+			++btris0, ++btris)
+	{
+	    if ((*btris0)->surface != (*btris)->surface)
+	    {
+		switch_success = NO;
+		for (btris_tmp = btris0; btris_tmp && *btris_tmp; ++btris_tmp)
+		{
+		    if ((*btris_tmp)->surface == (*btris)->surface)
+		    {
+			switch_btris_of_bond(*btris0,*btris_tmp);
+			switch_success = YES;
+		    }
+		}
+		if (!switch_success)
+		{
+		    (void) printf("In adjust_corner_bond_tris(), "
+				"switch failed!\n");
+		    clean_up(ERROR);
+		}
+	    }
+	}
+	b0 = curve->last;
+	b = b0->prev;
+	if (b == NULL) return;
+	for (btris0 = Btris(b0), btris = Btris(b); btris0 && *btris0;
+			++btris0, ++btris)
+	{
+	    if ((*btris0)->surface != (*btris)->surface)
+	    {
+		switch_success = NO;
+		for (btris_tmp = btris0; btris_tmp && *btris_tmp; ++btris_tmp)
+		{
+		    if ((*btris_tmp)->surface == (*btris)->surface)
+		    {
+			switch_btris_of_bond(*btris0,*btris_tmp);
+			switch_success = YES;
+		    }
+		}
+		if (!switch_success)
+		{
+		    (void) printf("In adjust_corner_bond_tris(), "
+				"switch failed!\n");
+		    clean_up(ERROR);
+		}
+	    }
+	}
+}	/* end adjust_corner_bond_btris */
 
 
 /*******************************************************************
@@ -4528,12 +4600,12 @@ EXPORT boolean read_vtk_surface(
 	uni_array(&index,num_vtx,INT);
 	if (!fgetstring(vtk_file,"double"))
 	{
-	    (void) printf("VTK file %s cannot find \"double\"\n");
+	    (void) printf("VTK file %s cannot find \"double\"\n",vtk_name);
 	    /* Try float */
 	    rewind(vtk_file);
 	    if (!fgetstring(vtk_file,"float"))
 	    {
-		(void) printf("VTK file %s cannot find \"float\"\n");
+		(void) printf("VTK file %s cannot find \"float\"\n",vtk_name);
 		clean_up(ERROR);
 	    }
 	}
@@ -4573,12 +4645,12 @@ EXPORT boolean read_vtk_surface(
 	}
 	if (!fgetstring(vtk_file,"CELLS"))
 	{
-	    (void) printf("VTK file %s cannot find \"CELLS\"\n");
+	    (void) printf("VTK file %s cannot find \"CELLS\"\n",vtk_name);
 	    /* Try POLYGONS */
 	    rewind(vtk_file);
 	    if (!fgetstring(vtk_file,"POLYGONS"))
 	    {
-		(void) printf("VTK file %s cannot find \"POLYGONS\"\n");
+		(void) printf("VTK file %s cannot find \"POLYGONS\"\n",vtk_name);
 		clean_up(ERROR);
 	    }
 	}
