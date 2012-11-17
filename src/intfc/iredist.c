@@ -902,27 +902,35 @@ LOCAL  int find_scaled_extrem_edge(
 	double	s00, s01, s02;
 	double	s10, s11, s12;
 	double	s20, s21, s22;
-	double	len0, len1, len2;
+	double	len[3],len_tmp;
+	int  side[3],side_tmp;
+	int i,j;
 
 	s = side_vector(tri);
 	s00 = s[0][0]/h0; s01 = s[0][1]/h1; s02 = s[0][2]/h2;
 	s10 = s[1][0]/h0; s11 = s[1][1]/h1; s12 = s[1][2]/h2;
 	s20 = s[2][0]/h0; s21 = s[2][1]/h1; s22 = s[2][2]/h2;
-	len0 = QDot3d(s0,s0); len1 = QDot3d(s1,s1); len2 = QDot3d(s2,s2);
+	len[0] = QDot3d(s0,s0); len[1] = QDot3d(s1,s1); len[2] = QDot3d(s2,s2);
+	for (i = 0; i < 3; ++i) side[i] = i;
+	for (i = 0; i < 3; ++i)
+	for (j = i+1; j < 3; ++j)
+	{
+	    if (len[i] > len[j])
+	    {
+		len_tmp = len[i]; 	side_tmp = side[i];
+		len[i] = len[j];	side[i] = side[j];
+		len[j] = len_tmp;	side[j] = side_tmp;
+	    }
+	}
 
 	switch (to_find)
 	{
-	case LONGEST:
-	    return (len0<len1) ? ((len1<len2) ? 2:1) : ((len0<len2) ? 2:0);
 	case SHORTEST:
-	    return (len0>len1) ? ((len1>len2) ? 2:1) : ((len0>len2) ? 2:0);
+	    return side[0];
 	case MIDDLE:
-	    if (len0 < len1 && len0 < len2)
-		return (len1 < len2) ? 1 : 2;
-	    else if (len1 < len0 && len1 < len2)
-		return (len0 < len2) ? 0 : 2;
-	    else
-		return (len0 < len1) ? 0 : 1;
+	    return side[1];
+	case LONGEST:
+	    return side[2];
 	default:
 	    return -1;
 	}
