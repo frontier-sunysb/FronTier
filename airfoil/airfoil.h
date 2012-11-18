@@ -178,6 +178,16 @@ struct _STRING_PARAMS {
 };
 typedef struct _STRING_PARAMS STRING_PARAMS;
 
+struct _PARALLEL_GORE_PARAMS {
+        int gores_n;
+        double gores_start_x;
+        double gores_dis;
+
+        double coords_load[MAXD];
+};
+
+typedef struct _PARALLEL_GORE_PARAMS PARALLEL_GORE_PARAMS;
+
 enum _LOAD_TYPE {
 	NO_LOAD 	= 0,
 	FREE_LOAD,
