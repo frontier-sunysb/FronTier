@@ -620,13 +620,6 @@ enum {
 	FIRST_PHYSICS_CURVE_STATUS
 };
 
-enum {
-	NO_PDE_BOUNDARY			= 0,
-	DIRICHLET_PDE_BOUNDARY		= 1,
-	NEUMANN_PDE_BOUNDARY,
-	MIXED_PDE_BOUNDARY
-};
-
 #define is_passive_boundary(curve) ( wave_type(curve) == PASSIVE_BOUNDARY )
 
 	/* correspondence of curves */

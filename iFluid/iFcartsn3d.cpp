@@ -88,8 +88,10 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 	int icoords[MAXD];
 	double **vel = field->vel;
 	double *phi = field->phi;
+	double mag_grad_phi,max_grad_phi,ave_grad_phi;
+	int icrds_max[MAXD];
 
-	max_speed = 0.0;
+	max_speed = max_grad_phi = ave_grad_phi = 0.0;
 
 	for (k = 0; k <= top_gmax[2]; k++)
 	for (j = 0; j <= top_gmax[1]; j++)
@@ -122,6 +124,15 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 	    	vel[l][index] -= accum_dt/rho*grad_phi[l];
 		speed += fabs(vel[l][index]);
 	    }
+	    mag_grad_phi = Mag3d(grad_phi);
+	    ave_grad_phi += mag_grad_phi;
+	    if (mag_grad_phi > max_grad_phi)
+	    {
+		max_grad_phi = mag_grad_phi;	
+		icrds_max[0] = i;
+		icrds_max[1] = j;
+		icrds_max[2] = k;
+	    }
 	    if (speed > iFparams->ub_speed)
 	    {
 	    	for (l = 0; l < 3; ++l)
@@ -153,6 +164,39 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 	    	index  = d_index3d(i,j,k,top_gmax);
 	    	vel[l][index] = array[index];
 	    }
+	}
+	if (debugging("step_size"))
+	{
+	    (void) printf("Max gradient phi = %f  occuring at: %d %d %d\n",
+			max_grad_phi,icrds_max[0],icrds_max[1],icrds_max[2]);
+	    (void) printf("Ave gradient phi = %f\n",ave_grad_phi/(imax-imin+1)
+			/(jmax-jmin+1)/(kmax-kmin+1));
+	}
+	if (debugging("check_div"))
+	{
+	    double div_tmp,div_max,div_min;
+	    div_max = -HUGE;
+	    div_min =  HUGE;
+	    for (k = kmin; k <= kmax; k++)
+	    for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
+	    {	
+	    	index  = d_index3d(i,j,k,top_gmax);
+		icoords[0] = i;
+		icoords[1] = j;
+		icoords[2] = k;
+                div_tmp = computeFieldPointDiv(icoords,vel);
+		if (div_max < div_tmp) div_max = div_tmp;
+		if (div_min > div_tmp) div_min = div_tmp;
+	    }
+	    div_tmp = max_speed/top_L[0];
+	    (void) printf("After computeNewVelocity():\n");
+	    (void) printf("Max divergence = %20.14f\n",div_max);
+	    (void) printf("Min divergence = %20.14f\n",div_min);
+	    (void) printf("Max relative divergence = %20.14f\n",
+				div_max/div_tmp);
+	    (void) printf("Min relative divergence = %20.14f\n",
+				div_min/div_tmp);
 	}
 	pp_global_max(&max_speed,1);
 }	/* end computeNewVelocity3d */
@@ -191,6 +235,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
 
 	start_clock("setSmoothedProperties");
 	setSmoothedProperties();
+	stop_clock("computeAdvection");
 	stop_clock("setSmoothedProperties");
 	if (debugging("trace"))
 	    printf("Passed setSmoothedProperties()\n");
@@ -596,6 +641,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computePressurePmI(void)
 	double *pres = field->pres;
 	double *phi = field->phi;
 	double *q = field->q;
+	int icrds_max[MAXD],icrds_min[MAXD];
 
 	if (debugging("trace"))
 	    (void) printf("Entering computePressurePmI()\n");
@@ -604,12 +650,34 @@ void Incompress_Solver_Smooth_3D_Cartesian::computePressurePmI(void)
         for (i = 0; i <= top_gmax[0]; i++)
 	{
             index = d_index3d(i,j,k,top_gmax);
-            pres[index] += phi[index];
+            //pres[index] += phi[index];
+            pres[index] = phi[index];
 	    q[index] = pres[index];
+	    if (i < imin || i > imax || j < jmin || j > jmax || 
+		k < kmin || k > kmax)
+		continue;
 	    if (min_pressure > pres[index])
+	    {
 		min_pressure = pres[index];
+		icrds_min[0] = i;
+		icrds_min[1] = j;
+		icrds_min[2] = k;
+	    }
 	    if (max_pressure < pres[index])
+	    {
 		max_pressure = pres[index];
+		icrds_max[0] = i;
+		icrds_max[1] = j;
+		icrds_max[2] = k;
+	    }
+	}
+	if (debugging("step_size"))
+	{
+	    (void) printf(" Max pressure = %f  occuring at: %d %d %d\n",
+			max_pressure,icrds_max[0],icrds_max[1],icrds_max[2]);
+	    (void) printf(" Min pressure = %f  occuring at: %d %d %d\n",
+			min_pressure,icrds_min[0],icrds_min[1],icrds_min[2]);
+	    (void) printf("Diff pressure = %f\n",max_pressure-min_pressure);
 	}
 	if (debugging("trace"))
 	    (void) printf("Leaving computePressurePmI()\n");
@@ -853,218 +921,88 @@ void Incompress_Solver_Smooth_3D_Cartesian::setInitialCondition()
 	setAdvectionDt();
 }       /* end setInitialCondition */
 
-double Incompress_Solver_Smooth_3D_Cartesian::computeFieldPointDiv(
+double Incompress_Solver_Smooth_Basis::computeFieldPointDiv(
         int *icoords,
         double **field)
 {
-        int index;
+	int icnb[MAXD];
+        int i,j,index,index_nb;
         COMPONENT comp;
-        int i, j,k;
-	int index_nb[6];
-        double div,u_nb[2],v_nb[2],w_nb[2];
+	double div,u_edge[3][2];
         double crx_coords[MAXD];
         POINTER intfc_state;
         HYPER_SURF *hs;
-	double h[MAXD];
+	int status;
+        GRID_DIRECTION dir[3][2] = {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
+	int idir,nb;
 
-	i = icoords[0];
-	j = icoords[1];
-	k = icoords[2];
-	index = d_index3d(i,j,k,top_gmax);
+	index = d_index(icoords,top_gmax,dim);
         comp = top_comp[index];
 
-	index_nb[0] = d_index3d(i-1,j,k,top_gmax);
-	index_nb[1] = d_index3d(i+1,j,k,top_gmax);
-	index_nb[2] = d_index3d(i,j-1,k,top_gmax);
-	index_nb[3] = d_index3d(i,j+1,k,top_gmax);
-	index_nb[4] = d_index3d(i,j,k-1,top_gmax);
-	index_nb[5] = d_index3d(i,j,k+1,top_gmax);
-
-	h[0] = 2.0*top_h[0];
-	if ((*findStateAtCrossing)(front,icoords,WEST,
-		comp,&intfc_state,&hs,crx_coords) &&
-	        wave_type(hs) != FIRST_PHYSICS_WAVE_TYPE &&
-		wave_type(hs) != ELASTIC_BOUNDARY)
+	for (idir = 0; idir < dim; idir++)
 	{
-	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
-                wave_type(hs) == GROWING_BODY_BOUNDARY ||
-                wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
-		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
-            {
-                u_nb[0] = getStateXvel(intfc_state);
-            }
-            else
-            {
-                u_nb[0] = field[0][index];
-                h[0] = top_h[0];
+	    for (j = 0; j < dim; ++j)
+	    	icnb[j] = icoords[j];
+	    for (nb = 0; nb < 2; nb++)
+	    {
+	    	icnb[idir] = (nb == 0) ? icoords[idir] - 1 : icoords[idir] + 1;
+	    	index_nb = d_index(icnb,top_gmax,dim);
+	    	status = (*findStateAtCrossing)(front,icoords,dir[idir][nb],
+			comp,&intfc_state,&hs,crx_coords);
+	    	if (status == NO_PDE_BOUNDARY)
+	    	    u_edge[idir][nb] = field[idir][index_nb];
+	    	else if (status == CONST_V_PDE_BOUNDARY)
+	    	    u_edge[idir][nb] = getStateVel[idir](intfc_state);
+	    	else if (status == CONST_P_PDE_BOUNDARY)
+	    	    u_edge[idir][nb] = field[idir][index];
 	    }
 	}
-	else
-	    u_nb[0] = field[0][index_nb[0]];
 
-	if ((*findStateAtCrossing)(front,icoords,EAST,
-		comp,&intfc_state,&hs,crx_coords) &&
-	        wave_type(hs) != FIRST_PHYSICS_WAVE_TYPE &&
-		wave_type(hs) != ELASTIC_BOUNDARY)
-	{
-	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
-                wave_type(hs) == GROWING_BODY_BOUNDARY ||
-                wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
-		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
-            {
-                u_nb[1] = getStateXvel(intfc_state);
-            }
-            else
-            {
-                u_nb[1] = field[0][index];
-                h[0] = top_h[0];
-            }
-	}
-	else
-	    u_nb[1] = field[0][index_nb[1]];
-
-	h[1] = 2.0*top_h[1];
-	if ((*findStateAtCrossing)(front,icoords,SOUTH,
-		comp,&intfc_state,&hs,crx_coords) &&
-	        wave_type(hs) != FIRST_PHYSICS_WAVE_TYPE &&
-		wave_type(hs) != ELASTIC_BOUNDARY)
-	{
-	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
-                wave_type(hs) == GROWING_BODY_BOUNDARY ||
-                wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
-		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
-            {
-                v_nb[0] = getStateYvel(intfc_state);
-            }
-            else
-            {
-                v_nb[0] = field[1][index];
-                h[1] = top_h[1];
-            }
-	}
-	else
-	    v_nb[0] = field[1][index_nb[2]];
-
-	if ((*findStateAtCrossing)(front,icoords,NORTH,
-		comp,&intfc_state,&hs,crx_coords) &&
-	        wave_type(hs) != FIRST_PHYSICS_WAVE_TYPE &&
-		wave_type(hs) != ELASTIC_BOUNDARY)
-	{
-	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
-                wave_type(hs) == GROWING_BODY_BOUNDARY ||
-                wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
-		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
-            {
-                v_nb[1] = getStateYvel(intfc_state);
-            }
-            else
-            {
-                v_nb[1] = field[1][index];
-                h[1] = top_h[1];
-            }
-	}
-	else
-	    v_nb[1] = field[1][index_nb[3]];
-
-	h[2] = 2.0*top_h[2];
-	if ((*findStateAtCrossing)(front,icoords,LOWER,
-		comp,&intfc_state,&hs,crx_coords) && 
-	        wave_type(hs) != FIRST_PHYSICS_WAVE_TYPE &&
-		wave_type(hs) != ELASTIC_BOUNDARY)
-	{
-	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
-                wave_type(hs) == GROWING_BODY_BOUNDARY ||
-                wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
-		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
-            {
-                w_nb[0] = getStateZvel(intfc_state);
-            }
-            else
-            {
-                w_nb[0] = field[2][index];
-                h[2] = top_h[2];
-            }
-	}
-	else
-	    w_nb[0] = field[2][index_nb[4]];
-
-	if ((*findStateAtCrossing)(front,icoords,UPPER,
-		comp,&intfc_state,&hs,crx_coords) &&
-	        wave_type(hs) != FIRST_PHYSICS_WAVE_TYPE &&
-		wave_type(hs) != ELASTIC_BOUNDARY)
-	{
-	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
-                wave_type(hs) == GROWING_BODY_BOUNDARY ||
-                wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
-		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
-            {
-                w_nb[1] = getStateZvel(intfc_state);
-            }
-            else
-            {
-                w_nb[1] = field[2][index];
-                h[2] = top_h[2];
-            }
-	}
-	else
-	    w_nb[1] = field[2][index_nb[5]];
-
-        div = (u_nb[1] - u_nb[0])/h[0] + (v_nb[1] - v_nb[0])/h[1] + 
-			(w_nb[1] - w_nb[0])/h[2];
+	div = 0.0;
+	for (i = 0; i < dim; ++i)
+	    div += 0.5*(u_edge[i][1] - u_edge[i][0])/top_h[i];
         return div;
 }       /* end computeFieldPointDiv */
 
-void Incompress_Solver_Smooth_3D_Cartesian::computeFieldPointGrad(
+void Incompress_Solver_Smooth_Basis::computeFieldPointGrad(
         int *icoords,
         double *field,
         double *grad_field)
 {
-        int index;
+        int index,index_nb,icnb[MAXD];
         COMPONENT comp;
-        int i,j,k,nb;
-	int index_nb[6];
-        double p_nbedge[6],p0;  //the p values on the cell edges and cell center
+        int i,j,idir,nb;
+	double p_edge[3][2],p0;
         double crx_coords[MAXD];
         POINTER intfc_state;
         HYPER_SURF *hs;
-        GRID_DIRECTION dir[6] = {WEST,EAST,SOUTH,NORTH,LOWER,UPPER};
-	double h[MAXD];
+        GRID_DIRECTION dir[3][2] = {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
+	int status;
 
-	i = icoords[0];
-	j = icoords[1];
-	k = icoords[2];
-	
-	index = d_index3d(i,j,k,top_gmax);
+	index = d_index(icoords,top_gmax,dim);
         comp = top_comp[index];
 	p0 = field[index];
 
-	index_nb[0] = d_index3d(i-1,j,k,top_gmax);
-	index_nb[1] = d_index3d(i+1,j,k,top_gmax);
-	index_nb[2] = d_index3d(i,j-1,k,top_gmax);
-	index_nb[3] = d_index3d(i,j+1,k,top_gmax);
-	index_nb[4] = d_index3d(i,j,k-1,top_gmax);
-	index_nb[5] = d_index3d(i,j,k+1,top_gmax);
-	for (i = 0; i < 3; ++i)
-	    h[i] = 2*top_h[i];
-
-	for (nb = 0; nb < 6; nb++)
+	for (idir = 0; idir < dim; idir++)
 	{
-	    if(FT_StateStructAtGridCrossing(front,icoords,dir[nb],
-			comp,&intfc_state,&hs,crx_coords) &&
-		        wave_type(hs) != FIRST_PHYSICS_WAVE_TYPE)
+	    for (j = 0; j < dim; ++j)
+	    	icnb[j] = icoords[j];
+	    for (nb = 0; nb < 2; nb++)
 	    {
-		p_nbedge[nb] = p0; // what is the better way to do this?
-		if (wave_type(hs) == DIRICHLET_BOUNDARY)
-		    h[nb/2] = top_h[nb/2];
-	    }
-	    else
-	    {
-		p_nbedge[nb] = field[index_nb[nb]];
+	    	icnb[idir] = (nb == 0) ? icoords[idir] - 1 : icoords[idir] + 1;
+	    	index_nb = d_index(icnb,top_gmax,dim);
+	    	status = (*findStateAtCrossing)(front,icoords,dir[idir][nb],
+				comp,&intfc_state,&hs,crx_coords);
+	    	if (status == NO_PDE_BOUNDARY)
+		    p_edge[idir][nb] = field[index_nb];
+	    	else if (status ==CONST_P_PDE_BOUNDARY)
+		    p_edge[idir][nb] = getStatePhi(intfc_state);
+	    	else if (status ==CONST_V_PDE_BOUNDARY)
+		    p_edge[idir][nb] = p0;
 	    }
 	}
-	grad_field[0] = (p_nbedge[1] - p_nbedge[0])/h[0];
-	grad_field[1] = (p_nbedge[3] - p_nbedge[2])/h[1];
-	grad_field[2] = (p_nbedge[5] - p_nbedge[4])/h[2];
+	for (i = 0; i < dim; ++i)
+	    grad_field[i] = 0.5*(p_edge[i][1] - p_edge[i][0])/top_h[i];
 }
 
 void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionCim(void)
@@ -1094,9 +1032,10 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
         double **vel = field->vel;
         double *phi = field->phi;
         double *div_U = field->div_U;
-        double sum_div;
+        double sum_div,L1_div;
         double value;
 	double min_phi,max_phi;
+	int icrds_max[MAXD],icrds_min[MAXD];
 
 	if (debugging("trace"))
 	    (void) printf("Entering computeProjectionSimple()\n");
@@ -1124,7 +1063,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
             array[index] = phi[index];
         }
 
-	int icrds[MAXD];
         if(debugging("step_size"))
         {
             sum_div = 0.0;
@@ -1138,33 +1076,34 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
             {
                 index = d_index3d(i,j,k,top_gmax);
                 value = fabs(div_U[index]);
-                sum_div = sum_div + div_U[index];
-            	if (min_phi > phi[index])
-		    min_phi = phi[index];
-            	if (max_phi < phi[index])
-		    max_phi = phi[index];
+                sum_div = sum_div + fabs(div_U[index]);
 	    	if (min_value > div_U[index]) 
+		{
 		    min_value = div_U[index];
+		    icrds_min[0] = i;
+		    icrds_min[1] = j;
+		    icrds_min[2] = k;
+		}
 	    	if (max_value < div_U[index]) 
 		{
 		    max_value = div_U[index];
-		    icrds[0] = i;
-		    icrds[1] = j;
-		    icrds[2] = k;
+		    icrds_max[0] = i;
+		    icrds_max[1] = j;
+		    icrds_max[2] = k;
 		}
             }
-            pp_global_sum(&sum_div,1);
             pp_global_min(&min_value,1);
             pp_global_max(&max_value,1);
+	    L1_div = sum_div/(imax-imin+1)/(jmax-jmin+1)/(kmax-kmin+1);
 	    (void) printf("Before computeProjection:\n");
-            (void) printf("\nThe summation of divergence of U is %.16g\n",
-                                        sum_div);
-            (void) printf("\nThe min value of divergence of U is %.16g\n",
-                                        min_value);
-            (void) printf("\nThe max value of divergence of U is %.16g\n",
-                                        max_value);
-	    printf("occuring at %d %d %d\n",icrds[0],icrds[1],icrds[2]);
-	    (void) printf("min_phi = %f  max_phi = %f\n",min_phi,max_phi);
+            (void) printf("Sum div(U) = %f\n",sum_div);
+            (void) printf("Min div(U) = %f  ",min_value);
+	    (void) printf("occuring at: %d %d %d\n",icrds_min[0],icrds_min[1],
+					icrds_min[2]);
+            (void) printf("Max div(U) = %f  ",max_value);
+	    (void) printf("occuring at: %d %d %d\n",icrds_max[0],icrds_max[1],
+					icrds_max[2]);
+            (void) printf("L1  div(U) = %f\n",L1_div);
         }
         elliptic_solver.D = diff_coeff;
         elliptic_solver.source = source;
@@ -1175,7 +1114,10 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
         elliptic_solver.set_solver_domain();
         elliptic_solver.getStateVar = getStatePhi;
         elliptic_solver.findStateAtCrossing = findStateAtCrossing;
-        elliptic_solver.solve(array);
+	if (iFparams->total_div_cancellation)
+            elliptic_solver.dsolve(array);
+	else
+            elliptic_solver.solve(array);
 
 	min_phi =  HUGE;
 	max_phi = -HUGE;
@@ -1186,28 +1128,48 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
             index  = d_index3d(i,j,k,top_gmax);
             phi[index] = array[index];
             if (min_phi > phi[index])
+	    {
 		min_phi = phi[index];
+		icrds_min[0] = i;
+		icrds_min[1] = j;
+		icrds_min[2] = k;
+	    }
             if (max_phi < phi[index])
+	    {
 		max_phi = phi[index];
+		icrds_max[0] = i;
+		icrds_max[1] = j;
+		icrds_max[2] = k;
+	    }
         }
         if(debugging("step_size"))
 	{
 	    (void) printf("After computeProjection:\n");
-	    (void) printf("min_phi = %f  max_phi = %f\n",min_phi,max_phi);
+	    (void) printf("min_phi = %f  occuring at: %d %d %d\n",
+			min_phi,icrds_min[0],icrds_min[1],icrds_min[2]);
+	    (void) printf("max_phi = %f  occuring at: %d %d %d\n",
+			max_phi,icrds_max[0],icrds_max[1],icrds_max[2]);
+	    (void) printf("diff_phi = %f\n",max_phi-min_phi);
 	}
 	if (debugging("trace"))
 	    (void) printf("Leaving computeProjectionSimple()\n");
 }	/* end computeProjectionSimple */
 
-void Incompress_Solver_Smooth_Basis::solveTest(const char *msg)
+void Incompress_Solver_Smooth_3D_Cartesian::solveTest(const char *msg)
 {
 	// This function is reserved for various debugging tests.
+	int k,index;
+	int icoords[MAXD];
+	double **vel = field->vel;
 	(void) printf("%s\n",msg);
-	int i,j,k,index;
-	i = 14;		j = 26;
-	for (k = kmin; k <= kmax; ++k)
-	{
-	    index = d_index3d(i,j,k,top_gmax);
-	    printf("vz[%d] = %20.14f\n",k,field->vel[2][index]);
-	}
+        for (k = kmin; k <= kmax; k++)
+        {
+            icoords[0] = 30;
+            icoords[1] = 30;
+            icoords[2] = k;
+            index  = d_index(icoords,top_gmax,dim);
+            source[index] = computeFieldPointDiv(icoords,vel);
+            source[index] /= m_dt;
+	    printf("div[%d]/dt = %14.8f\n",k,source[index]);
+        }
 }	/* end solveTest */

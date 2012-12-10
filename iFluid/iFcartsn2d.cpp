@@ -179,6 +179,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 		continue;
 	    source[index] = computeFieldPointDiv(icoords,vel);
 	    diff_coeff[index] = 1.0/field->rho[index];
+	    if (i == 25)
+		printf("v[%d] = %f\n",j,vel[1][index]);
 	}
 	FT_ParallelExchGridArrayBuffer(source,front);
 	FT_ParallelExchGridArrayBuffer(diff_coeff,front);
@@ -203,6 +205,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 		    continue;
 	        value = fabs(div_U[index]);
 		sum_div = sum_div + div_U[index];
+		if (max_value < value)
+		    max_value = value;
 	    }
 	    pp_global_sum(&sum_div,1);
 	    (void) printf("\nThe summation of divergence of U is %.16g\n",
@@ -219,9 +223,12 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
         elliptic_solver.soln = array;
         elliptic_solver.ij_to_I = ij_to_I;
 	elliptic_solver.set_solver_domain();
-	elliptic_solver.getStateVar = getStatePres;
-	elliptic_solver.findStateAtCrossing = ifluid_find_projection_crossing;
-	elliptic_solver.solve(array);
+	elliptic_solver.getStateVar = getStatePhi;
+	elliptic_solver.findStateAtCrossing = findStateAtCrossing;
+	if (iFparams->total_div_cancellation)
+	    elliptic_solver.dsolve(array);
+	else
+	    elliptic_solver.solve(array);
 	//viewTopVariable(front,array,NO,0.0,0.0,(char*)"test-simple",
 	//			(char*)"array");
 
@@ -288,6 +295,30 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocity(void)
 	    	vel[k][index] = array[index];
 	    }
 	}
+	if (debugging("check_div"))
+        {
+            double div_tmp,div_max,div_min;
+            div_max = -HUGE;
+            div_min =  HUGE;
+            for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
+            {
+                index  = d_index2d(i,j,top_gmax);
+                icoords[0] = i;
+                icoords[1] = j;
+                div_tmp = computeFieldPointDiv(icoords,vel);
+                if (div_max < div_tmp) div_max = div_tmp;
+                if (div_min > div_tmp) div_min = div_tmp;
+            }
+            div_tmp = max_speed/top_L[0];
+            (void) printf("After computeNewVelocity():\n");
+            (void) printf("Max divergence = %20.14f\n",div_max);
+            (void) printf("Min divergence = %20.14f\n",div_min);
+            (void) printf("Max relative divergence = %20.14f\n",
+                                div_max/div_tmp);
+            (void) printf("Min relative divergence = %20.14f\n",
+                                div_min/div_tmp);
+        }
 	pp_global_max(&max_speed,1);
 }	/* end computeNewVelocity2d */
 
@@ -553,10 +584,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 		    }
 		    else
 		    {
-                        if (status == DIRICHLET_PDE_BOUNDARY &&
-                            boundary_state_function(hs) &&
-                            strcmp(boundary_state_function_name(hs),
-                            "flowThroughBoundaryState") == 0)
+                        if (status == CONST_P_PDE_BOUNDARY)
                         {
                             aII -= coeff[nb];
                             rhs += coeff[nb]*U_nb[nb];
@@ -849,167 +877,3 @@ void Incompress_Solver_Smooth_2D_Cartesian::setInitialCondition()
 	setAdvectionDt();
 	printf("Test setInitialCondition() step 5\n");
 }       /* end setInitialCondition */
-
-double Incompress_Solver_Smooth_2D_Cartesian::computeFieldPointDiv(
-        int *icoords,
-        double **field)
-{
-        int index;
-        COMPONENT comp;
-        int i, j;
-	int index_nb[4];
-        double div,u_nb[2],v_nb[2];
-        double crx_coords[MAXD];
-        POINTER intfc_state;
-        HYPER_SURF *hs;
-	double h[MAXD];
-
-	i = icoords[0];
-	j = icoords[1];
-	index = d_index2d(i,j,top_gmax);
-        comp = top_comp[index];
-
-	index_nb[0] = d_index2d(i-1,j,top_gmax);
-	index_nb[1] = d_index2d(i+1,j,top_gmax);
-	index_nb[2] = d_index2d(i,j-1,top_gmax);
-	index_nb[3] = d_index2d(i,j+1,top_gmax);
-
-
-	h[0] = 2.0*top_h[0];
-	if ((*findStateAtCrossing)(front,icoords,WEST,
-		comp,&intfc_state,&hs,crx_coords) != NO_PDE_BOUNDARY)
-	{
-	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
-		wave_type(hs) == GROWING_BODY_BOUNDARY ||
-		wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
-		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
-	    {
-	    	u_nb[0] = getStateXvel(intfc_state);
-	    }
-	    else
-	    {
-	    	u_nb[0] = field[0][index];
-            	h[0] = top_h[0];
-	    }
-	}
-	else
-	    u_nb[0] = field[0][index_nb[0]];
-
-	if ((*findStateAtCrossing)(front,icoords,EAST,
-		comp,&intfc_state,&hs,crx_coords) != NO_PDE_BOUNDARY)
-	{
-	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
-		wave_type(hs) == GROWING_BODY_BOUNDARY ||
-		wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
-		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
-	    {
-	    	u_nb[1] = getStateXvel(intfc_state);
-	    }
-	    else
-	    {
-	    	u_nb[1] = field[0][index];
-            	h[0] = top_h[0];
-	    }
-	}
-	else
-	    u_nb[1] = field[0][index_nb[1]];
-
-	h[1] = 2.0*top_h[1];
-	if ((*findStateAtCrossing)(front,icoords,SOUTH,
-		comp,&intfc_state,&hs,crx_coords) != NO_PDE_BOUNDARY)
-	{
-	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
-		wave_type(hs) == GROWING_BODY_BOUNDARY ||
-		wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
-		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
-	    {
-	    	v_nb[0] = getStateYvel(intfc_state);
-	    }
-	    else
-	    {
-	    	v_nb[0] = field[1][index];
-            	h[1] = top_h[1];
-	    }
-	}
-	else
-	    v_nb[0] = field[1][index_nb[2]];
-
-	if ((*findStateAtCrossing)(front,icoords,NORTH,
-		comp,&intfc_state,&hs,crx_coords) != NO_PDE_BOUNDARY)
-	{
-	    if (wave_type(hs) == NEUMANN_BOUNDARY ||
-		wave_type(hs) == GROWING_BODY_BOUNDARY ||
-		wave_type(hs) == MOVABLE_BODY_BOUNDARY ||
-		(wave_type(hs) == DIRICHLET_BOUNDARY && boundary_state(hs)))
-	    {
-	    	v_nb[1] = getStateYvel(intfc_state);
-	    }
-	    else
-	    {
-	    	v_nb[1] = field[1][index];
-            	h[1] = top_h[1];
-	    }
-	}
-	else
-	    v_nb[1] = field[1][index_nb[3]];
-
-
-        div = (u_nb[1] - u_nb[0])/h[0] + (v_nb[1] - v_nb[0])/h[1];
-        return div;
-}       /* end computeFieldPointDiv */
-
-void Incompress_Solver_Smooth_2D_Cartesian::computeFieldPointGrad(
-        int *icoords,
-        double *field,
-        double *grad_field)
-{
-        int index;
-        COMPONENT comp;
-        int i,j,nb;
-	int index_nb[4];
-        double p_nbedge[4],p0;  //the p values on the cell edges and cell center
-        double crx_coords[MAXD];
-        POINTER intfc_state;
-        HYPER_SURF *hs;
-        GRID_DIRECTION dir[4] = {WEST,EAST,SOUTH,NORTH};      
-	double h[MAXD];
-
-	i = icoords[0];
-	j = icoords[1];
-	index = d_index2d(i,j,top_gmax);
-        comp = top_comp[index];
-	p0 = field[index];
-
-	index_nb[0] = d_index2d(i-1,j,top_gmax);
-	index_nb[1] = d_index2d(i+1,j,top_gmax);
-	index_nb[2] = d_index2d(i,j-1,top_gmax);
-	index_nb[3] = d_index2d(i,j+1,top_gmax);
-	for (i = 0; i < 2; ++i)
-            h[i] = 2*top_h[i];
-
-	for (nb = 0; nb < 4; nb++)
-	{
-	    /*
-	    if(FT_StateStructAtGridCrossing(front,icoords,dir[nb],
-			comp,&intfc_state,&hs,crx_coords) &&
-		        wave_type(hs) != FIRST_PHYSICS_WAVE_TYPE)
-	    {
-		p_nbedge[nb] = p0;
-		if (wave_type(hs) == DIRICHLET_BOUNDARY)
-                    h[nb/2] = top_h[nb/2];
-	    }
-	    */
-	    if(FT_StateStructAtGridCrossing(front,icoords,dir[nb],
-			comp,&intfc_state,&hs,crx_coords)) 
-	    {
-		p_nbedge[nb] = p0;
-		if (wave_type(hs) == DIRICHLET_BOUNDARY ||
-		    wave_type(hs) == FIRST_PHYSICS_WAVE_TYPE)
-                    h[nb/2] = top_h[nb/2];
-	    }
-	    else
-		p_nbedge[nb] = field[index_nb[nb]];
-	}
-	grad_field[0] = (p_nbedge[1] - p_nbedge[0])/h[0];
-	grad_field[1] = (p_nbedge[3] - p_nbedge[2])/h[1];
-}

@@ -66,6 +66,20 @@ void ELLIPTIC_SOLVER::solve(double *soln)
 	}
 }	/* end solve */
 
+void ELLIPTIC_SOLVER::dsolve(double *soln)
+{
+	switch (dim)
+	{
+	case 1:
+	    (void) printf("dsolve1d() not implemented!\n");
+	    clean_up(ERROR);
+	case 2:
+	    return dsolve2d(soln);
+	case 3:
+	    return dsolve3d(soln);
+	}
+}	/* end dsolve */
+
 void ELLIPTIC_SOLVER::solve1d(double *soln)
 {
 	int index,index_nb[2],size;
@@ -113,7 +127,7 @@ void ELLIPTIC_SOLVER::solve1d(double *soln)
 	    {
 		status = (*findStateAtCrossing)(front,icoords,dir[l],comp,
                                 &intfc_state,&hs,crx_coords);
-                if (status == NEUMANN_PDE_BOUNDARY)
+                if (status == CONST_V_PDE_BOUNDARY)
 		    index_nb[l] = index;
 		else num_nb++;
 		k_nb[l] = 0.5*(k0 + D[index_nb[l]]);
@@ -133,14 +147,11 @@ void ELLIPTIC_SOLVER::solve1d(double *soln)
                     solver.Set_A(I,I_nb[l],coeff[l]);
                     aII += -coeff[l];
                 }
-                else if (status == DIRICHLET_PDE_BOUNDARY)
+                else if (status == CONST_P_PDE_BOUNDARY)
                 {
-                    if (!boundary_state(hs))
-                    {
-                    	aII += -coeff[l];
-			rhs += -coeff[l]*getStateVar(intfc_state);
-			use_neumann_solver = NO;
-                    }
+                    aII += -coeff[l];
+		    rhs += -coeff[l]*getStateVar(intfc_state);
+		    use_neumann_solver = NO;
                 }
 	    }
 	    /*
@@ -170,13 +181,13 @@ void ELLIPTIC_SOLVER::solve1d(double *soln)
 	start_clock("Petsc Solver");
 	if (use_neumann_solver)
 	{
-	    printf("\nUsing Neumann Solver!\n");
+	    (void) printf("\nUsing Neumann Solver!\n");
 	    solver.Solve_withPureNeumann();
 	    solver.GetNumIterations(&num_iter);
 	    solver.GetFinalRelativeResidualNorm(&rel_residual);
 	    if(rel_residual > 1)
 	    {
-		printf("\n The solution diverges! The residual "
+		(void) printf("\n The solution diverges! The residual "
 		       "is %g. Solve again using GMRES!\n",rel_residual);
 		solver.Reset_x();
 		solver.Solve_withPureNeumann_GMRES();
@@ -187,14 +198,14 @@ void ELLIPTIC_SOLVER::solve1d(double *soln)
 	}
 	else
 	{
-	    printf("\nUsing non-Neumann Solver!\n");
+	    (void) printf("\nUsing non-Neumann Solver!\n");
 	    solver.Solve();
 	    solver.GetNumIterations(&num_iter);
 	    solver.GetFinalRelativeResidualNorm(&rel_residual);
 
 	    if(rel_residual > 1)
 	    {
-		printf("\n The solution diverges! The residual "
+		(void) printf("\n The solution diverges! The residual "
 		       "is %g. Solve again using GMRES!\n",rel_residual);
 		solver.Reset_x();
 		solver.Solve_GMRES();
@@ -253,6 +264,7 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 	double crx_coords[MAXD];
         int status;
 	POINTER intfc_state;
+	int icrds_max[MAXD],icrds_min[MAXD];
 
 	PETSc solver;
 	solver.Create(ilower, iupper-1, 5, 5);
@@ -284,15 +296,18 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 	
 	    k0 = D[index];
 	    num_nb = 0;
-	    boolean neumann_nb = NO;
 	    for (l = 0; l < 4; ++l)
 	    {
 		status = (*findStateAtCrossing)(front,icoords,dir[l],comp,
                                 &intfc_state,&hs,crx_coords);
-		if (status == NEUMANN_PDE_BOUNDARY)
+		if (status == CONST_V_PDE_BOUNDARY)
 		{
 		    index_nb[l] = index;
-		    neumann_nb = YES;
+		}
+		else if (status == CONST_P_PDE_BOUNDARY)
+		{
+		    index_nb[l] = index;
+		    num_nb++;
 		}
 		else num_nb++;
 		k_nb[l] = 0.5*(k0 + D[index_nb[l]]);
@@ -312,14 +327,11 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
                     solver.Set_A(I,I_nb[l],coeff[l]);
                     aII += -coeff[l];
                 }
-                else if (status == DIRICHLET_PDE_BOUNDARY)
+                else if (status == CONST_P_PDE_BOUNDARY)
                 {
-                    if (!boundary_state(hs))
-                    {
-                    	aII += -coeff[l];
-			rhs += -coeff[l]*getStateVar(intfc_state);
-			use_neumann_solver = NO;
-                    }
+		    rhs += -coeff[l]*getStateVar(intfc_state);
+                    aII += -coeff[l];
+		    use_neumann_solver = NO;
                 }
 	    }
 	    /*
@@ -348,13 +360,13 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 	start_clock("Petsc Solver");
 	if (use_neumann_solver)
 	{
-	    printf("\nUsing Neumann Solver!\n");
+	    (void) printf("\nUsing Neumann Solver!\n");
 	    solver.Solve_withPureNeumann();
 	    solver.GetNumIterations(&num_iter);
 	    solver.GetFinalRelativeResidualNorm(&rel_residual);
 	    if(rel_residual > 1)
 	    {
-		printf("\n The solution diverges! The residual "
+		(void) printf("\n The solution diverges! The residual "
 		       "is %g. Solve again using GMRES!\n",rel_residual);
 		solver.Reset_x();
 		solver.Solve_withPureNeumann_GMRES();
@@ -365,14 +377,14 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 	}
 	else
 	{
-	    printf("\nUsing non-Neumann Solver!\n");
+	    (void) printf("\nUsing non-Neumann Solver!\n");
 	    solver.Solve();
 	    solver.GetNumIterations(&num_iter);
 	    solver.GetFinalRelativeResidualNorm(&rel_residual);
 
 	    if(rel_residual > 1)
 	    {
-		printf("\n The solution diverges! The residual "
+		(void) printf("\n The solution diverges! The residual "
 		       "is %g. Solve again using GMRES!\n",rel_residual);
 		solver.Reset_x();
 		solver.Solve_GMRES();
@@ -399,17 +411,31 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 	    I = ij_to_I[i][j];
 	    if (I == -1) soln[index] = 0.0;
 	    else soln[index] = x[I-ilower];
-	    if (max_soln < soln[index]) max_soln = soln[index];
-	    if (min_soln > soln[index]) min_soln = soln[index];
+	    if (max_soln < soln[index]) 
+	    {
+		icrds_max[0] = i;
+		icrds_max[1] = j;
+		max_soln = soln[index];
+	    }
+	    if (min_soln > soln[index]) 
+	    {
+		icrds_min[0] = i;
+		icrds_min[1] = j;
+		min_soln = soln[index];
+	    }
 	}
 	FT_ParallelExchGridArrayBuffer(soln,front);
 	pp_global_max(&max_soln,1);
 	pp_global_min(&min_soln,1);
 
-	if(debugging("step_size"))
+	if (debugging("step_size"))
 	{
-	    printf("\nThe max solution value is %.16g\n",max_soln);
-	    printf("\nThe min solution value is %.16g\n",min_soln);
+	    printf("Max solution = %20.14f occuring at: %d %d\n",
+			max_soln,icrds_max[0],icrds_max[1]);
+	    checkSolver(icrds_max);
+	    printf("Min solution = %20.14f occuring at: %d %d\n",
+			min_soln,icrds_min[0],icrds_min[1]);
+	    checkSolver(icrds_min);
 	}
 
 	FT_FreeThese(1,x);
@@ -421,7 +447,7 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 	double k0,k_nb[6];
 	double rhs,coeff[6];
 	int I,I_nb[6];
-	int i,j,k,l,icoords[MAXD];
+	int i,j,k,l,icoords[MAXD],icrds_max[MAXD],icrds_min[MAXD];
 	COMPONENT comp;
 	double aII;
 	int num_nb;
@@ -474,7 +500,7 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 	    {
 		status = (*findStateAtCrossing)(front,icoords,dir[l],comp,
                                 &intfc_state,&hs,crx_coords);
-                if (status == NEUMANN_PDE_BOUNDARY)
+                if (status == CONST_V_PDE_BOUNDARY)
 		    index_nb[l] = index;
 		else num_nb++;
 		k_nb[l] = 0.5*(k0 + D[index_nb[l]]);
@@ -494,14 +520,11 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 		    solver.Set_A(I,I_nb[l],coeff[l]);
                     aII += -coeff[l];
 		}
-		else if (status == DIRICHLET_PDE_BOUNDARY)
+		else if (status == CONST_P_PDE_BOUNDARY)
 		{
-		    if (!boundary_state(hs))
-		    {
-                    	aII += -coeff[l];
-			rhs += -coeff[l]*getStateVar(intfc_state);
-			use_neumann_solver = NO;
-		    }
+                    aII += -coeff[l];
+		    rhs += -coeff[l]*getStateVar(intfc_state);
+		    use_neumann_solver = NO;
 		}
 	    }
 	    /*
@@ -536,7 +559,7 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 	    solver.GetFinalRelativeResidualNorm(&rel_residual);
 	    if(rel_residual > 1)
 	    {
-		printf("\n The solution diverges! The residual "
+		(void) printf("\n The solution diverges! The residual "
 		       "is %g. Solve again using GMRES!\n",rel_residual);
 		solver.Reset_x();
 		solver.Solve_withPureNeumann_GMRES();
@@ -547,14 +570,14 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 	}
 	else
 	{
-	    printf("\nUsing non-Neumann Solver!\n");
+	    (void) printf("\nUsing non-Neumann Solver!\n");
 	    solver.Solve();
 	    solver.GetNumIterations(&num_iter);
 	    solver.GetFinalRelativeResidualNorm(&rel_residual);
 
 	    if(rel_residual > 1)
 	    {
-		printf("\n The solution diverges! The residual "
+		(void) printf("\n The solution diverges! The residual "
 		       "is %g. Solve again using GMRES!\n",rel_residual);
 		solver.Reset_x();
 		solver.Solve_GMRES();
@@ -581,8 +604,20 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 	    index = d_index3d(i,j,k,top_gmax);
 	    I = ijk_to_I[i][j][k];
 	    soln[index] = x[I-ilower];
-	    if (max_soln < soln[index]) max_soln = soln[index];
-	    if (min_soln > soln[index]) min_soln = soln[index];
+	    if (max_soln < soln[index]) 
+	    {
+		max_soln = soln[index];
+		icrds_max[0] = i;
+		icrds_max[1] = j;
+		icrds_max[2] = k;
+	    }
+	    if (min_soln > soln[index]) 
+	    {
+		min_soln = soln[index];
+		icrds_min[0] = i;
+		icrds_min[1] = j;
+		icrds_min[2] = k;
+	    }
 	}
 	FT_ParallelExchGridArrayBuffer(soln,front);
 	pp_global_max(&max_soln,1);
@@ -590,9 +625,567 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 
 	if (debugging("step_size"))
 	{
-	    printf("\nThe max solution value is %.16g\n",max_soln);
-	    printf("\nThe min solution value is %.16g\n",min_soln);
+	    printf("Max solution = %20.14f occuring at: %d %d %d\n",
+			max_soln,icrds_max[0],icrds_max[1],icrds_max[2]);
+	    checkSolver(icrds_max);
+	    printf("Min solution = %20.14f occuring at: %d %d %d\n",
+			min_soln,icrds_min[0],icrds_min[1],icrds_min[2]);
+	    checkSolver(icrds_min);
 	}
 
 	FT_FreeThese(1,x);
 }	/* end solve3d */
+
+void ELLIPTIC_SOLVER::checkSolver(int *icoords)
+{
+	int i,l,m;
+	int comp;
+	double w[2];
+	int id0,index_nb;
+	double dw[2],coefs[2],lhs,rhs;
+	GRID_DIRECTION dir[3][2] = {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
+	HYPER_SURF *hs;
+        double crx_coords[MAXD];
+        int status;
+        POINTER intfc_state;
+	int icnb[MAXD];
+
+	(void) printf("\nEntering checkSolver()\n");
+
+	(void) printf("icoords = ");
+	for (i = 0; i < dim; ++i)
+	    (void) printf("%d ",icoords[i]);
+	(void) printf("\n");
+
+	id0 = d_index(icoords,top_gmax,dim);
+	comp = top_comp[id0];
+	lhs = 0;
+	for (l = 0; l < dim; ++l)
+	{
+	    (void) printf("Direction %d:\n",l);
+	    for (i = 0; i < dim; ++i)
+		icnb[i] = icoords[i];
+	    for (m = 0; m < 2; ++m)
+	    {
+		status = (*findStateAtCrossing)(front,icoords,dir[l][m],comp,
+                                &intfc_state,&hs,crx_coords);
+		icnb[l] = (m == 0) ? icoords[l] - 1 : icoords[l] + 1;
+		index_nb = d_index(icnb,top_gmax,dim);
+		switch(status)
+		{
+		case NO_PDE_BOUNDARY:
+		    (void) printf("Side %d NO_PDE_BOUNDARY\n",m);
+		    coefs[m] = 0.5*(D[id0] + D[index_nb]);
+		    w[0] = soln[id0];
+		    w[1] = soln[index_nb];
+		    break;
+		case CONST_V_PDE_BOUNDARY:
+		    (void) printf("Side %d CONST_V_PDE_BOUNDARY\n",m);
+		    coefs[m] = D[id0];
+		    w[0] = soln[id0];
+		    w[1] = soln[id0];
+		    break;
+		case CONST_P_PDE_BOUNDARY:
+		    (void) printf("Side %d CONST_P_PDE_BOUNDARY\n",m);
+		    coefs[m] = D[id0];
+		    w[0] = soln[id0];
+		    w[1] = getStateVar(intfc_state);
+		    break;
+		default:
+		    (void) printf("Side %d Unknown BOUNDARY\n",m);
+		    clean_up(ERROR);
+		}
+		dw[m] = (w[1] - w[0])/top_h[l];
+	    }
+	    (void) printf("Coefs: %f %f\n",coefs[0],coefs[1]);
+	    (void) printf("C*dw: %f %f\n",coefs[0]*dw[0],coefs[1]*dw[1]);
+	    lhs += (coefs[1]*dw[1] + coefs[0]*dw[0])/top_h[l];
+	}
+	rhs = source[id0];
+	(void) printf("Solution = %20.14f\n",soln[id0]);
+	(void) printf("LHS = %20.14f  RHS = %20.14f\n",lhs,rhs);
+	(void) printf("LHS - RHS = %20.14f\n",lhs-rhs);
+	(void) printf("Relative error = %20.14g\n",fabs(lhs-rhs)/fabs(lhs));
+	(void) printf("Leaving checkSolver()\n\n");
+}	/* end checkSolver */
+
+void ELLIPTIC_SOLVER::dsolve2d(double *soln)
+{
+	int index,index_nb,size;
+	double rhs,coeff[2][2];
+	int I,I_nb;
+	int i,j,l,icoords[MAXD],icnb[MAXD];
+	int icrds_max[MAXD],icrds_min[MAXD];
+	COMPONENT comp;
+	double aII;
+	GRID_DIRECTION dir[2][2] = {{WEST,EAST},{SOUTH,NORTH}};
+	boolean use_neumann_solver = YES;
+	PetscInt num_iter = 0;
+	double rel_residual = 0.0;
+	HYPER_SURF *hs;
+	double crx_coords[MAXD];
+	int status;
+	POINTER intfc_state;
+	int idir,nb;
+	double h2[MAXD];
+	double *x;
+
+	PETSc solver;
+	solver.Create(ilower, iupper-1, 9, 9);
+	solver.Reset_A();
+	solver.Reset_b();
+	solver.Reset_x();
+	size = iupper - ilower;
+	max_soln = -HUGE;
+	min_soln = HUGE;
+
+	for (i = 0; i < dim; ++i)
+	    h2[i] = 4.0*sqr(top_h[i]);
+
+	for (j = jmin; j <= jmax; j++)
+        for (i = imin; i <= imax; i++)
+	{
+	    icoords[0] = i;
+	    icoords[1] = j;
+	    I = ij_to_I[i][j];
+
+	    index  = d_index(icoords,top_gmax,dim);
+	    comp = top_comp[index];
+	    if (I == -1) continue;
+	
+	    rhs = source[index];
+	    aII = 0.0;
+
+	    for (idir = 0; idir < dim; ++idir)
+	    for (nb = 0; nb < 2; ++nb)
+	    {
+	    	for (l = 0; l < dim; ++l)
+	    	    icnb[l] = icoords[l];
+		status = (*findStateAtCrossing)(front,icoords,dir[idir][nb],
+				comp,&intfc_state,&hs,crx_coords);
+                if (status == NO_PDE_BOUNDARY)
+		{
+		    icnb[idir] = (nb == 0) ? icoords[idir] - 1 : 
+					icoords[idir] + 1;
+		    index_nb = d_index(icnb,top_gmax,dim);
+		    status = (*findStateAtCrossing)(front,icnb,dir[idir][nb],
+				    comp,&intfc_state,&hs,crx_coords);
+                    if (status == NO_PDE_BOUNDARY)
+		    {
+		    	coeff[idir][nb] = D[index_nb]/h2[idir];
+			icnb[idir] = (nb == 0) ? icoords[idir] - 2:
+                                        icoords[idir] + 2;
+			I_nb = ij_to_I[icnb[0]][icnb[1]];
+		    	solver.Set_A(I,I_nb,coeff[idir][nb]);
+                    	aII += -coeff[idir][nb];
+		    }
+		    else if (status == CONST_P_PDE_BOUNDARY)
+		    {
+		    	coeff[idir][nb] = 0.5*(D[index] + D[index_nb])/h2[idir];
+                    	aII += -coeff[idir][nb];
+			rhs += -coeff[idir][nb]*getStateVar(intfc_state);
+			use_neumann_solver = NO;
+		    }
+		    else if (status == CONST_V_PDE_BOUNDARY)
+		    {
+		    	coeff[idir][nb] = 0.5*(D[index] + D[index_nb])/h2[idir];
+			I_nb = ij_to_I[icnb[0]][icnb[1]];
+		    	solver.Set_A(I,I_nb,coeff[idir][nb]);
+                    	aII += -coeff[idir][nb];
+		    }
+		}
+		else if (status == CONST_P_PDE_BOUNDARY)
+		{
+		    coeff[idir][nb] = D[index]/h2[idir];
+		    icnb[idir] = (nb == 0) ? icoords[idir] + 1:
+                                        icoords[idir] - 1;
+		    I_nb = ij_to_I[icnb[0]][icnb[1]];
+		    solver.Set_A(I,I_nb,-coeff[idir][nb]);
+		    rhs += -coeff[idir][nb]*getStateVar(intfc_state);
+		    use_neumann_solver = NO;
+		}
+	    }
+            solver.Set_A(I,I,aII);
+            solver.Set_b(I,rhs);
+	}
+	use_neumann_solver = pp_min_status(use_neumann_solver);
+	
+	solver.SetMaxIter(40000);
+	solver.SetTol(1e-10);
+
+	start_clock("Petsc Solver");
+	if (use_neumann_solver)
+	{
+	    (void) printf("\nUsing Neumann Solver!\n");
+	    (void) printf("Neumann solver is not yet working for dsolve2d()\n");
+	    clean_up(0);
+	    solver.Solve_withPureNeumann();
+	    solver.GetNumIterations(&num_iter);
+	    solver.GetFinalRelativeResidualNorm(&rel_residual);
+	    if(rel_residual > 1)
+	    {
+		(void) printf("\n The solution diverges! The residual "
+		       "is %g. Solve again using GMRES!\n",rel_residual);
+		solver.Reset_x();
+		solver.Solve_withPureNeumann_GMRES();
+		solver.GetNumIterations(&num_iter);
+		solver.GetFinalRelativeResidualNorm(&rel_residual);
+	    }
+
+	}
+	else
+	{
+	    (void) printf("\nUsing non-Neumann Solver!\n");
+	    solver.Solve();
+	    solver.GetNumIterations(&num_iter);
+	    solver.GetFinalRelativeResidualNorm(&rel_residual);
+
+	    if(rel_residual > 1)
+	    {
+		(void) printf("\n The solution diverges! The residual "
+		       "is %g. Solve again using GMRES!\n",rel_residual);
+		solver.Reset_x();
+		solver.Solve_GMRES();
+		solver.GetNumIterations(&num_iter);
+		solver.GetFinalRelativeResidualNorm(&rel_residual);
+	    }
+
+	}
+	stop_clock("Petsc Solver");
+
+	FT_VectorMemoryAlloc((POINTER*)&x,size,sizeof(double));
+	solver.Get_x(x);
+
+	if (debugging("PETSc"))
+	    (void) printf("In poisson_solver(): "
+	       		"num_iter = %d, rel_residual = %g \n", 
+			num_iter, rel_residual);
+	
+	for (j = jmin; j <= jmax; j++)
+        for (i = imin; i <= imax; i++)
+	{
+	    index = d_index2d(i,j,top_gmax);
+	    I = ij_to_I[i][j];
+	    soln[index] = x[I-ilower];
+	    if (max_soln < soln[index]) 
+	    {
+		max_soln = soln[index];
+		icrds_max[0] = i;
+		icrds_max[1] = j;
+	    }
+	    if (min_soln > soln[index]) 
+	    {
+		min_soln = soln[index];
+		icrds_min[0] = i;
+		icrds_min[1] = j;
+	    }
+	}
+	FT_ParallelExchGridArrayBuffer(soln,front);
+	pp_global_max(&max_soln,1);
+	pp_global_min(&min_soln,1);
+
+	if (debugging("step_size"))
+	{
+	    printf("Max solution = %20.14f occuring at: %d %d %d\n",
+			max_soln,icrds_max[0],icrds_max[1],icrds_max[2]);
+	    dcheckSolver(icrds_max);
+	    printf("Min solution = %20.14f occuring at: %d %d %d\n",
+			min_soln,icrds_min[0],icrds_min[1],icrds_min[2]);
+	    dcheckSolver(icrds_min);
+	}
+
+	FT_FreeThese(1,x);
+}	/* end dsolve2d */
+
+void ELLIPTIC_SOLVER::dsolve3d(double *soln)
+{
+	int index,index_nb,size;
+	double rhs,coeff[3][2];
+	int I,I_nb;
+	int i,j,k,l,icoords[MAXD],icnb[MAXD];
+	int icrds_max[MAXD],icrds_min[MAXD];
+	COMPONENT comp;
+	double aII;
+	GRID_DIRECTION dir[3][2] = {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
+	boolean use_neumann_solver = YES;
+	PetscInt num_iter = 0;
+	double rel_residual = 0.0;
+	HYPER_SURF *hs;
+	double crx_coords[MAXD];
+	int status;
+	POINTER intfc_state;
+	int idir,nb;
+	double h2[MAXD];
+	double *x;
+
+	PETSc solver;
+	solver.Create(ilower, iupper-1, 13, 13);
+	solver.Reset_A();
+	solver.Reset_b();
+	solver.Reset_x();
+	size = iupper - ilower;
+	max_soln = -HUGE;
+	min_soln = HUGE;
+
+	for (i = 0; i < dim; ++i)
+	    h2[i] = 4.0*sqr(top_h[i]);
+
+	for (k = kmin; k <= kmax; k++)
+	for (j = jmin; j <= jmax; j++)
+        for (i = imin; i <= imax; i++)
+	{
+	    icoords[0] = i;
+	    icoords[1] = j;
+	    icoords[2] = k;
+	    I = ijk_to_I[i][j][k];
+
+	    index  = d_index(icoords,top_gmax,dim);
+	    comp = top_comp[index];
+	    if (I == -1) continue;
+	
+	    rhs = source[index];
+	    aII = 0.0;
+
+	    for (idir = 0; idir < dim; ++idir)
+	    for (nb = 0; nb < 2; ++nb)
+	    {
+	    	for (l = 0; l < dim; ++l)
+	    	    icnb[l] = icoords[l];
+		status = (*findStateAtCrossing)(front,icoords,dir[idir][nb],
+				comp,&intfc_state,&hs,crx_coords);
+                if (status == NO_PDE_BOUNDARY)
+		{
+		    icnb[idir] = (nb == 0) ? icoords[idir] - 1 : 
+					icoords[idir] + 1;
+		    index_nb = d_index(icnb,top_gmax,dim);
+		    status = (*findStateAtCrossing)(front,icnb,dir[idir][nb],
+				    comp,&intfc_state,&hs,crx_coords);
+                    if (status == NO_PDE_BOUNDARY)
+		    {
+		    	coeff[idir][nb] = D[index_nb]/h2[idir];
+			icnb[idir] = (nb == 0) ? icoords[idir] - 2:
+                                        icoords[idir] + 2;
+			I_nb = ijk_to_I[icnb[0]][icnb[1]][icnb[2]];
+		    	solver.Set_A(I,I_nb,coeff[idir][nb]);
+                    	aII += -coeff[idir][nb];
+		    }
+		    else if (status == CONST_P_PDE_BOUNDARY)
+		    {
+		    	coeff[idir][nb] = 0.5*(D[index] + D[index_nb])/h2[idir];
+                    	aII += -coeff[idir][nb];
+			rhs += -coeff[idir][nb]*getStateVar(intfc_state);
+			use_neumann_solver = NO;
+		    }
+		    else if (status == CONST_V_PDE_BOUNDARY)
+		    {
+		    	coeff[idir][nb] = 0.5*(D[index] + D[index_nb])/h2[idir];
+			I_nb = ijk_to_I[icnb[0]][icnb[1]][icnb[2]];
+		    	solver.Set_A(I,I_nb,coeff[idir][nb]);
+                    	aII += -coeff[idir][nb];
+		    }
+		}
+		else if (status == CONST_P_PDE_BOUNDARY)
+		{
+		    coeff[idir][nb] = D[index]/h2[idir];
+		    icnb[idir] = (nb == 0) ? icoords[idir] + 1:
+                                        icoords[idir] - 1;
+		    I_nb = ijk_to_I[icnb[0]][icnb[1]][icnb[2]];
+		    solver.Set_A(I,I_nb,-coeff[idir][nb]);
+		    rhs += -coeff[idir][nb]*getStateVar(intfc_state);
+		    use_neumann_solver = NO;
+		}
+	    }
+	    /*
+	     * This change reflects the need to treat point with only one
+	     * interior neighbor (a convex point). Not sure why PETSc cannot
+	     * handle such case. If we have better understanding, this should
+	     * be changed back.
+	     */
+            solver.Set_A(I,I,aII);
+            solver.Set_b(I,rhs);
+	}
+	use_neumann_solver = pp_min_status(use_neumann_solver);
+	
+	solver.SetMaxIter(40000);
+	solver.SetTol(1e-10);
+
+	start_clock("Petsc Solver");
+	if (use_neumann_solver)
+	{
+	    (void) printf("\nUsing Neumann Solver!\n");
+	    (void) printf("Neumann solver not working for dsolve3d()\n");
+	    clean_up(ERROR);
+	    solver.Solve_withPureNeumann();
+	    solver.GetNumIterations(&num_iter);
+	    solver.GetFinalRelativeResidualNorm(&rel_residual);
+	    if(rel_residual > 1)
+	    {
+		(void) printf("\n The solution diverges! The residual "
+		       "is %g. Solve again using GMRES!\n",rel_residual);
+		solver.Reset_x();
+		solver.Solve_withPureNeumann_GMRES();
+		solver.GetNumIterations(&num_iter);
+		solver.GetFinalRelativeResidualNorm(&rel_residual);
+	    }
+
+	}
+	else
+	{
+	    (void) printf("\nUsing non-Neumann Solver!\n");
+	    solver.Solve();
+	    solver.GetNumIterations(&num_iter);
+	    solver.GetFinalRelativeResidualNorm(&rel_residual);
+
+	    if(rel_residual > 1)
+	    {
+		(void) printf("\n The solution diverges! The residual "
+		       "is %g. Solve again using GMRES!\n",rel_residual);
+		solver.Reset_x();
+		solver.Solve_GMRES();
+		solver.GetNumIterations(&num_iter);
+		solver.GetFinalRelativeResidualNorm(&rel_residual);
+	    }
+
+	}
+	stop_clock("Petsc Solver");
+
+	FT_VectorMemoryAlloc((POINTER*)&x,size,sizeof(double));
+	solver.Get_x(x);
+
+	if (debugging("PETSc"))
+	    (void) printf("In poisson_solver(): "
+	       		"num_iter = %d, rel_residual = %g \n", 
+			num_iter, rel_residual);
+	
+	for (k = kmin; k <= kmax; k++)
+	for (j = jmin; j <= jmax; j++)
+        for (i = imin; i <= imax; i++)
+	{
+	    index = d_index3d(i,j,k,top_gmax);
+	    I = ijk_to_I[i][j][k];
+	    soln[index] = x[I-ilower];
+	    if (max_soln < soln[index]) 
+	    {
+		max_soln = soln[index];
+		icrds_max[0] = i;
+		icrds_max[1] = j;
+		icrds_max[2] = k;
+	    }
+	    if (min_soln > soln[index]) 
+	    {
+		min_soln = soln[index];
+		icrds_min[0] = i;
+		icrds_min[1] = j;
+		icrds_min[2] = k;
+	    }
+	}
+	FT_ParallelExchGridArrayBuffer(soln,front);
+	pp_global_max(&max_soln,1);
+	pp_global_min(&min_soln,1);
+
+	if (debugging("step_size"))
+	{
+	    printf("Max solution = %20.14f occuring at: %d %d %d\n",
+			max_soln,icrds_max[0],icrds_max[1],icrds_max[2]);
+	    checkSolver(icrds_max);
+	    printf("Min solution = %20.14f occuring at: %d %d %d\n",
+			min_soln,icrds_min[0],icrds_min[1],icrds_min[2]);
+	    checkSolver(icrds_min);
+	}
+
+	FT_FreeThese(1,x);
+}	/* end dsolve3d */
+
+void ELLIPTIC_SOLVER::dcheckSolver(int *icoords)
+{
+	int i,j,l,m;
+	int comp;
+	double w[2];
+	int id0,index_nb;
+	double dw[2],coefs[2],lhs,rhs;
+	GRID_DIRECTION dir[3][2] = {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
+	HYPER_SURF *hs;
+        double crx_coords[MAXD],w_crx;
+        int status;
+        POINTER intfc_state;
+	int icnb[MAXD];
+
+	(void) printf("\nEntering checkSolver()\n");
+
+	(void) printf("icoords = ");
+	for (i = 0; i < dim; ++i)
+	    (void) printf("%d ",icoords[i]);
+	(void) printf("\n");
+
+	id0 = d_index(icoords,top_gmax,dim);
+	comp = top_comp[id0];
+	lhs = 0;
+	for (l = 0; l < dim; ++l)
+	{
+	    printf("Direction %d:\n",l);
+	    for (i = 0; i < dim; ++i)
+	    	icnb[i] = icoords[i];
+	    for (m = 0; m < 2; ++m)
+	    {
+		status = (*findStateAtCrossing)(front,icoords,dir[l][m],comp,
+                                &intfc_state,&hs,crx_coords);
+		if (status == NO_PDE_BOUNDARY)
+		{
+		    icnb[l] = (m == 0) ? icoords[l] - 1 : icoords[l] + 1;
+		    index_nb = d_index(icnb,top_gmax,dim);
+		    status = (*findStateAtCrossing)(front,icnb,dir[l][m],comp,
+                                &intfc_state,&hs,crx_coords);
+		    if (status == NO_PDE_BOUNDARY)
+		    {
+		    	(void) printf("Side %d NO_PDE_BOUNDARY\n",m);
+		    	coefs[m] = D[index_nb];
+		    	icnb[l] = (m == 0) ? icoords[l] - 2 : icoords[l] + 2;
+		    	index_nb = d_index(icnb,top_gmax,dim);
+			w[0] = soln[id0];
+			w[1] = soln[index_nb];
+		    }
+		    else if (status == CONST_V_PDE_BOUNDARY)
+		    {
+		    	(void) printf("Side %d-1 CONST_V_PDE_BOUNDARY\n",m);
+		    	coefs[m] = 0.5*(D[id0] + D[index_nb]);
+			w[0] = soln[id0];
+			w[1] = soln[index_nb];
+		    }
+		    else if (status == CONST_P_PDE_BOUNDARY)
+		    {
+		    	(void) printf("Side %d-1 CONST_P_PDE_BOUNDARY\n",m);
+		    	coefs[m] = 0.5*(D[id0] + D[index_nb]);
+			w[0] = soln[id0];
+		    	w[1] = getStateVar(intfc_state);
+		    }
+		}
+		else if (status == CONST_V_PDE_BOUNDARY)
+		{
+		    (void) printf("Side %d-0 CONST_V_PDE_BOUNDARY\n",m);
+		    coefs[m] = D[id0];
+		    w[0] = soln[id0];
+		    w[1] = soln[id0];
+		}
+		else if (status == CONST_P_PDE_BOUNDARY)
+		{
+		    (void) printf("Side %d-0 CONST_P_PDE_BOUNDARY\n",m);
+		    icnb[l] = (m == 0) ? icoords[l] + 1 : icoords[l] - 1;
+		    index_nb = d_index(icnb,top_gmax,dim);
+		    coefs[m] = D[id0];
+		    w[0] = soln[index_nb];
+		    w[1] = getStateVar(intfc_state);
+		}
+		dw[m] = (w[1] - w[0])/2.0/top_h[l];
+	    }
+	    (void) printf("Coefs: %f %f\n",coefs[0],coefs[1]);
+	    (void) printf("C*dw: %f %f\n",coefs[0]*dw[0],coefs[1]*dw[1]);
+	    lhs += (coefs[1]*dw[1] + coefs[0]*dw[0])/2.0/top_h[l];
+	}
+	rhs = source[id0];
+	(void) printf("Solution = %20.14f\n",soln[id0]);
+	(void) printf("LHS = %20.14f  RHS = %20.14f\n",lhs,rhs);
+	(void) printf("LHS - RHS = %20.14f\n",lhs-rhs);
+	(void) printf("Relative error = %20.14g\n",fabs(lhs-rhs)/fabs(lhs));
+	(void) printf("Leaving dcheckSolver()\n\n");
+}	/* end dcheckSolver */
+

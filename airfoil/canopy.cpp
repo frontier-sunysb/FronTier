@@ -451,8 +451,15 @@ extern int af_find_state_at_crossing(
 	if (wave_type(*hs) == ELASTIC_BOUNDARY && 
 		is_pore(front,hse,crx_coords))
 	    return NO_PDE_BOUNDARY;
+	if (wave_type(*hs) == ELASTIC_BOUNDARY) //TMP
+	    return CONST_V_PDE_BOUNDARY;
 	if (wave_type(*hs) == DIRICHLET_BOUNDARY)
-	    return DIRICHLET_PDE_BOUNDARY;
+	{
+	    if (boundary_state(*hs))
+	    	return CONST_V_PDE_BOUNDARY;
+	    else
+	    	return CONST_P_PDE_BOUNDARY;
+	}
         return NEUMANN_PDE_BOUNDARY;
 }       /* af_find_state_at_crossing */
 
@@ -515,7 +522,6 @@ extern void fourth_order_parachute_propagate(
 	for (i = 0; i < num_strings; ++i)	/* string interior pts */
 	{
 	    n_sps += FT_NumOfCurvePoints(new_geom_set->string_curves[i]) - 2;
-	    printf("n_sps = %d\n",n_sps);
 	}
 
 	if (debugging("trace"))
@@ -716,7 +722,6 @@ static void compute_canopy_accel(
 	ngc = geom_set->num_gore_hsbdry;
 	ng = geom_set->num_gore_nodes;
 
-	printf("ng = %d  ngc = %d  ns = %d  nbs = %d\n",ng,ngc,ns,nbc);
 	if (debugging("string_chord") || debugging("rigid_canopy") || 
 	    debugging("ave_lift"))
 	    n_start = n;

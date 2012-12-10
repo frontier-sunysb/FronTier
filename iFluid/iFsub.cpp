@@ -1111,6 +1111,15 @@ extern void read_iFparams(
             fscanf(infile,"%lf ",&iFparams->ub_speed);
             (void) printf("%f\n",iFparams->ub_speed);
 	}
+	iFparams->total_div_cancellation = NO;
+        if (CursorAfterStringOpt(infile,	
+		"Enter yes to use total divergence cancellation:"))
+	{
+	    fscanf(infile,"%s",string);
+	    (void) printf("%s\n",string);
+	    if (string[0] == 'y' || string[0] == 'Y')
+	    iFparams->total_div_cancellation = YES;
+	}
 
 	fclose(infile);
 }	/* end read_iFparams */
@@ -1499,13 +1508,16 @@ extern int ifluid_find_state_at_crossing(
 	if (wave_type(*hs) == FIRST_PHYSICS_WAVE_TYPE) 
 	    return NO_PDE_BOUNDARY;
 	if (wave_type(*hs) == NEUMANN_BOUNDARY) 
-	    return NEUMANN_PDE_BOUNDARY;
+	    return CONST_V_PDE_BOUNDARY;
 	if (wave_type(*hs) == MOVABLE_BODY_BOUNDARY) 
-	{
-	    return NEUMANN_PDE_BOUNDARY;
-	}
+	    return CONST_V_PDE_BOUNDARY;
 	if (wave_type(*hs) == DIRICHLET_BOUNDARY) 
-	    return DIRICHLET_PDE_BOUNDARY;
+	{
+	    if (boundary_state(*hs))
+	    	return CONST_V_PDE_BOUNDARY;
+	    else
+	    	return CONST_P_PDE_BOUNDARY;
+	}
 }	/* ifluid_find_state_at_crossing */
 
 extern double p_jump(
@@ -1553,18 +1565,18 @@ extern int ifluid_find_projection_crossing(
 	if (status == NO || wave_type(*hs) == FIRST_PHYSICS_WAVE_TYPE) 
 	    return NO_PDE_BOUNDARY;
 	if (wave_type(*hs) == NEUMANN_BOUNDARY)
-	    return NEUMANN_PDE_BOUNDARY;
+	    return CONST_V_PDE_BOUNDARY;
 	if (wave_type(*hs) == MOVABLE_BODY_BOUNDARY)
-	    return NEUMANN_PDE_BOUNDARY;
+	    return CONST_V_PDE_BOUNDARY;
 	if (wave_type(*hs) == DIRICHLET_BOUNDARY)
 	{
 	    if (boundary_state(*hs))
-	    	return NEUMANN_PDE_BOUNDARY;
+	    	return CONST_V_PDE_BOUNDARY;
 	    else
 	    {
 		dummy_state.pres = 0.0;
 		*state = (POINTER)&dummy_state;
-	    	return DIRICHLET_PDE_BOUNDARY;
+	    	return CONST_V_PDE_BOUNDARY;
 	    }
 	}
 	return NO_PDE_BOUNDARY;

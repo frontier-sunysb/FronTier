@@ -386,6 +386,7 @@ static void readMonteCarloParams(
 	}
 	/* The following is for stock simulation */
 	params->do_monte_carlo = NO;
+	params->do_option_price = NO;
 	if (CursorAfterStringOpt(infile,"Enter yes for stock simulation:"))
 	{
             fscanf(infile,"%s",string);
@@ -421,6 +422,19 @@ static void readMonteCarloParams(
 	    	    CursorAfterString(infile,"Enter number of print cases:");
             	    fscanf(infile,"%d",&params->num_print_sims);
 		    (void) printf(" %d\n",params->num_print_sims);
+		}
+		if (CursorAfterStringOpt(infile,
+			"Enter yes to calculate option proce:"))
+		{
+            	    fscanf(infile,"%s",string);
+            	    (void) printf(" %s\n",string);
+	    	    if (string[0] == 'y' || string[0] == 'Y')
+	    	    {
+			params->do_option_price = YES;
+	    		CursorAfterString(infile,"Enter strike price:");
+            		fscanf(infile,"%lf",&params->E);
+			(void) printf(" %f\n",params->E);
+		    }
 		}
 	    }
 	}
@@ -458,43 +472,111 @@ static void goMonteCarlo(
 	int n,N = params.num_steps;
 	int i,num_sims = params.num_sims;
 	double T = params.T;
-	double time,dX,dt = T/N;
+	double *time,dX,dt = T/N;
 	char xname[200];
 	FILE *xfile;
-	double dS,S0,S,*S_ave,*S_bank;
+	double dS,S0,S,*S2,*S_ave,*S_bank;
+	double GS,*GS2,*GS_ave;
 	double sigma = params.sigma;
+	double *sample_S,*sample_GS;
 	double mu = params.mu;
 	POINTER pdf_params = params.pdf_params;
 	boolean print_detail = params.print_detail;
 	int num_print_sims = params.num_print_sims;
+	double *C,*C2,*P,*P2,*sample_C,*sample_P;	// Option price
+	double E = params.E;
+	double *emut;			// exp(-mu*time)
+	double randv;
 
 	if (params.do_monte_carlo == NO) return;
 
 	FT_VectorMemoryAlloc((POINTER*)&S_ave,N+1,sizeof(double));
+	FT_VectorMemoryAlloc((POINTER*)&S2,N+1,sizeof(double));
+	FT_VectorMemoryAlloc((POINTER*)&GS_ave,N+1,sizeof(double));
+	FT_VectorMemoryAlloc((POINTER*)&GS2,N+1,sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&S_bank,N+1,sizeof(double));
+	FT_VectorMemoryAlloc((POINTER*)&sample_S,N+1,sizeof(double));
+	FT_VectorMemoryAlloc((POINTER*)&sample_GS,N+1,sizeof(double));
+	FT_VectorMemoryAlloc((POINTER*)&time,N+1,sizeof(double));
+	if (params.do_option_price == YES)
+	{
+	    FT_VectorMemoryAlloc((POINTER*)&C,N+1,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&C2,N+1,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&sample_C,N+1,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&P,N+1,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&P2,N+1,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&sample_P,N+1,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&emut,N+1,sizeof(double));
+	}
 	assignRandomSeeds(&params);
+	for (n = 0; n <= N; ++n)
+	{
+	    time[n] = n*dt;
+	    S_ave[n] = S2[n] = 0.0;
+	    if (params.do_option_price == YES)
+	    {
+		C[n] = C2[n] = P[n] = P2[n] = 0.0;
+		emut[n] = exp(-time[n]*mu);
+	    }
+	}
 	for (i = 0; i < num_sims; ++i)
 	{
-	    S = S0 = S_bank[0] = params.S0;
+	    GS = S = S0 = S_bank[0] = params.S0;
 	    S_ave[0] += S0;
-	    time = 0.0;
+	    S2[0] += sqr(S0);
+	    GS_ave[0] += S0;
+	    GS2[0] += sqr(S0);
+	    if (params.do_option_price == YES)
+	    {
+		if (S-E > 0.0)
+		{
+		    C[0] += emut[0]*(S - E);
+		    C2[0] += sqr(emut[0]*(S-E));
+		}
+		else
+		{
+		    P[0] += emut[0]*(E-S);
+		    P2[0] += sqr(emut[0]*(S-E));
+		}
+	    }
 	    if (print_detail && i < num_print_sims)
 	    {
 	    	sprintf(xname,"%s/stock-%d.xg",out_name,i);
 	    	xfile = fopen(xname,"w");
 	    	fprintf(xfile,"\"stock price vs. time\"\n");
-	    	fprintf(xfile,"%f %f\n",time,S);
+	    	fprintf(xfile,"%f %f\n",time[0],S);
 	    }
 	    for (n = 1; n <= N; ++n)
 	    {
-		time += dt;
-		dX = sqrt(dt)*random_func(pdf_params,params.seeds);
+		randv = random_func(pdf_params,params.seeds);
+		dX = sqrt(dt)*randv;
 		dS = S*(sigma*dX + mu*dt);
-		S_bank[n] = S_bank[n-1]*(1.0 + mu*dt);
 		S += dS;
 		S_ave[n] += S;
+		S2[n] += sqr(S);
+
+		GS = S0*exp((mu - 0.5*sqr(sigma))*time[n] + 
+				sigma*randv*sqrt(time[n]));
+		GS_ave[n] += GS;
+		GS2[n] += sqr(GS);
+
+		S_bank[n] = S_bank[n-1]*(1.0 + mu*dt);
+
+	    	if (params.do_option_price == YES)
+		{
+		    if (S-E > 0.0)
+		    {
+			C[n] += emut[n]*(S - E);
+			C2[n] += sqr(emut[n]*(S-E));
+		    }
+		    else
+		    {
+			P[n] += emut[n]*(E-S);
+			P2[n] += sqr(emut[n]*(S-E));
+		    }
+		}
 	    	if (print_detail && i < num_print_sims)
-		    fprintf(xfile,"%f %f\n",time,S);
+		    fprintf(xfile,"%f %f\n",time[n],S);
 	    }
 	    if (print_detail && i < num_print_sims)
 	    {
@@ -503,26 +585,114 @@ static void goMonteCarlo(
 	    }
 	}
 
+	for (n = 0; n <= N; ++n)
+	{
+	    S_ave[n] /= num_sims;
+	    GS_ave[n] /= num_sims;
+	    sample_S[n] = S2[n] - num_sims*sqr(S_ave[n]);
+	    sample_S[n] /= num_sims*(num_sims - 1);
+	    sample_S[n] = sqrt(sample_S[n]);
+	    sample_GS[n] = GS2[n] - num_sims*sqr(GS_ave[n]);
+	    sample_GS[n] /= num_sims*(num_sims - 1);
+	    sample_GS[n] = sqrt(sample_GS[n]);
+	    fprintf(xfile,"%f %f\n",time[n],S_ave[n]);
+	    if (params.do_option_price == YES)
+	    {
+		C[n] /= num_sims;
+		P[n] /= num_sims;
+		sample_C[n] = fabs(C2[n] - num_sims*sqr(C[n]));
+		sample_C[n] /= num_sims*(num_sims - 1);
+            	sample_C[n] = sqrt(sample_C[n]);
+		sample_P[n] = fabs(P2[n] - num_sims*sqr(P[n]));
+		sample_P[n] /= num_sims*(num_sims - 1);
+            	sample_P[n] = sqrt(sample_P[n]);
+	    }
+	}
 	sprintf(xname,"%s/stock-ave.xg",out_name);
 	xfile = fopen(xname,"w");
 	fprintf(xfile,"\"ave price vs. time\"\n");
-	time = 0.0;
 	for (n = 0; n <= N; ++n)
-	{
-	    time += dt;
-	    S_ave[n] /= num_sims;
-	    fprintf(xfile,"%f %f\n",time,S_ave[n]);
-	}
+	    fprintf(xfile,"%f %f\n",time[n],S_ave[n]);
+	fprintf(xfile,"\n\n\"68 lb vs. time\"\n");
+	for (n = 0; n <= N; ++n)
+	    fprintf(xfile,"%f %f\n",time[n],S_ave[n]-sample_S[n]);
+	fprintf(xfile,"\n\n\"68 ub vs. time\"\n");
+	for (n = 0; n <= N; ++n)
+	    fprintf(xfile,"%f %f\n",time[n],S_ave[n]+sample_S[n]);
+	fprintf(xfile,"\n\n\"95 lb vs. time\"\n");
+	for (n = 0; n <= N; ++n)
+	    fprintf(xfile,"%f %f\n",time[n],S_ave[n]-2.0*sample_S[n]);
+	fprintf(xfile,"\n\n\"95 ub vs. time\"\n");
+	for (n = 0; n <= N; ++n)
+	    fprintf(xfile,"%f %f\n",time[n],S_ave[n]+2.0*sample_S[n]);
 	fclose(xfile);
+
+	sprintf(xname,"%s/gb-stock-ave.xg",out_name);
+	xfile = fopen(xname,"w");
+	fprintf(xfile,"\"ave price vs. time\"\n");
+	for (n = 0; n <= N; ++n)
+	    fprintf(xfile,"%f %f\n",time[n],GS_ave[n]);
+	fprintf(xfile,"\n\n\"68 lb vs. time\"\n");
+	for (n = 0; n <= N; ++n)
+	    fprintf(xfile,"%f %f\n",time[n],GS_ave[n]-sample_GS[n]);
+	fprintf(xfile,"\n\n\"68 ub vs. time\"\n");
+	for (n = 0; n <= N; ++n)
+	    fprintf(xfile,"%f %f\n",time[n],GS_ave[n]+sample_GS[n]);
+	fprintf(xfile,"\n\n\"95 lb vs. time\"\n");
+	for (n = 0; n <= N; ++n)
+	    fprintf(xfile,"%f %f\n",time[n],GS_ave[n]-2.0*sample_GS[n]);
+	fprintf(xfile,"\n\n\"95 ub vs. time\"\n");
+	for (n = 0; n <= N; ++n)
+	    fprintf(xfile,"%f %f\n",time[n],GS_ave[n]+2.0*sample_GS[n]);
+	fclose(xfile);
+
+	if (params.do_option_price == YES)
+	{
+	    sprintf(xname,"%s/call-ave.xg",out_name);
+	    xfile = fopen(xname,"w");
+	    	fprintf(xfile,"\"ave price vs. time\"\n");
+	    for (n = 0; n <= N; ++n)
+	    	fprintf(xfile,"%f %f\n",time[n],C[n]);
+	    fprintf(xfile,"\n\n\"68 lb vs. time\"\n");
+	    for (n = 0; n <= N; ++n)
+	    	fprintf(xfile,"%f %f\n",time[n],C[n]-sample_C[n]);
+	    fprintf(xfile,"\n\n\"68 ub vs. time\"\n");
+	    for (n = 0; n <= N; ++n)
+	    	fprintf(xfile,"%f %f\n",time[n],C[n]+sample_C[n]);
+	    fprintf(xfile,"\n\n\"95 lb vs. time\"\n");
+	    for (n = 0; n <= N; ++n)
+	    	fprintf(xfile,"%f %f\n",time[n],C[n]-2.0*sample_C[n]);
+	    fprintf(xfile,"\n\n\"95 ub vs. time\"\n");
+	    for (n = 0; n <= N; ++n)
+	    	fprintf(xfile,"%f %f\n",time[n],C[n]+2.0*sample_C[n]);
+	    fclose(xfile);
+
+	    sprintf(xname,"%s/put-ave.xg",out_name);
+	    xfile = fopen(xname,"w");
+	    	fprintf(xfile,"\"ave price vs. time\"\n");
+	    for (n = 0; n <= N; ++n)
+	    	fprintf(xfile,"%f %f\n",time[n],P[n]);
+	    fprintf(xfile,"\n\n\"68 lb vs. time\"\n");
+	    for (n = 0; n <= N; ++n)
+	    	fprintf(xfile,"%f %f\n",time[n],P[n]-sample_P[n]);
+	    fprintf(xfile,"\n\n\"68 ub vs. time\"\n");
+	    for (n = 0; n <= N; ++n)
+	    	fprintf(xfile,"%f %f\n",time[n],P[n]+sample_P[n]);
+	    fprintf(xfile,"\n\n\"95 lb vs. time\"\n");
+	    for (n = 0; n <= N; ++n)
+	    	fprintf(xfile,"%f %f\n",time[n],P[n]-2.0*sample_P[n]);
+	    fprintf(xfile,"\n\n\"95 ub vs. time\"\n");
+	    for (n = 0; n <= N; ++n)
+	    	fprintf(xfile,"%f %f\n",time[n],P[n]+2.0*sample_P[n]);
+	    fclose(xfile);
+	}
+
 	sprintf(xname,"%s/savings.xg",out_name);
 	xfile = fopen(xname,"w");
 	fprintf(xfile,"\"savings vs. time\"\n");
-	time = 0.0;
 	for (n = 0; n <= N; ++n)
-	{
-	    time += dt;
-	    fprintf(xfile,"%f %f\n",time,S_bank[n]);
-	}
+	    fprintf(xfile,"%f %f\n",time[n],S_bank[n]);
 	fclose(xfile);
 	FT_FreeThese(2,S_ave,S_bank);
 }	/* end goMonteCarlo */
+

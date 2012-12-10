@@ -102,6 +102,7 @@ typedef struct {
 	COMPONENT m_comp2;
 	IF_FIELD *field;
 	int adv_order;
+	boolean total_div_cancellation;
 } IF_PARAMS;
 
 struct _FLOW_THROUGH_PARAMS {
@@ -296,6 +297,8 @@ protected:
 	int    getComponent(int *icoords);	
 	int    getComponent(double *coords);	
 	void   save(char *filename);
+	double computeFieldPointDiv(int*, double**);
+	void   computeFieldPointGrad(int*, double*, double*);
 
 /************* TMP Functions which are not implemented or used ***********/
 
@@ -413,8 +416,6 @@ protected:
 				double*, double);
 
 	/***************   Low level computation functions  *************/
-	double computeFieldPointDiv(int*, double**);
-	void   computeFieldPointGrad(int*, double*, double*);
 	double computeFieldPointCurl(int*, double**, double*);
 	double getVorticity(int i, int j);
 };
@@ -428,6 +429,7 @@ public:
 
 	void setInitialCondition(void);
 	void solve(double dt);
+	void solveTest(const char *msg);
 protected:
 	void copyMeshStates(void);
 	void computeAdvection(void);
@@ -444,8 +446,6 @@ protected:
 	void computeSourceTerm(double *coords, double *source);
 	void surfaceTension(double*, HYPER_SURF_ELEMENT*, HYPER_SURF*, 
 				double*, double);
-	double computeFieldPointDiv(int*, double**);
-	void   computeFieldPointGrad(int*, double*, double*);
 	double computeFieldPointCurl(int*, double**, double*);
 	double getVorticityX(int i, int j, int k);
 	double getVorticityY(int i, int j, int k);

@@ -12,6 +12,14 @@
 #include <petscpc.h>
 #include <assert.h>
 
+enum {
+        NO_PDE_BOUNDARY                 = 0,
+        CONST_V_PDE_BOUNDARY            = 1,
+        CONST_P_PDE_BOUNDARY,
+        NEUMANN_PDE_BOUNDARY,
+        MIXED_PDE_BOUNDARY
+};
+
 class SOLVER
 {
 public:
@@ -170,12 +178,12 @@ public:
 	double *D;		/* div(D*grad)phi = source */
 	void set_solver_domain(void);
 	void solve(double *soln);
-	void solve1d(double *soln);
-	void solve2d(double *soln);
-	void solve3d(double *soln);
+	void dsolve(double *soln);
 	double (*getStateVar)(POINTER);
 	int (*findStateAtCrossing)(Front*,int*,GRID_DIRECTION,int,
                                 POINTER*,HYPER_SURF**,double*);
+	void checkSolver(int *icoords);
+	void dcheckSolver(int *icoords);
 private:
         // Dimension
         int dim;
@@ -189,6 +197,11 @@ private:
 	int array_size;
 	double max_soln;
 	double min_soln;
+	void solve1d(double *soln);
+	void solve2d(double *soln);
+	void solve3d(double *soln);
+	void dsolve2d(double *soln);
+	void dsolve3d(double *soln);
 };
 
 struct _SWEEP {

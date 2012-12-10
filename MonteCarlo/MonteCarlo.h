@@ -65,7 +65,9 @@ struct _PARAMS {
 
 	/* Stock Monte Carlo simulation part */
 	boolean do_monte_carlo;	/* flag to do Monte Carlo Simulation */
+	boolean do_option_price;/* flag to do Monte Carlo Simulation */
 	double S0;		/* Start value */
+	double E;		/* Option strike price */
 	double T;		/* End time */
 	double mu;		/* Growth rate */
 	double sigma;		/* Volatility */
