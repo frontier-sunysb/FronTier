@@ -167,7 +167,7 @@ $$ME/melting/mrun* \
 $$ME/iFluid/*.cpp \
 $$ME/iFluid/*.h \
 $$ME/iFluid/Makefile.in \
-$$ME/iFluid/in-* \
+$$ME/iFluid/input-*/in-* \
 $$ME/iFluid/mrun* \
 $$ME/cFluid/*.cpp \
 $$ME/cFluid/*.h \
@@ -210,7 +210,7 @@ $$ME/pde/in-* \
 $$ME/pde/Makefile.in \
 $$ME/MonteCarlo/*.h \
 $$ME/MonteCarlo/*.cpp \
-$$ME/MonteCarlo/in-* \
+$$ME/MonteCarlo/input-*/in-* \
 $$ME/MonteCarlo/Makefile.in \
 $$ME/timeSeries/*.h \
 $$ME/timeSeries/*.cpp \

@@ -1087,10 +1087,10 @@ void ELLIPTIC_SOLVER::dsolve3d(double *soln)
 	{
 	    printf("Max solution = %20.14f occuring at: %d %d %d\n",
 			max_soln,icrds_max[0],icrds_max[1],icrds_max[2]);
-	    checkSolver(icrds_max);
+	    dcheckSolver(icrds_max);
 	    printf("Min solution = %20.14f occuring at: %d %d %d\n",
 			min_soln,icrds_min[0],icrds_min[1],icrds_min[2]);
-	    checkSolver(icrds_min);
+	    dcheckSolver(icrds_min);
 	}
 
 	FT_FreeThese(1,x);
