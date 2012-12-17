@@ -180,6 +180,28 @@ function config_vogon {
 }
 
 #################
+function config_alpha_omega {
+    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
+    export F77="mpif77 ${OPTS}"
+    export CC="mpicc ${OPTS} ${COPTS_GCC}"
+
+    export scriptotherlibs="${scriptotherlibs} /lib64/libblas.so /lib64/libgfortran.so.3"
+
+    export PETSC_DIR=/usr/local/pkg/petsc
+    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -llapack -lblas -ldl -lm -L/usr/X11R6/lib -lX11"
+
+    if [[ -n "$WITHHDF" ]]; then
+        CONF="$CONF --with-hdf=/usr/local/pkg/hdf"
+    fi
+
+    export CONF="--with-mpich=/usr/local/pkg/mpich2 --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/usr"
+    PMAKE="-j2"
+}
+
+#################
+
+#################
 function config_delta {
     export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
     export F77="mpif77 ${OPTS}"
@@ -460,6 +482,12 @@ elif [[ "${HOST}" == "dontpanic" ]]; then
 elif [[ "${HOST}" == "sirius" ]]; then
     echo "Computer is recognized as Galaxy."
     config_galaxy
+elif [[ "${HOST}" == "alpha" ]]; then
+    echo "Computer is recognized as alpha."
+    config_alpha_omega
+elif [[ "${HOST}" == "omega" ]]; then
+    echo "Computer is recognized as omega."
+    config_alpha_omega
 elif [[ "${HOST}" == "newdelta" ]]; then
     echo "Computer is recognized as Delta."
     config_delta
