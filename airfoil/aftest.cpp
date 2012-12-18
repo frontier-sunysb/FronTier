@@ -883,7 +883,6 @@ static void print_airfoil_stat3d_1(
 	static FILE *afile,*sfile,*pfile,*vfile;
 	static FILE *xcom_file,*vcom_file;
 	static FILE *samplex,*sampley,*samplez;
-	static double ep0;
 	static boolean first = YES;
 	char fname[256];
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
@@ -1096,9 +1095,7 @@ static void print_airfoil_stat3d_1(
 	    for (k = 0; k < dim; ++k)
 		p0[k] = Coords(psample)[k];
 	    first = NO;
-	    ep0 = egp;
 	}
-	egp -= ep0;
 
 	fprintf(eskfile,"%16.12f  %16.12f\n",front->time,esk);
         fprintf(espfile,"%16.12f  %16.12f\n",front->time,esp);
@@ -1151,7 +1148,6 @@ static void print_airfoil_stat3d_2(
 	static FILE *eskfile,*espfile,*egpfile,*efile,*exkfile,*enkfile;
 	static FILE *afile,*sfile,*pfile,*vfile;
 	static FILE *xcom_file,*vcom_file;
-	static double ep0;
 	static boolean first = YES;
 	char fname[256];
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
@@ -1354,9 +1350,7 @@ static void print_airfoil_stat3d_2(
 	if (first)
 	{
 	    first = NO;
-	    ep0 = egp;
 	}
-	egp -= ep0;
 
 	fprintf(eskfile,"%16.12f  %16.12f\n",front->time,esk);
         fprintf(espfile,"%16.12f  %16.12f\n",front->time,esp);

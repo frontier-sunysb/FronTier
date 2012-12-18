@@ -528,6 +528,7 @@ extern void printAfExtraDada(
             for (i = 0; i < dim; ++i)
                 fprintf(outfile,"%24.18g ",p->vel[i]);
 	    fprintf(outfile,"\n");
+            fprintf(outfile,"%24.18g %24.18g\n",sl->pres,sr->pres);
             for (i = 0; i < dim; ++i)
                 fprintf(outfile,"%24.18g ",sl->Impct[i]);
 	    fprintf(outfile,"\n");
@@ -541,6 +542,7 @@ extern void printAfExtraDada(
 	    	sr = (STATE*)right_state(p);
             	for (i = 0; i < dim; ++i)
                     fprintf(outfile,"%24.18g ",p->vel[i]);
+            	fprintf(outfile,"%24.18g %24.18g\n",sl->pres,sr->pres);
 	    	fprintf(outfile,"\n");
             	for (i = 0; i < dim; ++i)
                     fprintf(outfile,"%24.18g ",sl->Impct[i]);
@@ -557,6 +559,7 @@ extern void printAfExtraDada(
 	    sr = (STATE*)right_state(p);
             for (i = 0; i < dim; ++i)
                 fprintf(outfile,"%24.18g ",p->vel[i]);
+            fprintf(outfile,"%24.18g %24.18g\n",sl->pres,sr->pres);
 	    fprintf(outfile,"\n");
             for (i = 0; i < dim; ++i)
                 fprintf(outfile,"%24.18g ",sl->Impct[i]);
@@ -608,6 +611,8 @@ extern void readAfExtraDada(
 	    sr = (STATE*)right_state(p);
             for (i = 0; i < dim; ++i)
                 fscanf(infile,"%lf ",&p->vel[i]);
+            fscanf(infile,"%lf %lf",&sl->pres,&sr->pres);
+	    fscanf(infile,"\n");
             for (i = 0; i < dim; ++i)
                 fscanf(infile,"%lf ",&sl->Impct[i]);
             for (i = 0; i < dim; ++i)
@@ -620,6 +625,8 @@ extern void readAfExtraDada(
 	    	sr = (STATE*)right_state(p);
             	for (i = 0; i < dim; ++i)
                     fscanf(infile,"%lf ",&p->vel[i]);
+            	fscanf(infile,"%lf %lf",&sl->pres,&sr->pres);
+	    	fscanf(infile,"\n");
             	for (i = 0; i < dim; ++i)
                	    fscanf(infile,"%lf ",&sl->Impct[i]);
             	for (i = 0; i < dim; ++i)
@@ -633,6 +640,8 @@ extern void readAfExtraDada(
 	    sr = (STATE*)right_state(p);
             for (i = 0; i < dim; ++i)
                 fscanf(infile,"%lf ",&p->vel[i]);
+            fscanf(infile,"%lf %lf",&sl->pres,&sr->pres);
+	    fscanf(infile,"\n");
             for (i = 0; i < dim; ++i)
                 fscanf(infile,"%lf ",&sl->Impct[i]);
             for (i = 0; i < dim; ++i)
