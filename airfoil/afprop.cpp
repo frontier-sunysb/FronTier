@@ -8,10 +8,10 @@ static double (*getStateVort3d[3])(POINTER) = {getStateXvort,getStateYvort,
 static SURFACE *canopy_of_string_node(NODE*);
 static void convert_to_point_mass(Front*,AF_PARAMS*);
 static void airfoil_curve_propagate(Front*,POINTER,CURVE*,CURVE*,double);
-static void curve_prop_without_interaction(Front*,POINTER,CURVE*,CURVE*,double);
-static void curve_prop_with_interaction(Front*,POINTER,CURVE*,CURVE*,double);
-static void curve_point_prop_with_interaction(Front*,POINT*,POINT*,BOND*,
-					double);
+static void string_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
+static void mono_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
+static void gore_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
+static void gore_point_propagate(Front*,POINT*,POINT*,BOND*,double);
 static	int arrayOfMonoHsbdry(INTERFACE*,CURVE**);
 static	int arrayOfGoreHsbdry(INTERFACE*,CURVE**);
 static 	int getGoreNodes(INTERFACE*,NODE**);
@@ -754,16 +754,17 @@ extern void airfoil_curve_propagate(
 	switch (hsbdry_type(oldc))
 	{
 	case STRING_HSBDRY:
+	    return string_curve_propagation(front,wave,oldc,newc,dt);
 	case MONO_COMP_HSBDRY:
-	    return curve_prop_without_interaction(front,wave,oldc,newc,dt);
+	    return mono_curve_propagation(front,wave,oldc,newc,dt);
 	case GORE_HSBDRY:
-	    return curve_prop_with_interaction(front,wave,oldc,newc,dt);
+	    return gore_curve_propagation(front,wave,oldc,newc,dt);
 	default:
 	    return;
 	}
 }	/* end airfoil_curve_propagate */
 
-static void curve_prop_without_interaction(
+static void string_curve_propagation(
         Front *front,
         POINTER wave,
 	CURVE *oldc,
@@ -791,9 +792,9 @@ static void curve_prop_without_interaction(
 	    ft_assign(left_state(newp),left_state(oldp),front->sizest);
 	    ft_assign(right_state(newp),right_state(oldp),front->sizest);
 	}
-}	/* end curve_prop_without_interaction */
+}	/* end string_curve_propagation */
 
-static void curve_prop_with_interaction(
+static void gore_curve_propagation(
         Front *front,
         POINTER wave,
 	CURVE *oldc,
@@ -805,7 +806,7 @@ static void curve_prop_with_interaction(
 
 	if (debugging("interact_curve"))
 	{
-	    (void) printf("Entering curve_prop_with_interaction()\n");
+	    (void) printf("Entering gore_curve_propagation()\n");
 	}
 	oldp = oldc->start->posn;
 	newp = newc->start->posn;
@@ -822,15 +823,15 @@ static void curve_prop_with_interaction(
 	{
 	    oldp = oldb->end;
 	    newp = newb->end;
-	    curve_point_prop_with_interaction(front,oldp,newp,oldb,dt);
+	    gore_point_propagate(front,oldp,newp,oldb,dt);
 	}
 	if (debugging("interact_curve"))
 	{
-	    (void) printf("Leaving curve_prop_with_interaction()\n");
+	    (void) printf("Leaving gore_curve_propagation()\n");
 	}
-}	/* end curve_prop_with_interaction */
+}	/* end gore_curve_propagation */
 
-static void curve_point_prop_with_interaction(
+static void gore_point_propagate(
 	Front *front,
 	POINT *oldp,
 	POINT *newp,
@@ -903,7 +904,7 @@ static void curve_point_prop_with_interaction(
 	    	dv = 0.0;
 	    newsr->Impct[i] = newsl->Impct[i] = sl->Impct[i] + dv;
 	}
-}	/* end curve_point_prop_with_interaction */
+}	/* end gore_point_propagate */
 
 extern int numOfMonoHsbdry(
 	INTERFACE *intfc)
@@ -1035,4 +1036,51 @@ static int getGoreNodes(
 	}
 	return num_nodes;
 }	/* getGoreNodes */
+
+static void mono_curve_propagation(
+        Front *front,
+        POINTER wave,
+	CURVE *oldc,
+	CURVE *newc,
+        double dt)
+{
+	BOND *oldb,*newb;
+	POINT *oldp,*newp;
+	double V[MAXD];
+	BOND_TRI **btris;
+	HYPER_SURF_ELEMENT *oldhse;
+	HYPER_SURF         *oldhs;
+
+	if (debugging("interact_curve"))
+	{
+	    (void) printf("Entering mono_curve_propagation()\n");
+	}
+
+	oldb = oldc->first;
+	newb = newc->first;
+	oldp = oldb->end;
+	newp = newb->end;
+	for (btris = Btris(oldb); btris && *btris; ++btris)
+	{
+	    oldp->hse = oldhse = Hyper_surf_element((*btris)->tri);
+	    oldp->hs = oldhs = Hyper_surf((*btris)->surface);
+	    elastic_point_propagate(front,wave,oldp,newp,oldhse,oldhs,dt,V);
+	}
+	for (oldb = oldc->first, newb = newc->first; oldb != NULL;
+		oldb = oldb->next, newb = newb->next)
+	{
+	    oldp = oldb->end;
+	    newp = newb->end;
+	    for (btris = Btris(oldb); btris && *btris; ++btris)
+	    {
+	    	oldp->hse = oldhse = Hyper_surf_element((*btris)->tri);
+	    	oldp->hs = oldhs = Hyper_surf((*btris)->surface);
+		elastic_point_propagate(front,wave,oldp,newp,oldhse,oldhs,dt,V);
+	    }
+	}
+	if (debugging("interact_curve"))
+	{
+	    (void) printf("Leaving mono_curve_propagation()\n");
+	}
+}	/* end mono_curve_propagation */
 
