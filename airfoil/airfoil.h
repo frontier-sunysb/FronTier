@@ -102,7 +102,7 @@ typedef struct {
         double mu2;
         double U1[MAXD];
         double U2[MAXD];
-        double gravity[MAXD];
+        double gravity[MAXD];		/* gravitational force */
 	double payload;
         double surf_tension;
         double smoothing_radius;
@@ -204,6 +204,8 @@ typedef struct {
 	LOAD_TYPE upper_side[MAXD];
 	double lower_mass[MAXD];
 	double upper_mass[MAXD];
+	double lower_force[MAXD][MAXD];
+	double upper_force[MAXD][MAXD];
 } BDRY_PARAMS;
 
 typedef struct {
@@ -211,12 +213,19 @@ typedef struct {
 	int dir;
 	double load_mass;
 	double point_mass;
+	double force[MAXD];
 } C_PARAMS;
 
 struct _AF_NODE_EXTRA {
 	AF_NODE_TYPE af_node_type;
 };
 typedef struct _AF_NODE_EXTRA AF_NODE_EXTRA;
+
+struct _REGISTERED_PTS {
+	int num_pts;
+	int *global_ids;
+};
+typedef struct _REGISTERED_PTS REGISTERED_PTS;
 
 struct _PARACHUTE_SET{
 	Front *front;
@@ -255,51 +264,56 @@ void read_dirichlet_bdry_data(char*,Front*,F_BASIC_DATA);
 void restart_set_dirichlet_bdry_function(Front*);
 void liquid_point_propagate(Front*,POINTER,POINT*,POINT*,
                         HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
-extern void setInitialIntfc(Front*,LEVEL_FUNC_PACK*,char*);
+
+// afinit.cpp
+extern void setInitialIntfcAF(Front*,LEVEL_FUNC_PACK*,char*);
 extern void setRestartAirfoilIntfc(Front*,LEVEL_FUNC_PACK*);
+extern void printAfExtraDada(Front*,char*);
+extern void readAfExtraDada(Front*,char*);
+
+/* afinit3d.cpp */
+extern void initEllipticSurf(FILE*,Front*,LEVEL_FUNC_PACK*);
+extern void initParabolicSurf(FILE*,Front*,LEVEL_FUNC_PACK*);
+extern void initPlaneSurf(FILE*,Front*,LEVEL_FUNC_PACK*);
+
+// afprop.cpp
+extern void airfoil_point_propagate(Front*,POINTER,POINT*,POINT*,
+                        HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
+extern void elastic_point_propagate(Front*,POINTER,POINT*,POINT*,
+                        HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 extern void ifluid_point_propagate(Front*,POINTER,POINT*,POINT*,
                         HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
-extern void initVelocityFunc(char*,Front*);
-extern void test_tan_curve_propagate(Front*,Front*,INTERFACE*,
+extern void fourth_order_elastic_set_propagate(Front*,double);
+extern void airfoil_curve_propagate(Front*,POINTER,CURVE*,CURVE*,double);
+extern  int numOfGoreHsbdry(INTERFACE*);
+extern  int numOfMonoHsbdry(INTERFACE*);
+extern  int numOfGoreNodes(INTERFACE*);
+extern boolean is_load_node(NODE*);
+extern boolean is_gore_node(NODE*);
+extern boolean is_bdry_node(NODE*);
+extern boolean is_string_node(NODE*);
+
+// aftest.cpp
+extern void second_order_elastic_curve_propagate(Front*,Front*,INTERFACE*,
+                                CURVE*,CURVE*,double);
+extern void second_order_elastic_surf_propagate(Front*,double);
+extern void set_equilibrium_mesh(Front*);
+extern void unsort_surf_point(SURFACE*);
+extern void print_airfoil_stat(Front*,char*);
+extern void fourth_order_elastic_curve_propagate(Front*,Front*,INTERFACE*,
                                 CURVE*,CURVE*,double);
 extern void fixed_length_tan_curve_propagate(Front*,Front*,INTERFACE*,
                                 CURVE*,CURVE*,double);
-extern void second_order_elastic_curve_propagate(Front*,Front*,INTERFACE*,
-                                CURVE*,CURVE*,double);
-extern void fourth_order_elastic_curve_propagate(Front*,Front*,INTERFACE*,
-                                CURVE*,CURVE*,double);
-extern void second_order_elastic_surf_propagate(Front*,double);
 extern void fourth_order_elastic_surf_propagate(Front*,double);
-extern void fourth_order_elastic_set_propagate(Front*,double);
-extern void set_equilibrium_mesh(Front*);
-extern void init_fluid_state_func(Front*,Incompress_Solver_Smooth_Basis*);
-extern void print_airfoil_stat(Front*,char*);
-EXPORT void FrontCurveSegLengthConstr(CURVE*,BOND*,BOND*,int,double,
-				REDISTRIBUTION_DIRECTION);
+
+// canopy.cpp
 extern void coating_mono_hyper_surf(Front*);
 extern void compute_total_canopy_force(Front*,double*,double*);
-extern int zero_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
-                                double*);
-extern int toroidal_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
-                                double*);
-extern int parabolic_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
-                                double*);
-extern int singular_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
-                                double*);
-extern int vertical_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
-                                double*);
 extern int airfoil_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
                                 double*);
-extern int af_node_propagate(Front*,POINTER,NODE*,NODE*,RPROBLEM**,double,
-			double*,NODE_FLAG,POINTER);
 extern int af_find_state_at_crossing(Front*,int*,GRID_DIRECTION,
                         int,POINTER*,HYPER_SURF**,double*);
-extern void elastic_point_propagate(Front*,POINTER,POINT*,POINT*,
-                        HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 extern void fourth_order_parachute_propagate(Front*,PARACHUTE_SET*);
-extern void unsort_surf_point(SURFACE*);
-extern void airfoil_point_propagate(Front*,POINTER,POINT*,POINT*,
-                        HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 extern void assign_node_field(NODE*,double**,double**,int*);
 extern void assign_curve_field(CURVE*,double**,double**,int*);
 extern void assign_surf_field(SURFACE*,double**,double**,int*);
@@ -319,18 +333,6 @@ extern void compute_curve_accel3(PARACHUTE_SET*,CURVE*,double**,double**,
 				double**,int*);
 extern void compute_node_accel3(PARACHUTE_SET*,NODE*,double**,double**,double**,
 				int*);
-extern boolean is_load_node(NODE*);
-extern boolean is_gore_node(NODE*);
-extern boolean is_bdry_node(NODE*);
-extern  int numOfGoreHsbdry(INTERFACE*);
-extern  int numOfMonoHsbdry(INTERFACE*);
-extern  int numOfGoreNodes(INTERFACE*);
 
-/* afinit.cpp */
-extern void printAfExtraDada(Front*,char*);
-extern void readAfExtraDada(Front*,char*);
-
-/* afinit3d.cpp */
-extern void initEllipticSurf(FILE*,Front*,LEVEL_FUNC_PACK*);
-extern void initParabolicSurf(FILE*,Front*,LEVEL_FUNC_PACK*);
-extern void initPlaneSurf(FILE*,Front*,LEVEL_FUNC_PACK*);
+// afvelo.cpp
+extern void setMotionParams(char*,Front*);

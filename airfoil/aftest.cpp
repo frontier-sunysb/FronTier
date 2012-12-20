@@ -1597,7 +1597,7 @@ extern void fixed_length_tan_curve_propagate(
 	}
 	if (debugging("airfoil"))
 	{
-	    printf("Entering test_tan_curve_propagate1()\n");
+	    printf("Entering fixed_length_tan_curve_propagate()\n");
 	    nb = 0;
 	    total_length  = 0.0;
 	    total_length0 = 0.0;
@@ -1647,7 +1647,7 @@ extern void fixed_length_tan_curve_propagate(
 	}
 	if (debugging("trace"))
 	    (void) printf("Leaving fixed_length_tan_curve_propagate()\n");
-}	/* end test_tan_curve_propagate1 */
+}	/* end fixed_length_tan_curve_propagate */
 
 extern void fourth_order_elastic_surf_propagate(
         Front           *newfr,
@@ -1955,19 +1955,20 @@ static void adjust_for_curve_type(
 	int index0,
 	double **f,
 	double **v,
-	double mass,
+	double m_l,
 	double *g)
 {
 	C_PARAMS *c_params =  (C_PARAMS*)c->extra;
 	int j,dir,dim = 3;
-	double payload;
+	double load_point_mass;
 	BOND *b;
 	int n,index = index0;
 	double ave_accel;
+	double *force = c_params->force;
 
 	if (c_params == NULL) return;
 	dir = c_params->dir;
-	payload = c_params->point_mass;
+	load_point_mass = c_params->point_mass;
 
 	if (c_params->load_type == NO_LOAD) return;
 	else if (c_params->load_type == FREE_LOAD)
@@ -1975,7 +1976,7 @@ static void adjust_for_curve_type(
 	    for (b = c->first; b != c->last; b = b->next)
 	    {
 	    	for (j = 0; j < dim; ++j)
-                    f[index][j] = f[index][j]*mass/payload + g[j];
+                    f[index][j] = f[index][j]*m_l/load_point_mass + g[j];
 		index++;
 	    }
 	}
@@ -1996,7 +1997,7 @@ static void adjust_for_curve_type(
 	    	for (j = 0; j < dim; ++j)
 	    	{
 		    if (j == dir)
-            	    	f[index][dir] = ave_accel*mass/payload + g[dir];
+            	    	f[index][dir] = ave_accel*m_l/load_point_mass + g[dir];
 		    else
 		    	f[index][j] = v[index][j] = 0.0;
 	    	}
@@ -2010,13 +2011,13 @@ static void adjust_for_cnode_type(
 	int index,
 	double **f,
 	double **v,
-	double mass,
+	double m_l,
 	double *g)
 {
 	CURVE **c;
 	C_PARAMS *c_params =  NULL;
 	int j,dir,dim = 3;
-	double payload;
+	double load_point_mass;
 	for (c = n->in_curves; c && *c; ++c)
 	{
 	    if ((*c)->extra != NULL)
@@ -2030,19 +2031,19 @@ static void adjust_for_cnode_type(
 	if (c_params == NULL) return;
 
 	dir = c_params->dir;
-	payload = c_params->point_mass;
+	load_point_mass = c_params->point_mass;
 	if (c_params->load_type == NO_LOAD) return;
 	else if (c_params->load_type == FREE_LOAD)
 	{
 	    for (j = 0; j < dim; ++j)
-                f[index][j] = f[index][j]*mass/payload + g[j];
+                f[index][j] = f[index][j]*m_l/load_point_mass + g[j];
 	}
 	else if (c_params->load_type == RIGID_LOAD)
 	{
 	    for (j = 0; j < dim; ++j)
 	    {
 		if (j == dir)
-            	    f[index][dir] = f[index][dir]*mass/payload + g[dir];
+            	    f[index][dir] = f[index][dir]*m_l/load_point_mass + g[dir];
 		else
 		    f[index][j] = v[index][j] = 0.0;
 	    }

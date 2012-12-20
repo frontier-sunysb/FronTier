@@ -1212,11 +1212,13 @@ static boolean change_mono_boundary(
 	    else
             {
                 static C_PARAMS c_params;
-                int npts = FT_NumOfCurvePoints(cside01);
+                int i,npts = FT_NumOfCurvePoints(cside01);
                 c_params.load_type = bdry_params->upper_side[0];
                 c_params.load_mass = bdry_params->upper_mass[0];
                 c_params.point_mass = bdry_params->upper_mass[0]/npts;
                 c_params.dir = 0;
+		for (i = 0; i < 3; ++i)
+                    c_params.force[i] = bdry_params->upper_force[0][i];
                 cside01->extra = (POINTER)&c_params;
             }
 	    if (lower_bdry[1] == YES)
@@ -2132,6 +2134,24 @@ static void initRectangularPlaneEdge(
                                 CursorAfterString(infile,"Enter total mass:");
                                 fscanf(infile,"%lf",&bdry_params.lower_mass[i]);
                                 (void) printf("%f\n",bdry_params.lower_mass[i]);
+                                if (CursorAfterStringOpt(infile,
+					"Enter external force:"))
+				{
+                                    fscanf(infile,"%lf %lf %lf",
+					&bdry_params.lower_force[i][0],
+					&bdry_params.lower_force[i][1],
+					&bdry_params.lower_force[i][2]);
+                                    (void) printf("%f %f %f\n",
+					bdry_params.lower_force[i][0],
+					bdry_params.lower_force[i][1],
+					bdry_params.lower_force[i][2]);
+				}
+				else
+				{
+					bdry_params.lower_force[i][0] =
+					bdry_params.lower_force[i][1] =
+					bdry_params.lower_force[i][2] = 0.0;
+				}
 			    }
                         }
                     }
@@ -2167,6 +2187,24 @@ static void initRectangularPlaneEdge(
                                 CursorAfterString(infile,"Enter total mass:");
                                 fscanf(infile,"%lf",&bdry_params.upper_mass[i]);
                                 (void) printf("%f\n",bdry_params.upper_mass[i]);
+                                if (CursorAfterStringOpt(infile,
+					"Enter external force:"))
+				{
+                                    fscanf(infile,"%lf %lf %lf",
+					&bdry_params.upper_force[i][0],
+					&bdry_params.upper_force[i][1],
+					&bdry_params.upper_force[i][2]);
+                                    (void) printf("%f %f %f\n",
+					bdry_params.upper_force[i][0],
+					bdry_params.upper_force[i][1],
+					bdry_params.upper_force[i][2]);
+				}
+				else
+				{
+					bdry_params.upper_force[i][0] =
+					bdry_params.upper_force[i][1] =
+					bdry_params.upper_force[i][2] = 0.0;
+				}
 			    }
                         }
                     }

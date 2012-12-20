@@ -122,7 +122,7 @@ int main(int argc, char **argv)
 	    (void) printf("Passed read_iF_movie_options()\n");
 
 
-	setInitialIntfc(&front,&level_func_pack,in_name);
+	setInitialIntfcAF(&front,&level_func_pack,in_name);
 	if (!RestartRun)
 	{
 	    if (f_basic.dim == 3)
@@ -145,13 +145,17 @@ int main(int argc, char **argv)
 	/* Time control */
 	FT_ReadTimeControl(in_name,&front);
 
+	if (!RestartRun)
+	{
+	    optimizeElasticMesh(&front);
+	    set_equilibrium_mesh(&front);
+	}
+	FT_SetGlobalIndex(&front);
+	    
 	/* Initialize velocity field function */
 
-	initVelocityFunc(in_name,&front);
+	setMotionParams(in_name,&front);
 
-	if (!RestartRun)
-	    optimizeElasticMesh(&front);
-	    
 	l_cartesian->findStateAtCrossing = af_find_state_at_crossing;
 	l_cartesian->getInitialState = zero_state;
 	l_cartesian->initMesh();
@@ -175,8 +179,6 @@ int main(int argc, char **argv)
 
 	/* Propagate the front */
 
-	if (!RestartRun)
-	    set_equilibrium_mesh(&front);
 	airfoil_driver(&front,l_cartesian);
 
 	clean_up(0);
@@ -196,7 +198,6 @@ static  void airfoil_driver(
 	(void) printf("Frequency_of_redistribution(front,GENERAL_WAVE) = %d\n",
 		Frequency_of_redistribution(front,GENERAL_WAVE));
 
-	FT_SetGlobalIndex(front);
 	if (!RestartRun || ReSetTime)
 	{
 	    FT_ResetTime(front);
@@ -336,146 +337,6 @@ static  void airfoil_driver(
         }
         (void) delete_interface(front->interf);
 }       /* end airfoil_driver */
-
-extern void test_tan_curve_propagate(
-	Front           *fr,
-        Front           *newfr,
-        INTERFACE       *intfc,
-        CURVE           *oldc,
-        CURVE           *newc,
-        double           dt)
-{
-	char xname[100];
-	FILE *xfile;
-	BOND *b,*oldb;
-	double *dist_l,*dist_r;
-	double **tan_l,**tan_r;
-	POINT *p,*p_nb,**pts;
-	int i,n,np,k;
-	int dim = Dimension(intfc);
-	double lambda;
-	double **dp;
-	double total_length,fixed_length;
-	
-	if (wave_type(newc) != ELASTIC_BOUNDARY)
-	    return;
-
-	if (debugging("airfoil"))
-	    printf("Entering test_tan_curve_propagate()\n");
-	lambda = 0.0;
-
-	np = FT_NumOfCurvePoints(newc);
-	FT_VectorMemoryAlloc((POINTER*)&dist_l,np,sizeof(double));
-	FT_VectorMemoryAlloc((POINTER*)&dist_r,np,sizeof(double));
-	FT_MatrixMemoryAlloc((POINTER*)&tan_l,np,MAXD,sizeof(double));
-	FT_MatrixMemoryAlloc((POINTER*)&tan_r,np,MAXD,sizeof(double));
-	FT_MatrixMemoryAlloc((POINTER*)&dp,np,MAXD,sizeof(double));
-	FT_VectorMemoryAlloc((POINTER*)&pts,np,sizeof(POINT*));
-
-	//calculate the total length of the newc 
-	total_length = 0.0;
-	for (b = newc->first; b != NULL; b = b->next)
-	    total_length += bond_length(b);
-	printf("Entering: %24.18g\t", total_length);
-
-	b = newc->first;
-	p = pts[0] = b->start;
-	p_nb = b->end;
-	dist_l[0] = 0.0;
-	dist_r[0] = bond_length(b) - b->length0;
-	for (i = 0; i < dim; ++i)
-	{
-	    tan_r[0][i] = Coords(p_nb)[i] - Coords(p)[i];
-	    dp[0][i] = lambda*dist_r[0]*tan_r[0][i];
-	}
-
-	n = 1;
-	for (b = newc->first; b != newc->last; b = b->next)
-	{
-	    p = pts[n] = b->end; 	
-	    p_nb = b->start;
-	    dist_l[n] = bond_length(b) - b->length0;
-	    for (i = 0; i < dim; ++i)
-		tan_l[n][i] = Coords(p_nb)[i] - Coords(p)[i];
-	    p_nb = b->next->end;
-	    dist_r[n] = bond_length(b->next) - b->next->length0;
-	    for (i = 0; i < dim; ++i)
-	    {
-		tan_r[n][i] = Coords(p_nb)[i] - Coords(p)[i];
-	    	dp[n][i] = lambda*(dist_l[n]*tan_l[n][i] +
-				   dist_r[n]*tan_r[n][i]);
-	    }
-	    ++n;
-	}
-	b = newc->last;
-	p = pts[n] = b->end;
-	p_nb = b->start;
-	dist_l[n] = bond_length(b) - b->length0;
-	dist_r[n] = 0.0;
-	for (i = 0; i < dim; ++i)
-	{
-	    tan_l[n][i] = Coords(p_nb)[i] - Coords(p)[i];
-	    dp[n][i] = lambda*dist_l[n]*tan_l[n][i];
-	}
-
-	k = np / 2;
-	b = newc->first;
-	for (n = 1; n < k; ++n)
-	    b = b->next;
-	for (n = 1; n <= k; ++n)
-	{
-	    for (i = 0; i < dim; ++i)
-		lambda += tan_l[k-n+1][i] * tan_l[k-n+1][i];
-	    lambda = sqrt(lambda);
-	    for (i = 0; i < dim; ++i)
-		Coords(pts[k-n])[i] = Coords(pts[k-n+1])[i] + 
-				b->length0*tan_l[k-n+1][i]/lambda;
-	    lambda = 0.0;
-	    b = b->prev;
-	}
-
-	b = newc->first;
-	for (n = 0; n < k; ++n)
-	    b = b->next;
-	for (n = 1; n <= k; ++n)
-	{
-	    for (i = 0; i < dim; ++i)
-		lambda += tan_r[k+n-1][i] * tan_r[k+n-1][i];
-	    lambda = sqrt(lambda);
-	    for (i = 0; i < dim; ++i)
-	    	Coords(pts[k+n])[i] = Coords(pts[k+n-1])[i] + 
-			b->length0*tan_r[k+n-1][i]/lambda;
-	    lambda = 0.0;
-	    b = b->next;
-	}
-
-	fixed_length = total_length = 0.0;
-	for (b = newc->first, oldb = oldc->first; b != NULL; 
-		b = b->next, oldb = oldb->next)
-	{
-	    set_bond_length(b,dim);
-	    total_length += bond_length(b);
-	    fixed_length += b->length0;
-	}
-
-	printf("Exiting: %24.18g\t", total_length);
-
-	if (fr->step%50 == 0)
-	{
-	    sprintf(xname,"curves-%d",fr->step);
-	    xfile = fopen(xname,"w");
-	    xgraph_curve(xfile,newc,XY_PLANE);
-	    xgraph_curve(xfile,newc,XY_PLANE);
-	    fclose(xfile);
-	}
-	if (debugging("airfoil"))
-	{
-	    printf("total_length = %f  fixed_length = %f\n",
-			total_length,fixed_length);
-	    printf("Leaving test_tan_curve_propagate()\n");
-	}
-	FT_FreeThese(6,dist_l,dist_r,tan_l,tan_r,dp,pts);
-}	/* end test_tan_curve_propagate */
 
 static void xgraph_front(
 	Front *front,

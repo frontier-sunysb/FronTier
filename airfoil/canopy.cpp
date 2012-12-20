@@ -43,6 +43,7 @@ static void compute_total_canopy_force3d(Front*,double*,double*);
 static void compute_center_of_mass_velo(PARACHUTE_SET*);
 static void set_canopy_velocity(PARACHUTE_SET*,double**);
 static boolean curve_in_pointer_list(CURVE*,CURVE**);
+static boolean is_registered_point(SURFACE*,POINT*);
 
 #define 	MAX_NUM_RING1		30
 
@@ -58,6 +59,12 @@ static void spring_force_at_point1(
 	POINT *p_nb;
 	double length0,length,dir[3];
 	
+	if (is_registered_point(surf,p))
+	{
+	    for (i = 0; i < 3; ++i)
+		f[i] = 0.0;
+	    return;
+	}
 	PointAndFirstRingTris(p,Hyper_surf_element(tri),Hyper_surf(surf),
 				&nt,tris);
 	for (k = 0; k < 3; ++k) f[k] = 0.0;
@@ -85,24 +92,6 @@ static void spring_force_at_point1(
 	    }
 	}
 }	/* end spring_force_at_point1 */
-
-extern boolean is_string_node(NODE *n)
-{
-	AF_NODE_EXTRA *af_node_extra;
-	if (n->extra == NULL) return NO;
-	af_node_extra = (AF_NODE_EXTRA*)n->extra;
-	if (af_node_extra->af_node_type == STRING_NODE) return YES;
-	return NO;
-}	/* end is_string_node */
-
-extern boolean is_load_node(NODE *n)
-{
-	AF_NODE_EXTRA *af_node_extra;
-	if (n->extra == NULL) return NO;
-	af_node_extra = (AF_NODE_EXTRA*)n->extra;
-	if (af_node_extra->af_node_type == LOAD_NODE) return YES;
-	return NO;
-}	/* end is_load_node */
 
 extern void coating_mono_hyper_surf(
 	Front *front)
@@ -1316,10 +1305,23 @@ static void propagate_canopy(
 		p = Point_of_tri(tri)[i];
 		if (sorted(p) || Boundary_point(p)) continue;
 		FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		for (j = 0; j < 3; ++j)
+		/*
+		if (is_registered_point(canopy,p))
 		{
-	    	    x[n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
-	    	    sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt; 
+		    for (j = 0; j < 3; ++j)
+		    {
+	    	    	x[n][j] += sl->Impct[j]*dt;
+	    	    	sr->Impct[j] = sl->Impct[j] = sl->Impct[j]; 
+		    }
+		}
+		else
+		*/
+		{
+		    for (j = 0; j < 3; ++j)
+		    {
+	    	    	x[n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
+	    	    	sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt; 
+		    }
 		}
 		sorted(p) = YES;
 	    	++n;
@@ -2590,3 +2592,23 @@ static boolean curve_in_pointer_list(
 	}
 	return NO;
 }	/* end curve_in_pointer_list */
+
+static boolean is_registered_point(
+	SURFACE *surf,
+	POINT *p)
+{
+	REGISTERED_PTS *rgp = (REGISTERED_PTS*)surf->extra;
+	int i,num_pts;
+	int *global_ids;
+	
+	if (rgp == NULL) return NO;
+
+	num_pts = rgp->num_pts;
+	global_ids = rgp->global_ids;
+	for (i = 0; i < num_pts; ++i)
+	{
+	    if (Gindex(p) == global_ids[i])
+		return YES;
+	}
+	return NO;
+}	/* end is_registered_point */

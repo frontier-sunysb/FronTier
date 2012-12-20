@@ -2,10 +2,10 @@
 #include <airfoil.h>
 
 static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
-static void setInitialIntfc2d(Front*,LEVEL_FUNC_PACK*,char*);
-static void setInitialIntfc3d(Front*,LEVEL_FUNC_PACK*,char*);
+static void setInitialIntfcAF2d(Front*,LEVEL_FUNC_PACK*,char*);
+static void setInitialIntfcAF3d(Front*,LEVEL_FUNC_PACK*,char*);
 
-extern void setInitialIntfc(
+extern void setInitialIntfcAF(
         Front *front,
         LEVEL_FUNC_PACK *level_func_pack,
         char *inname)
@@ -30,13 +30,13 @@ extern void setInitialIntfc(
 	switch (front->rect_grid->dim)
 	{
 	case 2:
-	    return setInitialIntfc2d(front,level_func_pack,inname);
+	    return setInitialIntfcAF2d(front,level_func_pack,inname);
 	case 3:
-	    return setInitialIntfc3d(front,level_func_pack,inname);
+	    return setInitialIntfcAF3d(front,level_func_pack,inname);
 	}
-}	/* end setInitialIntfc */
+}	/* end setInitialIntfcAF */
 
-static void setInitialIntfc3d(
+static void setInitialIntfcAF3d(
         Front *front,
         LEVEL_FUNC_PACK *level_func_pack,
         char *inname)
@@ -182,9 +182,9 @@ static void setInitialIntfc3d(
             fscanf(infile,"%d",&af_params->num_opt_round);
             (void) printf("%d\n",af_params->num_opt_round);
         }
-}	/* end setInitialIntfc3d */
+}	/* end setInitialIntfcAF3d */
 
-static void setInitialIntfc2d(
+static void setInitialIntfcAF2d(
         Front *front,
         LEVEL_FUNC_PACK *level_func_pack,
         char *inname)
@@ -397,7 +397,7 @@ static void setInitialIntfc2d(
 	}
 	fclose(infile);
 
-}	/* end setInitialIntfc2d */
+}	/* end setInitialIntfcAF2d */
 
 
 static void zero_state(
@@ -465,20 +465,20 @@ extern void setRestartAirfoilIntfc(
 	    FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    extra->af_node_type = LOAD_NODE;
 	    payload_node->extra = (POINTER)extra;
-	}
-	for (c = payload_node->in_curves; c && *c; ++c)
-	{
-	    string_node = (*c)->start;
-	    FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
-	    extra->af_node_type = STRING_NODE;
-	    string_node->extra = (POINTER)extra;
-	}
-	for (c = payload_node->out_curves; c && *c; ++c)
-	{
-	    string_node = (*c)->end;
-	    FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
-	    extra->af_node_type = STRING_NODE;
-	    string_node->extra = (POINTER)extra;
+	    for (c = payload_node->in_curves; c && *c; ++c)
+	    {
+	    	string_node = (*c)->start;
+	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+	    	extra->af_node_type = STRING_NODE;
+	    	string_node->extra = (POINTER)extra;
+	    }
+	    for (c = payload_node->out_curves; c && *c; ++c)
+	    {
+	    	string_node = (*c)->end;
+	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+	    	extra->af_node_type = STRING_NODE;
+	    	string_node->extra = (POINTER)extra;
+	    }
 	}
 }	/* end setRestartAirfoilIntfc */
 
