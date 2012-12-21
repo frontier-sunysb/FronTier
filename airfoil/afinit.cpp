@@ -424,6 +424,7 @@ extern void setRestartAirfoilIntfc(
 	CURVE **c;
 	boolean is_payload_node;
 	boolean is_gore_node;
+	boolean gore_curve_attached;
 	STRING_PARAMS *string_params;
 
 	string_params = (STRING_PARAMS*)level_func_pack->string_params;
@@ -431,6 +432,7 @@ extern void setRestartAirfoilIntfc(
 	payload_node = NULL;
 	for (n = intfc->nodes; n && *n; ++n)
 	{
+	    gore_curve_attached = NO;
 	    is_payload_node = YES;
 	    is_gore_node = YES;
 	    for (c = (*n)->in_curves; c && *c; ++c)
@@ -440,6 +442,8 @@ extern void setRestartAirfoilIntfc(
 		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
 			 hsbdry_type(*c) != GORE_HSBDRY)
 		    is_gore_node = NO;
+		if (hsbdry_type(*c) == GORE_HSBDRY)
+		    gore_curve_attached = YES;
 	    } 
 	    for (c = (*n)->out_curves; c && *c; ++c)
 	    {
@@ -448,7 +452,10 @@ extern void setRestartAirfoilIntfc(
 		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
 			 hsbdry_type(*c) != GORE_HSBDRY)
 		    is_gore_node = NO;
+		if (hsbdry_type(*c) == GORE_HSBDRY)
+		    gore_curve_attached = YES;
 	    } 
+	    if (!gore_curve_attached) is_gore_node = NO;
 	    if (is_payload_node == YES)
 	    {
 		payload_node = *n;

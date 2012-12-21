@@ -1483,7 +1483,6 @@ extern void fourth_order_elastic_curve_propagate(
 	    	x_mid[i][j] = x_old[i][j] + 0.5*v_old[i][j]*dt;
 	    	v_mid[i][j] = v_old[i][j] + 0.5*f_old[i][j]*dt;
 	    }
-	    printf("x_mid[20] = %f %f\n",x_mid[20][0],x_mid[20][1]);
 
 	    count = 0;
 	    assign_node_field(ns,x_mid,v_mid,&count);
