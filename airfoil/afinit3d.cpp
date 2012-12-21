@@ -1218,7 +1218,10 @@ static boolean change_mono_boundary(
                 c_params.point_mass = bdry_params->upper_mass[0]/npts;
                 c_params.dir = 0;
 		for (i = 0; i < 3; ++i)
-                    c_params.force[i] = bdry_params->upper_force[0][i];
+		{
+                    c_params.force[i] = bdry_params->upper_force[0][i]/
+				bdry_params->upper_mass[0];
+		}
                 cside01->extra = (POINTER)&c_params;
             }
 	    if (lower_bdry[1] == YES)

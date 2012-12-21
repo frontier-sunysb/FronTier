@@ -214,6 +214,7 @@ typedef struct {
 	double load_mass;
 	double point_mass;
 	double force[MAXD];
+	double ave_accel;
 } C_PARAMS;
 
 struct _AF_NODE_EXTRA {
@@ -333,6 +334,9 @@ extern void compute_curve_accel3(PARACHUTE_SET*,CURVE*,double**,double**,
 				double**,int*);
 extern void compute_node_accel3(PARACHUTE_SET*,NODE*,double**,double**,double**,
 				int*);
+extern void propagate_surface(PARACHUTE_SET*,SURFACE*,double**,int*);
+extern void propagate_curve(PARACHUTE_SET*,CURVE*,double**,int*);
+extern void propagate_node(PARACHUTE_SET*,NODE*,double**,int*);
 
 // afvelo.cpp
 extern void setMotionParams(char*,Front*);

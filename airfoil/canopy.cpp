@@ -572,12 +572,10 @@ extern void fourth_order_parachute_propagate(
 	    n_tan = (int)(fr_dt/dt_tol);
 	    dt = fr_dt/(double)n_tan;
 	}
-	if (debugging("step_size"))
-	{
-	    (void) printf("fr_dt = %f  dt_tol = %20.14f  dt = %20.14f\n",
+	(void) printf("\nfr_dt = %f  dt_tol = %20.14f  dt = %20.14f\n",
 				fr_dt,dt_tol,dt);
-	    (void) printf("Number of interior sub-steps = %d\n",n_tan);
-	}
+	(void) printf("Number of interior sub-steps = %d\n\n",n_tan);
+
 	new_geom_set->dt = dt;
 
 	if (size < num_pts)
@@ -1294,108 +1292,34 @@ static void propagate_canopy(
 	if (debugging("canopy"))
 	    (void) printf("Entering propagate_canopy()\n");
 
-	unsort_surf_point(canopy);
 	hs = Hyper_surf(canopy);
-	for (tri = first_tri(canopy); !at_end_of_tri_list(tri,canopy); 
-			tri = tri->next)
-	{
-	    hse = Hyper_surf_element(tri);
-	    for (i = 0; i < 3; ++i)
-	    {
-		p = Point_of_tri(tri)[i];
-		if (sorted(p) || Boundary_point(p)) continue;
-		FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		/*
-		if (is_registered_point(canopy,p))
-		{
-		    for (j = 0; j < 3; ++j)
-		    {
-	    	    	x[n][j] += sl->Impct[j]*dt;
-	    	    	sr->Impct[j] = sl->Impct[j] = sl->Impct[j]; 
-		    }
-		}
-		else
-		*/
-		{
-		    for (j = 0; j < 3; ++j)
-		    {
-	    	    	x[n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
-	    	    	sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt; 
-		    }
-		}
-		sorted(p) = YES;
-	    	++n;
-	    }
-	}
+	propagate_surface(geom_set,canopy,x,&n);
 	ng = geom_set->num_gore_nodes;
 	for (i = 0; i < ng; ++i)
 	{
 	    node = geom_set->gore_nodes[i];
-	    sl = (STATE*)left_state(node->posn);
-	    sr = (STATE*)right_state(node->posn);
-	    for (j = 0; j < 3; ++j)
-            {
-	    	x[n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
-	    	sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt; 
-            }
-	    ++n;
+	    propagate_node(geom_set,node,x,&n);
 	}
 	ns = geom_set->num_strings;
 	for (i = 0; i < ns; ++i)
 	{
 	    node = geom_set->string_node[i];
-	    sl = (STATE*)left_state(node->posn);
-	    sr = (STATE*)right_state(node->posn);
-	    for (j = 0; j < 3; ++j)
-            {
-	    	x[n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
-	    	sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt; 
-            }
-	    ++n;
+	    propagate_node(geom_set,node,x,&n);
 	}
 	ngc = geom_set->num_gore_hsbdry;
 	for (i = 0; i < ngc; ++i)
         {
 	    curve = geom_set->gore_hsbdry[i];
-	    for (b = curve->first; b != curve->last; b = b->next)
-	    {
-		p = b->end;
-		sl = (STATE*)left_state(p);
-		sr = (STATE*)right_state(p);
-		for (j = 0; j < dim; ++j)
-		{
-	    	    x[n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
-	    	    sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt; 
-		}
-		++n;
-	    }
+	    propagate_curve(geom_set,curve,x,&n);
 	}
 	for (i = 0; i < ns; ++i)
         {
 	    curve = geom_set->mono_hsbdry[i];
-	    for (b = curve->first; b != curve->last; b = b->next)
-	    {
-		p = b->end;
-		sl = (STATE*)left_state(p);
-		sr = (STATE*)right_state(p);
-		for (j = 0; j < dim; ++j)
-		{
-	    	    x[n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
-	    	    sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt; 
-		}
-		++n;
-	    }
+	    propagate_curve(geom_set,curve,x,&n);
 	    if (is_closed_curve(curve))
 	    {
 	    	node = curve->start;
-	    	sl = (STATE*)left_state(node->posn);
-	    	sr = (STATE*)right_state(node->posn);
-	    	for (j = 0; j < 3; ++j)
-            	{
-	    	    x[n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
-	    	    sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt; 
-            	}
-	    	++n;
+	    	propagate_node(geom_set,node,x,&n);
 	    }
 	}
 	if (debugging("canopy"))
@@ -1427,32 +1351,14 @@ static void propagate_string(
 	n = geom_set->n_cps;
 	ns = geom_set->num_strings;
 
-	sl = (STATE*)left_state(load_node->posn);
-	sr = (STATE*)right_state(load_node->posn);
-	for (j = 0; j < dim; ++j)
-	{
-	    x[n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
-	    sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt; 
-	}
-	++n;
+	propagate_node(geom_set,load_node,x,&n);
 	if (debugging("folding"))
 	    return;
 
 	for (i = 0; i < ns; ++i)
 	{
 	    c = geom_set->string_curves[i];
-	    for (b = c->first; b != c->last; b = b->next)
-	    {
-		p = b->end;
-		sl = (STATE*)left_state(p);
-		sr = (STATE*)right_state(p);
-		for (j = 0; j < dim; ++j)
-		{
-	    	    x[n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
-	    	    sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt; 
-		}
-		++n;
-	    }
+	    propagate_curve(geom_set,c,x,&n);
 	}
 	if (debugging("canopy"))
 	    (void) printf("Leaving propagate_string()\n");
@@ -2612,3 +2518,108 @@ static boolean is_registered_point(
 	}
 	return NO;
 }	/* end is_registered_point */
+
+extern void propagate_surface(
+        PARACHUTE_SET *geom_set,
+        SURFACE *surf,
+        double **x,
+        int *n)
+{
+        int i,j;
+        TRI *tri;
+        POINT *p;
+        STATE *sl,*sr;
+        HYPER_SURF_ELEMENT *hse;
+        HYPER_SURF         *hs;
+	double dt = geom_set->dt;
+	Front *front = geom_set->front;
+	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+	double *g = iFparams->gravity;
+
+	hs = Hyper_surf(surf);
+	unsort_surf_point(surf);
+        for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf);
+                        tri = tri->next)
+        {
+            hse = Hyper_surf_element(tri);
+            for (i = 0; i < 3; ++i)
+            {
+                p = Point_of_tri(tri)[i];
+                if (sorted(p) || Boundary_point(p)) continue;
+                FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		if (is_registered_point(surf,p))
+		{
+                    for (j = 0; j < 3; ++j)
+                    {
+                        x[*n][j] += sl->Impct[j]*dt;
+                        sr->Impct[j] = sl->Impct[j] = sl->Impct[j];
+                    }
+		}
+		else
+                {
+                    for (j = 0; j < 3; ++j)
+                    {
+                        x[*n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
+                        sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt;
+                    }
+                }
+                sorted(p) = YES;
+                ++(*n);
+            }
+        }
+}       /* propagate_surface */
+
+extern void propagate_node(
+        PARACHUTE_SET *geom_set,
+	NODE *node,
+        double **x,
+        int *n)
+{
+        int i,j;
+        POINT *p;
+        STATE *sl,*sr;
+	double dt = geom_set->dt;
+	Front *front = geom_set->front;
+	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+	double *g = iFparams->gravity;
+	int dim = front->rect_grid->dim;
+
+        sl = (STATE*)left_state(node->posn);
+        sr = (STATE*)right_state(node->posn);
+        for (j = 0; j < dim; ++j)
+        {
+            x[*n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
+            sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt;
+        }
+        ++(*n);
+}	/* end propagate_node */
+
+extern void propagate_curve(
+        PARACHUTE_SET *geom_set,
+	CURVE *curve,
+        double **x,
+        int *n)
+{
+        int i,j;
+        POINT *p;
+	BOND *b;
+        STATE *sl,*sr;
+	double dt = geom_set->dt;
+	Front *front = geom_set->front;
+	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+	double *g = iFparams->gravity;
+	int dim = front->rect_grid->dim;
+
+	for (b = curve->first; b != curve->last; b = b->next)
+        {
+            p = b->end;
+            sl = (STATE*)left_state(p);
+            sr = (STATE*)right_state(p);
+            for (j = 0; j < dim; ++j)
+            {
+                x[*n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
+                sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt;
+            }
+            ++(*n);
+        }
+}	/* end propagate_curve */

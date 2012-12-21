@@ -1736,10 +1736,10 @@ extern void fourth_order_elastic_surf_propagate(
 	    (void) printf("m_s = %f  m_l = %f\n",geom_set.m_s,geom_set.m_l);
 	    (void) printf("lambda_s = %f  lambda_l = %f\n",
 				geom_set.lambda_s,geom_set.lambda_l);
-	    (void) printf("fr_dt = %f  dt_tol = %20.14f  dt = %20.14f\n",
-                                fr_dt,dt_tol,dt);
-            (void) printf("Number of interior sub-steps = %d\n",n_tan);
 	}
+	(void) printf("\nfr_dt = %f  dt_tol = %20.14f  dt = %20.14f\n",
+                                fr_dt,dt_tol,dt);
+        (void) printf("Number of interior sub-steps = %d\n\n",n_tan);
 
 	/* Assume there is only one closed boundary curve */
 	num_nodes = num_curves = 0;
@@ -1778,12 +1778,6 @@ extern void fourth_order_elastic_surf_propagate(
 		newn[num_nodes] = newc[i]->end;
 		num_nodes++;
 	    }
-	}
-	printf("num_curves = %d  num_nodes = %d\n",num_curves,num_nodes);
-	for (i = 0; i < num_curves; ++i)
-	{
-	    printf("hsbdry_type(newc[%d]) = %s\n",i,
-			f_hsbdry_type_as_string(hsbdry_type(newc[i])));
 	}
 
 	num_pts = FT_NumOfSurfPoints(news);
@@ -1919,11 +1913,18 @@ extern void fourth_order_elastic_surf_propagate(
                 v_new[i][j] += dt*f_mid[i][j]/6.0;
             }
 	    count = 0;
+	    propagate_surface(&geom_set,news,x_new,&count);
+	    for (i = 0; i < num_curves; ++i)
+	    	propagate_curve(&geom_set,newc[i],x_new,&count);
+	    for (i = 0; i < num_nodes; ++i)
+	    	propagate_node(&geom_set,newn[i],x_new,&count);
+	    count = 0;
             assign_surf_field(news,x_new,v_new,&count);
 	    for (i = 0; i < num_curves; ++i)
             	assign_curve_field(newc[i],x_new,v_new,&count);
 	    for (i = 0; i < num_nodes; ++i)
             	assign_node_field(newn[i],x_new,v_new,&count);
+
 	    if (n != n_tan-1)
 	    {
 	    	count = 0;
@@ -1964,9 +1965,10 @@ static void adjust_for_curve_type(
 	BOND *b;
 	int n,index = index0;
 	double ave_accel;
-	double *force = c_params->force;
+	double *force;
 
 	if (c_params == NULL) return;
+	force = c_params->force;
 	dir = c_params->dir;
 	load_point_mass = c_params->point_mass;
 
@@ -1976,7 +1978,10 @@ static void adjust_for_curve_type(
 	    for (b = c->first; b != c->last; b = b->next)
 	    {
 	    	for (j = 0; j < dim; ++j)
-                    f[index][j] = f[index][j]*m_l/load_point_mass + g[j];
+		{
+                    f[index][j] = f[index][j]*m_l/load_point_mass + g[j]
+				+ force[j];
+		}
 		index++;
 	    }
 	}
@@ -1991,13 +1996,17 @@ static void adjust_for_curve_type(
 		index++;
 	    }
 	    ave_accel /= n;
+	    c_params->ave_accel = ave_accel;
 	    index = index0;
 	    for (b = c->first; b != c->last; b = b->next)
 	    {
 	    	for (j = 0; j < dim; ++j)
 	    	{
 		    if (j == dir)
-            	    	f[index][dir] = ave_accel*m_l/load_point_mass + g[dir];
+		    {
+            	    	f[index][dir] = ave_accel*m_l/load_point_mass + 
+					g[dir] + force[dir];
+		    }
 		    else
 		    	f[index][j] = v[index][j] = 0.0;
 	    	}
@@ -2018,6 +2027,9 @@ static void adjust_for_cnode_type(
 	C_PARAMS *c_params =  NULL;
 	int j,dir,dim = 3;
 	double load_point_mass;
+	double *force;
+	double ave_accel;
+
 	for (c = n->in_curves; c && *c; ++c)
 	{
 	    if ((*c)->extra != NULL)
@@ -2031,19 +2043,24 @@ static void adjust_for_cnode_type(
 	if (c_params == NULL) return;
 
 	dir = c_params->dir;
+	force = c_params->force;
 	load_point_mass = c_params->point_mass;
 	if (c_params->load_type == NO_LOAD) return;
 	else if (c_params->load_type == FREE_LOAD)
 	{
 	    for (j = 0; j < dim; ++j)
-                f[index][j] = f[index][j]*m_l/load_point_mass + g[j];
+                f[index][j] = f[index][j]*m_l/load_point_mass + g[j]
+				+ force[j];
 	}
 	else if (c_params->load_type == RIGID_LOAD)
 	{
+	    ave_accel = c_params->ave_accel;
 	    for (j = 0; j < dim; ++j)
 	    {
 		if (j == dir)
-            	    f[index][dir] = f[index][dir]*m_l/load_point_mass + g[dir];
+            	    //f[index][dir] = f[index][dir]*m_l/load_point_mass + g[dir]
+            	    f[index][dir] = ave_accel*m_l/load_point_mass + g[dir]
+				+ force[dir];
 		else
 		    f[index][j] = v[index][j] = 0.0;
 	    }
