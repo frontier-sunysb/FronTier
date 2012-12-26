@@ -11,7 +11,7 @@ extern void setInitialIntfcAF(
         char *inname)
 {
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
-	FILE *infile = fopen("inname","w");
+	FILE *infile = fopen("inname","r");
 	char string[100];
 
 	level_func_pack->wave_type = ELASTIC_BOUNDARY;
