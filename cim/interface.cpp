@@ -118,11 +118,11 @@ extern int cim_find_state_at_crossing(
 	else if (wave_type(*hs) == DIRICHLET_BOUNDARY)
 	{
 	    if (!cim_params->jump_type == EXACT_JUMP)
-            	return DIRICHLET_PDE_BOUNDARY;
+            	return CONST_P_PDE_BOUNDARY;
 	    else
 	    {
 		st->u = exact_solution((POINTER)cim_params,D,crx_coords);
-        	return DIRICHLET_PDE_BOUNDARY;
+        	return CONST_P_PDE_BOUNDARY;
 	    }
 	}
 	

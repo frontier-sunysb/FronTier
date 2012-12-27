@@ -13,6 +13,7 @@ Enter the debugging string: trace
 Enter the debugging string: CLOCK
 Enter the debugging string: step_size
 
+Enter jump type: EXACT_JUMP
 Enter run case number: 7
 Enter interface number: 1
 

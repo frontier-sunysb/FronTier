@@ -14,7 +14,22 @@ Enter the debugging string: tcim_intfc_state
 Enter the debugging string: CLOCK
 Enter the debugging string: step_size
 
+Enter jump type: EXACT_JUMP
 Enter run case number: 7
 Enter interface number: 1
+
+For lower boundary in 0-th dimension
+Enter type of Dirichlet boundary: CONSTANT
+Enter boundary u: 1
+For upper boundary in 0-th dimension
+Enter type of Dirichlet boundary: CONSTANT
+Enter boundary u: 1
+For lower boundary in 1-th dimension
+Enter type of Dirichlet boundary: CONSTANT
+Enter boundary u: 1
+For upper boundary in 1-th dimension
+Enter type of Dirichlet boundary: CONSTANT
+Enter boundary u: 1
+
 
 Enter comparison method: NO_COMPARE
