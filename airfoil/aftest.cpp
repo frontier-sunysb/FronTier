@@ -248,13 +248,13 @@ extern void second_order_elastic_surf_propagate(
         }
 	geom_set.ks = af_params->ks;
 	geom_set.lambda_s = af_params->lambda_s;
-	geom_set.m_s = af_params->m_s;
+	geom_set.m_s = mass = af_params->m_s;
 	geom_set.kg = af_params->kg;
 	geom_set.lambda_g = af_params->lambda_g;
 	geom_set.m_g = af_params->m_g;
 	geom_set.kl = af_params->kl;
 	geom_set.lambda_l = af_params->lambda_l;
-	geom_set.m_l = mass = af_params->m_l;
+	geom_set.m_l = af_params->m_l;
 	geom_set.front = newfr;
 	geom_set.dt = dt;
 	if (debugging("step_size"))
@@ -1719,13 +1719,13 @@ extern void fourth_order_elastic_surf_propagate(
         }
 	geom_set.ks = af_params->ks;
 	geom_set.lambda_s = af_params->lambda_s;
-	geom_set.m_s = af_params->m_s;
+	geom_set.m_s = mass = af_params->m_s;
 	geom_set.kg = af_params->kg;
 	geom_set.lambda_g = af_params->lambda_g;
 	geom_set.m_g = af_params->m_g;
 	geom_set.kl = af_params->kl;
 	geom_set.lambda_l = af_params->lambda_l;
-	geom_set.m_l = mass = af_params->m_l;
+	geom_set.m_l = af_params->m_l;
 	geom_set.front = newfr;
 	geom_set.dt = dt;
 	if (debugging("step_size"))
