@@ -1479,7 +1479,7 @@ EXPORT	double	sqr_norm(
 EXPORT double tri_area(
 	const TRI *tri)
 {
-	return 0.5*sqr_norm(tri);
+	return 0.5*sqrt(sqr_norm(tri));
 }	/* end tri_area */
 
 EXPORT	const double* const* side_vector(
