@@ -17,6 +17,7 @@ enum {
         CONST_V_PDE_BOUNDARY            = 1,
         CONST_P_PDE_BOUNDARY,
         NEUMANN_PDE_BOUNDARY,
+        DIRICHLET_PDE_BOUNDARY,
         MIXED_PDE_BOUNDARY
 };
 
