@@ -1,28 +1,28 @@
 *****Domain information***********
-Domain limit in 0-th dimension: 0 4
-Domain limit in 1-th dimension: 0 4
-Computational grid: 640 640
+Domain limit in 0-th dimension: 0 10
+Domain limit in 1-th dimension: 0 10
+Computational grid: 1280 1280
 Lower boundary in 0-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 0-th dimension: DIRICHLET_BOUNDARY
 Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
 
 *****Crystal Input data*************
-Available initial interface types are:
+Available interface types are
 	Seed (S)
 	Triangle (T)
 	Rectangle (R)
-Enter initial interface type: S
+Enter initial interface type: Seed
 Are there seeds grow from floor: N
 Are there seeds grow from ceiling: N
 Are there seeds grow from space: Y
 Enter number of space seeds: 1
-Enter center coordinates of space seed 1: 2 2
+Enter center coordinates of space seed 1: 5 5
 Enter yes to add perturbation: y
 Enter number of period: 6
-Enter amplitude: 0.005
-Enter phase shift: 0
-Enter radius of seeds: 0.03
+Enter amplitude: 0.05
+Enter phase shift: 30
+Enter radius of seeds: 0.3
 
 *****Physical information***********
 Choose reaction type
@@ -32,10 +32,11 @@ Available reaction types are:
         REVERSIBLE_REACTION
 Enter reaction type: DEPOSITION_ONLY
 Diffusion coefficient: 0.5
-Growth rate: 2560.0
+Growth rate: 800.0
 Equilibrium concentration: 1.0
 Ambient concentration: 2
-Crystal density: 10.0
+Crystal density: 5.0
+Initial gap: 0.1
 Choose numerical scheme
         Unsplit explicit (EX)
         Unsplit implicit (IM)
@@ -48,13 +49,16 @@ Choose point propagation scheme
 Enter scheme: MP
 Enter yes to add curvature effect: n
 
+*****Fluid parameters**************
+Enter density and viscosity of the fluid: 1 0.0628
+
 *****Control information***********
-Max time: 8.0
+Max time: 13
 Max step: 100000
-Print interval: 0.1
-Movie frame interval: 0.1
+Print interval: 2.5
+Movie frame interval: 0.5
 CFL factor: 0.4
-Redistribution interval: 20
+Redistribution interval: 100
 
 *****Movie output options*********
 Type y to make movie of pressure: n

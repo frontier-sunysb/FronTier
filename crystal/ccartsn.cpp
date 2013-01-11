@@ -175,6 +175,7 @@ void C_CARTESIAN::setInitialCondition(void)
 	    	getRectangleCenter(i,coords);
 		if (cRparams->reaction_type == DEPOSITION_ONLY)
 		{
+		    distance = HUGE;
 		    if (dim == 1) 
 		    {
 		    	POINT **p,*pc;
