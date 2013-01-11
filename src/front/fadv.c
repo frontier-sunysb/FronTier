@@ -2925,6 +2925,8 @@ LOCAL int advance_structure_front3d(
 		/* Propagate points on surfaces */
 
 	start_clock("propagate");
+
+	start_clock("coupled_propagate");
 	set_copy_intfc_states(YES);
 	init_intfc_curvature3d(front, front->interf);
 	set_propagation_limits(front,*newfront);
@@ -2935,6 +2937,7 @@ LOCAL int advance_structure_front3d(
 	    propagate_curve_points(front,*newfront,wave,dt);
 	if (front->node_propagate != NULL)
 	    propagate_node_points(front,*newfront,wave,dt,dt_frac);
+	stop_clock("coupled_propagate");
 
 	start_clock("scatter_front");
 	if (!scatter_front(*newfront))
@@ -2942,6 +2945,7 @@ LOCAL int advance_structure_front3d(
 	    stop_clock("scatter_front");
             (void) printf("ERROR in advance_structure_front3d(), "
                           "scatter_front() failed\n");
+	    stop_clock("scatter_front");
 	    clean_up(ERROR);
 	}
 	else
@@ -2950,9 +2954,11 @@ LOCAL int advance_structure_front3d(
 	    status = GOOD_STEP;
 	}
 
+	start_clock("interior_propagate");
 	init_intfc_curvature3d(*newfront,(*newfront)->interf);
 	if (front->interior_propagate != NULL)
 	    (*front->interior_propagate)(*newfront,dt);
+	stop_clock("interior_propagate");
 
 	start_clock("scatter_front");
 	if (!scatter_front(*newfront))
@@ -2960,6 +2966,7 @@ LOCAL int advance_structure_front3d(
 	    stop_clock("scatter_front");
             (void) printf("ERROR in advance_structure_front3d(), "
                           "scatter_front() failed\n");
+	    stop_clock("scatter_front");
 	    clean_up(ERROR);
 	}
 	else

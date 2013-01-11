@@ -1674,6 +1674,7 @@ extern void fourth_order_elastic_surf_propagate(
 	void (*compute_surf_accel)(PARACHUTE_SET*,SURFACE*,double**,
 				double**,double **,int*);
 
+	start_clock("fourth_order_elastic_surf_propagate");
 	for (s = newfr->interf->surfaces; s && *s; ++s)
 	{
 	    if (wave_type(*s) == ELASTIC_BOUNDARY)
@@ -1944,6 +1945,7 @@ extern void fourth_order_elastic_surf_propagate(
 	    	}
 	    }
 	}
+	stop_clock("fourth_order_elastic_surf_propagate");
 
 	if (debugging("trace"))
 	    (void) printf("Leaving "
