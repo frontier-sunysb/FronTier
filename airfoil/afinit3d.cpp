@@ -34,7 +34,7 @@ static void initWingsPlaneEdge(FILE*,Front*,LEVEL_FUNC_PACK*,
 		STRING_PARAMS*,PLANE_PARAMS*);
 
 // Yan Li
-static boolean bond_intersect_with_x(double, CURVE*,BOND**,int,double**);
+static boolean bond_intersect_with_xcoord(double, CURVE*,BOND**,int,double**);
 
 extern void initEllipticSurf(
 	FILE *infile,
@@ -561,10 +561,6 @@ static boolean insert_vertical_gore(
 	int i, j;
 	NODE **start_nodes, **end_nodes;
 	BOND *b, **b_cross;
-	//WING_CONSTR_PARAMS *wing_constr_params = (WING_CONSTR_PARAMS*) params;
-	//int num_gores = wing_constr_params->gores_n;
-	//double gores_start_x = wing_constr_params->gores_start_x;
-	//double gores_dis = wing_constr_params->gores_dis;
 	PARALLEL_GORE_PARAMS *parallel_gore_params = 
 		(PARALLEL_GORE_PARAMS*) params;
 	int num_gores = parallel_gore_params->gores_n;
@@ -610,10 +606,10 @@ static boolean insert_vertical_gore(
 
 	for (i = 0; i < num_gores; ++i)
 	{
-	    if(!bond_intersect_with_x(gore_x[i], canopy_bdry, 
+	    if(!bond_intersect_with_xcoord(gore_x[i], canopy_bdry, 
 		b_cross, num_cross, pcoords))
 	    {
-		(void) printf("Error in bond_intersect_with_x()\n");
+		(void) printf("Error in bond_intersect_with_xcoord()\n");
 		clean_up(ERROR);
 	    } 
 
@@ -696,219 +692,6 @@ static boolean insert_vertical_gore(
 	return YES;
 
 } /* end insert_vertical_gore */
-
-
-/*
-// Yan Li
-static boolean install_string_with_parallel_gore(
-	INTERFACE *intfc,
-        SURFACE *surf,
-        POINTER params,
-        int ip)
-{
-	PARALLEL_GORE_PARAMS *parallel_gore_params = 
-		(PARALLEL_GORE_PARAMS*) params;
-	int num_gores = parallel_gore_params->gores_n;
-	double gores_start_x = parallel_gore_params->gores_start_x;
-	double gores_dis = parallel_gore_params->gores_dis;
-	double *cload = parallel_gore_params->coords_load;
-
-        CURVE **c, *gore_curve, *canopy_bdry, *curve;
-        POINT **start_pts, **end_pts;
-        int num_curves;
-        int i, j, k;
-        NODE **start_nodes, **end_nodes;
-        BOND *b, **b_cross;
-        double *gore_x;
-        double v1[3], v2[3], v3[3];
-        int num_cross = 2;
-        double coords[MAXD], lambda, **pcoords;
-        AF_NODE_EXTRA *extra;
-        boolean str_node_moved;
-	NODE *nload;
-	double spacing, dir[MAXD], *h = computational_grid(intfc)->h;
-	int nb;
-
-	// Yan Li's debug
-	(void) printf("Entering install_string_with_parallel_gore\n");
-	(void) printf("Checking consistency of interface\n");
-	consistent_interface(intfc);
-	(void) printf("Checking completed\n");
-
-
-        nload = make_node(Point(cload));
-        FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
-        extra->af_node_type = LOAD_NODE;
-        nload->extra = (POINTER)extra;
-
-        FT_VectorMemoryAlloc((POINTER*)&gore_x, num_gores,
-                                sizeof(double));
-        FT_VectorMemoryAlloc((POINTER*)&start_pts,num_gores,
-                                sizeof(POINT*));
-        FT_VectorMemoryAlloc((POINTER*)&end_pts,num_gores,
-                                sizeof(POINT*));
-        FT_VectorMemoryAlloc((POINTER*)&start_nodes,num_gores,
-                                sizeof(NODE*));
-        FT_VectorMemoryAlloc((POINTER*)&end_nodes, num_gores,
-                                sizeof(NODE*));
-        // we assume that there are only 2 intersecting bonds
-        FT_VectorMemoryAlloc((POINTER*)&b_cross, num_cross, sizeof(BOND*));
-        FT_MatrixMemoryAlloc((POINTER*)&pcoords, num_cross, MAXD,
-                sizeof(double));
-
-        for (i = 0; i < num_gores; ++i)
-            gore_x[i] = gores_start_x + i * gores_dis;
-
-        num_curves = FT_NumOfSurfCurves(surf);
-        FT_VectorMemoryAlloc((POINTER*)&c,num_curves,sizeof(CURVE*));
-        FT_ArrayOfSurfCurves(surf,c);
-
-        for (i = 0; i < num_curves; ++i)
-        {
-            if (hsbdry_type(c[i]) != MONO_COMP_HSBDRY)
-                continue;
-            canopy_bdry = c[i];
-        }
-        FT_FreeThese(1,c);
-
-	gview_plot_curve(canopy_bdry, "gview_bdry", "curves.list", pBLUE,1);
-
-        for (i = 0; i < num_gores; ++i)
-        {
-            if(!bond_intersect_with_x(gore_x[i], canopy_bdry,
-                b_cross, num_cross, pcoords))
-            {
-                (void) printf("Error in bond_intersect_with_x()\n");
-                clean_up(ERROR);
-            }
-
-            if (fabs(Coords(b_cross[0]->start)[0] - gore_x[i]) < 1e-9)
-                start_pts[i] = b_cross[0]->start;
-            else
-            {
-                start_pts[i] = Point(pcoords[0]);
-                insert_point_in_bond(start_pts[i], b_cross[0], canopy_bdry);
-            }
-
-            if (fabs(Coords(b_cross[1]->start)[0] - gore_x[i]) < 1e-9)
-                end_pts[i] = b_cross[1]->start;
-            else
-            {
-                end_pts[i] = Point(pcoords[1]);
-                insert_point_in_bond(end_pts[i], b_cross[1], canopy_bdry);
-            }
-        }
-
-        str_node_moved = NO;
-        for (i = 0; i < num_gores; ++i)
-        {
-            canopy_bdry = FT_CurveOfPoint(intfc, start_pts[i], &b);
-            if (is_closed_curve(canopy_bdry) && !str_node_moved)
-            {
-                move_closed_loop_node(canopy_bdry, b);
-                start_nodes[i] = FT_NodeOfPoint(intfc, start_pts[i]);
-                FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
-                extra->af_node_type = GORE_NODE;
-                start_nodes[i]->extra = (POINTER)extra;
-                str_node_moved = YES;
-            }
-            else
-            {
-                c = split_curve(start_pts[i], b, canopy_bdry, 0,0,0,0);
-                start_nodes[i] = FT_NodeOfPoint(intfc, start_pts[i]);
-                FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
-                extra->af_node_type = GORE_NODE;
-                start_nodes[i]->extra = (POINTER)extra;
-            }
-
-            canopy_bdry = FT_CurveOfPoint(intfc, end_pts[i], &b);
-            if (is_closed_curve(canopy_bdry) && !str_node_moved)
-            {
-                move_closed_loop_node(canopy_bdry, b);
-                end_nodes[i] = FT_NodeOfPoint(intfc, end_pts[i]);
-                FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
-                extra->af_node_type = GORE_NODE;
-                end_nodes[i]->extra = (POINTER)extra;
-                str_node_moved = YES;
-            }
-            else
-            {
-                c = split_curve(end_pts[i], b, canopy_bdry, 0,0,0,0);
-                end_nodes[i] = FT_NodeOfPoint(intfc, end_pts[i]);
-                FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
-                extra->af_node_type = GORE_NODE;
-                end_nodes[i]->extra = (POINTER)extra;
-            }
-
-
-        }
-
-        for (i = 0; i < num_gores; ++i)
-        {
-            curve = make_curve(0,0,start_nodes[i],nload);
-            hsbdry_type(curve) = STRING_HSBDRY;
-            spacing = separation(start_nodes[i]->posn,nload->posn,3);
-            for (j = 0; j < 3; ++j)
-                dir[j] = (Coords(nload->posn)[j] -
-                        Coords(start_nodes[i]->posn)[j])/spacing;
-            nb = (int)spacing/(1.1*h[0]);
-            spacing /= (double)nb;
-            b = curve->first;
-            for (j = 1; j < nb; ++j)
-            {
-                for (k = 0; k < 3; ++k)
-                    coords[k] = Coords(start_nodes[i]->posn)[k] +
-                                        j*dir[k]*spacing;
-                insert_point_in_bond(Point(coords),b,curve);
-                b = b->next;
-            }
-
-	    curve = make_curve(0,0,end_nodes[i],nload);
-            hsbdry_type(curve) = STRING_HSBDRY;
-            spacing = separation(end_nodes[i]->posn,nload->posn,3);
-            for (j = 0; j < 3; ++j)
-                dir[j] = (Coords(nload->posn)[j] -
-                        Coords(end_nodes[i]->posn)[j])/spacing;
-            nb = (int)spacing/(1.1*h[0]);
-            spacing /= (double)nb;
-            b = curve->first;
-            for (j = 1; j < nb; ++j)
-            {
-                for (k = 0; k < 3; ++k)
-                    coords[k] = Coords(end_nodes[i]->posn)[k] +
-                                        j*dir[k]*spacing;
-                insert_point_in_bond(Point(coords),b,curve);
-                b = b->next;
-            }
-
-
-        }
-
-
-        v1[0] = v1[1] = 0.0; v1[2] = 1.0;
-        for (i = 0; i < num_gores; ++i)
-        {
-            direction_vector(Coords(start_nodes[i]->posn),
-                        Coords(end_nodes[i]->posn), v2, 3);
-            Cross3d(v1, v2, v3);
-            gore_curve = insert_curve_in_surface(v3, start_nodes[i],
-                        end_nodes[i], surf);
-            hsbdry_type(gore_curve) = GORE_HSBDRY;
-        }
-
-        FT_FreeThese(7, gore_x, start_pts, end_pts, start_nodes, end_nodes,
-                b_cross, pcoords);
-
-
-        return YES;
-
-
-
-
-
-
-} */
-/* end install_string_with_parallel_gore */
 
 static boolean parachute_constr_func(
         POINTER params,
@@ -1408,8 +1191,10 @@ static boolean install_strings(
 		if (within_interval(theta1,theta2,string_angle[j]) ||
 		    within_interval(theta1,theta2,string_angle[j]-2*PI))
 		{
-	    	    d1 = distance_between_positions(cen,Coords(bonds[i]->start),2);
-	    	    d2 = distance_between_positions(cen,Coords(bonds[i]->end),2);
+	    	    d1 = distance_between_positions(cen,
+					Coords(bonds[i]->start),2);
+	    	    d2 = distance_between_positions(cen,
+					Coords(bonds[i]->end),2);
 		    d1 = 0.5*(d1 + d2);
 		    coords[0] = cen[0] + d1*cos(string_angle[j]);
 		    coords[1] = cen[1] + d1*sin(string_angle[j]);
@@ -1722,8 +1507,10 @@ static boolean bond_intersect_with_polar_angle(
 // Yan Li
 // We try to find bond intersect with plane x = x_intersect, 
 // storing the bond to the_b and// intersection to coords.
-// We assume that there are exact num_b bonds: if the point is the common point // of two bonds, we only return the one with it as start_point.
-static boolean bond_intersect_with_x(
+// We assume that there are exact num_b bonds: if the point is the common
+// point of two bonds, we only return the one with it as start_point.
+
+static boolean bond_intersect_with_xcoord(
 	double x_intersect, 
 	CURVE *c,
 	BOND **the_b, 
@@ -1732,16 +1519,18 @@ static boolean bond_intersect_with_x(
 {
 	double lambda, temp;
 	BOND *b, *b_temp;
-	int count = 0, i, j;
+	int count = 0, i, j, k;
+	double tol = 1e-5*MIN_SC_SEP(c->interface);
 
 	for (b = c->first; b != NULL; b = b->next)
 	{
 
 	    // the bond intersects with the plane at the starting point 
-	    if (fabs(Coords(b->end)[0] - x_intersect) < 1e-9)
+	    if (fabs(Coords(b->end)[0] - x_intersect) < tol)
+	    {
                 continue;
-	    else if (fabs(Coords(b->start)[0] - x_intersect) < 1e-9)
-	    //if (fabs(Coords(b->start)[0] - x_intersect) < 1e-9)
+	    }
+	    else if (fabs(Coords(b->start)[0] - x_intersect) < tol)
 	    {
 		if (count >= num_b)
 		{
@@ -1760,7 +1549,7 @@ static boolean bond_intersect_with_x(
 		}
 
 		the_b[count] = b;
-		pcoords[count][0] = Coords(b->start)[0];
+		pcoords[count][0] = Coords(b->start)[0] = x_intersect;
 		pcoords[count][1] = Coords(b->start)[1];
 		pcoords[count][2] = Coords(b->start)[2];
 		count++;
@@ -1770,7 +1559,7 @@ static boolean bond_intersect_with_x(
 	    {
 		continue;
 	    }
-	    else //if ((Coords(b->start)[0] - x_intersect)*(Coords(b->end)[0] - x_intersect) < 0)
+	    else 
 	    {
 		if (count >= num_b)
 		{
@@ -1790,39 +1579,41 @@ static boolean bond_intersect_with_x(
 		}
 
 		the_b[count] = b;
-		lambda = (Coords(b->start)[0] - x_intersect) / 
-			(x_intersect - Coords(b->end)[0]);
-		pcoords[count][0] = 
-		    (Coords(b->start)[0] + lambda * Coords(b->end)[0]) / 
-		    (1 + lambda);
-		pcoords[count][1] = 
-		    (Coords(b->start)[1] + lambda * Coords(b->end)[1]) /
-		    (1 + lambda);
-		pcoords[count][2] = 
-		    (Coords(b->start)[2] + lambda * Coords(b->end)[2]) /
-		    (1 + lambda);
+		lambda = (x_intersect - Coords(b->start)[0])/ 
+			(Coords(b->end)[0] - Coords(b->start)[0]);
+		pcoords[count][0] = x_intersect;
+		pcoords[count][1] = Coords(b->start)[1] + lambda*
+			(Coords(b->end)[1] - Coords(b->start)[1]);
+		pcoords[count][2] = Coords(b->start)[2] + lambda*
+			(Coords(b->end)[2] - Coords(b->start)[2]);
 		count++;
 	    }
 	}
 
 	if (count == num_b)
 	{
-	    for (i = 0; i < num_b - 1; ++i)
-	    for (j = 0; j < num_b - 1 - i; ++j)	
-	        if (pcoords[j][1] > pcoords[j+1][1])
+	    for (i = 0; i < num_b-1; ++i)
+	    for (j = i+1; j < num_b; ++j)	
+	    {
+	        if (pcoords[j][1] < pcoords[i][1])
 		{
 		    b_temp = the_b[j];
-		    the_b[j] = the_b[j+1];
-		    the_b[j+1] = b_temp;
+		    the_b[j] = the_b[i];
+		    the_b[i] = b_temp;
+		    for (k = 0; k < 3; ++k)
+		    {
+			temp = pcoords[j][k];
+			pcoords[j][k] = pcoords[i][k];
+			pcoords[i][k] = temp;
+		    }
 		}
-
-	    
+	    }
 	    return YES;
 	}
 	else
 	    return NO;
 
-}	/* end bond_intersect_with_x() */
+}	/* end bond_intersect_with_xcoord() */
 
 
 static boolean install_strings_and_rotate_w_fixer(
@@ -1850,7 +1641,6 @@ static boolean install_strings_and_rotate_w_fixer(
 	BOND *b;
 	double v1[MAXD],v2[MAXD],v3[MAXD];
 
-	printf("Entering install_strings_and_rotate_w_fixer()\n");
 	num_strings = string_params->num_strings;
 	start_angle = string_params->start_angle;
 	rot_theta = string_params->theta;
@@ -2023,13 +1813,7 @@ static boolean install_strings_and_rotate_w_parallel_gores(
 	NODE *nload;
 	double spacing, dir[MAXD], *h = computational_grid(intfc)->h;
 	int nb;
-
-	// Yan Li's debug
-	(void) printf("Entering install_strings_with_parallel_gore\n");
-	(void) printf("Checking consistency of interface\n");
-	consistent_interface(intfc);
-	(void) printf("Checking completed\n");
-
+	double tol = 1e-5*MIN_SC_SEP(intfc);
 
         nload = make_node(Point(cload));
         FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
@@ -2066,27 +1850,32 @@ static boolean install_strings_and_rotate_w_parallel_gores(
         }
         FT_FreeThese(1,c);
 
-	gview_plot_curve(canopy_bdry, "gview_bdry", "curves.list", pBLUE,1);
+	if (debugging("parallel_gore"))
+	    gview_plot_curve(canopy_bdry,"gview_bdry","curves.list",pBLUE,1);
 
         for (i = 0; i < num_gores; ++i)
         {
-            if(!bond_intersect_with_x(gore_x[i], canopy_bdry,
-                b_cross, num_cross, pcoords))
+            if(!bond_intersect_with_xcoord(gore_x[i],canopy_bdry,b_cross, 
+			num_cross,pcoords))
             {
-                (void) printf("Error in bond_intersect_with_x()\n");
+                (void) printf("Error in bond_intersect_with_xcoord()\n");
                 clean_up(ERROR);
             }
 
-            if (fabs(Coords(b_cross[0]->start)[0] - gore_x[i]) < 1e-9)
+            if (fabs(Coords(b_cross[0]->start)[0] - gore_x[i]) < tol)
+	    {
                 start_pts[i] = b_cross[0]->start;
+	    }
             else
             {
                 start_pts[i] = Point(pcoords[0]);
                 insert_point_in_bond(start_pts[i], b_cross[0], canopy_bdry);
             }
 
-            if (fabs(Coords(b_cross[1]->start)[0] - gore_x[i]) < 1e-9)
+            if (fabs(Coords(b_cross[1]->start)[0] - gore_x[i]) < tol)
+	    {
                 end_pts[i] = b_cross[1]->start;
+	    }
             else
             {
                 end_pts[i] = Point(pcoords[1]);
@@ -2704,23 +2493,6 @@ static void initWingsPlaneEdge(
 	CursorAfterString(infile,"Enter type of wing:");
         fscanf(infile, "%d",&wing_constr_params.wing_type);
         (void) printf("%d\n", wing_constr_params.wing_type);
-
-/*
-	CursorAfterString(infile,"Enter x symmetric axis:");
-	fscanf(infile, "%lf", &wing_constr_params.x_sym);
-	(void) printf("%f\n", wing_constr_params.x_sym);
-	CursorAfterString(infile, "Enter y constraint:");
-	fscanf(infile, "%lf", &wing_constr_params.y_constraint);
-	(void) printf("%f\n", wing_constr_params.y_constraint);
-	CursorAfterString(infile, "Enter x deviation:");
-	fscanf(infile, "%lf", &wing_constr_params.x_devi);
-	(void) printf("%f\n", wing_constr_params.x_devi);
-	CursorAfterString(infile, "Enter ellipse radius:");
-	fscanf(infile, "%lf %lf", &wing_constr_params.radius[0],
-			&wing_constr_params.radius[1]);
-	(void) printf("%f %f\n", wing_constr_params.radius[0],
-			wing_constr_params.radius[1]);
-*/
 
 	if (wing_constr_params.wing_type == 1)
 	{
