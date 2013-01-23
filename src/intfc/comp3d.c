@@ -2886,10 +2886,13 @@ LOCAL void blocks_on_tri(
 	    for(i=0; i<3; ++i)
 		i_diff[i] = 0;
 
-	if (i_diff[0] > 10)
+	if (i_diff[0] > 4)
 	{
-	    print_tri_coords(t);
+	    printf("In blocks_on_tri():\n");
 	    print_int_vector("i_diff = ", i_diff, 3, "\n");
+	    print_tri_global_index(t);
+	    print_tri_coords(t);
+	    clean_up(ERROR);
 	}
 
 	/*check if the array tri_blocks is out of range. */

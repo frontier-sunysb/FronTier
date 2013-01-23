@@ -1502,6 +1502,13 @@ struct _SCALED_REDIST_PARAMS {
 };
 typedef struct _SCALED_REDIST_PARAMS SCALED_REDIST_PARAMS;
 
+#define	surf_tri_loop(s,tri)	\
+	for ((tri) = first_tri((s)); !at_end_of_tri_list((tri),(s)); \
+	(tri) = (tri)->next)
+
+#define	curve_bond_loop(c,bond)	\
+	for ((bond) = (c)->first); (bond) != NULL; (bond) = (bond)->next 
+
 #define E_comps(intfc)          ((EQUIV_COMPS *) (intfc)->e_comps)
 
 #if defined(c_plusplus) || defined(__cplusplus)

@@ -447,7 +447,11 @@ static boolean ellipse_constr_func(
 	int dim = ellipse_constr_params->dim;
 	double *cen = ellipse_constr_params->cen;
 	double *radii = ellipse_constr_params->radii;
+	double *x_range = ellipse_constr_params->x_range;
 	double r = 0;
+
+	if (coords[0] < x_range[0] || coords[0] > x_range[1])
+            return NO;
 
 	for (i = 0; i < dim - 1; ++i)
 	    r += sqr((coords[i] - cen[i]) / radii[i]);
@@ -465,28 +469,83 @@ static boolean wing_constr_func(
 	WING_CONSTR_PARAMS *wing_constr_params = 
 			(WING_CONSTR_PARAMS*) params;
 
-	double x_sym = wing_constr_params->x_sym;
-	double y_constraint = wing_constr_params->y_constraint;
-	double x_devi = wing_constr_params->x_devi;
-	double *radius = wing_constr_params->radius;
-	double x, y, r = 0;
+	if (wing_constr_params->wing_type == 1)
+	{
+	    WING_TYPE1_PARAMS *wing_type1_params = 
+		&wing_constr_params->wing_type1_params;
+	    double x_sym = wing_type1_params->x_sym;
+	    double y_constraint = wing_type1_params->y_constraint;
+	    double x_devi = wing_type1_params->x_devi;
+	    double *radius = wing_type1_params->radius;
+	    double x, y, r = 0;
 
-	if (coords[1] > y_constraint)
+	    if (coords[1] > y_constraint)
+	    	return NO;
+
+	    if (coords[0] < x_sym)
+	    	x = coords[0] - (x_sym - x_devi);
+	    else
+	    	x = coords[0] - (x_sym + x_devi);
+
+	    y = coords[1] - y_constraint;
+
+	    r = sqr(x / radius[0]) + sqr(y / radius[1]);
+
+	    if (r < 1)
+	    	return YES;
+	    return NO; 
+	}
+	else if (wing_constr_params->wing_type == 2)
+	{
+	    WING_TYPE2_PARAMS *wing_type2_params = 
+		&wing_constr_params->wing_type2_params;
+	    double x_cen = wing_type2_params->x_cen;
+	    double y_cen = wing_type2_params->y_cen;
+	    double a = wing_type2_params->a;
+	    double b = wing_type2_params->b;
+
+	    double x = coords[0] - x_cen;
+	    double y = coords[1] - y_cen;
+	    //double r = sqr(sqr(x) + sqr(y)) - 2*sqr(a)*(sqr(x) - sqr(y)) - b;
+	    double r = (x*x + y*y) * (x*x + y*y) - 2*a*a*(x*x - y*y) - b;
+	    if (r < 0)
+		return YES;
 	    return NO;
+	}
+	else if (wing_constr_params->wing_type == 3)
+	{
+	    WING_TYPE3_PARAMS *wing_type3_params = 
+		&wing_constr_params->wing_type3_params;
+	    double y_cen = wing_type3_params->y_cen;
+	    double x_sym = wing_type3_params->x_sym;
+	    double x_devi = wing_type3_params->x_devi;
+	    double a = wing_type3_params->a;
+	    //double b = wing_constr_params->b; // currently we have b = 3.
 
-	if (coords[0] < x_sym)
-	    x = coords[0] - (x_sym - x_devi);
+	    double x, r;
+	    double y = coords[1] - y_cen;
+	    
+	    if (coords[0] > x_sym)
+	    {
+		x = coords[0] - x_sym + x_devi;
+		r = (x*x + y*y) * (x*x+y*y) - 4*a*x*x*x +
+		    3*a*x*(x*x + y*y);
+	    }
+	    else
+	    {
+		x = coords[0] - x_sym - x_devi;
+		r = (x*x + y*y) * (x*x+y*y) + 4*a*x*x*x -
+		    3*a*x*(x*x + y*y);
+	    }
+	    if (r < 0)
+		return YES;
+	    return NO;
+	}
 	else
-	    x = coords[0] - (x_sym + x_devi);
-
-	y = coords[1] - y_constraint;
-
-	r = sqr(x / radius[0]) + sqr(y / radius[1]);
-
-	if (r <1)
-	    return YES;
-	return NO; 
-	
+	{
+	    (void) printf("Unknow wing type!\n");
+	    clean_up(ERROR);
+	}
 }
 
 // Yan Li
@@ -502,10 +561,16 @@ static boolean insert_vertical_gore(
 	int i, j;
 	NODE **start_nodes, **end_nodes;
 	BOND *b, **b_cross;
-	WING_CONSTR_PARAMS *wing_constr_params = (WING_CONSTR_PARAMS*) params;
-	int num_gores = wing_constr_params->gores_n;
-	double gores_start_x = wing_constr_params->gores_start_x;
-	double gores_dis = wing_constr_params->gores_dis;
+	//WING_CONSTR_PARAMS *wing_constr_params = (WING_CONSTR_PARAMS*) params;
+	//int num_gores = wing_constr_params->gores_n;
+	//double gores_start_x = wing_constr_params->gores_start_x;
+	//double gores_dis = wing_constr_params->gores_dis;
+	PARALLEL_GORE_PARAMS *parallel_gore_params = 
+		(PARALLEL_GORE_PARAMS*) params;
+	int num_gores = parallel_gore_params->gores_n;
+	double gores_start_x = parallel_gore_params->gores_start_x;
+	double gores_dis = parallel_gore_params->gores_dis;
+
 	double *gore_x;
 	double v1[3], v2[3], v3[3];
 	int num_cross = 2;
@@ -630,7 +695,220 @@ static boolean insert_vertical_gore(
 
 	return YES;
 
-}
+} /* end insert_vertical_gore */
+
+
+/*
+// Yan Li
+static boolean install_string_with_parallel_gore(
+	INTERFACE *intfc,
+        SURFACE *surf,
+        POINTER params,
+        int ip)
+{
+	PARALLEL_GORE_PARAMS *parallel_gore_params = 
+		(PARALLEL_GORE_PARAMS*) params;
+	int num_gores = parallel_gore_params->gores_n;
+	double gores_start_x = parallel_gore_params->gores_start_x;
+	double gores_dis = parallel_gore_params->gores_dis;
+	double *cload = parallel_gore_params->coords_load;
+
+        CURVE **c, *gore_curve, *canopy_bdry, *curve;
+        POINT **start_pts, **end_pts;
+        int num_curves;
+        int i, j, k;
+        NODE **start_nodes, **end_nodes;
+        BOND *b, **b_cross;
+        double *gore_x;
+        double v1[3], v2[3], v3[3];
+        int num_cross = 2;
+        double coords[MAXD], lambda, **pcoords;
+        AF_NODE_EXTRA *extra;
+        boolean str_node_moved;
+	NODE *nload;
+	double spacing, dir[MAXD], *h = computational_grid(intfc)->h;
+	int nb;
+
+	// Yan Li's debug
+	(void) printf("Entering install_string_with_parallel_gore\n");
+	(void) printf("Checking consistency of interface\n");
+	consistent_interface(intfc);
+	(void) printf("Checking completed\n");
+
+
+        nload = make_node(Point(cload));
+        FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+        extra->af_node_type = LOAD_NODE;
+        nload->extra = (POINTER)extra;
+
+        FT_VectorMemoryAlloc((POINTER*)&gore_x, num_gores,
+                                sizeof(double));
+        FT_VectorMemoryAlloc((POINTER*)&start_pts,num_gores,
+                                sizeof(POINT*));
+        FT_VectorMemoryAlloc((POINTER*)&end_pts,num_gores,
+                                sizeof(POINT*));
+        FT_VectorMemoryAlloc((POINTER*)&start_nodes,num_gores,
+                                sizeof(NODE*));
+        FT_VectorMemoryAlloc((POINTER*)&end_nodes, num_gores,
+                                sizeof(NODE*));
+        // we assume that there are only 2 intersecting bonds
+        FT_VectorMemoryAlloc((POINTER*)&b_cross, num_cross, sizeof(BOND*));
+        FT_MatrixMemoryAlloc((POINTER*)&pcoords, num_cross, MAXD,
+                sizeof(double));
+
+        for (i = 0; i < num_gores; ++i)
+            gore_x[i] = gores_start_x + i * gores_dis;
+
+        num_curves = FT_NumOfSurfCurves(surf);
+        FT_VectorMemoryAlloc((POINTER*)&c,num_curves,sizeof(CURVE*));
+        FT_ArrayOfSurfCurves(surf,c);
+
+        for (i = 0; i < num_curves; ++i)
+        {
+            if (hsbdry_type(c[i]) != MONO_COMP_HSBDRY)
+                continue;
+            canopy_bdry = c[i];
+        }
+        FT_FreeThese(1,c);
+
+	gview_plot_curve(canopy_bdry, "gview_bdry", "curves.list", pBLUE,1);
+
+        for (i = 0; i < num_gores; ++i)
+        {
+            if(!bond_intersect_with_x(gore_x[i], canopy_bdry,
+                b_cross, num_cross, pcoords))
+            {
+                (void) printf("Error in bond_intersect_with_x()\n");
+                clean_up(ERROR);
+            }
+
+            if (fabs(Coords(b_cross[0]->start)[0] - gore_x[i]) < 1e-9)
+                start_pts[i] = b_cross[0]->start;
+            else
+            {
+                start_pts[i] = Point(pcoords[0]);
+                insert_point_in_bond(start_pts[i], b_cross[0], canopy_bdry);
+            }
+
+            if (fabs(Coords(b_cross[1]->start)[0] - gore_x[i]) < 1e-9)
+                end_pts[i] = b_cross[1]->start;
+            else
+            {
+                end_pts[i] = Point(pcoords[1]);
+                insert_point_in_bond(end_pts[i], b_cross[1], canopy_bdry);
+            }
+        }
+
+        str_node_moved = NO;
+        for (i = 0; i < num_gores; ++i)
+        {
+            canopy_bdry = FT_CurveOfPoint(intfc, start_pts[i], &b);
+            if (is_closed_curve(canopy_bdry) && !str_node_moved)
+            {
+                move_closed_loop_node(canopy_bdry, b);
+                start_nodes[i] = FT_NodeOfPoint(intfc, start_pts[i]);
+                FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+                extra->af_node_type = GORE_NODE;
+                start_nodes[i]->extra = (POINTER)extra;
+                str_node_moved = YES;
+            }
+            else
+            {
+                c = split_curve(start_pts[i], b, canopy_bdry, 0,0,0,0);
+                start_nodes[i] = FT_NodeOfPoint(intfc, start_pts[i]);
+                FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+                extra->af_node_type = GORE_NODE;
+                start_nodes[i]->extra = (POINTER)extra;
+            }
+
+            canopy_bdry = FT_CurveOfPoint(intfc, end_pts[i], &b);
+            if (is_closed_curve(canopy_bdry) && !str_node_moved)
+            {
+                move_closed_loop_node(canopy_bdry, b);
+                end_nodes[i] = FT_NodeOfPoint(intfc, end_pts[i]);
+                FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+                extra->af_node_type = GORE_NODE;
+                end_nodes[i]->extra = (POINTER)extra;
+                str_node_moved = YES;
+            }
+            else
+            {
+                c = split_curve(end_pts[i], b, canopy_bdry, 0,0,0,0);
+                end_nodes[i] = FT_NodeOfPoint(intfc, end_pts[i]);
+                FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+                extra->af_node_type = GORE_NODE;
+                end_nodes[i]->extra = (POINTER)extra;
+            }
+
+
+        }
+
+        for (i = 0; i < num_gores; ++i)
+        {
+            curve = make_curve(0,0,start_nodes[i],nload);
+            hsbdry_type(curve) = STRING_HSBDRY;
+            spacing = separation(start_nodes[i]->posn,nload->posn,3);
+            for (j = 0; j < 3; ++j)
+                dir[j] = (Coords(nload->posn)[j] -
+                        Coords(start_nodes[i]->posn)[j])/spacing;
+            nb = (int)spacing/(1.1*h[0]);
+            spacing /= (double)nb;
+            b = curve->first;
+            for (j = 1; j < nb; ++j)
+            {
+                for (k = 0; k < 3; ++k)
+                    coords[k] = Coords(start_nodes[i]->posn)[k] +
+                                        j*dir[k]*spacing;
+                insert_point_in_bond(Point(coords),b,curve);
+                b = b->next;
+            }
+
+	    curve = make_curve(0,0,end_nodes[i],nload);
+            hsbdry_type(curve) = STRING_HSBDRY;
+            spacing = separation(end_nodes[i]->posn,nload->posn,3);
+            for (j = 0; j < 3; ++j)
+                dir[j] = (Coords(nload->posn)[j] -
+                        Coords(end_nodes[i]->posn)[j])/spacing;
+            nb = (int)spacing/(1.1*h[0]);
+            spacing /= (double)nb;
+            b = curve->first;
+            for (j = 1; j < nb; ++j)
+            {
+                for (k = 0; k < 3; ++k)
+                    coords[k] = Coords(end_nodes[i]->posn)[k] +
+                                        j*dir[k]*spacing;
+                insert_point_in_bond(Point(coords),b,curve);
+                b = b->next;
+            }
+
+
+        }
+
+
+        v1[0] = v1[1] = 0.0; v1[2] = 1.0;
+        for (i = 0; i < num_gores; ++i)
+        {
+            direction_vector(Coords(start_nodes[i]->posn),
+                        Coords(end_nodes[i]->posn), v2, 3);
+            Cross3d(v1, v2, v3);
+            gore_curve = insert_curve_in_surface(v3, start_nodes[i],
+                        end_nodes[i], surf);
+            hsbdry_type(gore_curve) = GORE_HSBDRY;
+        }
+
+        FT_FreeThese(7, gore_x, start_pts, end_pts, start_nodes, end_nodes,
+                b_cross, pcoords);
+
+
+        return YES;
+
+
+
+
+
+
+} */
+/* end install_string_with_parallel_gore */
 
 static boolean parachute_constr_func(
         POINTER params,
@@ -1460,11 +1738,24 @@ static boolean bond_intersect_with_x(
 	{
 
 	    // the bond intersects with the plane at the starting point 
-	    if (fabs(Coords(b->start)[0] - x_intersect) < 1e-9)
+	    if (fabs(Coords(b->end)[0] - x_intersect) < 1e-9)
+                continue;
+	    else if (fabs(Coords(b->start)[0] - x_intersect) < 1e-9)
+	    //if (fabs(Coords(b->start)[0] - x_intersect) < 1e-9)
 	    {
 		if (count >= num_b)
 		{
-		    (void) printf("More than %d intersections found!\n", num_b);
+		    (void) printf("More than %d intersections found1!\n", num_b);
+		    (void) printf("x = %f\n", x_intersect);
+		    for (i = 0; i < num_b; ++i)
+		    	(void) printf("Bond%d: start\t(%f,%f)\tend\t(%f,%f)\n",
+				 i, Coords(the_b[i]->start)[0], 
+				Coords(the_b[i]->start)[1],
+				Coords(the_b[i]->end)[0],
+				Coords(the_b[i]->end)[1]);
+		    (void) printf("Bond%d: start\t(%f,%f)\tend\t(%f,%f)\n", i,
+				Coords(b->start)[0], Coords(b->start)[1],
+				Coords(b->end)[0], Coords(b->end)[1]);
 		    clean_up(ERROR);
 		}
 
@@ -1474,16 +1765,27 @@ static boolean bond_intersect_with_x(
 		pcoords[count][2] = Coords(b->start)[2];
 		count++;
 	    }
-	    else if ((Coords(b->start)[0] - x_intersect)*
-			(Coords(b->end)[0] - x_intersect) >= 0)
+	    else if ( (Coords(b->start)[0] - x_intersect)*
+		(Coords(b->end)[0] - x_intersect) > 0)
 	    {
 		continue;
 	    }
-	    else 
+	    else //if ((Coords(b->start)[0] - x_intersect)*(Coords(b->end)[0] - x_intersect) < 0)
 	    {
 		if (count >= num_b)
 		{
-		    (void) printf("More than %d intersections found!\n", num_b);
+                    (void) printf("x = %f\n", x_intersect);
+                    for (i = 0; i < num_b; ++i)
+                        (void) printf("Bond%d: start\t(%f,%f)\tend\t(%f,%f)\n",
+				 i, Coords(the_b[i]->start)[0],
+				Coords(the_b[i]->start)[1],
+                                Coords(the_b[i]->end)[0],
+				Coords(the_b[i]->end)[1]);
+                    (void) printf("Bond%d: start\t(%f,%f)\tend\t(%f,%f)\n", i,
+                                Coords(b->start)[0], Coords(b->start)[1],
+                                Coords(b->end)[0], Coords(b->end)[1]);
+
+		    (void) printf("More than %d intersections found2!\n", num_b);
 		    clean_up(ERROR);
 		}
 
@@ -1520,7 +1822,7 @@ static boolean bond_intersect_with_x(
 	else
 	    return NO;
 
-}
+}	/* end bond_intersect_with_x() */
 
 
 static boolean install_strings_and_rotate_w_fixer(
@@ -2246,6 +2548,11 @@ static void initEllipticPlaneEdge(
 				&ellipse_constr_params.radii[1]);
 	(void) printf("%f %f\n", ellipse_constr_params.radii[0],
 				ellipse_constr_params.radii[1]);
+	CursorAfterString(infile,"Enter x range of ellipse:");
+        fscanf(infile, "%lf %lf", &ellipse_constr_params.x_range[0],
+                                &ellipse_constr_params.x_range[1]);
+        (void) printf("%f %f\n", ellipse_constr_params.x_range[0],
+                                ellipse_constr_params.x_range[1]);
 
 	CursorAfterString(infile,"Enter yes to attach strings to canopy:");
 	fscanf(infile,"%s",string);
@@ -2315,6 +2622,12 @@ static void initEllipticPlaneEdge(
 		    }
 		    else if (string[0] == 'p' || string[0] == 'P')
 		    {
+                        af_params->attach_gores = YES;
+                        CursorAfterStringOpt(infile,
+                                "Enter gore length factor:");
+                        fscanf(infile,"%lf",&(af_params->gore_len_fac));
+                        (void) printf("%f\n",af_params->gore_len_fac);
+
                     	CursorAfterString(infile, 
 				"Enter number of vertical gores:");
                     	fscanf(infile, "%d", &parallel_gore_params.gores_n);
@@ -2376,6 +2689,7 @@ static void initWingsPlaneEdge(
 	STRING_PARAMS *string_params,
 	PLANE_PARAMS *plane_params)
 {
+	static PARALLEL_GORE_PARAMS parallel_gore_params;
 	static WING_CONSTR_PARAMS wing_constr_params;
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 	char string[100];
@@ -2386,6 +2700,12 @@ static void initWingsPlaneEdge(
 	level_func_pack->constr_params = (POINTER)&wing_constr_params;
 	level_func_pack->constr_func = wing_constr_func;
 	wing_constr_params.dim = 3;
+
+	CursorAfterString(infile,"Enter type of wing:");
+        fscanf(infile, "%d",&wing_constr_params.wing_type);
+        (void) printf("%d\n", wing_constr_params.wing_type);
+
+/*
 	CursorAfterString(infile,"Enter x symmetric axis:");
 	fscanf(infile, "%lf", &wing_constr_params.x_sym);
 	(void) printf("%f\n", wing_constr_params.x_sym);
@@ -2400,6 +2720,67 @@ static void initWingsPlaneEdge(
 			&wing_constr_params.radius[1]);
 	(void) printf("%f %f\n", wing_constr_params.radius[0],
 			wing_constr_params.radius[1]);
+*/
+
+	if (wing_constr_params.wing_type == 1)
+	{
+	    CursorAfterString(infile,"Enter x symmetric axis:");
+	    fscanf(infile, "%lf",
+                    &wing_constr_params.wing_type1_params.x_sym);
+	    (void) printf("%f\n",
+                    wing_constr_params.wing_type1_params.x_sym);
+	    CursorAfterString(infile, "Enter y constraint:");
+	    fscanf(infile, "%lf",
+                    &wing_constr_params.wing_type1_params.y_constraint);
+	    (void) printf("%f\n",
+                    wing_constr_params.wing_type1_params.y_constraint);
+	    CursorAfterString(infile, "Enter x deviation:");
+	    fscanf(infile, "%lf",
+                    &wing_constr_params.wing_type1_params.x_devi);
+	    (void) printf("%f\n",
+                    wing_constr_params.wing_type1_params.x_devi);
+	    CursorAfterString(infile, "Enter ellipse radius:");
+	    fscanf(infile, "%lf %lf",
+                    &wing_constr_params.wing_type1_params.radius[0],
+                    &wing_constr_params.wing_type1_params.radius[1]);
+	    (void) printf("%f %f\n",
+                    wing_constr_params.wing_type1_params.radius[0],
+                    wing_constr_params.wing_type1_params.radius[1]);
+	}
+	else if (wing_constr_params.wing_type == 2)
+	{
+	    CursorAfterString(infile, "Enter the center of the wing:");
+	    fscanf(infile, "%lf %lf",
+                    &wing_constr_params.wing_type2_params.x_cen,
+                    &wing_constr_params.wing_type2_params.y_cen);
+	    (void) printf("%f %f\n",
+                    wing_constr_params.wing_type2_params.x_cen,
+                    wing_constr_params.wing_type2_params.y_cen);
+	    CursorAfterString(infile, "Enter the value of a and b:");
+	    fscanf(infile, "%lf %lf",
+                    &wing_constr_params.wing_type2_params.a,
+                    &wing_constr_params.wing_type2_params.b);
+	    (void) printf("%f %f\n", 
+		    wing_constr_params.wing_type2_params.a,
+                    wing_constr_params.wing_type2_params.b);
+	}
+	else if (wing_constr_params.wing_type == 3)
+	{
+	    CursorAfterString(infile, "Enter the center of the wing:");
+	    fscanf(infile, "%lf %lf", 
+		    &wing_constr_params.wing_type3_params.x_sym,
+                    &wing_constr_params.wing_type3_params.y_cen);
+	    (void) printf("%f %f\n", 
+		    wing_constr_params.wing_type3_params.x_sym,
+                    wing_constr_params.wing_type3_params.y_cen);
+	    CursorAfterString(infile, "Enter x deviation:");
+	    fscanf(infile, "%lf", &wing_constr_params.wing_type3_params.x_devi);
+	    (void) printf("%f\n", wing_constr_params.wing_type3_params.x_devi);
+	    CursorAfterString(infile, "Enter the value of a:");
+	    fscanf(infile, "%lf", &wing_constr_params.wing_type3_params.a);
+	    (void) printf("%f\n", wing_constr_params.wing_type3_params.a);
+	}
+
 
 	CursorAfterString(infile, "Enter yes to attach gores on canopy:");
 	fscanf(infile,"%s",string);
@@ -2412,21 +2793,22 @@ static void initWingsPlaneEdge(
 	    if (string[0] == 'p' || string[0] == 'P')
 	    {
                 CursorAfterString(infile,"Enter number of vertical gores:");
-                fscanf(infile, "%d",&wing_constr_params.gores_n);
-                (void) printf("%d\n",wing_constr_params.gores_n);
+                fscanf(infile, "%d",&parallel_gore_params.gores_n);
+                (void) printf("%d\n",parallel_gore_params.gores_n);
 
 		CursorAfterString(infile,"Enter start x-coordinate of gore:");
-		fscanf(infile, "%lf",&wing_constr_params.gores_start_x);
-		(void) printf("%f\n",wing_constr_params.gores_start_x);
+		fscanf(infile, "%lf",&parallel_gore_params.gores_start_x);
+		(void) printf("%f\n",parallel_gore_params.gores_start_x);
 
                 CursorAfterString(infile,"Enter distance between gores:");
-                fscanf(infile, "%lf",&wing_constr_params.gores_dis);
-                (void) printf("%f\n",wing_constr_params.gores_dis);
+                fscanf(infile, "%lf",&parallel_gore_params.gores_dis);
+                (void) printf("%f\n",parallel_gore_params.gores_dis);
 
 		level_func_pack->attach_string = YES;
                 af_params->attach_gores = YES;
 		level_func_pack->string_func = insert_vertical_gore;
-		level_func_pack->string_params = (POINTER) &wing_constr_params;
+		level_func_pack->string_params = 
+			(POINTER) &parallel_gore_params;
 	    }
 	}
 }	/* end initWingsPlaneEdge */

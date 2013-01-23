@@ -460,6 +460,7 @@ IMPORT 	boolean	check_tri_and_neighbor(TRI*);
 IMPORT  boolean 	search_the_tri_in_intfc(INTERFACE*);
 IMPORT  boolean 	search_the_tri_in_surf(SURFACE*);
 IMPORT	void	print_tri_coords(TRI*);
+IMPORT	void	print_tri_global_index(TRI*);
 IMPORT  void 	find_blk_tri(BLK_TRI *);
 IMPORT	boolean point_on_curve(POINT*,BOND**,CURVE*);
 IMPORT	void closest_point_on_curve(POINT**,BOND**,double*,CURVE*);

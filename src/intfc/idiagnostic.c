@@ -311,6 +311,14 @@ EXPORT boolean the_side(TRI  *tri)
 	return NO;
 }
 
+EXPORT void print_tri_global_index(TRI* tri)
+{
+	printf("Global indices of tri vertices: %d %d %d\n",
+			Gindex(Point_of_tri(tri)[0]),
+			Gindex(Point_of_tri(tri)[1]),
+			Gindex(Point_of_tri(tri)[2]));
+}	/* end print_tri_global_index */
+
 /* 	This function is to catch the triangle for */
 /* 	the detection using the function the_tri() */
 

@@ -18,10 +18,28 @@ typedef struct {
         int dim;
         double cen[MAXD];       /* center of the ellipse */
         double radii[MAXD];     /* radii of the ellipse */
-	int gores_n;
-        double gores_start_x;
-        double gores_dis;
+	double x_range[2];	/* x_range[0] <= x <= x_range[1] */
 } ELLIPSE_CONSTR_PARAMS;
+
+// wing_type1: Two half ellipses are used to initialize the wing.
+typedef struct {
+        double x_sym;
+        double y_constraint;
+        double x_devi;
+        double radius[2];
+} WING_TYPE1_PARAMS;
+
+// wing_type2: Lemniscates function is used to initialize the wing.
+typedef struct {
+        double x_cen, y_cen;
+        double a, b;
+} WING_TYPE2_PARAMS;
+
+typedef struct {
+        double x_sym, y_cen;
+        double x_devi;
+        double a;
+} WING_TYPE3_PARAMS;
 
 // Yan Li
 // In this initializaion we use two half-ellipses to construct a wing.
@@ -29,13 +47,11 @@ typedef struct {
 // Todo: need to generalize the construction.
 typedef struct {
         int dim;
-        double x_sym;   /* symetric axis of the wing: x = x_sym */
-        double y_constraint;
-        double x_devi;  /* two center are (x_sym +- x_devi, y_constrain) */
-        double radius[2];
-	int gores_n;
-        double gores_start_x;
-        double gores_dis;
+	int wing_type;
+        WING_TYPE1_PARAMS wing_type1_params;
+        WING_TYPE2_PARAMS wing_type2_params;
+        WING_TYPE3_PARAMS wing_type3_params;
+
 } WING_CONSTR_PARAMS;
 
 enum _PERTURBATION_TYPE {

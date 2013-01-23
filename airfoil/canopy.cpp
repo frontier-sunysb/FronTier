@@ -565,6 +565,14 @@ extern void fourth_order_parachute_propagate(
 			new_geom_set->lambda_g);
 	    (void) printf("n_cps = %d  n_sps = %d  num_pts = %d\n",
 			n_cps,n_sps,num_pts);
+	    (void) printf("number of strings = %d\n",
+			new_geom_set->num_strings);
+	    (void) printf("number of mono bdry = %d\n",
+			new_geom_set->num_mono_hsbdry);
+	    (void) printf("number of gore bdry = %d\n",
+			new_geom_set->num_gore_hsbdry);
+	    (void) printf("number of gore node = %d\n",
+			new_geom_set->num_gore_nodes);
 	}
 
 	if (dt > dt_tol)

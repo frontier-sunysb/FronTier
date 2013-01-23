@@ -3972,7 +3972,8 @@ EXPORT boolean i_delete_start_of_bond(
 	if (b==NULL || c==NULL || b->prev==NULL)
 	    return FUNCTION_FAILED;
 
-	if (single_tri_surface_on_bond(b))
+	if (c->interface->dim == 3 && 
+	    single_tri_surface_on_bond(b))
 	{
 	    (void) printf("WARNING in i_delete_start_of_bond(), "
 			  "can't delete single tri surface\n");

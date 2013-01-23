@@ -376,11 +376,11 @@ void    make_ref_strip_for_surf(double*, double*, SURFACE*, INTERFACE*);
 void    make_ref_strip(double*, double*, INTERFACE*);
 
 #define  cut_case(a)  ((a[0].fg == 0) + (a[1].fg == 0) + (a[2].fg == 0) == 2 ? YES : NO)
-// if line cut two sides of the tri, it returns YES.
+/* if line cut two sides of the tri, it returns YES.*/
 #define  out_side(a)  (a[0].fg != 0 ? 0 : (a[1].fg !=0 ? 1 : 2))
-// line without intersection with the side.
+/* line without intersection with the side.*/
 #define  cut_side(a)  (cut_case(a) ? Next_m3(out_side(a)) : (a[0].fg == 0 ? 0 : (a[1].fg == 0 ? 1 : 2)))
-// line cut the side
+/* line cut the side*/
 
 typedef  struct {
         int     fg;
@@ -4538,10 +4538,13 @@ EXPORT	void cut_surface(
         POINTER func_params,		     // Constraint function params
 	boolean force_clip)
 {
+	INTERFACE *intfc = surf->interface;
 	TRI *tri,*ntri;
 	POINT *p;
 	double *p1,*p2,*pc;
-	int i;
+	int i,j,dim = intfc->dim;
+	double distance;
+	double tol = 1e-5*MIN_SC_SEP(intfc);
 
 	if (force_clip)
 	{
@@ -4568,9 +4571,27 @@ EXPORT	void cut_surface(
 			!constr_func(func_params,p1)))
 		    {
 			pc = constr_position(p1,p2,constr_func,func_params);
+			distance = distance_between_positions(pc,p1,dim);
+			if (distance < tol)
+			{
+			    for (j = 0; j < dim; ++j)
+				p1[j] = pc[j];
+			    sorted(Point_of_tri(tri)[i]) = YES;
+					/*use flag sorted for new point*/
+			    continue;
+			}
+			distance = distance_between_positions(pc,p2,dim);
+			if (distance < tol)
+			{
+			    for (j = 0; j < dim; ++j)
+				p2[j] = pc[j];
+			    sorted(Point_of_tri(tri)[(i+1)%3]) = YES; 
+					/*use flag sorted for new point*/
+			    continue;
+			}
 			p = Point(pc);
 			insert_point_in_tri_side(p,i,tri,surf);
-			sorted(p) = YES;  // use flag sorted for new point
+			sorted(p) = YES;  /*use flag sorted for new point*/
 		    }
 		}
 	    }

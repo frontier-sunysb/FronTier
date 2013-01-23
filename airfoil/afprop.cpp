@@ -247,7 +247,7 @@ extern void fourth_order_elastic_set_propagate(
 	}
 	fourth_order_parachute_propagate(newfr,&new_geom_set);
 	FT_FreeThese(5,new_str_curves,new_str_nodes,new_mono_hsbdry,
-		       new_gore_hsbdry,new_gore_nodes);
+			new_gore_hsbdry,new_gore_nodes);
 	
 	if (debugging("trace"))
 	    (void) printf("Leaving fourth_order_elastic_set_propagate()\n");
@@ -504,13 +504,23 @@ extern int numOfGoreNodes(
 	INTERFACE *intfc)
 {
 	NODE **n;
+	CURVE **c;
 	int num_gore_nodes = 0;
 	AF_NODE_EXTRA *extra;
+	boolean is_string_node;
 
 	for (n = intfc->nodes; n && *n; ++n)
 	{
 	    if ((*n)->extra == NULL)
 		continue;
+	    is_string_node = NO;
+	    for (c = (*n)->in_curves; c && *c; ++c)
+		if (hsbdry_type(*c) == STRING_HSBDRY)
+		    is_string_node = YES;
+	    for (c = (*n)->out_curves; c && *c; ++c)
+		if (hsbdry_type(*c) == STRING_HSBDRY)
+		    is_string_node = YES;
+	    if (is_string_node) continue;
 	    extra = (AF_NODE_EXTRA*)(*n)->extra;
 	    if (extra->af_node_type == GORE_NODE)
 		num_gore_nodes++;
@@ -551,6 +561,12 @@ extern boolean is_gore_node(
 
 	if (node->extra == NULL)
 	    return NO;
+	for (c = node->in_curves; c && *c; ++c)
+	    if (hsbdry_type(*c) == STRING_HSBDRY)
+		return NO;
+	for (c = node->out_curves; c && *c; ++c)
+	    if (hsbdry_type(*c) == STRING_HSBDRY)
+		return NO;
 	extra = (AF_NODE_EXTRA*)(node)->extra;
 	if (extra->af_node_type == GORE_NODE)
 	    return YES;
