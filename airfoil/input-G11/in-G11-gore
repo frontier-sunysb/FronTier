@@ -24,7 +24,7 @@ Projection type can be
         PEROT_BOTELLA
 Enter projection type: SIMPLE
 Enter fluid ambient velocity: 0 0 3
-Enter upper bound for speed: 15
+Enter upper bound for speed: 50
 
 Enter number of canopy surfaces: 1
 Enter initial canopy surface type: PLANE
