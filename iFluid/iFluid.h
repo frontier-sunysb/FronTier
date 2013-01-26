@@ -24,6 +24,13 @@ enum EBM_COORD
     COORD_X = 0,  COORD_Y = 1,  COORD_Z = 2
 };
 
+enum _DOMAIN_STATUS {
+        NOT_SOLVED      =       0,
+        TO_SOLVE,
+        SOLVED
+};
+typedef enum _DOMAIN_STATUS DOMAIN_STATUS;
+
 struct _IF_FIELD {
 	double **vel;			/* Velocities */
 	double *phi;
@@ -74,6 +81,13 @@ enum _ELLIP_METHOD {
 	CIM_ELLIP
 };
 typedef enum _ELLIP_METHOD ELLIP_METHOD;
+
+enum _DOMAIN_METHOD {
+	BY_COMPONENT		= 1,
+	BY_CROSSING,
+	BY_WALL
+};
+typedef enum _DOMAIN_METHOD DOMAIN_METHOD;
 
 struct _NS_SCHEME {
 	PROJC_METHOD projc_method;
@@ -224,6 +238,8 @@ protected:
 	double *top_L, *top_U;
 	int **ij_to_I, **I_to_ij;
 	int ***ijk_to_I, **I_to_ijk;
+	int *domain_status;
+	int smin[MAXD],smax[MAXD];
 
 	// Sweeping limites
 	int imin, jmin, kmin;
@@ -257,6 +273,10 @@ protected:
 	void scatMeshArray(void);
 	void setGlobalIndex(void);
 	void setIndexMap(void);
+	void paintAllGridPoint(int status);
+	void paintSolvedGridPoint();
+	boolean paintToSolveGridPoint();
+	boolean nextConnectedPoint(int*,GRID_DIRECTION,int*,int,int*,int*);
 
 /*  These functions should be rewritten in 2D basis and 3D basis classes */
 	virtual double getSmoothingFunction(double r) = 0; //Heaviside function

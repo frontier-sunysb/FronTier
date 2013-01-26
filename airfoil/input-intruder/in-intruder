@@ -1,7 +1,7 @@
 Domain limit in 0-th dimension: 0 20
 Domain limit in 1-th dimension: 0 8
-Domain limit in 2-th dimension: 0 30
-Computational grid: 100 40 150
+Domain limit in 2-th dimension: -10 30
+Computational grid: 100 40 200
 Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
 Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
 Lower boundary in 1-th dimension: PERIODIC_BOUNDARY
@@ -10,7 +10,7 @@ Lower boundary in 2-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 2-th dimension: DIRICHLET_BOUNDARY
 
 Max time: 2.0
-Max step: 200
+Max step: 500
 Print interval: 0.05
 Movie frame interval: 0.05
 CFL factor: 0.5
@@ -23,8 +23,8 @@ Projection type can be
         KIM_MOIN
         PEROT_BOTELLA
 Enter projection type: SIMPLE
-Enter fluid ambient velocity: 0 0 3
-Enter upper bound for speed: 30
+Enter fluid ambient velocity: 0 0 4
+Enter upper bound for speed: 50
 
 Type y to make movie of pressure: n
 Type y to make movie of vorticity: n
@@ -69,7 +69,7 @@ Entering yes to turn off fluid solver: no
 Enter interior propagator: e2
 
 Enter gravity: 0 0 -9.8
-Enter payload: 150
+Enter payload: 100
 Enter density and viscosity of the fluid: 1.2 0.000628
 Enter surface tension: 0.0
 Enter factor of smoothing radius: 1.0
@@ -90,7 +90,7 @@ Enter string point mass: 0.01
 
 For lower boundary in 2-th dimension
 Enter type of Dirichlet boundary: CONSTAT_STATE
-Enter velocity: 0 0 3
+Enter velocity: 0 0 4
 Enter pressure: 1
 For upper boundary in 2-th dimension
 Enter type of Dirichlet boundary: FLOW_THROUGH
@@ -110,4 +110,4 @@ Enter the sample line type: xy
 Enter the sample line coordinate: 10 2.5
 Enter the start step for sample: 0
 Enter the end step for sample: 1000
-Enter the step interval for sample: 10
+Enter the step interval for sample: 5

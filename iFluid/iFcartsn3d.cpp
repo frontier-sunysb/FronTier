@@ -229,6 +229,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
 	if (debugging("trace"))
 	    printf("Passed setComponent()\n");
 
+	paintAllGridPoint(TO_SOLVE);
 	setGlobalIndex();
 	if (debugging("trace"))
 	    printf("Passed setGlobalIndex()\n");
@@ -1107,17 +1108,26 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
         }
         elliptic_solver.D = diff_coeff;
         elliptic_solver.source = source;
-        elliptic_solver.ilower = ilower;
-        elliptic_solver.iupper = iupper;
         elliptic_solver.soln = array;
-        elliptic_solver.ijk_to_I = ijk_to_I;
         elliptic_solver.set_solver_domain();
         elliptic_solver.getStateVar = getStatePhi;
         elliptic_solver.findStateAtCrossing = findStateAtCrossing;
-	if (iFparams->total_div_cancellation)
-            elliptic_solver.dsolve(array);
-	else
-            elliptic_solver.solve(array);
+	paintAllGridPoint(NOT_SOLVED);
+	while (paintToSolveGridPoint())
+	{
+	    setGlobalIndex();
+	    setIndexMap();
+            elliptic_solver.ijk_to_I = ijk_to_I;
+            elliptic_solver.ilower = ilower;
+            elliptic_solver.iupper = iupper;
+	    printf("iupper - ilower = %d\n",iupper-ilower);
+	    if (iFparams->total_div_cancellation)
+            	elliptic_solver.dsolve(array);
+	    else
+            	elliptic_solver.solve(array);
+	    paintSolvedGridPoint();
+	}
+
 
 	min_phi =  HUGE;
 	max_phi = -HUGE;

@@ -972,6 +972,8 @@ extern void fluid_print_front_states(
             FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
             fprintf(outfile,"%24.18g %24.18g\n",getStatePres(sl),
                                 getStatePres(sr));
+            fprintf(outfile,"%24.18g %24.18g\n",getStatePhi(sl),
+                                getStatePhi(sr));
             if (dim == 2)
             {
                 fprintf(outfile,"%24.18g %24.18g\n",getStateXvel(sl),
@@ -1022,6 +1024,7 @@ extern void fluid_read_front_states(
             FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
             lstate = (STATE*)sl;        rstate = (STATE*)sr;
             fscanf(infile,"%lf %lf",&lstate->pres,&rstate->pres);
+            fscanf(infile,"%lf %lf",&lstate->phi,&rstate->phi);
             fscanf(infile,"%lf %lf",&lstate->vel[0],&rstate->vel[0]);
             fscanf(infile,"%lf %lf",&lstate->vel[1],&rstate->vel[1]);
             if (dim == 2)

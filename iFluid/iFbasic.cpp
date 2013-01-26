@@ -213,6 +213,8 @@ void Incompress_Solver_Smooth_Basis::setIndexMap(void)
 	    for (i = imin; i <= imax; i++)
 	    {
 		ic = d_index3d(i,j,k,top_gmax);
+		if (domain_status[ic] != TO_SOLVE)
+		    continue;
 		if (cell_center[ic].comp != SOLID_COMP)
 		{
                     ijk_to_I[i][j][k] = index + ilower;
@@ -518,6 +520,7 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 					sizeof(double));
 	    	FT_MatrixMemoryAlloc((POINTER*)&field->vort3d,3,size,
 					sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&domain_status,size,INT);
 	    	first = NO;
 	    }
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
@@ -574,6 +577,7 @@ void Incompress_Solver_Smooth_Basis::setGlobalIndex()
 	    {
 		ic = d_index3d(i,j,k,top_gmax);
 		if (cell_center[ic].comp == SOLID_COMP) continue;
+		if (domain_status[ic] != TO_SOLVE) continue;
 		NLblocks++;
 	    }
 	    break;
@@ -620,6 +624,7 @@ void Incompress_Solver_Smooth_Basis::printFrontInteriorStates(char *out_name)
 		index = d_index2d(i,j,top_gmax);
 	        fprintf(outfile,"%24.18g\n",field->rho[index]);
 	        fprintf(outfile,"%24.18g\n",field->pres[index]);
+	        fprintf(outfile,"%24.18g\n",field->phi[index]);
 	        fprintf(outfile,"%24.18g\n",field->mu[index]);
 	    	for (l = 0; l < dim; ++l)
 	            fprintf(outfile,"%24.18g\n",vel[l][index]);
@@ -633,6 +638,7 @@ void Incompress_Solver_Smooth_Basis::printFrontInteriorStates(char *out_name)
 		index = d_index3d(i,j,k,top_gmax);
 	        fprintf(outfile,"%24.18g\n",field->rho[index]);
 	        fprintf(outfile,"%24.18g\n",field->pres[index]);
+	        fprintf(outfile,"%24.18g\n",field->phi[index]);
 	        fprintf(outfile,"%24.18g\n",field->mu[index]);
 	    	for (l = 0; l < dim; ++l)
 	            fprintf(outfile,"%24.18g\n",vel[l][index]);
@@ -687,6 +693,7 @@ void Incompress_Solver_Smooth_Basis::readFrontInteriorStates(char *restart_name)
 		index = d_index2d(i,j,top_gmax);
 	    	fscanf(infile,"%lf",&field->rho[index]);
 	    	fscanf(infile,"%lf",&field->pres[index]);
+	    	fscanf(infile,"%lf",&field->phi[index]);
 	    	fscanf(infile,"%lf",&field->mu[index]);
 		for (l = 0; l < dim; ++l)
 	    	    fscanf(infile,"%lf",&vel[l][index]);
@@ -700,6 +707,7 @@ void Incompress_Solver_Smooth_Basis::readFrontInteriorStates(char *restart_name)
 		index = d_index3d(i,j,k,top_gmax);
 	    	fscanf(infile,"%lf",&field->rho[index]);
 	    	fscanf(infile,"%lf",&field->pres[index]);
+	    	fscanf(infile,"%lf",&field->phi[index]);
 	    	fscanf(infile,"%lf",&field->mu[index]);
 		for (l = 0; l < dim; ++l)
 	    	    fscanf(infile,"%lf",&vel[l][index]);
@@ -2418,3 +2426,174 @@ double linear_flux(
 	else
 	    return a*(ur - um);
 }	/* end net_uwind_flux */
+
+
+void Incompress_Solver_Smooth_Basis::paintAllGridPoint(int status)
+{
+	int i,j,k,ic;	
+	switch(dim)
+	{
+	case 2:
+	    break;
+	case 3:
+	    for (k = kmin; k <= kmax; k++)
+	    for (j = jmin; j <= jmax; j++)
+	    for (i = imin; i <= imax; i++)
+	    {
+		ic = d_index3d(i,j,k,top_gmax);
+		domain_status[ic] = status;
+	    }
+	    break;
+	}
+}	/* end paintAllGridPoint */
+
+void Incompress_Solver_Smooth_Basis::paintSolvedGridPoint()
+{
+	int i,j,k,ic;	
+	switch(dim)
+	{
+	case 2:
+	    break;
+	case 3:
+	    for (k = kmin; k <= kmax; k++)
+	    for (j = jmin; j <= jmax; j++)
+	    for (i = imin; i <= imax; i++)
+	    {
+		ic = d_index3d(i,j,k,top_gmax);
+		if (domain_status[ic] == TO_SOLVE)
+		    domain_status[ic] = SOLVED;
+	    }
+	    break;
+	}
+}	/* end paintSolvedGridPoin */
+
+boolean Incompress_Solver_Smooth_Basis::paintToSolveGridPoint()
+{
+	GRID_DIRECTION  dir[6] = {EAST,NORTH,UPPER,WEST,SOUTH,LOWER};
+	int idir,i,j,k,n,ic,*ip,ipn[MAXD];
+	int ip_seed[MAXD];
+	static int **ips,ip_size;
+	boolean seed_found = NO;
+	int paint_method;
+
+	paint_method = BY_CROSSING;
+
+	start_clock("paint_color");
+	smin[0] = imin;	smin[1] = jmin;	smin[2] = kmin;
+	smax[0] = imax;	smax[1] = jmax;	smax[2] = kmax;
+	if (ips == NULL)
+	{
+	    ip_size = 1;
+	    for (i = 0; i < dim; ++i)
+	    	ip_size *= (smax[i] - smin[i] + 1); 
+	    FT_MatrixMemoryAlloc((POINTER*)&ips,ip_size,dim,sizeof(int));
+	}
+
+	seed_found = NO;
+	for (k = kmin; k <= kmax; k++)
+	{
+	    for (j = jmin; j <= jmax; j++)
+	    {
+		for (i = imin; i <= imax; i++)
+		{
+		    ic = d_index3d(i,j,k,top_gmax);	
+		    if (domain_status[ic] == NOT_SOLVED)
+		    {
+			ip_seed[0] = i;
+			ip_seed[1] = j;
+			ip_seed[2] = k;
+			domain_status[ic] = TO_SOLVE;
+			seed_found = YES;
+			break;
+		    }
+		}
+		if (seed_found) break;
+	    }
+	    if (seed_found) break;
+	}
+	if (!seed_found)
+	{
+	    stop_clock("paint_color");
+	    return NO;
+	}
+
+	/* Start traversing through connected neighbors */
+
+	n = 0;
+	for (i = 0; i < dim; ++i)
+	    ips[n][i] = ip_seed[i];
+	ip = ips[n++];
+
+	while (n != 0)
+	{
+start_loop:
+	    for (idir = 0; idir < dim*2; ++idir)
+	    {
+	    	if (nextConnectedPoint(ip,dir[idir],ipn,paint_method,smin,smax))
+	    	{
+		    for (i = 0; i < dim; ++i)
+		    {
+		    	ips[n][i] = ipn[i];
+		    }
+		    ic = d_index(ipn,top_gmax,dim);
+		    domain_status[ic] = TO_SOLVE;
+		    ip = ips[n];
+		    n++;
+		    if (n >= ip_size)
+		    {
+			(void) printf("Dead loop! Check code!\n");
+			clean_up(ERROR);
+		    }
+		    goto start_loop;
+	    	}
+	    }
+	    n--;
+	    ip = ips[n];
+	}
+	stop_clock("paint_color");
+	return YES;
+}	/* end paintToSolveGridPoint */
+
+boolean Incompress_Solver_Smooth_Basis::nextConnectedPoint(
+	int *ip,
+	GRID_DIRECTION dir,
+	int *ipn,
+	int paint_method,
+	int *smin,
+	int *smax)
+{
+	int id,idn;
+	double crx_coords[MAXD];
+	HYPER_SURF *hs;
+	POINTER intfc_state;
+
+	if (!next_ip_in_dir(ip,dir,ipn,smin,smax))
+	    return NO;
+	idn = d_index(ipn,top_gmax,dim);
+	if (domain_status[idn] != NOT_SOLVED)
+	    return NO;
+
+	switch (paint_method)
+	{
+	case BY_COMPONENT:
+	    id = d_index(ip,top_gmax,dim); 
+	    idn = d_index(ipn,top_gmax,dim); 
+	    if (top_comp[id] == top_comp[idn]) 
+		return YES;
+	    else 
+		return NO;
+	case BY_CROSSING:
+	    id = d_index(ip,top_gmax,dim); 
+	    if ((*findStateAtCrossing)(front,ip,dir,top_comp[id],
+                                &intfc_state,&hs,crx_coords))
+		return NO;
+	    else
+		return YES;
+	case BY_WALL:
+	    idn = d_index(ipn,top_gmax,dim); 
+	    if (top_comp[idn] == SOLID_COMP) 
+		return NO;
+	    else 
+		return YES;
+	}
+}	/* end connectedPoint */
