@@ -109,11 +109,6 @@ int main(int argc, char **argv)
 	/* Can be viewed by the xgraph:
 	 * xgraph -P -bg white file.xg */
 
-        sprintf(restart_name,"%s/intfc-ts%s",restart_name,
-                        right_flush(RestartStep,7));
-        if (pp_numnodes() > 1)
-            sprintf(restart_name,"%s-nd%s",restart_name, 
-                                right_flush(pp_mynode(),4));
 	xgraph_interface_curves(".",redist_name,front.interf,XY_PLANE);
 
 	/* Default redistribute */
@@ -125,7 +120,7 @@ int main(int argc, char **argv)
 	xgraph_interface_curves(".",redist_name,front.interf,XY_PLANE);
 
 	/* Finer: spacing = 0.1 of rectangular mesh size */
-	FrontSetSpacing(&front,0.1);
+	FT_SetCurveSpacing(&front,0.1);
 	FT_RedistMesh(&front);
 	sprintf(redist_name,"redist-%d",right_flush(count++,3));
 #if defined(__MPI__)
@@ -134,7 +129,7 @@ int main(int argc, char **argv)
 	xgraph_interface_curves(".",redist_name,front.interf,XY_PLANE);
 
 	/* Coarser: spacing = 3.0 of rectangular mesh size */
-	FrontSetSpacing(&front,3.0);
+	FT_SetCurveSpacing(&front,3.0);
 	FT_RedistMesh(&front);
 	sprintf(redist_name,"redist-%d",right_flush(count++,3));
 #if defined(__MPI__)

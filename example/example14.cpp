@@ -125,23 +125,18 @@ static void map_output_interface(
 	step = front->step;
 	char filename[100];
 
-        sprintf(restart_name,"%s/intfc-ts%s",restart_name,
-                        right_flush(RestartStep,7));
-        if (pp_numnodes() > 1)
-            sprintf(restart_name,"%s-nd%s",restart_name, 
-                                right_flush(pp_mynode(),4));
 	out_file = fopen(filename,"w");
 	
-	int num_curves = NumOfCurves(intfc);
+	int num_curves = FT_NumOfIntfcCurves(intfc);
 	int dim = Dimension(intfc);
-	int num_nodes = NumOfNodes(intfc);
-	int num_bonds = NumOfIntfcBonds(intfc);
-	int num_points = NumOfIntfcPoints(intfc);
+	int num_nodes = FT_NumOfIntfcNodes(intfc);
+	int num_bonds = FT_NumOfIntfcBonds(intfc);
+	int num_points = FT_NumOfIntfcPoints(intfc);
 
 	CURVE **curves;
 	curves = (CURVE**)malloc(num_curves*sizeof(CURVE*));
 
-	ArrayOfCurves(intfc,curves);
+	FT_ArrayOfIntfcCurves(intfc,curves);
 
 	fprintf(out_file,"Interface at step %d\n\n",step);
 	fprintf(out_file,"Dimension = %d\n",dim);
@@ -153,8 +148,8 @@ static void map_output_interface(
 	{
 	    double *coords;
 
-	    num_bonds = NumOfCurveBonds(curves[i]);
-	    num_points = NumOfCurvePoints(curves[i]);
+	    num_bonds = FT_NumOfCurveBonds(curves[i]);
+	    num_points = FT_NumOfCurvePoints(curves[i]);
 	    coords = (double*)malloc(num_points*dim*sizeof(double));
 
 	    ArrayOfCurvePoints(curves[i],coords);
