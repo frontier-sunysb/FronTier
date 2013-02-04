@@ -319,6 +319,7 @@ protected:
 	void   save(char *filename);
 	double computeFieldPointDiv(int*, double**);
 	void   computeFieldPointGrad(int*, double*, double*);
+	void   checkVelocityDiv(const char*);
 
 /************* TMP Functions which are not implemented or used ***********/
 

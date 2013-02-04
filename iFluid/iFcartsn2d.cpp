@@ -295,27 +295,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocity(void)
 	}
 	if (debugging("check_div"))
         {
-            double div_tmp,div_max,div_min;
-            div_max = -HUGE;
-            div_min =  HUGE;
-            for (j = jmin; j <= jmax; j++)
-            for (i = imin; i <= imax; i++)
-            {
-                index  = d_index2d(i,j,top_gmax);
-                icoords[0] = i;
-                icoords[1] = j;
-                div_tmp = computeFieldPointDiv(icoords,vel);
-                if (div_max < div_tmp) div_max = div_tmp;
-                if (div_min > div_tmp) div_min = div_tmp;
-            }
-            div_tmp = max_speed/top_L[0];
-            (void) printf("After computeNewVelocity():\n");
-            (void) printf("Max divergence = %20.14f\n",div_max);
-            (void) printf("Min divergence = %20.14f\n",div_min);
-            (void) printf("Max relative divergence = %20.14f\n",
-                                div_max/div_tmp);
-            (void) printf("Min relative divergence = %20.14f\n",
-                                div_min/div_tmp);
+	    checkVelocityDiv("After computeNewVelocity2d()");
         }
 	pp_global_max(&max_speed,1);
 }	/* end computeNewVelocity2d */

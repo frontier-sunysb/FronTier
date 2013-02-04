@@ -2681,3 +2681,68 @@ boolean Incompress_Solver_Smooth_Basis::nextConnectedPoint(
 		return YES;
 	}
 }	/* end connectedPoint */
+
+void Incompress_Solver_Smooth_Basis::checkVelocityDiv(const char *mesg)
+{
+	double **vel = field->vel;
+	double div_tmp,denom;
+	double div_max = -HUGE;
+	double div_min =  HUGE;
+	int i,j,k,l,index;
+	int icoords[MAXD];
+	double vmax[MAXD],vmin[MAXD];
+	
+
+	for (l = 0; l < dim; ++l)
+	{
+	    vmax[l] = -HUGE;
+	    vmin[l] = HUGE;
+	}
+	switch (dim)
+	{
+	case 2:
+            for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
+	    {
+		icoords[0] = i;
+                icoords[1] = j;
+		index = d_index2d(i,j,top_gmax);
+		for (l = 0; l < dim; ++l)
+		{
+		    if (vmax[l] < vel[l][index]) vmax[l] = vel[l][index];
+		    if (vmin[l] > vel[l][index]) vmin[l] = vel[l][index];
+		}
+		div_tmp = computeFieldPointDiv(icoords,vel);
+		if (div_max < div_tmp) div_max = div_tmp;
+                if (div_min > div_tmp) div_min = div_tmp;
+	    }
+	    break;
+	case 3:
+	    for (k = kmin; k <= kmax; k++)
+            for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
+	    {
+		icoords[0] = i;
+                icoords[1] = j;
+                icoords[2] = k;
+		index = d_index3d(i,j,k,top_gmax);
+		for (l = 0; l < dim; ++l)
+		{
+		    if (vmax[l] < vel[l][index]) vmax[l] = vel[l][index];
+		    if (vmin[l] > vel[l][index]) vmin[l] = vel[l][index];
+		}
+		div_tmp = computeFieldPointDiv(icoords,vel);
+		if (div_max < div_tmp) div_max = div_tmp;
+                if (div_min > div_tmp) div_min = div_tmp;
+	    }
+	    break;
+	}
+	denom = 0.0;
+	for (l = 0; l < dim; ++l)
+	    denom += fabs((vmax - vmin)/(top_U[l] - top_L[l]));
+	(void) printf("Check divergence at %s\n",mesg);
+	(void) printf("Absolute divergence: max = %20.14f  div_min = %20.14f\n",
+			div_max,div_min);
+	(void) printf("Relative divergence: max = %20.14f  div_min = %20.14f\n",
+			div_max/denom,div_min/denom);
+}	/* end checkVelocityDiv */
