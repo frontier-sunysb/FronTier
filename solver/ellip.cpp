@@ -184,6 +184,11 @@ void ELLIPTIC_SOLVER::solve1d(double *soln)
 	if (use_neumann_solver)
 	{
 	    (void) printf("\nUsing Neumann Solver!\n");
+	    if (size < 3)
+	    {
+	    	(void) printf("Isolated small region for solve1d()\n");
+		stop_clock("Petsc Solver");
+	    }
 	    solver.Solve_withPureNeumann();
 	    solver.GetNumIterations(&num_iter);
 	    solver.GetFinalRelativeResidualNorm(&rel_residual);
@@ -231,6 +236,7 @@ void ELLIPTIC_SOLVER::solve1d(double *soln)
 	{
 	    index = d_index1d(i,top_gmax);
 	    I = i_to_I[i];
+	    if (I == -1) continue;
 	    soln[index] = x[I-ilower];
 	    if (max_soln < soln[index]) max_soln = soln[index];
 	    if (min_soln > soln[index]) min_soln = soln[index];
@@ -358,6 +364,11 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 	if (use_neumann_solver)
 	{
 	    (void) printf("\nUsing Neumann Solver!\n");
+	    if (size < 5)
+	    {
+	    	(void) printf("Isolated small region for solve2d()\n");
+		stop_clock("Petsc Solver");
+	    }
 	    solver.Solve_withPureNeumann();
 	    solver.GetNumIterations(&num_iter);
 	    solver.GetFinalRelativeResidualNorm(&rel_residual);
@@ -406,7 +417,7 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 	{
 	    index = d_index2d(i,j,top_gmax);
 	    I = ij_to_I[i][j];
-	    if (I == -1) soln[index] = 0.0;
+	    if (I == -1) continue;
 	    else soln[index] = x[I-ilower];
 	    if (max_soln < soln[index]) 
 	    {
@@ -553,6 +564,12 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 	if (use_neumann_solver)
 	{
 	    printf("\nUsing Neumann Solver!\n");
+	    if (size < 7)
+	    {
+	    	(void) printf("Isolated small region for solve3d()\n");
+		stop_clock("Petsc Solver");
+		return;
+	    }
 	    solver.Solve_withPureNeumann();
 	    solver.GetNumIterations(&num_iter);
 	    solver.GetFinalRelativeResidualNorm(&rel_residual);
@@ -602,6 +619,7 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 	{
 	    index = d_index3d(i,j,k,top_gmax);
 	    I = ijk_to_I[i][j][k];
+	    if (I == -1) continue;
 	    soln[index] = x[I-ilower];
 	    if (max_soln < soln[index]) 
 	    {
@@ -816,8 +834,14 @@ void ELLIPTIC_SOLVER::dsolve2d(double *soln)
 	if (use_neumann_solver)
 	{
 	    (void) printf("\nUsing Neumann Solver!\n");
+	    if (size < 5)
+	    {
+	    	(void) printf("Isolated small region for dsolve2d()\n");
+		stop_clock("Petsc Solver");
+		return;
+	    }
 	    (void) printf("Neumann solver is not yet working for dsolve2d()\n");
-	    clean_up(0);
+	    clean_up(ERROR);
 	    solver.Solve_withPureNeumann();
 	    solver.GetNumIterations(&num_iter);
 	    solver.GetFinalRelativeResidualNorm(&rel_residual);
@@ -865,6 +889,7 @@ void ELLIPTIC_SOLVER::dsolve2d(double *soln)
 	{
 	    index = d_index2d(i,j,top_gmax);
 	    I = ij_to_I[i][j];
+	    if (I == -1) continue;
 	    soln[index] = x[I-ilower];
 	    if (max_soln < soln[index]) 
 	    {
@@ -1012,6 +1037,12 @@ void ELLIPTIC_SOLVER::dsolve3d(double *soln)
 	if (use_neumann_solver)
 	{
 	    (void) printf("\nUsing Neumann Solver!\n");
+	    if (size < 7)
+	    {
+	    	(void) printf("Isolated small region for dsolve3d()\n");
+		stop_clock("Petsc Solver");
+		return;
+	    }
 	    (void) printf("Neumann solver not working for dsolve3d()\n");
 	    clean_up(ERROR);
 	    solver.Solve_withPureNeumann();
@@ -1062,6 +1093,7 @@ void ELLIPTIC_SOLVER::dsolve3d(double *soln)
 	{
 	    index = d_index3d(i,j,k,top_gmax);
 	    I = ijk_to_I[i][j][k];
+	    if (I == -1) continue;
 	    soln[index] = x[I-ilower];
 	    if (max_soln < soln[index]) 
 	    {

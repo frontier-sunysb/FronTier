@@ -67,10 +67,10 @@ gif :
 	hdf2gif out/intfc.hdf out/intfc.gif
 
 TagsFile:
-	ctags *.h *.cpp ../iFluid/*.h ../iFluid/*.cpp ../solver/solver.h ../solver/solver.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+	ctags *.h *.cpp ../iFluid/*.h ../iFluid/*.cpp ../solver/solver.h ../solver/*.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
 
 tagsfile:
-	ctags *.h *.cpp ../iFluid/*.h ../iFluid/*.cpp ../solver/solver.h ../solver/solver.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+	ctags *.h *.cpp ../iFluid/*.h ../iFluid/*.cpp ../solver/solver.h ../solver/*.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
 
 etagsfile:
-	etags *.h *.cpp ../iFluid/*.h ../iFluid/*.cpp ../solver/solver.h ../solver/solver.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+	etags *.h *.cpp ../iFluid/*.h ../iFluid/*.cpp ../solver/solver.h ../solver/*.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
