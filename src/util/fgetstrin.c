@@ -127,7 +127,7 @@ EXPORT	boolean CursorAfterStringOpt(
 	if (fgetstring(file,strng) == FUNCTION_FAILED)
 	{
 	    fseek(file,cur_pos,SEEK_SET);
-	    screen("Cannot find the string, using default\n");
+	    screen("\nCannot find the string, using default\n");
 	    return NO;
 	}
 	return YES;

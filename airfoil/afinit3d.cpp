@@ -106,9 +106,11 @@ extern void initEllipticSurf(
                     level_func_pack->string_func =
                                 install_strings_and_rotate_w_gores;
                     af_params->attach_gores = YES;
-                    CursorAfterStringOpt(infile,"Enter gore length factor:");
-                    fscanf(infile,"%lf",&(af_params->gore_len_fac));
-                    (void) printf("%f\n",af_params->gore_len_fac);
+                    if(CursorAfterStringOpt(infile,"Enter gore length factor:"))
+		    {
+                    	fscanf(infile,"%lf",&(af_params->gore_len_fac));
+                    	(void) printf("%f\n",af_params->gore_len_fac);
+		    }
 		    string[0] = 'r';		// default
 		    if(CursorAfterStringOpt(infile, "Enter gore type:"))
 		    {
@@ -270,9 +272,11 @@ extern void initParabolicSurf(
 		    level_func_pack->string_func = 
 		    		install_strings_and_rotate_w_gores;
 		    af_params->attach_gores = YES;
-		    CursorAfterStringOpt(infile,"Enter gore length factor:");
-		    fscanf(infile,"%lf",&(af_params->gore_len_fac));
-		    (void) printf("%f\n",af_params->gore_len_fac);
+		    if(CursorAfterStringOpt(infile,"Enter gore length factor:"))
+		    {
+		    	fscanf(infile,"%lf",&(af_params->gore_len_fac));
+		    	(void) printf("%f\n",af_params->gore_len_fac);
+		    }
 		}
 		else 
 		    level_func_pack->string_func = install_strings_and_rotate;
@@ -2025,10 +2029,12 @@ static void initCircularPlaneEdge(
 		    level_func_pack->string_func = 
 			    		install_strings_and_rotate_w_gores;
 		    af_params->attach_gores = YES;
-		    CursorAfterStringOpt(infile,
-				"Enter gore length factor:");
-		    fscanf(infile,"%lf",&(af_params->gore_len_fac));
-		    (void) printf("%f\n",af_params->gore_len_fac);
+		    if (CursorAfterStringOpt(infile,
+				"Enter gore length factor:"))
+		    {
+		    	fscanf(infile,"%lf",&(af_params->gore_len_fac));
+		    	(void) printf("%f\n",af_params->gore_len_fac);
+		    }
 		}
 	    }
 	    if (CursorAfterStringOpt(infile,
@@ -2366,10 +2372,12 @@ static void initEllipticPlaneEdge(
                         level_func_pack->string_func =
                                     install_strings_and_rotate_w_gores;
                         af_params->attach_gores = YES;
-                        CursorAfterStringOpt(infile,
-                                "Enter gore length factor:");
-                        fscanf(infile,"%lf",&(af_params->gore_len_fac));
-                        (void) printf("%f\n",af_params->gore_len_fac);
+                        if (CursorAfterStringOpt(infile,
+                                "Enter gore length factor:"))
+			{
+                            fscanf(infile,"%lf",&(af_params->gore_len_fac));
+                            (void) printf("%f\n",af_params->gore_len_fac);
+			}
 
                 	for (i = 0; i < num_canopy; ++i)
                   	{
@@ -2412,10 +2420,12 @@ static void initEllipticPlaneEdge(
 		    else if (string[0] == 'p' || string[0] == 'P')
 		    {
                         af_params->attach_gores = YES;
-                        CursorAfterStringOpt(infile,
-                                "Enter gore length factor:");
-                        fscanf(infile,"%lf",&(af_params->gore_len_fac));
-                        (void) printf("%f\n",af_params->gore_len_fac);
+                        if (CursorAfterStringOpt(infile,
+                                "Enter gore length factor:"))
+			{
+                            fscanf(infile,"%lf",&(af_params->gore_len_fac));
+                            (void) printf("%f\n",af_params->gore_len_fac);
+			}
 
                     	CursorAfterString(infile, 
 				"Enter number of vertical gores:");

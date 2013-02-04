@@ -127,9 +127,11 @@ void ELLIPTIC_SOLVER::solve1d(double *soln)
 	    {
 		status = (*findStateAtCrossing)(front,icoords,dir[l],comp,
                                 &intfc_state,&hs,crx_coords);
-                if (status == CONST_V_PDE_BOUNDARY)
+		if (status != CONST_V_PDE_BOUNDARY)
+		    num_nb++;
+                if (status == CONST_V_PDE_BOUNDARY ||
+		    status == CONST_P_PDE_BOUNDARY)
 		    index_nb[l] = index;
-		else num_nb++;
 		k_nb[l] = 0.5*(k0 + D[index_nb[l]]);
 	    	coeff[l] = k_nb[l]/(top_h[l/2]*top_h[l/2]); 
 	    }
@@ -300,16 +302,11 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 	    {
 		status = (*findStateAtCrossing)(front,icoords,dir[l],comp,
                                 &intfc_state,&hs,crx_coords);
-		if (status == CONST_V_PDE_BOUNDARY)
-		{
-		    index_nb[l] = index;
-		}
-		else if (status == CONST_P_PDE_BOUNDARY)
-		{
-		    index_nb[l] = index;
+		if (status != CONST_V_PDE_BOUNDARY)
 		    num_nb++;
-		}
-		else num_nb++;
+                if (status == CONST_V_PDE_BOUNDARY ||
+		    status == CONST_P_PDE_BOUNDARY)
+		    index_nb[l] = index;
 		k_nb[l] = 0.5*(k0 + D[index_nb[l]]);
 	    	coeff[l] = k_nb[l]/(top_h[l/2]*top_h[l/2]); 
 	    }
@@ -500,9 +497,11 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 	    {
 		status = (*findStateAtCrossing)(front,icoords,dir[l],comp,
                                 &intfc_state,&hs,crx_coords);
-                if (status == CONST_V_PDE_BOUNDARY)
+		if (status != CONST_V_PDE_BOUNDARY)
+		    num_nb++;
+                if (status == CONST_V_PDE_BOUNDARY ||
+		    status == CONST_P_PDE_BOUNDARY)
 		    index_nb[l] = index;
-		else num_nb++;
 		k_nb[l] = 0.5*(k0 + D[index_nb[l]]);
 	    	coeff[l] = k_nb[l]/(top_h[l/2]*top_h[l/2]); 
 	    }

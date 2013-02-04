@@ -880,6 +880,7 @@ static void print_airfoil_stat3d_1(
 	TRI *tri;
 	POINT *p;
 	static FILE *eskfile,*espfile,*egpfile,*efile,*exkfile,*enkfile;
+	static FILE *vmaxfile;
 	static FILE *afile,*sfile,*pfile,*vfile;
 	static FILE *xcom_file,*vcom_file;
 	static FILE *samplex,*sampley,*samplez;
@@ -898,9 +899,15 @@ static void print_airfoil_stat3d_1(
 	static POINT **pts;
 	POINT *psample;
 	static double p0[MAXD];
+	double vmax = -HUGE;
+	int Gmax,Posn_max;
+	static FILE *gfile;
+	POINTER obj_max;
 
 	if (eskfile == NULL)
         {
+	    sprintf(fname,"%s/max_index.dat",out_name);
+            gfile = fopen(fname,"w");
 	    sprintf(fname,"%s/esk.xg",out_name);
             eskfile = fopen(fname,"w");
 	    sprintf(fname,"%s/esp.xg",out_name);
@@ -931,21 +938,39 @@ static void print_airfoil_stat3d_1(
             sampley = fopen(fname,"w");
 	    sprintf(fname,"%s/samplez.xg",out_name);
             samplez = fopen(fname,"w");
-            fprintf(eskfile,"\"Spr-kinetic energy vs. time\"\n");
-            fprintf(espfile,"\"Spr-potentl energy vs. time\"\n");
-            fprintf(exkfile,"\"Ext-kinetic energy vs. time\"\n");
-            fprintf(egpfile,"\"Ext-potentl energy vs. time\"\n");
-            fprintf(enkfile,"\"Kinetic energy vs. time\"\n");
-            fprintf(efile,"\"Total energy vs. time\"\n");
-            fprintf(afile,"\"Canopy area vs. time\"\n");
-            fprintf(sfile,"\"String length vs. time\"\n");
-            fprintf(pfile,"\"Payload hight vs. time\"\n");
-            fprintf(vfile,"\"Payload velo vs. time\"\n");
-            fprintf(xcom_file,"\"COM vs. time\"\n");
-            fprintf(vcom_file,"\"V-COM vs. time\"\n");
-            fprintf(samplex,"\"x-coords vs. time\"\n");
-            fprintf(sampley,"\"y-coords vs. time\"\n");
-            fprintf(samplez,"\"z-coords vs. time\"\n");
+	    sprintf(fname,"%s/vmax.xg",out_name);
+            vmaxfile = fopen(fname,"w");
+            fprintf(eskfile,"Next\n""!Spr-kinetic energy vs. time\n"
+			    "color=blue\n");
+            fprintf(espfile,"Next\n""!Spr-potentl energy vs. time\n"
+			    "color=red\n""thickness=1.5\n");
+            fprintf(exkfile,"Next\n""!Ext-kinetic energy vs. time\n"
+			    "color=green\n""thickness=1.5\n");
+            fprintf(egpfile,"Next\n""!Ext-potential energy vs. time\n"
+			    "color=orange\n""thickness=1.5\n");
+            fprintf(enkfile,"Next\n""!Kinetic energy vs. time\n"
+			    "color=yellow\n""thickness=1.5\n");
+            fprintf(efile,"Next\n""!Total energy vs. time\n"
+			    "color=navy\n""thickness=1.5\n");
+
+            fprintf(afile,"!Canopy area vs. time\n""color=blue\n"
+			    "thickness=1.5\n");
+            fprintf(sfile,"!String length vs. time\n""color=blue\n"
+			    "thickness=1.5\n");
+            fprintf(pfile,"!Payload hight vs. time\n""color=blue\n"
+			    "thickness=1.5\n");
+            fprintf(vfile,"!Payload velo vs. time\n""color=blue\n"
+			    "thickness=1.5\n");
+            fprintf(xcom_file,"!COM vs. time\n""color=blue\n"
+			    "thickness=1.5\n");
+            fprintf(vcom_file,"!V-COM vs. time\n""color=blue\n"
+			    "thickness=1.5\n");
+            fprintf(samplex,"!x-coords vs. time\n""color=blue\n"
+			    "thickness=1.5\n");
+            fprintf(sampley,"!y-coords vs. time\n""color=red\n"
+			    "thickness=1.5\n");
+            fprintf(samplez,"!z-coords vs. time\n""color=yellow\n"
+			    "thickness=1.5\n");
         }
 	ks = af_params->ks;
         m_s = af_params->m_s;
@@ -990,6 +1015,13 @@ static void print_airfoil_stat3d_1(
 		    if (sorted(p) || Boundary_point(p)) continue;
 		    for (k = 0; k < dim; ++k)
 		    {
+			if (fabs(p->vel[k]) > vmax)
+			{
+			    vmax = fabs(p->vel[k]);
+			    Gmax = Gindex(p);
+			    Posn_max = 0;
+			    obj_max = (POINTER)surf;
+			}
                     	esk += 0.5*m_s*sqr(p->vel[k]);
 			egp += -g[k]*m_s*Coords(p)[k];
 			st = (STATE*)left_state(p);
@@ -1031,6 +1063,13 @@ static void print_airfoil_stat3d_1(
 		if (b != curve->last)
 		    for (k = 0; k < dim; ++k)
 		    {
+			if (fabs(b->end->vel[k]) > vmax)
+			{
+			    vmax = fabs(b->end->vel[k]);
+			    Gmax = Gindex(b->end);
+			    Posn_max = 1;
+			    obj_max = (POINTER)curve;
+			}
 		    	esk += 0.5*m_l*sqr(b->end->vel[k]);
 			egp += -g[k]*m_l*Coords(b->end)[k];
 			st = (STATE*)left_state(b->end);
@@ -1071,6 +1110,13 @@ static void print_airfoil_stat3d_1(
                 }
                 for (k = 0; k < dim; ++k)
                 {
+		    if (fabs(node->posn->vel[k]) > vmax)
+		    {
+			vmax = fabs(node->posn->vel[k]);
+			Gmax = Gindex(node->posn);
+			Posn_max = 2;
+			obj_max = (POINTER)node;
+		    }
                     esk += 0.5*m_l*sqr(node->posn->vel[k]);
                     egp += -g[k]*m_l*Coords(node->posn)[k];
                     st = (STATE*)left_state(node->posn);
@@ -1114,10 +1160,37 @@ static void print_airfoil_stat3d_1(
         fprintf(sfile,"%16.12f  %16.12f\n",front->time,str_length);
         fprintf(pfile,"%16.12f  %16.12f\n",front->time,pz);
         fprintf(vfile,"%16.12f  %16.12f\n",front->time,pv);
+        fprintf(vmaxfile,"%16.12f  %16.12f\n",front->time,vmax);
 	fflush(afile);
 	fflush(sfile);
 	fflush(pfile);
 	fflush(vfile);
+	fflush(vmaxfile);
+        fprintf(gfile,"Max Gindex %d",Gmax);
+	if (Posn_max == 0) 
+	{
+	    surf = (SURFACE*)obj_max;
+	    fprintf(gfile," on surface type:");
+	    fprintf(gfile," %s\n",f_wave_type_as_string(wave_type(surf)));
+	}
+	else if (Posn_max == 1) 
+	{
+	    curve = (CURVE*)obj_max;
+	    fprintf(gfile," on curve type:");
+	    fprintf(gfile," %s\n",f_hsbdry_type_as_string(hsbdry_type(curve)));
+	}
+	else if (Posn_max == 2) 
+	{
+	    node = (NODE*)obj_max;
+	    fprintf(gfile," on node type:\n");
+	    if (is_gore_node(node))
+		fprintf(gfile," GORE_NODE\n");
+	    else if (is_load_node(node))
+		fprintf(gfile," LOAD_NODE\n");
+	    else
+		fprintf(gfile," Other NODE\n");
+	}
+	fflush(gfile);
 
         fprintf(xcom_file,"%16.12f  %16.12f\n",front->time,zcom);
         fprintf(vcom_file,"%16.12f  %16.12f\n",front->time,vcom);

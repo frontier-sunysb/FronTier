@@ -1073,7 +1073,7 @@ extern void read_iFparams(
 	    iFparams->num_scheme.projc_method = PEROT_BOTELLA;
 	}
 	assert(iFparams->num_scheme.projc_method != ERROR_PROJC_SCHEME);
-	(void) printf("The default advection order is WENO-Runge-Kutta 4");
+	(void) printf("The default advection order is WENO-Runge-Kutta 4\n");
 	iFparams->adv_order = 4;
 	if (CursorAfterStringOpt(infile,"Enter advection order:"))
 	{

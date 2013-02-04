@@ -1476,7 +1476,22 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
         static double lambda;
 	char dirname[256];
 	double **vel = field->vel;
+	static char **sample_color;
 
+	if (sample_color == NULL)
+	{
+	    FT_MatrixMemoryAlloc((POINTER*)&sample_color,10,20,sizeof(char));
+	    sprintf(sample_color[0],"red");
+	    sprintf(sample_color[1],"blue");
+	    sprintf(sample_color[2],"green");
+	    sprintf(sample_color[3],"violet");
+	    sprintf(sample_color[4],"orange");
+	    sprintf(sample_color[5],"yellow");
+	    sprintf(sample_color[6],"pink");
+	    sprintf(sample_color[7],"cyan");
+	    sprintf(sample_color[8],"light-gray");
+	    sprintf(sample_color[9],"dark-gray");
+	}
 	if (pp_numnodes() > 1)
 	    return;
 	if (front->step < sample->start_step || front->step > sample->end_step)
@@ -1518,6 +1533,9 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
             i = l;
 	    sprintf(sname, "%s/x-%d.xg",dirname,count);
             sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
             for (j = jmin; j <= jmax; ++j)
             {
                 index = d_index2d(i,j,top_gmax);
@@ -1531,6 +1549,9 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
             fclose(sfile);
 	    sprintf(sname, "%s/y-%d.xg",dirname,count);
             sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
             for (j = jmin; j <= jmax; ++j)
             {
                 index = d_index2d(i,j,top_gmax);
@@ -1544,6 +1565,9 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
             fclose(sfile);
 	    sprintf(sname, "%s/p-%d.xg",dirname,count);
             sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
             for (j = jmin; j <= jmax; ++j)
             {
                 index = d_index2d(i,j,top_gmax);
@@ -1578,6 +1602,9 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
             j = l;
 	    sprintf(sname, "%s/x-%d.xg",dirname,count);
             sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
             for (i = imin; i <= imax; ++i)
             {
                 index = d_index2d(i,j,top_gmax);
@@ -1591,6 +1618,9 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
             fclose(sfile);
 	    sprintf(sname, "%s/y-%d.xg",dirname,count);
             sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
             for (i = imin; i <= imax; ++i)
             {
                 index = d_index2d(i,j,top_gmax);
@@ -1604,6 +1634,9 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
             fclose(sfile);
 	    sprintf(sname, "%s/p-%d.xg",dirname,count);
             sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
             for (i = imin; i <= imax; ++i)
             {
                 index = d_index2d(i,j,top_gmax);
@@ -1799,7 +1832,22 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
 	char *out_name = front-> out_name;
 	char dirname[256];
 	double **vel = field->vel;
+	static char **sample_color;
 
+	if (sample_color == NULL)
+	{
+	    FT_MatrixMemoryAlloc((POINTER*)&sample_color,10,20,sizeof(char));
+	    sprintf(sample_color[0],"red");
+	    sprintf(sample_color[1],"blue");
+	    sprintf(sample_color[2],"green");
+	    sprintf(sample_color[3],"violet");
+	    sprintf(sample_color[4],"orange");
+	    sprintf(sample_color[5],"yellow");
+	    sprintf(sample_color[6],"pink");
+	    sprintf(sample_color[7],"cyan");
+	    sprintf(sample_color[8],"light-gray");
+	    sprintf(sample_color[9],"dark-gray");
+	}
 	if (pp_numnodes() > 1)
 	    return;
 	if (front->step < sample->start_step || front->step > sample->end_step)
@@ -1865,6 +1913,9 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     j = m;
                     sprintf(sname, "%s/x-%d.xg",dirname,count);
                     sfile = fopen(sname,"w");
+		    fprintf(sfile,"Next\n");
+		    fprintf(sfile,"color=%s\n",sample_color[count]);
+		    fprintf(sfile,"thickness=1.5\n");
                     for (k = kmin; k <= kmax; ++k)
                     {
                         index = d_index3d(i,j,k,top_gmax);
@@ -1887,6 +1938,9 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
 
                     sprintf(sname,"%s/y-%d.xg",dirname,count);
                     sfile = fopen(sname,"w");
+		    fprintf(sfile,"Next\n");
+		    fprintf(sfile,"color=%s\n",sample_color[count]);
+		    fprintf(sfile,"thickness=1.5\n");
                     for (k = kmin; k <= kmax; ++k)
                     {
                         index = d_index3d(i,j,k,top_gmax);
@@ -1909,6 +1963,9 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
 
                     sprintf(sname,"%s/z-%d.xg",dirname,count);
                     sfile = fopen(sname,"w");
+		    fprintf(sfile,"Next\n");
+		    fprintf(sfile,"color=%s\n",sample_color[count]);
+		    fprintf(sfile,"thickness=1.5\n");
                     for (k = kmin; k <= kmax; ++k)
                     {
                         index = d_index3d(i,j,k,top_gmax);
@@ -1931,6 +1988,9 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
 
                     sprintf(sname,"%s/p-%d.xg",dirname,count);
                     sfile = fopen(sname,"w");
+		    fprintf(sfile,"Next\n");
+		    fprintf(sfile,"color=%s\n",sample_color[count]);
+		    fprintf(sfile,"thickness=1.5\n");
                     for (k = kmin; k <= kmax; ++k)
                     {
                         index = d_index3d(i,j,k,top_gmax);
@@ -1979,6 +2039,9 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     k = m;
                     sprintf(sname, "%s/x-%d.xg",dirname,count);
                     sfile = fopen(sname,"w");
+		    fprintf(sfile,"Next\n");
+		    fprintf(sfile,"color=%s\n",sample_color[count]);
+		    fprintf(sfile,"thickness=1.5\n");
                     for (j = jmin; j <= jmax; ++j)
                     {
                         index = d_index3d(i,j,k,top_gmax);
@@ -2001,6 +2064,9 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
 
                     sprintf(sname, "%s/y-%d.xg",dirname,count);
                     sfile = fopen(sname,"w");
+		    fprintf(sfile,"Next\n");
+		    fprintf(sfile,"color=%s\n",sample_color[count]);
+		    fprintf(sfile,"thickness=1.5\n");
                     for (j = jmin; j <= jmax; ++j)
                     {
                         index = d_index3d(i,j,k,top_gmax);
@@ -2023,6 +2089,9 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
 
                     sprintf(sname, "%s/z-%d.xg",dirname,count);
                     sfile = fopen(sname,"w");
+		    fprintf(sfile,"Next\n");
+		    fprintf(sfile,"color=%s\n",sample_color[count]);
+		    fprintf(sfile,"thickness=1.5\n");
                     for (j = jmin; j <= jmax; ++j)
                     {
                         index = d_index3d(i,j,k,top_gmax);
@@ -2045,6 +2114,9 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
 
                     sprintf(sname, "%s/p-%d.xg",dirname,count);
                     sfile = fopen(sname,"w");
+		    fprintf(sfile,"Next\n");
+		    fprintf(sfile,"color=%s\n",sample_color[count]);
+		    fprintf(sfile,"thickness=1.5\n");
                     for (j = jmin; j <= jmax; ++j)
                     {
                         index = d_index3d(i,j,k,top_gmax);
@@ -2122,6 +2194,9 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     k = m;
                     sprintf(sname, "%s/x-%d.xg",dirname,count);
                     sfile = fopen(sname,"w");
+		    fprintf(sfile,"Next\n");
+		    fprintf(sfile,"color=%s\n",sample_color[count]);
+		    fprintf(sfile,"thickness=1.5\n");
                     for (i = imin; i <= imax; ++i)
                     {
                         index = d_index3d(i,j,k,top_gmax);
@@ -2144,6 +2219,9 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
 
                     sprintf(sname, "%s/y-%d.xg",dirname,count);
                     sfile = fopen(sname,"w");
+		    fprintf(sfile,"Next\n");
+		    fprintf(sfile,"color=%s\n",sample_color[count]);
+		    fprintf(sfile,"thickness=1.5\n");
                     for (i = imin; i <= imax; ++i)
                     {
                         index = d_index3d(i,j,k,top_gmax);
@@ -2166,6 +2244,9 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
 
                     sprintf(sname, "%s/z-%d.xg",dirname,count);
                     sfile = fopen(sname,"w");
+		    fprintf(sfile,"Next\n");
+		    fprintf(sfile,"color=%s\n",sample_color[count]);
+		    fprintf(sfile,"thickness=1.5\n");
                     for (i = imin; i <= imax; ++i)
                     {
                         index = d_index3d(i,j,k,top_gmax);
@@ -2188,6 +2269,9 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
 
                     sprintf(sname, "%s/p-%d.xg",dirname,count);
                     sfile = fopen(sname,"w");
+		    fprintf(sfile,"Next\n");
+		    fprintf(sfile,"color=%s\n",sample_color[count]);
+		    fprintf(sfile,"thickness=1.5\n");
                     for (i = imin; i <= imax; ++i)
                     {
                         index = d_index3d(i,j,k,top_gmax);
