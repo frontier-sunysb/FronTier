@@ -179,8 +179,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 		continue;
 	    source[index] = computeFieldPointDiv(icoords,vel);
 	    diff_coeff[index] = 1.0/field->rho[index];
-	    if (i == 25)
-		printf("v[%d] = %f\n",j,vel[1][index]);
 	}
 	FT_ParallelExchGridArrayBuffer(source,front);
 	FT_ParallelExchGridArrayBuffer(diff_coeff,front);

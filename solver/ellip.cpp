@@ -666,6 +666,7 @@ void ELLIPTIC_SOLVER::checkSolver(int *icoords)
         int status;
         POINTER intfc_state;
 	int icnb[MAXD];
+	double denom = 0.0;
 
 	(void) printf("\nEntering checkSolver()\n");
 
@@ -713,6 +714,8 @@ void ELLIPTIC_SOLVER::checkSolver(int *icoords)
 		    clean_up(ERROR);
 		}
 		dw[m] = (w[1] - w[0])/top_h[l];
+		if (denom < fabs(coefs[m]*dw[m]/2.0/top_h[l]))
+		    denom = fabs(coefs[m]*dw[m]/2.0/top_h[l]);
 	    }
 	    (void) printf("Coefs: %f %f\n",coefs[0],coefs[1]);
 	    (void) printf("C*dw: %f %f\n",coefs[0]*dw[0],coefs[1]*dw[1]);
@@ -722,7 +725,7 @@ void ELLIPTIC_SOLVER::checkSolver(int *icoords)
 	(void) printf("Solution = %20.14f\n",soln[id0]);
 	(void) printf("LHS = %20.14f  RHS = %20.14f\n",lhs,rhs);
 	(void) printf("LHS - RHS = %20.14f\n",lhs-rhs);
-	(void) printf("Relative error = %20.14g\n",fabs(lhs-rhs)/fabs(lhs));
+	(void) printf("Relative error = %20.14g\n",fabs(lhs-rhs)/denom);
 	(void) printf("Leaving checkSolver()\n\n");
 }	/* end checkSolver */
 
@@ -910,11 +913,11 @@ void ELLIPTIC_SOLVER::dsolve2d(double *soln)
 
 	if (debugging("step_size"))
 	{
-	    printf("Max solution = %20.14f occuring at: %d %d %d\n",
-			max_soln,icrds_max[0],icrds_max[1],icrds_max[2]);
+	    printf("Max solution = %20.14f occuring at: %d %d\n",
+			max_soln,icrds_max[0],icrds_max[1]);
 	    dcheckSolver(icrds_max);
-	    printf("Min solution = %20.14f occuring at: %d %d %d\n",
-			min_soln,icrds_min[0],icrds_min[1],icrds_min[2]);
+	    printf("Min solution = %20.14f occuring at: %d %d\n",
+			min_soln,icrds_min[0],icrds_min[1]);
 	    dcheckSolver(icrds_min);
 	}
 
@@ -1140,6 +1143,7 @@ void ELLIPTIC_SOLVER::dcheckSolver(int *icoords)
         int status;
         POINTER intfc_state;
 	int icnb[MAXD];
+	double denom = 0.0;
 
 	(void) printf("\nEntering checkSolver()\n");
 
@@ -1207,6 +1211,8 @@ void ELLIPTIC_SOLVER::dcheckSolver(int *icoords)
 		    w[1] = getStateVar(intfc_state);
 		}
 		dw[m] = (w[1] - w[0])/2.0/top_h[l];
+		if (denom < fabs(coefs[m]*dw[m]/2.0/top_h[l]))
+		    denom = fabs(coefs[m]*dw[m]/2.0/top_h[l]);
 	    }
 	    (void) printf("Coefs: %f %f\n",coefs[0],coefs[1]);
 	    (void) printf("C*dw: %f %f\n",coefs[0]*dw[0],coefs[1]*dw[1]);
@@ -1216,7 +1222,7 @@ void ELLIPTIC_SOLVER::dcheckSolver(int *icoords)
 	(void) printf("Solution = %20.14f\n",soln[id0]);
 	(void) printf("LHS = %20.14f  RHS = %20.14f\n",lhs,rhs);
 	(void) printf("LHS - RHS = %20.14f\n",lhs-rhs);
-	(void) printf("Relative error = %20.14g\n",fabs(lhs-rhs)/fabs(lhs));
+	(void) printf("Relative error = %20.14g\n",fabs(lhs-rhs)/denom);
 	(void) printf("Leaving dcheckSolver()\n\n");
 }	/* end dcheckSolver */
 
