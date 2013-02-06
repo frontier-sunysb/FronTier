@@ -8,6 +8,11 @@ typedef struct {
 } VERTICAL_PARAMS;
 
 typedef struct {
+	double v0[MAXD];
+	double stop_time;
+} RANDOMV_PARAMS;
+
+typedef struct {
 	int num_pts;
 	int *global_ids;
 	double vel[MAXD];
@@ -23,6 +28,8 @@ static int parabolic_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
 static int singular_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
                                 double*);
 static int vertical_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
+                                double*);
+static int random_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
                                 double*);
 static int marker_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
                                 double*);
@@ -204,11 +211,12 @@ static void initVelocityFunc(
 	static VORTEX_PARAMS *vortex_params; /* velocity function parameters */
         static BIPOLAR_PARAMS *dv_params;
 	static VERTICAL_PARAMS *vert_params;
+	static RANDOMV_PARAMS *randv_params;
 	static TOROIDAL_PARAMS *toro_params;
 	static PARABOLIC_PARAMS *para_params;
 	static SINGULAR_PARAMS *sing_params;
 	static FIXAREA_PARAMS *fixarea_params;
-	int dim = front->rect_grid->dim;
+	int i,dim = front->rect_grid->dim;
 	char string[100];
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 
@@ -233,19 +241,44 @@ static void initVelocityFunc(
             {
             case 'r':
             case 'R':
-	    	FT_ScalarMemoryAlloc((POINTER*)&vortex_params,
+		if (string[1] == 'o' || string[1] == 'O')
+		{
+	    	    FT_ScalarMemoryAlloc((POINTER*)&vortex_params,
 				sizeof(VORTEX_PARAMS));
-            	front->max_time = 0.4;
-            	front->movie_frame_interval = 0.02;
-            	vortex_params->dim = 2;
-            	vortex_params->type[0] = 'M';
-            	vortex_params->cos_time = 0;
-            	vortex_params->cen[0] = 0.5;
-            	vortex_params->cen[1] = 0.25;
-            	vortex_params->rad = 0.15;
-            	vortex_params->time = 0.5*front->max_time;
-            	velo_func_pack.func_params = (POINTER)vortex_params;
-            	velo_func_pack.func = vortex_vel;
+            	    front->max_time = 0.4;
+            	    front->movie_frame_interval = 0.02;
+            	    vortex_params->dim = 2;
+            	    vortex_params->type[0] = 'M';
+            	    vortex_params->cos_time = 0;
+            	    vortex_params->cen[0] = 0.5;
+            	    vortex_params->cen[1] = 0.25;
+            	    vortex_params->rad = 0.15;
+            	    vortex_params->time = 0.5*front->max_time;
+            	    velo_func_pack.func_params = (POINTER)vortex_params;
+            	    velo_func_pack.func = vortex_vel;
+		}
+		else if (string[1] == 'a' || string[1] == 'A')
+		{
+	    	    FT_ScalarMemoryAlloc((POINTER*)&randv_params,
+				sizeof(RANDOMV_PARAMS));
+		    CursorAfterString(infile,"Enter random amplitude:");
+		    for (i = 0; i < dim; ++i)
+		    {
+        	    	fscanf(infile,"%lf",&randv_params->v0[i]);
+        	    	(void) printf("%fi ",randv_params->v0[i]);
+		    }
+        	    (void) printf("\n");
+		    CursorAfterString(infile,"Enter stop motion time:");
+        	    fscanf(infile,"%lf",&randv_params->stop_time);
+        	    (void) printf("%f\n",randv_params->stop_time);
+            	    velo_func_pack.func_params = (POINTER)randv_params;
+            	    velo_func_pack.func = random_velo;
+		}
+		else
+		{
+		    (void) printf("ERROR: need either RO or RA\n");
+		    clean_up(ERROR);
+		}
             	break;
             case 'd':
             case 'D':
@@ -376,6 +409,35 @@ static int zero_velo(
 	vel[0] = vel[1] = vel[2] = 0.0;
 	return YES;
 }	/* end zero_velo */
+
+static int random_velo(
+	POINTER params,
+        Front *front,
+        POINT *p,
+        HYPER_SURF_ELEMENT *hse,
+        HYPER_SURF *hs,
+        double *vel)
+{
+	RANDOMV_PARAMS *randv_params = (RANDOMV_PARAMS*)params;
+	double *v0 = randv_params->v0;
+	double stop_time = randv_params->stop_time;
+	unsigned short int xsubi[3];
+
+	if (front->time >= stop_time)
+	{
+	    vel[0] = vel[1] = vel[2] = 0.0;
+	}
+	else
+	{
+	    xsubi[0] = 7256;
+	    xsubi[1] = 77764;
+	    xsubi[2] = 2163;
+	    vel[0] = v0[0]*(2.0*erand48(xsubi) - 1.0);
+	    vel[1] = v0[1]*(2.0*erand48(xsubi) - 1.0);
+	    vel[2] = v0[2]*(2.0*erand48(xsubi) - 1.0);
+	}
+	return YES;
+}	/* end random_velo */
 
 static int vertical_velo(
         POINTER params,

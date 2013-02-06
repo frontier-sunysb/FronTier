@@ -10,7 +10,7 @@ static void convert_to_point_mass(Front*,AF_PARAMS*);
 static void string_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
 static void mono_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
 static void gore_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
-static void gore_point_propagate(Front*,POINT*,POINT*,BOND*,double);
+static void gore_point_propagate(Front*,POINTER,POINT*,POINT*,BOND*,double);
 static	int arrayOfMonoHsbdry(INTERFACE*,CURVE**);
 static	int arrayOfGoreHsbdry(INTERFACE*,CURVE**);
 static 	int getGoreNodes(INTERFACE*,NODE**);
@@ -359,7 +359,7 @@ static void gore_curve_propagation(
 	{
 	    oldp = oldb->end;
 	    newp = newb->end;
-	    gore_point_propagate(front,oldp,newp,oldb,dt);
+	    gore_point_propagate(front,wave,oldp,newp,oldb,dt);
 	}
 	if (debugging("interact_curve"))
 	{
@@ -369,6 +369,7 @@ static void gore_curve_propagation(
 
 static void gore_point_propagate(
 	Front *front,
+        POINTER wave,
 	POINT *oldp,
 	POINT *newp,
 	BOND *oldb,
@@ -388,8 +389,22 @@ static void gore_point_propagate(
 	double area_dens = af_params->area_dens;
 	double left_nor_speed,right_nor_speed,dv;
 	COMPONENT base_comp;
+	double V[MAXD];
 	int i;
 
+	if (af_params->no_fluid)
+	{
+	    for (btris = Btris(oldb); btris && *btris; ++btris)
+	    {
+	    	oldhse = Hyper_surf_element((*btris)->tri);
+	    	oldhs = Hyper_surf((*btris)->surface);
+	    }
+	    fourth_order_point_propagate(front,wave,oldp,newp,oldhse,
+				oldhs,dt,V);
+	    ft_assign(left_state(newp),left_state(oldp),front->sizest);
+	    ft_assign(right_state(newp),right_state(oldp),front->sizest);
+	    return;
+	}
 	sl = (STATE*)left_state(oldp);		
 	sr = (STATE*)right_state(oldp);
 	newsl = (STATE*)left_state(newp);	

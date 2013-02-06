@@ -184,7 +184,7 @@ void ELLIPTIC_SOLVER::solve1d(double *soln)
 	if (use_neumann_solver)
 	{
 	    (void) printf("\nUsing Neumann Solver!\n");
-	    if (size < 3)
+	    if (size < 4)
 	    {
 	    	(void) printf("Isolated small region for solve1d()\n");
 		stop_clock("Petsc Solver");
@@ -364,7 +364,7 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 	if (use_neumann_solver)
 	{
 	    (void) printf("\nUsing Neumann Solver!\n");
-	    if (size < 5)
+	    if (size < 6)
 	    {
 	    	(void) printf("Isolated small region for solve2d()\n");
 		stop_clock("Petsc Solver");
@@ -564,7 +564,7 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 	if (use_neumann_solver)
 	{
 	    printf("\nUsing Neumann Solver!\n");
-	    if (size < 7)
+	    if (size < 8)
 	    {
 	    	(void) printf("Isolated small region for solve3d()\n");
 		stop_clock("Petsc Solver");
@@ -837,7 +837,7 @@ void ELLIPTIC_SOLVER::dsolve2d(double *soln)
 	if (use_neumann_solver)
 	{
 	    (void) printf("\nUsing Neumann Solver!\n");
-	    if (size < 5)
+	    if (size < 6)
 	    {
 	    	(void) printf("Isolated small region for dsolve2d()\n");
 		stop_clock("Petsc Solver");
@@ -1040,7 +1040,7 @@ void ELLIPTIC_SOLVER::dsolve3d(double *soln)
 	if (use_neumann_solver)
 	{
 	    (void) printf("\nUsing Neumann Solver!\n");
-	    if (size < 7)
+	    if (size < 8)
 	    {
 	    	(void) printf("Isolated small region for dsolve3d()\n");
 		stop_clock("Petsc Solver");
