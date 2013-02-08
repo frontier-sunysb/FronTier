@@ -430,7 +430,7 @@ static int random_velo(
 	else
 	{
 	    xsubi[0] = 7256;
-	    xsubi[1] = 77764;
+	    xsubi[1] = 764;
 	    xsubi[2] = 2163;
 	    vel[0] = v0[0]*(2.0*erand48(xsubi) - 1.0);
 	    vel[1] = v0[1]*(2.0*erand48(xsubi) - 1.0);

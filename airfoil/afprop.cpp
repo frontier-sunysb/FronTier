@@ -75,7 +75,7 @@ extern void elastic_point_propagate(
 		dv[i] = 0.0;
 	    else if (front->step > 5)
 		dv[i] = (sl->pres - sr->pres)*nor[i]*dt/area_dens;
-	    newsr->Impct[i] = newsl->Impct[i] = sl->Impct[i] + dv[i];
+	    newsr->impuse[i] = newsl->impuse[i] = sl->impuse[i] + dv[i];
 	    newsr->vel[i] = newsl->vel[i] = sl->vel[i];
 	}
 
@@ -453,7 +453,7 @@ static void gore_point_propagate(
 	    	dv = (sl->pres - sr->pres)*nor[i]*dt/area_dens;
 	    if (debugging("rigid_canopy"))
 	    	dv = 0.0;
-	    newsr->Impct[i] = newsl->Impct[i] = sl->Impct[i] + dv;
+	    newsr->impuse[i] = newsl->impuse[i] = sl->impuse[i] + dv;
 	}
 }	/* end gore_point_propagate */
 

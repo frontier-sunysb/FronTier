@@ -169,11 +169,11 @@ int main(int argc, char **argv)
 	    readAfExtraDada(&front,restart_state_name);
 	}
         else
-	{
             l_cartesian->setInitialCondition();
-	    if (!RestartRun || ReSetTime)
-	    	reset_front_velocity(&front);
-	}
+
+	if (!RestartRun || ReSetTime)
+	    reset_front_velocity(&front);
+
         if (debugging("trace"))
             (void) printf("Passed state initialization()\n");
 
@@ -490,7 +490,7 @@ static void reset_front_velocity(Front *front)
 	    {
 		p->vel[i] = 0.0;
 		sl->vel[i] = sr->vel[i] = 0.0;
-		sl->Impct[i] = sr->Impct[i] = 0.0;
+		sl->impuse[i] = sr->impuse[i] = 0.0;
 	    }
 	}
 	if (dim == 3)
@@ -504,7 +504,7 @@ static void reset_front_velocity(Front *front)
 		{
 		    p->vel[i] = 0.0;
 		    sl->vel[i] = sr->vel[i] = 0.0;
-		    sl->Impct[i] = sr->Impct[i] = 0.0;
+		    sl->impuse[i] = sr->impuse[i] = 0.0;
 		}
 		for (b = (*c)->first; b != (*c)->last; b = b->next)
 		{
@@ -515,7 +515,7 @@ static void reset_front_velocity(Front *front)
 		    {
 		    	p->vel[i] = 0.0;
 		    	sl->vel[i] = sr->vel[i] = 0.0;
-		    	sl->Impct[i] = sr->Impct[i] = 0.0;
+		    	sl->impuse[i] = sr->impuse[i] = 0.0;
 		    }
 		}
 		p = (*c)->end->posn;
@@ -525,7 +525,7 @@ static void reset_front_velocity(Front *front)
 		{
 		    p->vel[i] = 0.0;
 		    sl->vel[i] = sr->vel[i] = 0.0;
-		    sl->Impct[i] = sr->Impct[i] = 0.0;
+		    sl->impuse[i] = sr->impuse[i] = 0.0;
 		}
 	    }
 	}

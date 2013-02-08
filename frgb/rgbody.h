@@ -23,7 +23,7 @@ struct _STATE {
         double vel[MAXD];               /* Velocities */
         double vort;                    /* Vorticity in 2D */
         double vort3d[MAXD];            /* Vorticity in 3D */
-	double Impct[MAXD];             /* Accum impact from external force */
+	double impuse[MAXD];             /* Accum impact from external force */
 };
 typedef struct _STATE STATE;
 

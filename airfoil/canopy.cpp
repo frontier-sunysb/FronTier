@@ -1505,8 +1505,8 @@ static void set_canopy_velocity(
 		nor_speed = scalar_product(vel,nor,dim);
 		for (j = 0; j < 3; ++j)
 		{
-		    sl->vel[j] = sl->Impct[j] + nor_speed*nor[j];
-		    sr->vel[j] = sr->Impct[j] + nor_speed*nor[j];
+		    sl->vel[j] = sl->impuse[j] + nor_speed*nor[j];
+		    sr->vel[j] = sr->impuse[j] + nor_speed*nor[j];
 	    	    FT_RecordMaxFrontSpeed(j,sl->vel[j],NULL,Coords(p),front);
 		}
 	    	FT_RecordMaxFrontSpeed(3,Mag3d(sl->vel),NULL,Coords(p),front);
@@ -1547,7 +1547,7 @@ static void set_canopy_velocity(
 			    crds_max[j] = Coords(p)[j];
 		    }
                     for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = sl->Impct[j] + nor_speed*nor[j];
+		    	sl->vel[j] = sr->vel[j] = sl->impuse[j] + nor_speed*nor[j];
 		}
             }
             for (c = node->in_curves; c && *c; ++c)
@@ -1574,7 +1574,7 @@ static void set_canopy_velocity(
 		    }
                     for (j = 0; j < dim; ++j)
 		    	sl->vel[j] = sr->vel[j] = 
-				sl->Impct[j] + nor_speed*nor[j];
+				sl->impuse[j] + nor_speed*nor[j];
 		}
             }
 	    n++;
@@ -1608,7 +1608,7 @@ static void set_canopy_velocity(
 		    }
                     for (j = 0; j < dim; ++j)
 		    	sl->vel[j] = sr->vel[j] = 
-				sl->Impct[j] + nor_speed*nor[j];
+				sl->impuse[j] + nor_speed*nor[j];
 		}
             }
             for (c = node->in_curves; c && *c; ++c)
@@ -1636,7 +1636,7 @@ static void set_canopy_velocity(
 		    }
                     for (j = 0; j < dim; ++j)
 		    	sl->vel[j] = sr->vel[j] = 
-				sl->Impct[j] + nor_speed*nor[j];
+				sl->impuse[j] + nor_speed*nor[j];
 		    }
             }
 	    n++;
@@ -1659,7 +1659,7 @@ static void set_canopy_velocity(
 		    nor_speed = scalar_product(vel,nor,dim);
                     for (j = 0; j < dim; ++j)
 		    	sl->vel[j] = sr->vel[j] = 
-				sl->Impct[j] + nor_speed*nor[j];
+				sl->impuse[j] + nor_speed*nor[j];
             	}
             	n++;
             }
@@ -1682,7 +1682,7 @@ static void set_canopy_velocity(
 		    vel = v[n];
 		    nor_speed = scalar_product(vel,nor,dim);
                     for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = sl->Impct[j] + nor_speed*nor[j];
+		    	sl->vel[j] = sr->vel[j] = sl->impuse[j] + nor_speed*nor[j];
             	}
             	n++;
             }
@@ -2559,16 +2559,16 @@ extern void propagate_surface(
 		{
                     for (j = 0; j < 3; ++j)
                     {
-                        x[*n][j] += sl->Impct[j]*dt;
-                        sr->Impct[j] = sl->Impct[j] = sl->Impct[j];
+                        x[*n][j] += sl->impuse[j]*dt;
+                        sr->impuse[j] = sl->impuse[j] = sl->impuse[j];
                     }
 		}
 		else
                 {
                     for (j = 0; j < 3; ++j)
                     {
-                        x[*n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
-                        sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt;
+                        x[*n][j] += (sl->impuse[j] + 0.5*g[j]*dt)*dt;
+                        sr->impuse[j] = sl->impuse[j] = sl->impuse[j] + g[j]*dt;
                     }
                 }
                 sorted(p) = YES;
@@ -2596,8 +2596,8 @@ extern void propagate_node(
         sr = (STATE*)right_state(node->posn);
         for (j = 0; j < dim; ++j)
         {
-            x[*n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
-            sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt;
+            x[*n][j] += (sl->impuse[j] + 0.5*g[j]*dt)*dt;
+            sr->impuse[j] = sl->impuse[j] = sl->impuse[j] + g[j]*dt;
         }
         ++(*n);
 }	/* end propagate_node */
@@ -2625,8 +2625,8 @@ extern void propagate_curve(
             sr = (STATE*)right_state(p);
             for (j = 0; j < dim; ++j)
             {
-                x[*n][j] += (sl->Impct[j] + 0.5*g[j]*dt)*dt;
-                sr->Impct[j] = sl->Impct[j] = sl->Impct[j] + g[j]*dt;
+                x[*n][j] += (sl->impuse[j] + 0.5*g[j]*dt)*dt;
+                sr->impuse[j] = sl->impuse[j] = sl->impuse[j] + g[j]*dt;
             }
             ++(*n);
         }
