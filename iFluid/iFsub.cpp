@@ -86,19 +86,19 @@ extern double getStateZvel(POINTER state)
 extern double getStateXimp(POINTER state)
 {
 	STATE *fstate = (STATE*)state;
-	return fstate->impuse[0];
+	return fstate->impulse[0];
 }	/* end getStateXimp */
 
 extern double getStateYimp(POINTER state)
 {
 	STATE *fstate = (STATE*)state;
-	return fstate->impuse[1];
+	return fstate->impulse[1];
 }	/* end getStateYimp */
 
 extern double getStateZimp(POINTER state)
 {
 	STATE *fstate = (STATE*)state;
-	return fstate->impuse[2];
+	return fstate->impulse[2];
 }	/* end getStateZimp */
 
 extern void read_iF_dirichlet_bdry_data(
@@ -960,10 +960,10 @@ extern void fluid_read_front_states(
                 fscanf(infile,"%lf %lf",&lstate->vort,&rstate->vort);
             if (dim == 3)
                 fscanf(infile,"%lf %lf",&lstate->vel[2],&rstate->vel[2]);
-            fscanf(infile,"%lf %lf",&lstate->impuse[0],&rstate->impuse[0]);
-            fscanf(infile,"%lf %lf",&lstate->impuse[1],&rstate->impuse[1]);
+            fscanf(infile,"%lf %lf",&lstate->impulse[0],&rstate->impulse[0]);
+            fscanf(infile,"%lf %lf",&lstate->impulse[1],&rstate->impulse[1]);
             if (dim == 3)
-            	fscanf(infile,"%lf %lf",&lstate->impuse[2],&rstate->impuse[2]);
+            	fscanf(infile,"%lf %lf",&lstate->impulse[2],&rstate->impulse[2]);
         }
 }	/* end fluid_read_front_states */
 

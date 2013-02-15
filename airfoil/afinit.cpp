@@ -522,7 +522,7 @@ extern void printAfExtraDada(
             if (wave_type(hs) != ELASTIC_BOUNDARY) continue;
             FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
             for (i = 0; i < dim; ++i)
-                fprintf(outfile,"%24.18g %24.18g\n",sl->impuse[i],sr->impuse[i]);
+                fprintf(outfile,"%24.18g %24.18g\n",sl->impulse[i],sr->impulse[i]);
             for (i = 0; i < dim; ++i)
                 fprintf(outfile,"%24.18g ",p->vel[i]);
 	    fprintf(outfile,"\n");
@@ -537,10 +537,10 @@ extern void printAfExtraDada(
 	    fprintf(outfile,"\n");
             fprintf(outfile,"%24.18g %24.18g\n",sl->pres,sr->pres);
             for (i = 0; i < dim; ++i)
-                fprintf(outfile,"%24.18g ",sl->impuse[i]);
+                fprintf(outfile,"%24.18g ",sl->impulse[i]);
 	    fprintf(outfile,"\n");
             for (i = 0; i < dim; ++i)
-                fprintf(outfile,"%24.18g ",sr->impuse[i]);
+                fprintf(outfile,"%24.18g ",sr->impulse[i]);
 	    fprintf(outfile,"\n");
 	    for (b = (*c)->first; b != NULL; b = b->next)
 	    {
@@ -552,10 +552,10 @@ extern void printAfExtraDada(
             	fprintf(outfile,"%24.18g %24.18g\n",sl->pres,sr->pres);
 	    	fprintf(outfile,"\n");
             	for (i = 0; i < dim; ++i)
-                    fprintf(outfile,"%24.18g ",sl->impuse[i]);
+                    fprintf(outfile,"%24.18g ",sl->impulse[i]);
 	    	fprintf(outfile,"\n");
             	for (i = 0; i < dim; ++i)
-                    fprintf(outfile,"%24.18g ",sr->impuse[i]);
+                    fprintf(outfile,"%24.18g ",sr->impulse[i]);
 	    	fprintf(outfile,"\n");
 	    }
 	}
@@ -569,10 +569,10 @@ extern void printAfExtraDada(
             fprintf(outfile,"%24.18g %24.18g\n",sl->pres,sr->pres);
 	    fprintf(outfile,"\n");
             for (i = 0; i < dim; ++i)
-                fprintf(outfile,"%24.18g ",sl->impuse[i]);
+                fprintf(outfile,"%24.18g ",sl->impulse[i]);
 	    fprintf(outfile,"\n");
             for (i = 0; i < dim; ++i)
-                fprintf(outfile,"%24.18g ",sr->impuse[i]);
+                fprintf(outfile,"%24.18g ",sr->impulse[i]);
 	    fprintf(outfile,"\n");
 	}
 }	/* end printAfExtraDada */
@@ -606,7 +606,7 @@ extern void readAfExtraDada(
             if (wave_type(hs) != ELASTIC_BOUNDARY) continue;
             FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
             for (i = 0; i < dim; ++i)
-                fscanf(infile,"%lf %lf\n",&sl->impuse[i],&sr->impuse[i]);
+                fscanf(infile,"%lf %lf\n",&sl->impulse[i],&sr->impulse[i]);
             for (i = 0; i < dim; ++i)
                 fscanf(infile,"%lf ",&p->vel[i]);
 	    fscanf(infile,"\n");
@@ -621,9 +621,9 @@ extern void readAfExtraDada(
             fscanf(infile,"%lf %lf",&sl->pres,&sr->pres);
 	    fscanf(infile,"\n");
             for (i = 0; i < dim; ++i)
-                fscanf(infile,"%lf ",&sl->impuse[i]);
+                fscanf(infile,"%lf ",&sl->impulse[i]);
             for (i = 0; i < dim; ++i)
-                fscanf(infile,"%lf ",&sr->impuse[i]);
+                fscanf(infile,"%lf ",&sr->impulse[i]);
 	    fscanf(infile,"\n");
 	    for (b = (*c)->first; b != NULL; b = b->next)
 	    {
@@ -635,9 +635,9 @@ extern void readAfExtraDada(
             	fscanf(infile,"%lf %lf",&sl->pres,&sr->pres);
 	    	fscanf(infile,"\n");
             	for (i = 0; i < dim; ++i)
-               	    fscanf(infile,"%lf ",&sl->impuse[i]);
+               	    fscanf(infile,"%lf ",&sl->impulse[i]);
             	for (i = 0; i < dim; ++i)
-                    fscanf(infile,"%lf ",&sr->impuse[i]);
+                    fscanf(infile,"%lf ",&sr->impulse[i]);
 	    }
 	}
 	for (n = intfc->nodes; n && *n; ++n)
@@ -650,9 +650,9 @@ extern void readAfExtraDada(
             fscanf(infile,"%lf %lf",&sl->pres,&sr->pres);
 	    fscanf(infile,"\n");
             for (i = 0; i < dim; ++i)
-                fscanf(infile,"%lf ",&sl->impuse[i]);
+                fscanf(infile,"%lf ",&sl->impulse[i]);
             for (i = 0; i < dim; ++i)
-                fscanf(infile,"%lf ",&sr->impuse[i]);
+                fscanf(infile,"%lf ",&sr->impulse[i]);
 	}
 }	/* end readAfExtraDada */
 

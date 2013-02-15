@@ -37,7 +37,7 @@ struct _STATE {
         double phi;                     /* Potential */
         double vel[MAXD];               /* Velocities */
         double vort;                    /* Vorticity in 2D */
-        double impuse[MAXD];            /* Accum impact from external force */
+        double impulse[MAXD];            /* Accum impact from external force */
 	double solute;			/* For subsurface problem */
 };
 typedef struct _STATE STATE;

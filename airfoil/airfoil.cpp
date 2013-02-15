@@ -490,7 +490,7 @@ static void reset_front_velocity(Front *front)
 	    {
 		p->vel[i] = 0.0;
 		sl->vel[i] = sr->vel[i] = 0.0;
-		sl->impuse[i] = sr->impuse[i] = 0.0;
+		sl->impulse[i] = sr->impulse[i] = 0.0;
 	    }
 	}
 	if (dim == 3)
@@ -504,7 +504,7 @@ static void reset_front_velocity(Front *front)
 		{
 		    p->vel[i] = 0.0;
 		    sl->vel[i] = sr->vel[i] = 0.0;
-		    sl->impuse[i] = sr->impuse[i] = 0.0;
+		    sl->impulse[i] = sr->impulse[i] = 0.0;
 		}
 		for (b = (*c)->first; b != (*c)->last; b = b->next)
 		{
@@ -515,7 +515,7 @@ static void reset_front_velocity(Front *front)
 		    {
 		    	p->vel[i] = 0.0;
 		    	sl->vel[i] = sr->vel[i] = 0.0;
-		    	sl->impuse[i] = sr->impuse[i] = 0.0;
+		    	sl->impulse[i] = sr->impulse[i] = 0.0;
 		    }
 		}
 		p = (*c)->end->posn;
@@ -525,7 +525,7 @@ static void reset_front_velocity(Front *front)
 		{
 		    p->vel[i] = 0.0;
 		    sl->vel[i] = sr->vel[i] = 0.0;
-		    sl->impuse[i] = sr->impuse[i] = 0.0;
+		    sl->impulse[i] = sr->impulse[i] = 0.0;
 		}
 	    }
 	}

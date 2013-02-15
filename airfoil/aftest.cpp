@@ -1025,8 +1025,8 @@ static void print_airfoil_stat3d_1(
                     	esk += 0.5*m_s*sqr(p->vel[k]);
 			egp += -g[k]*m_s*Coords(p)[k];
 			st = (STATE*)left_state(p);
-			exk += 0.5*m_s*sqr(st->impuse[k]);
-			enk += 0.5*m_s*sqr(p->vel[k] + st->impuse[k]);
+			exk += 0.5*m_s*sqr(st->impulse[k]);
+			enk += 0.5*m_s*sqr(p->vel[k] + st->impulse[k]);
 		    }
 		    sorted(p) = YES;
 		}
@@ -1073,8 +1073,8 @@ static void print_airfoil_stat3d_1(
 		    	esk += 0.5*m_l*sqr(b->end->vel[k]);
 			egp += -g[k]*m_l*Coords(b->end)[k];
 			st = (STATE*)left_state(b->end);
-			exk += 0.5*m_l*sqr(st->impuse[k]);
-			enk += 0.5*m_l*sqr(b->end->vel[k] + st->impuse[k]);
+			exk += 0.5*m_l*sqr(st->impulse[k]);
+			enk += 0.5*m_l*sqr(b->end->vel[k] + st->impulse[k]);
 		    }
 	    }
 	}
@@ -1094,8 +1094,8 @@ static void print_airfoil_stat3d_1(
 	    	{
 		    egp += -g[k]*payload*Coords(node->posn)[k];
 		    st = (STATE*)left_state(node->posn);
-		    exk += 0.5*payload*sqr(st->impuse[k]);
-		    enk += 0.5*payload*sqr(node->posn->vel[k] + st->impuse[k]);
+		    exk += 0.5*payload*sqr(st->impulse[k]);
+		    enk += 0.5*payload*sqr(node->posn->vel[k] + st->impulse[k]);
 	    	}
 	    }
 	    else
@@ -1120,8 +1120,8 @@ static void print_airfoil_stat3d_1(
                     esk += 0.5*m_l*sqr(node->posn->vel[k]);
                     egp += -g[k]*m_l*Coords(node->posn)[k];
                     st = (STATE*)left_state(node->posn);
-                    exk += 0.5*m_l*sqr(st->impuse[k]);
-                    enk += 0.5*m_l*sqr(node->posn->vel[k] + st->impuse[k]);
+                    exk += 0.5*m_l*sqr(st->impulse[k]);
+                    enk += 0.5*m_l*sqr(node->posn->vel[k] + st->impulse[k]);
                 }
 	    }
 	}
@@ -1317,8 +1317,8 @@ static void print_airfoil_stat3d_2(
                     	esk += 0.5*m_s*sqr(p->vel[k]);
 			egp += -g[k]*m_s*Coords(p)[k];
 			st = (STATE*)left_state(p);
-			exk += 0.5*m_s*sqr(st->impuse[k]);
-			enk += 0.5*m_s*sqr(p->vel[k] + st->impuse[k]);
+			exk += 0.5*m_s*sqr(st->impulse[k]);
+			enk += 0.5*m_s*sqr(p->vel[k] + st->impulse[k]);
 		    }
 		    sorted(p) = YES;
 		}
@@ -1361,8 +1361,8 @@ static void print_airfoil_stat3d_2(
 		    	esk += 0.5*m_l*sqr(b->end->vel[k]);
 			egp += -g[k]*m_l*Coords(b->end)[k];
 			st = (STATE*)left_state(b->end);
-			exk += 0.5*m_l*sqr(st->impuse[k]);
-			enk += 0.5*m_l*sqr(b->end->vel[k] + st->impuse[k]);
+			exk += 0.5*m_l*sqr(st->impulse[k]);
+			enk += 0.5*m_l*sqr(b->end->vel[k] + st->impulse[k]);
 		    }
 	    }
 	}
@@ -1385,8 +1385,8 @@ static void print_airfoil_stat3d_2(
 	    	{
 		    egp += -g[k]*payload*Coords(node->posn)[k];
 		    st = (STATE*)left_state(node->posn);
-		    exk += 0.5*payload*sqr(st->impuse[k]);
-		    enk += 0.5*payload*sqr(node->posn->vel[k] + st->impuse[k]);
+		    exk += 0.5*payload*sqr(st->impulse[k]);
+		    enk += 0.5*payload*sqr(node->posn->vel[k] + st->impulse[k]);
 	    	}
 	    }
 	    else
@@ -1404,8 +1404,8 @@ static void print_airfoil_stat3d_2(
 		    esk += 0.5*m_l*sqr(node->posn->vel[k]);
 		    egp += -g[k]*m_l*Coords(node->posn)[k];
 		    st = (STATE*)left_state(node->posn);
-		    exk += 0.5*m_l*sqr(st->impuse[k]);
-		    enk += 0.5*m_l*sqr(node->posn->vel[k] + st->impuse[k]);
+		    exk += 0.5*m_l*sqr(st->impulse[k]);
+		    enk += 0.5*m_l*sqr(node->posn->vel[k] + st->impulse[k]);
 		}
 	    }
 	}
