@@ -187,8 +187,6 @@ public:
        	Incompress_Solver_Basis() {}; // constructor
 	virtual ~Incompress_Solver_Basis() {};
 
-	virtual void setInitialCondition(void) = 0; //Initialization
-	virtual void solve(double dt) = 0; //main step function
 };
 
 class Incompress_Solver_Smooth_Basis:public Incompress_Solver_Basis{
@@ -265,7 +263,6 @@ protected:
 	RECT_GRID *ctop_grid;
 	double *carray;
 	double *csource;
-	double *cdiff_coeff;
 	COMPONENT *ctop_comp;
 	int *ctop_gmax;
 	int *clbuf, *cubuf;
@@ -280,6 +277,9 @@ protected:
 	// for parallel partition
 	int cNLblocks, cilower, ciupper;
 	int *cn_dist;
+
+	// Index shift between dual and comp grids 
+	int ishift[MAXD];
 
 	//member data: mesh storage
 	std::vector<L_RECTANGLE>   cell_center;
@@ -313,33 +313,10 @@ protected:
 	boolean paintToSolveGridPoint();
 	boolean nextConnectedPoint(int*,GRID_DIRECTION,int*,int,int*,int*);
 
-/*  These functions should be rewritten in 2D basis and 3D basis classes */
-	virtual double getSmoothingFunction(double r) = 0; //Heaviside function
-	virtual double getSmoothingFunctionD(double*, double*) = 0; 
-		//Heaviside function
-	virtual double smoothedDeltaFunction(double*, double*) = 0;
-	virtual double smoothedStepFunction(double*, double*, int) = 0;
-	virtual void   sampleVelocity() = 0;
-	virtual void   setSmoothedProperties(void) = 0; 
-		//smooth discontinuous properties
-	
 /****************  Functions related to solve() *********/
 
 	virtual void copyMeshStates(void) = 0;
-	virtual void computeAdvection(void) = 0;
-	virtual void computeDiffusion(void) = 0;
-	virtual void computeProjection(void) = 0;
-	virtual void computeProjectionCim(void) = 0;
-	virtual void computeProjectionSimple(void) = 0;
-	virtual void computeProjectionDouble(void) = 0;
-	virtual void computeProjectionDual(void) = 0;
-	virtual void computePressure(void) = 0;
-	virtual void computePressurePmI(void) = 0;
-	virtual void computePressurePmII(void) = 0;
-	virtual void computePressurePmIII(void) = 0;
 	virtual void computeGradientQ(void) = 0;
-	virtual void computeNewVelocity(void) = 0;
-	virtual void computeSourceTerm(double *coords, double *source) = 0;
 	virtual void surfaceTension(double*, HYPER_SURF_ELEMENT*,
 		HYPER_SURF*, double*, double) = 0;
 
@@ -355,6 +332,7 @@ protected:
 	int    getComponent(double *coords);	
 	void   save(char *filename);
 	double computeFieldPointDiv(int*, double**);
+	double computeDualFieldPointDiv(int*, double**);
 	void   computeFieldPointGrad(int*, double*, double*);
 	void   checkVelocityDiv(const char*);
 
@@ -371,9 +349,6 @@ class Incompress_Solver_EBM:public Incompress_Solver_Basis{
 public:
         Incompress_Solver_EBM(Front &front) {};//constructor
 	~Incompress_Solver_EBM() {};
-
-	virtual void setInitialCondition() {};
-	virtual void solve(double dt) {};
 };
 /////////////////////////////////////////////////////////////////////////////////
 //
@@ -384,8 +359,6 @@ public:
 	Incompress_Solver_Smooth_Basis(front) {};
 	virtual ~Incompress_Solver_Smooth_2D_Basis() {};
 
-	virtual void setInitialCondition(void) = 0;
-	virtual void solve(double dt) = 0;
 protected:
 	double getSmoothingFunction(double r);
 	double getSmoothingFunctionD(double*, double*);
@@ -393,24 +366,6 @@ protected:
 	double smoothedStepFunction(double*, double*, int);
 	void sampleVelocity();
 	void setSmoothedProperties(void);
-
-	virtual void copyMeshStates(void) = 0;
-	virtual void computeAdvection(void) = 0;
-	virtual void computeDiffusion(void) = 0;
-	virtual void computeProjection(void) = 0;
-	virtual void computeProjectionCim(void) = 0;
-	virtual void computeProjectionSimple(void) = 0;
-	virtual void computeProjectionDouble(void) = 0;
-	virtual void computeProjectionDual(void) = 0;
-	virtual void computePressure(void) = 0;
-	virtual void computePressurePmI(void) = 0;
-	virtual void computePressurePmII(void) = 0;
-	virtual void computePressurePmIII(void) = 0;
-	virtual void computeGradientQ(void) = 0;
-	virtual void computeNewVelocity(void) = 0;
-	virtual void computeSourceTerm(double *coords, double *source) = 0;
-	virtual void surfaceTension(double*, HYPER_SURF_ELEMENT*,
-		HYPER_SURF*, double*, double) = 0;
 };
 
 
@@ -421,8 +376,6 @@ public:
 	Incompress_Solver_Smooth_Basis(front) {};
 	virtual ~Incompress_Solver_Smooth_3D_Basis() {};
 
-	virtual void setInitialCondition(void) = 0;
-	virtual void solve(double dt) = 0;
 protected:
 	double getSmoothingFunction(double r);
 	double getSmoothingFunctionD(double*, double*);
@@ -430,25 +383,6 @@ protected:
 	double smoothedStepFunction(double*, double*, int);
 	void sampleVelocity();
 	void setSmoothedProperties(void);
-
-	virtual void copyMeshStates(void) = 0;
-	virtual void computeAdvection(void) = 0;
-	virtual void computeDiffusion(void) = 0;
-
-	virtual void computeProjection(void) = 0;
-	virtual void computeProjectionCim(void) = 0;
-	virtual void computeProjectionSimple(void) = 0;
-	virtual void computeProjectionDouble(void) = 0;
-	virtual void computeProjectionDual(void) = 0;
-	virtual void computePressure(void) = 0;
-	virtual void computePressurePmI(void) = 0;
-	virtual void computePressurePmII(void) = 0;
-	virtual void computePressurePmIII(void) = 0;
-	virtual void computeGradientQ(void) = 0;
-	virtual void computeNewVelocity(void) = 0;
-	virtual void computeSourceTerm(double *coords, double *source) = 0;
-	virtual void surfaceTension(double*, HYPER_SURF_ELEMENT*,
-		HYPER_SURF*, double*, double) = 0;
 };
 
 class Incompress_Solver_Smooth_2D_Cartesian:
@@ -480,7 +414,6 @@ protected:
 				double*, double);
 
 	/***************   Low level computation functions  *************/
-	double computeFieldPointCurl(int*, double**, double*);
 	double getVorticity(int i, int j);
 };
 
@@ -512,10 +445,6 @@ protected:
 	void computeSourceTerm(double *coords, double *source);
 	void surfaceTension(double*, HYPER_SURF_ELEMENT*, HYPER_SURF*, 
 				double*, double);
-	double computeFieldPointCurl(int*, double**, double*);
-	double getVorticityX(int i, int j, int k);
-	double getVorticityY(int i, int j, int k);
-	double getVorticityZ(int i, int j, int k);
 };
 
 extern double getStatePres(POINTER);
@@ -527,9 +456,6 @@ extern double getStateZvel(POINTER);
 extern double getStateXimp(POINTER);
 extern double getStateYimp(POINTER);
 extern double getStateZimp(POINTER);
-extern double getStateXvort(POINTER);
-extern double getStateYvort(POINTER);
-extern double getStateZvort(POINTER);
 extern double getStateComp(POINTER);
 extern double getPressure(Front*,double*,double*);
 extern double getPhiFromPres(Front*,double);
