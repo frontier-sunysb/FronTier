@@ -64,6 +64,12 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjection(void)
 	case SIMPLE_ELLIP:
 	    computeProjectionSimple();
 	    return;
+	case DOUBLE_ELLIP:
+	    computeProjectionDouble();
+	    return;
+	case DUAL_ELLIP:
+	    computeProjectionDual();
+	    return;
 	case CIM_ELLIP:
 	    computeProjectionCim();
 	    return;
@@ -153,6 +159,13 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionCim(void)
 	    phi[index] = array[index];
 	}
 }	/* end computeProjectionCim */
+
+void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionDouble(void)
+{
+	iFparams->total_div_cancellation = YES;
+	computeProjectionSimple(); 
+	return;
+}	/* end computeProjectionDouble */
 
 void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 {
@@ -470,6 +483,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 	double source[MAXD];
 	double **vel = field->vel;
 	double **f_surf = field->f_surf;
+	INTERFACE *grid_intfc = front->grid_intfc;
 
 	max_speed = 0.0;
 
@@ -512,8 +526,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 
             	for (nb = 0; nb < 4; nb++)
             	{
-                    if (FT_StateStructAtGridCrossing(front,icoords,dir[nb],
-                                comp,&intfc_state,&hs,crx_coords) &&
+                    if (FT_StateStructAtGridCrossing(front,grid_intfc,icoords,
+				dir[nb],comp,&intfc_state,&hs,crx_coords) &&
                                 wave_type(hs) != FIRST_PHYSICS_WAVE_TYPE)
                     {
 			if (wave_type(hs) == DIRICHLET_BOUNDARY &&
@@ -853,5 +867,103 @@ void Incompress_Solver_Smooth_2D_Cartesian::setInitialCondition()
 	computeGradientQ();
         copyMeshStates();
 	setAdvectionDt();
-	printf("Test setInitialCondition() step 5\n");
 }       /* end setInitialCondition */
+
+void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionDual(void)
+{
+	static DUAL_ELLIPTIC_SOLVER dual_elliptic_solver(*front);
+	int index;
+	int i,j,l,icoords[MAXD];
+	double **vel = field->vel;
+	double *phi = field->phi;
+	double *div_U = field->div_U;
+	double sum_div;
+	double value;
+	printf("Entering computeProjectionDual()\n");
+	FT_MakeCompGridIntfc(front);
+	setDualDomain();
+	setDualGlobalIndex();
+	setDualIndexMap();
+	printf(" top_gmax = %d %d\n",top_gmax[0],top_gmax[1]); 
+	printf("ctop_gmax = %d %d\n",ctop_gmax[0],ctop_gmax[1]); 
+	printf(" top_L = %f %f\n",top_L[0],top_L[1]); 
+	printf("ctop_L = %f %f\n",ctop_L[0],ctop_L[1]); 
+	printf(" top_U = %f %f\n",top_U[0],top_U[1]); 
+	printf("ctop_U = %f %f\n",ctop_U[0],ctop_U[1]); 
+	printf(" imin = %d %d   imax = %d %d\n",imin,jmin,imax,jmax);
+	printf("cimin = %d %d  cimax = %d %d\n",cimin,cjmin,cimax,cjmax);
+	printf(" ilower = %d   iupper = %d\n",ilower,iupper);
+	printf("cilower = %d  ciupper = %d\n",cilower,ciupper);
+
+	sum_div = 0.0;
+	max_value = 0.0;
+
+	/* Compute velocity divergence */
+	for (j = jmin; j <= jmax; j++)
+        for (i = imin; i <= imax; i++)
+	{
+	    icoords[0] = i;
+	    icoords[1] = j;
+	    index  = d_index(icoords,top_gmax,dim);
+	    if (!ifluid_comp(top_comp[index]))
+		continue;
+	    source[index] = computeFieldPointDiv(icoords,vel);
+	    diff_coeff[index] = 1.0/field->rho[index];
+	}
+	FT_ParallelExchGridArrayBuffer(source,front);
+	FT_ParallelExchGridArrayBuffer(diff_coeff,front);
+	for (j = 0; j <= top_gmax[1]; j++)
+        for (i = 0; i <= top_gmax[0]; i++)
+	{
+	    index  = d_index2d(i,j,ctop_gmax);
+	    if (!ifluid_comp(ctop_comp[index]))
+		continue;
+	    div_U[index] = source[index];
+	    source[index] /= accum_dt;
+	    array[index] = phi[index];
+	}
+
+	if(debugging("step_size"))
+	{
+	    for (j = cjmin; j <= cjmax; j++)
+	    for (i = cimin; i <= cimax; i++)
+	    {
+		index = d_index2d(i,j,ctop_gmax);
+	        if (!ifluid_comp(ctop_comp[index]))
+		    continue;
+	        value = fabs(div_U[index]);
+		sum_div = sum_div + div_U[index];
+		if (max_value < value)
+		    max_value = value;
+	    }
+	    pp_global_sum(&sum_div,1);
+	    (void) printf("\nThe summation of divergence of U is %.16g\n",
+					sum_div);
+	    pp_global_max(&max_value,1);
+	    (void) printf("\nThe max value of divergence of U is %.16g\n",
+					max_value);
+	    max_value = 0.0;
+	}
+        dual_elliptic_solver.D = diff_coeff;
+        dual_elliptic_solver.source = source;
+        dual_elliptic_solver.ilower = cilower;
+        dual_elliptic_solver.iupper = ciupper;
+        dual_elliptic_solver.soln = array;
+        dual_elliptic_solver.obst_comp = SOLID_COMP;
+        dual_elliptic_solver.ij_to_I = cij_to_I;
+	dual_elliptic_solver.set_solver_domain();
+	dual_elliptic_solver.getStateVar = getStatePhi;
+	dual_elliptic_solver.findStateAtCrossing = 
+		ifluid_find_state_at_dual_crossing;
+	dual_elliptic_solver.solve(array);
+
+	for (j = 0; j <= ctop_gmax[1]; j++)
+	for (i = 0; i <= ctop_gmax[0]; i++)
+	{
+	    index  = d_index2d(i,j,ctop_gmax);
+	    phi[index] = array[index];
+	}
+
+	FT_FreeCompGridIntfc(front);
+	clean_up(0);
+}	/* end computeProjectionDual */

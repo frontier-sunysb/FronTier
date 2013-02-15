@@ -296,10 +296,12 @@ static void coating_mono_hyper_surf3d(
 	    	    icrd_nb[2] = icoords[2] + 1;
 		    index_nb = d_index(icrd_nb,top_gmax,dim);
 		    if (top_comp[index] != top_comp[index_nb] &&
-		  	FT_StateStructAtGridCrossing(front,icoords,UPPER,
-                                top_comp[index],&l_state,&hs,crx_coords) &&
-			FT_StateStructAtGridCrossing(front,icrd_nb,LOWER,
-                                top_comp[index_nb],&u_state,&hs,crx_coords))
+			FT_StateStructAtGridCrossing(front,grid_intfc,icoords,
+                                UPPER,top_comp[index],&l_state,&hs,crx_coords)
+                        &&
+                        FT_StateStructAtGridCrossing(front,grid_intfc,icrd_nb,
+                                LOWER,top_comp[index_nb],&u_state,&hs,
+                                crx_coords))
 		    {
 			pl[n] = getStatePres(l_state);
 			pu[n] = getStatePres(u_state);

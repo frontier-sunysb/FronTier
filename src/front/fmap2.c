@@ -153,14 +153,14 @@ LOCAL void FT_ComputeGridVolumeFraction2d(
 		{
 		    icoords[0] = i;
 		    icoords[1] = j + i1;
-		    FT_StateStructAtGridCrossing(front,icoords,EAST,
+		    FT_StateStructAtGridCrossing(front,grid_intfc,icoords,EAST,
 				corner_comp[0][i1],&state,&hs,edge_crx[0][i1]);
 		}
 	    	if (corner_comp[i1][0] != corner_comp[i1][1])
 		{
 		    icoords[0] = i + i1;
 		    icoords[1] = j;
-		    FT_StateStructAtGridCrossing(front,icoords,NORTH,
+		    FT_StateStructAtGridCrossing(front,grid_intfc,icoords,NORTH,
 				corner_comp[i1][0],&state,&hs,edge_crx[1][i1]);
 		}
 	    }

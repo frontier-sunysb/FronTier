@@ -82,7 +82,8 @@ typedef	enum {
 typedef	enum {
 	COMP_GRID = 1,
 	DUAL_GRID = 2,
-	EXPANDED_DUAL_GRID = 3
+	EXPANDED_COMP_GRID = 3,
+	EXPANDED_DUAL_GRID = 4
 } GRID_TYPE;
 
 #define d_index1d(ix,gmax)       \

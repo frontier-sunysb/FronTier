@@ -118,24 +118,6 @@ double getStateZvel(POINTER state)
 	return fstate->vel[2];
 }	/* end getStateZvel */
 
-double getStateXvort(POINTER state)
-{
-        STATE *fstate = (STATE*)state;
-        return fstate->vort3d[0];
-}       /* end getStateXvort */
-
-double getStateYvort(POINTER state)
-{
-        STATE *fstate = (STATE*)state;
-        return fstate->vort3d[1];
-}       /* end getStateYvort */
-
-double getStateZvort(POINTER state)
-{
-        STATE *fstate = (STATE*)state;
-        return fstate->vort3d[2];
-}       /* end getStateZvort */
-
 void read_dirichlet_bdry_data(
 	char *inname,
 	Front *front)

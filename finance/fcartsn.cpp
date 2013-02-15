@@ -280,6 +280,7 @@ void CARTESIAN::computeAdvectionExplicit1d(void)
 	COMPONENT comp;
 	STATE *state;
 	HYPER_SURF *hs;
+	INTERFACE *grid_intfc = front->grid_intfc;
 
 	if (debugging("trace")) printf("Entering computeAdvectionExplicit()\n");
 
@@ -311,8 +312,8 @@ void CARTESIAN::computeAdvectionExplicit1d(void)
 	    index2 = d_index1d(i+1,top_gmax);
 	    P2 = cell_center[index2].state.P;
 
-	    fr_crx_grid_seg = FT_StateStructAtGridCrossing(front,icoords,
-                              WEST,comp,(POINTER*)&state,&hs,crx_coords);
+	    fr_crx_grid_seg = FT_StateStructAtGridCrossing(front,grid_intfc,
+			icoords,WEST,comp,(POINTER*)&state,&hs,crx_coords);
             if (fr_crx_grid_seg)
             {
                 if (wave_type(hs) == DIRICHLET_BOUNDARY)
@@ -328,8 +329,8 @@ void CARTESIAN::computeAdvectionExplicit1d(void)
                     }
                 }
             }
-	    fr_crx_grid_seg = FT_StateStructAtGridCrossing(front,icoords,
-                              EAST,comp,(POINTER*)&state,&hs,crx_coords);
+	    fr_crx_grid_seg = FT_StateStructAtGridCrossing(front,grid_intfc,
+			icoords,EAST,comp,(POINTER*)&state,&hs,crx_coords);
             if (fr_crx_grid_seg)
             {
                 if (wave_type(hs) == DIRICHLET_BOUNDARY)
@@ -439,6 +440,7 @@ void CARTESIAN::computeAdvectionImplicit1d(void)
 	HYPER_SURF *hs;
 	STATE *state;
 	double time = front->time;
+	INTERFACE *grid_intfc = front->grid_intfc;
 
 	if (debugging("trace")) 
 	    printf("Entering computeAdvectionImplicit()\n");
@@ -477,8 +479,8 @@ void CARTESIAN::computeAdvectionImplicit1d(void)
 	    P2 = cell_center[index[2]].state.P;
 	    rhs = P1;
 
-	    fr_crx_grid_seg = FT_StateStructAtGridCrossing(front,icoords,
-                              WEST,comp,(POINTER*)&state,&hs,crx_coords);
+	    fr_crx_grid_seg = FT_StateStructAtGridCrossing(front,grid_intfc,
+			icoords,WEST,comp,(POINTER*)&state,&hs,crx_coords);
             if (fr_crx_grid_seg)
             {
 		P_crx = getStatePrice(state);
@@ -487,8 +489,8 @@ void CARTESIAN::computeAdvectionImplicit1d(void)
 				ext_coords[0],top_h[0]);
                 rhs += -coeff[0]*P0;
             }
-	    fr_crx_grid_seg = FT_StateStructAtGridCrossing(front,icoords,
-                              EAST,comp,(POINTER*)&state,&hs,crx_coords);
+	    fr_crx_grid_seg = FT_StateStructAtGridCrossing(front,grid_intfc,
+			icoords,EAST,comp,(POINTER*)&state,&hs,crx_coords);
             if (fr_crx_grid_seg)
             {
 		P_crx = getStatePrice(state);

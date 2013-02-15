@@ -643,6 +643,7 @@ struct _Front {
 
 	INTERFACE *interf;		/* Interface */
 	INTERFACE *grid_intfc;		/* Grid Interface */
+	INTERFACE *comp_grid_intfc;		/* Grid Interface */
 	INTERFACE *emb_grid_intfc;	/* Grid Interface for embedded bdry */
 	boolean extrapolation_permitted;
 

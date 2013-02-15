@@ -481,11 +481,25 @@ EXPORT	void FT_MakeGridIntfc(
 			EXPANDED_DUAL_GRID,NULL);
 }	/* end FT_MakeGridIntfc */
 
+EXPORT	void FT_MakeCompGridIntfc(
+	Front *front)
+{
+	front->comp_grid_intfc = make_grid_intfc(front->interf,
+			EXPANDED_COMP_GRID,NULL);
+}	/* end FT_MakeGridIntfc */
+
 EXPORT	void FT_FreeGridIntfc(
 	Front *front)
 {
 	free_grid_intfc(front->grid_intfc);
 	front->grid_intfc = NULL;
+}	/* end FT_FreeGridIntfc */
+
+EXPORT	void FT_FreeCompGridIntfc(
+	Front *front)
+{
+	free_grid_intfc(front->comp_grid_intfc);
+	front->comp_grid_intfc = NULL;
 }	/* end FT_FreeGridIntfc */
 
 EXPORT	void FT_FreeFront(
@@ -558,8 +572,9 @@ EXPORT	boolean FT_StateVarAtGridCrossing(
 {
 	Locstate state;
 	HYPER_SURF *hs;
+	INTERFACE *grid_intfc = front->grid_intfc;
 
-	if (!FT_StateStructAtGridCrossing(front,icoords,dir,comp,
+	if (!FT_StateStructAtGridCrossing(front,grid_intfc,icoords,dir,comp,
 		&state,&hs,crx_coords))
 	    return NO;
 	*ans = (*state_func)(state);
@@ -642,6 +657,7 @@ EXPORT	boolean FT_NormalAtGridCrossing(
 #define         MAX_NUM_VERTEX_IN_CELL          20
 EXPORT	boolean FT_StateStructAtGridCrossing(
 	Front *front,
+	INTERFACE *grid_intfc,
 	int *icoords,
 	GRID_DIRECTION dir,
 	COMPONENT comp,
@@ -651,7 +667,6 @@ EXPORT	boolean FT_StateStructAtGridCrossing(
 {
         int j;
 	int crx_index;
-	INTERFACE *grid_intfc = front->grid_intfc;
 	static CRXING *crxs[MAX_NUM_CRX];
 	int i,nc,dim = grid_intfc->dim;
 

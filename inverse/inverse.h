@@ -1,4 +1,5 @@
 #include "FronTier.h"
+#include "solver.h"
 
 #define CIM_TOL 1e-8
 

@@ -3,8 +3,6 @@
 
 static double (*getStateVel[3])(POINTER) = {getStateXvel,getStateYvel,
                                         getStateZvel};
-static double (*getStateVort3d[3])(POINTER) = {getStateXvort,getStateYvort,
-                                        getStateZvort};
 static SURFACE *canopy_of_string_node(NODE*);
 static void convert_to_point_mass(Front*,AF_PARAMS*);
 static void string_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
@@ -32,7 +30,6 @@ extern void elastic_point_propagate(
         IF_FIELD *field = iFparams->field;
 	int i, dim = front->rect_grid->dim;
 	double *vort = field->vort;
-	double **vort3d = field->vort3d;
 	double **vel = field->vel;
 	double *pres = field->pres;
 	COMPONENT base_comp = positive_component(oldhs);
@@ -87,16 +84,6 @@ extern void elastic_point_propagate(
             FT_IntrpStateVarAtCoords(front,base_comp+1,pp,vort,
 				getStateVort,&newsr->vort,&sr->vort);
         }
-	else if (dim == 3)
-	{
-	    for (i = 0; i < dim; ++i)
-	    {
-            	FT_IntrpStateVarAtCoords(front,base_comp-1,pm,vort3d[i],
-			getStateVort3d[i],&newsl->vort3d[i],&sl->vort3d[i]);
-            	FT_IntrpStateVarAtCoords(front,base_comp+1,pp,vort3d[i],
-			getStateVort3d[i],&newsr->vort3d[i],&sr->vort3d[i]);
-	    }
-	}
 }       /* elastic_point_propagate */
 
 /*	Given string node, the function finds the corresponding

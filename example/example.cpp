@@ -25,31 +25,53 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 /*
-*				example16.c:
+*				example0.c:
 *
 *		User initialization example for Front Package:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
 *	
-*	This example shows a circle in a multiple vortex field. It 
-*	demonstrates the reversibility of the front tracking method.
+*	This example shows a circle in a double vortex field. It demonstrates
+*	the resolution of the front tracking method.
 *
 */
 
+#include <vector>
 #include <FronTier.h>
 
 	/*  Function Declarations */
 static void test_propagate(Front*);
-static int test_vortex_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
+static int rotation_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
 	                       HYPER_SURF*,double*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 int RestartStep;
 boolean binary = YES;
+
 /********************************************************************
  *	Level function parameters for the initial interface 	    *
  ********************************************************************/
+
+typedef struct {
+        /* equation for line is x^2/a^2 + y^2/b^2 = 1 */
+        double x0;
+        double y0;         
+	double r;
+        double w;         
+	double h;
+} DISK_PARAMS;
+
+
+/********************************************************************
+ *	Velocity function parameters for the front	 	    *
+ ********************************************************************/
+
+typedef struct {
+        double omega_0;          /* angular velocity */
+        double domega_dr;
+        double cen[2];
+} ROTATION_VEL_PARAMS;
 
 int main(int argc, char **argv)
 {
@@ -58,18 +80,18 @@ int main(int argc, char **argv)
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-	CIRCLE_PARAMS circle_params;	/* level function parameters */
-	VORTEX_PARAMS vortex_params; /* velocity function parameters */
+	DISK_PARAMS disk_params;	/* level function parameters */
+	ROTATION_VEL_PARAMS rv_params; /* velocity function parameters */
 	Locstate  sl;
 
-	f_basic.dim = 2;
+	f_basic.dim = 2;	
 	FT_Init(argc,argv,&f_basic);
 
 	/* Initialize basic computational data */
 
 	f_basic.L[0] = 0.0;	f_basic.L[1] = 0.0;
 	f_basic.U[0] = 1.0;	f_basic.U[1] = 1.0;
-	f_basic.gmax[0] = 400;	f_basic.gmax[1] = 400;		//myex grid size
+	f_basic.gmax[0] = 128;	f_basic.gmax[1] = 128;
 	f_basic.boundary[0][0] = f_basic.boundary[0][1] = PERIODIC_BOUNDARY;
 	f_basic.boundary[1][0] = f_basic.boundary[1][1] = PERIODIC_BOUNDARY;
 	f_basic.size_of_intfc_state = 0;
@@ -93,42 +115,32 @@ int main(int argc, char **argv)
 	{
 	    /* Initialize interface through level function */
 
+	    disk_params.x0 = 0.5;
+	    disk_params.y0 = 0.5;
+	    disk_params.r = 0.3;
+	    disk_params.w = 0.01;
+	    disk_params.h = 0.4;
+
 	    level_func_pack.neg_component = 1;
 	    level_func_pack.pos_component = 2;
+	    level_func_pack.func_params = (POINTER)&disk_params;
+	    level_func_pack.func = slotted_disk_func;
 	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
-
-	    level_func_pack.func_params = NULL;
-	    level_func_pack.func = NULL;
-
-	    level_func_pack.num_points = 250;		//myex num points
-	    level_func_pack.is_closed_curve = YES;
-
-	    FT_MatrixMemoryAlloc((POINTER*)&level_func_pack.point_array,level_func_pack.num_points,
-				2,sizeof(double));
-	    int i;
-	    for (i = 0; i < level_func_pack.num_points; ++i)
-	    {
-	    	double phi = i*2.0*PI/(double)level_func_pack.num_points;
-	    	level_func_pack.point_array[i][0] = 0.5 + 0.15*cos(phi);
-	    	level_func_pack.point_array[i][1] = 0.25 + 0.15*sin(phi);
-	    }
-
 	    FT_InitIntfc(&front,&level_func_pack);
 	    if (f_basic.dim < 3)
                 FT_ClipIntfcToSubdomain(&front);
 	}
 
+
 	/* Initialize velocity field function */
 
-	vortex_params.dim = 2;
-	vortex_params.type[0] = 'M';
-	vortex_params.cos_time = 0;
-	vortex_params.cen[0] = 0.5;
-	vortex_params.cen[1] = 0.25;
-	vortex_params.rad = 0.15;
+        rv_params.cen[0] = 0.5;
+        rv_params.cen[1] = 0.5;
+        rv_params.omega_0 = -2.0*PI;
+        rv_params.domega_dr = 0.0;
 
-	velo_func_pack.func_params = (POINTER)&vortex_params;
-	velo_func_pack.func = test_vortex_vel;
+	velo_func_pack.func_params = (POINTER)&rv_params;
+	velo_func_pack.func = rotation_vel;
 	velo_func_pack.point_propagate = fourth_order_point_propagate;
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
@@ -145,16 +157,14 @@ static  void test_propagate(
         Front *front)
 {
         double CFL;
-	VORTEX_PARAMS *vparams = (VORTEX_PARAMS*)front->vparams;
 
-	front->max_time = 1.0;
-	front->max_step = 1000000;
-	front->print_time_interval = 1.0;
-	front->movie_frame_interval = 0.02;
-	vparams->time = 0.5*front->max_time;
+	front->max_time = 3;
+	front->max_step = 10000;
+	front->print_time_interval = 2.0;
+	front->movie_frame_interval = 0.05;
 
         CFL = Time_step_factor(front);
-	Frequency_of_redistribution(front,GENERAL_WAVE) = 2;
+	Frequency_of_redistribution(front,GENERAL_WAVE) = 1000;
 
 	printf("CFL = %f\n",CFL);
 	printf("Frequency_of_redistribution(front,GENERAL_WAVE) = %d\n",
@@ -163,7 +173,7 @@ static  void test_propagate(
 	if (!RestartRun)
 	{
             FT_RedistMesh(front);
-            FT_ResetTime(front);
+	    FT_ResetTime(front);
 
 	    // Always output the initial interface.
 	    FT_Save(front,out_name);
@@ -197,8 +207,6 @@ static  void test_propagate(
 
             FT_SetTimeStep(front);
 
-	    /* Output section */
-
             printf("\ntime = %f   step = %5d   next dt = %f\n",
                         front->time,front->step,front->dt);
             fflush(stdout);
@@ -209,9 +217,9 @@ static  void test_propagate(
                 FT_AddMovieFrame(front,out_name,binary);
 
             if (FT_TimeLimitReached(front))
-                break;
+                    break;
 
-	    /* Time and step control section */
+	    /* Output section, next dt may be modified */
 
 	    FT_TimeControlFilter(front);
         }
@@ -219,81 +227,58 @@ static  void test_propagate(
 }       /* end test_propagate */
 
 /********************************************************************
- *	Sample (vortex) velocity function for the front    *
+ *	Sample (rotation) velocity function for the front    *
  ********************************************************************/
 
-static int test_vortex_vel(
-        POINTER params,
-        Front *front,
-        POINT *p,
-        HYPER_SURF_ELEMENT *hse,
-        HYPER_SURF *hs,
-        double *vel)
+static int rotation_vel(
+	POINTER params,
+	Front *front,
+	POINT *p,
+	HYPER_SURF_ELEMENT *hse,
+	HYPER_SURF *hs,
+	double *vel)
 {
-        VORTEX_PARAMS *vortex_params;
-        int i, dim;
-        double coeff,coeff2,xtemp,ytemp;
-        char *type;
-        double *coords = Coords(p);
-        vortex_params = (VORTEX_PARAMS*)params;
-	double x,y,z;
+	ROTATION_VEL_PARAMS *rv_params = (ROTATION_VEL_PARAMS*)params;
+	double *coords = Coords(p);
+	double V,xcomp,ycomp;
+	double rad;
+	double *cen = rv_params->cen;
+	double omega_0 = rv_params->omega_0;
+	double domega_dr = rv_params->domega_dr;
+	double dx,dy;
 
-	dim = vortex_params->dim;
-        type = vortex_params->type;
+	dx = coords[0] - cen[0]; 
+	dy = coords[1] - cen[1];
 
-        coeff2 = 1.0;
-        if(vortex_params->time > 0 && front->time >= vortex_params->time)
-            coeff2 = -1.0;
-	x = coords[0];
-	y = coords[1];
-	if (dim == 3)
-	    z = coords[2];
+	rad = sqrt(sqr(dx) + sqr(dy));
+	if (rad == 0.0)
+        {
+            vel[0] = vel[1] = 0.0;
+            return 1;
+        }
+	xcomp = fabs(coords[1]-cen[0])/rad;
+        ycomp = fabs(coords[0]-cen[1])/rad;
+        V = rad*(omega_0 + domega_dr*rad);
+        if (coords[0]-cen[0] >= 0.0 && coords[1]-cen[1] >= 0.0) /*1st quadrant*/
+        {
+            vel[0] = -V*xcomp;
+            vel[1] =  V*ycomp;
+        }
+        else if (coords[0]-cen[0] <= 0.0 && coords[1]-cen[1] >= 0.0) /*2nd quadrant*/
+        {
+            vel[0] = -V*xcomp;
+            vel[1] = -V*ycomp;
+        }
+        else if (coords[0]-cen[0] <= 0.0 && coords[1]-cen[1] <= 0.0) /*3rd quadrant*/
+        {
+            vel[0] =  V*xcomp;
+            vel[1] = -V*ycomp;
+        }
+        else if (coords[0]-cen[0] >= 0.0 && coords[1]-cen[1] <= 0.0) /*4th quadrant*/
+        {
+            vel[0] =  V*xcomp;
+            vel[1] =  V*ycomp;
+        }
+	
 
-	if (dim == 2)
-	{
-	    switch(type[0])
-	    {
-	        case 'm':
-		case 'M':
-		    //four vortex work
-		    xtemp = 4*PI*(x+0.5);
-		    ytemp = 4*PI*(y+0.5);
-		    vel[0] = coeff2*sin(xtemp)*sin(ytemp); 
-		    vel[1] = coeff2*cos(xtemp)*cos(ytemp); 
-		    //end four vortex work
-		    break;
-		case 's':
-		case 'S':
-		    //2D single vortex motion
-		    vel[0] = -coeff2*sin(PI*x)*sin(PI*x)*sin(2*PI*y);
-		    vel[1] = coeff2*sin(2*PI*x)*sin(PI*y)*sin(PI*y);
-		    break;
-		default:
-		    screen("Undefined vortex type!\n");
-		    clean_up(ERROR);
-	    }
-	}
-	else if (dim == 3)
-	{
-	    switch(type[0])
-	    {
-	    case 'm':
-	    case 'M':
-		//double vortex work
-	        vel[0] = coeff2*2*sin(PI*x)*sin(PI*x)*sin(2*PI*y)*sin(2*PI*z);
-	        vel[1] = -coeff2*sin(2*PI*x)*sin(PI*y)*sin(PI*y)*sin(2*PI*z);
-	        vel[2] = -coeff2*sin(2*PI*x)*sin(2*PI*y)*sin(PI*z)*sin(PI*z);
-		break;
-	    case 's':
-	    case 'S':
-		//shearing flow motion
-		vel[0] = coeff2*sin(PI*x)*sin(PI*x)*sin(2*PI*y);
-		vel[1] = -coeff2*sin(2*PI*x)*sin(PI*y)*sin(PI*y);
-		vel[2] = coeff2*sqr(1-2*sqrt((x-0.5)*(x-0.5)+(y-0.5)*(y-0.5)));
-	    default:
-	        screen("Undefined time dependency type!\n");
-	        clean_up(ERROR);
-	    }
-	}    
-}       /* end vortex_vel */
-
+}	/* end rotation_vel */

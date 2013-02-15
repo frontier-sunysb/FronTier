@@ -364,26 +364,18 @@ void Incompress_Solver_Smooth_3D_Cartesian::copyMeshStates()
 	int i,j,k,d,index;
 	double **vel = field->vel;
 	double *pres = field->pres;
-	double **vort3d = field->vort3d;
 
 	for (i = imin; i <= imax; ++i)
 	for (j = jmin; j <= jmax; ++j)
 	for (k = kmin; k <= kmax; ++k)
 	{
 	    index  = d_index3d(i,j,k,top_gmax);
-	    if (ifluid_comp(top_comp[index]))
-	    {
-		vort3d[0][index] = getVorticityX(i,j,k);
-		vort3d[1][index] = getVorticityY(i,j,k);
-		vort3d[2][index] = getVorticityZ(i,j,k);
-	    }
-	    else
+	    if (!ifluid_comp(top_comp[index]))
 	    {
 	    	pres[index] = 0.0;
 		for (d = 0; d < 3; ++d)
 		{
 		    vel[d][index] = 0.0;
-		    vort3d[d][index] = 0.0;
 		}
 	    }
 	}
@@ -391,9 +383,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::copyMeshStates()
 	FT_ParallelExchGridArrayBuffer(vel[0],front);
 	FT_ParallelExchGridArrayBuffer(vel[1],front);
 	FT_ParallelExchGridArrayBuffer(vel[2],front);
-	FT_ParallelExchGridArrayBuffer(vort3d[0],front);
-	FT_ParallelExchGridArrayBuffer(vort3d[1],front);
-	FT_ParallelExchGridArrayBuffer(vort3d[2],front);
 }	/* end copyMeshStates */
 
 
@@ -417,6 +406,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 	double source[MAXD];
 	double **vel = field->vel;
 	double **f_surf = field->f_surf;
+	INTERFACE *grid_intfc = front->grid_intfc;
 
 	if (debugging("trace"))
 	    (void) printf("Entering Incompress_Solver_Smooth_3D_Cartesian::"
@@ -469,8 +459,8 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 
             	for (nb = 0; nb < 6; nb++)
             	{
-                    if (FT_StateStructAtGridCrossing(front,icoords,dir[nb],
-                                comp,&intfc_state,&hs,crx_coords) &&
+                    if (FT_StateStructAtGridCrossing(front,grid_intfc,icoords,
+				dir[nb],comp,&intfc_state,&hs,crx_coords) &&
                                 wave_type(hs) != FIRST_PHYSICS_WAVE_TYPE)
 		    {
 			if (wave_type(hs) == DIRICHLET_BOUNDARY &&
@@ -997,11 +987,25 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjection(void)
         case SIMPLE_ELLIP:
             computeProjectionSimple();
             return;
+        case DOUBLE_ELLIP:
+            computeProjectionDouble();
+            return;
+        case DUAL_ELLIP:
+            computeProjectionDual();
+            return;
         case CIM_ELLIP:
             computeProjectionCim();
             return;
         }
 }       /* end computeProjection */
+
+void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionDouble(void)
+{
+}	/* end computeProjectionDouble */
+
+void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionDual(void)
+{
+}	/* end computeProjectionDual */
 
 void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
 {

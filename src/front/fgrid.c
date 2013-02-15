@@ -941,6 +941,9 @@ EXPORT	INTERFACE *make_grid_intfc(
 	    set_dual_grid(&Dual_grid,comp_grid);
 	    set_topological_grid(grid_intfc,&Dual_grid);
 	    break;
+	case EXPANDED_COMP_GRID:
+	    set_expanded_grid(comp_grid,&topological_grid(grid_intfc));
+	    break;
 	case EXPANDED_DUAL_GRID:
 	    set_dual_grid(&Dual_grid,comp_grid);
 	    set_expanded_grid(&Dual_grid,&topological_grid(grid_intfc));

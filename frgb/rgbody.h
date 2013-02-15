@@ -16,17 +16,6 @@ typedef enum _RG_PROB_TYPE RG_PROB_TYPE;
 
 /*	rgbody.c functions */
 
-struct _STATE {
-	double dens;			/* Density */
-	double phi;                     /* Potential */
-        double pres;                    /* Pressure */
-        double vel[MAXD];               /* Velocities */
-        double vort;                    /* Vorticity in 2D */
-        double vort3d[MAXD];            /* Vorticity in 3D */
-	double impuse[MAXD];             /* Accum impact from external force */
-};
-typedef struct _STATE STATE;
-
 struct _RG_PARAMS {
 	int dim;
 	double  total_mass;             /* Total mass */

@@ -107,9 +107,10 @@ extern int cim_find_state_at_crossing(
 	STATE *st;
 	int D = (comp == 2) ? 1 : -1;
 	CIM_PARAMS *cim_params = (CIM_PARAMS*)front->extra1;
+	INTERFACE *grid_intfc = front->grid_intfc;
 
-	status = FT_StateStructAtGridCrossing(front,icoords,dir,comp,state,hs,
-                                       crx_coords);
+	status = FT_StateStructAtGridCrossing(front,grid_intfc,icoords,dir,
+				comp,state,hs,crx_coords);
 	st = (STATE*)*state;
         if (status == NO) return NO_PDE_BOUNDARY;
 

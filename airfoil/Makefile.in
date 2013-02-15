@@ -34,6 +34,8 @@ ellip.o : ../solver/solver.h ../solver/ellip.cpp
 	${CXX} -c ../solver/ellip.cpp $(incsloc) $(incs) ${Petsc_Include}
 cim_ellip.o : ../solver/solver.h ../solver/cim_ellip.cpp
 	${CXX} -c ../solver/cim_ellip.cpp $(incsloc) $(incs) ${Petsc_Include}
+dual_ellip.o : ../solver/solver.h ../solver/dual_ellip.cpp
+	${CXX} -c ../solver/dual_ellip.cpp $(incsloc) $(incs) ${Petsc_Include}
 iFsub.o : ../iFluid/iFluid.h ../iFluid/ifluid_basic.h ../iFluid/iFsub.cpp
 	${CXX} -c ../iFluid/iFsub.cpp $(incsloc) $(incs) ${Petsc_Include}
 afinit.o : airfoil.h ../iFluid/iFluid.h afinit.cpp
@@ -52,7 +54,7 @@ airfoil: ../iFluid/iFluid.h ../solver/solver.h airfoil.h airfoil.cpp afinit.o af
 	${CXX} -c airfoil.cpp $(incsloc) $(incs) ${Petsc_Include}
 	$(CXX) -o airfoil airfoil.o afinit.o afinit3d.o afprop.o afvelo.o aftest.o canopy.o iFsub.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
 
-../lib/libiF.a: solver.o cim_ellip.o ellip.o hyperb.o iFbasic.o iFcartsn2d.o iFcartsn3d.o
+../lib/libiF.a: solver.o cim_ellip.o dual_ellip.o ellip.o hyperb.o iFbasic.o iFcartsn2d.o iFcartsn3d.o
 	$(AR) cru libiF.a $^
 	ranlib libiF.a; mv libiF.a ../lib/$(build_cpu)/libiF.a
 

@@ -1790,9 +1790,10 @@ static int find_state_at_crossing(
         double *crx_coords)
 {
 	boolean status;
+	INTERFACE *grid_intfc;
 
-	status = FT_StateStructAtGridCrossing(front,icoords,dir,comp,state,hs,
-                                       crx_coords);
+	status = FT_StateStructAtGridCrossing(front,grid_intfc,icoords,dir,
+				comp,state,hs,crx_coords);
         if (status == NO) return NO_PDE_BOUNDARY;
 
         if (wave_type(*hs) == FIRST_PHYSICS_WAVE_TYPE) 

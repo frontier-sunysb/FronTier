@@ -46,8 +46,6 @@ static void addToEnergyFlux(RECT_GRID*,HYPER_SURF*,double*,double*,int,int,
 
 static double (*getStateVel[3])(POINTER) = {getStateXvel,getStateYvel,
                                         getStateZvel};
-static double (*getStateVort3d[3])(POINTER) = {getStateXvort,getStateYvort,
-                                        getStateZvort};
 
 extern double getStatePres(POINTER state)
 {
@@ -102,24 +100,6 @@ extern double getStateZimp(POINTER state)
 	STATE *fstate = (STATE*)state;
 	return fstate->impuse[2];
 }	/* end getStateZimp */
-
-extern double getStateXvort(POINTER state)
-{
-	STATE *fstate = (STATE*)state;
-	return fstate->vort3d[0];
-}	/* end getStateXvort */
-
-extern double getStateYvort(POINTER state)
-{
-	STATE *fstate = (STATE*)state;
-	return fstate->vort3d[1];
-}	/* end getStateYvort */
-
-extern double getStateZvort(POINTER state)
-{
-	STATE *fstate = (STATE*)state;
-	return fstate->vort3d[2];
-}	/* end getStateZvort */
 
 extern void read_iF_dirichlet_bdry_data(
 	char *inname,
@@ -374,11 +354,9 @@ static void iF_flowThroughBoundaryState3d(
 	double dir[MAXD];
 	double u[3];		/* velocity in the sweeping direction */
 	double v[3][MAXD];	/* velocity in the orthogonal direction */
-	double vort3d[3][MAXD];		/* vorticity stencil */
 	double pres[3];		/* pressure stencil */
 	double f_u;		/* u flux in the sweeping direction */
 	double f_v[MAXD];	/* v flux in the orthogonal direction */
-	double f_vort3d[MAXD];		/* vort flux */
 	double f_pres;		/* pressure flux */
 	double dn,dt = front->dt;
 	STATE *oldst,*newst = (STATE*)state;
@@ -406,8 +384,6 @@ static void iF_flowThroughBoundaryState3d(
 	for (j = 0; j < 2; ++j)
 	{
 	    pres[j] = oldst->pres;
-	    for (i = 0; i < dim; ++i)
-	    	vort3d[j][i] = oldst->vort3d[i];
 	}
 	for (i = 0; i < dim; ++i)
 	{
@@ -416,18 +392,10 @@ static void iF_flowThroughBoundaryState3d(
 			field->vel[i],getStateVel[i],&vtmp,&oldst->vel[i]);
 	    u[1] += vtmp*dir[i];
 	    newst->vel[i] = vtmp;
-	    FT_IntrpStateVarAtCoords(front,comp,nsten->pts[1],field->vort3d[i],
-			getStateVort3d[i],&vort3d[2][i],&oldst->vort3d[i]);
 	}
 	FT_IntrpStateVarAtCoords(front,comp,nsten->pts[1],field->pres,
                             getStatePres,&pres[2],&oldst->pres);
 
-	for (i = 0; i < dim; ++i)
-	{
-	    f_vort3d[i] = linear_flux(u[1],vort3d[i][0],vort3d[i][1],
-				vort3d[i][2]);
-	    newst->vort3d[i] = oldst->vort3d[i] - dt/dn*f_vort3d[i];
-	}
 	f_pres = linear_flux(u[1],pres[0],pres[1],pres[2]);
 	newst->pres = oldst->pres - dt/dn*f_pres;
 	if (debugging("flow_through"))
@@ -469,7 +437,6 @@ static void iF_flowThroughBoundaryState3d(
 	    	for (i = 0; i < dim; ++i)
 	    	{
 		    v[j][i] = sts[j-1]->vel[i] - u[j]*dir[i];
-	    	    vort3d[j][i] = sts[j-1]->vort3d[i];
 	    	}
 	    }
 
@@ -477,15 +444,12 @@ static void iF_flowThroughBoundaryState3d(
 	    for (i = 0; i < dim; ++i)
 	    {
 	    	f_v[i] = linear_flux(u[1],v[0][i],v[1][i],v[2][i]);
-	        f_vort3d[i] = linear_flux(u[1],vort3d[0][i],vort3d[1][i],
-					vort3d[2][i]);
 	    }
 	    f_pres = linear_flux(u[1],pres[0],pres[1],pres[2]);
 
 	    for (i = 0; i < dim; ++i)
 	    {
 	    	newst->vel[i] += - dt/dn*(f_u*dir[i] + f_v[i]) ;
-	    	newst->vort3d[i] += - dt/dn*f_vort3d[i];
 	    }
 	    newst->pres += - dt/dn*f_pres;
 	}
@@ -493,7 +457,6 @@ static void iF_flowThroughBoundaryState3d(
 	{
 	    (void) printf("State after tangential sweep:\n");
 	    (void) print_general_vector("Velocity: ",newst->vel,dim,"\n");
-	    (void) print_general_vector("Vorticity: ",newst->vort3d,dim,"\n");
 	    (void) printf("Pressure: %f\n",newst->pres);
 	}
 }	/* end iF_flowThroughBoundaryState3d */
@@ -671,7 +634,6 @@ static  void neumann_point_propagate(
 	double *m_pre = field->pres;
 	double *m_phi = field->phi;
 	double *m_vor = field->vort;
-	double **m_vor3d = field->vort3d;
 	STATE *oldst,*newst;
 	POINTER sl,sr;
 	COMPONENT comp;
@@ -714,15 +676,6 @@ static  void neumann_point_propagate(
 	{
 	    FT_IntrpStateVarAtCoords(front,comp,p1,m_vor,
 			getStateVort,&newst->vort,&oldst->vort);
-	}
-	else
-	{
-	    FT_IntrpStateVarAtCoords(front,comp,p1,m_vor3d[0],
-			getStateXvort,&newst->vort3d[0],&oldst->vort3d[0]);
-	    FT_IntrpStateVarAtCoords(front,comp,p1,m_vor3d[1],
-			getStateYvort,&newst->vort3d[1],&oldst->vort3d[1]);
-	    FT_IntrpStateVarAtCoords(front,comp,p1,m_vor3d[2],
-			getStateZvort,&newst->vort3d[2],&oldst->vort3d[2]);
 	}
 	FT_RecordMaxFrontSpeed(dim,0.0,NULL,Coords(newp),front);
         return;
@@ -768,7 +721,6 @@ static  void dirichlet_point_propagate(
             for (i = 0; i < dim; ++i)
 	    {
 	    	newst->vel[i] = bstate->vel[i];
-	    	newst->vort3d[i] = 0.0;
 		FT_RecordMaxFrontSpeed(i,fabs(newst->vel[i]),NULL,Coords(newp),
 					front);
 	    }
@@ -834,8 +786,6 @@ static  void contact_point_propagate(
         int i, dim = front->rect_grid->dim;
 	double *m_pre = field->pres;
 	double *m_vor = field->vort;
-	double **m_vor3d = field->vort3d;
-	double vort3d[3];
 	double *p0;
 	STATE *oldst,*newst;
 	POINTER sl,sr;
@@ -858,15 +808,6 @@ static  void contact_point_propagate(
 	    FT_IntrpStateVarAtCoords(front,-1,p0,m_vor,getStateVort,&vort,
 				&oldst->vort);
 	}
-	else if (dim == 3)
-	{
-            FT_IntrpStateVarAtCoords(front,-1,p0,m_vor3d[0],
-                        getStateXvort,&vort3d[0],&oldst->vort3d[0]);
-            FT_IntrpStateVarAtCoords(front,-1,p0,m_vor3d[1],
-                        getStateYvort,&vort3d[1],&oldst->vort3d[1]);
-            FT_IntrpStateVarAtCoords(front,-1,p0,m_vor3d[2],
-                        getStateZvort,&vort3d[2],&oldst->vort3d[2]);
-	}
 
 	newst = (STATE*)left_state(newp);
 	newst->vort = vort;
@@ -874,7 +815,6 @@ static  void contact_point_propagate(
 	for (i = 0; i < dim; ++i)
 	{
 	    newst->vel[i] = vel[i];
-	    newst->vort3d[i] = vort3d[i];
 	}
 	newst = (STATE*)right_state(newp);
 	newst->vort = vort;
@@ -882,7 +822,6 @@ static  void contact_point_propagate(
 	for (i = 0; i < dim; ++i)
 	{
 	    newst->vel[i] = vel[i];
-	    newst->vort3d[i] = vort3d[i];
 	}
 
 	s = mag_vector(vel,dim);
@@ -906,7 +845,6 @@ static  void rgbody_point_propagate(
 	double dn,*h = front->rect_grid->h;
 	double *m_pre = field->pres;
 	double *m_vor = field->vort;
-	double **m_vor3d = field->vort3d;
 	double nor[MAXD],p1[MAXD];
 	double *p0 = Coords(oldp);
 	STATE *oldst,*newst;
@@ -941,15 +879,6 @@ static  void rgbody_point_propagate(
 	{
 	    FT_IntrpStateVarAtCoords(front,comp,p1,m_vor,
 			getStateVort,&newst->vort,&oldst->vort);
-	}
-	else
-	{
-	    FT_IntrpStateVarAtCoords(front,comp,p1,m_vor3d[0],
-			getStateXvort,&newst->vort3d[0],&oldst->vort3d[0]);
-	    FT_IntrpStateVarAtCoords(front,comp,p1,m_vor3d[1],
-			getStateYvort,&newst->vort3d[1],&oldst->vort3d[1]);
-	    FT_IntrpStateVarAtCoords(front,comp,p1,m_vor3d[2],
-			getStateZvort,&newst->vort3d[2],&oldst->vort3d[2]);
 	}
         return;
 }	/* end rgbody_point_propagate */
@@ -1081,6 +1010,11 @@ extern void read_iFparams(
 	    (void) printf("%d\n",iFparams->adv_order);
 	}
 
+	(void) printf("Available elliptic methods are:\n");
+	(void) printf("\tSimple elliptic (S)\n");
+	(void) printf("\tCIM elliptic (C)\n");
+	(void) printf("\tDouble elliptic (DB)\n");
+	(void) printf("\tDual elliptic (DU)\n");
 	if (CursorAfterStringOpt(infile,"Enter elliptic method:"))
 	{
 	    fscanf(infile,"%s",string);
@@ -1094,6 +1028,13 @@ extern void read_iFparams(
 	    case 'c':
 	    case 'C':
 	    	iFparams->num_scheme.ellip_method = CIM_ELLIP;
+	    	break;
+	    case 'd':
+	    case 'D':
+		if (string[1] == 'b' || string[1] == 'B')
+	    	    iFparams->num_scheme.ellip_method = DOUBLE_ELLIP;
+		else if (string[1] == 'u' || string[1] == 'U')
+	    	    iFparams->num_scheme.ellip_method = DUAL_ELLIP;
 	    	break;
 	    }
 	}
@@ -1207,8 +1148,9 @@ extern boolean isDirichletPresetBdry(
 	HYPER_SURF *hs;
 	POINTER intfc_state;
 	double crx_coords[MAXD];
+	INTERFACE *grid_intfc = front->grid_intfc;
 
-	if (!FT_StateStructAtGridCrossing(front,icoords,dir,
+	if (!FT_StateStructAtGridCrossing(front,grid_intfc,icoords,dir,
                                 comp,&intfc_state,&hs,crx_coords))
 	    return NO;
 	if (wave_type(hs) != DIRICHLET_BOUNDARY)
@@ -1504,8 +1446,9 @@ extern int ifluid_find_state_at_crossing(
 	double *crx_coords)
 {
 	boolean status;
-	status = FT_StateStructAtGridCrossing(front,icoords,dir,comp,state,hs,
-					crx_coords);
+	INTERFACE *grid_intfc = front->grid_intfc;
+	status = FT_StateStructAtGridCrossing(front,grid_intfc,icoords,dir,
+				comp,state,hs,crx_coords);
 	if (status == NO) 
 	    return NO_PDE_BOUNDARY;
 	if (wave_type(*hs) == FIRST_PHYSICS_WAVE_TYPE) 
@@ -1549,41 +1492,6 @@ extern double grad_p_jump_t(
 {
 	return 0.0;
 }	/* end grad_p_jump_t */
-
-
-extern int ifluid_find_projection_crossing(
-	Front *front,
-	int *icoords,
-	GRID_DIRECTION dir,
-	int comp,
-	POINTER *state,
-	HYPER_SURF **hs,
-	double *crx_coords)
-{
-	boolean status;
-	static STATE dummy_state;
-
-	status = FT_StateStructAtGridCrossing(front,icoords,dir,comp,state,hs,
-					crx_coords);
-	if (status == NO || wave_type(*hs) == FIRST_PHYSICS_WAVE_TYPE) 
-	    return NO_PDE_BOUNDARY;
-	if (wave_type(*hs) == NEUMANN_BOUNDARY)
-	    return CONST_V_PDE_BOUNDARY;
-	if (wave_type(*hs) == MOVABLE_BODY_BOUNDARY)
-	    return CONST_V_PDE_BOUNDARY;
-	if (wave_type(*hs) == DIRICHLET_BOUNDARY)
-	{
-	    if (boundary_state(*hs))
-	    	return CONST_V_PDE_BOUNDARY;
-	    else
-	    {
-		dummy_state.pres = 0.0;
-		*state = (POINTER)&dummy_state;
-	    	return CONST_V_PDE_BOUNDARY;
-	    }
-	}
-	return NO_PDE_BOUNDARY;
-}	/* ifluid_find_projection_crossing */
 
 extern double getPhiFromPres(
         Front *front,
@@ -1662,3 +1570,34 @@ extern double getPressure(
         }
         return pres;
 }       /* end getPressure */
+
+extern int ifluid_find_state_at_dual_crossing(
+	Front *front,
+	int *icoords,
+	GRID_DIRECTION dir,
+	int comp,
+	POINTER *state,
+	HYPER_SURF **hs,
+	double *crx_coords)
+{
+	boolean status;
+	INTERFACE *grid_intfc = front->comp_grid_intfc;
+	status = FT_StateStructAtGridCrossing(front,grid_intfc,icoords,dir,
+				comp,state,hs,crx_coords);
+	if (status == NO) 
+	    return NO_PDE_BOUNDARY;
+	if (wave_type(*hs) == FIRST_PHYSICS_WAVE_TYPE) 
+	    return NO_PDE_BOUNDARY;
+	if (wave_type(*hs) == NEUMANN_BOUNDARY) 
+	    return CONST_V_PDE_BOUNDARY;
+	if (wave_type(*hs) == MOVABLE_BODY_BOUNDARY) 
+	    return CONST_V_PDE_BOUNDARY;
+	if (wave_type(*hs) == DIRICHLET_BOUNDARY) 
+	{
+	    if (boundary_state(*hs))
+	    	return CONST_V_PDE_BOUNDARY;
+	    else
+	    	return CONST_P_PDE_BOUNDARY;
+	}
+}	/* ifluid_find_state_at_crossing */
+

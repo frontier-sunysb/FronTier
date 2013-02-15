@@ -50,7 +50,6 @@ struct _STATE {
 	double pres;			/* Pressure */
 	double vel[MAXD];		/* Velocities */
 	double vort;			/* Vorticity */
-	double vort3d[MAXD];            /* Vorticity in 3D */
 	EOS_PARAMS      *eos;
 	int dim;
 };
@@ -127,7 +126,6 @@ typedef struct {
 	double *engy;
 	double *pres;
 	double *vort;
-	double **vort3d;
 	//GFM
 	double **gnor;
 	double **Gdens;
@@ -230,7 +228,6 @@ struct _FIELD
 	double *engy;
 	double *pres;
 	double *vort;
-	double **vort3d;
 };
 
 struct _SWEEP

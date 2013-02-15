@@ -142,18 +142,7 @@ typedef struct {
         IF_FIELD *field;
 } AF_PARAMS;
 
-/*	rgbody.c functions */
-
-struct _STATE {
-	double dens;			/* Density */
-        double pres;                    /* Pressure */
-        double phi;                     /* Potential */
-        double vel[MAXD];               /* Velocities */
-        double vort;                    /* Vorticity in 2D */
-        double vort3d[MAXD];            /* Vorticity in 3D */
-	double impuse[MAXD];		/* Accum impact from external force */
-};
-typedef struct _STATE STATE;
+/*	airfoil.cpp functions */
 
 typedef struct {
         double i1,i2;

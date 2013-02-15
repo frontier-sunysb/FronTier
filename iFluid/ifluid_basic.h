@@ -20,17 +20,6 @@ enum _IF_PROB_TYPE {
 };
 typedef enum _IF_PROB_TYPE IF_PROB_TYPE;
 
-struct _STATE {
-	double dens;			/* Density */
-        double pres;                    /* Pressure */
-        double phi;                    	/* Potential */
-        double vel[MAXD];               /* Velocities */
-        double vort;                    /* Vorticity in 2D */
-        double vort3d[MAXD];            /* Vorticity in 3D */
-	double impuse[MAXD];             /* Accum impact from external force */
-};
-typedef struct _STATE STATE;
-
 extern void restart_set_dirichlet_bdry_function(Front*);
 extern void iF_flowThroughBoundaryState(double*,HYPER_SURF*,Front*,POINTER,
                         POINTER);

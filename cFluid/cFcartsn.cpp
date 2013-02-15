@@ -1470,9 +1470,6 @@ void G_CARTESIAN::setDomain()
 	    if (dim == 2)
 	    	FT_VectorMemoryAlloc((POINTER*)&eqn_params->vort,size,
 					sizeof(double));
-	    else if (dim == 3)
-	    	FT_MatrixMemoryAlloc((POINTER*)&eqn_params->vort3d,dim,size,
-					sizeof(double));
 	    field.dens = eqn_params->dens;
 	    field.engy = eqn_params->engy;
 	    field.pres = eqn_params->pres;
@@ -1976,15 +1973,6 @@ void G_CARTESIAN::initMovieVariables()
 	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
 		    	hdf_movie_var->num_var = ++n;
 		    }
-		    if (movie_option->plot_vort)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"vort-yz");
-	    	    	hdf_movie_var->get_state_var[n] = getStateXvort;
-	    		hdf_movie_var->top_var[n] = eqn_params->vort3d[0];
-	    		hdf_movie_var->idir[n] = 0;
-	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
 		}
 		if (movie_option->plot_cross_section[1])
 		{
@@ -2021,15 +2009,6 @@ void G_CARTESIAN::initMovieVariables()
 	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
 		    	hdf_movie_var->num_var = ++n;
 		    }
-		    if (movie_option->plot_vort)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"vort-xz");
-	    	    	hdf_movie_var->get_state_var[n] = getStateYvort;
-	    		hdf_movie_var->top_var[n] = eqn_params->vort3d[1];
-	    		hdf_movie_var->idir[n] = 1;
-	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
 		}
 		if (movie_option->plot_cross_section[2])
 		{
@@ -2062,15 +2041,6 @@ void G_CARTESIAN::initMovieVariables()
 	    	    	sprintf(hdf_movie_var->var_name[n],"velo-xy-y");
 	    	    	hdf_movie_var->get_state_var[n] = getStateYvel;
 	    		hdf_movie_var->top_var[n] = eqn_params->vel[1];
-	    		hdf_movie_var->idir[n] = 2;
-	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
-		    if (movie_option->plot_vort)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"vort-xy");
-	    	    	hdf_movie_var->get_state_var[n] = getStateZvort;
-	    		hdf_movie_var->top_var[n] = eqn_params->vort3d[2];
 	    		hdf_movie_var->idir[n] = 2;
 	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
 		    	hdf_movie_var->num_var = ++n;
@@ -2190,7 +2160,6 @@ void G_CARTESIAN::copyMeshStates()
 	double *pres = eqn_params->pres;
 	double *engy = eqn_params->engy;
 	double *vort = eqn_params->vort;
-	double **vort3d = eqn_params->vort3d;
 
 	switch (dim)
 	{
@@ -2237,9 +2206,6 @@ void G_CARTESIAN::copyMeshStates()
 	    FT_ParallelExchGridArrayBuffer(dens,front);
 	    FT_ParallelExchGridArrayBuffer(pres,front);
 	    FT_ParallelExchGridArrayBuffer(engy,front);
-            FT_ParallelExchGridArrayBuffer(vort3d[0],front);
-            FT_ParallelExchGridArrayBuffer(vort3d[1],front);
-            FT_ParallelExchGridArrayBuffer(vort3d[2],front);
 	    for (l = 0; l < dim; ++l)
 	    {
 	    	FT_ParallelExchGridArrayBuffer(mom[l],front);
@@ -3437,6 +3403,7 @@ void G_CARTESIAN::appendStencilBuffer2d(
 	double 		crx_coords[MAXD];
 	STATE 		*state;
 	int		comp, icoords[3];
+	INTERFACE	*grid_intfc = front->grid_intfc;
 
 	switch (dir)
 	{
@@ -3479,8 +3446,8 @@ void G_CARTESIAN::appendStencilBuffer2d(
 		comp = top_comp[index];
 		icoords[0] = i1;
 		icoords[1] = i2;
-		if (!FT_StateStructAtGridCrossing(front,icoords,ldir[dir],
-				comp,(POINTER*)&state,&hs,crx_coords))
+		if (!FT_StateStructAtGridCrossing(front,grid_intfc,icoords,
+			ldir[dir],comp,(POINTER*)&state,&hs,crx_coords))
 		{
 		    printf("In appendStencilBuffer2d()\n");
 		    printf("ERROR: No crossing found!\n");
@@ -3540,8 +3507,8 @@ void G_CARTESIAN::appendStencilBuffer2d(
 		comp = top_comp[index];
 		icoords[0] = i1;
 		icoords[1] = i2;
-		if (!FT_StateStructAtGridCrossing(front,icoords,rdir[dir],
-				comp,(POINTER*)&state,&hs,crx_coords))
+		if (!FT_StateStructAtGridCrossing(front,grid_intfc,icoords,
+			rdir[dir],comp,(POINTER*)&state,&hs,crx_coords))
 		{
 		    printf("In appendStencilBuffer2d()\n");
 		    printf("ERROR: No crossing found!\n");
@@ -3605,8 +3572,8 @@ void G_CARTESIAN::appendStencilBuffer2d(
 		comp = top_comp[index];
 		icoords[0] = i1;
 		icoords[1] = i2;
-		if (!FT_StateStructAtGridCrossing(front,icoords,ldir[dir],
-				comp,(POINTER*)&state,&hs,crx_coords))
+		if (!FT_StateStructAtGridCrossing(front,grid_intfc,icoords,
+			ldir[dir],comp,(POINTER*)&state,&hs,crx_coords))
 		{
 		    printf("In appendStencilBuffer2d()\n");
 		    printf("ERROR: No crossing found!\n");
@@ -3668,8 +3635,8 @@ void G_CARTESIAN::appendStencilBuffer2d(
 		comp = top_comp[index];
 		icoords[0] = i1;
 		icoords[1] = i2;
-		if (!FT_StateStructAtGridCrossing(front,icoords,rdir[dir],
-				comp,(POINTER*)&state,&hs,crx_coords))
+		if (!FT_StateStructAtGridCrossing(front,grid_intfc,icoords,
+			rdir[dir],comp,(POINTER*)&state,&hs,crx_coords))
 		{
 		    printf("In appendStencilBuffer2d()\n");
 		    printf("ERROR: No crossing found!\n");
@@ -4033,6 +4000,7 @@ void G_CARTESIAN::appendGhostBuffer(
 	int		ind2[2][2] = {{0,1},{1,0}};
 	int		ind3[3][3] = {{0,1,2},{1,2,0},{2,0,1}};
 	int 		ic_next[MAXD];
+	INTERFACE	*grid_intfc = front->grid_intfc;
 
 	if (debugging("append_buffer"))
 		printf("Entering appendGhostBuffer()\n");
@@ -4073,7 +4041,7 @@ void G_CARTESIAN::appendGhostBuffer(
 		    for (k = 0; k < dim; ++k)
 			ic_next[k] = ic[k];
 		    ic_next[idir]++;
-		    if (!FT_StateStructAtGridCrossing(front,ic_next,
+		    if (!FT_StateStructAtGridCrossing(front,grid_intfc,ic_next,
 			ldir[idir],comp,(POINTER*)&state,&hs,crx_coords))
 		    {
 		    	(void) printf("In appendGhostBuffer()\n");
@@ -4158,7 +4126,7 @@ void G_CARTESIAN::appendGhostBuffer(
 		    for (k = 0; k < dim; ++k)
 			ic_next[k] = ic[k];
 		    ic_next[idir]--;
-		    if (!FT_StateStructAtGridCrossing(front,ic_next,
+		    if (!FT_StateStructAtGridCrossing(front,grid_intfc,ic_next,
 			rdir[idir],comp,(POINTER*)&state,&hs,crx_coords))
 		    {
 		    	(void) printf("In appendGhostBuffer()\n");

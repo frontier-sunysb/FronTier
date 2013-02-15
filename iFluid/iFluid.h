@@ -31,6 +31,17 @@ enum _DOMAIN_STATUS {
 };
 typedef enum _DOMAIN_STATUS DOMAIN_STATUS;
 
+struct _STATE {
+        double dens;                    /* Density */
+        double pres;                    /* Pressure */
+        double phi;                     /* Potential */
+        double vel[MAXD];               /* Velocities */
+        double vort;                    /* Vorticity in 2D */
+        double impuse[MAXD];            /* Accum impact from external force */
+	double solute;			/* For subsurface problem */
+};
+typedef struct _STATE STATE;
+
 struct _IF_FIELD {
 	double **vel;			/* Velocities */
 	double *phi;
@@ -39,10 +50,11 @@ struct _IF_FIELD {
 	double *vort;			/* Vorticity in 2D */
 	double *mu;
 	double *rho;
-	double **vort3d;		/* Vorticity in 3D */
 	double *div_U;
 	double **grad_q;
 	double **f_surf;		// Surface force (such as tension)
+	double *d_phi;			/* Dual grid phi */
+	double *d_pres;			/* Dual grid pressure */
 };
 typedef struct _IF_FIELD IF_FIELD;
 
@@ -78,6 +90,8 @@ typedef enum _ADVEC_METHOD ADVEC_METHOD;
 enum _ELLIP_METHOD {
 	ERROR_ELLIP_SCHEME		= -1,
 	SIMPLE_ELLIP		= 1,
+	DUAL_ELLIP,
+	DOUBLE_ELLIP,
 	CIM_ELLIP
 };
 typedef enum _ELLIP_METHOD ELLIP_METHOD;
@@ -224,15 +238,15 @@ public:
 
 protected:
 	Front *front;
-	// On topological grid
+	IF_PARAMS *iFparams;
+	IF_FIELD  *field;
+	
+	// On dual topological grid
 	RECT_GRID *top_grid;
 	double *array;
 	double *source;
 	double *diff_coeff;
 	COMPONENT *top_comp;
-	IF_PARAMS *iFparams;
-	IF_FIELD  *field;
-
 	int *top_gmax;
 	int *lbuf, *ubuf;
 	double *top_L, *top_U;
@@ -240,10 +254,32 @@ protected:
 	int ***ijk_to_I, **I_to_ijk;
 	int *domain_status;
 	int smin[MAXD],smax[MAXD];
-
 	// Sweeping limites
 	int imin, jmin, kmin;
 	int imax, jmax, kmax;
+	// for parallel partition
+	int NLblocks, ilower, iupper;
+	int *n_dist;
+
+	// On comp topological grid
+	RECT_GRID *ctop_grid;
+	double *carray;
+	double *csource;
+	double *cdiff_coeff;
+	COMPONENT *ctop_comp;
+	int *ctop_gmax;
+	int *clbuf, *cubuf;
+	double *ctop_L, *ctop_U;
+	int **cij_to_I, **cI_to_ij;
+	int ***cijk_to_I, **cI_to_ijk;
+	int *cdomain_status;
+	int csmin[MAXD],csmax[MAXD];
+	// Sweeping limites
+	int cimin, cjmin, ckmin;
+	int cimax, cjmax, ckmax;
+	// for parallel partition
+	int cNLblocks, cilower, ciupper;
+	int *cn_dist;
 
 	//member data: mesh storage
 	std::vector<L_RECTANGLE>   cell_center;
@@ -261,18 +297,17 @@ protected:
 	double m_t;
 	double m_t_old, m_t_int, m_t_new;
 
-	// for parallel partition
-	int NLblocks, ilower, iupper;
-	int *n_dist;
-
 protected:
 	void setComponent(void); //init components;
 	void setDomain();
+	void setDualDomain();
 
 	// parallelization related functions
 	void scatMeshArray(void);
 	void setGlobalIndex(void);
+	void setDualGlobalIndex(void);
 	void setIndexMap(void);
+	void setDualIndexMap(void);
 	void paintAllGridPoint(int status);
 	void paintSolvedGridPoint();
 	boolean paintToSolveGridPoint();
@@ -296,6 +331,8 @@ protected:
 	virtual void computeProjection(void) = 0;
 	virtual void computeProjectionCim(void) = 0;
 	virtual void computeProjectionSimple(void) = 0;
+	virtual void computeProjectionDouble(void) = 0;
+	virtual void computeProjectionDual(void) = 0;
 	virtual void computePressure(void) = 0;
 	virtual void computePressurePmI(void) = 0;
 	virtual void computePressurePmII(void) = 0;
@@ -363,6 +400,8 @@ protected:
 	virtual void computeProjection(void) = 0;
 	virtual void computeProjectionCim(void) = 0;
 	virtual void computeProjectionSimple(void) = 0;
+	virtual void computeProjectionDouble(void) = 0;
+	virtual void computeProjectionDual(void) = 0;
 	virtual void computePressure(void) = 0;
 	virtual void computePressurePmI(void) = 0;
 	virtual void computePressurePmII(void) = 0;
@@ -399,6 +438,8 @@ protected:
 	virtual void computeProjection(void) = 0;
 	virtual void computeProjectionCim(void) = 0;
 	virtual void computeProjectionSimple(void) = 0;
+	virtual void computeProjectionDouble(void) = 0;
+	virtual void computeProjectionDual(void) = 0;
 	virtual void computePressure(void) = 0;
 	virtual void computePressurePmI(void) = 0;
 	virtual void computePressurePmII(void) = 0;
@@ -426,6 +467,8 @@ protected:
 	void computeProjection(void);
 	void computeProjectionCim(void);
 	void computeProjectionSimple(void);
+	void computeProjectionDouble(void);
+	void computeProjectionDual(void);
 	void computePressure(void);
 	void computePressurePmI(void);
 	void computePressurePmII(void);
@@ -458,6 +501,8 @@ protected:
 	void computeProjection(void);
 	void computeProjectionCim(void);
 	void computeProjectionSimple(void);
+	void computeProjectionDouble(void);
+	void computeProjectionDual(void);
 	void computePressure(void);
 	void computePressurePmI(void);
 	void computePressurePmII(void);
@@ -497,7 +542,7 @@ extern void read_iF_dirichlet_bdry_data(char*,Front*,F_BASIC_DATA);
 extern boolean isDirichletPresetBdry(Front*,int*,GRID_DIRECTION,COMPONENT);
 extern int ifluid_find_state_at_crossing(Front*,int*,GRID_DIRECTION,
 			int,POINTER*,HYPER_SURF**,double*);
-extern int ifluid_find_projection_crossing(Front*,int*,GRID_DIRECTION,
+extern int ifluid_find_state_at_dual_crossing(Front*,int*,GRID_DIRECTION,
 			int,POINTER*,HYPER_SURF**,double*);
 extern double p_jump(POINTER,int,double*);
 extern double grad_p_jump_n(POINTER,int,double*,double*);

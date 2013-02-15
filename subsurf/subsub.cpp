@@ -53,7 +53,6 @@ static  void neumann_point_propagate(
 	double dn,*h = front->rect_grid->h;
 	double *m_pre = iFparams->field->pres;
 	double *m_vor = iFparams->field->vort;
-	double **m_vor3d = iFparams->field->vort3d;
 	double nor[MAXD],tan[MAXD],p1[MAXD];
 	double *p0 = Coords(oldp);
 	STATE *oldst,*newst;
@@ -113,15 +112,6 @@ static  void neumann_point_propagate(
 	    FT_IntrpStateVarAtCoords(front,comp,p1,m_vor,
 			getStateVort,&newst->vort,&oldst->vort);
 	}
-        else
-        {
-            FT_IntrpStateVarAtCoords(front,comp,p1,m_vor3d[0],
-                        getStateXvort,&newst->vort3d[0],&oldst->vort3d[0]);
-            FT_IntrpStateVarAtCoords(front,comp,p1,m_vor3d[1],
-                        getStateYvort,&newst->vort3d[1],&oldst->vort3d[1]);
-            FT_IntrpStateVarAtCoords(front,comp,p1,m_vor3d[2],
-                        getStateZvort,&newst->vort3d[2],&oldst->vort3d[2]);
-        }
 	s = mag_vector(vel,dim);
 	FT_RecordMaxFrontSpeed(dim,s,NULL,Coords(newp),front);
         return;
@@ -168,7 +158,6 @@ static  void dirichlet_point_propagate(
             for (i = 0; i < dim; ++i)
 	    {
 	    	newst->vel[i] = bstate->vel[i];
-		newst->vort3d[i] = 0.0;
 		FT_RecordMaxFrontSpeed(i,fabs(newst->vel[i]),NULL,Coords(newp),
                                         front);
 	    }
@@ -777,24 +766,6 @@ extern double getStateZvel(POINTER state)
 	return fstate->vel[2];
 }	/* end getStateZvel */
 
-extern double getStateXvort(POINTER state)
-{
-	STATE *fstate = (STATE*)state;
-	return fstate->vort3d[0];
-}	/* end getStateXvort */
-
-extern double getStateYvort(POINTER state)
-{
-	STATE *fstate = (STATE*)state;
-	return fstate->vort3d[1];
-}	/* end getStateYvort */
-
-extern double getStateZvort(POINTER state)
-{
-	STATE *fstate = (STATE*)state;
-	return fstate->vort3d[2];
-}	/* end getStateZvort */
-
 extern void fluid_print_front_states(
 	FILE *outfile,
 	Front *front)
@@ -951,8 +922,9 @@ extern boolean isDirichletPresetBdry(
         HYPER_SURF *hs;
         POINTER intfc_state;
         double crx_coords[MAXD];
+	INTERFACE *grid_intfc = front->grid_intfc;
 
-        if (!FT_StateStructAtGridCrossing(front,icoords,dir,
+        if (!FT_StateStructAtGridCrossing(front,grid_intfc,icoords,dir,
                                 comp,&intfc_state,&hs,crx_coords))
             return NO;
         if (wave_type(hs) != DIRICHLET_BOUNDARY)
@@ -972,7 +944,9 @@ extern int ifluid_find_state_at_crossing(
 	double *crx_coords)
 {
 	boolean status;
-	status = FT_StateStructAtGridCrossing(front,icoords,dir,comp,state,				hs,crx_coords);
+	INTERFACE *grid_intfc = front->grid_intfc;
+	status = FT_StateStructAtGridCrossing(front,grid_intfc,icoords,dir,
+			comp,state,hs,crx_coords);
 	if (status == NO) 
 	    return NO_PDE_BOUNDARY;
 	if (wave_type(*hs) == FIRST_PHYSICS_WAVE_TYPE) 
@@ -1011,40 +985,6 @@ extern double grad_p_jump_t(
 {
         return 0.0;
 }       /* end grad_p_jump_t */
-
-extern int ifluid_find_projection_crossing(
-        Front *front,
-        int *icoords,
-        GRID_DIRECTION dir,
-        int comp,
-        POINTER *state,
-        HYPER_SURF **hs,
-        double *crx_coords)
-{
-        boolean status;
-        static STATE dummy_state;
-
-        status = FT_StateStructAtGridCrossing(front,icoords,dir,comp,state,hs,
-                                        crx_coords);
-        if (status == NO || wave_type(*hs) == FIRST_PHYSICS_WAVE_TYPE)
-            return NO_PDE_BOUNDARY;
-        if (wave_type(*hs) == NEUMANN_BOUNDARY)
-            return NEUMANN_PDE_BOUNDARY;
-        if (wave_type(*hs) == GROWING_BODY_BOUNDARY)
-            return NEUMANN_PDE_BOUNDARY;
-        if (wave_type(*hs) == DIRICHLET_BOUNDARY)
-        {
-            if (boundary_state(*hs))
-                return NEUMANN_PDE_BOUNDARY;
-            else
-            {
-                dummy_state.pres = 0.0;
-                *state = (POINTER)&dummy_state;
-                return DIRICHLET_PDE_BOUNDARY;
-            }
-        }
-        return YES;
-}       /* ifluid_find_projection_crossing */
 
 extern double getPhiFromPres(
         Front *front,
@@ -1123,3 +1063,29 @@ extern double getPressure(
         }
         return pres;
 }       /* end getPressure */
+
+extern int ifluid_find_state_at_dual_crossing(
+	Front *front,
+	int *icoords,
+	GRID_DIRECTION dir,
+	int comp,
+	POINTER *state,
+	HYPER_SURF **hs,
+	double *crx_coords)
+{
+	boolean status;
+	INTERFACE *grid_intfc = front->comp_grid_intfc;
+	status = FT_StateStructAtGridCrossing(front,grid_intfc,icoords,dir,
+			comp,state,hs,crx_coords);
+	if (status == NO) 
+	    return NO_PDE_BOUNDARY;
+	if (wave_type(*hs) == FIRST_PHYSICS_WAVE_TYPE) 
+	    return NO_PDE_BOUNDARY;
+	if (wave_type(*hs) == NEUMANN_BOUNDARY)
+            return NEUMANN_PDE_BOUNDARY;
+	if (wave_type(*hs) == GROWING_BODY_BOUNDARY)
+            return NEUMANN_PDE_BOUNDARY;
+        if (wave_type(*hs) == DIRICHLET_BOUNDARY)
+            return DIRICHLET_PDE_BOUNDARY;
+}     /*ifluid_find_state_at_crossing */
+

@@ -425,14 +425,14 @@ void Incompress_Solver_Smooth_Basis::save(char *filename)
 	fclose(hfile);
 }
 
-
-
 void Incompress_Solver_Smooth_Basis::setDomain()
 {
 	static boolean first = YES;
 	INTERFACE *grid_intfc;
 	Table *T;
 	int i,size;
+
+	iFparams = (IF_PARAMS*)front->extra1;
 
 	grid_intfc = front->grid_intfc;
 	top_grid = &topological_grid(grid_intfc);
@@ -445,7 +445,6 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 	dim = grid_intfc->dim;
 	T = table_of_interface(grid_intfc);
 	top_comp = T->components;
-	iFparams = (IF_PARAMS*)front->extra1;
 	
 	hmin = top_h[0];
 	size = top_gmax[0]+1;
@@ -517,8 +516,6 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 	    	FT_MatrixMemoryAlloc((POINTER*)&field->grad_q,3,size,
 					sizeof(double));
 	    	FT_MatrixMemoryAlloc((POINTER*)&field->f_surf,3,size,
-					sizeof(double));
-	    	FT_MatrixMemoryAlloc((POINTER*)&field->vort3d,3,size,
 					sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&domain_status,size,INT);
 	    	first = NO;
@@ -864,15 +861,6 @@ void Incompress_Solver_Smooth_Basis::augmentMovieVariables()
 	    	        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
 		    	hdf_movie_var->num_var = ++n;
 		    }
-		    if (movie_option->plot_vort)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"vort-yz");
-	    	    	hdf_movie_var->get_state_var[n] = getStateXvort;
-	    		hdf_movie_var->top_var[n] = field->vort3d[0];
-	    		hdf_movie_var->idir[n] = 0;
-	    	        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
 		}
 		if (movie_option->plot_cross_section[1])
 		{
@@ -895,15 +883,6 @@ void Incompress_Solver_Smooth_Basis::augmentMovieVariables()
 	    	    	sprintf(hdf_movie_var->var_name[n],"velo-xz-z");
 	    	    	hdf_movie_var->get_state_var[n] = getStateZvel;
 	    		hdf_movie_var->top_var[n] = field->vel[2];
-	    		hdf_movie_var->idir[n] = 1;
-	    	        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
-		    if (movie_option->plot_vort)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"vort-xz");
-	    	    	hdf_movie_var->get_state_var[n] = getStateYvort;
-	    		hdf_movie_var->top_var[n] = field->vort3d[1];
 	    		hdf_movie_var->idir[n] = 1;
 	    	        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
 		    	hdf_movie_var->num_var = ++n;
@@ -931,15 +910,6 @@ void Incompress_Solver_Smooth_Basis::augmentMovieVariables()
 	    	    	sprintf(hdf_movie_var->var_name[n],"velo-xy-y");
 	    	    	hdf_movie_var->get_state_var[n] = getStateYvel;
 	    		hdf_movie_var->top_var[n] = field->vel[1];
-	    		hdf_movie_var->idir[n] = 2;
-	    	        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
-		    if (movie_option->plot_vort)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"vort-xy");
-	    	    	hdf_movie_var->get_state_var[n] = getStateZvort;
-	    		hdf_movie_var->top_var[n] = field->vort3d[2];
 	    		hdf_movie_var->idir[n] = 2;
 	    	        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
 		    	hdf_movie_var->num_var = ++n;
@@ -1077,15 +1047,6 @@ void Incompress_Solver_Smooth_Basis::initMovieVariables()
 	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
 		    	hdf_movie_var->num_var = ++n;
 		    }
-		    if (movie_option->plot_vort)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"vort-yz");
-	    	    	hdf_movie_var->get_state_var[n] = getStateXvort;
-	    		hdf_movie_var->top_var[n] = field->vort3d[0];
-	    		hdf_movie_var->idir[n] = 0;
-	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
 		}
 		if (movie_option->plot_cross_section[1])
 		{
@@ -1113,15 +1074,6 @@ void Incompress_Solver_Smooth_Basis::initMovieVariables()
 	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
 		    	hdf_movie_var->num_var = ++n;
 		    }
-		    if (movie_option->plot_vort)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"vort-xz");
-	    	    	hdf_movie_var->get_state_var[n] = getStateYvort;
-	    		hdf_movie_var->top_var[n] = field->vort3d[1];
-	    		hdf_movie_var->idir[n] = 1;
-	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
 		}
 		if (movie_option->plot_cross_section[2])
 		{
@@ -1145,15 +1097,6 @@ void Incompress_Solver_Smooth_Basis::initMovieVariables()
 	    	    	sprintf(hdf_movie_var->var_name[n],"velo-xy-y");
 	    	    	hdf_movie_var->get_state_var[n] = getStateYvel;
 	    		hdf_movie_var->top_var[n] = field->vel[1];
-	    		hdf_movie_var->idir[n] = 2;
-	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
-		    if (movie_option->plot_vort)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"vort-xy");
-	    	    	hdf_movie_var->get_state_var[n] = getStateZvort;
-	    		hdf_movie_var->top_var[n] = field->vort3d[2];
 	    		hdf_movie_var->idir[n] = 2;
 	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
 		    	hdf_movie_var->num_var = ++n;
@@ -2746,3 +2689,195 @@ void Incompress_Solver_Smooth_Basis::checkVelocityDiv(const char *mesg)
 	(void) printf("Relative divergence: max = %20.14f  div_min = %20.14f\n",
 			div_max/denom,div_min/denom);
 }	/* end checkVelocityDiv */
+
+void Incompress_Solver_Smooth_Basis::setDualDomain()
+{
+	static boolean first = YES;
+	INTERFACE *comp_grid_intfc;
+	Table *T;
+	int i,size;
+
+	comp_grid_intfc = front->comp_grid_intfc;
+	ctop_grid = &topological_grid(comp_grid_intfc);
+	ctop_gmax = ctop_grid->gmax;
+	ctop_L = ctop_grid->L;
+	ctop_U = ctop_grid->U;
+	T = table_of_interface(comp_grid_intfc);
+	ctop_comp = T->components;
+	cimin = (lbuf[0] == 0) ? 1 : lbuf[0];
+	cjmin = (lbuf[1] == 0) ? 1 : lbuf[1];
+	ckmin = (lbuf[2] == 0) ? 1 : lbuf[2];
+	cimax = (ubuf[0] == 0) ? ctop_gmax[0] - 1 : ctop_gmax[0] - ubuf[0] - 1;
+	cjmax = (ubuf[1] == 0) ? ctop_gmax[1] - 1 : ctop_gmax[1] - ubuf[1] - 1;
+	ckmax = (ubuf[2] == 0) ? ctop_gmax[2] - 1 : ctop_gmax[2] - ubuf[2] - 1;
+
+	printf("In setDualDomain()\n");
+	printf("Lower bound: cimin = %d  BL = %f\n",cimin,
+			ctop_L[0]+cimin*top_h[0]);
+	printf("Upper bound: cimax = %d  BL = %f\n",cimax,
+			ctop_L[0]+cimax*top_h[0]);
+	printf("Lower bound: cjmin = %d  BL = %f\n",cjmin,
+			ctop_L[1]+cjmin*top_h[1]);
+	printf("Upper bound: cjmax = %d  BL = %f\n",cjmax,
+			ctop_L[1]+cjmax*top_h[1]);
+
+	size = ctop_gmax[0]+1;
+        for (i = 1; i < dim; ++i)
+	    size *= (ctop_gmax[i]+1);
+	printf("size = %d\n",size);
+	switch (dim)
+	{
+	case 2:
+	    if (first)
+	    {
+		iFparams->field = field;
+	    	FT_VectorMemoryAlloc((POINTER*)&field->d_pres,size,
+					sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&field->d_phi,size,
+					sizeof(double));
+	    	first = NO;
+	    }
+	    break;
+	case 3:
+	    if (first)
+	    {
+		iFparams->field = field;
+	    	FT_VectorMemoryAlloc((POINTER*)&field->d_pres,size,
+					sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&field->d_phi,size,
+					sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&domain_status,size,INT);
+	    	first = NO;
+	    }
+	}
+}	/* end setDualDomain */
+
+void Incompress_Solver_Smooth_Basis::setDualGlobalIndex()
+{
+	int i,j,k,ic;
+	int num_nodes = pp_numnodes();
+	int myid = pp_mynode();
+	static boolean first = YES;
+
+	if (first)
+	{
+	    first = NO;
+	    FT_VectorMemoryAlloc((POINTER*)&cn_dist,num_nodes,sizeof(int));
+	}
+	cNLblocks = 0;
+	switch (dim)
+	{
+	case 1:
+	    for (i = cimin; i <= cimax; i++)
+	    {
+		ic = d_index1d(i,ctop_gmax);
+		if (ctop_comp[ic] == SOLID_COMP) continue;
+		cNLblocks++;
+	    }
+	    break;
+	case 2:
+	    for (j = cjmin; j <= cjmax; j++)
+	    for (i = cimin; i <= cimax; i++)
+	    {
+		ic = d_index2d(i,j,ctop_gmax);
+		if (ctop_comp[ic] == SOLID_COMP) continue;
+		cNLblocks++;
+	    }
+	    break;
+	case 3:
+	    for (k = ckmin; k <= ckmax; k++)
+	    for (j = cjmin; j <= cjmax; j++)
+	    for (i = cimin; i <= cimax; i++)
+	    {
+		ic = d_index3d(i,j,k,ctop_gmax);
+		if (ctop_comp[ic] == SOLID_COMP) continue;
+		if (domain_status[ic] != TO_SOLVE) continue;
+		cNLblocks++;
+	    }
+	    break;
+	}
+
+	for (i = 0; i < num_nodes; ++i) n_dist[i] = 0;
+	cn_dist[myid] = cNLblocks;
+	pp_global_imax(cn_dist,num_nodes);
+	cilower = 0;
+        ciupper = cn_dist[0];
+
+        for (i = 1; i <= myid; i++)
+        {
+            cilower += cn_dist[i-1];
+            ciupper += cn_dist[i];
+        }	
+}	/* setDualGlobalIndex */
+
+void Incompress_Solver_Smooth_Basis::setDualIndexMap(void)
+{
+	static boolean first = YES;
+	int i,j,k,ic,index;
+	int llbuf[MAXD],uubuf[MAXD];
+	int size = ciupper - cilower;
+	static int old_size;
+
+	if (first)
+	{
+	    first = NO;
+	    switch (dim)
+	    {
+	    case 2:
+	    	FT_MatrixMemoryAlloc((POINTER*)&cij_to_I,ctop_gmax[0]+1,
+				ctop_gmax[1]+1,INT);
+	    	break;
+	    case 3:
+	    	FT_TriArrayMemoryAlloc((POINTER*)&cijk_to_I,ctop_gmax[0]+1,
+				ctop_gmax[1]+1,ctop_gmax[2]+1,INT);
+	    	break;
+	    }
+	    old_size = size;
+	}
+
+	index = 0;
+	for (i = 0; i < dim; ++i)
+	{
+	    llbuf[i] = lbuf[i] != 0 ? lbuf[i] : 1;
+	    uubuf[i] = ubuf[i] != 0 ? ubuf[i] : 1;
+	}
+	switch (dim)
+	{
+	case 2:
+	    for (j = 0; j <= ctop_gmax[1]; j++)
+	    for (i = 0; i <= ctop_gmax[0]; i++)
+		    cij_to_I[i][j] = -1;
+	    for (j = cjmin; j <= cjmax; j++)
+	    for (i = cimin; i <= cimax; i++)
+	    {
+		ic = d_index2d(i,j,ctop_gmax);
+                if (ctop_comp[ic] != SOLID_COMP)
+                {
+                    cij_to_I[i][j] = index + cilower;
+                    index++;
+                }
+	    }
+	    FT_ParallelExchCellIndex(front,llbuf,uubuf,(POINTER)cij_to_I);
+	    break;
+	case 3:
+	    for (k = 0; k <= ctop_gmax[2]; k++)
+	    for (j = 0; j <= ctop_gmax[1]; j++)
+	    for (i = 0; i <= ctop_gmax[0]; i++)
+		    cijk_to_I[i][j][k] = -1;
+	    for (k = ckmin; k <= ckmax; k++)
+	    for (j = cjmin; j <= cjmax; j++)
+	    for (i = cimin; i <= cimax; i++)
+	    {
+		ic = d_index3d(i,j,k,ctop_gmax);
+		if (domain_status[ic] != TO_SOLVE)
+		    continue;
+                if (ctop_comp[ic] != SOLID_COMP)
+		{
+                    cijk_to_I[i][j][k] = index + cilower;
+                    index++;
+                }
+	    }
+	    FT_ParallelExchCellIndex(front,llbuf,uubuf,(POINTER)cijk_to_I);
+	    break;
+	}
+}	/* end setDualIndexMap */

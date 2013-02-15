@@ -369,6 +369,28 @@ extern "C" {
 
    IMPORT  void FT_FreeGridIntfc(Front *front );
 
+/*! \fn void FT_MakeCompGridIntfc(Front *front)
+ *  \ingroup GRIDINTFC
+    \brief Make a duplicate interface whose topological grid is the
+     expanded comp grid, currently with buffer of 4h for PERIODIC and
+     SUBDOMAIN boundary, 1h for other boundaries. Install crossings
+     of the interface and the expanded dual grid and store them in the
+     interface table. These crossings can be used to interact with
+     various PDE solvers.
+    \param front @b inout	Pointer to Front.
+ */
+
+   IMPORT  void FT_MakeCompGridIntfc(Front *front );
+
+/*! \fn void FT_FreeGridIntfc(Front *front)
+ *  \ingroup GRIDINTFC
+    \brief Delete and free space of grid crossing interface made by
+     the function FT_MakeCompGridIntfc().
+    \param front @b inout	Pointer to Front.
+ */
+
+   IMPORT  void FT_FreeCompGridIntfc(Front *front );
+
 /*! \fn void FT_FreeFront(Front *front)
  *  \ingroup GRIDINTFC
     \brief Delete and free space occupied by the front including grid_intfc 
@@ -423,14 +445,15 @@ extern "C" {
  */
 
    IMPORT  boolean FT_StateStructAtGridCrossing(Front *front ,
-   				int *icoords ,
-   				GRID_DIRECTION  dir ,
-   				int  comp ,
-   				POINTER *state ,
-   				HYPER_SURF **hs ,
-   				double *crx_coords );
+				INTERFACE *grid_intfc,
+   				int *icoords,
+   				GRID_DIRECTION  dir,
+   				int  comp,
+   				POINTER *state,
+   				HYPER_SURF **hs,
+   				double *crx_coords);
 
-/*! \fn boolean FT_StateVarAtGridCrossing(Front *front, int *icoords, GRID_DIRECTION dir, int comp, double (*state_func)(Locstate), double *ans, double *crx_coords)
+/*! \fn boolean FT_StateVarAtGridCrossing(Front *front, INTERFACE *grid_intfc, int *icoords, GRID_DIRECTION dir, int comp, double (*state_func)(Locstate), double *ans, double *crx_coords)
  *  \ingroup GRIDINTFC
     \brief This function performs the same way as the function
      FT_StateStructAtGridCrossing() except it assigns a specific state
@@ -438,6 +461,7 @@ extern "C" {
      know the state structure of application, an application specific
      state retrieving function state_func() must be supplied.
     \param front @b in	Pointer to Front.
+    \param grid_intfc @b in	Pointer to the grid_intfc.
     \param icoords @b in	Grid point coordinate indices.
     \param dir @b in	Direction to which the crossing is to be found.
     \param comp @b in	Component (domain index) of the grid point at icoord.
