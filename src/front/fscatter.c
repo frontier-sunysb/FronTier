@@ -43,6 +43,10 @@ LOCAL 	void  	unbundle_array_buffer(int,int*,int*,int*,double*,byte*);
 LOCAL 	int 	set_send_buffer_limits(int,int*,int*,int,int,int*,int*,int*);
 LOCAL 	int 	set_recv_buffer_limits(int,int*,int*,int,int,int*,int*,int*);
 LOCAL   void    reflect_array_buffer(int,int,int,int*,int*,int*,double*);
+LOCAL 	int 	set_send_comp_buffer_limits(int,int*,int*,int,int,int*,
+					int*,int*);
+LOCAL 	int 	set_recv_comp_buffer_limits(int,int*,int*,int,int,int*,
+					int*,int*);
 
 /*
 *			scatter_front():
@@ -491,7 +495,98 @@ EXPORT void scatter_top_grid_float_array(
 	    }
 	}
 	stop_clock("scatter_top_grid_float_array");
-}	/* end scatter_dual_grid_array */
+}	/* end scatter_top_grid_float_array */
+
+EXPORT void scatter_comp_grid_float_array(
+	double *solute,
+	Front *front)
+{
+	INTERFACE *intfc = front->comp_grid_intfc;
+	PP_GRID	*pp_grid = front->pp_grid;
+	int dim = Dimension(intfc);
+	static byte *storage;
+	int i,j,k,dir,side,len;
+	int bmin[3],bmax[3];
+	int myid,dst_id,*G;
+	int me[3],him[3];
+	RECT_GRID *comp_grid,*top_grid;
+	int lbuf[MAXD],ubuf[MAXD],*gmax;
+	static int max_buf = 0;
+	static int storage_size;
+	static int min_gmax;
+
+	start_clock("scatter_comp_grid_float_array");
+	myid = pp_mynode();
+	G = pp_grid->gmax;
+	find_Cartesian_coordinates(myid,pp_grid,me);
+
+	comp_grid = computational_grid(intfc);
+	top_grid = &topological_grid(intfc);
+	gmax = top_grid->gmax;
+	for (i = 0; i < dim; ++i)
+	{
+	    lbuf[i] = comp_grid->lbuf[i];
+	    ubuf[i] = comp_grid->ubuf[i];
+	}
+
+	if (storage == NULL)
+	{
+	    min_gmax = gmax[0];
+	    for (i = 0; i < dim; i++)
+	    {
+	    	if (lbuf[i] > max_buf)
+		    max_buf = lbuf[i] + 1;
+	    	if (ubuf[i] > max_buf)
+		    max_buf = ubuf[i] + 1;
+		if (min_gmax > gmax[i])
+		    min_gmax = gmax[i];
+	    }
+	    storage_size = max_buf*FLOAT;
+	    for (i = 0; i < dim; i++)
+	    	storage_size *= (gmax[i] + 1);
+	    storage_size /= (min_gmax + 1);
+	    uni_array(&storage,storage_size,sizeof(byte));
+	}
+
+	for (dir = 0; dir < dim; ++dir)
+	{
+	    for (side = 0; side < 2; ++side)
+	    {
+		for (k = 0; k < dim; ++k)
+		    him[k] = me[k];
+	    	if (rect_boundary_type(intfc,dir,side) == SUBDOMAIN_BOUNDARY)
+		{
+		    him[dir] = (me[dir] + 2*side - 1 + G[dir])%G[dir];
+		    dst_id = domain_id(him,G,dim);
+	    	    len = set_send_comp_buffer_limits(dim,bmin,bmax,dir,
+					side,lbuf,ubuf,gmax);
+		    bundle_array_buffer(dim,bmin,bmax,gmax,solute,
+		    			storage);
+		    if (dst_id != myid)
+		    	pp_send(array_id(0),storage,len,dst_id);
+		}
+                else if (rect_boundary_type(intfc,dir,side) ==
+                                REFLECTION_BOUNDARY)
+                {
+		    (void) printf("REFLECTION_BOUNDARY code needed!\n");
+		    clean_up(ERROR);
+                }
+		if (rect_boundary_type(intfc,dir,(side+1)%2) ==
+					SUBDOMAIN_BOUNDARY)
+		{
+		    him[dir] = (me[dir] - 2*side + 1 + G[dir])%G[dir];
+		    dst_id = domain_id(him,G,dim);
+	    	    len = set_recv_comp_buffer_limits(dim,bmin,bmax,dir,
+					(side+1)%2,lbuf,ubuf,gmax);
+		    if (dst_id != myid)
+		    	pp_recv(array_id(0),dst_id,storage,len);
+		    unbundle_array_buffer(dim,bmin,bmax,gmax,solute,
+		    			storage);
+		}
+	    }
+	}
+	stop_clock("scatter_comp_grid_float_array");
+}	/* end scatter_comp_grid_float_array */
 
 LOCAL	void bundle_array_buffer(
 	int dim,
@@ -1886,4 +1981,70 @@ EXPORT	void	clip_front_to_rect_boundary_type(
 	    communicate_default_comp(front);
 	}
 }		/*end clip_front_to_rect_boundary_type*/
+
+LOCAL	int set_send_comp_buffer_limits(
+	int dim,
+	int *bmin,
+	int *bmax,
+	int dir,
+	int side,
+	int *lbuf,
+	int *ubuf,
+	int *gmax)
+{
+	int i,len;
+	for (i = 0; i < dim; ++i)
+	{
+	    bmin[i] = 0;
+	    bmax[i] = gmax[i] + 1;
+	}
+	if (side == 0)
+	{
+	    bmin[dir] = lbuf[dir];
+	    bmax[dir] = 2*lbuf[dir]+1;
+	}
+	else
+	{
+	    bmin[dir] = gmax[dir] - 2*ubuf[dir];
+	    bmax[dir] = gmax[dir] - ubuf[dir];
+	}
+	len = 1;
+	for (i = 0; i < dim; ++i)
+	    len *= (bmax[i] - bmin[i]);
+	return len*FLOAT;
+}	/* end set_send_comp_buffer_limits */
+
+
+LOCAL	int set_recv_comp_buffer_limits(
+	int dim,
+	int *bmin,
+	int *bmax,
+	int dir,
+	int side,
+	int *lbuf,
+	int *ubuf,
+	int *gmax)
+{
+	int i,len;
+	for (i = 0; i < dim; ++i)
+	{
+	    bmin[i] = 0;
+	    bmax[i] = gmax[i] + 1;
+	}
+	if (side == 0)
+	{
+	    bmin[dir] = 0;
+	    bmax[dir] = lbuf[dir];
+	}
+	else
+	{
+	    bmin[dir] = gmax[dir] - ubuf[dir];
+	    bmax[dir] = gmax[dir] + 1;
+	}
+	len = 1;
+	for (i = 0; i < dim; ++i)
+	    len *= (bmax[i] - bmin[i]);
+	return len*FLOAT;
+}	/* end set_recv_comp_buffer_limits */
+
 

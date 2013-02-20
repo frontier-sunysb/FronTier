@@ -2625,7 +2625,10 @@ boolean Incompress_Solver_Smooth_Basis::nextConnectedPoint(
 	}
 }	/* end connectedPoint */
 
-void Incompress_Solver_Smooth_Basis::checkVelocityDiv(const char *mesg)
+void Incompress_Solver_Smooth_Basis::checkVelocityDiv(
+	const char *mesg,
+	double *vmin,
+	double *vmax)
 {
 	double **vel = field->vel;
 	double div_tmp,denom;
@@ -2633,14 +2636,7 @@ void Incompress_Solver_Smooth_Basis::checkVelocityDiv(const char *mesg)
 	double div_min =  HUGE;
 	int i,j,k,l,index;
 	int icoords[MAXD];
-	double vmax[MAXD],vmin[MAXD];
 	
-
-	for (l = 0; l < dim; ++l)
-	{
-	    vmax[l] = -HUGE;
-	    vmin[l] = HUGE;
-	}
 	switch (dim)
 	{
 	case 2:
@@ -2650,11 +2646,6 @@ void Incompress_Solver_Smooth_Basis::checkVelocityDiv(const char *mesg)
 		icoords[0] = i;
                 icoords[1] = j;
 		index = d_index2d(i,j,top_gmax);
-		for (l = 0; l < dim; ++l)
-		{
-		    if (vmax[l] < vel[l][index]) vmax[l] = vel[l][index];
-		    if (vmin[l] > vel[l][index]) vmin[l] = vel[l][index];
-		}
 		div_tmp = computeFieldPointDiv(icoords,vel);
 		if (div_max < div_tmp) div_max = div_tmp;
                 if (div_min > div_tmp) div_min = div_tmp;
@@ -2669,11 +2660,6 @@ void Incompress_Solver_Smooth_Basis::checkVelocityDiv(const char *mesg)
                 icoords[1] = j;
                 icoords[2] = k;
 		index = d_index3d(i,j,k,top_gmax);
-		for (l = 0; l < dim; ++l)
-		{
-		    if (vmax[l] < vel[l][index]) vmax[l] = vel[l][index];
-		    if (vmin[l] > vel[l][index]) vmin[l] = vel[l][index];
-		}
 		div_tmp = computeFieldPointDiv(icoords,vel);
 		if (div_max < div_tmp) div_max = div_tmp;
                 if (div_min > div_tmp) div_min = div_tmp;

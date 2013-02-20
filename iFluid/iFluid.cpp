@@ -150,6 +150,8 @@ int main(int argc, char **argv)
 	    if (debugging("trace")) 
 		printf("Passed read_iF_dirichlet_bdry_data()\n");
 	}
+	else
+            read_iF_dirichlet_bdry_data(in_name,&front,f_basic);
 
 	/* Initialize velocity field function */
 

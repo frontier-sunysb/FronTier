@@ -666,6 +666,7 @@ IMPORT	void 	clip_front_to_subdomain(Front*);
 IMPORT  void    clip_front_to_rect_boundary_type(Front*);
 IMPORT	void 	set_front_pp_grid(INIT_DATA*,Front*);
 IMPORT  void    scatter_top_grid_float_array(double*,Front*);
+IMPORT  void    scatter_comp_grid_float_array(double*,Front*);
 IMPORT  void    scatter_cell_index(Front*,int*,int*,POINTER);
 IMPORT	boolean	cpu_adapt_front(Front*,double,int*,int*);
 IMPORT	boolean	f_intfc_communication1d(Front*);

@@ -180,12 +180,10 @@ public:
 	double *D;		/* div(D*grad)phi = source */
 	void set_solver_domain(void);
 	void solve(double *soln);
-	void dsolve(double *soln);
 	double (*getStateVar)(POINTER);
 	int (*findStateAtCrossing)(Front*,int*,GRID_DIRECTION,int,
                                 POINTER*,HYPER_SURF**,double*);
-	void checkSolver(int *icoords);
-	void dcheckSolver(int *icoords);
+	double checkSolver(int *icoords, boolean print_details);
 private:
         // Dimension
         int dim;
@@ -207,7 +205,9 @@ private:
 	void solve1d(double *soln);
 	void solve2d(double *soln);
 	void solve3d(double *soln);
-	double average_D(int id1,int id2);
+	void get_dual_D(int*,double*);
+	double dual_average_D_2d(int dir, int nb, int**,COMPONENT**);
+	double dual_average_D_3d(int dir, int nb, int***,COMPONENT***);
 };
 
 class ELLIPTIC_SOLVER{
@@ -231,8 +231,8 @@ public:
 	double (*getStateVar)(POINTER);
 	int (*findStateAtCrossing)(Front*,int*,GRID_DIRECTION,int,
                                 POINTER*,HYPER_SURF**,double*);
-	void checkSolver(int *icoords);
-	void dcheckSolver(int *icoords);
+	double checkSolver(int *icoords,boolean print_details);
+	double dcheckSolver(int *icoords,boolean print_details);
 private:
         // Dimension
         int dim;

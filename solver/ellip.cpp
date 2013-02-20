@@ -438,12 +438,35 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 
 	if (debugging("step_size"))
 	{
-	    printf("Max solution = %20.14f occuring at: %d %d\n",
-			max_soln,icrds_max[0],icrds_max[1]);
-	    checkSolver(icrds_max);
-	    printf("Min solution = %20.14f occuring at: %d %d\n",
-			min_soln,icrds_min[0],icrds_min[1]);
-	    checkSolver(icrds_min);
+	    (void) printf("Max solution = %20.14f occuring at: %d %d\n",
+                        max_soln,icrds_max[0],icrds_max[1]);
+            checkSolver(icrds_max,YES);
+            (void) printf("Min solution = %20.14f occuring at: %d %d\n",
+                        min_soln,icrds_min[0],icrds_min[1]);
+            checkSolver(icrds_min,YES);
+	}
+	if (debugging("elliptic_error"))
+        {
+            double error,max_error = 0.0;
+            for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
+            {
+                icoords[0] = i;
+                icoords[1] = j;
+                if (ij_to_I[i][j] == -1) continue;
+                error = checkSolver(icoords,NO);
+                if (error > max_error)
+                {
+                    max_error = error;
+                    icrds_max[0] = i;
+                    icrds_max[1] = j;
+                }
+            }
+            (void) printf("In dual elliptic solver:\n");
+            (void) printf("Max relative elliptic error: %20.14f\n",max_error);
+            (void) printf("Occuring at %d %d: %20.14f\n",icrds_max[0],
+                                icrds_max[1]);
+            error = checkSolver(icrds_max,YES);
 	}
 
 	FT_FreeThese(1,x);
@@ -643,91 +666,41 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 	if (debugging("step_size"))
 	{
 	    printf("Max solution = %20.14f occuring at: %d %d %d\n",
-			max_soln,icrds_max[0],icrds_max[1],icrds_max[2]);
-	    checkSolver(icrds_max);
-	    printf("Min solution = %20.14f occuring at: %d %d %d\n",
-			min_soln,icrds_min[0],icrds_min[1],icrds_min[2]);
-	    checkSolver(icrds_min);
+                        max_soln,icrds_max[0],icrds_max[1],icrds_max[2]);
+            checkSolver(icrds_max,YES);
+            printf("Min solution = %20.14f occuring at: %d %d %d\n",
+                        min_soln,icrds_min[0],icrds_min[1],icrds_min[2]);
+            checkSolver(icrds_min,YES);
 	}
+	if (debugging("elliptic_error"))
+        {
+            double error,max_error = 0.0;
+            for (k = kmin; k <= kmax; k++)
+            for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
+            {
+                icoords[0] = i;
+                icoords[1] = j;
+                icoords[2] = k;
+                if (ijk_to_I[i][j][k] == -1) continue;
+                error = checkSolver(icoords,NO);
+                if (error > max_error)
+                {
+                    max_error = error;
+                    icrds_max[0] = i;
+                    icrds_max[1] = j;
+                    icrds_max[2] = k;
+                }
+            }
+            (void) printf("In dual elliptic solver:\n");
+            (void) printf("Max relative elliptic error: %20.14f\n",max_error);
+            (void) printf("Occuring at %d %d %d: %20.14f\n",icrds_max[0],
+                                icrds_max[1],icrds_max[2]);
+            error = checkSolver(icrds_max,YES);
+        }
 
 	FT_FreeThese(1,x);
 }	/* end solve3d */
-
-void ELLIPTIC_SOLVER::checkSolver(int *icoords)
-{
-	int i,l,m;
-	int comp;
-	double w[2];
-	int id0,index_nb;
-	double dw[2],coefs[2],lhs,rhs;
-	GRID_DIRECTION dir[3][2] = {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
-	HYPER_SURF *hs;
-        double crx_coords[MAXD];
-        int status;
-        POINTER intfc_state;
-	int icnb[MAXD];
-	double denom = 0.0;
-
-	(void) printf("\nEntering checkSolver()\n");
-
-	(void) printf("icoords = ");
-	for (i = 0; i < dim; ++i)
-	    (void) printf("%d ",icoords[i]);
-	(void) printf("\n");
-
-	id0 = d_index(icoords,top_gmax,dim);
-	comp = top_comp[id0];
-	lhs = 0;
-	for (l = 0; l < dim; ++l)
-	{
-	    (void) printf("Direction %d:\n",l);
-	    for (i = 0; i < dim; ++i)
-		icnb[i] = icoords[i];
-	    for (m = 0; m < 2; ++m)
-	    {
-		status = (*findStateAtCrossing)(front,icoords,dir[l][m],comp,
-                                &intfc_state,&hs,crx_coords);
-		icnb[l] = (m == 0) ? icoords[l] - 1 : icoords[l] + 1;
-		index_nb = d_index(icnb,top_gmax,dim);
-		switch(status)
-		{
-		case NO_PDE_BOUNDARY:
-		    (void) printf("Side %d NO_PDE_BOUNDARY\n",m);
-		    coefs[m] = 0.5*(D[id0] + D[index_nb]);
-		    w[0] = soln[id0];
-		    w[1] = soln[index_nb];
-		    break;
-		case CONST_V_PDE_BOUNDARY:
-		    (void) printf("Side %d CONST_V_PDE_BOUNDARY\n",m);
-		    coefs[m] = D[id0];
-		    w[0] = soln[id0];
-		    w[1] = soln[id0];
-		    break;
-		case CONST_P_PDE_BOUNDARY:
-		    (void) printf("Side %d CONST_P_PDE_BOUNDARY\n",m);
-		    coefs[m] = D[id0];
-		    w[0] = soln[id0];
-		    w[1] = getStateVar(intfc_state);
-		    break;
-		default:
-		    (void) printf("Side %d Unknown BOUNDARY\n",m);
-		    clean_up(ERROR);
-		}
-		dw[m] = (w[1] - w[0])/top_h[l];
-		if (denom < fabs(coefs[m]*dw[m]/2.0/top_h[l]))
-		    denom = fabs(coefs[m]*dw[m]/2.0/top_h[l]);
-	    }
-	    (void) printf("Coefs: %f %f\n",coefs[0],coefs[1]);
-	    (void) printf("C*dw: %f %f\n",coefs[0]*dw[0],coefs[1]*dw[1]);
-	    lhs += (coefs[1]*dw[1] + coefs[0]*dw[0])/top_h[l];
-	}
-	rhs = source[id0];
-	(void) printf("Solution = %20.14f\n",soln[id0]);
-	(void) printf("LHS = %20.14f  RHS = %20.14f\n",lhs,rhs);
-	(void) printf("LHS - RHS = %20.14f\n",lhs-rhs);
-	(void) printf("Relative error = %20.14g\n",fabs(lhs-rhs)/denom);
-	(void) printf("Leaving checkSolver()\n\n");
-}	/* end checkSolver */
 
 void ELLIPTIC_SOLVER::dsolve2d(double *soln)
 {
@@ -913,13 +886,36 @@ void ELLIPTIC_SOLVER::dsolve2d(double *soln)
 
 	if (debugging("step_size"))
 	{
-	    printf("Max solution = %20.14f occuring at: %d %d\n",
-			max_soln,icrds_max[0],icrds_max[1]);
-	    dcheckSolver(icrds_max);
-	    printf("Min solution = %20.14f occuring at: %d %d\n",
-			min_soln,icrds_min[0],icrds_min[1]);
-	    dcheckSolver(icrds_min);
+	    (void) printf("Max solution = %20.14f occuring at: %d %d\n",
+                        max_soln,icrds_max[0],icrds_max[1]);
+            dcheckSolver(icrds_max,YES);
+            (void) printf("Min solution = %20.14f occuring at: %d %d\n",
+                        min_soln,icrds_min[0],icrds_min[1]);
+            dcheckSolver(icrds_min,YES);
 	}
+	if (debugging("elliptic_error"))
+        {
+            double error,max_error = 0.0;
+            for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
+            {
+                icoords[0] = i;
+                icoords[1] = j;
+                if (ij_to_I[i][j] == -1) continue;
+                error = dcheckSolver(icoords,NO);
+                if (error > max_error)
+                {
+                    max_error = error;
+                    icrds_max[0] = i;
+                    icrds_max[1] = j;
+                }
+            }
+            (void) printf("In dual elliptic solver:\n");
+            (void) printf("Max relative elliptic error: %20.14f\n",max_error);
+            (void) printf("Occuring at %d %d: %20.14f\n",icrds_max[0],
+                                icrds_max[1]);
+            error = dcheckSolver(icrds_max,YES);
+        }
 
 	FT_FreeThese(1,x);
 }	/* end dsolve2d */
@@ -1119,18 +1115,137 @@ void ELLIPTIC_SOLVER::dsolve3d(double *soln)
 
 	if (debugging("step_size"))
 	{
-	    printf("Max solution = %20.14f occuring at: %d %d %d\n",
-			max_soln,icrds_max[0],icrds_max[1],icrds_max[2]);
-	    dcheckSolver(icrds_max);
-	    printf("Min solution = %20.14f occuring at: %d %d %d\n",
-			min_soln,icrds_min[0],icrds_min[1],icrds_min[2]);
-	    dcheckSolver(icrds_min);
+	    (void) printf("Max solution = %20.14f occuring at: %d %d %d\n",
+                        max_soln,icrds_max[0],icrds_max[1],icrds_max[2]);
+            dcheckSolver(icrds_max,YES);
+            (void) printf("Min solution = %20.14f occuring at: %d %d %d\n",
+                        min_soln,icrds_min[0],icrds_min[1],icrds_min[2]);
+            dcheckSolver(icrds_min,YES);
 	}
+	if (debugging("elliptic_error"))
+        {
+            double error,max_error = 0.0;
+            for (k = kmin; k <= kmax; k++)
+            for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
+            {
+                icoords[0] = i;
+                icoords[1] = j;
+                icoords[2] = k;
+                if (ijk_to_I[i][j][k] == -1) continue;
+                error = dcheckSolver(icoords,NO);
+                if (error > max_error)
+                {
+                    max_error = error;
+                    icrds_max[0] = i;
+                    icrds_max[1] = j;
+                    icrds_max[2] = k;
+                }
+            }
+            (void) printf("In dual elliptic solver:\n");
+            (void) printf("Max relative elliptic error: %20.14f\n",max_error);
+            (void) printf("Occuring at %d %d %d: %20.14f\n",icrds_max[0],
+                                icrds_max[1],icrds_max[2]);
+            error = dcheckSolver(icrds_max,YES);
+        }
 
 	FT_FreeThese(1,x);
 }	/* end dsolve3d */
 
-void ELLIPTIC_SOLVER::dcheckSolver(int *icoords)
+double ELLIPTIC_SOLVER::checkSolver(
+	int *icoords,
+	boolean print_details)
+{
+	int i,l,m;
+	int comp;
+	double w[2];
+	int id0,index_nb;
+	double dw[2],coefs[2],lhs,rhs;
+	GRID_DIRECTION dir[3][2] = {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
+	HYPER_SURF *hs;
+        double crx_coords[MAXD];
+        int status;
+        POINTER intfc_state;
+	int icnb[MAXD];
+	double denom = 0.0;
+
+	if (print_details)
+	{
+	    (void) printf("\nEntering checkSolver()\n");
+	    (void) printf("icoords = ");
+	    for (i = 0; i < dim; ++i)
+	    	(void) printf("%d ",icoords[i]);
+	    (void) printf("\n");
+	}
+
+	id0 = d_index(icoords,top_gmax,dim);
+	comp = top_comp[id0];
+	lhs = 0;
+	for (l = 0; l < dim; ++l)
+	{
+	    if (print_details)
+	    	(void) printf("Direction %d:\n",l);
+	    for (i = 0; i < dim; ++i)
+		icnb[i] = icoords[i];
+	    for (m = 0; m < 2; ++m)
+	    {
+		status = (*findStateAtCrossing)(front,icoords,dir[l][m],comp,
+                                &intfc_state,&hs,crx_coords);
+		icnb[l] = (m == 0) ? icoords[l] - 1 : icoords[l] + 1;
+		index_nb = d_index(icnb,top_gmax,dim);
+		switch(status)
+		{
+		case NO_PDE_BOUNDARY:
+	    	    if (print_details)
+		    	(void) printf("Side %d NO_PDE_BOUNDARY\n",m);
+		    coefs[m] = 0.5*(D[id0] + D[index_nb]);
+		    w[0] = soln[id0];
+		    w[1] = soln[index_nb];
+		    break;
+		case CONST_V_PDE_BOUNDARY:
+	    	    if (print_details)
+		    	(void) printf("Side %d CONST_V_PDE_BOUNDARY\n",m);
+		    coefs[m] = D[id0];
+		    w[0] = soln[id0];
+		    w[1] = soln[id0];
+		    break;
+		case CONST_P_PDE_BOUNDARY:
+	    	    if (print_details)
+		    	(void) printf("Side %d CONST_P_PDE_BOUNDARY\n",m);
+		    coefs[m] = D[id0];
+		    w[0] = soln[id0];
+		    w[1] = getStateVar(intfc_state);
+		    break;
+		default:
+		    (void) printf("Side %d Unknown BOUNDARY\n",m);
+		    clean_up(ERROR);
+		}
+		dw[m] = (w[1] - w[0])/top_h[l];
+		if (denom < fabs(coefs[m]*dw[m]/2.0/top_h[l]))
+		    denom = fabs(coefs[m]*dw[m]/2.0/top_h[l]);
+	    }
+	    if (print_details)
+	    {
+	    	(void) printf("Coefs: %f %f\n",coefs[0],coefs[1]);
+	    	(void) printf("C*dw: %f %f\n",coefs[0]*dw[0],coefs[1]*dw[1]);
+	    }
+	    lhs += (coefs[1]*dw[1] + coefs[0]*dw[0])/top_h[l];
+	}
+	rhs = source[id0];
+	if (print_details)
+	{
+	    (void) printf("Solution = %20.14f\n",soln[id0]);
+	    (void) printf("LHS = %20.14f  RHS = %20.14f\n",lhs,rhs);
+	    (void) printf("LHS - RHS = %20.14f\n",lhs-rhs);
+	    (void) printf("Relative error = %20.14g\n",fabs(lhs-rhs)/denom);
+	    (void) printf("Leaving checkSolver()\n\n");
+	}
+	return fabs(lhs-rhs)/denom;
+}	/* end checkSolver */
+
+double ELLIPTIC_SOLVER::dcheckSolver(
+	int *icoords,
+	boolean print_details)
 {
 	int i,j,l,m;
 	int comp;
@@ -1145,19 +1260,22 @@ void ELLIPTIC_SOLVER::dcheckSolver(int *icoords)
 	int icnb[MAXD];
 	double denom = 0.0;
 
-	(void) printf("\nEntering checkSolver()\n");
-
-	(void) printf("icoords = ");
-	for (i = 0; i < dim; ++i)
-	    (void) printf("%d ",icoords[i]);
-	(void) printf("\n");
+	if (print_details)
+	{
+	    (void) printf("\nEntering dcheckSolver()\n");
+	    (void) printf("icoords = ");
+	    for (i = 0; i < dim; ++i)
+	    	(void) printf("%d ",icoords[i]);
+	    (void) printf("\n");
+	}
 
 	id0 = d_index(icoords,top_gmax,dim);
 	comp = top_comp[id0];
 	lhs = 0;
 	for (l = 0; l < dim; ++l)
 	{
-	    printf("Direction %d:\n",l);
+	    if (print_details)
+	    	printf("Direction %d:\n",l);
 	    for (i = 0; i < dim; ++i)
 	    	icnb[i] = icoords[i];
 	    for (m = 0; m < 2; ++m)
@@ -1172,7 +1290,8 @@ void ELLIPTIC_SOLVER::dcheckSolver(int *icoords)
                                 &intfc_state,&hs,crx_coords);
 		    if (status == NO_PDE_BOUNDARY)
 		    {
-		    	(void) printf("Side %d NO_PDE_BOUNDARY\n",m);
+		    	if (print_details)
+		    	    (void) printf("Side %d NO_PDE_BOUNDARY\n",m);
 		    	coefs[m] = D[index_nb];
 		    	icnb[l] = (m == 0) ? icoords[l] - 2 : icoords[l] + 2;
 		    	index_nb = d_index(icnb,top_gmax,dim);
@@ -1181,14 +1300,16 @@ void ELLIPTIC_SOLVER::dcheckSolver(int *icoords)
 		    }
 		    else if (status == CONST_V_PDE_BOUNDARY)
 		    {
-		    	(void) printf("Side %d-1 CONST_V_PDE_BOUNDARY\n",m);
+		    	if (print_details)
+		    	    (void) printf("Side %d-1 CONST_V_PDE_BOUNDARY\n",m);
 		    	coefs[m] = 0.5*(D[id0] + D[index_nb]);
 			w[0] = soln[id0];
 			w[1] = soln[index_nb];
 		    }
 		    else if (status == CONST_P_PDE_BOUNDARY)
 		    {
-		    	(void) printf("Side %d-1 CONST_P_PDE_BOUNDARY\n",m);
+		    	if (print_details)
+		    	    (void) printf("Side %d-1 CONST_P_PDE_BOUNDARY\n",m);
 		    	coefs[m] = 0.5*(D[id0] + D[index_nb]);
 			w[0] = soln[id0];
 		    	w[1] = getStateVar(intfc_state);
@@ -1196,14 +1317,16 @@ void ELLIPTIC_SOLVER::dcheckSolver(int *icoords)
 		}
 		else if (status == CONST_V_PDE_BOUNDARY)
 		{
-		    (void) printf("Side %d-0 CONST_V_PDE_BOUNDARY\n",m);
+		    if (print_details)
+		    	(void) printf("Side %d-0 CONST_V_PDE_BOUNDARY\n",m);
 		    coefs[m] = D[id0];
 		    w[0] = soln[id0];
 		    w[1] = soln[id0];
 		}
 		else if (status == CONST_P_PDE_BOUNDARY)
 		{
-		    (void) printf("Side %d-0 CONST_P_PDE_BOUNDARY\n",m);
+		    if (print_details)
+		    	(void) printf("Side %d-0 CONST_P_PDE_BOUNDARY\n",m);
 		    icnb[l] = (m == 0) ? icoords[l] + 1 : icoords[l] - 1;
 		    index_nb = d_index(icnb,top_gmax,dim);
 		    coefs[m] = D[id0];
@@ -1214,15 +1337,22 @@ void ELLIPTIC_SOLVER::dcheckSolver(int *icoords)
 		if (denom < fabs(coefs[m]*dw[m]/2.0/top_h[l]))
 		    denom = fabs(coefs[m]*dw[m]/2.0/top_h[l]);
 	    }
-	    (void) printf("Coefs: %f %f\n",coefs[0],coefs[1]);
-	    (void) printf("C*dw: %f %f\n",coefs[0]*dw[0],coefs[1]*dw[1]);
+	    if (print_details)
+            {
+	    	(void) printf("Coefs: %f %f\n",coefs[0],coefs[1]);
+	    	(void) printf("C*dw: %f %f\n",coefs[0]*dw[0],coefs[1]*dw[1]);
+	    }
 	    lhs += (coefs[1]*dw[1] + coefs[0]*dw[0])/2.0/top_h[l];
 	}
 	rhs = source[id0];
-	(void) printf("Solution = %20.14f\n",soln[id0]);
-	(void) printf("LHS = %20.14f  RHS = %20.14f\n",lhs,rhs);
-	(void) printf("LHS - RHS = %20.14f\n",lhs-rhs);
-	(void) printf("Relative error = %20.14g\n",fabs(lhs-rhs)/denom);
-	(void) printf("Leaving dcheckSolver()\n\n");
+	if (print_details)
+        {
+	    (void) printf("Solution = %20.14f\n",soln[id0]);
+	    (void) printf("LHS = %20.14f  RHS = %20.14f\n",lhs,rhs);
+	    (void) printf("LHS - RHS = %20.14f\n",lhs-rhs);
+	    (void) printf("Relative error = %20.14g\n",fabs(lhs-rhs)/denom);
+	    (void) printf("Leaving dcheckSolver()\n\n");
+	}
+	return fabs(lhs-rhs)/denom;
 }	/* end dcheckSolver */
 

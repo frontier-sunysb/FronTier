@@ -334,7 +334,7 @@ protected:
 	double computeFieldPointDiv(int*, double**);
 	double computeDualFieldPointDiv(int*, double**);
 	void   computeFieldPointGrad(int*, double*, double*);
-	void   checkVelocityDiv(const char*);
+	void   checkVelocityDiv(const char*,double*,double*);
 
 /************* TMP Functions which are not implemented or used ***********/
 

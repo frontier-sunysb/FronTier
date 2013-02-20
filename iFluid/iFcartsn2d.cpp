@@ -177,9 +177,15 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	double *div_U = field->div_U;
 	double sum_div;
 	double value;
+	double vmin[MAXD],vmax[MAXD];
 
 	sum_div = 0.0;
 	max_value = 0.0;
+	for (l = 0; l < dim; ++l)
+	{
+	    vmin[l] = HUGE;
+	    vmax[l] = -HUGE;
+	}
 
 	/* Compute velocity divergence */
 	for (j = jmin; j <= jmax; j++)
@@ -192,6 +198,16 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 		continue;
 	    source[index] = computeFieldPointDiv(icoords,vel);
 	    diff_coeff[index] = 1.0/field->rho[index];
+	    if (debugging("check_div"))
+	    {
+		for (l = 0; l < dim; ++l)
+		{
+		    if (vmin[l] > field->vel[l][index])
+			vmin[l] = field->vel[l][index];
+		    if (vmax[l] < field->vel[l][index])
+			vmax[l] = field->vel[l][index];
+		}
+	    }
 	}
 	FT_ParallelExchGridArrayBuffer(source,front);
 	FT_ParallelExchGridArrayBuffer(diff_coeff,front);
@@ -227,6 +243,10 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 					max_value);
 	    max_value = 0.0;
 	}
+	if (debugging("check_div"))
+        {
+	    checkVelocityDiv("Before computeProjection()",vmin,vmax);
+        }
         elliptic_solver.D = diff_coeff;
         elliptic_solver.source = source;
         elliptic_solver.ilower = ilower;
@@ -253,15 +273,21 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 
 void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocity(void)
 {
-	int i, j, k, index;
-	double grad_phi[2], rho;
+	int i,j,k,l,index;
+	double grad_phi[2],rho;
 	COMPONENT comp;
 	double speed;
 	int icoords[MAXD];
 	double **vel = field->vel;
 	double *phi = field->phi;
+	double vmin[MAXD],vmax[MAXD];
 
 	max_speed = 0.0;
+	for (i = 0; i < dim; ++i)
+        {
+            vmin[i] = HUGE;
+            vmax[i] = -HUGE;
+        }
 
 	for (j = 0; j <= top_gmax[1]; j++)
 	for (i = 0; i <= top_gmax[0]; i++)
@@ -289,6 +315,11 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocity(void)
 	    speed = fabs(vel[0][index]) + fabs(vel[1][index]);
 	    if (speed > max_speed)
 		max_speed = speed;
+	    for (l = 0; l < dim; ++l)
+	    {
+		if (vmin[l] > vel[l][index]) vmin[l] = vel[l][index];
+		if (vmax[l] < vel[l][index]) vmax[l] = vel[l][index];
+	    }
 	}
 	for (k = 0; k < 2; ++k)
 	{
@@ -308,7 +339,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocity(void)
 	}
 	if (debugging("check_div"))
         {
-	    checkVelocityDiv("After computeNewVelocity2d()");
+	    checkVelocityDiv("After computeNewVelocity2d()",vmin,vmax);
         }
 	pp_global_max(&max_speed,1);
 }	/* end computeNewVelocity2d */

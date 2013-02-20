@@ -41,7 +41,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 	/*  Function Declarations */
 static void test_propagate(Front*);
-static int rotation_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
+static int trans_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
 	                       HYPER_SURF*,double*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
@@ -53,25 +53,13 @@ boolean binary = YES;
  *	Level function parameters for the initial interface 	    *
  ********************************************************************/
 
-typedef struct {
-        /* equation for line is x^2/a^2 + y^2/b^2 = 1 */
-        double x0;
-        double y0;         
-	double r;
-        double w;         
-	double h;
-} DISK_PARAMS;
-
-
 /********************************************************************
  *	Velocity function parameters for the front	 	    *
  ********************************************************************/
 
 typedef struct {
-        double omega_0;          /* angular velocity */
-        double domega_dr;
-        double cen[2];
-} ROTATION_VEL_PARAMS;
+        double v0;          /* angular velocity */
+} TRANS_VEL_PARAMS;
 
 int main(int argc, char **argv)
 {
@@ -80,8 +68,8 @@ int main(int argc, char **argv)
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-	DISK_PARAMS disk_params;	/* level function parameters */
-	ROTATION_VEL_PARAMS rv_params; /* velocity function parameters */
+	PROJECTILE_PARAMS proj_params;	/* level function parameters */
+	TRANS_VEL_PARAMS rv_params; /* velocity function parameters */
 	Locstate  sl;
 
 	f_basic.dim = 2;	
@@ -89,9 +77,9 @@ int main(int argc, char **argv)
 
 	/* Initialize basic computational data */
 
-	f_basic.L[0] = 0.0;	f_basic.L[1] = 0.0;
-	f_basic.U[0] = 1.0;	f_basic.U[1] = 1.0;
-	f_basic.gmax[0] = 128;	f_basic.gmax[1] = 128;
+	f_basic.L[0] = 0.0;	f_basic.L[1] = 0.3;
+	f_basic.U[0] = 1.0;	f_basic.U[1] = 0.7;
+	f_basic.gmax[0] = 80;	f_basic.gmax[1] = 200;
 	f_basic.boundary[0][0] = f_basic.boundary[0][1] = PERIODIC_BOUNDARY;
 	f_basic.boundary[1][0] = f_basic.boundary[1][1] = PERIODIC_BOUNDARY;
 	f_basic.size_of_intfc_state = 0;
@@ -115,32 +103,31 @@ int main(int argc, char **argv)
 	{
 	    /* Initialize interface through level function */
 
-	    disk_params.x0 = 0.5;
-	    disk_params.y0 = 0.5;
-	    disk_params.r = 0.3;
-	    disk_params.w = 0.01;
-	    disk_params.h = 0.4;
+	    proj_params.dim = 2;
+	    proj_params.cen[0] = 0.2;
+	    proj_params.cen[1] = 0.5;
+	    proj_params.r = 0.06;
+	    proj_params.R = 0.045;
+	    proj_params.h = 0.06;
 
 	    level_func_pack.neg_component = 1;
 	    level_func_pack.pos_component = 2;
-	    level_func_pack.func_params = (POINTER)&disk_params;
-	    level_func_pack.func = slotted_disk_func;
+	    level_func_pack.func_params = (POINTER)&proj_params;
+	    level_func_pack.func = projectile_func;
 	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
 	    FT_InitIntfc(&front,&level_func_pack);
 	    if (f_basic.dim < 3)
                 FT_ClipIntfcToSubdomain(&front);
 	}
+	xgraph_2d_intfc("test",front.interf);
 
 
 	/* Initialize velocity field function */
 
-        rv_params.cen[0] = 0.5;
-        rv_params.cen[1] = 0.5;
-        rv_params.omega_0 = -2.0*PI;
-        rv_params.domega_dr = 0.0;
+        rv_params.v0 = 0.1;
 
 	velo_func_pack.func_params = (POINTER)&rv_params;
-	velo_func_pack.func = rotation_vel;
+	velo_func_pack.func = trans_vel;
 	velo_func_pack.point_propagate = fourth_order_point_propagate;
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
@@ -158,7 +145,7 @@ static  void test_propagate(
 {
         double CFL;
 
-	front->max_time = 3;
+	front->max_time = 4;
 	front->max_step = 10000;
 	front->print_time_interval = 2.0;
 	front->movie_frame_interval = 0.05;
@@ -227,10 +214,10 @@ static  void test_propagate(
 }       /* end test_propagate */
 
 /********************************************************************
- *	Sample (rotation) velocity function for the front    *
+ *	Sample (trans_vel) velocity function for the front    *
  ********************************************************************/
 
-static int rotation_vel(
+static int trans_vel(
 	POINTER params,
 	Front *front,
 	POINT *p,
@@ -238,47 +225,8 @@ static int rotation_vel(
 	HYPER_SURF *hs,
 	double *vel)
 {
-	ROTATION_VEL_PARAMS *rv_params = (ROTATION_VEL_PARAMS*)params;
+	TRANS_VEL_PARAMS *rv_params = (TRANS_VEL_PARAMS*)params;
 	double *coords = Coords(p);
-	double V,xcomp,ycomp;
-	double rad;
-	double *cen = rv_params->cen;
-	double omega_0 = rv_params->omega_0;
-	double domega_dr = rv_params->domega_dr;
-	double dx,dy;
-
-	dx = coords[0] - cen[0]; 
-	dy = coords[1] - cen[1];
-
-	rad = sqrt(sqr(dx) + sqr(dy));
-	if (rad == 0.0)
-        {
-            vel[0] = vel[1] = 0.0;
-            return 1;
-        }
-	xcomp = fabs(coords[1]-cen[0])/rad;
-        ycomp = fabs(coords[0]-cen[1])/rad;
-        V = rad*(omega_0 + domega_dr*rad);
-        if (coords[0]-cen[0] >= 0.0 && coords[1]-cen[1] >= 0.0) /*1st quadrant*/
-        {
-            vel[0] = -V*xcomp;
-            vel[1] =  V*ycomp;
-        }
-        else if (coords[0]-cen[0] <= 0.0 && coords[1]-cen[1] >= 0.0) /*2nd quadrant*/
-        {
-            vel[0] = -V*xcomp;
-            vel[1] = -V*ycomp;
-        }
-        else if (coords[0]-cen[0] <= 0.0 && coords[1]-cen[1] <= 0.0) /*3rd quadrant*/
-        {
-            vel[0] =  V*xcomp;
-            vel[1] = -V*ycomp;
-        }
-        else if (coords[0]-cen[0] >= 0.0 && coords[1]-cen[1] <= 0.0) /*4th quadrant*/
-        {
-            vel[0] =  V*xcomp;
-            vel[1] =  V*ycomp;
-        }
-	
-
+        vel[0] =  rv_params->v0;
+        vel[1] =  0.0;
 }	/* end rotation_vel */

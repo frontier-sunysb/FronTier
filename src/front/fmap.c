@@ -531,6 +531,13 @@ EXPORT	void FT_ParallelExchGridArrayBuffer(
 	scatter_top_grid_float_array(grid_array,front);
 }	/* end FT_ParallelExchGridArrayBuffer */
 
+EXPORT  void FT_ParallelExchCompGridArrayBuffer(
+        double *grid_array,
+        Front *front)
+{
+        scatter_comp_grid_float_array(grid_array,front);
+}       /* end FT_ParallelExchCompGridArrayBuffer */
+
 EXPORT	HYPER_SURF *FT_HyperSurfAtGridCrossing(
 	Front *front,
 	int *icoords,

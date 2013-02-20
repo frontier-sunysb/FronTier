@@ -90,8 +90,14 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 	double *phi = field->phi;
 	double mag_grad_phi,max_grad_phi,ave_grad_phi;
 	int icrds_max[MAXD];
+	double vmin[MAXD],vmax[MAXD];
 
 	max_speed = max_grad_phi = ave_grad_phi = 0.0;
+	for (i = 0; i < dim; ++i)
+        {
+            vmin[i] = HUGE;
+            vmax[i] = -HUGE;
+        }
 
 	for (k = 0; k <= top_gmax[2]; k++)
 	for (j = 0; j <= top_gmax[1]; j++)
@@ -146,6 +152,11 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 		icrds_max[2] = k;
 		max_speed = speed;
 	    }
+	    for (l = 0; l < dim; ++l)
+            {
+                if (vmin[l] > vel[l][index]) vmin[l] = vel[l][index];
+                if (vmax[l] < vel[l][index]) vmax[l] = vel[l][index];
+            }
 	}
 	for (l = 0; l < 3; ++l)
 	{
@@ -174,7 +185,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 	}
 	if (debugging("check_div"))
 	{
-	    checkVelocityDiv("After computeNewVelocity3d()");
+	    checkVelocityDiv("After computeNewVelocity3d()",vmin,vmax);
 	}
 	pp_global_max(&max_speed,1);
 }	/* end computeNewVelocity3d */
@@ -946,9 +957,16 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
         double value;
 	double min_phi,max_phi;
 	int icrds_max[MAXD],icrds_min[MAXD];
+	double vmin[MAXD],vmax[MAXD];
 
 	if (debugging("trace"))
 	    (void) printf("Entering computeProjectionSimple()\n");
+
+	for (l = 0; l < dim; ++l)
+        {
+            vmin[l] = HUGE;
+            vmax[l] = -HUGE;
+        }
         /* Compute velocity divergence */
         for (k = kmin; k <= kmax; k++)
         for (j = jmin; j <= jmax; j++)
@@ -960,6 +978,16 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
             index  = d_index(icoords,top_gmax,dim);
             source[index] = computeFieldPointDiv(icoords,vel);
             diff_coeff[index] = 1.0/field->rho[index];
+	    if (debugging("check_div"))
+            {
+                for (l = 0; l < dim; ++l)
+                {
+                    if (vmin[l] > field->vel[l][index])
+                        vmin[l] = field->vel[l][index];
+                    if (vmax[l] < field->vel[l][index])
+                        vmax[l] = field->vel[l][index];
+                }
+            }
         }
 	FT_ParallelExchGridArrayBuffer(source,front);
         FT_ParallelExchGridArrayBuffer(diff_coeff,front);
@@ -1014,6 +1042,10 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
 	    (void) printf("occuring at: %d %d %d\n",icrds_max[0],icrds_max[1],
 					icrds_max[2]);
             (void) printf("L1  div(U) = %f\n",L1_div);
+        }
+	if (debugging("check_div"))
+        {
+            checkVelocityDiv("Before computeProjection()",vmin,vmax);
         }
         elliptic_solver.D = diff_coeff;
         elliptic_solver.source = source;
