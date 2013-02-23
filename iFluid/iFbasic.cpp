@@ -8,6 +8,9 @@
 //		L_RECTANGLE
 //----------------------------------------------------------------
 
+static double (*getStateVel[3])(POINTER) = {getStateXvel,getStateYvel,
+                                        getStateZvel};
+
 L_RECTANGLE::L_RECTANGLE(): comp(-1)
 {
 }
@@ -2867,3 +2870,87 @@ void Incompress_Solver_Smooth_Basis::setDualIndexMap(void)
 	    break;
 	}
 }	/* end setDualIndexMap */
+
+double Incompress_Solver_Smooth_Basis::computeFieldPointDiv(
+        int *icoords,
+        double **field)
+{
+	int icnb[MAXD];
+        int i,j,index,index_nb;
+        COMPONENT comp;
+	double div,u_edge[3][2];
+        double crx_coords[MAXD];
+        POINTER intfc_state;
+        HYPER_SURF *hs;
+	int status;
+        GRID_DIRECTION dir[3][2] = {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
+	int idir,nb;
+
+	index = d_index(icoords,top_gmax,dim);
+        comp = top_comp[index];
+
+	for (idir = 0; idir < dim; idir++)
+	{
+	    for (j = 0; j < dim; ++j)
+	    	icnb[j] = icoords[j];
+	    for (nb = 0; nb < 2; nb++)
+	    {
+	    	icnb[idir] = (nb == 0) ? icoords[idir] - 1 : icoords[idir] + 1;
+	    	index_nb = d_index(icnb,top_gmax,dim);
+	    	status = (*findStateAtCrossing)(front,icoords,dir[idir][nb],
+			comp,&intfc_state,&hs,crx_coords);
+	    	if (status == NO_PDE_BOUNDARY)
+	    	    u_edge[idir][nb] = field[idir][index_nb];
+	    	else if (status == CONST_V_PDE_BOUNDARY)
+	    	    u_edge[idir][nb] = getStateVel[idir](intfc_state);
+	    	else if (status == CONST_P_PDE_BOUNDARY)
+	    	    u_edge[idir][nb] = field[idir][index];
+	    }
+	}
+
+	div = 0.0;
+	for (i = 0; i < dim; ++i)
+	    div += 0.5*(u_edge[i][1] - u_edge[i][0])/top_h[i];
+        return div;
+}       /* end computeFieldPointDiv */
+
+void Incompress_Solver_Smooth_Basis::computeFieldPointGrad(
+        int *icoords,
+        double *field,
+        double *grad_field)
+{
+        int index,index_nb,icnb[MAXD];
+        COMPONENT comp;
+        int i,j,idir,nb;
+	double p_edge[3][2],p0;
+        double crx_coords[MAXD];
+        POINTER intfc_state;
+        HYPER_SURF *hs;
+        GRID_DIRECTION dir[3][2] = {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
+	int status;
+
+	index = d_index(icoords,top_gmax,dim);
+        comp = top_comp[index];
+	p0 = field[index];
+
+	for (idir = 0; idir < dim; idir++)
+	{
+	    for (j = 0; j < dim; ++j)
+	    	icnb[j] = icoords[j];
+	    for (nb = 0; nb < 2; nb++)
+	    {
+	    	icnb[idir] = (nb == 0) ? icoords[idir] - 1 : icoords[idir] + 1;
+	    	index_nb = d_index(icnb,top_gmax,dim);
+	    	status = (*findStateAtCrossing)(front,icoords,dir[idir][nb],
+				comp,&intfc_state,&hs,crx_coords);
+	    	if (status == NO_PDE_BOUNDARY)
+		    p_edge[idir][nb] = field[index_nb];
+	    	else if (status ==CONST_P_PDE_BOUNDARY)
+		    p_edge[idir][nb] = getStatePhi(intfc_state);
+	    	else if (status ==CONST_V_PDE_BOUNDARY)
+		    p_edge[idir][nb] = p0;
+	    }
+	}
+	for (i = 0; i < dim; ++i)
+	    grad_field[i] = 0.5*(p_edge[i][1] - p_edge[i][0])/top_h[i];
+}
