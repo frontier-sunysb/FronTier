@@ -1275,6 +1275,19 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 
    IMPORT  void FT_MakeProjectileSurf(Front *front,double *center,double R,double r,double h,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf);
 
+/*! \fn void FT_RotateSurface(SURFACE *surf,double *center,double phi,double theta)
+ *  \ingroup INSERT
+    \brief This function rorate surface with azimuthal angle theta and 
+     polar angle phi about the given center.
+    
+    \param surf @b inout Pointer to the surface to be rotated.
+    \param center @b in center-coordinate for the rotation.
+    \param phi @b in polar angle of the rotation.
+    \param theta @b in azimuthal angle of the rotation.
+ */
+
+   IMPORT  void FT_RotateSurface(SURFACE *surf,double *center,double phi,double theta);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif

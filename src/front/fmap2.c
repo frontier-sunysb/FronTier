@@ -664,7 +664,7 @@ EXPORT	void FT_MakeDumbBellSurf(
 			dumbbell_func,(POINTER)&d_params,surf);
 	wave_type(*surf) = w_type;
 	front->interf->modified = YES;
-}	/* end FT_MakeEllipticSurf */
+}	/* end FT_MakeDumbBellSurf */
 
 EXPORT	void FT_MakeProjectileSurf(
 	Front *front,
@@ -692,4 +692,36 @@ EXPORT	void FT_MakeProjectileSurf(
 			projectile_func,(POINTER)&proj_params,surf);
 	wave_type(*surf) = w_type;
 	front->interf->modified = YES;
-}	/* end FT_MakeEllipticSurf */
+}	/* end FT_MakeProjectileSurf */
+
+EXPORT	void FT_RotateSurface(
+	SURFACE *surf,
+	double *center,
+	double phi,
+	double theta)
+{
+	POINT *p;
+	TRI *tri;
+	int i;
+	boolean first = YES;
+
+	surf_tri_loop(surf,tri)
+	{
+	    for (i = 0; i < 3; ++i)
+	    {
+		p = Point_of_tri(tri)[i];
+		sorted(p) = NO;
+	    }
+	}
+	surf_tri_loop(surf,tri)
+	{
+	    for (i = 0; i < 3; ++i)
+	    {
+		p = Point_of_tri(tri)[i];
+		if (sorted(p)) continue;
+		sorted(p) = YES;
+		rotate_point_with_polar_angle(p,center,phi,theta,first);
+		first = NO;
+	    }
+	}
+}	/* end FT_RotateSurface */
