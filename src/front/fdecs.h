@@ -215,6 +215,30 @@ struct _SAMPLE {
 };
 typedef struct _SAMPLE SAMPLE;
 
+struct _F_BASIC_DATA {
+	/* Need to assign before calling FT_Init() */
+        int dim;
+
+	/* The following will get from FT_Init() */
+	char 	in_name[200];
+	char 	out_name[200];
+	int 	subdomains[MAXD];
+	boolean ReadFromInput;
+	boolean RestartRun;
+	boolean ReSetTime;
+	int 	RestartStep;
+        char 	restart_name[200];
+	char	restart_state_name[200];
+
+	/* The following are needed before FT_StartUp() */
+        double 	L[MAXD],U[MAXD];
+        int 	gmax[MAXD];
+        int 	boundary[MAXD][2];
+	size_t 	size_of_intfc_state;
+	GEOMETRY_REMAP coord_system;
+};
+typedef struct _F_BASIC_DATA F_BASIC_DATA;
+
 		/* Tracking algorithm */
 
 enum _TRACKING_ALGORITHM {
@@ -461,6 +485,7 @@ struct _Front {
 		/* Grid Specification */
 	RECT_GRID *rect_grid;		/* Grid Info */
 	PP_GRID* pp_grid;
+	F_BASIC_DATA *f_basic;
 
 		/* advancing the front */
 	void	(*_pre_advance_front)(struct _Front*);
@@ -1348,30 +1373,6 @@ struct _LEVEL_FUNC_PACK {
 	boolean attach_string;
 };
 typedef struct _LEVEL_FUNC_PACK LEVEL_FUNC_PACK;
-
-struct _F_BASIC_DATA {
-	/* Need to assign before calling FT_Init() */
-        int dim;
-
-	/* The following will get from FT_Init() */
-	char 	in_name[200];
-	char 	out_name[200];
-	int 	subdomains[MAXD];
-	boolean ReadFromInput;
-	boolean RestartRun;
-	boolean ReSetTime;
-	int 	RestartStep;
-        char 	restart_name[200];
-	char	restart_state_name[200];
-
-	/* The following are needed before FT_StartUp() */
-        double 	L[MAXD],U[MAXD];
-        int 	gmax[MAXD];
-        int 	boundary[MAXD][2];
-	size_t 	size_of_intfc_state;
-	GEOMETRY_REMAP coord_system;
-};
-typedef struct _F_BASIC_DATA F_BASIC_DATA;
 
 struct _VELO_FUNC_PACK {
         int (*func)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,

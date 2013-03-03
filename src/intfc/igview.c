@@ -5054,3 +5054,57 @@ EXPORT void gview_plot_pt_tri_within_range(
 	(void) fclose(file);
 	free_these(1,tris);
 }	/* end gview_plot_surf_within_range */
+
+EXPORT void gview_plot_intfc_within_range(
+	const char *dname,
+	INTERFACE *intfc,
+	double *center,
+	double radius)
+{
+	int i,j,num_tris;
+	TRI **tris,*t;
+	POINT *p;
+	double d;
+	SURFACE **s,*surf;
+		
+	num_tris = 0;
+	for (s = intfc->surfaces; s && *s; ++s)
+	{
+	  surf = *s;
+	  for (t = first_tri(surf); !at_end_of_tri_list(t,surf); t = t->next)
+	  {
+	    for (i = 0; i < 3; ++i)
+	    {
+		p = Point_of_tri(t)[i];	
+		d = distance_between_positions(center,Coords(p),3);
+		if (d < radius) 
+		{
+		    num_tris++;
+		    break;
+		}
+	    }
+	  }
+	}
+	uni_array(&tris,num_tris,sizeof(TRI*));
+	num_tris = 0;
+	for (s = intfc->surfaces; s && *s; ++s)
+	{
+	  surf = *s;
+	  for (t = first_tri(surf); !at_end_of_tri_list(t,surf); t = t->next)
+	  {
+	    for (i = 0; i < 3; ++i)
+	    {
+		p = Point_of_tri(t)[i];	
+		d = distance_between_positions(center,Coords(p),3);
+		if (d < radius) 
+		{
+		    tris[num_tris++] = t;
+		    break;
+		}
+	    }
+	  }
+	}
+	gview_plot_tri_list(dname,tris,num_tris);
+	free_these(1,tris);
+}	/* end gview_plot_surf_within_range */
+

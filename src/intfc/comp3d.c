@@ -398,14 +398,6 @@ LOCAL COMPONENT component_wrt_icoords3d(
 	                    shortest_distance3d(tri_proj);
 	                    if (new_tri_is_closer(tri_proj,closest) == YES)
 	    	                Closest = Tri_proj;
-			    
-			    if(debugging("tst_comp3d"))
-			    {
-			        print_general_vector("pt", Tri_proj.pt, 3, "\n");
-				printf("tri=%p\n", t[i]);
-				print_tri_coords(t[i]);
-				printf("d2=%24.16e  %d\n", Tri_proj.d2, Tri_proj.side);
-			    }
 			}
 			Tri_projection_computed(t[i]) = YES;
 	            }
@@ -427,18 +419,8 @@ LOCAL COMPONENT component_wrt_icoords3d(
 	}
 
 	comp = comp_at_closest(&Closest);
-	if(debugging("tst_comp3d"))
-	{
-	    printf("#proj_tri=%p  %d  d2=%24.16e comp=%d  comp0=%d\n", 
-			    Closest.tri, Closest.side, Closest.d2, comp, comp0);
-	}
-
-	/*TMP just use the new alg. */
 	if(comp0 != -1 && comp != comp0)
 	{
-	     /*DEBUG_TMP printf("WARNING, component_wrt_icoords3d " */
-	          /*DEBUG_TMP "prev alg. and new alg. gives different comp %d  %d\n",  */
-		  /*DEBUG_TMP comp, comp0); */
 	     comp = comp0;
 	}
 	return comp;
@@ -2498,8 +2480,12 @@ LIB_LOCAL boolean make_tri_lists(
                     for (t = first_tri(*s); !at_end_of_tri_list(t,*s); 
 				t = t->next)
 		    {
+			/* This has problem, does not seem worthy debugging
                         blocks_on_grid_based_tri(t,T->num_of_tris,
 				T->compon3d,top_grid,intfc);
+			*/
+	                blocks_on_tri(t,T->num_of_tris,T->compon3d,
+				top_grid,intfc);
 		    }
             }
             else
@@ -3236,13 +3222,6 @@ LOCAL void set_off_front_comp3d(
 	    	        p[1] = cell_center(iy,1,grid);
 	    	        p[2] = cell_center(iz,2,grid);
 	    		compon_iziy[ix] = component_wrt_icoords3d(p,ip,intfc);
-			
-			if(debugging("init_comp"))
-			{
-			    printf("#pt0 %d \n", compon[14][iymax-9][9]);
-			    printf("#init_comp %d %d %d %d\n", ix, iy, iz, compon_iziy[ix]);
-			    show_COMP(stdout, intfc);
-			}
 	        	break;
 	            }
 	            default:
@@ -3266,21 +3245,11 @@ LOCAL void set_off_front_comp3d(
 		        {
 		          if (compj[i] == NO_COMP)
 		          {
-			    if(debugging("init_comp") && k == 14)
-			    {
-			        printf("#pt %d  %d  %d | %d  %d  %d | %d\n", 
-				    imin, jmin, kmin, i, j, k, c);
-			    }
 			    compj[i] = c;
 		          }
 		        }
 		      }
 		    }
-		    if(debugging("init_comp") && ( iz == 13 ))
-		    {
-		        printf("#izchk  %d \n", iz);
-		        show_COMP(stdout, intfc);
-	            }
 
 		}
 	    }

@@ -3190,3 +3190,83 @@ EXPORT boolean same_bond_tri_orient(
         }
 	return NO;
 }       /* end same_bond_tri_orient */
+
+/*
+ *	The following pair of functions only work for an isolated
+ *	surface. Surface connected to other surfaces are not yet
+ *	implemented.
+*/
+
+EXPORT boolean detach_surf_from_intfc(
+	SURFACE *surf,
+	INTERFACE *intfc)
+{
+	CURVE **c,*curve;
+	SURFACE **s;
+
+	for (c = surf->pos_curves; c && *c; ++c)
+	{
+	    curve = *c;
+	    for (s = curve->pos_surfaces; s && *s; ++s)
+	    {
+		if (*s != surf)
+		{
+		    if (debugging("trace"))
+			(void) printf("In detach_surf_from_intfc(): "
+				"cannot detach connected surface from intfc\n");
+		    return NO;
+		}
+	    }
+	    for (s = curve->neg_surfaces; s && *s; ++s)
+	    {
+		if (*s != surf)
+		{
+		    if (debugging("trace"))
+			(void) printf("In detach_surf_from_intfc(): "
+				"cannot detach connected surface from intfc\n");
+		    return NO;
+		}
+	    }
+	    delete_from_pointers((POINTER)curve,(POINTER**)&intfc->curves);
+	}
+	delete_from_pointers((POINTER)surf,(POINTER**)&intfc->surfaces);
+	intfc->modified = YES;
+	return YES;
+}	/* end detach_surf_from_intfc */
+
+EXPORT boolean attach_surf_to_intfc(
+	SURFACE *surf,
+	INTERFACE *intfc)
+{
+	CURVE **c,*curve;
+	SURFACE **s;
+
+	for (c = surf->pos_curves; c && *c; ++c)
+	{
+	    curve = *c;
+	    for (s = curve->pos_surfaces; s && *s; ++s)
+	    {
+		if (*s != surf)
+		{
+		    if (debugging("trace"))
+			(void) printf("In attach_surf_from_intfc(): "
+				"cannot attach connected surface from intfc\n");
+		    return NO;
+		}
+	    }
+	    for (s = curve->neg_surfaces; s && *s; ++s)
+	    {
+		if (*s != surf)
+		{
+		    if (debugging("trace"))
+			(void) printf("In attach_surf_from_intfc(): "
+				"cannot attach connected surface from intfc\n");
+		    return NO;
+		}
+	    }
+	    unique_add_to_pointers((POINTER)curve,(POINTER**)&intfc->curves);
+	}
+	unique_add_to_pointers((POINTER)surf,(POINTER**)&intfc->surfaces);
+	intfc->modified = YES;
+	return YES;
+}	/* end attach_surf_to_intfc */

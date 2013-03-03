@@ -1607,6 +1607,7 @@ EXPORT  void    FT_StartUp(
 	start_clock("FT_StartUp");
         setbuf(stdin,NULL);
         init_clean_up(NULL,NULL);
+	front->f_basic = ft_basic;
 
 	if(ft_basic == NULL) /* call build-in functions to prompt data */
 	{
@@ -2042,11 +2043,8 @@ LOCAL   void FT_InitIntfc3d(
 	set_topological_grid(intfc,computational_grid(intfc));
 
 	scatter_front(front);
-	if (level_func_pack->set_3d_bdry)
-	{
-	    (void) set_boundary(front->interf,front->rect_grid,
+	(void) set_boundary(front->interf,front->rect_grid,
 			front->interf->default_comp,eps);
-	}
 	scatter_front(front);
 }	/* end FT_InitIntfc3d */
 

@@ -423,6 +423,8 @@ IMPORT  void    gd_2d_intfc(char*,char*,INTERFACE*,RECT_GRID*,int,boolean);
 IMPORT	char	*get_vtk_file_name(char*,const char*,const char*,size_t*);
 IMPORT	void	gview_plot_surf_within_range(const char*,SURFACE*,double*,
         			double);
+IMPORT	void	gview_plot_intfc_within_range(const char*,INTERFACE*,double*,
+        			double);
 IMPORT  void    gview_plot_pt_tri_within_range(const char*,POINT*,TRI*,int);
 IMPORT	FILE	*current_gd_file();
 IMPORT	void	set_current_gd_file();
@@ -541,6 +543,8 @@ IMPORT  void    print_wall_curve_crx(const char*,int*,int,int,CRXING*);
 IMPORT  void    print_wall_curve_crx0(const char*,POINT *, int,CRXING*);
 IMPORT  boolean same_bond_tri_orient(BOND*,TRI*,BOND*,TRI*);
 IMPORT  void    reset_sort_status(INTERFACE*);
+IMPORT  boolean attach_surf_to_intfc(SURFACE*,INTERFACE*);
+IMPORT  boolean detach_surf_to_intfc(SURFACE*,INTERFACE*);
 
 /*	iprt3d.c*/
 IMPORT	void	print_c_bond(C_BOND*,INTERFACE*);

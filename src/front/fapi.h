@@ -15,6 +15,7 @@
  *  \defgroup PARALLEL          FronTier Parallel Communication Functions
  *  \defgroup FIELD          	FronTier Field (State) Functions
  *  \defgroup MEMORY          	FronTier Memory Management Functions
+ *  \defgroup CREATE          	FronTier Create Hypersurface
  **/
 
 #include <front/fdecs.h>
@@ -1219,6 +1220,60 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 				int nb, 
 				double seg_length, 
 				REDISTRIBUTION_DIRECTION dir);
+
+/*! \fn void FT_MakeEllipticSurf(Front *front, double *center, double *radius, COMPONENT neg_comp, COMPONENT pos_comp, int w_type,SURFACE **surf)
+ *  \ingroup INSERT
+    \brief This function inserts an elliptic surface into the front with given
+     information of center, radii, components, and wave type.
+    
+    \param front @b inout Pointer to the front in which surface is inserted.
+    \param center @b in center of the ellipsoid.
+    \param radius @b in radii of the ellipsoid.
+    \param neg_comp @b in index for negative side of the surface (inner side).
+    \param pos_comp @b in index for positive side of the surface (outer side).
+    \param w_type @b int wave type of the surface.
+    \param surf @b out surface made by this function.
+ */
+
+   IMPORT  void FT_MakeEllipticSurf(Front *front,double *center,double *radius,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf);
+
+/*! \fn void FT_MakeDumbBellSurf(Front *front, double x0, double x1,double y0,double z0,double R,double r,COMPONENT neg_comp, COMPONENT pos_comp, int w_type,SURFACE **surf)
+ *  \ingroup INSERT
+    \brief This function inserts a dumbbell surface into the front with given
+     information of its parameters, components, and wave type.
+    
+    \param front @b inout Pointer to the front in which surface is inserted.
+    \param x0 @b in x-coordinate of the left center.
+    \param x0 @b in x-coordinate of the right center.
+    \param y0 @b in y-coordinate of the axis.
+    \param z0 @b in z-coordinate of the axis.
+    \param R @b in radius of the two end spheres.
+    \param r @b in radius cylinder connecting the two spheres.
+    \param neg_comp @b in index for negative side of the surface (inner side).
+    \param pos_comp @b in index for positive side of the surface (outer side).
+    \param w_type @b in wave type of the surface.
+    \param surf @b out surface made by this function.
+ */
+
+   IMPORT  void FT_MakeDumbBellSurf(Front *front,double x0,double x1,double y0,double z0,double R,double r,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf);
+
+/*! \fn void FT_MakeProjectileSurf(Front *front, double *center, double R,double r,double h,COMPONENT neg_comp, COMPONENT pos_comp, int w_type,SURFACE **surf)
+ *  \ingroup INSERT
+    \brief This function inserts a projectile surface into the front with given
+     information of its parameters, components, and wave type.
+    
+    \param front @b inout Pointer to the front in which surface is inserted.
+    \param center @b in center-coordinate of the projectile.
+    \param R @b in cylindrical radius of the projectile.
+    \param r @b in head height of the projectile.
+    \param h @b in butt height of the projectile.
+    \param neg_comp @b in index for negative side of the surface (inner side).
+    \param pos_comp @b in index for positive side of the surface (outer side).
+    \param w_type @b in wave type of the surface.
+    \param surf @b out surface made by this function.
+ */
+
+   IMPORT  void FT_MakeProjectileSurf(Front *front,double *center,double R,double r,double h,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf);
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }

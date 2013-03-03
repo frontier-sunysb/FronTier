@@ -307,9 +307,11 @@ EXPORT void FT_CurveSegLengthConstr(
         switch (dir)
         {
         case FORWARD_REDISTRIBUTION:
-            return forward_curve_seg_len_constr(c,bs,be,nbds,seg_length);
+	    forward_curve_seg_len_constr(c,bs,be,nbds,seg_length);
+            return;
         case BACKWARD_REDISTRIBUTION:
-            return backward_curve_seg_len_constr(c,bs,be,nbds,seg_length);
+	    backward_curve_seg_len_constr(c,bs,be,nbds,seg_length);
+            return;
         }
 }       /* end FT_CurveSegLengthConstr */
 
@@ -607,3 +609,87 @@ EXPORT	void FT_SetGlobalIndex(
 	for (s = intfc->surfaces; s && *s; ++s)
 	    Gindex(*s) = sindex++;
 }	/* end FT_SetGlobalIndex */
+
+
+EXPORT	void FT_MakeEllipticSurf(
+	Front *front,
+	double *center,
+	double *radius,
+	COMPONENT   neg_comp,
+        COMPONENT   pos_comp,
+	int w_type,
+	SURFACE **surf)
+{
+	RECT_GRID *rgr = front->rect_grid;
+	ELLIP_PARAMS ellip_params;
+	int i,dim = rgr->dim;
+	double coords[MAXD];
+
+	for (i = 0; i < dim; ++i)
+	{
+	    ellip_params.cen[i] = center[i];
+	    ellip_params.rad[i] = radius[i];
+	}
+	make_level_surface(rgr,front->interf,neg_comp,pos_comp,
+			ellipsoid_func,(POINTER)&ellip_params,surf);
+	wave_type(*surf) = w_type;
+	front->interf->modified = YES;
+}	/* end FT_MakeEllipticSurf */
+
+EXPORT	void FT_MakeDumbBellSurf(
+	Front *front,
+	double x0,
+	double x1,
+	double y0,
+	double z0,
+	double R,
+	double r,
+	COMPONENT   neg_comp,
+        COMPONENT   pos_comp,
+	int w_type,
+	SURFACE **surf)
+{
+	RECT_GRID *rgr = front->rect_grid;
+	DUMBBELL_PARAMS d_params;
+	int i,dim = rgr->dim;
+	double coords[MAXD];
+
+	d_params.x0 = x0;
+	d_params.x1 = x1;
+	d_params.y = y0;
+	d_params.z = z0;
+	d_params.R = R;
+	d_params.rr = r;
+	make_level_surface(rgr,front->interf,neg_comp,pos_comp,
+			dumbbell_func,(POINTER)&d_params,surf);
+	wave_type(*surf) = w_type;
+	front->interf->modified = YES;
+}	/* end FT_MakeEllipticSurf */
+
+EXPORT	void FT_MakeProjectileSurf(
+	Front *front,
+	double *center,
+	double R,
+	double r,
+	double h,
+	COMPONENT   neg_comp,
+        COMPONENT   pos_comp,
+	int w_type,
+	SURFACE **surf)
+{
+	RECT_GRID *rgr = front->rect_grid;
+	PROJECTILE_PARAMS proj_params;
+	int i,dim = rgr->dim;
+	double coords[MAXD];
+
+	proj_params.dim = dim;
+	for (i = 0; i < dim; ++i)
+	    proj_params.cen[i] = center[i];
+	proj_params.R = R;
+	proj_params.r = r;
+	proj_params.h = h;
+	make_level_surface(rgr,front->interf,neg_comp,pos_comp,
+			projectile_func,(POINTER)&proj_params,surf);
+	wave_type(*surf) = w_type;
+	front->interf->modified = YES;
+}	/* end FT_MakeEllipticSurf */
