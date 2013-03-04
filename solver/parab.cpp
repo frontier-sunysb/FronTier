@@ -460,9 +460,9 @@ void PARABOLIC_SOLVER::runge_kutta()
 	case 2:
 	    sub_dt = dt;
 	    solve(var,var_mid);
-	    addMeshState(var_min,0.5,var,0.5,var_mid);
+	    addMeshState(var_mid,0.5,var,0.5,var_mid);
 	    sub_dt = 0.5*dt;
-	    solve(var_min,soln);
+	    solve(var_mid,soln);
 	    break;
 	case 4:
 	default:
