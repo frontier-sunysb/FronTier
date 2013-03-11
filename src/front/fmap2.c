@@ -725,3 +725,109 @@ EXPORT	void FT_RotateSurface(
 	    }
 	}
 }	/* end FT_RotateSurface */
+
+
+EXPORT  void FT_MakeCuboidSurf(
+	Front *front,
+	double *center,
+	double *edge,
+	COMPONENT neg_comp,
+	COMPONENT pos_comp,
+	int w_type,
+	SURFACE **surf)
+{
+	RECT_GRID *rgr = front->rect_grid;
+	CUBOID_PARAMS cuboid_params;
+	int i,dim = rgr->dim;
+	
+	for (i = 0; i < dim; ++i)
+	{
+	    cuboid_params.center[i] = center[i];
+	    cuboid_params.edge[i] = edge[i];
+	}
+	make_level_surface(rgr,front->interf,neg_comp,pos_comp,
+			cuboid_func,(POINTER)&cuboid_params,surf);
+        wave_type(*surf) = w_type;
+        front->interf->modified = YES;
+
+}	 /*end FT_MakeCuboidSurf*/
+
+EXPORT  void FT_MakeCylinderSurf(
+        Front *front,
+        double *center,
+        double radius,
+	double height,
+        COMPONENT neg_comp,
+        COMPONENT pos_comp,
+        int w_type,
+        SURFACE **surf)
+{
+        RECT_GRID *rgr = front->rect_grid;
+        CYLINDER_PARAMS cylinder_params;
+        int i,dim = rgr->dim;
+
+        for (i = 0; i < dim; ++i)
+        {
+            cylinder_params.center[i] = center[i];
+            cylinder_params.radius = radius;
+	    cylinder_params.height = height;	   
+        }
+        make_level_surface(rgr,front->interf,neg_comp,pos_comp,
+                        cylinder_func,(POINTER)&cylinder_params,surf);
+        wave_type(*surf) = w_type;
+        front->interf->modified = YES;
+
+}        /*end FT_MakeCylinderSurf*/
+
+EXPORT  void FT_MakeConeSurf(
+        Front *front,
+        double *center,
+        double slope,
+	double height,
+        COMPONENT neg_comp,
+        COMPONENT pos_comp,
+        int w_type,
+        SURFACE **surf)
+{
+        RECT_GRID *rgr = front->rect_grid;
+        CONE_PARAMS cone_params;
+        int i,dim = rgr->dim;
+
+        for (i = 0; i < dim; ++i)
+        {
+            cone_params.center[i] = center[i];
+            cone_params.slope = slope;
+	    cone_params.height = height;
+        }
+        make_level_surface(rgr,front->interf,neg_comp,pos_comp,
+                        cone_func,(POINTER)&cone_params,surf);
+        wave_type(*surf) = w_type;
+        front->interf->modified = YES;
+
+}        /*end FT_MakeConeSurf*/
+
+EXPORT  void FT_MakeTetrahedronSurf(
+        Front *front,
+        double *center,
+        double radius,
+        COMPONENT neg_comp,
+        COMPONENT pos_comp,
+        int w_type,
+        SURFACE **surf)
+{
+        RECT_GRID *rgr = front->rect_grid;
+        TETRAHEDRON_PARAMS tetrahedron_params;
+        int i,dim = rgr->dim;
+
+        for (i = 0; i < dim; ++i)
+        {
+            tetrahedron_params.center[i] = center[i];
+            tetrahedron_params.radius = radius;
+        }
+        make_level_surface(rgr,front->interf,neg_comp,pos_comp,
+                        tetrahedron_func,(POINTER)&tetrahedron_params,surf);
+        wave_type(*surf) = w_type;
+        front->interf->modified = YES;
+
+}        /*end FT_MakeTetrahedronSurf*/
+

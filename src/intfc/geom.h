@@ -522,6 +522,28 @@ typedef struct {
 } PROJECTILE_PARAMS;
 
 typedef struct {
+	double center[MAXD];
+	double edge[MAXD];
+} CUBOID_PARAMS;
+
+typedef struct {
+	double center[3];
+	double radius;
+	double height;
+} CYLINDER_PARAMS;
+
+typedef struct {
+	double center[3];
+	double slope;
+	double height;
+} CONE_PARAMS;
+
+typedef struct {
+	double center[3];
+	double radius;
+} TETRAHEDRON_PARAMS;
+
+typedef struct {
                 /* Equation: z = z_0 + A*sin(m*coords[0] + phi) */
         int m;
         double A;

@@ -53,6 +53,7 @@ LOCAL   int     count_bdry_coner_crx(int*,COMPONENT***);
 LOCAL   int     install_bdry_corner_crx(INTERFACE*,EG_CRX*,RECT_GRID,double*,double*,
 			NODE****,CURVE****,SURFACE***);
 LOCAL	int 	count_side_comp(COMPONENT,COMPONENT,COMPONENT,COMPONENT);
+LOCAL   double  det4(double A[4][4]);
 
 /*	Initialization functions for level surfaces */
 
@@ -2201,6 +2202,172 @@ EXPORT	double plane_func(
 			+ N[2]*(coords[2] - P[2]);
 	return d;
 }	/* end plane_func */
+
+EXPORT  double cuboid_func(
+	POINTER func_params,
+	double *coords)
+{
+	CUBOID_PARAMS *d_params = (CUBOID_PARAMS*)func_params;
+        double *c, *e;
+        double x,y,z,arg;
+
+        c = d_params->center;
+        e = d_params->edge;
+
+        x = coords[0] - c[0];
+        y = coords[1] - c[1];
+        z = coords[2] - c[2];
+	
+        if(fabs(x) <= e[0] && fabs(y) <= e[1]
+                && fabs(z) <= e[2])
+	{
+            if((fabs(x) - e[0])*(fabs(y) - e[1])*(fabs(z) - e[2]) == 0)
+                arg = 0;
+            else
+                 arg = 1;
+        }
+        else
+            arg = -1;
+        return arg;
+}	 /*end cuboid_func */
+
+EXPORT  double cylinder_func(
+	POINTER func_params,
+	double *coords)
+{
+	CYLINDER_PARAMS *d_params = (CYLINDER_PARAMS*)func_params;
+        double *c;
+        double x,y,z,r,h,arg;
+
+        c = d_params->center;
+        r = d_params->radius;
+        h = d_params->height;
+
+        x = coords[0] - c[0];
+        y = coords[1] - c[1];
+        z = coords[2] - c[2];
+
+        if(x > -h && x < h)
+        {
+            arg = sqr(r) - sqr(z) - sqr(y);
+        }
+        else
+        {
+            arg = -1;
+        }
+        return arg;
+}	/*end cylinder_func*/
+
+EXPORT  double cone_func(
+	POINTER func_params,
+        double *coords)
+{
+	CONE_PARAMS *d_params = (CONE_PARAMS*)func_params;
+        double *c;
+        double x,y,z,s,h,arg;
+
+        c = d_params->center;
+        s = d_params->slope;
+        h = d_params->height;
+
+        x = coords[0] - c[0];
+        y = coords[1] - c[1];
+        z = coords[2] - c[2];
+
+        if (x > 0 && x < h)
+        {
+            arg = sqr(s * x) - sqr(y)- sqr(z);
+        }
+        else
+        {
+            arg = -1;
+        }
+        return arg;
+
+}	/*end cone_func*/
+
+EXPORT double tetrahedron_func(
+	POINTER func_params,
+        double *coords)
+{
+	TETRAHEDRON_PARAMS *d_params = (TETRAHEDRON_PARAMS*)func_params;
+        double d[5], arg;
+        double x,y,z;
+        double v[4][3] = {{-d_params->radius*2*sqrt(2)/3,0,
+					-d_params->radius/3},
+                          {d_params->radius*sqrt(2)/3,
+					d_params->radius*sqrt(6)/3,
+					-d_params->radius/3},
+                          {d_params->radius*sqrt(2)/3,
+					-d_params->radius*sqrt(6)/3,
+					-d_params->radius/3},
+                          {0,0,d_params->radius}};
+
+        x = coords[0] - d_params->center[0];
+        y = coords[1] - d_params->center[1];
+        z = coords[2] - d_params->center[2];
+
+        double D0[4][4]={{v[0][0],v[0][1],v[0][2],1},
+                         {v[1][0],v[1][1],v[1][2],1},
+                         {v[2][0],v[2][1],v[2][2],1},
+                         {v[3][0],v[3][1],v[3][2],1}};
+
+        double D1[4][4]={{x,y,z,1},
+                         {v[1][0],v[1][1],v[1][2],1},
+                         {v[2][0],v[2][1],v[2][2],1},
+                         {v[3][0],v[3][1],v[3][2],1}};
+
+        double D2[4][4]={{v[0][0],v[0][1],v[0][2],1},
+                         {x,y,z,1},
+                         {v[2][0],v[2][1],v[2][2],1},
+                         {v[3][0],v[3][1],v[3][2],1}};
+
+        double D3[4][4]={{v[0][0],v[0][1],v[0][2],1},
+                         {v[1][0],v[1][1],v[1][2],1},
+                         {x,y,z,1},
+                         {v[3][0],v[3][1],v[3][2],1}};
+
+        double D4[4][4]={{v[0][0],v[0][1],v[0][2],1},
+                         {v[1][0],v[1][1],v[1][2],1},
+                         {v[2][0],v[2][1],v[2][2],1},
+                         {x,y,z,1}};
+        d[0] = det4(D0); d[1] = det4(D1); d[2] = det4(D2); d[3] = det4(D3);
+        d[4] = det4(D4);
+        if(d[0] == 0)
+        {
+            (void) printf("coplanar!\n");
+            clean_up(ERROR);
+        }
+        else
+        {
+            if(d[0]*d[1]>0 && d[0]*d[2]>0 && d[0]*d[3]>0 && d[0]*d[4]>0)
+            	arg = 1;
+            else if(d[1]*d[2]*d[3]*d[4]==0)
+            	arg = 0;
+            else
+		arg = -1;
+        }
+        return arg;
+
+}	/*end tetrahedron_func*/
+
+LOCAL	double det4(double A[4][4])
+{
+        double y;
+        y =  A[0][0]*A[1][1]*A[2][2]*A[3][3]-A[0][0]*A[1][1]*A[2][3]*A[3][2]
+	    -A[0][0]*A[2][1]*A[1][2]*A[3][3]+A[0][0]*A[2][1]*A[1][3]*A[3][2]
+            +A[0][0]*A[3][1]*A[1][2]*A[2][3]-A[0][0]*A[3][1]*A[1][3]*A[2][2]
+	    -A[1][0]*A[0][1]*A[2][2]*A[3][3]+A[1][0]*A[0][1]*A[2][3]*A[3][2]
+            +A[1][0]*A[2][1]*A[0][2]*A[3][3]-A[1][0]*A[2][1]*A[0][3]*A[3][2]
+	    -A[1][0]*A[3][1]*A[0][2]*A[2][3]+A[1][0]*A[3][1]*A[0][3]*A[2][2]
+            +A[2][0]*A[0][1]*A[1][2]*A[3][3]-A[2][0]*A[0][1]*A[1][3]*A[3][2]
+	    -A[2][0]*A[1][1]*A[0][2]*A[3][3]+A[2][0]*A[1][1]*A[0][3]*A[3][2]
+            +A[2][0]*A[3][1]*A[0][2]*A[1][3]-A[2][0]*A[3][1]*A[0][3]*A[1][2]
+	    -A[3][0]*A[0][1]*A[1][2]*A[2][3]+A[3][0]*A[0][1]*A[1][3]*A[2][2]
+            +A[3][0]*A[1][1]*A[0][2]*A[2][3]-A[3][0]*A[1][1]*A[0][3]*A[2][2]
+	    -A[3][0]*A[2][1]*A[0][2]*A[1][3]+A[3][0]*A[2][1]*A[0][3]*A[1][2];
+        return y;
+}	/*function for caculate the determinant of the 4th order*/
 
 LOCAL	boolean face_crx_in_dir(
 	double (*func1)(POINTER,double*),

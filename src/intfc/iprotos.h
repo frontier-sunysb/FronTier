@@ -786,11 +786,14 @@ IMPORT	double 	level_circle_func(POINTER,double*);
 IMPORT	double 	slotted_disk_func(POINTER,double*);
 IMPORT	double 	slotted_disk_func(POINTER,double*);
 IMPORT	double 	projectile_func(POINTER,double*);
-IMPORT	double 	projectile_func(POINTER,double*);
 IMPORT	double 	seed_func(POINTER,double*);
 IMPORT	double 	rect_box_func(POINTER,double*);
 IMPORT  double  slotted_circle_func(POINTER,double*);
 IMPORT  double  four_slotted_circle_func(POINTER,double*);
+IMPORT  double  cuboid_func(POINTER,double*);
+IMPORT  double  cylinder_func(POINTER,double*);
+IMPORT  double  cone_func(POINTER,double*);
+IMPORT  double  tetrahedron_func(POINTER,double*);
 
 /*      imksurf.c */
 IMPORT  boolean 	make_bdry_surfaces(INTERFACE*,RECT_GRID*);

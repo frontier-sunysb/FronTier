@@ -1288,6 +1288,68 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 
    IMPORT  void FT_RotateSurface(SURFACE *surf,double *center,double phi,double theta);
 
+/*! \fn void FT_MakeCuboidSurf(Front *front,double *center,double *edge,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf)
+ *  \ingroup INSERT
+    \brief This function inserts a cuboid surface into the front with given
+     information of its parameters, components, and wave type.    
+    \param front @b inout Pointer to the front in which surface is inserted.
+    \param center @b in center of the cuboid.
+    \param edge @b in edge of the cuboid.
+    \param neg_comp @b in index for negative side of the surface (inner side).
+    \param pos_comp @b in index for positive side of the surface (outer side).
+    \param w_type @b in wave type of the surface.
+    \param surf @b out surface made by this function
+*/
+
+    IMPORT void FT_MakeCuboidSurf(Front *front,double *center,double *edge,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf);
+
+/*! \fn void FT_MakeCylinderSurf(Front *front,double *center,double radius, double height, COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf)
+ *  \ingroup INSERT
+    \brief This function inserts a cylinder surface into the front with given
+     information of its parameters, components, and wave type.
+    \param front @b inout Pointer to the front in which surface is inserted.
+    \param center @b in center of the cylinder.
+    \param edge @b in radius of the cylinder.
+    \param height @b in height of the cylinder.
+    \param neg_comp @b in index for negative side of the surface (inner side).
+    \param pos_comp @b in index for positive side of the surface (outer side).
+    \param w_type @b in wave type of the surface.
+    \param surf @b out surface made by this function
+*/
+
+    IMPORT void FT_MakeCylinderSurf(Front *front,double *center,double radius, double height, COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf);
+
+/*! \fn void FT_MakeConeSurf(Front *front,double *center,double slope, double height, COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf)
+ *  \ingroup INSERT
+    \brief This function inserts a cone surface into the front with given
+     information of its parameters, components, and wave type.
+    \param front @b inout Pointer to the front in which surface is inserted.
+    \param center @b in vertex of the cone.
+    \param slope @b in slope of the cone.
+    \param height @b in height of the cone.
+    \param neg_comp @b in index for negative side of the surface (inner side).
+    \param pos_comp @b in index for positive side of the surface (outer side).
+    \param w_type @b in wave type of the surface.
+    \param surf @b out surface made by this function
+*/
+
+    IMPORT void FT_MakeConeSurf(Front *front,double *center,double slope, double height, COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf);
+
+/*! \fn void FT_MakeTetrahedronSurf(Front *front,double *center,double radius, COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf)
+ *  \ingroup INSERT
+    \brief This function inserts a tetrahedron surface into the front with given
+     information of its parameters, components, and wave type.
+    \param front @b inout Pointer to the front in which surface is inserted.
+    \param center @b in center of the tetrahedron.
+    \param radius @b in circumcircle of the tetrahedron.
+    \param neg_comp @b in index for negative side of the surface (inner side).
+    \param pos_comp @b in index for positive side of the surface (outer side).
+    \param w_type @b in wave type of the surface.
+    \param surf @b out surface made by this function
+*/
+  
+    IMPORT void FT_MakeTetrahedronSurf(Front *front,double *center,double radius,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif

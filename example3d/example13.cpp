@@ -41,13 +41,20 @@ int main(int argc, char **argv)
 	SURFACE *surf;
 	// for sphere
 	double center[MAXD];
-	double radius[MAXD];
+	double radii[MAXD];
 	// for dumbbell
 	double x0,x1,y0,z0,R,r;
 	// for projectile
 	double h;
 	// for test of rotation
 	double phi,theta;
+	// for cuboid
+	double edge[MAXD];
+	// for cylinder
+	double radius,height;
+	// for cone
+	double slope;
+	// for tetrahedron
 
 	FT_Init(argc,argv,&f_basic);
 
@@ -65,10 +72,10 @@ int main(int argc, char **argv)
 
 	// Test making elliptic surface
 	center[0] = center[1] = center[2] = 0.5;
-	radius[0] = 0.4;
-	radius[1] = 0.3;
-	radius[2] = 0.3;
-	FT_MakeEllipticSurf(&front,center,radius,
+	radii[0] = 0.4;
+	radii[1] = 0.3;
+	radii[2] = 0.3;
+	FT_MakeEllipticSurf(&front,center,radii,
 		exterior_component(front.interf),2,FIRST_PHYSICS_WAVE_TYPE,
 		&surf);
 	FT_Save(&front,f_basic.out_name);
@@ -112,6 +119,50 @@ int main(int argc, char **argv)
 	FT_Save(&front,f_basic.out_name);
 	FT_AddTimeStepToCounter(&front);
 	delete_surface(surf);
+
+	// Test making cuboid surface
+	center[0] = center[1] = center[2] = 0.5;
+	edge[0] = 0.3;
+	edge[1] = 0.1;
+	edge[2] = 0.1;
+	FT_MakeCuboidSurf(&front,center,edge,
+		exterior_component(front.interf),2,FIRST_PHYSICS_WAVE_TYPE,
+		&surf);
+	FT_Save(&front,f_basic.out_name);
+	delete_surface(surf);
+	FT_AddTimeStepToCounter(&front);
+
+	// Test making cylinder surface
+	center[0] = center[1] = center[2] = 0.5;
+	radius = 0.2;
+	height = 0.3;
+	FT_MakeCylinderSurf(&front,center,radius,height,
+		exterior_component(front.interf),2,FIRST_PHYSICS_WAVE_TYPE,
+		&surf);
+	FT_Save(&front,f_basic.out_name);
+	delete_surface(surf);
+	FT_AddTimeStepToCounter(&front);
+
+	// Test making cone surface
+	center[1] = center[2] = 0.5; 
+	center[0] = 0.25;
+	slope = 0.6;
+	height = 0.5;
+	FT_MakeConeSurf(&front,center,slope,height,
+		exterior_component(front.interf),2,FIRST_PHYSICS_WAVE_TYPE,
+                &surf);
+	FT_Save(&front,f_basic.out_name);
+	delete_surface(surf);
+	FT_AddTimeStepToCounter(&front);
+
+	//Test making tetrahedron surface
+	center[0] = center[1] = center[2] = 0.5;
+        radius = 0.4;
+        FT_MakeTetrahedronSurf(&front,center,radius,
+                exterior_component(front.interf),2,FIRST_PHYSICS_WAVE_TYPE,
+                &surf);
+        FT_Save(&front,f_basic.out_name);
+        delete_surface(surf);
 
 	clean_up(0);
 }
