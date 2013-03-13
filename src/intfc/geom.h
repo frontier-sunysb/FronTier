@@ -585,6 +585,59 @@ typedef struct {
         double length[MAXD];
 } RECT_BOX_PARAMS;
 
+typedef struct {
+        int dim;
+        double L[MAXD];         /* Lower bounds of box */
+        double U[MAXD];         /* Upper bounds of box */
+} RECT_CONSTR_PARAMS;
+
+typedef struct {
+        int dim;
+        double cen[MAXD];       /* center of the ellipse */
+        double radii[MAXD];     /* radii of the ellipse */
+        double x_range[2];      /* x_range[0] <= x <= x_range[1] */
+} ELLIPSE_CONSTR_PARAMS;
+
+typedef struct {
+        double L1[MAXD];         /* Lower bounds of box 1 */
+        double U1[MAXD];         /* Upper bounds of box 1 */
+        double L2[MAXD];         /* Lower bounds of box 2 */
+        double U2[MAXD];         /* Upper bounds of box 2 */
+} CROSS_CONSTR_PARAMS;
+
+/* wing_type1: Two half ellipses are used to initialize the wing. */
+typedef struct {
+        double x_sym;
+        double y_constraint;
+        double x_devi;
+        double radius[2];
+} WING_TYPE1_PARAMS;
+
+/* wing_type2: Lemniscates function is used to initialize the wing. */
+typedef struct {
+        double x_cen, y_cen;
+        double a, b;
+} WING_TYPE2_PARAMS;
+
+typedef struct {
+        double x_sym, y_cen;
+        double x_devi;
+        double a;
+} WING_TYPE3_PARAMS;
+/* Yan Li
+ *    In this initializaion we use two half-ellipses to construct a wing.
+ *       The parameters of the ellipse are given by radius[2]
+ *          Todo: need to generalize the construction.
+ *          */
+typedef struct {
+        int dim;
+        int wing_type;
+        WING_TYPE1_PARAMS wing_type1_params;
+        WING_TYPE2_PARAMS wing_type2_params;
+        WING_TYPE3_PARAMS wing_type3_params;
+
+} WING_CONSTR_PARAMS;
+
  /* Geometry EXPORTED Function Declarations*/
 
 /*	geomutils.c*/

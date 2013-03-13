@@ -790,11 +790,14 @@ EXPORT	boolean	i_insert_point_in_tri_side(
 	    return insert_point_in_bond(p,bt->bond,bt->curve);
 	}
 	nbr_tri = Tri_on_side(tri,side);
-	for (nbr_side = 0; nbr_side < 3; ++nbr_side)
-	    if (Tri_on_side(nbr_tri,nbr_side) == tri)
-		break;
-	if (nbr_side == 3)
-	    return FUNCTION_FAILED;
+	if (nbr_tri != NULL)
+	{
+	    for (nbr_side = 0; nbr_side < 3; ++nbr_side)
+	    	if (Tri_on_side(nbr_tri,nbr_side) == tri)
+		    break;
+	    if (nbr_side == 3)
+	    	return FUNCTION_FAILED;
+	}
 
 	/* Split tri */
 	siden = Next_m3(side);
@@ -816,6 +819,13 @@ EXPORT	boolean	i_insert_point_in_tri_side(
 	set_side_bdry(Boundary_tri(tri),siden,0);
 	set_normal_of_tri(tri);
 	++s->interface->num_points;
+	if (nbr_tri == NULL)
+	{
+	    if (update_neighbor_tris(Tri_neighbor(new_tri)+siden,tri,
+				 new_tri,siden) != FUNCTION_SUCCEEDED)
+	    	return FUNCTION_FAILED;
+	    return FUNCTION_SUCCEEDED;
+	}
 
 	/* Split nbr_tri */
 	nbr_siden = Next_m3(nbr_side);
@@ -989,6 +999,8 @@ LOCAL  boolean update_neighbor_tris(
 	else /* nb is a tri */
 	{
 	    TRI *nb_tri = nb->tri;
+	    if (nb_tri == NULL) /* boundary curve not implemented */
+	        return FUNCTION_SUCCEEDED;
 	    for (i = 0; i < 3; ++i)
 	    {
 	        if (Tri_on_side(nb_tri,i) == old_t)

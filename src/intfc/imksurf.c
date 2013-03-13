@@ -2766,8 +2766,6 @@ EXPORT  int  make_curves_from_blk(
 			   if(blk_mem[i][j][k]->bonds[nc] != NULL) 
 			   {
 			       newb[num_bonds] = blk_mem[i][j][k]->bonds[nc];	  
-			       /*printf("#newb %d   %d %d %d \n", newb[num_bonds], i, j, k); */
-			       
 			       num_bonds ++;
 			       if(num_bonds == alloc_bn)
 			       {
@@ -2784,8 +2782,6 @@ EXPORT  int  make_curves_from_blk(
 			   if(blk_mem[i][j][k]->bonds1[nc] != NULL) 
 			   {
 			       newb[num_bonds] = blk_mem[i][j][k]->bonds1[nc];	   
-			       /*printf("#newba %d   %d %d %d \n", newb[num_bonds], i, j, k); */
-			       
 			       num_bonds ++;
 			       if(num_bonds == alloc_bn)
 			       {
@@ -2802,8 +2798,6 @@ EXPORT  int  make_curves_from_blk(
 		}
             }
 
-	    /*printf("#curves %llu #num bond = %d\n", curve_number(curves[nc]), num_bonds); */
-	    
 	    if(newb[0] == NULL)
 	    {
 	        curves[nc]->num_points = 0;
@@ -4918,3 +4912,236 @@ EXPORT boolean read_vtk_surface(
 	set_current_interface(sav_intfc);
 	return YES;
 }	/* end read_vtk_surface */
+
+/*	The following are constraint functions for cutting surfaces
+*/
+
+EXPORT boolean circle_constr_func(
+        POINTER params,
+        double *coords)
+{
+        CIRCLE_PARAMS *circle_constr_params = (CIRCLE_PARAMS*)params;
+	double *cen = circle_constr_params->cen;
+	double R = circle_constr_params->R;
+	double r;
+	
+	r = sqrt(sqr(coords[0] - cen[0]) + sqr(coords[1] - cen[1]));
+	if ( r <= R) return YES;
+	else return NO;
+}	/* end circle_constr_func */
+
+EXPORT boolean xoss_constr_func(
+        POINTER params,
+        double *coords)
+{
+        CROSS_CONSTR_PARAMS *cross_constr_params = (CROSS_CONSTR_PARAMS*)params;
+	int i;
+	double *L1 = cross_constr_params->L1;
+	double *U1 = cross_constr_params->U1;
+	double *L2 = cross_constr_params->L2;
+	double *U2 = cross_constr_params->U2;
+
+	if ((L1[0] < coords[0] && coords[0] < U1[0]) &&
+	    (L1[1] < coords[1] && coords[1] < U1[1]))
+		return YES;
+	if ((L2[0] < coords[0] && coords[0] < U2[0]) &&
+	    (L2[1] < coords[1] && coords[1] < U2[1]))
+		return YES;
+	return NO;
+}	/* end xoss_constr_func */
+
+EXPORT boolean rect_constr_func(
+        POINTER params,
+        double *coords)
+{
+        RECT_CONSTR_PARAMS *rect_constr_params = (RECT_CONSTR_PARAMS*)params;
+	int i;
+	int dim = rect_constr_params->dim;
+	double *L = rect_constr_params->L;
+	double *U = rect_constr_params->U;
+	for (i = 0; i < dim-1; ++i)
+	{
+	    if (coords[i] < L[i] || coords[i] > U[i])
+		return NO;
+	}
+	return YES;
+}	/* end rect_constr_func */
+
+EXPORT boolean cross_constr_func(
+        POINTER params,
+        double *coords)
+{
+        RECT_CONSTR_PARAMS *rect_constr_params = (RECT_CONSTR_PARAMS*)params;
+	int i;
+	int dim = rect_constr_params->dim;
+	double *L = rect_constr_params->L;
+	double *U = rect_constr_params->U;
+	double LL[3],UU[3];
+	int counter1,counter2;
+
+	LL[0] = L[1]; LL[1] = L[0]; LL[2] = L[2];
+	UU[0] = U[1]; UU[1] = U[0]; UU[2] = U[2];
+
+	counter1 = counter2 = 0;
+	for (i = 0; i < dim-1; ++i)
+        {
+            if (coords[i] > L[i] && coords[i] < U[i])
+		counter1++;
+        }
+	for (i = 0; i < dim-1; ++i)
+	{
+	    if (coords[i] > LL[i] && coords[i] < UU[i])
+		counter2++;
+	}
+	if (counter1 == 2 || counter2 == 2)
+	    return YES;
+        return NO;
+}	/* end cross_constr_func */
+
+
+EXPORT boolean ellipse_constr_func(
+	POINTER params,
+	double *coords)
+{
+	ELLIPSE_CONSTR_PARAMS *ellipse_constr_params = 
+			(ELLIPSE_CONSTR_PARAMS*)params;
+	int i;
+	int dim = ellipse_constr_params->dim;
+	double *cen = ellipse_constr_params->cen;
+	double *radii = ellipse_constr_params->radii;
+	double *x_range = ellipse_constr_params->x_range;
+	double r = 0;
+
+	if (coords[0] < x_range[0] || coords[0] > x_range[1])
+            return NO;
+
+	for (i = 0; i < dim - 1; ++i)
+	    r += sqr((coords[i] - cen[i]) / radii[i]);
+
+	if (r < 1)
+	    return YES;
+	return NO;
+}	/* end ellipse_constr_func */
+
+EXPORT boolean wing_constr_func(
+	POINTER params,
+	double *coords)
+{
+	WING_CONSTR_PARAMS *wing_constr_params = 
+			(WING_CONSTR_PARAMS*) params;
+
+	if (wing_constr_params->wing_type == 1)
+	{
+	    WING_TYPE1_PARAMS *wing_type1_params = 
+		&wing_constr_params->wing_type1_params;
+	    double x_sym = wing_type1_params->x_sym;
+	    double y_constraint = wing_type1_params->y_constraint;
+	    double x_devi = wing_type1_params->x_devi;
+	    double *radius = wing_type1_params->radius;
+	    double x, y, r = 0;
+
+	    if (coords[1] > y_constraint)
+	    	return NO;
+
+	    if (coords[0] < x_sym)
+	    	x = coords[0] - (x_sym - x_devi);
+	    else
+	    	x = coords[0] - (x_sym + x_devi);
+
+	    y = coords[1] - y_constraint;
+
+	    r = sqr(x / radius[0]) + sqr(y / radius[1]);
+
+	    if (r < 1)
+	    	return YES;
+	    return NO; 
+	}
+	else if (wing_constr_params->wing_type == 2)
+	{
+	    WING_TYPE2_PARAMS *wing_type2_params = 
+		&wing_constr_params->wing_type2_params;
+	    double x_cen = wing_type2_params->x_cen;
+	    double y_cen = wing_type2_params->y_cen;
+	    double a = wing_type2_params->a;
+	    double b = wing_type2_params->b;
+
+	    double x = coords[0] - x_cen;
+	    double y = coords[1] - y_cen;
+	    double r = (x*x + y*y) * (x*x + y*y) - 2*a*a*(x*x - y*y) - b;
+	    if (r < 0)
+		return YES;
+	    return NO;
+	}
+	else if (wing_constr_params->wing_type == 3)
+	{
+	    WING_TYPE3_PARAMS *wing_type3_params = 
+		&wing_constr_params->wing_type3_params;
+	    double y_cen = wing_type3_params->y_cen;
+	    double x_sym = wing_type3_params->x_sym;
+	    double x_devi = wing_type3_params->x_devi;
+	    double a = wing_type3_params->a;
+
+	    double x, r;
+	    double y = coords[1] - y_cen;
+	    
+	    if (coords[0] > x_sym)
+	    {
+		x = coords[0] - x_sym + x_devi;
+		r = (x*x + y*y) * (x*x+y*y) - 4*a*x*x*x +
+		    3*a*x*(x*x + y*y);
+	    }
+	    else
+	    {
+		x = coords[0] - x_sym - x_devi;
+		r = (x*x + y*y) * (x*x+y*y) + 4*a*x*x*x -
+		    3*a*x*(x*x + y*y);
+	    }
+	    if (r < 0)
+		return YES;
+	    return NO;
+	}
+	else
+	{
+	    (void) printf("Unknow wing type!\n");
+	    clean_up(ERROR);
+	}
+}
+
+/*	Return YES if on positive side of the plane */
+
+EXPORT boolean plane_constr_func(
+	POINTER params,
+	double *coords)
+{
+	PLANE_PARAMS *plane_params = (PLANE_PARAMS*)params;
+	double *N = plane_params->N; /* normal of plane */
+	double *P = plane_params->P; /* point on plane */
+	double v[MAXD];
+	int i;
+
+	if (N[1] == 0.0 && N[2] == 0.0)
+	{
+	    if (N[0] > 0.0) 
+		return (coords[0] >= P[0]) ? YES : NO;
+	    else 
+		return (coords[0] <= P[0]) ? YES : NO;
+	}
+	if (N[0] == 0.0 && N[1] == 0.0)
+	{
+	    if (N[2] > 0.0) 
+		return (coords[2] >= P[2]) ? YES : NO;
+	    else 
+		return (coords[2] <= P[2]) ? YES : NO;
+	}
+	if (N[0] == 0.0 && N[2] == 0.0)
+	{
+	    if (N[1] > 0.0) 
+		return (coords[1] >= P[1]) ? YES : NO;
+	    else 
+		return (coords[1] <= P[1]) ? YES : NO;
+	}
+	for (i = 0; i < 3; ++i)
+	    v[i] = coords[i] - P[i];
+	return (Dot3d(v,N) >= 0.0) ? YES : NO;
+}	/* end plane_constr_func */
+

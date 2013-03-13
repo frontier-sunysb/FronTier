@@ -579,6 +579,7 @@ src/util/Makefile
 src/front/Makefile 
 src/intfc/Makefile 
 airfoil/Makefile
+parachute/Makefile
 subsurf/Makefile
 crystal/Makefile
 example/Makefile
@@ -644,6 +645,7 @@ iFluid/Makefile
 frgb/Makefile
 subsurf/Makefile
 airfoil/Makefile
+parachute/Makefile
 crystal/Makefile
 poisson/Makefile
 cFluid/Makefile

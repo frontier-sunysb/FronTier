@@ -834,11 +834,21 @@ IMPORT  boolean    is_curve_crx(COMPONENT,COMPONENT,COMPONENT,COMPONENT);
 IMPORT  int     install_grid_crx(double (*func)(POINTER,double*),POINTER,
                         EG_CRX*,RECT_GRID,COMPONENT,COMPONENT);
 IMPORT  int     count_crx_through_comp(int*,COMPONENT***);
-IMPORT  int     make_curves_from_blk(CURVE**,int*,int*,BLK_TRI ****,CURVE **,int);
+IMPORT  int     make_curves_from_blk(CURVE**,int*,int*,BLK_TRI ****,CURVE **,
+		int);
 /* make 3 comp surfaces from comp functions */
 IMPORT	void    show_comp(COMPONENT ***,RECT_GRID);
-IMPORT  boolean    make_surfaces_from_comp(RECT_GRID*,int (*func)(POINTER, double*),POINTER,
+IMPORT  boolean make_surfaces_from_comp(RECT_GRID*,
+		int (*func)(POINTER, double*),POINTER,
 		SURFACE**,CURVE**,int*,int*);
+/* constraint functions for cutting surfaces */
+IMPORT boolean circle_constr_func(POINTER,double*);
+IMPORT boolean cross_constr_func(POINTER,double*);
+IMPORT boolean ellipse_constr_func(POINTER,double*);
+IMPORT boolean wing_constr_func(POINTER, double*);
+IMPORT boolean rect_constr_func(POINTER,double*);
+IMPORT boolean xoss_constr_func(POINTER,double*);
+IMPORT boolean plane_constr_func(POINTER,double*);
 
 /*    iwallsurf.c */
 IMPORT  void  set_is_wall_surface(SURFACE *);

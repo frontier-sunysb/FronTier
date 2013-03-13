@@ -831,3 +831,55 @@ EXPORT  void FT_MakeTetrahedronSurf(
 
 }        /*end FT_MakeTetrahedronSurf*/
 
+EXPORT	void FT_MakePlaneSurf(
+	Front *front,
+	double *plane_nor,
+	double *plane_pt,
+	boolean reset_bdry_comp,
+	COMPONENT   neg_comp,
+        COMPONENT   pos_comp,
+	int w_type,
+	SURFACE **surf)
+{
+	RECT_GRID *rgr = front->rect_grid;
+	PLANE_PARAMS plane_params;
+	int i,dim = rgr->dim;
+
+	for (i = 0; i < dim; ++i)
+	{
+	    plane_params.N[i] = plane_nor[i];
+	    plane_params.P[i] = plane_pt[i];
+	}
+	make_level_surface(rgr,front->interf,neg_comp,pos_comp,
+			plane_func,(POINTER)&plane_params,surf);
+	wave_type(*surf) = w_type;
+	if (reset_bdry_comp)
+	{
+	    printf("FT_MakePlaneSurf(): reset_bdry_comp code needed\n");
+	    clean_up(ERROR);
+	}
+	front->interf->modified = YES;
+}	/* end FT_MakePlaneSurf */
+
+EXPORT	void FT_InstallSurfEdge(
+	SURFACE *surf,
+	int hsbdry_type)
+{
+	install_hsbdry_on_surface(surf,hsbdry_type);
+}	/* end FT_InstallSurfEdge */
+
+EXPORT  void FT_CutSurfBdry(
+        SURFACE *surf,
+        boolean constr_func(POINTER,double*),
+        POINTER func_params,
+        double **insert_coords,
+        int num_pts,
+        int insert_idir)
+{
+        int i;
+        for (i = 0; i < num_pts; ++i)
+        {
+            insert_point_in_surface(insert_idir,insert_coords[i],surf);
+        }
+        cut_surface(surf,constr_func,func_params,YES);
+}       /* end FT_CutSurfBdry */

@@ -1350,6 +1350,50 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
   
     IMPORT void FT_MakeTetrahedronSurf(Front *front,double *center,double radius,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf);
 
+/*! \fn void FT_MakePlaneSurf(Front *front, double *plane_nor,double *plane_pt,boolean reset_bdry_comp,COMPONENT neg_comp, COMPONENT pos_comp, int w_type,SURFACE **surf)
+ *  \ingroup INSERT
+    \brief This function inserts a plane surface into the front with given
+     information of its parameters, components, and wave type.
+    
+    \param front @b inout Pointer to the front in which surface is inserted.
+    \param plane_nor @b in normal vector of the plane.
+    \param plane_pt @b in coordinates of a point on the plane.
+    \param reset_bdry_comp @b in if YES, reset boundary component.
+    \param neg_comp @b in index for negative side of the surface (inner side).
+    \param pos_comp @b in index for positive side of the surface (outer side).
+    \param w_type @b in wave type of the surface.
+    \param surf @b out surface made by this function.
+ */
+
+   IMPORT  void FT_MakePlaneSurf(Front *front,double *plane_nor,double *plane_pt,boolean reset_bdry_comp,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf);
+
+/*! \fn void FT_InstallSurfEdge(SURFACE *surf,int hsbdry_type)
+ *  \ingroup INSERT
+    \brief This function install a curve at the surface boundary. The
+     boundary of the surface should contain triangles with NULL side.
+    
+    \param surf @b inout Pointer to the surface where edge to be installed.
+    \param hsbdry_type @b in Boundary curve type.
+ */
+
+   IMPORT  void FT_InstallSurfEdge(SURFACE *surf,int hsbdry_type);
+
+/*! \fn void FT_CutSurfBdry(SURFACE *surf,boolean constr_func(POINTER,double*),POINTER func_params,double **insert_coords,int num_pts,int insert_idir)
+ *  \ingroup INSERT
+    \brief This function cut surface at the boundary defined by the constrain
+     function. It first insert significant corner points to make sure it 
+     cuts the surface accurately.
+    
+    \param surf @b inout Pointer to the surface to be cut.
+    \param constr_func @b in constrain function defining the boundary.
+    \param func_params @b in anonymous pointer of function parameters.
+    \param insert_coords @b in coordinates of points to be inserted before cut.
+    \param num_pts @b in number of points to be inserted before cut.
+    \param insert_idir @b in insert point along this direction.
+ */
+
+   IMPORT  void FT_CutSurfBdry(SURFACE *surf,boolean constr_func(POINTER,double*),POINTER func_params,double **insert_coords,int num_pts,int insert_idir);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif

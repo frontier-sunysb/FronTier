@@ -726,6 +726,9 @@ typedef struct _Wv_on_pc Wv_on_pc;
 
 #define	f_front(front)	((Front*)front)
 
+#define InName(front)   (front)->f_basic->in_name
+#define OutName(front)  (front)->f_basic->out_name
+
 	/*
 	*  Data structure for keeping tracking of the maximum wave speed
 	*  on the tracked front.
@@ -1547,6 +1550,9 @@ typedef struct _HDF_frame_data HDF_frame_data;
 
 #define GetFrontNormal(p,hse,hs,nor,front)			\
 	normal(p,hse,hs,nor,front)
+
+#define FT_Max(a,b)     (((a) > (b)) ? (a) : (b))
+#define FT_Min(a,b)     (((a) < (b)) ? (a) : (b))
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }

@@ -10,6 +10,7 @@ all:
 	cd src && $(MAKE)
 	$(MAKE) incs 
 	cd airfoil && $(MAKE)
+	cd parachute && $(MAKE)
 	cd cell && $(MAKE)
 	cd cFluid && $(MAKE)
 	cd cim && $(MAKE)
@@ -34,6 +35,7 @@ clean:
 	cd cim && $(MAKE) clean
 	cd inverse && $(MAKE) clean
 	cd airfoil && $(MAKE) clean
+	cd parachute && $(MAKE) clean
 	cd cell && $(MAKE) clean
 	cd crystal && $(MAKE) clean
 	cd curvature && $(MAKE) clean
@@ -153,6 +155,11 @@ $$ME/airfoil/*.h \
 $$ME/airfoil/Makefile.in \
 $$ME/airfoil/input-*/* \
 $$ME/airfoil/mrun* \
+$$ME/parachute/*.cpp \
+$$ME/parachute/*.h \
+$$ME/parachute/Makefile.in \
+$$ME/parachute/input-*/* \
+$$ME/parachute/mrun* \
 $$ME/crystal/*.cpp \
 $$ME/crystal/*.h \
 $$ME/crystal/Makefile.in \
