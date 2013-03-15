@@ -789,7 +789,7 @@ repeat:
 	    	for (iv = 0; iv < 3; ++iv)
 		{
 		    pnew = Point_of_tri(tris[j])[iv];
-		    if (pnew == cpts[i]) continue;	// skip self
+		    if (pnew == cpts[i]) continue;	/* skip self */
 		    for (k = i+1; k < num_pts; ++k)
 		    {
 			if (pnew == cpts[k])
@@ -867,9 +867,9 @@ repeat:
 
 EXPORT void rotate_point_with_polar_angle(
 	POINT *p,
-	double *center,			// Rotation center
-	double phi,			// Polar angle
-	double theta,			// Azimuthal angle
+	double *center,			/* Rotation center */
+	double phi,			/* Polar angle */
+	double theta,			/* Azimuthal angle */
 	boolean first)
 {
 	static double roty_matrix[3][3];

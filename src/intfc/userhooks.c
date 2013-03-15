@@ -577,8 +577,9 @@ EXPORT	void switch_btris_of_bond(
 	INTERFACE *intfc = current_interface();
 
 	if (intfc == NULL)
-	    return NULL;
-	return (*i_user_interface(intfc)._switch_btris_of_bond)(btri1,btri2);
+	    return;
+	(*i_user_interface(intfc)._switch_btris_of_bond)(btri1,btri2);
+	return;
 }		/*end link_tri_to_bond*/
 
 EXPORT	void reverse_bond(

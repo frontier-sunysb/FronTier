@@ -640,11 +640,11 @@ S["gass"]=" "
 S["include_dirs"]="include/FronTier/intfc include/FronTier/front include/FronTier/util"
 S["headers"]="include/FronTier/util/vmalloc.h include/FronTier/util/plotdecs.h include/FronTier/util/fnamedebug.h include/FronTier/util/cdecs.h include/FronTier/u"\
 "til/uprotos.h include/FronTier/util/navdecs.h include/FronTier/intfc/iTaps.h include/FronTier/intfc/array.h include/FronTier/intfc/int.h include/Fro"\
-"nTier/intfc/triangledefs.h include/FronTier/intfc/int_amr.h include/FronTier/intfc/iMeshP.h include/FronTier/intfc/iRel.h include/FronTier/intfc/ilo"\
-"cprotos.h include/FronTier/intfc/userint.h include/FronTier/intfc/iGeom.h include/FronTier/intfc/iMesh.h include/FronTier/intfc/iBase.h include/Fron"\
-"Tier/intfc/iloc.h include/FronTier/intfc/table.h include/FronTier/intfc/iprotos.h include/FronTier/intfc/geom.h include/FronTier/front/fprotos.h inc"\
-"lude/FronTier/front/fapi.h include/FronTier/front/fpatrecon.h include/FronTier/front/fvelo.h include/FronTier/front/fuserint.h include/FronTier/fron"\
-"t/fdecs.h include/FronTier/front/frp.h "
+"nTier/intfc/triangledefs.h include/FronTier/intfc/int_amr.h include/FronTier/intfc/iRel.h include/FronTier/intfc/ilocprotos.h include/FronTier/intfc"\
+"/userint.h include/FronTier/intfc/iGeom.h include/FronTier/intfc/iMesh.h include/FronTier/intfc/iBase.h include/FronTier/intfc/iloc.h include/FronTi"\
+"er/intfc/table.h include/FronTier/intfc/iprotos.h include/FronTier/intfc/geom.h include/FronTier/front/fprotos.h include/FronTier/front/fapi.h inclu"\
+"de/FronTier/front/fpatrecon.h include/FronTier/front/fvelo.h include/FronTier/front/fuserint.h include/FronTier/front/fdecs.h include/FronTier/front"\
+"/frp.h "
 S["libext"]=""
 S["F77_LIBS"]=""
 S["name"]=""

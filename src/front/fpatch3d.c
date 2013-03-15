@@ -13,10 +13,7 @@
 #include <front/fdecs.h>
 #include <front/fpatrecon.h>
 
-//using namespace std;
-//#include <map>
-
-//AMR3D
+/* AMR3D */
 EXPORT boolean ng_form_patch_subintfc_via_cut3d(Front*);
 EXPORT void clip_intfc_at_grid_bdry1(INTERFACE*);
 INTERFACE *cut_buf_interface1(INTERFACE*,int,int,int*,int*);
@@ -24,7 +21,6 @@ void	assign_point_index(INTERFACE*,int);
 void	assign_index_of_point(INTERFACE*);
 boolean	merge_buffer_interface(INTERFACE*,INTERFACE*,int);
 int     compare_points(const void *, const void *);
-//EXPORT  void    ft_tecplot_interface(FILE*,const char*,INTERFACE*);
 
 struct _EDGETRI {
 	TRI	*tri;
@@ -64,7 +60,7 @@ int compare_null_edges(const void *a, const void *b)
 	return 0;
 }
 
-//The compared variables should be rotationally invariant
+/* The compared variables should be rotationally invariant */
 int compare_tris_pointers(const void *a, const void *b)
 {
 	TRI	**a1=(TRI**)a, **b1=(TRI**)b;
@@ -80,7 +76,7 @@ int compare_tris_pointers(const void *a, const void *b)
 	  p2i[i] = Index_of_point(p2[i]);
 	}
 
-	//comp min point index
+	/* comp min point index */
 	p1m = min3(p1i[0],p1i[1],p1i[2]);
 	p2m = min3(p2i[0],p2i[1],p2i[2]);
 	if(p1m < p2m)
@@ -88,7 +84,7 @@ int compare_tris_pointers(const void *a, const void *b)
 	if(p1m > p2m)
 	    return 1;
 
-	//comp max point index
+	/* comp max point index */
 	p1m = max3(p1i[0],p1i[1],p1i[2]);
 	p2m = max3(p2i[0],p2i[1],p2i[2]);
 	if(p1m < p2m)
@@ -135,7 +131,7 @@ void	check_double_edge_consistent(
 
 	DEBUG_LEAVE(check_double_edge_consistent)
 
-	//count number of edges
+	/* count number of edges */
 	num = 0;
 	for(s=intfc->surfaces; s && *s; s++)
 	  for(tri=first_tri(*s); !at_end_of_tri_list(tri,*s); tri=tri->next)
@@ -151,7 +147,7 @@ void	check_double_edge_consistent(
 
 	uni_array(&edges, num, sizeof(EDGETRI));
 	
-	//put all edges in edges and sort
+	/* put all edges in edges and sort */
 	i = 0;
 	for(s=intfc->surfaces; s && *s; s++)
 	  for(tri=first_tri(*s); !at_end_of_tri_list(tri,*s); tri=tri->next)
@@ -217,8 +213,8 @@ void	check_double_edge_consistent(
 		  printf("ERROR check_double_edge_consistent, tri on e2 != e1.\n");
 		  clean_up(ERROR);
 		}
-	      } //if pteq
-	    } //if compare_null_edges
+	      } /* if pteq */
+	    } /* if compare_null_edges */
 	    else
 	      pteq = NO;
 	}
@@ -233,7 +229,7 @@ void	check_double_edge_consistent(
 
 void	cut_intfc_in_grid(INTERFACE*,RECT_GRID*);
 
-//gr is the topological grid of the domain (no buffer)
+/* gr is the topological grid of the domain (no buffer) */
 void	cut_intfc_in_grid(
 	INTERFACE	*intfc,
 	RECT_GRID	*gr)
@@ -302,7 +298,7 @@ EXPORT	boolean f_patch_intfc_communication3d(Front**,FT_NeighborPatchInfo*,int,i
 #define	MAX_NEIGHBOR_PROCS	20
 #define	MAX_NEIGHBOR_INTFC	20
 
-//remove repeated proc numbers.
+/* remove repeated proc numbers. */
 int	get_procs(
 	int			*procs,
 	FT_NeighborFaceInfo	*dnp,
@@ -349,9 +345,9 @@ EXPORT	boolean f_patch_intfc_communication3d(
 	int  	        dnn, patch_num;
 	int		nproc, proc, procs[MAX_NEIGHBOR_PROCS];
 	FT_NeighborFaceInfo	*dnp;
-	map<int,int>		procmap;  	   //map patch number to proc
+	map<int,int>		procmap;    /* map patch number to proc */
 	map<int,int>::iterator	it;
-	map<int,INTERFACE*>	recvmap[2];	   //map patch number to intfc
+	map<int,INTERFACE*>	recvmap[2]; /* map patch number to intfc */
 	map<int,INTERFACE*>::iterator	itr;
 	char  fname[128];
 	static	int	cnt = 0;
@@ -363,19 +359,19 @@ EXPORT	boolean f_patch_intfc_communication3d(
 	sav_copy = copy_intfc_states();
 	sav_intfc = current_interface();
 
-	//only h and GL GU are used in gr
+	/* only h and GL GU are used in gr */
 	gr = frs[0]->rect_grid;
 	set_floating_point_tolerance1(gr->h);
 	set_copy_intfc_states(YES);
 	
-	//just use me and him to call same functions.
+	/* just use me and him to call same functions. */
 	for(i=0; i<3; i++)
 	{
 	  me[i] = myid;
 	  him[i] = myid+1;
 	}
 	
-	//clip patch intfcs to patch interior
+	/* clip patch intfcs to patch interior */
 	for(k=0; k<nfr; k++)
 	{
 	  clip_intfc_at_grid_bdry1(frs[k]->interf);
@@ -386,16 +382,13 @@ EXPORT	boolean f_patch_intfc_communication3d(
 	{
 	  for (j = 0; j < 2; ++j)
 	  {
-	    //should have sync for multiple proc run
-	    //pp_gsync();
-
 	    printf("#before send %d %d\n", i, j);
 	    
 	    jp = (j+1)%2;
 	    
 	    recvmap[jp].clear();
 	    
-	    //send all patch intfcs in this proc to the other procs on side j
+	    /*send all patch intfcs in this proc to the other procs on side j */
 	    for(k=0; k<nfr; k++)
 	    {
 	      dnp = npi[k].d_neighbor_patches[i][j];
@@ -403,12 +396,12 @@ EXPORT	boolean f_patch_intfc_communication3d(
 	      patch_num = npi[k].patch_number;
 	      intfc = frs[k]->interf;
 
-	      //has neighbor patch in direction i, side j
+	      /* has neighbor patch in direction i, side j */
 	      if(dnn != 0)
 	      {
 	        buf_intfc = cut_buf_interface1(intfc,i,j,me,him);
 		
-		//patch boundary is periodic
+		/* patch boundary is periodic */
 		if(rect_boundary_type(intfc,i,j) == SUBDOMAIN_BOUNDARY)
 		{
 		  T = gr->GU[i] - gr->GL[i];
@@ -417,28 +410,20 @@ EXPORT	boolean f_patch_intfc_communication3d(
 	          shift_interface(buf_intfc,T,i);
 		}
 		
-		//mapping from patch_number to interface
+		/* mapping from patch_number to interface */
 		recvmap[jp][patch_num] = buf_intfc;
 		
-		//send buf_intfc to all the neighbor patches
+		/* send buf_intfc to all the neighbor patches */
 		nproc = get_procs(procs, dnp, dnn);
-		for(n=0; n<nproc; n++)
-		{
-		  if(procs[n] != myid)
-		  {
-		    //amr send interface to procs[n]
-		    //send_interface(buf_intfc,dst_id);
-		    //(void) delete_interface(buf_intfc);
-		  }
-		} //for n=0 to dnn
-	      } //if dnn != 0
-	    } //for k=0 to nfr
+	      } /* if dnn != 0 */
+	    } /* for k=0 to nfr */
 
-	    //receive all patch intfcs from other procs on side (j+1)%2
+	    /* receive all patch intfcs from other procs on side (j+1)%2 */
 	    printf("#before recv %d %d\n", i, j);
 	    
-	    //construct patch_number - processor mapping for all
-	    //the patch interfaces
+	    /*construct patch_number - processor mapping for all
+	      the patch interfaces
+	    */
 	    procmap.clear();
 	    
 	    for(k=0; k<nfr; k++)
@@ -450,22 +435,24 @@ EXPORT	boolean f_patch_intfc_communication3d(
 	        procmap[dnp[n].patch_number] = dnp[n].proc;
 	    }
 
-	    //receive intfcs
+	    /* receive intfcs */
 	    for(it=procmap.begin(); it != procmap.end(); it++)
 	    {
 	      patch_num = (*it).first;
 	      proc = (*it).second;
 	      
-	      //if patch_num is in this proc, recvmap is assigned in the send part
+	      /*if patch_num is in this proc, recvmap is assigned 
+	        in the send part */
 	      if(proc != myid)
 	      {
-	        //amr receive intfc with patch number patch_num from proc
-	        //recvmap[jp][patch_num] = receive_interface(proc, patch_num);
+	        /*amr receive intfc with patch number patch_num from proc
+	          recvmap[jp][patch_num] = receive_interface(proc, patch_num);
+	        */
 	      }
 	    }
 
 	    printf("#after recv\n");
-          } // for j=0 to 2 side
+          } /* for j=0 to 2 side */
 
 	  printf("\n");
 
@@ -473,7 +460,7 @@ EXPORT	boolean f_patch_intfc_communication3d(
 	  {
 	    printf("#before merge %d %d\n", i, j);
 	    
-	    //merge interfaces
+	    /* merge interfaces */
 	    for(k=0; k<nfr; k++)
 	    {
 	      dnp = npi[k].d_neighbor_patches[i][j];
@@ -487,7 +474,7 @@ EXPORT	boolean f_patch_intfc_communication3d(
 		clean_up(ERROR);
 	      }
 
-	      //get buffer interfaces for frs[k] from recvmap
+	      /* get buffer interfaces for frs[k] from recvmap */
 	      for(n=0; n<dnn; n++)
 	        rintfcs[n] = recvmap[j][dnp[n].patch_number];
 
@@ -500,12 +487,10 @@ EXPORT	boolean f_patch_intfc_communication3d(
 		add_to_debug("nulledge");
 	      }
 	      
-	      //merge frs[k]->interf with the received intfcs
+	      /* merge frs[k]->interf with the received intfcs */
 	      for(n=0; n<dnn; n++)
 	        merge_buffer_interface(frs[k]->interf,
 		         rintfcs[n],dnp[n].patch_number);
-	      
-	      //buffer_extension3d1(frs[k]->interf,rintfcs[0],i,j,0);
 	      
 	      if(k == 4 && debugging("surfchk"))
 	      {
@@ -532,9 +517,9 @@ EXPORT	boolean f_patch_intfc_communication3d(
 
 	    for(itr=recvmap[j].begin(); itr != recvmap[j].end(); itr++)
 	      (void) delete_interface((*itr).second);
-	  } // for j = 0 to 2 sides
+	  } /* for j = 0 to 2 sides */
 	
-	} //for i = 0 to 3 directions
+	} /* for i = 0 to 3 directions */
 
 	for(k=0; k<nfr; k++)
 	{
@@ -550,7 +535,7 @@ comm_exit:
 	DEBUG_LEAVE(f_patch_intfc_communication3d)
 	
 	return YES;
-}	//f_patch_intfc_communication3d
+}	/* end f_patch_intfc_communication3d */
 
 
 EXPORT boolean InitNeighborPatchInfo(FT_NeighborPatchInfo *d_neighbor_patch_info)
@@ -558,7 +543,7 @@ EXPORT boolean InitNeighborPatchInfo(FT_NeighborPatchInfo *d_neighbor_patch_info
 	FT_NeighborFaceInfo *d_neighbor_store = d_neighbor_patch_info->d_neighbor_store;
 	int		    n_patches = d_neighbor_patch_info->num_patches;
 	int		i,j,ind,side,nb;
-	static	int	sam_side[] = {0,0,1,1,2,2};  //SAMRAI conversion
+	static	int	sam_side[] = {0,0,1,1,2,2};  /* SAMRAI conversion */
 	static	int	sam_nb[] = {0,1,0,1,0,1};
 	
 
@@ -572,7 +557,7 @@ EXPORT boolean InitNeighborPatchInfo(FT_NeighborPatchInfo *d_neighbor_patch_info
 	if(n_patches == 0)
 	    return YES;
 
-	//sort neighbor face patches according to their index;
+	/* sort neighbor face patches according to their index; */
 	qsort((void*)d_neighbor_store, n_patches,
 	      sizeof(FT_NeighborFaceInfo), compare_face_patches);
 	
@@ -580,7 +565,7 @@ EXPORT boolean InitNeighborPatchInfo(FT_NeighborPatchInfo *d_neighbor_patch_info
 	while(i<n_patches)
 	{
 	    ind = d_neighbor_store[i].bdry_index;
-	    //find how many patches in the side with index ind;
+	    /* find how many patches in the side with index ind; */
 	    for(j=i+1; j<n_patches && d_neighbor_store[j].bdry_index==ind; ++j);
 	    
 	    side = sam_side[ind];
@@ -612,7 +597,7 @@ EXPORT void PrintNeighborPatchInfo(FT_NeighborPatchInfo *npi)
 
 	printf("Total number of neighbor patches %d\n", npi->num_patches);
 	
-	//no neighbor patches
+	/* no neighbor patches */
 	if(npi->num_patches == 0)
 	    return;
 
@@ -629,7 +614,7 @@ EXPORT void PrintNeighborPatchInfo(FT_NeighborPatchInfo *npi)
 	printf("\n");
 }
 
-#endif  //#if defined(USE_AMR)
+#endif  /* #if defined(USE_AMR) */
 
 void	tecplot_one_interface(
 	FILE		*file,
@@ -638,14 +623,13 @@ void	tecplot_one_interface(
 	SURFACE	**s;
 	CURVE	**cc;
 
-	//print curves
+	/* print curves */
 	for(cc = intfc->curves; cc && *cc; ++cc)
 	{
-	    //printf("Curve %d: cc %p *cc %p\n",i,cc,*cc);
 	    tecplot_curve(NULL,file,*cc);
 	}
 
-	//print surfaces
+	/* print surfaces */
 	for (s = intfc->surfaces; s && *s; ++s)
 	    tecplot_surface(NULL,file,*s);
 }
@@ -770,7 +754,7 @@ void	bucket_init(
 
 	DEBUG_ENTER(bucket_init)
 	
-	//tol is set here
+	/* tol is set here */
 	tol = 4.0e-3;
 	for(i=0; i<3; i++)
 	  bpts->btol[i] = gr->h[i]*tol;
@@ -786,9 +770,10 @@ void	bucket_init(
 	uni_array(&bpts->bpt, num, sizeof(POINT*));
 	bi_array(&ptcrds, num, 3, INT);
 
-	//pts[i] belongs to which bucket
-	//how many points in each bucket
-	//ptcrds[i] store the block info for pts[i]
+	/*pts[i] belongs to which bucket
+	  how many points in each bucket
+	  ptcrds[i] store the block info for pts[i]
+	*/
 	for(n=0; n<num; n++)
 	{
 	  p = pts[n];
@@ -798,8 +783,9 @@ void	bucket_init(
 	  bpts->np[ptcrds[n][0]][ptcrds[n][1]][ptcrds[n][2]]++;
 	}
 
-	//set pointers for each bucket
-	//set np to zero
+	/*set pointers for each bucket
+	  set np to zero
+	*/
 	pst = 0;
 	for(i=0; i<gmax[0]; i++)
 	  for(j=0; j<gmax[1]; j++)
@@ -812,8 +798,9 @@ void	bucket_init(
 	      bpts->np[i][j][k] = 0;
 	    }
 	
-	//save pts to bpts->pt
-	//compute np
+	/*save pts to bpts->pt
+	  compute np
+	*/
 	for(n=0; n<num; n++)
 	{
 	  i = ptcrds[n][0];
@@ -869,8 +856,6 @@ boolean	bucket_match_pts(
 	jmax = min(iy+1,gmax[1]-1);
 	kmax = min(iz+1,gmax[2]-1);
 
-	//printf("#match %d %d %d  %d\n", ix, iy, iz, p);
-	
 	dist = HUGE_VAL;
 	found = NO;
 
@@ -879,13 +864,9 @@ boolean	bucket_match_pts(
 	    for(k=kmin; k<=kmax; k++)
 	      for(n=0; n<bpts->np[i][j][k]; n++)
 	      {
-	        //printf("%d %d %d %d  %d\n", i,j,k,n,bpts->pt[i][j][k]);
-
 	        npt = bpts->pt[i][j][k][n];
 		
-		//printf("npt = %d\n", npt);
-
-		//npt already matched with one point
+		/* npt already matched with one point */
 		if(Cor_point(npt) != NULL)
 		  continue;
 		
@@ -895,7 +876,9 @@ boolean	bucket_match_pts(
 		    break;
 		}
 
-		//If there are many points in the range of tol, we pick the nearest
+		/*If there are many points in the range of tol, 
+		  we pick the nearest
+		*/
 		if(d == 3)
 		{
 		  dist1 = distance_between_positions(Coords(p),Coords(npt),3);
@@ -1060,7 +1043,7 @@ void	merge_surface_points(
 	printf("#total pts num = %d  numa = %d\n", num, numa);
 
 	gr = &topological_grid(intfc);
-	//make bucket for pts
+	/* make bucket for pts */
 	bucket_init(&bpts, gr, pts, num);
 	ggr = &bpts.ggr;
 	
@@ -1075,7 +1058,7 @@ void	merge_surface_points(
 	{
 	  p = ptsa[n];
 
-	  //which bucket p belongs to
+	  /* which bucket p belongs to */
 	  i = cell_index(Coords(p)[0],0,ggr);
 	  j = cell_index(Coords(p)[1],1,ggr);
 	  k = cell_index(Coords(p)[2],2,ggr);
@@ -1192,27 +1175,6 @@ void	merge_surface_points_prev(
 
 	qsort(pts, num, sizeof(POINT*), compare_points);
 	
-	//if(debugging("ptsout"))
-	{
-	  printf("#ptsout\n");
-	  
-	  for(i=0;i<num;i++)
-	  {
-	    p = pts[i];
-	    printf("%d  %d  %2d   % 15.8e, % 15.8e, % 15.8e\n", 
-	           p, Cor_point(p), p->indx,
-	           Coords(p)[0], Coords(p)[1], Coords(p)[2]);
-	    if(i == 7278)
-	    {
-	      printf("#compare %d\n", compare_points((const void*)&pts[i], (const void*)&pts[i+1]));
-	      printf("#compare %d\n", compare_points((const void*)&pts[i], (const void*)&pts[i+2]));
-	      printf("#compare %d\n", compare_points((const void*)&pts[i], (const void*)&pts[i+3]));
-	      printf("#compare %d\n", compare_points((const void*)&pts[i], (const void*)&pts[i+4]));
-	      printf("#compare %d\n", compare_points((const void*)&pts[i+1], (const void*)&pts[i+2]));
-	    }
-	  }
-	}
-
 	printf("#total pts %d\n", num);
 
 	for(i=0; i<num; i++)
@@ -1236,7 +1198,7 @@ void	merge_surface_points_prev(
 	      {
 	        np++;
 		pteq = YES;
-	        //p1 and p2 are from the same patch, periodic bdry case.
+	        /* p1 and p2 are from the same patch, periodic bdry case. */
 		if(p1->indx == p2->indx)
 		{
 		  average_points(NO,p1,p1->hse,p1->hs,p2,p2->hse,p2->hs);
@@ -1253,8 +1215,8 @@ void	merge_surface_points_prev(
 		  Cor_point(p1) = p1;
 		  Cor_point(p2) = p1;
 		}
-	      } //if pteq
-	    } //if compare_points
+	      } /*if pteq */
+	    } /*if compare_points */
 	    else
 	      pteq = NO;
 	}
@@ -1275,13 +1237,13 @@ void	assign_index_of_point(
 	TRI		*tri;
 	int		i,j;
 
-	//init point index
+	/* init point index */
 	for(s=intfc->surfaces; s && *s; s++)
 	  for(tri=first_tri(*s); !at_end_of_tri_list(tri,*s); tri=tri->next)
 	    for(j=0; j<3; j++)
 	      Index_of_point(Point_of_tri(tri)[j]) = -1;
 	
-	//assign point index, will be used by compare_tris_pointers
+	/* assign point index, will be used by compare_tris_pointers */
 	i = 0;
 	for(s=intfc->surfaces; s && *s; s++)
 	  for(tri=first_tri(*s); !at_end_of_tri_list(tri,*s); tri=tri->next)
@@ -1324,7 +1286,7 @@ boolean	merge_tris(
 	uni_array(&trisa,num,sizeof(TRI*));
 	uni_array(&trisb,num,sizeof(TRI*));
 
-	//put all triangles in tris[]
+	/* put all triangles in tris[] */
 	i = 0;
 	for(s=intfc->surfaces; s && *s; s++)
 	  for(tri=first_tri(*s); !at_end_of_tri_list(tri,*s); tri=tri->next)
@@ -1335,7 +1297,7 @@ boolean	merge_tris(
 	add_time_end(331);
 
 	add_time_start(332);
-	//sort tris
+	/* sort tris */
 	assign_index_of_point(intfc);
 	qsort(tris, num, sizeof(TRI*), compare_tris_pointers);
 	add_time_end(332);
@@ -1343,7 +1305,7 @@ boolean	merge_tris(
 	printf("#num tris %d\n", num);
 
 	add_time_start(333);
-	//put matched tris in trisa[] and trisb[] (nt)
+	/* put matched tris in trisa[] and trisb[] (nt) */
 	nt = 0;
 	pteq = NO;
 	for(i=0; i<num-1; i++)
@@ -1363,8 +1325,8 @@ boolean	merge_tris(
 	      trisa[nt] = ta;
 	      trisb[nt] = tb;
 	      nt++;
-	    } //if pteq
-	  } //if compare_points
+	    } /* if pteq */
+	  } /* if compare_points */
 	  else
 	    pteq = NO;
 	}
@@ -1373,7 +1335,7 @@ boolean	merge_tris(
 	add_time_end(333);
 	
 	add_time_start(334);
-	//assign Tri_index and sync tris
+	/* assign Tri_index and sync tris */
 	for(i=0; i<num; i++)
 	  Tri_index(tris[i]) = -1;
 
@@ -1392,12 +1354,13 @@ boolean	merge_tris(
 	}
 	add_time_end(334);
 
-// 4 cases while merging
-//	Tri_on_side(ta,j)	Tri_on_side(tb,j)	operations
-// 1		NULL		      NULL		  NO
-// 2		NULL		     NOT NULL 		connect to ta
-// 3	       NOT NULL		      NULL		  NO
-// 4	       NOT NULL		     NOT NULL	neighbor j must have matched tris
+/* 4 cases while merging
+	Tri_on_side(ta,j)	Tri_on_side(tb,j)	operations
+	1	NULL	     NULL	NO
+	2	NULL	     NOT NULL 	connect to ta
+	3       NOT NULL     NULL	NO
+	4       NOT NULL     NOT NULL	neighbor j must have matched tris
+*/
 
 	add_time_start(335);
 	for(i=0; i<nt; i++)
@@ -1429,11 +1392,11 @@ boolean	merge_tris(
 		print_tri(tri,intfc);
 		clean_up(ERROR);
 	      }
-	    } //if Tri_on_side(ta,j) == NULL
-	  } //for j=0; j<3
+	    } /*if Tri_on_side(ta,j) == NULL */
+	  } /*for j=0; j<3 */
 	  
 	  remove_tri_from_surface(tb,tb->surf,NO);
-	} //for i=0; i<nt
+	} /*for i=0; i<nt */
 	add_time_end(335);
 	
 	free_these(3, tris, trisa, trisb);
@@ -1453,7 +1416,7 @@ void	merge_null_edges(
 
 	DEBUG_ENTER(merge_null_edges)
 
-	//count and put all null edges in edges[] (num)
+	/* count and put all null edges in edges[] (num) */
 	num = 0;
 	for(s=intfc->surfaces; s && *s; s++)
 	  for(tri=first_tri(*s); !at_end_of_tri_list(tri,*s); tri=tri->next)
@@ -1469,7 +1432,7 @@ void	merge_null_edges(
 
 	uni_array(&edges, num, sizeof(EDGETRI));
 
-	//assign EDGETRI structure
+	/* assign EDGETRI structure */
 	i = 0;
 	for(s=intfc->surfaces; s && *s; s++)
 	  for(tri=first_tri(*s); !at_end_of_tri_list(tri,*s); tri=tri->next)
@@ -1481,7 +1444,7 @@ void	merge_null_edges(
 		i++;
 	      }
 	
-	//sort edges
+	/* sort edges */
 	assign_index_of_point(intfc);
 	qsort(edges, num, sizeof(EDGETRI), compare_null_edges);
 
@@ -1514,8 +1477,8 @@ void	merge_null_edges(
 		
 		Tri_on_side(e1->tri,e1->edge) = e2->tri;
 		Tri_on_side(e2->tri,e2->edge) = e1->tri;
-	      } //if pteq
-	    } //if compare_null_edges
+	      } /*if pteq */
+	    } /*if compare_null_edges */
 	    else
 	      pteq = NO;
 	}
@@ -1551,8 +1514,9 @@ void	merge_null_edges(
 
 boolean	merge_buffer_interface(INTERFACE*,INTERFACE*,int);
 
-//WARNING before calling this function, all points on intfc must 
-//have point indx assigned
+/*WARNING before calling this function, all points on intfc must 
+  have point indx assigned
+*/
 boolean	merge_buffer_interface(
 	INTERFACE	*intfc,
 	INTERFACE	*buf_intfc,
@@ -1573,7 +1537,7 @@ boolean	merge_buffer_interface(
 	add_time_start(325);
 	for(s1 = buf_intfc->surfaces; s1 && *s1; ++s1)
 	{
-	  //check if s has a surface with the same pos-neg comp
+	  /* check if s has a surface with the same pos-neg comp */
 	  found = NO;
 	  for(s = intfc->surfaces; s && *s; ++s)
 	  {
@@ -1585,15 +1549,15 @@ boolean	merge_buffer_interface(
 	    }
 	  }
 
-	  //append s1 from buf_intfc to intfc
+	  /* append s1 from buf_intfc to intfc */
 	  sa = copy_surface(*s1, NULL, NULL, YES);
 	  assign_surface_point_index(sa, index);
 	  Hyper_surf_index(sa) = Hyper_surf_index((*s1));
 	  
-	  //link tri lists for *s and s1
+	  /* link tri lists for *s and s1 */
 	  if(found)
 	  {
-	    //merge points
+	    /* merge points */
 	    printf("#before merge points, surface %d %d\n", 
 	          negative_component(*s), positive_component(*s));
 	    
@@ -1605,19 +1569,12 @@ boolean	merge_buffer_interface(
 
 	    delete_surface(sa);
 
-	    //replace merged points for tris
+	    /* replace merged points for tris */
 	    replace_tri_points(*s);
 	  }
 	}
 	add_time_end(325);
 
-	//merge tris
-	//printf("#before merge tris\n");
-	//add_time_start(326);
-	//merge_tris(intfc);
-	//add_time_end(326);
-
-	//merge edges
 	printf("#before merge null edges\n");
 	add_time_start(327);
 	merge_null_edges(intfc);
@@ -1629,18 +1586,13 @@ boolean	merge_buffer_interface(
 	{
 	  char fname[128];
 	  
-	  //tecplot_interface_in_ball("tkmintfc", intfc);
-	  
 	  sprintf(fname, "merged_buff_");
 	  null_sides_are_consistent();
 	  check_print_intfc("After merge_buffer_interface", fname, 
 	            's', intfc, 0, -1, NO);
 	}
 
-	//check_double_edge_consistent(intfc);
-	
 	reset_intfc_num_points(intfc);
-	//reset_normal_on_intfc(intfc);
 	
 	set_current_interface(sav_intfc);
 
@@ -1649,7 +1601,7 @@ boolean	merge_buffer_interface(
 	return YES;
 }
 
-//TMP function for regriding
+/* TMP function for regriding */
 
 void	tmp_merge_patch_fronts(Front*,Front**,int*,int);
 
@@ -1672,7 +1624,7 @@ void	tmp_merge_patch_fronts(
 	sav_copy = copy_intfc_states();
 	sav_intfc = current_interface();
 
-	//use frs[0] because gr should be the finest level grid
+	/* use frs[0] because gr should be the finest level grid */
 	gr = frs[0]->rect_grid;
 	set_floating_point_tolerance1(gr->h);
 	set_copy_intfc_states(YES);
@@ -1684,7 +1636,7 @@ void	tmp_merge_patch_fronts(
 	for(s=mintfc->surfaces; s && *s; s=mintfc->surfaces)
 	  delete_surface(*s);
 
-	//only need to cut AMR_SUBDOMAIN_BOUNDARY side intfc
+	/* only need to cut AMR_SUBDOMAIN_BOUNDARY side intfc */
 	printf("#before merge patch frs %d\n", nfr);
 
 	for(i=0; i<nfr; i++)
@@ -1758,7 +1710,6 @@ void    TecplotFronts(
 	for(i=0; i<nfrs; i++)
 	{
 	  sprintf(bname, "intfc_%02d", i);
-	  //ft_tecplot_interface(fp, bname, frs[i]->interf);
 	  
 	  null_sides_are_consistent();
           check_print_intfc("Check consistent ", bname, 
@@ -1769,7 +1720,7 @@ void    TecplotFronts(
 }
 
 
-//all three points of tri is outside one side of bbox
+/* all three points of tri is outside one side of bbox */
 EXPORT	boolean	bbox_tri_outside(
 	BBOX	*bbox,
 	TRI	*tri)
@@ -1809,7 +1760,7 @@ EXPORT	boolean	bbox_tri_outside(
 	return NO;
 }
 
-//all three points of tri are inside the box
+/* all three points of tri are inside the box */
 EXPORT	boolean	bbox_tri_inside(
 	BBOX	*bbox,
 	TRI	*tri)
@@ -1830,7 +1781,7 @@ EXPORT	boolean	bbox_tri_inside(
 			cnt++;
 		}
 	    }
-	    //more than one point on the left
+	    /* more than one point on the left */
 	    if(cnt >= 1)
 		return NO;
 	    
@@ -1843,7 +1794,7 @@ EXPORT	boolean	bbox_tri_inside(
 			cnt++;
 		}
 	    }
-	    //more than one point on the right
+	    /* more than one point on the right */
 	    if(cnt >= 1)
 		return NO;
 	}
@@ -1851,7 +1802,7 @@ EXPORT	boolean	bbox_tri_inside(
 	return YES;
 }
 
-//all three points are inside the box or tri has intersection with box faces
+/* all three points are inside the box or tri has intersection with box faces */
 EXPORT	boolean	bbox_tri_inside1(
 	BBOX	*bbox,
 	TRI	*tri)
@@ -1872,7 +1823,7 @@ EXPORT	boolean	bbox_tri_inside1(
 			cnt++;
 		}
 	    }
-	    //more than one point on the left
+	    /* more than one point on the left */
 	    if(cnt == 3)
 		return NO;
 	    
@@ -1885,7 +1836,7 @@ EXPORT	boolean	bbox_tri_inside1(
 			cnt++;
 		}
 	    }
-	    //more than one point on the right
+	    /* more than one point on the right */
 	    if(cnt == 3)
 		return NO;
 	}
@@ -1896,7 +1847,7 @@ EXPORT	boolean	bbox_tri_inside1(
 
 EXPORT	boolean	bboxes_tri_outside(BBOX*,TRI*);
 
-// outside means outside ALL the bboxes.
+/* outside means outside ALL the bboxes. */
 EXPORT	boolean	bboxes_tri_outside(
 	BBOX	*bbox,
 	TRI	*tri)
@@ -1910,7 +1861,7 @@ EXPORT	boolean	bboxes_tri_outside(
 	return YES;
 }
 
-// inside means inside ANY ONE bboxes.
+/* inside means inside ANY ONE bboxes. */
 EXPORT	boolean	bboxes_tri_inside(
 	BBOX	*bbox,
 	TRI	*tri)
@@ -1981,7 +1932,7 @@ EXPORT void bboxes_intfc_cut(
 
 EXPORT	INTERFACE  *bboxes_intfc_sect(BBOX*,INTERFACE*,TRI_POS);
 
-// cut all tri_pos tris 
+/* cut all tri_pos tris */
 EXPORT	INTERFACE  *bboxes_intfc_sect(
 	BBOX		*bbox,
 	INTERFACE	*intfc,
@@ -2062,9 +2013,8 @@ EXPORT	INTERFACE  *bboxes_make_patch_intfc(
 	
 	bbox_set(&bbox, rbox, ggr, -tol);
 	bboxes_intfc_cut(&bbox, intfc, TRIIN);
-	//bboxes_intfc_cut(&bbox, intfc, TRIINSIDE);
 
-	//check
+	/* check */
 	null_sides_are_consistent();
 	check_print_intfc("Before merge_buffer_interface intfc", "bintfc", 
 	            's', intfc, 0,-1, NO);
@@ -2143,7 +2093,7 @@ EXPORT void rbox_set_recon_intfc(
 	DEBUG_LEAVE(rbox_set_recon_intfc)
 }
 
-//assume patch_front->rect_grid is initialized and bdry_side is initialized
+/*assume patch_front->rect_grid is initialized and bdry_side is initialized */
 EXPORT void rbox_set_recon_intfc_grid(
 	INTERFACE	*intfc,
 	RECT_GRID	*rgr)
@@ -2193,11 +2143,9 @@ INTERFACE	*rbox_recon_interface(
         sav_copy = copy_intfc_states();
 
 	set_current_interface(rfr->interf);
-	//grid_based_box_untangle check Boundary_point to determine point in boundary
-	//it can be proved that the subdomain curves are outside the recon box
+	/*it can be proved that the subdomain curves are 
+	  outside the recon box */
 	install_subdomain_bdry_curves(rfr->interf);
-	
-	//tecplot_box_interface("rfr", rfr->interf, rbox, pp_mynode());
 	
 	check_print_intfc("Before rbox_recon_interface", "rbrbf", 
 	            's', rfr->interf, fr->step, -1, NO);
@@ -2283,10 +2231,10 @@ boolean	rbox_communication_interface(
 	intfc = fr->interf;
 	strip_subdomain_bdry_curves(intfc);
 	
-	//cut sbox and send
+	/* cut sbox and send */
 	for(i=0; i<nbox; i++)
 	{
-	  //ex: bboxes_make_patch_intfc
+	  /* ex: bboxes_make_patch_intfc */
 	  b = &sbox[i];
 	  bbox_set(&bbox, b, ggr, tol);
 	  send_intfc = bboxes_intfc_sect(&bbox, intfc, TRIOUT);
@@ -2315,7 +2263,7 @@ boolean	rbox_communication_interface(
 	fflush(NULL);
 
 	printf("\n#recv intfc\n");
-	//recv intfc
+	/* recv intfc */
 	if(rbox != NULL)
 	{
 	  printf("#rbox->np=%d\n", rbox->np);
@@ -2335,14 +2283,14 @@ boolean	rbox_communication_interface(
 	      fflush(NULL);
 	      rbox_shift_interface(recv_intfc[ind],rbox->shift[i],gr);
 	    }
-	  }  //for i<rbox->np
+	  }  /* for i<rbox->np */
 	}
 	
 	null_sides_are_consistent();
 	check_print_intfc("After rbox comm intfc", "intfc", 
 	          's', intfc, fr->step, -1, NO);
 
-	//merge recv_intfc and call recon function to recon
+	/* merge recv_intfc and call recon function to recon */
 	if(rbox != NULL)
 	{
 	  int np = rbox->np;
@@ -2353,8 +2301,6 @@ boolean	rbox_communication_interface(
 	    check_print_intfc("After rbox comm recv_intfc", "intfc", 
 	            's', recv_intfc[i], fr->step, -1, NO);
 	  }
-	  
-	  //tecplot_merge_surfaces("mintfc",intfc, recv_intfc, np, pp_mynode());
 	  
 	  assign_point_index(mintfc, pp_mynode());
 
@@ -2381,14 +2327,12 @@ boolean	rbox_communication_interface(
 	  check_print_intfc("After rbox_recon_interface", "mintfce", 
 	            's', mintfc, fr->step, fr->step-1, NO);
 	}
-	//else
-	//  tecplot_merge_surfaces("mintfc",intfc, NULL, 0, pp_mynode());
 
 	pp_gsync();
 
 	mbox = 0;
 	printf("\n#send recon intfc\n");
-	//send reconstructed intfc
+	/* send reconstructed intfc */
 	if(rbox != NULL)
 	{
 	  for(i=0; i<rbox->np; i++)
@@ -2410,7 +2354,7 @@ boolean	rbox_communication_interface(
 	      printf("#send intfc to proc %d \n", proc);
 	      fflush(NULL);
 	    }
-	  }  //for i<rbox->np
+	  }  /* for i<rbox->np */
 	}
 	
 	{
@@ -2423,7 +2367,7 @@ boolean	rbox_communication_interface(
 	printf("\n#recv recon intfc\n");
 	
 	mb = mbox;
-	//recv from sbox
+	/* recv from sbox */
 	for(j=0; j<nbox-mb; j++)
 	{
 	  i = nbox;
@@ -2453,8 +2397,6 @@ boolean	rbox_communication_interface(
 	    mbox++;
 	  }
 	}
-
-	//tecplot_merge_surfaces("recmintfc", intfc, recv_intfc, mbox, pp_mynode());
 
 	printf("\n#merge recon recv_intfc\n");
 	assign_point_index(intfc, pp_mynode());

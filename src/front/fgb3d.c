@@ -283,7 +283,7 @@ void	show_tris_bound_tris(char*,char*,TRI**,int,INTERFACE*);
 		{
 		    if(box_sect(box->f, nbox->f, tol))
 		    {
-			//merge nbox with box and delete nbox.
+			/* merge nbox with box and delete nbox. */
 			box_merge(box->f, nbox->f);
 			nbox->prev->next = nbox->next;
 			if (nbox->next != NULL)
@@ -292,10 +292,10 @@ void	show_tris_bound_tris(char*,char*,TRI**,int,INTERFACE*);
 			box_merged = YES;
 			break;
 		    }
-		}   //for(nbox= )
+		}   /* for(nbox= ) */
 		if(box_merged)
 		    break;
-	    }   //for(box=  )
+	    }   /* for(box=  ) */
 	}
 
 	for(i=0; i<3; i++)
@@ -305,7 +305,7 @@ void	show_tris_bound_tris(char*,char*,TRI**,int,INTERFACE*);
 	}
 
 	fboxes = Box.next;
-	//remove outside domain boxes
+	/* remove outside domain boxes */
 	for(box=fboxes; box!=NULL; box=box->next)
 	{
 	    if(!box_sect(box->f, Fbox.f, tol))
@@ -594,8 +594,8 @@ boolean	check_two_tris_cond(TRI*,TRI*,INTERFACE*);
 				    clean_up(ERROR);
 				}
 			    }
-			} //for j: crx index
-	            } //for i: directions
+			} /* for j: crx index */
+	            } /* for i: directions */
 	        }
 	    }
 	}
@@ -705,8 +705,6 @@ EXPORT	boolean	repair_intfc_at_crossings3d(
 
 	interpolate_intfc_states(intfc) = sav_intrp;
 
-	//identify_detached_surface_curve_pair(intfc);
-
 	reset_intfc_num_points(intfc);
 	topological_grid(intfc) = gr_save;
         free_crx_storage(intfc);
@@ -733,15 +731,14 @@ EXPORT	boolean	rebuild_intfc_at_crossings3d(
 	    return rebuild_intfc_at_crossings3d2(front);
 	else
 	{
-	    //LGB and GB mixed prop
-	    printf("WARNING: rebuild_intfc_at_crossings3d, call 3 comp recon alg.\n");
-	    //clean_up(ERROR);
+	    /* LGB and GB mixed prop */
+	    printf("WARNING: rebuild_intfc_at_crossings3d, call 3 "
+		   "comp recon alg.\n");
 	    return rebuild_intfc_at_crossings3d3(front);
-	    //clean_up(ERROR);
 	}
 }
 
-// 2 comp grid based track
+/* 2 comp grid based track */
 
 EXPORT	boolean	rebuild_intfc_at_crossings3d2(
 	Front     *front)
@@ -851,8 +848,7 @@ LOCAL	boolean repair_intfc3d_in_box(
 	for (i = 0; i < n_reg_node; ++i)
 	    comp[i] = NO_COMP;
 
-	//new func
-	//status = track_comp_and_set_boxes(smin,smax,gmax,intfc,front);
+	/* new func */
 	status = track_comp_and_repair3d(smin,smax,gmax,intfc,front);
 
 	if (status == FUNCTION_FAILED)
@@ -916,7 +912,7 @@ LOCAL	boolean track_comp_and_repair3d(
 	    show_grid_components(tmin,tmax,2,intfc);
 	}
 
-	// record all unphysical ip's
+	/* record all unphysical ip's */
 	num_ip = record_unphysical_ips(smin,smax,intfc,ips);
 	if (debugging("compcrx"))
 	    printf("#num_ip  %d\n", num_ip);
@@ -1032,15 +1028,13 @@ LOCAL	boolean track_comp_and_set_boxes(
 
 	print_rectangular_grid(gr);
 
-	// see function track_comp_through_crxings3d
+	/* see function track_comp_through_crxings3d */
 	
 	adjust_crossings(smin,smax,intfc);
 	fill_comp_from_prev_intfc(intfc, smin, smax);
 	
 	fill_physical_comps(smin,smax,gmax,intfc);
 
-	//print_edge_crossings(smin, smax, intfc);
-	
 	fill_comp_with_component3d(smin,smax,gmax,intfc);
 
 	if(debugging("compcrx"))
@@ -1054,7 +1048,7 @@ LOCAL	boolean track_comp_and_set_boxes(
 	    show_grid_components(tmin,tmax,2,intfc);
 	}
 
-	// record all unphysical ip's
+	/* record all unphysical ip's */
 	num_ip = record_unphysical_ips(smin,smax,intfc,ips);
 	if (debugging("compcrx"))
 	    printf("#num_ip  %d\n", num_ip);
@@ -1064,7 +1058,7 @@ LOCAL	boolean track_comp_and_set_boxes(
 	    set_use_rect_tris(NO);
 	}
 	
-	//make the boxes for lgb reconstruction.
+	/* make the boxes for lgb reconstruction. */
 	if(!set_reconstruction_boxes(smin,smax,ips,num_ip,&boxes,intfc))
 	{
 	    DEBUG_LEAVE(track_comp_and_set_boxes)
@@ -1192,9 +1186,10 @@ LOCAL	boolean grid_based_box_untangle(
 	uni_array(&deg_tris,total_nt,sizeof(TRI*));
 	uni_array(&new_tris, max_n_new, sizeof(TRI*));
 	
-	//getting tris directly from the intfc. When there are two rect boxes
-	//the new generated tris are not in the intfc table, getting tris 
-	//from intfc table may skip these tris.
+	/*getting tris directly from the intfc. When there are two rect boxes
+	  the new generated tris are not in the intfc table, getting tris 
+	  from intfc table may skip these tris.
+	*/
 	num_test_tris = tris_set_in_top_box(test_tris, total_nt, 
 					    kmin, kmax, intfc);
 	
@@ -1215,18 +1210,17 @@ LOCAL	boolean grid_based_box_untangle(
 	    else
 		set_shift_for_tecplot(0.0, 0.0, 0.0);
 
-	    //open the tecplot debug file and output test_tris
+	    /* open the tecplot debug file and output test_tris */
 	    file = fopen(fname,"w");
-	    //tecplot_show_box_tri("test_tris", box,test_tris,num_test_tris,file);
 	    fclose(file);
 	   
-	    //output tris with intersection.
+	    /* output tris with intersection. */
 	    nstris = tris_intersection(sect_tris, test_tris, num_test_tris);
 	    
 	    tecplot_debug_tris("sect_tris", fname, sect_tris, nstris, intfc);
 	}
 
-	//finding ref_tris
+	/* finding ref_tris */
 	num_ref_tris = 0;
 	for(i=0; i<num_test_tris; i++)
 	{
@@ -1239,13 +1233,11 @@ LOCAL	boolean grid_based_box_untangle(
 	}
 	tecplot_debug_tris("ref_tris", fname, ref_tris, num_ref_tris, intfc);
 	
-	//finding out_tris
+	/* finding out_tris */
 
 	num_out_tris = bound_tris_set(out_tris, ref_tris, num_ref_tris);
 
-	//tecplot_debug_tris("out_trisa", fname, out_tris, num_out_tris,intfc);
-	
-	//removing ref_tris
+	/* removing ref_tris */
 	for(i=0; i<num_ref_tris; i++)
 	    remove_tri_from_surface(ref_tris[i],ref_tris[i]->surf,NO);
 	
@@ -1258,7 +1250,7 @@ LOCAL	boolean grid_based_box_untangle(
 	    fclose(file);
 	}
 
-	//finding in_tris
+	/* finding in_tris */
 	i = 0;
 	for(surfs=intfc->surfaces; surfs && *surfs; ++surfs)
 	{
@@ -1278,9 +1270,10 @@ LOCAL	boolean grid_based_box_untangle(
 	}
 	tecplot_debug_tris("in_tris", fname, in_tris, num_in_tris,intfc);
 	
-	//NOTE: The following part only has relations with in_tris, out_tris, 
-	//ref_tris. It can be extended to a more general form.
-	//sep double loops for out_tris
+	/*NOTE: The following part only has relations with in_tris, out_tris, 
+	  ref_tris. It can be extended to a more general form.
+	  sep double loops for out_tris
+	*/
 	if (debugging("box_intfc"))
 	    printf("#count in out ref tris  %d %d %d \n", 
 		 num_in_tris, num_out_tris, num_ref_tris);
@@ -1309,7 +1302,7 @@ LOCAL	boolean grid_based_box_untangle(
 	    }
 	}
 
-	//remove degenerated loops
+	/* remove degenerated loops */
 	num_deg_tris = 0;
 	num_in_tris = seal_all_loops_wo_constraint(deg_tris, &num_deg_tris, 
 					in_tris, num_in_tris, 1, YES);
@@ -1322,7 +1315,7 @@ LOCAL	boolean grid_based_box_untangle(
 	
 	tecplot_debug_tris("deg_tris", fname, deg_tris, num_deg_tris, intfc);
 
-	//linking suitable pairs
+	/* linking suitable pairs */
 	if(debugging("pairsfix"))
 	{
 	    num_new_tris = linking_tris_with_pairs_fix(new_tris, max_n_new, 
@@ -1340,8 +1333,8 @@ LOCAL	boolean grid_based_box_untangle(
 	tecplot_debug_tris("new_tris pairs", fname, 
 			   new_tris, num_new_tris, intfc);
 
-	//merge all current tris, do not merge deg_tris because they do not have
-	//null sides
+	/*merge all current tris, do not merge deg_tris because 
+	  they do not have null sides */
 	num_new_tris = merge_tris_set(new_tris, num_new_tris, 
 				      in_tris, num_in_tris);
 	num_new_tris = merge_tris_set(new_tris, num_new_tris, 
@@ -1349,13 +1342,13 @@ LOCAL	boolean grid_based_box_untangle(
 	tecplot_debug_tris("merge in out new tris", fname, 
 			    new_tris, num_new_tris, intfc);
 
-	//removing all linking non-null edges in loops
+	/*removing all linking non-null edges in loops */
 	num_new_tris = sep_common_edge_from_tris(&sep_new_tris, new_tris, 
 						 num_new_tris, intfc);
 	tecplot_debug_tris("sep comm edge merge", fname,
 			    sep_new_tris, num_new_tris, intfc);
 
-	//sealing all the null loops
+	/* sealing all the null loops */
 	num_seal_tris = 0;
 	num_new_tris = seal_all_loops_wo_constraint(new_tris, &num_seal_tris, 
 					sep_new_tris, num_new_tris, 1, NO);
@@ -1365,13 +1358,13 @@ LOCAL	boolean grid_based_box_untangle(
 	tecplot_debug_tris("seal_all_loops new_tris", fname,
 			     new_tris, num_seal_tris, intfc);
 
-	//combining everything
+	/* combining everything */
 	num_new_tris = merge_tris_set(new_tris, num_seal_tris, 
 				      sep_new_tris, num_new_tris);
 	num_new_tris = merge_tris_set(new_tris, num_new_tris, 
 				      deg_tris, num_deg_tris);
 
-	//smoothing in_tris because they are grid based
+	/* smoothing in_tris because they are grid based */
 	if(num_in_tris > 0)
 	    smooth_tris(in_tris, num_in_tris);
 	tecplot_debug_tris("smooth in_tris", fname,
@@ -1393,7 +1386,7 @@ LOCAL	boolean grid_based_box_untangle(
 	}
 
 delete_s:
-	//no tris
+	/* no tris */
 	for(surfs = intfc->surfaces; surfs && *surfs; surfs++)
 	    if(no_tris_on_surface(*surfs) || (*surfs)->num_tri == 0)
 	    {
@@ -1401,14 +1394,11 @@ delete_s:
 		goto delete_s;
 	    }
 
-	//check_print_intfc("After grid_based_box_untangle", "gb_un_af", 's', 
-	//		intfc, 1, 1, NO);
-
 	free_these(6,test_tris,ref_tris,in_tris,out_tris,new_tris,deg_tris);
 	
 	DEBUG_LEAVE(grid_based_box_untangle)
 	return FUNCTION_SUCCEEDED;
-}	// end grid_based_box_untangle
+}	/* end grid_based_box_untangle */
 
 
 #define  LOOP_SMOOTH_PARA	100
@@ -1432,13 +1422,13 @@ LOCAL	void  smooth_null_loop(
 	    clean_up(ERROR);
 	}
 
-	//smooth paramaters.
+	/* smooth paramaters. */
 	stol.cone_ratio = 0.1;
 	stol.max_cos = 0.6;
 	stol.alpha = sqrt(0.65);
 	s = null_tris[0]->surf;
 
-	//Compute the the parameters in each points
+	/* Compute the the parameters in each points */
 	num = 0;
 	for(i=0; i<num_null_sides; i++)
 	{
@@ -1477,7 +1467,7 @@ boolean	compute_average_point(SMOOTH_PARA*,POINT*,TRI*,SURFACE*,SMOOTH_TOL*);
 	    clean_up(ERROR);
 	}
 
-	//smooth paramaters.
+	/* smooth paramaters. */
 	stol.cone_ratio = 0.1;
 	stol.max_cos = 0.6;
 	stol.alpha = sqrt(0.65);
@@ -1493,7 +1483,7 @@ boolean	compute_average_point(SMOOTH_PARA*,POINT*,TRI*,SURFACE*,SMOOTH_TOL*);
 	s = tris[0]->surf;
 	num = 0;
 	
-	//Compute the the parameters in each point
+	/* Compute the the parameters in each point */
 	for(k=0; k<num_tris; k++)
 	{
 	    tri = tris[k];
@@ -1511,7 +1501,7 @@ boolean	compute_average_point(SMOOTH_PARA*,POINT*,TRI*,SURFACE*,SMOOTH_TOL*);
 	    }
 	}
 
-	//Apply Laplacian smooth
+	/* Apply Laplacian smooth */
 	for(i=0; i<num; i++)
 	    compute_point_smooth(&smooth_que[i], &stol, s->interface);
 }
@@ -1530,7 +1520,7 @@ boolean	compute_average_point(SMOOTH_PARA*,POINT*,TRI*,SURFACE*,SMOOTH_TOL*);
 	
 	tmp_n = 0;
 
-	//find the center point
+	/* find the center point */
 	for(j=0; j<3; j++)
 	    avep[j] = 0;
 	for(i=0; i<num_null_sides; i++)
@@ -1544,7 +1534,8 @@ boolean	compute_average_point(SMOOTH_PARA*,POINT*,TRI*,SURFACE*,SMOOTH_TOL*);
 	tri = null_tris[0];
 	side = null_sides[0];
 	
-	//TMP copy the states from the first point, otherwise sl, sr will be NULL
+	/*TMP copy the states from the first point, 
+	  otherwise sl, sr will be NULL */
 	midp = copy_point(Point_of_tri(tri)[side]);
 	ft_assign(Coords(midp), avep, 3*FLOAT);
 	
@@ -1562,10 +1553,10 @@ boolean	compute_average_point(SMOOTH_PARA*,POINT*,TRI*,SURFACE*,SMOOTH_TOL*);
 	    
 	    tmp_tris[tmp_n++] = new_tri;
 	    
-	    //link with the tri on the loop
+	    /* link with the tri on the loop */
 	    link_neighbor_tris(new_tri, tri);
 	    
-	    //link with the new tri
+	    /* link with the new tri */
 	    if(i == 0)
 		new_tri1 = new_tri;
 	    else  if(!link_neighbor_tris(new_tri, prev_tri))
@@ -1587,10 +1578,11 @@ boolean	compute_average_point(SMOOTH_PARA*,POINT*,TRI*,SURFACE*,SMOOTH_TOL*);
 	    prev_tri = new_tri;
 	}
 
-	//new_tri1 is the first new tri, new_tri is the last new_tri.
+	/* new_tri1 is the first new tri, new_tri is the last new_tri. */
 	if(!link_neighbor_tris(new_tri, new_tri1))
 	{
-	    printf("ERROR in seal_null_loop, two new tris do not share points for the first tri.\n");
+	    printf("ERROR in seal_null_loop, two new tris do not share "
+		   "points for the first tri.\n");
 	    clean_up(ERROR);
 	}
 }
@@ -1669,7 +1661,8 @@ LOCAL   boolean seal_strip_with_tris_once(
 	    min_dist_buffer2 = HUGE;
 	    crx_buffer2 = NO;
 	   
-	    //try to determine from which triangle we begin to seal the null loop
+	    /*try to determine from which triangle we begin to 
+	      seal the null loop */
 	    for (i = 0; i < new_num_null_sides; ++i)
 	    {
 		i_in  = (i+1)%new_num_null_sides;
@@ -1700,20 +1693,15 @@ LOCAL   boolean seal_strip_with_tris_once(
 		p1 = Point_of_tri(null_tris[i_in])[Next_m3(null_sides[i_in])];
 		p2 = Point_of_tri(null_tris[i_in])[Prev_m3(null_sides[i_in])];
 		
-		//never use 3 in_tri points to get a triangle, otherwise the tri will be on a face of a block.
+		/*never use 3 in_tri points to get a triangle, 
+		  otherwise the tri will be on a face of a block. */
 		if (status_in)
 		    if (tri_recorded(null_tris[i],in_tris,num_in_tris) &&
 		        tri_recorded(in_tri,in_tris,num_in_tris))
 		        continue;
-		/*
-		if (status_out)
-		    if (tri_recorded(null_tris[i],out_tris,num_out_tris) &&
-		        tri_recorded(in_tri,out_tris,num_out_tris))
-			continue;
-		*/
 		if (two_points_share_side(p0, null_tris[i], p1,
 		              (null_tris[i]->surf)->interface)==-1)
-		    return NO;	//set_tri_list (p0)  fails  (1)
+		    return NO;	/*set_tri_list (p0)  fails  (1) */
 		if (two_points_share_side(p0, null_tris[i], p1,
 		              (null_tris[i]->surf)->interface) == 1)
 		    continue;
@@ -1721,28 +1709,29 @@ LOCAL   boolean seal_strip_with_tris_once(
 		if (two_points_share_side(p0, null_tris[i], p2,
 		           (null_tris[i]->surf)->interface) == -1 &&
 			   new_num_null_sides > 5)
-		    return NO;  //set_tri_list (p0)  fails, same as (1)
+		    return NO;  /*set_tri_list (p0)  fails, same as (1) */
 		if (two_points_share_side(p0, null_tris[i], p2,
 		           (null_tris[i]->surf)->interface) == 1 &&
 			   new_num_null_sides > 5)
-	            continue;   //this is not the bad case  (4)
+	            continue;   /*this is not the bad case  (4) */
 		
 		if (two_points_share_side(p3, null_tris[i], p1,
 		           (null_tris[i]->surf)->interface) == -1 &&
 			             new_num_null_sides > 5)
-		    return NO;	//set_tri_list (p3) fails
+		    return NO;	/*set_tri_list (p3) fails */
 		if (two_points_share_side(p3, null_tris[i], p1,
 		           (null_tris[i]->surf)->interface) == 1 &&
 			              new_num_null_sides > 5)
-		    continue;   //same as (4)
+		    continue;   /*same as (4) */
 		
 		dist1 = distance_between_positions(Coords(p0),Coords(p1),3);
-		//seal from min dist two points and from the buffer zone
+		/* seal from min dist two points and from the buffer zone */
 		for (j = 0; j < 3; j++)
 		{
 		    crx_coord[0] = comp_grid.L[j];
 		    crx_coord[1] = comp_grid.U[j];
-                    //this can never be satisfied, null_tris[i] is larger than the comp domain
+                    /*this can never be satisfied, null_tris[i] 
+                      is larger than the comp domain */
 		    if ((tri_cross_zone(null_tris[i],crx_coord[0],h[j],j)==YES&&
 		        tri_cross_zone(null_tris[i],crx_coord[1],h[j],j)==YES)&&
 			(tri_cross_zone(in_tri,crx_coord[0],h[j],j) == YES &&
@@ -1757,8 +1746,8 @@ LOCAL   boolean seal_strip_with_tris_once(
 			}
 		    }
 		    
-		    //always crx_buffer2 = NO;
-		    //if a tri lies between two procs, we construct it first.
+		    /*always crx_buffer2 = NO; */
+		    /*if a tri lies between two procs, we construct it first. */
 		    if (!crx_buffer2)
 		        for (m = 0; m < 2; m++)
 		            if (tri_cross_zone(null_tris[i],
@@ -1784,25 +1773,24 @@ LOCAL   boolean seal_strip_with_tris_once(
 
 	    if (i_base == -1)
 	    {
-	        printf("WARNING in seal_strip_with_tris_once, can not find the starting tri to seal.\n");
-		//seal_null_loop(null_tris, null_sides, pts, num_null_sides);
-		//return FUNCTION_SUCCEEDED;
+	        printf("WARNING in seal_strip_with_tris_once, "
+		       "can not find the starting tri to seal.\n");
 		return FUNCTION_FAILED;
 	    }
 
-	    //form a triangle
+	    /* form a triangle */
 	    i_in  = (i_base+1)%new_num_null_sides;
 	    in_tri   = null_tris[i_in];
 
 	    i_out = (i_in+1)%new_num_null_sides;
 	    out_tri = null_tris[i_out];
 
-	    //de part b
+	    /* de part b */
 	    if (out_tri == in_tri)
 	    {
 		test_tri = out_tri;
 	    }
-	    //de part e
+	    /* de part e */
 
 	    i_in  = (i_base+1)%new_num_null_sides;
 	    in_tri   = null_tris[i_in];
@@ -1823,13 +1811,14 @@ LOCAL   boolean seal_strip_with_tris_once(
 	    link_neighbor_tris(new_tri,in_tri);
 	    link_neighbor_tris(new_tri,base_tri);
 
-	    //from another triangle if the remaining is a null triangle.
+	    /*from another triangle if the remaining is a null triangle. */
 	    i_in = (i_in+1)%new_num_null_sides;
 	    i_out = (i_base+new_num_null_sides-1)%new_num_null_sides;
 	    in_tri   = null_tris[i_in];
 	    out_tri = null_tris[i_out];
 
-	    //we will never reach this part except the input null loop is a triangle.
+	    /*we will never reach this part except the input null loop 
+	      is a triangle. */
 	    if (out_tri == in_tri)
 	    {
 	        end_in_stitch = YES;
@@ -2414,8 +2403,8 @@ LOCAL	void remove_crx_tri_on_edge(
 	    if(!point_in_crx_tri(p, crx_tri))
 	        continue;
 	    
-	    //find all the tris in in_tris s.t. point p is in the tris.
-	    //p lies in the edge of in_tris[j] and crx_tri
+	    /*find all the tris in in_tris s.t. point p is in the tris.
+	      p lies in the edge of in_tris[j] and crx_tri */
 	    for(j=0; j<*num_in_tris; j++)
 	    {
 	        if(!point_in_crx_tri(p, in_tris[j]))
@@ -2465,8 +2454,8 @@ LOCAL  boolean  check_adjecant_constrain0(
 		    ((p3 == pt) && (p1 == ptn)) || ((p3 == pt) && (p1 == ptn)) )
 		    return YES;
 
-		//only the out_side or the in_side have common points with new_tris, 
-		//this constraint can avoid tangled surface.
+		/*only the out_side or the in_side have common points with 
+		  new_tris, this constraint can avoid tangled surface. */
 		if(p0 == pt || p0 == ptn || p1 ==pt || p1 == ptn)
 		    status_out = YES;
 		if(p2 == pt || p2 == ptn || p3 ==pt || p3 == ptn)
@@ -2524,7 +2513,7 @@ LOCAL  boolean tri_in_box(
 }
 
 
-//remove all triangles connected with boundary tris
+/* remove all triangles connected with boundary tris */
 LOCAL   boolean crx_bnd_out_tris(
         TRI **tri_list,
         int num_tris,
@@ -2566,11 +2555,12 @@ LOCAL   boolean crx_bnd_out_tris(
 
 } /* end  crx_bnd_out_tris */
 
-//make sure crx_tri has only one common point with out_tri, 
-//so perform find_nearest_tri_pair_crx in the following is valid.
+/*make sure crx_tri has only one common point with out_tri, 
+  so perform find_nearest_tri_pair_crx in the following is valid.
+*/
 LOCAL   boolean crx_out_tris_twice(
-        TRI **tri_list,		//out_tris
-	int num_tris,		//test_out_tris tris with bdry curves
+        TRI **tri_list,		/*out_tris */
+	int num_tris,		/*test_out_tris tris with bdry curves */
 	TRI **test_tris,
 	int num_test_tris,
 	TRI *tri,
@@ -2594,7 +2584,7 @@ LOCAL   boolean crx_out_tris_twice(
 	        for (k = 0; k < 3; ++k)
 		    if (Point_of_tri(tri)[j] == Point_of_tri(tri_list[i])[k])
 		        break;
-	        if (k < 3)    //k==3 means tri is the out_tri, can not remove it
+	        if (k < 3)    /*k==3 means is the out_tri, can not remove it */
 		{    
 		    ++count;
 		    break;
@@ -2605,28 +2595,15 @@ LOCAL   boolean crx_out_tris_twice(
 	        for (k = 0; k < 3; ++k)
 		    if (Point_of_tri(tri)[j] == Point_of_tri(test_tris[i])[k])
 		        break;
-	        if (k < 3)    //k==3 mean tri is the boundary tri, can not remove it
+	        if (k < 3)    /*k==3 means boundary tri, can not remove it */
 		{
 		    status = YES;
 		    break;
 		}
 	    }
-	    /*
-	    for (i = 0; i < 3; ++i)
-	    {
-	        min_coord = L[i]+box->smin[i]*h[i];
-	        max_coord = L[i]+box->smax[i]*h[i];
-	        p_coord = Coords(Point_of_tri(tri)[j])[i];
-		if (p_coord <= min_coord || p_coord >= max_coord)
-		{
-		    ++count;
-		    break;
-		}
-	    }
-	    */
 	}
 
-	//count: number of points of tri lie in the out_tri
+	/* count: number of points of tri lie in the out_tri */
 	if (count >= 2 || status)
 	    return YES;
 	else
@@ -2884,7 +2861,7 @@ LOCAL	void	make_boxes_from_ips(
 	    box->next->next = NULL;
 	    box = box->next;
 
-	    //move connected ips together, begin with pip, number is nb.
+	    /* move connected ips together, begin with pip, number is nb. */
 	    pip = ips + i;
 	    nb = 1;
 	    for (j = i+1; j < num_ip; ++j)
@@ -2905,7 +2882,7 @@ LOCAL	void	make_boxes_from_ips(
 		}
 	    }
 
-	    //makeing the box from min and max.
+	    /* makeing the box from min and max. */
 	    for (k = 0; k < 3; k++)
 	    	box->bmin[k] = box->bmax[k] = pip[0][k];
 	    for (j = 1; j < nb; j++)
@@ -2957,7 +2934,7 @@ LOCAL	boolean	merge_adjacent_boxes(
 	boolean		boxes_merged;
 	int		i;
 
-	// Merge overlapping boxes
+	/* Merge overlapping boxes */
 	boxes_merged = YES;
 	while(boxes_merged)
 	{
@@ -2970,8 +2947,6 @@ LOCAL	boolean	merge_adjacent_boxes(
 			{
 			    printf("WARNING merge_adjacent_boxes"
 			    	    "box is too large when merging.\n");
-			    //DEBUG_LEAVE(merge_adjacent_boxes)
-			    //return NO;
 			}
 
 		for(nbox=box->next; nbox!=NULL; nbox=nbox->next)
@@ -2989,10 +2964,10 @@ LOCAL	boolean	merge_adjacent_boxes(
 			boxes_merged = YES;
 			break;
 		    }
-		}   //for(nbox= )
+		}   /* for(nbox= ) */
 		if(boxes_merged)
 		    break;
-	    }   //for(box=  )
+	    }   /* for(box=  ) */
 	}
 	
 	return YES;
@@ -3006,7 +2981,7 @@ boolean    set_use_rect_tris(boolean fg)
 }
 
 
-//orig version set_reconstruction_boxes_prev
+/* orig version set_reconstruction_boxes_prev */
 LOCAL	boolean  set_reconstruction_boxes(
 	int *smin,
 	int *smax,
@@ -3024,7 +2999,7 @@ LOCAL	boolean  set_reconstruction_boxes(
 
 	make_boxes_from_ips(ips, num_ip, &box0);
 
-	//check box size.
+	/* check box size. */
 	for(box=box0; box!=NULL; box=box->next)
 	{
 	    if(max3(box->bmax[2]-box->bmin[2],
@@ -3036,7 +3011,6 @@ LOCAL	boolean  set_reconstruction_boxes(
                             box->bmax[0]-box->bmin[0],
                             box->bmax[1]-box->bmin[1],
                             box->bmax[2]-box->bmin[2]);
-		//clean_up(ERROR);
 	    }
 	}
 
@@ -3101,7 +3075,7 @@ LOCAL	boolean  set_reconstruction_boxes(
 	return YES;
 }	/* end set_reconstruction_boxes */
 
-//ref: rm_bad_crxs_in_box_prev
+/* ref: rm_bad_crxs_in_box_prev */
 LOCAL	boolean  rm_bad_crxs_in_box(
 	int 		*smin,
 	int 		*smax,
@@ -3125,9 +3099,10 @@ LOCAL	boolean  rm_bad_crxs_in_box(
 		box->smax[i] = smax[i];
 	    }
 	
-	    //bad ips are in the faces of [bmin, bmax], 
-	    //should increase by one to make consistent surf
-	    //in the face of the box.
+	    /*bad ips are in the faces of [bmin, bmax], 
+	      should increase by one to make consistent surf
+	      in the face of the box.
+	    */
 	    for (i = 0; i < 3; i++)
 	    {
 		box->bmin[i]--;
@@ -3141,7 +3116,7 @@ LOCAL	boolean  rm_bad_crxs_in_box(
 	}
 	copy_rect_boxes(&box2, box0);
 	
-	//since num_ip != 0 box1 != NULL, but box2 can be NULL.
+	/* since num_ip != 0 box1 != NULL, but box2 can be NULL. */
 	
 	last_box->next = box2;
 	if(box2 != NULL)
@@ -3154,7 +3129,7 @@ LOCAL	boolean  rm_bad_crxs_in_box(
 	{
 	    i++;
 
-	    //fix crossings in a box
+	    /* fix crossings in a box */
 	    remove_unphysical_crxings(box->bmin,box->bmax,gr->gmax,
 			intfc,SINGLE);
 	    check_and_repair_crx(intfc,box->bmin,box->bmax);
@@ -3193,16 +3168,16 @@ LOCAL	boolean  set_tst_recon_boxes(
 	    for (k = 0; k < 3; k++)
 	    	box->bmin[k] = box->bmax[k] = smin[k] + 
 			    (int)((smax[k] - smin[k])*drand48());
-	    	//box->bmin[k] = box->bmax[k] = (smin[k] + smax[k])/2;
 	    printf("#randbx  %d %d %d\n ", 
 	    	box->bmin[0], box->bmin[1], box->bmin[2]);
 	    fflush(NULL);
 	}
 	printf("\n");
 	
-	//bad ips are in the faces of [bmin, bmax], 
-	//should increase by one to make consistent surf
-	//in the face of the box.
+	/*bad ips are in the faces of [bmin, bmax], 
+	  should increase by one to make consistent surf
+	  in the face of the box.
+	*/
 	for (box = Box.next; box != NULL; box = box->next)
 	{
 	    for (i = 0; i < 3; i++)
@@ -3229,7 +3204,7 @@ LOCAL	boolean  set_tst_recon_boxes(
 		if (box->bmin[i] < smin[i]) box->bmin[i] = smin[i];
 		if (box->bmax[i] > smax[i]) box->bmax[i] = smax[i];
 		
-		//avoid boundary surfaces, assume box size is at least 2.
+		/* avoid boundary surfaces, assume box size is at least 2. */
 		if(!buffered_boundary_type(rect_boundary_type(intfc,i,0)))
 		    if (box->bmin[i] == smin[i])
 			box->bmin[i] = smin[i]+1;
@@ -3240,7 +3215,7 @@ LOCAL	boolean  set_tst_recon_boxes(
 	    box->grid = gr;
 	}
 	
-	// Merge overlapping boxes
+	/* Merge overlapping boxes */
 	boxes_merged = YES;
 	while (boxes_merged)
 	{
@@ -3262,7 +3237,7 @@ LOCAL	boolean  set_tst_recon_boxes(
 		    if (overlapping_boxes(box, nbox) || 
 			boxes_sharing_tris(box, nbox, smax, intfc)) 
 		    {
-			//merge nbox with box and delete nbox.
+			/* merge nbox with box and delete nbox. */
 			for (i = 0; i < 3; ++i)
 			{
 			    box->bmin[i] = min(box->bmin[i],nbox->bmin[i]);
@@ -3274,10 +3249,10 @@ LOCAL	boolean  set_tst_recon_boxes(
 			boxes_merged = YES;
 			break;
 		    }
-		}   //for(nbox= )
+		}   /* for(nbox= ) */
 		if(boxes_merged)
 		    break;
-	    }   //for(box=  )
+	    }   /* for(box=  ) */
 	}
 	*boxes = Box.next;
 
@@ -3363,7 +3338,7 @@ LOCAL   boolean boxes_sharing_tris(
 	    upbound[i] = (box1->bmax[i] == smax[i])? box1->bmax[i]-1 :
 	                        box1->bmax[i];
 
-	//Forming the tri_list on the boundary of box1
+	/* Forming the tri_list on the boundary of box1 */
 	for (m = 0; m < 2; ++m)
 	{
 	    k = (m == 0) ? box1->bmin[2] : upbound[2];
@@ -3414,7 +3389,7 @@ LOCAL   boolean boxes_sharing_tris(
 	}
 	}
 
-	//Form the tri_list on the boundary of box2
+	/* Form the tri_list on the boundary of box2 */
 
 	for (i = 0; i < 3; ++i)
 	    upbound[i] = (box2->bmax[i] == smax[i])? box2->bmax[i]-1 :
@@ -3471,7 +3446,7 @@ LOCAL   boolean boxes_sharing_tris(
 	}
         }
 
-	//Comparing tri_list
+	/* Comparing tri_list */
 	if ((num_tris1 > 0) && (num_tris2 > 0))
 	{
 	    for (i = 0; i < num_tris1; ++i)
@@ -3480,8 +3455,6 @@ LOCAL   boolean boxes_sharing_tris(
 		        flag = YES;
 	}
 
-	//printf("#number of tris %d %d\n", num_tris1, num_tris2);
-	//fflush(NULL);
 	if(num_tris1 > MAX_BOUND_TRIS || num_tris2 > MAX_BOUND_TRIS)
 	{
 	    printf("ERROR boxes_sharing_tris, num %d  %d\n", 
@@ -3757,7 +3730,7 @@ EXPORT	boolean	check_degenerated_loop(
         }
 	else
 	{
-	    //assume the null loop has POSITIVE_ORIENTATION
+	    /* assume the null loop has POSITIVE_ORIENTATION */
 	    
 	    new_tri = make_tri(pts[0],pts[2],pts[1], NULL,NULL,NULL, NO);
 	    link_neighbor_tris(new_tri, tris[0]);
@@ -3828,7 +3801,10 @@ EXPORT	boolean	check_degenerated_loop(
 		    printf("%d %d %d\n",*num_sides,*num_sides,0);
 		    clean_up(ERROR);
 		}
-		if (p == pts[0]) break;  //the only way to exit do while except return NO, pts must loop
+		if (p == pts[0]) break;  
+			/*the only way to exit do while except 
+			  return NO, pts must loop
+			*/
 	    	side = next_null_sided_tri(next_tri,p,&next_tri);
 		if (side == -1)
 		{
@@ -3849,7 +3825,6 @@ EXPORT	boolean	check_degenerated_loop(
 	    }
 	    if (next_tri == NULL)
 	    {
-	    	//return NO;
 		printf("Cannot continue the loop\n");
 		clean_up(ERROR);
 	    }
@@ -3993,7 +3968,6 @@ EXPORT  boolean check_extension_of_surface_global(
         for (tri1 = first_tri(s); !at_end_of_tri_list(tri1->next, s);
                 tri1 = tri1->next)
         {
-            //printf("tri1 = %d\n",tri1);
             for (i = 0; i < 3; ++i)
             {
                 p1 = Point_of_tri(tri1)[i];
@@ -4227,8 +4201,9 @@ LOCAL   boolean    pts_in_cross_zone(
             return NO;
 }    /*end tri_cross_zone*/
 
-//if one coord of dir direction for a point of a tri lies in the zone [crx_coord - h, crx_coord + h]
-//it will return YES;
+/*if one coord of dir direction for a point of a tri lies in the 
+  zone [crx_coord - h, crx_coord + h] it will return YES;
+*/
 
 LOCAL   boolean    tri_cross_zone(
         TRI             *tri,
@@ -4597,7 +4572,7 @@ LOCAL    boolean    compare_comm_box(
 		        }
 		    }
 		}
-		else    // box in buffer left
+		else    /* box in buffer left */
 		{
 		    icoord = comp_grid.U[i];
 		    if (i == 0 && dir == 0)
@@ -5116,7 +5091,7 @@ LOCAL	boolean  set_reconstruction_boxes_prev(
 	box = &Box;
 	
 
-	//finding the actural box by checking tangled tris.
+	/* finding the actural box by checking tangled tris. */
 	for (box = Box.next; box != NULL; box = box->next)
 	{
 	    print_int_vector("bminp", box->bmin, 3, "\n");
@@ -5158,9 +5133,10 @@ LOCAL	boolean  set_reconstruction_boxes_prev(
 	    return YES;
 	}
 
-	//bad ips are in the faces of [bmin, bmax], 
-	//should increase by one to make consistent surf
-	//in the face of the box.
+	/*bad ips are in the faces of [bmin, bmax], 
+	  should increase by one to make consistent surf
+	  in the face of the box.
+	*/
 	for (box = Box.next; box != NULL; box = box->next)
 	{
 	    for (i = 0; i < 3; i++)
@@ -5170,8 +5146,6 @@ LOCAL	boolean  set_reconstruction_boxes_prev(
 	    }
 	    for (i = 0; i < 3; i++)
 	    {
-		//box->bmin[i]--;
-		//box->bmax[i]++;
 		if (box->bmin[i] < smin[i]) box->bmin[i] = smin[i];
 		if (box->bmax[i] > smax[i]) box->bmax[i] = smax[i];
 	    }
@@ -5179,7 +5153,7 @@ LOCAL	boolean  set_reconstruction_boxes_prev(
 	}
 
 
-	// Merge overlapping boxes
+	/* Merge overlapping boxes */
 	boxes_merged = YES;
 	while (boxes_merged)
 	{
@@ -5198,10 +5172,9 @@ LOCAL	boolean  set_reconstruction_boxes_prev(
 
 		for (nbox = box->next; nbox != NULL; nbox = nbox->next)
 		{
-		    //if (boxes_sect(box, nbox))
 		    if (overlapping_boxes(box, nbox))
 		    {
-			//merge nbox with box and delete nbox.
+			/* merge nbox with box and delete nbox. */
 			for (i = 0; i < 3; ++i)
 			{
 			    box->bmin[i] = min(box->bmin[i],nbox->bmin[i]);
@@ -5213,10 +5186,10 @@ LOCAL	boolean  set_reconstruction_boxes_prev(
 			boxes_merged = YES;
 			break;
 		    }
-		}   //for(nbox= )
+		}   /* for(nbox= ) */
 		if(boxes_merged)
 		    break;
-	    }   //for(box=  )
+	    }   /* for(box=  ) */
 	}
 
 	*boxes = Box.next;
@@ -5231,7 +5204,7 @@ LOCAL	boolean  set_reconstruction_boxes_prev(
 	return YES;
 }	/* end set_reconstruction_boxes */
 
-//rm_bad_crxs_in_box
+/* rm_bad_crxs_in_box */
 LOCAL	boolean  rm_bad_crxs_in_box_prev(
 	int *smin,
 	int *smax,
@@ -5265,9 +5238,10 @@ LOCAL	boolean  rm_bad_crxs_in_box_prev(
 		box->smax[i] = smax[i];
 	    }
 	
-	    //bad ips are in the faces of [bmin, bmax], 
-	    //should increase by one to make consistent surf
-	    //in the face of the box.
+	    /*bad ips are in the faces of [bmin, bmax], 
+	      should increase by one to make consistent surf
+	      in the face of the box.
+	    */
 	    for (i = 0; i < 3; i++)
 	    {
 		box->bmin[i]--;
@@ -5285,7 +5259,7 @@ LOCAL	boolean  rm_bad_crxs_in_box_prev(
 	{
 	    i++;
 
-	    //fix crossings in a box
+	    /* fix crossings in a box */
 	    remove_unphysical_crxings(box->bmin,box->bmax,gr->gmax,
 			intfc,SINGLE);
 	    check_and_repair_crx(intfc,box->bmin,box->bmax);
@@ -5400,7 +5374,7 @@ boolean	rbox_sect(
 {
 	int	i;
 
-	//bd == YES mean boundary overlap is treated as sect
+	/* bd == YES mean boundary overlap is treated as sect */
 	if(bd)
 	{
 	  for(i=0; i<3; i++)
@@ -5418,7 +5392,7 @@ boolean	rbox_sect(
 	return YES;
 }
 
-//box b1 is contained in box b2
+/* box b1 is contained in box b2 */
 boolean	rbox_contain(
 	RECON_BOX	*b1,
 	RECON_BOX	*b2)
@@ -5445,20 +5419,18 @@ int	rbox_add_one_proc(
 	  if(proc >= rbox->procs[j])
 	    break;
 
-	//now b1->procs[j-1] > b2->procs[i] >= b1->procs[j]
-	  
-	// proc exist in b1
+	/* proc exist in b1 */
 	if(j<rbox->np && proc == rbox->procs[j])
 	  return -1;
 
-	//now b1->procs[j-1] > b2->procs[i] > b1->procs[j]
+	/* now b1->procs[j-1] > b2->procs[i] > b1->procs[j] */
 	if(rbox->np >= MAX_RBOX_PROC-1)
 	{
 	  printf("ERROR rbox_add_one_proc, too many procs.\n");
 	  clean_up(ERROR);
 	}
 	  
-	// proc does not exist in b1
+	/* proc does not exist in b1 */
 	for(k=rbox->np-1; k>=j; k--)
 	{
 	  rbox->procs[k+1] = rbox->procs[k];
@@ -5467,7 +5439,7 @@ int	rbox_add_one_proc(
 	}
 	rbox->procs[j] = proc;
 
-	//rbox belongs to processor proc, do not need shift
+	/* rbox belongs to processor proc, do not need shift */
 	for(k=0; k<3; k++)
 	  rbox->shift[j][k] = sv[k];
 
@@ -5476,7 +5448,7 @@ int	rbox_add_one_proc(
 	return j;
 }
 
-//merge b2 to b1
+/* merge b2 to b1 */
 void	rbox_merge_procs(
 	RECON_BOX	*b1,
 	RECON_BOX	*b2)
@@ -5537,7 +5509,7 @@ void	rbox_shift(
 	}
 }
 
-//send rbox from 0 to nbox and recv from nbox to bst
+/* send rbox from 0 to nbox and recv from nbox to bst */
 int	rbox_communication_in_dir(
 	RECON_BOX	*rbox,
 	int		nbox,
@@ -5560,7 +5532,7 @@ int	rbox_communication_in_dir(
 	
 	pp_gsync();
 	
-	//send and recv boxes
+	/* send and recv boxes */
 	for(j=0; j<2; j++)
 	{
 	  if(rect_boundary_type(intfc,dir,j) == SUBDOMAIN_BOUNDARY)
@@ -5587,7 +5559,7 @@ int	rbox_communication_in_dir(
 	    }
 	    pp_recv(2*j+1, dst_id, &rbox[bst], nbr*sizeof(RECON_BOX));
 	      
-	    //shift for periodic case
+	    /* shift for periodic case */
 	    if(me[dir] == 0 && jp == 0)
 	      rbox_shift(rbox, bst, nbr, ggrid, dir, -1);
 	    else if(me[dir] == G[dir]-1 && jp == 1)
@@ -5600,8 +5572,9 @@ int	rbox_communication_in_dir(
 	return bst;
 }
 
-//WARNING proc send to itself is not allowed
-//after calling this function, each proc knows all its intersected boxes
+/*WARNING proc send to itself is not allowed 
+  after calling this function, each proc knows all its intersected boxes
+*/
 int	recon_box_communication(
 	RECON_BOX	*rbox,
 	int		nbox,
@@ -5618,16 +5591,16 @@ int	recon_box_communication(
 	{
 	  bst = rbox_communication_in_dir(rbox, nbox, i, fr);
 
-	  //add my proc number to the procs list
+	  /* add my proc number to the procs list */
 	  for(k=nbox; k<bst; k++)
 	    rbox_add_one_proc(&rbox[k], pp_mynode(), zv);
   
-	  //remove outside boxes
+	  /* remove outside boxes */
 	  for(k=0; k<bst; k++)
 	    if(rbox_sect(&rbox[k], &ggr->rbox, YES) == NO)
 	      rbox[k].flag = -1;
 
-	  //merge same boxes
+	  /* merge same boxes */
 	  for(k=0; k<bst; k++)
 	  {
 	    if(rbox[k].flag == -1)
@@ -5666,7 +5639,7 @@ void	rbox_copy(
 	b1->flag = b2->flag;
 	b1->number = b2->flag;
 }
-//when calling this function, we assume b1 is in proc pp_mynode()
+/* when calling this function, we assume b1 is in proc pp_mynode() */
 void	rbox_buffer_box(
 	RECON_BOX	*b,
 	RECON_BOX	*b1,
@@ -5685,7 +5658,7 @@ void	rbox_buffer_box(
 	    b->bmin[k] -= RECON_BUFFER;
 	    b->bd_flag[k][0] = NO;
 	    
-	    //proc is in the left of the domain
+	    /* proc is in the left of the domain */
 	    if(rbox->fmin[k] <= ggr->GL[k] + ggr->h[k]*tol)
 	    {
 	      if(b->bmin[k] <= rbox->bmin[k])
@@ -5698,7 +5671,7 @@ void	rbox_buffer_box(
 	    b->bmax[k] += RECON_BUFFER;
 	    b->bd_flag[k][1] = NO;
 	    
-	    //proc is in the right of the domain
+	    /* proc is in the right of the domain */
 	    if(rbox->fmax[k] >= ggr->GU[k] - ggr->h[k]*tol)
 	    {
 	      if(b->bmax[k] >= rbox->bmax[k])
@@ -5734,12 +5707,12 @@ boolean	rbox_one_box_communication(
 
 	printf("#rbox_one_box_communication\n");
 
-	//copy b1 to rbox[0] if exists
+	/* copy b1 to rbox[0] if exists */
 	if(b1 == NULL)
 	  nbox = 0;
 	else
 	{
-	  //enlarge b1 by 2 cells
+	  /* enlarge b1 by 2 cells */
 	  b = &rbox[0];
 	  rbox_buffer_box(b, b1, ggr);
 	  nbox = 1;
@@ -5751,12 +5724,13 @@ boolean	rbox_one_box_communication(
 	recon = NO;
 	if(b1 != NULL)
 	{
-	  //check overlap, if overlapping, activate the one with small proc number.
+	  /*check overlap, if overlapping, activate the one with 
+	    small proc number. */
 	  for(i=1; i<nbox; i++)
 	    if(rbox_sect(b, &rbox[i], YES) && b->proc < rbox[i].proc)
 	      break;
 
-	  //activate b
+	  /* activate b */
 	  if(i == nbox)
 	  {
 	    recon = YES;
@@ -5768,12 +5742,10 @@ boolean	rbox_one_box_communication(
 	else
 	  nbox = 0;
 
-	//comm all boxes
+	/* comm all boxes */
 	nbox = recon_box_communication(rbox,nbox,ggr,fr);
 
-	//tecplot_rboxes("rbox0", ggr, rbox, nbox, NO);
-	
-	//must be called TWICE so that each box knows which procs it belongs to
+	/* must be called TWICE so each box knows which procs it belongs to */
 	nbox = recon_box_communication(rbox,nbox,ggr,fr);
 
 	tecplot_rboxes("rbox", ggr, rbox, nbox, YES);
@@ -5785,7 +5757,7 @@ boolean	rbox_one_box_communication(
 	  rbox_communication_interface(rbox, nbox, NULL, ggr, fr);
 	add_time_end(12);
 
-	//if a box in rboxin is used, deact it
+	/* if a box in rboxin is used, deact it */
 	for(i=0; i<nbin; i++)
 	{
 	  b = &rboxin[i];
@@ -5851,9 +5823,6 @@ void	tecplot_rboxes(
 	fclose(fp);
 }
 
-
-
-//boolean	rbox_communication_interface(RECON_BOX*,int,RECON_BOX*,GGRID*,INTERFACE*);
 EXPORT	INTERFACE  *bboxes_make_patch_intfc(RECON_BOX*,INTERFACE*,GGRID*);
 
 boolean	communicate_boxes(RECT_BOX*,Front*);
@@ -5877,14 +5846,15 @@ boolean	communicate_boxes(
 	make_ggrid(&ggr, fr);
 	nbox = make_recon_boxes(rbox, boxes, &ggr);
 
-	//recon_box_communication must be called TWICE to make sure each rbox
-	//knows which procs it belongs to
-	//1. send rbox to other procs, after this call, each rbox knows 
-	//which proc it comes from, but does not know if it also belongs to other
-	//procs
+	/*recon_box_communication must be called TWICE to make sure each rbox
+	  knows which procs it belongs to
+	  1. send rbox to other procs, after this call, each rbox knows 
+	  which proc it comes from, but does not know if it also belongs 
+	  to other procs
+	*/
 	nbox = recon_box_communication(rbox, nbox, &ggr, fr);
 	
-	//2. each rbox will know which procs it belongs to
+	/*2. each rbox will know which procs it belongs to */
 	nbox = recon_box_communication(rbox, nbox, &ggr, fr);
 
 	tecplot_rboxes("rbox", &ggr, rbox, nbox, NO);
@@ -5896,12 +5866,8 @@ boolean	communicate_boxes(
 	max_nbox = 1;
 	while(max_nbox > 0)
 	{
-	//tecplot_rboxes("rbox", &ggr, rbox, nbox, NO);
-	//if(pp_mynode() == 23)
 	for(i=0; i<nbox; i++)
 	{
-	  //bboxes_make_patch_intfc(&rbox[i], fr->interf, &ggr);
-	  //if(rbox[i].procs[0] == pp_mynode())
 	  if(rbox_contain(&rbox[i],&ggr.rbox))
 	    break;
 	}
@@ -5977,8 +5943,9 @@ int	rbox_global_number(
         free(procs);
 }
 
-//sign = -1:  decrease rbox
-//sign = 1 :  increase rbox
+/*sign = -1:  decrease rbox
+  sign = 1 :  increase rbox
+*/
 void	rbox_set_buffer_box(
 	RECON_BOX	*rbox,
 	GGRID		*ggr,
@@ -5995,7 +5962,7 @@ void	rbox_set_buffer_box(
 	}
 }
 
-//after the function rbox are contained in pp_mynode()
+/* after the function rbox are contained in pp_mynode() */
 int	rbox_contain_communication(
 	RECON_BOX	*rbox,
 	int		nbox,
@@ -6012,16 +5979,12 @@ int	rbox_contain_communication(
 	{
 	  bst = rbox_communication_in_dir(rbox, nbox, i, fr);
 
-	  //add my proc number to the procs list
-	  //for(k=nbox; k<bst; k++)
-	  //  rbox_add_one_proc(&rbox[k], pp_mynode(), zv);
-  
-	  //remove outside boxes
+	  /* remove outside boxes */
 	  for(k=0; k<bst; k++)
 	    if(rbox_contain(&rbox[k], &ggr->rbox) == NO)
 	      rbox[k].flag = -1;
 
-	  //merge same boxes
+	  /* merge same boxes */
 	  for(k=0; k<bst; k++)
 	  {
 	    if(rbox[k].flag == -1)
@@ -6341,10 +6304,6 @@ boolean	recon_communication_intfc(
 	assign_point_index(intfc, pp_mynode());
 	strip_subdomain_bdry_curves(intfc);
 	
-	//null_sides_are_consistent();
-	//check_print_intfc("After merge_buffer", "mgbf", 
-	//            's', intfc, fr->step, fr->step, NO);
-
 	while(rbox_active(rbox,nbox) || rbox_active(dbox,ndbox))
 	{
 	  add_time_start(320);
@@ -6352,7 +6311,7 @@ boolean	recon_communication_intfc(
 	  {
 	    while(1)
 	    {
-	      //find a box which can recon
+	      /* find a box which can recon */
 	      found = NO;
 	      for(i=0; i<nbox; i++)
 	      {
@@ -6390,7 +6349,6 @@ boolean	recon_communication_intfc(
 
 	      send_intfc = bboxes_intfc_sect(&bbox, intfc, TRIFLAGA);
 	  
-	      //for(j=0; j<b->np; j++)
 	      for(j=b->np-1; j>=0; j--)
 	      {
 		proc = b->procs[j];
@@ -6408,8 +6366,8 @@ boolean	recon_communication_intfc(
 	      }
 	        
 	      delete_interface(send_intfc);
-	    } //while(1)
-	  } //rbox active
+	    } /* while(1) */
+	  } /* rbox active */
 	  add_time_end(320);
 	  
 	  add_time_start(321);
@@ -6419,18 +6377,6 @@ boolean	recon_communication_intfc(
 	    recv_intfc = rbox_wait_recv(&ind, &ddtab, dbox, ndbox, gr);
 	    dbox[ind].flag = -1;
 	
-	    if(dbox[ind].number == 39)
-	    //if(NO)
-	    {
-	      null_sides_are_consistent();
-	      check_print_intfc("After merge_buffer", "mgbuffa", 
-	            's', intfc, fr->step, fr->step-1, NO);
-	      
-	      null_sides_are_consistent();
-	      check_print_intfc("After merge_buffer recv", "mgrecva", 
-	            's', recv_intfc, fr->step, fr->step, NO);
-	    }
-    
 	    cut_intfc_in_grid(recv_intfc, computational_grid(intfc));
 	    add_time_end(322);
 	
@@ -6454,7 +6400,6 @@ boolean	recon_communication_intfc(
 	    merge_buffer_interface(intfc, recv_intfc, dbox[ind].proc);
 	    add_time_end(324);
 
-	    //if(dbox[ind].number == 55)
 	    if(NO)
 	    {
 	      null_sides_are_consistent();
@@ -6539,28 +6484,29 @@ int	global_set_rbox(
 
 	DEBUG_ENTER(global_set_rbox)
 
-	//1. communicate boxes and delete contained boxes
-	//collect box info from other procs
+	/*1. communicate boxes and delete contained boxes
+	  collect box info from other procs
+	*/
 	nbox = recon_box_communication(rbox, nbox, ggr, fr);
 	nbox = recon_box_communication(rbox, nbox, ggr, fr);
 	
 	printf("#nbox 1 = %d\n", nbox);
 	fflush(NULL);
 
-	//delete contained boxes
+	/* delete contained boxes */
 	for(i=0; i<nbox; i++)
 	  for(j=0; j<nbox; j++)
 	    if(j != i && rbox_contain(&rbox[i], &rbox[j]))
 	      rbox[i].flag = -1;
 	nbox = rbox_arrange(rbox, nbox);
 	
-	//find all boxes in this proc from positions
+	/* find all boxes in this proc from positions */
 	for(i=0; i<nbox; i++)
 	  if(!rbox_contain(&rbox[i], &ggr->rbox))
 	    rbox[i].flag = -1;
 	nbox = rbox_arrange(rbox, nbox);
 
-	//2. determine which box belongs to which proc
+	/* 2. determine which box belongs to which proc */
 	for(i=0; i<nbox; i++)
 	  set_rbox_param(&rbox[i], ggr);
 
@@ -6570,7 +6516,7 @@ int	global_set_rbox(
 	nbox = rbox_contain_communication(rbox, nbox, ggr, fr);
 	nbox = rbox_contain_communication(rbox, nbox, ggr, fr);
 
-	//if a box is contained in many proc.
+	/* if a box is contained in many proc. */
 	for(i=0; i<nbox; i++)
 	{
 	  ind = rbox_contain_proc(&rbox[i]);
@@ -6654,7 +6600,7 @@ boolean	rbox_communication_boxes(
 	
 	nbox = make_recon_boxes(rbox, boxes, &ggr);
 	
-	//box comm
+	/* box comm */
 	j = 0;
 	status = YES;
 	while(status)
@@ -6671,12 +6617,12 @@ boolean	rbox_communication_boxes(
 	for(i=0; i<nbox; i++)
 	  rbox_set_buffer_box(&rbox[i], &ggr, 1);
 
-	//global index of boxes
+	/* global index of boxes */
 	rbox_global_number(rbox, nbox);
 	
 	tecplot_rboxes("rbox", &ggr, rbox, nbox, YES);
 	
-	//3. how many procs a box belongs to and get dbox
+	/* 3. how many procs a box belongs to and get dbox */
 	nbox = recon_box_communication(rbox, nbox, &ggr, fr);
 	nbox = recon_box_communication(rbox, nbox, &ggr, fr);
 
@@ -6696,7 +6642,7 @@ boolean	rbox_communication_boxes(
 	tecplot_rboxes("dbox", &ggr, dbox, ndbox, NO);
 	fflush(NULL);
 	
-	//print out box info
+	/* print out box info */
 	max_nbox = nbox;
 	pp_global_imax(&max_nbox, 1);
 	if(max_nbox == nbox)
@@ -6711,7 +6657,7 @@ boolean	rbox_communication_boxes(
 	
 	add_time_start(313);
 	
-	//4. box reconstruction
+	/* 4. box reconstruction */
 	status = recon_communication_intfc(fr,&ggr,rbox,nbox,dbox,ndbox);
 
 	status = pp_min_status(status);
@@ -6720,20 +6666,10 @@ boolean	rbox_communication_boxes(
 	
 	add_time_start(314);
 	
-	//intfc = fr->interf;
-	
-	//set_size_of_intfc_state(fr->sizest);
-	//set_copy_intfc_states(YES);
-	//fr->interf = copy_interface(intfc);
-	//delete_interface(intfc);
-	
 	set_current_interface(fr->interf);
 	reset_normal_on_intfc(fr->interf);
 	install_subdomain_bdry_curves(fr->interf);
 	
-	//check_print_intfc("After rbox_communication_boxes", "rbcomm", 
-	//            's', fr->interf, fr->step, fr->step-1, NO);
-
 	add_time_end(314);
 	
 	add_time_end(311);
@@ -6764,8 +6700,6 @@ LOCAL	boolean rbox_repair_intfc_in_box(
 	for(i = 0; i < n_reg_node; ++i)
 	    comp[i] = NO_COMP;
 
-	//status = track_comp_and_repair3d(smin,smax,gmax,intfc,front);
-	
 	adjust_crossings(smin,smax,intfc);
 	
 	fill_physical_comps(smin,smax,gmax,intfc);
@@ -6825,7 +6759,8 @@ LOCAL	boolean rbox_repair_intfc_in_box(
 
 EXPORT	boolean	rbox_repair_intfc(Front*,int flag[3][2]);
 
-//topological_grid of the interface is already set, the boundary flags are flag
+/*topological_grid of the interface is already set, the boundary flags are flag
+*/
 EXPORT	boolean	rbox_repair_intfc(
 	Front     *front,
 	int	  flag[3][2])
@@ -6870,8 +6805,6 @@ EXPORT	boolean	rbox_repair_intfc(
 	stop_clock("reconstruct_intfc3d_in_box");
 
 	interpolate_intfc_states(intfc) = sav_intrp;
-
-	//identify_detached_surface_curve_pair(intfc);
 
 	reset_intfc_num_points(intfc);
         free_crx_storage(intfc);

@@ -384,19 +384,20 @@ void    make_ref_strip(double*, double*, INTERFACE*);
 
 typedef  struct {
         int     fg;
-        //edge flag  0: side across the line;
-        //          -1: side inside the line;
-        //          -2: side outside the line;
+        /*edge flag  0: side across the line;
+                    -1: side inside the line;
+                    -2: side outside the line;
+        */
 
         POINT   *pt;
-        //corssing point if fg == 0
+        /* corssing point if fg == 0 */
 }       EDGE_CUT;
 
 #define MAX_EDGE_CUT    3000
 
 int     neighbor_tri_side(TRI*, TRI*);
 
-//nbtri is on which side of tri
+/* nbtri is on which side of tri */
 int     neighbor_tri_side(
         TRI     *tri,
         TRI     *nbtri)
@@ -424,7 +425,7 @@ int     cut_split_tris(
 
         DEBUG_ENTER(cut_split_tris)
 
-        //tri is inside or outside, return.
+        /* tri is inside or outside, return. */
         if(Tri_order(tri) < 0)
         {
             DEBUG_LEAVE(cut_split_tris)
@@ -445,8 +446,9 @@ int     cut_split_tris(
             pa = A[nside].pt;
             pb = A[pside].pt;
 
-            //fact: pside and nside has cut point on them. if a neighbor tri is on
-            //the side Tri_order must have a value
+            /*fact: pside and nside has cut point on them. if a neighbor 
+	      tri is on the side Tri_order must have a value
+            */
             nbtris[0] = Tri_on_side(tri,pside);
             pte[0] = pb;
             if(nbtris[0] != NULL)
@@ -457,7 +459,7 @@ int     cut_split_tris(
             if(nbtris[nnb] != NULL)
                 nnb++;
 
-            //disconnect the neighbor tris
+            /* disconnect the neighbor tris */
             for(i=0; i<nnb; i++)
                 Tri_on_side(nbtris[i], neighbor_tri_side(nbtris[i],tri)) = NULL;
             Tri_on_side(tri,pside) = NULL;
@@ -472,7 +474,7 @@ int     cut_split_tris(
             link_neighbor_null_side_tris(new_tri1, new_tri2);
             link_neighbor_null_side_tris(new_tri1, tri);
 
-            //out side is inside the line
+            /* out side is inside the line */
             if(A[side].fg == -1)
             {
                 Tri_order(tri) = -1;
@@ -506,14 +508,14 @@ int     cut_split_tris(
             if(nbtris[0] != NULL)
                 nnb++;
 
-            //disconnect the neighbor tris
+            /* disconnect the neighbor tris */
             for(i=0; i<nnb; i++)
                 Tri_on_side(nbtris[i], neighbor_tri_side(nbtris[i],tri)) = NULL;
 
             new_tri1 = make_tri(p[pside], pa, p[nside], NULL,NULL,NULL,NO);
             insert_tri_at_tail_of_list(new_tri1,s);
 
-            //reconnect nside neighbor
+            /* reconnect nside neighbor */
             Neighbor_on_side(new_tri1,2) = Neighbor_on_side(tri,nside);
             if(is_side_bdry(tri,nside))
             {
@@ -552,7 +554,7 @@ int     cut_split_tris(
             nt = 2;
         }
 
-        //split the neighbor tris and linking them.
+        /* split the neighbor tris and linking them. */
         for(i=0; i<nnb; i++)
         {
             nnt = cut_split_tris(new_nbtris, nbtris[i], s, edge_cut);
@@ -560,7 +562,7 @@ int     cut_split_tris(
             {
                 printf("#cut_split_tris, enter nnt == 0 case.\n");
 
-                //check if pte[i] is a vertex of nbtri
+                /* check if pte[i] is a vertex of nbtri */
                 for(j=0; j<3; j++)
                     if(Point_of_tri(nbtris[i])[j] == pte[i])
                     {
@@ -568,7 +570,7 @@ int     cut_split_tris(
                         break;
                     }
 
-                //find nbtri which has pte[i] as its vertex.
+                /* find nbtri which has pte[i] as its vertex. */
                 if(j == 3)
                 {
                     for(j=0; j<3; j++)
@@ -591,7 +593,7 @@ int     cut_split_tris(
                     }
                 }
 
-                //nbtri has vertex pte[i]
+                /* nbtri has vertex pte[i] */
                 nnt1 = set_tri_list_around_point(pte[i],
                     nbtri, &ptris, s->interface);
                 for(j=0; j<nnt1; j++)
@@ -630,12 +632,12 @@ void	flag_point_pos(
 
 	tol = 0.01*min3(gr->h[0], gr->h[1], gr->h[2]);
 
-	//1 not calculated
+	/* 1 not calculated */
 	for(tri=first_tri(s); !at_end_of_tri_list(tri,s); tri=tri->next)
 	    for(i=0; i<3; i++)
 		Point_order(Point_of_tri(tri)[i]) = 1;
 
-	//check points 0 on line -1 insdie line  -2 outside line
+	/* check points 0 on line -1 insdie line  -2 outside line */
 	for(tri=first_tri(s); !at_end_of_tri_list(tri,s); tri=tri->next)
 	    for(i=0; i<3; i++)
 	    {
@@ -781,36 +783,36 @@ void	set_surf_edge_cut(
 	    for(i=0; i<3; i++)
 		pf[i] = Point_order(p[i]);
 
-	    //no inside point, remove tri
+	    /* no inside point, remove tri */
 	    if(pf[0] != -1 && pf[1] != -1 && pf[2] != -1)
 	    {
 		Tri_order(tri) = -2;
 		continue;
 	    }
 	    
-	    //no outside point, keep tri
+	    /* no outside point, keep tri */
 	    if(pf[0] != -2 && pf[1] != -2 && pf[2] != -2)
 	    {
 		Tri_order(tri) = -1;
 		continue;
 	    }
 
-	    //there are edge cuts and at least 1 inside 1 outside
+	    /* there are edge cuts and at least 1 inside 1 outside */
 	    Tri_order(tri) = nt;
 	    for(i=0; i<3; i++)
 	    {
 		j = Next_m3(i);
-		if(pf[i] == pf[j])  //edge inside or outside
+		if(pf[i] == pf[j])  /* edge inside or outside */
 		    edge_cut[nt][i].fg = pf[i];
-		else  if(pf[i] == 0)  //1 point on
+		else  if(pf[i] == 0)  /*1 point on */
 		    edge_cut[nt][i].fg = pf[j];
-		else  if(pf[j] == 0)  //1 point on
+		else  if(pf[j] == 0)  /*1 point on */
 		    edge_cut[nt][i].fg = pf[i];
-		else //1 in and 1 out
+		else /*1 in and 1 out */
 		{
 		    edge_cut[nt][i].fg = 0;
 		   
-		    //check if edge crx is calculated by the neighbor tri
+		    /* check if edge crx is calculated by the neighbor tri */
 		    nbtri = Tri_on_side(tri, i);
 		    if(nbtri != NULL && Tri_order(nbtri) >= 0)
 		    {
@@ -840,7 +842,7 @@ void	set_surf_edge_cut(
 		}
 	    }
 
-	    //crx tri is found
+	    /* crx tri is found */
 	    nt++;
 	    if(nt >= MAX_EDGE_CUT)
 	    {
@@ -976,14 +978,15 @@ void	make_ref_strip(
 	for (s = intfc->surfaces; s && *s; ++s)
 	    make_ref_strip_for_surf(pt, nor, *s, intfc);
 
-	//do not know the order of btris constructed in the above function
-	//is consistent with the previous ones, must order interface. 
+	/*do not know the order of btris constructed in the above function
+	  is consistent with the previous ones, must order interface. 
+	*/
 	order_interface(intfc);
 	set_current_interface(sav_intfc);
 }
 
 #define	 swap_pointers(a, b)   {st = a; a = b; b = st;}
-//assume the curve c is already reflected.
+/* assume the curve c is already reflected. */
 
 void	reflect_btris_on_curve(
 	CURVE		*c,
@@ -995,18 +998,18 @@ void	reflect_btris_on_curve(
 	BOND		*b;
 	Locstate	st;
 
-	//reflect btri states 
+	/* reflect btri states  */
 	for(b=c->first; b != NULL; b=b->next)
 	{
 	    for(btris=Btris(b); btris && *btris; btris++)
 	    {
-		//after reverse curve, b->start is the end of btri.
+		/* after reverse curve, b->start is the end of btri. */
 		reflect_state(left_end_btri_state(*btris), intfc,
 			Coords(b->start), p, nor);
 		reflect_state(right_end_btri_state(*btris), intfc,
 			Coords(b->start), p, nor);
 
-		//the last point on curve
+		/* the last point on curve */
 		if(!is_closed_curve(c) && b->next == NULL)
 		{
 		    reflect_state(left_start_btri_state(*btris), intfc,
@@ -1022,8 +1025,9 @@ void	reflect_btris_on_curve(
 	    }
 	}
 
-	//relink btri considering the orientation of c.
-	//surface, c and b are reflected
+	/*relink btri considering the orientation of c.
+	  surface, c and b are reflected
+	*/
 	for(b=c->first; b != NULL; b=b->next)
 	{
 	    for(btris=Btris(b); btris && *btris; btris++)
@@ -1126,7 +1130,7 @@ void	contruct_ref_btri(
 
 	for(c=intfc->curves; c && *c; c++)
 	{
-	    //find the corresponding bond.
+	    /* find the corresponding bond. */
 	    for(b=(*c)->first; b != NULL; b=b->next)
 	    {
 		if((b->start == p1 && b->end == p2) ||
@@ -1184,7 +1188,7 @@ void	make_ref_strip_for_surf(
  	BOND	*b1, *b2;
 	CURVE	*c1, *c2;
 
-	//set curve ref point
+	/* set curve ref point */
 	for(tri=first_tri(s); !at_end_of_tri_list(tri,s); tri=tri->next)
 	    for(i=0; i<3; i++)
 	    {
@@ -1197,7 +1201,7 @@ void	make_ref_strip_for_surf(
 		    p1f = copy_point(p1);
 		    reflect_point(p1f, pt, nor, intfc);
 
-		    //if a point on curve is reflected, a bond will be made.
+		    /* if a point on curve is reflected, a bond will be made. */
 		    if(Boundary_point(p1))
 			b1 = reflect_curve_bond(&c1, p1, p1f, intfc);
 		    Cor_point(p1) = p1f;
@@ -1340,7 +1344,7 @@ void	extend_long_ref_side_for_surf(
 	hmin = min3(gr->h[0], gr->h[1], gr->h[2]);
 	tol = 0.7;
 
-	//set curve ref point
+	/* set curve ref point */
 	nt = 0;
 	for(tri=first_tri(s); !at_end_of_tri_list(tri,s); tri=tri->next)
 	    for(i=0; i<3; i++)
@@ -1448,8 +1452,9 @@ void sep_common_pt_for_ref_bdry(
 			clean_up(ERROR);
 		    }
 
-		    //tri is the triangle needed to connect with the strip
-		    //cut_plane is the highest/lowest coord
+		    /*tri is the triangle needed to connect with the strip
+		      cut_plane is the highest/lowest coord
+		    */
 		    p = Point_of_tri(tri);
 		    for(i=0; i<3; i++)
 		    {
@@ -1478,7 +1483,7 @@ void sep_common_pt_for_ref_bdry(
 			break;
 		}
 
-		//tri is in the range of ref tris
+		/* tri is in the range of ref tris */
 		if(i < 3)
 		{
 		    for(i=0; i<3; i++)
@@ -1491,7 +1496,7 @@ void sep_common_pt_for_ref_bdry(
 				break;
 			}
 		
-			//p is a point of tri on ref bdry
+			/* p is a point of tri on ref bdry */
 			if(j<num)
 			{
 			    tris[nt++] = tri;
@@ -1588,8 +1593,9 @@ int cut_buffer_tris(
 	ns = 0;
 	for (tri=first_tri(surf); !at_end_of_tri_list(tri,surf); tri=tri->next)
 	{
-	    //on reflect bdry and 3comp curve is perpendicular to the ref plane,
-	    //this condition is enough 
+	    /*on reflect bdry and 3comp curve is perpendicular to the ref plane,
+	      this condition is enough 
+	    */
 	    if (tri_cross_line(tri,crx_coord,dir) == YES)
 	    {
 		tris_s[ns++] = tri;
@@ -2595,11 +2601,11 @@ LOCAL int append_buffer_surface1(
 	}
 	else 
 	{
-	    screen("WARNING in append_buffer_surface1(), can't match "
-	           "tris on with buffer surface\n");
 	    FILE  *fp;
 	    char  s[50];
 	
+	    screen("WARNING in append_buffer_surface1(), can't match "
+	           "tris on with buffer surface\n");
             sprintf(s, "%sapp_nsna_%d.plt", get_directory(), pp_mynode());
 	    printf("#error surface file %s\n", s);
 
@@ -2775,8 +2781,9 @@ LOCAL	boolean	tri_cross_line(
 	        ((crx_coord - max_coord) <= crx_tol)) ? YES : NO;
 }		/*end tri_cross_line*/
 
-//NO    no bond side or no tri crx line
-//YES   one tri crx line
+/*NO    no bond side or no tri crx line
+  YES   one tri crx line
+*/
 LOCAL	boolean	tri_bond_cross_line(
 	TRI		*tri,
 	double		crx_coord,
@@ -3292,8 +3299,9 @@ EXPORT	CURVE *matching_curve(
 	
 	c = copy_curve(ac,ns,ne);
 	
-	//matching_node already put the starting and ending points in the hash table
-	//do not deal the starting and the ending points here.
+	/*matching_node already put the starting and ending points in 
+ 	  the hash table do not deal the starting and the ending points here.
+	*/
 	for (b = c->first, ab = ac->first; b != c->last && ab != ac->last;
 		b = b->next, ab = ab->next)
 	{
@@ -3337,7 +3345,7 @@ EXPORT	boolean curves_match(
 	}
 	
 	if(ab == NULL)
-	    return YES;	 //curve in orginal intfc is longer or equal
+	    return YES;	 /* curve in orginal intfc is longer or equal */
 	return NO;
 }		/*end curves_match*/
 
@@ -3405,7 +3413,7 @@ EXPORT void open_null_sides1(
 	    for (tri=first_tri(*s); !at_end_of_tri_list(tri,*s); tri=ntri)
 	    {
 		ntri = tri->next;
-	    	// bond with inside tri survives.
+	    	/* bond with inside tri survives. */
 		if (tri_out_domain1(tri,L,U,dir,nb) && 
 		    tri_bond_test(tri,L,U,dir,nb))
 	    	    remove_out_domain_tri(tri,*s);
@@ -3566,7 +3574,7 @@ LOCAL void clip_intfc_at_grid_bdry1(
 	    if(rect_boundary_type(intfc,dir,1) == OPEN_BOUNDARY)
 		U[dir] = gr->VU[dir];
 
-            //do not cut the reflect part
+            /* do not cut the reflect part */
             if(rect_boundary_type(intfc,dir,0) == REFLECTION_BOUNDARY)
                 L[dir] = gr->VL[dir];
             if(rect_boundary_type(intfc,dir,1) == REFLECTION_BOUNDARY)
@@ -3620,7 +3628,7 @@ LOCAL   boolean find_ending_null_side(
 	    p = Point_of_tri(next_tri)[Next_m3(side)];
 	    recorded_pts[num_recorded_pts] = p;
 	    
-	    //if a loop is found, return the ending tri and point.
+	    /* if a loop is found, return the ending tri and point. */
 	    for(i=0; i<num_recorded_pts; i++)
 	    {
 		if (recorded_pts[i] == p)
@@ -3634,7 +3642,7 @@ LOCAL   boolean find_ending_null_side(
 	    next_tri1 = find_following_null_tri(next_tri,&p1,
 	                  &side1,COUNTER_CLOCK);
 	    
-	    //hit another curve.
+	    /* hit another curve. */
 	    if (next_tri1 == NULL)
 	        break;
 	    
@@ -3782,8 +3790,9 @@ LOCAL	void	copy_tri_state_to_btri(
 	    sr = right_end_btri_state(btri);
 	}
 
-	//in install_subdomain_bdry_curve the new inserted point is always 
-	//a node point.
+	/*in install_subdomain_bdry_curve the new inserted point is always 
+	  a node point.
+	*/
 	if ((n = node_of_point(p,intfc)) == NULL)
 	{
 	    ft_assign(sl,left_state(p),sizest);
@@ -3792,7 +3801,7 @@ LOCAL	void	copy_tri_state_to_btri(
 	}
 
 	found = NO;
-	// deal with 3 comp curve
+	/* deal with 3 comp curve */
 	for(c = n->out_curves; c && *c; c++)
 	{
 	    if(*c == btri->curve)
@@ -3821,7 +3830,7 @@ LOCAL	void	copy_tri_state_to_btri(
 		}
 	}
 
-	//Now curve is the only curve in node n
+	/* Now curve is the only curve in node n */
 	if(!found)
 	{
 	    ft_assign(sl,left_state(p),sizest);
@@ -3932,16 +3941,17 @@ EXPORT  void strip_bdry_curves(
 	for (n = nodes_to_delete; n && *n; ++n)
 	    (void) delete_node(*n);
 
-}	//strip_bdry_curves
+}	/* end strip_bdry_curves */
 
 
-//it will make the Boundary_point for node to 0, it is not a problem
-//(1) if the node contains only this curve, it is correct
-//(2) if the node has several different curves. This case can happen when
-//    node has one 3-comp curve and 3 subdomain curves and on a subdomain boundary
-//    Then, in reconstruction part, the point is outside the reconstruction domain
-//    in scatter_front part, the point will be cutted because it is in 
-//    a subdomain boundary.
+/*it will make the Boundary_point for node to 0, it is not a problem
+  (1) if the node contains only this curve, it is correct
+  (2) if the node has several different curves. This case can happen when
+      node has one 3-comp curve and 3 subdomain curves and on a subdomain 
+      boundary. Then, in reconstruction part, the point is outside the 
+      reconstruction domain in scatter_front part, the point will be 
+      cutted because it is in a subdomain boundary.
+*/
 LOCAL void strip_curve_from_surf(
 	CURVE		*curve,
 	SURFACE		*surf,
@@ -4145,9 +4155,10 @@ EXPORT	void cut_out_curves_in_buffer(
 	    }
 	    else if (be != (*c)->last)
 	    {
-	        //without this, the closed curve will be cutted into 
-		//two connected pieces it will make an inconsistent 
-		//interface after copy_interface.
+	        /*without this, the closed curve will be cutted into 
+		  two connected pieces it will make an inconsistent 
+		  interface after copy_interface.
+		*/
 	        if(is_closed_curve(*c))
 	            change_node_of_closed_curve(bs->start, *c);
 
@@ -4369,17 +4380,19 @@ EXPORT void install_subdomain_bdry_curves_prev(
 	    	side_end = side_start;
 	    	b = curve->first;
 		
-		//following_null_tri uses COUNTER_CLOCK 
-		//insert_point_in_bond inserts point in the end of the curve
-		//the two factors result the POSITIVE orient of bond_tri
+		/*following_null_tri uses COUNTER_CLOCK 
+		  insert_point_in_bond inserts point in the end of the curve
+		  the two factors result the POSITIVE orient of bond_tri
+		*/
 
 	    	while ((tri_end=find_following_null_tri(tri_end,&p,&side_end,
 							COUNTER_CLOCK)) != NULL)
 	    	{
-		    //insert the point alread in bond, do not generate new bond_tri
-		    //see second return of 
-		    //i_insert_point_in_bond
-		    //    split_tris_at_split_bond.
+		    /*insert the point alread in bond, do not generate 
+		      new bond_tri see second return of 
+		      i_insert_point_in_bond
+		      split_tris_at_split_bond.
+		    */
 		    if (insert_point_in_bond(ne->posn,b,curve) != 
 			FUNCTION_SUCCEEDED)
 	            {
@@ -4394,7 +4407,7 @@ EXPORT void install_subdomain_bdry_curves_prev(
 	    	    btri = link_tri_to_bond(NULL,tri_end,*s,b,curve);
 	            copy_tri_state_to_btri(btri,b,NEGATIVE_ORIENTATION,intfc);
 	            copy_tri_state_to_btri(btri,b,POSITIVE_ORIENTATION,intfc);
-		    if (ns->posn == ne->posn) //Closed loop formed
+		    if (ns->posn == ne->posn) /* Closed loop formed */
 		    {
 			change_node_of_curve(curve,NEGATIVE_ORIENTATION,ns);
 			(void) delete_node(ne);
@@ -4409,15 +4422,17 @@ EXPORT void install_subdomain_bdry_curves_prev(
 		tri_end = tri_start;
 		side_end = side_start;
 		
-		//following_null_tri uses CLOCKWISE
-		//insert_point_in_bond inserts point in the start of the curve
-		//the two factors result the POSITIVE orient of bond_tri
+		/*following_null_tri uses CLOCKWISE
+		  insert_point_in_bond inserts point in the start of the curve
+		  the two factors result the POSITIVE orient of bond_tri
+		*/
 
 	    	while ((tri_start = find_following_null_tri(tri_start,&p,
 					&side_start,CLOCKWISE)) != NULL)
 	    	{
-		    //new bond is inserted in b->next, the bond_tri of current bond 
-		    //is saved in bte.
+		    /*new bond is inserted in b->next, the bond_tri of
+		      current bond is saved in bte.
+		    */
 		    bte = Bond_tri_on_side(tri_end,side_end);
 		    if (insert_point_in_bond(ns->posn,b,curve) !=
 			FUNCTION_SUCCEEDED)
@@ -4534,8 +4549,8 @@ EXPORT	void search_the_point(INTERFACE *intfc)
 
 EXPORT	void cut_surface(
 	SURFACE *surf,
-	boolean (*constr_func)(POINTER,double*), // Constraint function
-        POINTER func_params,		     // Constraint function params
+	boolean (*constr_func)(POINTER,double*), /* Constraint function */
+        POINTER func_params,		     /* Constraint function params */
 	boolean force_clip)
 {
 	INTERFACE *intfc = surf->interface;
@@ -4614,12 +4629,12 @@ EXPORT	void cut_surface(
 LOCAL 	double *constr_position(
 	double *p1,
 	double *p2,
-	boolean (*constr_func)(POINTER,double*), // Constraint function
-        POINTER func_params)		     // Constraint function params
+	boolean (*constr_func)(POINTER,double*), /* Constraint function */
+        POINTER func_params)		     /* Constraint function params */
 {
 	static double p_in[MAXD];
 	double p_out[MAXD],pc[MAXD];
-	int i,j,N = 20;		// accurate to 2^-20*(p1-p2)
+	int i,j,N = 20;		/* accurate to 2^-20*(p1-p2) */
 	
 	if (constr_func(func_params,p1) && !constr_func(func_params,p2))
 	{
@@ -4717,7 +4732,7 @@ EXPORT void install_hsbdry_on_surface(
 		    clean_up(ERROR);
 		}
 	    
-		if (ns->posn == ne->posn) //Closed loop formed
+		if (ns->posn == ne->posn) /* Closed loop formed */
 		{
 		    change_node_of_curve(curve,POSITIVE_ORIENTATION,ne);
 		    if(!delete_node(ns))
@@ -4737,7 +4752,7 @@ EXPORT void install_hsbdry_on_surface(
 		copy_tri_state_to_btri(btri,b,NEGATIVE_ORIENTATION,intfc);
 		copy_tri_state_to_btri(btri,b,POSITIVE_ORIENTATION,intfc);
 	    }
-	}   //null_side_on_surface.
+	}   /* null_side_on_surface. */
 
 	dup_nodes = YES;
 	while(dup_nodes)

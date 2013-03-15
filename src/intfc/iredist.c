@@ -1174,8 +1174,8 @@ LOCAL boolean delete_min_side_of_tri(
 	    /*finding bounding points except the 4 common points. */
 	    for(i=0; i<ntris[k]; i++)
 	    {
-		t = tris[k][i];
 		int l;
+		t = tris[k][i];
 		for (l = 0; l < 3; ++l)
 		{
 		    boolean not_in_lists = YES;

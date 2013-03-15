@@ -74,8 +74,8 @@ struct _RECON_BOX {
 typedef struct _RECON_BOX RECON_BOX;
 
 struct _GGRID {
-	RECON_BOX	rbox;	   //local
-	int 	gmax[3];	   //global
+	RECON_BOX	rbox;	   /* local */
+	int 	gmax[3];	   /* global */
 	double	GL[3], GU[3];
 	double	h[3];
 };
@@ -84,9 +84,9 @@ typedef struct _GGRID GGRID;
 struct _POINT_BUCKET {
 	RECT_GRID	ggr;
 	double		btol[3];
-	int		***np;	 //number of points in each bucket
-	POINT		*****pt; //point pointers in each bucket
-	POINT		**bpt;   //point store
+	int		***np;	 /* number of points in each bucket */
+	POINT		*****pt; /* point pointers in each bucket */
+	POINT		**bpt;   /* point store */
 };
 typedef struct _POINT_BUCKET POINT_BUCKET;
 

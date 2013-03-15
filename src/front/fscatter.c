@@ -299,23 +299,20 @@ EXPORT	void	pp_clip_rect_grids(
 		t_gr->GU[i] += pp_grid->buf[i]*zoom_gr->h[i];
 	}
 	
-	/*Assume the grid is square in 3d, and top grid is the dual of comp grid. */
+	/*Assume the grid is square in 3d, and top grid is the */
+	/*dual of comp grid. */
 	if(dim == 3)
 	{
 	    intfc->table->new_grid = YES;
 	    copy_rect_grid(c_gr,zoom_gr);
 	    copy_rect_grid(front->rect_grid,zoom_gr);
-	    //set_dual_grid(&Dual_grid,c_gr);
 	    set_topological_grid(intfc,c_gr);
-	    //set_expanded_grid(&Dual_grid,t_gr);
-	    /*(void) adjust_top_grid_for_square(t_gr,zoom_gr);*/
 	}
 	else
 	{
 	    set_rect_grid(zoom_gr->VL,zoom_gr->VU,t_gr->GL,t_gr->GU,
 		      NOBUF,NOBUF,tgmax,dim,&t_gr->Remap,t_gr);
 	    intfc->table->new_grid = YES;
-	    /*(void) adjust_top_grid_for_square(t_gr,zoom_gr);*/
 	    copy_rect_grid(c_gr,zoom_gr);
 	    copy_rect_grid(front->rect_grid,zoom_gr);
 	    intfc->modified = YES;

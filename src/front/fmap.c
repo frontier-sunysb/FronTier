@@ -1900,7 +1900,7 @@ EXPORT  void FT_InsertDirichletBoundary(
         BOUNDARY_STATE  Bstate;
 	int index;
         INTERFACE *intfc = front->interf;
-	//int istate = 2*dir + nb;
+	/* int istate = 2*dir + nb; */
 
 	zero_scalar(&Bstate,sizeof(BOUNDARY_STATE));
 	if (state_func != NULL)

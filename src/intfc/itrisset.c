@@ -72,8 +72,8 @@ EXPORT	boolean point_in_crx_tri(
 	    v[i] = p[i] - Coords(pt[0])[i];
         }
 	
-	//p is the intersection point, the left should be exactly 0
-	//MACH_EPS is reasonable.
+	/* p is the intersection point, the left should be exactly 0
+	   MACH_EPS is reasonable. */
 	if (fabs(Dot3d(v,norm)) >= 10.0*MACH_EPS)
 	    return NO;
 	
@@ -159,7 +159,7 @@ EXPORT  boolean two_tris_share_side(
 	return NO;
 }
 
-//one point on side of tri2 is a point on tri1
+/* one point on side of tri2 is a point on tri1 */
 EXPORT	boolean two_tris_share_pts(
         TRI *tri1,
 	TRI *tri2,
@@ -178,7 +178,7 @@ EXPORT	boolean two_tris_share_pts(
 	return NO;
 }
 
-//one point on side of tri2 is a point inside tri1
+/* one point on side of tri2 is a point inside tri1 */
 EXPORT	boolean tris_with_pt_inside(
         TRI *tri1,
 	TRI *tri2,
@@ -202,7 +202,7 @@ EXPORT	boolean tri_recorded(
 	for (i = 0; i < num_tris; ++i)
 	    if (tri == tri_list[i]) return YES;
 	return NO;
-}	// end tri_recorded
+}	/* end tri_recorded */
 
 #define copy_posn(p1,p2)	(p1)[0] = (p2)[0]; 		\
 				(p1)[1] = (p2)[1]; 		\
@@ -256,9 +256,11 @@ EXPORT	boolean plane_side_intersection(
 
 
 
-//double		fbox[2][3]
-//fbox[0]	is the WEST,SOUTH,LOWER corner of a box,
-//fbox[1]	is the EAST,NORTH,UPPSER  corner of a box,
+/*
+  double		fbox[2][3]
+  fbox[0]	is the WEST,SOUTH,LOWER corner of a box,
+  fbox[1]	is the EAST,NORTH,UPPSER  corner of a box,
+*/
 
 
 EXPORT	void	tri_bound_block(
@@ -300,7 +302,7 @@ EXPORT	boolean	blocks_sect(
 }
 
 
-//YES means the blocks of two tris have common part.
+/* YES means the blocks of two tris have common part. */
 EXPORT	boolean	tris_sect(
 	TRI	*t1,
 	TRI	*t2)
@@ -313,7 +315,7 @@ EXPORT	boolean	tris_sect(
 	    bi_array(&fbox2, 2, 3, FLOAT);
 	}
 	
-	//bounding boxes of two tris.
+	/* bounding boxes of two tris. */
 	tri_bound_block(fbox1, t1);
 	tri_bound_block(fbox2, t2);
 
@@ -358,7 +360,7 @@ EXPORT	boolean  skip_bdry_tri(
 	return NO;
 }
 
-//simplified test_cross
+/* simplified test_cross */
 EXPORT	boolean	test_tris_intersection(
 	TRI	*t1,
 	TRI	*t2)
@@ -371,16 +373,17 @@ EXPORT	boolean	test_tris_intersection(
 	double		de1, ds2, de2;
 	POINT		*p;
 
-	//(1) test if two tris are adjacent.
+	/* (1) test if two tris are adjacent. */
 	for(i=0; i<3; i++)
 	    if(!is_side_bdry(t1, i) && Tri_on_side(t1, i) == t2)
 		return NO;
 	
-	//(2) if two tris are parallel, NO intersection, this needs to be fixed.
+	/* (2) if two tris are parallel, NO intersection, this needs 
+	   to be fixed. */
 	n1 = Tri_normal(t1);
 	n2 = Tri_normal(t2);
 	
-	//(2) test if two tris share one point
+	/* (2) test if two tris share one point */
 	for(i=0; i<3; i++)
 	{
 	    p = Point_of_tri(t1)[i];
@@ -393,11 +396,12 @@ EXPORT	boolean	test_tris_intersection(
 		break;
 	}
 
-	//two tris share one point. p is the common point
-	//side1 and side2 are point index of p for tris p1 and p2.
+	/* two tris share one point. p is the common point
+	  side1 and side2 are point index of p for tris p1 and p2.
+	*/
 	if(i < 3)
 	{
-	    //|n1 \times n2|/|n1||n2| = |sin\theta| < ang_tol
+	    /* |n1 \times n2|/|n1||n2| = |sin\theta| < ang_tol */
 	    Cross3d(n1, n2, n);
 	    if(Mag3d(n) < Mag3d(n1)*Mag3d(n2)*ang_tol)
 		return NO;
@@ -419,13 +423,12 @@ EXPORT	boolean	test_tris_intersection(
 	    return    Dot3d(pe1, pe2) > 0 ? YES : NO;
 	}
 
-	//(3) two tris are seperated.
+	/* (3) two tris are seperated. */
 	if(!tris_sect(t1, t2))
 	    return NO;
 
-	//(4) The general case, calculate the intersection line segment of tris.
-
-	//|n1 \times n2|/|n1||n2| = |sin\theta| < ang_tol
+	/* (4) The general case, calculate the intersection line segment 
+ 	   of tris. |n1 \times n2|/|n1||n2| = |sin\theta| < ang_tol */
 	Cross3d(n1, n2, n);
 	if(Mag3d(n) < Mag3d(n1)*Mag3d(n2)*ang_tol)
 	    return NO;
@@ -437,9 +440,6 @@ EXPORT	boolean	test_tris_intersection(
 	    if(!plane_side_intersection(plane, t1, i, pi, &iv))
 		continue;
 	    
-	    //printf("j = %d   ps_tol = %24.16e  iv = %d\n", j, ps_tol, iv);
-	    //print_general_vector("pi", pi, 3, "\n");
-
 	    if(j == 0)
 		ft_assign(ps1, pi, 3*FLOAT);
 	    else
@@ -448,17 +448,14 @@ EXPORT	boolean	test_tris_intersection(
 	    j++;
 	}
 
-	//a tri has either two intersections or no intersections with a plane
+	/*a tri has either two intersections or no intersections with a plane */
 	if(j != 2)
 	{
 	    if(j != 0)
 	    {
-		//it happens after two insert points.
-		//TRI	*tst_tris[2];
-		printf("WARNING test_tris_intersection t1, number of intersections = %d\n", j);
-		//tst_tris[0] = t1;
-		//tst_tris[1] = t2;
-		//tecplot_tris("tst_sect_tris", tst_tris, 2);
+		/* it happens after two insert points. */
+		printf("WARNING test_tris_intersection t1, number "
+			"of intersections = %d\n", j);
 	    }
 	    return NO;
 	}
@@ -470,9 +467,6 @@ EXPORT	boolean	test_tris_intersection(
 	    if(!plane_side_intersection(plane, t2, i, pi, &iv))
 		continue;
 		
-	    //printf("j = %d   ps_tol = %24.16e  iv = %d\n", j, ps_tol, iv);
-	    //print_general_vector("pi", pi, 3, "\n");
-
 	    if(j == 0)
 		ft_assign(ps2, pi, 3*FLOAT);
 	    else
@@ -482,11 +476,12 @@ EXPORT	boolean	test_tris_intersection(
 	if(j != 2)
 	{
 	    if(j != 0)
-		printf("WARNING test_tris_intersection t2, number of intersections = %d\n", j);
+		printf("WARNING test_tris_intersection t2, number of"
+			" intersections = %d\n", j);
 	    return NO;
 	}
 
-	//(a). make sure |ps1-pe1| > |ps2-pe2|
+	/* (a). make sure |ps1-pe1| > |ps2-pe2| */
 	de1 = distance_between_positions(ps1, pe1, 3);
 	de2 = distance_between_positions(ps2, pe2, 3);
 	if(de1 < de2)
@@ -496,7 +491,8 @@ EXPORT	boolean	test_tris_intersection(
 	    swap_positions(&de1, &de2, 1);
 	}
 
-	//(b). Now de1 > de2 > 0, check if both tris have one of its vertex on the intersection line.
+	/* (b). Now de1 > de2 > 0, check if both tris have one of 
+	    its vertex on the intersection line. */
 	if(de1 < ps_tol)
 	{
 	    de2 = distance_between_positions(ps1, ps2, 3);
@@ -506,7 +502,8 @@ EXPORT	boolean	test_tris_intersection(
 		return NO;
 	}
 
-	//points ps1, pe1, ps2, pe2 must be in the intersection line of the two planes.
+	/* points ps1, pe1, ps2, pe2 must be in the intersection 
+	   line of the two planes. */
 	difference(pe1, ps1, pe1, 3);
 	difference(ps2, ps1, ps2, 3);
 	difference(pe2, ps1, pe2, 3);
@@ -515,8 +512,6 @@ EXPORT	boolean	test_tris_intersection(
 	ds2 = Dot3d(pe1, ps2);
 	de2 = Dot3d(pe1, pe2);
 
-	//printf("dse %24.16e    %24.16e %24.16e\n", de1, ds2, de2);
-	
 	if(ds2 > 0.0)
 	{
 	    if(de2 > de1 && ds2 > de1)
@@ -549,15 +544,9 @@ EXPORT	int	tris_intersection(
 		tri1 = tris[i];
 		tri2 = tris[j];
 		
-		//printf("%d %d  %d  %d\n", i, j, tri1, tri2);
-
 		if(!test_tris_intersection(tri1, tri2))
 		    continue;
 		
-		//printf("#tangled tris are found.\n");
-		//print_tri(tri1, tri1->surf->interface);
-		//print_tri(tri2, tri2->surf->interface);
-
 		if(!tri_recorded(tri1, sect_tris, nstris))
 		    sect_tris[nstris++] = tri1;
 		if(!tri_recorded(tri2, sect_tris, nstris))
@@ -633,7 +622,7 @@ LOCAL	int compare_tri_sort(
 }
 
 
-//POINTER is reserved for further use.
+/* POINTER is reserved for further use. */
 EXPORT	void	sort_tris_set(
 	TRI	**tris_in,
 	int	nt,
@@ -727,7 +716,7 @@ EXPORT	int	around_tris_set(
 
 
 
-//move the upper and lower bound into a reasonable value.
+/* move the upper and lower bound into a reasonable value. */
 EXPORT	void	move_bound_inside_grid(
 	int		*id,
 	RECT_GRID	*grid,
@@ -790,9 +779,6 @@ EXPORT	int	set_tris_set_in_box(
 	int		nt, ntris;
 	TRI		**tris;
 	struct Table	*T = table_of_interface(intfc);
-	
-	//DEBUG_TMP print_int_vector("s kmin", kmin, 3, "\n");
-	//DEBUG_TMP print_int_vector("s kmax", kmax, 3, "\n");
 	
 	ntris = 0;
 	for (k = kmin[2]; k < kmax[2]; ++k)
@@ -864,7 +850,7 @@ EXPORT	int	count_tris_in_top_box(
 }
 
 
-//bmin bmax are blocks in top grid.
+/* bmin bmax are blocks in top grid. */
 EXPORT	int	tris_set_in_top_box(
 	TRI		**tris,
 	int		max_tris,
@@ -975,7 +961,7 @@ EXPORT	boolean	tris_crx_plane(
 	    }
 	}
 
-	//all tris are inside or are in one side of the plane.
+	/* all tris are inside or are in one side of the plane. */
 	return YES;
 }
 
@@ -1053,19 +1039,19 @@ EXPORT  boolean tri_in_grid_block(
 	        if(j == 0)
 		{
 		    if(cmax[i] < bmin[i])
-		        return NO;    //tri outside box
+		        return NO;    /* tri outside box */
 		    else if(cmin[i] > bmin[i])
-		        continue;     //tri inside one side of the box
+		        continue;     /* tri inside one side of the box */
 		}
 		else
 		{
 		    if(cmin[i] > bmax[i])
-		        return NO;    //tri outside box
+		        return NO;    /* tri outside box */
 		    else if(cmax[i] < bmax[i])
-		        continue;     //tri inside one side of the box
+		        continue;     /* tri inside one side of the box */
 		}
 
-		//tri intersect one side
+		/* tri intersect one side */
 		ft_assign(pmin, bmin, 3*FLOAT);
 		ft_assign(pmax, bmax, 3*FLOAT);
 		pmin[i] = j == 0 ? bmin[i] : bmax[i];
@@ -1077,8 +1063,8 @@ EXPORT  boolean tri_in_grid_block(
 	    }
 	}
 
-	//bflag = YES means at least one point is outside the box and tri has no intersect 
-	//with sides, so tri is outside.
+	/* bflag = YES means at least one point is outside the box and 
+	   tri has no intersect with sides, so tri is outside. */
 	return bflag;
 }
 
@@ -1101,10 +1087,7 @@ EXPORT  int	sect_tris_in_box(
 
 	sect_tol = 1.0e-6*min3(h[0], h[1], h[2]);
 
-	//DEBUG_TMP print_int_vector("t kmin", kmin, 3, "\n");
-	//DEBUG_TMP print_int_vector("t kmax", kmax, 3, "\n");
-	
-	//get all tris in the given block.
+	/* get all tris in the given block. */
 	for(i=0; i<3; i++)
 	{
 	    kmin1[i] = kmin[i] - 1;
@@ -1115,10 +1098,9 @@ EXPORT  int	sect_tris_in_box(
 	num_test_tris = set_tris_set_in_box(test_tris, MAX_TEST_TRIS, 
 				kmin1, kmax1, intfc);
 
-	//tecplot_tris("sect_test", test_tris, num_test_tris);
 	printf("num_test_tris = %d\n", num_test_tris);
 
-	//find all the tangled tris.
+	/* find all the tangled tris. */
 	set_tol_for_tri_sect(sect_tol);
 	nstris = tris_intersection(sect_tris, test_tris, num_test_tris);
 	if(nstris > max_sect_tris)
@@ -1152,19 +1134,12 @@ LOCAL	void	find_min_sect_box(
 		else
 		    bmax[i]--;
 
-		//printf("i = %d  j = %d\n", i, j);
-		//print_int_vector("tstp bmin", bmin, 3, "\n");
-		//print_int_vector("tstp bmax", bmax, 3, "\n");
-
 		for(k=0; k<nstris; k++)
 		    if(!tri_in_grid_block(sect_tris[k], bmin, bmax, grid))
 			break;
 
 		if(k == nstris)
 		    continue;
-		
-		//printf("k = %d\n", k);
-		//print_tri(sect_tris[k], sect_tris[k]->surf->interface);
 		
 		if(j == 0)
 		    bmin[i]--;
@@ -1174,7 +1149,7 @@ LOCAL	void	find_min_sect_box(
 	}
 }
 
-//ref rect_in_which
+/* ref rect_in_which */
 
 EXPORT boolean point_in_rect(
 	const double     *coords,
@@ -1233,7 +1208,7 @@ EXPORT  int	rect_boxes_from_tangled_tris(
 	sect_tol = 1.0e-6*min3(h[0], h[1], h[2]);
 	set_tol_for_tri_sect(sect_tol);
 
-	//set tris set flag.
+	/* set tris set flag. */
 	for(s=intfc->surfaces; s && *s; s++)
 	    for(tri1 = first_tri(*s); !at_end_of_tri_list(tri1,*s);
 		tri1 = tri1->next)
@@ -1248,7 +1223,7 @@ EXPORT  int	rect_boxes_from_tangled_tris(
 	    else
 		set_shift_for_tecplot(0.0, 0.0, 0.0);
 
-	    //open the tecplot debug file and output test_tris
+	    /* open the tecplot debug file and output test_tris */
 	    file = fopen(fname,"w");
 	}
 
@@ -1256,10 +1231,8 @@ EXPORT  int	rect_boxes_from_tangled_tris(
 	nstris = 0;
 	for(pb=boxes; pb != NULL; pb=pb->next)
 	{
-	    //DEBUG_TMP print_int_vector("t kmin", pb->bmin, 3, "\n");
-	    //DEBUG_TMP print_int_vector("t kmax", pb->bmax, 3, "\n");
     
-	    //get all tris in the given block.
+	    /* get all tris in the given block. */
 	    for(i=0; i<3; i++)
 	    {
 		kmin1[i] = pb->bmin[i] - 1;
@@ -1281,17 +1254,12 @@ EXPORT  int	rect_boxes_from_tangled_tris(
 		    tri1 = test_tris[i];
 		    tri2 = test_tris[j];
 		
-		    //printf("%d %d  %d  %d\n", i, j, tri1, tri2);
 		    if(!test_tris_intersection(tri1, tri2))
 			continue;
 		
-		    //printf("#tangled tris are found.\n");
-		    //print_tri(tri1, tri1->surf->interface);
-		    //print_tri(tri2, tri2->surf->interface);
-		    
 		    ind1 = Tri_order(tri1);
 		    ind2 = Tri_order(tri2);
-		    //tri1 is not in any set.
+		    /* tri1 is not in any set. */
 		    if(ind1 == -1)
 			sect_tris[nstris++] = tri1;
 		    if(ind2 == -1)
@@ -1308,7 +1276,7 @@ EXPORT  int	rect_boxes_from_tangled_tris(
 		    else if(ind1 == -1 && ind2 != -1)
 			Tri_order(tri1) = ind2;
 		    else if(ind1 == -1 && ind2 == -1)
-		    {   //create a new set.
+		    {   /* create a new set. */
 			Tri_order(tri1) = n_set;
 			Tri_order(tri2) = n_set;
 			n_set++;
@@ -1322,11 +1290,11 @@ EXPORT  int	rect_boxes_from_tangled_tris(
 		    }
 		    else if(ind1 != -1 && ind2 != -1)
 		    {
-			//tri1 and tri2 are already in the same set.
+			/* tri1 and tri2 are already in the same set. */
 			if(ind1 == ind2)
 			    continue;
 			
-			//merge two sets, ind1 and ind2.
+			/* merge two sets, ind1 and ind2. */
 			if(ind2 < ind1)
 			{
 			    indtmp = ind2;
@@ -1340,12 +1308,11 @@ EXPORT  int	rect_boxes_from_tangled_tris(
 				Tri_order(sect_tris[k])--;
 			n_set--;
 		    }
-		}    //for j
-	    }    //for i
-	    //DEBUG_TMP printf("#n_set = %d nstris = %d\n", n_set, nstris);
-	}    //for pb
+		}    /* for j */
+	    }    /* for i */
+	}    /* for pb */
 
-	//no tangled tris.
+	/* no tangled tris. */
 	if(n_set == 0)
 	{
 	    DEBUG_LEAVE(rect_boxes_from_tangled_tris)
@@ -1358,7 +1325,7 @@ EXPORT  int	rect_boxes_from_tangled_tris(
 	box = boxes;
 	for(i=0; i<n_set; i++)
 	{
-	    //finding all tris in set i.
+	    /* finding all tris in set i. */
 	    k = 0;
 	    for(j=0; j<nstris; j++)
 	    {
@@ -1366,35 +1333,29 @@ EXPORT  int	rect_boxes_from_tangled_tris(
 		    test_tris[k++] = sect_tris[j];
 	    }
 
-	    //find the bound box of the tangled tris.
+	    /* find the bound box of the tangled tris. */
 	    tris_bound_box(fbox, test_tris, k);
 
-	    //note: bmin and bmax can be out of grid, but it is valid for 
-	    //find_min_sect_box.
+	    /* note: bmin and bmax can be out of grid, but it is valid for 
+	       find_min_sect_box. */
 	    point_in_rect(fbox[0], bmin, grid);
 	    point_in_rect(fbox[1], bmax, grid);
 	
-	    //rect_in_which find the block index, 
-	    //bmax[j]++ will give the edge index. Also, after this step 
-	    //bmax[j] - bmin[j] >= 1
+	    /* rect_in_which find the block index, 
+	       bmax[j]++ will give the edge index. Also, after this step 
+	       bmax[j] - bmin[j] >= 1 */
 	    for(j=0; j<3; j++)
 		bmax[j]++;
 
-	    //move_bound_inside_grid(bmin, grid, 0);
-	    //move_bound_inside_grid(bmax, grid, 1);
+	    /* move_bound_inside_grid(bmin, grid, 0);
+	       move_bound_inside_grid(bmax, grid, 1); */
 	
-	    //DEBUG_TMP print_int_vector("tp bmin", bmin, 3, "\n");
-	    //DEBUG_TMP print_int_vector("tp bmax", bmax, 3, "\n");
-
-	    //make sure bmin and bmax contain test_tris.
+	    /* make sure bmin and bmax contain test_tris. */
 	    find_min_sect_box(bmin, bmax, test_tris, k, grid);
 	
 	    move_bound_inside_grid(bmin, grid, 0);
 	    move_bound_inside_grid(bmax, grid, 1);
 
-	    //DEBUG_TMP print_int_vector("tf bmin", bmin, 3, "\n");
-	    //DEBUG_TMP print_int_vector("tf bmax", bmax, 3, "\n");
-    
 	    if(box == NULL)
 	    {
 		box = prev_box;
@@ -1415,7 +1376,7 @@ EXPORT  int	rect_boxes_from_tangled_tris(
 	if(debugging("tangled_tris_box"))
 	    fclose(file);
 
-	//if n_set != 0 prev_box must have a value.
+	/* if n_set != 0 prev_box must have a value. */
 	prev_box->next = NULL;
 
 	DEBUG_LEAVE(rect_boxes_from_tangled_tris)
@@ -1444,29 +1405,24 @@ EXPORT	boolean	tangled_tris_bound_box(
 	if(nstris == 0)
 	    return NO;
 	
-	//find the bound box of the tangled tris.
+	/* find the bound box of the tangled tris. */
 	tris_bound_box(fbox, sect_tris, nstris);
 
 	rect_in_which(fbox[0], bmin, grid);
 	rect_in_which(fbox[1], bmax, grid);
 	
-	//rect_in_which find the block index, bmax[i]++ will give the edge index.
+	/* rect_in_which find the block index, bmax[i]++ will 
+ 	   give the edge index. */
 	for(i=0; i<3; i++)
 	    bmax[i]++;
 
 	move_bound_inside_grid(bmin, grid, 0);
 	move_bound_inside_grid(bmax, grid, 1);
 	
-	//DEBUG_TMP print_int_vector("tp bmin", bmin, 3, "\n");
-	//DEBUG_TMP print_int_vector("tp bmax", bmax, 3, "\n");
-
 	find_min_sect_box(bmin, bmax, sect_tris, nstris, grid);
 	
 	move_bound_inside_grid(bmin, grid, 0);
 	move_bound_inside_grid(bmax, grid, 1);
-
-	//DEBUG_TMP print_int_vector("tf bmin", bmin, 3, "\n");
-	//DEBUG_TMP print_int_vector("tf bmax", bmax, 3, "\n");
 
 	return YES;
 }
@@ -1486,12 +1442,14 @@ EXPORT	double	get_comm_pt_fac()
 
 #define	MAX_TRI_LISTS	10
 
-//assume the point on the ending of null sides are not boundary points,
-//remove all nbtris Entering remove_tri_from_surface from tri array nbtris .
-//usually, nbtris are the removed tris, tris are the remaining tris. 
-//tris and nbtris can have the same tris. 
-//nbtris == NULL and num_nbtris == NULL will ignore the nbtris.
-//Note: change the order of tris in tris.
+/*
+assume the point on the ending of null sides are not boundary points,
+remove all nbtris Entering remove_tri_from_surface from tri array nbtris .
+usually, nbtris are the removed tris, tris are the remaining tris. 
+tris and nbtris can have the same tris. 
+nbtris == NULL and num_nbtris == NULL will ignore the nbtris.
+Note: change the order of tris in tris.
+*/
 EXPORT	boolean sep_common_point_from_loop(
 	TRI		**tris,
 	int		num_tris,
@@ -1505,11 +1463,9 @@ EXPORT	boolean sep_common_point_from_loop(
 	POINT	*p, *newp;
 	TRI	*tri, *tri_in, **tri_lists[MAX_TRI_LISTS], **ptris;
 	boolean	sep_comm_flag; 
-	//if there are seperated tri_lists, sep_comm_flag will be YES;
+	/* if there are seperated tri_lists, sep_comm_flag will be YES; */
 
 	DEBUG_ENTER(sep_common_point_from_loop)
-
-	//printf("#num_nbtris %p  %p\n", num_nbtris, tris);
 
 	sort_tris_set(tris, num_tris, NULL);
 
@@ -1518,7 +1474,6 @@ EXPORT	boolean sep_common_point_from_loop(
 	for(i=0; i<num_tris; i++)
 	{
 	    tri = tris[i];
-	    //print_tri(tri, intfc);
 	    for(j=0; j<3; j++)
 		sorted(Point_of_tri(tri)[j]) = NO;
 	}
@@ -1531,15 +1486,11 @@ EXPORT	boolean sep_common_point_from_loop(
 	    {
 		p = Point_of_tri(tri_in)[j];
 		
-		//printf("i=%d  tri=%d  j=%d  p=%d  sorted=%d\n", 
-			//i, tri_in, j, p, sorted(p));
-		//print_general_vector("p = ", Coords(p), 3, "\n");
-
 		if(sorted(p))
 		    continue;
 		
-		//only when the point is starting or ending point of a tri, 
-		//we test it
+		/* only when the point is starting or ending point of a tri, 
+		   we test it */
 	        if(!(Tri_on_side(tri_in,j) == NULL || 
 		     Tri_on_side(tri_in,Prev_m3(j)) == NULL))
 		    continue;
@@ -1547,23 +1498,23 @@ EXPORT	boolean sep_common_point_from_loop(
 		sorted(p) = YES;
 	
 		num_tri_lists = 0;
-		//find all the tri lists related to point p
+		/* find all the tri lists related to point p */
 		for(k=0; k<num_tris; k++)
 		{
 		    tri = tris[k];
 
-		    //make sure p is a point of tri.
+		    /* make sure p is a point of tri. */
 		    kt = Vertex_of_point(tri, p);
 		    if(kt == ERROR)
 			continue;
 
-		    //make sure tri is not in the known tri lists.
+		    /* make sure tri is not in the known tri lists. */
 		    for(kt=0; kt<num_tri_lists; kt++)
 		    {
 			if(pointer_is_in_array(tri, tri_lists[kt]))
 			    break;
 		    }
-		    //it is in the known tri lists, try next tri.
+		    /* it is in the known tri lists, try next tri. */
 		    if(kt < num_tri_lists)
 			continue;
 		    if(num_tri_lists == MAX_TRI_LISTS)
@@ -1573,7 +1524,7 @@ EXPORT	boolean sep_common_point_from_loop(
 			clean_up(ERROR);
 		    }
 
-		    //a new tri_list is found, add it to tri_lists.
+		    /* a new tri_list is found, add it to tri_lists. */
 		    nt = set_tri_list_around_point(p, tri, &ptris, intfc);
 		    tri_lists[num_tri_lists] = NULL;
 		    for(kt=0; kt<nt; kt++)
@@ -1583,10 +1534,11 @@ EXPORT	boolean sep_common_point_from_loop(
 			    printf("#common the point list.\n");
 			    print_tri(ptris[kt],intfc);
 			}
-			//storage issue: each point for an ending points of 
-			//a null side. there is a tri list the total number 
-			//of this kind of loop is not large. The storage is 
-			//not a problem. 
+			/*storage issue: each point for an ending points of 
+			  a null side. there is a tri list the total number 
+			  of this kind of loop is not large. The storage is 
+			  not a problem. 
+			*/
 			if(!add_to_pointers(ptris[kt], 
 			   &tri_lists[num_tri_lists]))
 			{
@@ -1600,14 +1552,15 @@ EXPORT	boolean sep_common_point_from_loop(
 		if(num_tri_lists <= 1)
 		    continue;
 
-		//num_tri_lists > 1 means there are more than 1 tri list 
-		//on one point. They will be seperated.
+		/*num_tri_lists > 1 means there are more than 1 tri list 
+		  on one point. They will be seperated.
+		*/
 
 		sep_comm_flag = YES;
-		//DEBUG_TMP printf("#num_tri_lists = %d\n", num_tri_lists);
 		
-		//just ignore the boundary point, 
-		//it will be updated by another proc.
+		/*just ignore the boundary point, 
+		  it will be updated by another proc.
+		*/
 		if(Boundary_point(p))
 		{
 		    printf("#sep_common_point, a boundary point "
@@ -1615,7 +1568,7 @@ EXPORT	boolean sep_common_point_from_loop(
 		    continue;
 		}
 	
-		//remove neighbor tris from neighbor tri list.
+		/* remove neighbor tris from neighbor tri list. */
 		if(nbtris != NULL && n_nbtris > 0)
 		{
 		    for(k=0; k<n_nbtris; k++)
@@ -1624,10 +1577,10 @@ EXPORT	boolean sep_common_point_from_loop(
 			    nbtris[k] = NULL;
 		}
 
-		//seperate the common point.
+		/* seperate the common point. */
 		for(k=0; k<num_tri_lists; k++)
 		{
-		    //make a new point for all tri lists.
+		    /* make a new point for all tri lists. */
 		    newp = copy_point(p);
 		    sorted(newp) = YES;
 		    for(ptris=tri_lists[k]; ptris && *ptris; ptris++)
@@ -1636,17 +1589,13 @@ EXPORT	boolean sep_common_point_from_loop(
 			Point_of_tri(*ptris)[kt] = newp;
 		    }
 		    
-		    //DEBUG_TMP print_general_vector("newp", Coords(newp), 3, "\n");
-		    //DEBUG_TMP printf("k = %d newp=%d\n", k, newp);
-		    
-		    //move the point towards the centroid of all tris.
+		    /* move the point towards the centroid of all tris. */
 		    for(kt=0; kt<3; kt++)
 			tcen[kt] = 0.0;
 		    
 		    for(nt=0, ptris=tri_lists[k]; ptris && *ptris; 
 		    	nt++, ptris++)
 		    {
-		        //print_tri(*ptris, intfc);
 			centroid_of_tri(cen, *ptris);
 			for(kt=0; kt<3; kt++)
 			    tcen[kt] += cen[kt];
@@ -1656,24 +1605,13 @@ EXPORT	boolean sep_common_point_from_loop(
 			    (Coords(newp)[kt] - tcen[kt]/nt)*comm_pt_fac
 			    + tcen[kt]/nt;
 		    
-		    //nt = size_of_pointers(tri_lists[k]);
-		    //centroid_of_tri(cen, ptris[nt/2]);
-		    //for(kt=0; kt<3; kt++)
-		    //    Coords(newp)[kt] = 
-		    //    (Coords(newp)[kt] - cen[kt])*0.5 + cen[kt];
-
 		    for(ptris=tri_lists[k]; ptris && *ptris; ptris++)
 			set_normal_of_tri(*ptris);
 		}
+	    } /* for j, 3 points of a tri. */
+	}  /* for all tris */
 
-		//DEBUG_TMP printf("#sep fin\n");
-
-	    } //for j, 3 points of a tri.
-	}  // for all tris
-
-	//DEBUG_TMP printf("remove from neighbor list.\n");
-
-	//remove deleted neighbor tris
+	/* remove deleted neighbor tris */
 	if(nbtris != NULL && n_nbtris > 0)
 	{
 	    k = 0;
@@ -1684,8 +1622,6 @@ EXPORT	boolean sep_common_point_from_loop(
 		nbtris[k] = nbtris[i];
 		k++;
 	    }
-	    //DEBUG_TMP printf("#neighbor tris of common points are deleted "
-	    	   //DEBUG_TMP "*num_nbtris = %d, k = %d\n", *num_nbtris, k);
 	    *num_nbtris = k;
 	}
 
@@ -1696,8 +1632,9 @@ EXPORT	boolean sep_common_point_from_loop(
 
 boolean	sep_common_edge_from_loop(TRI**,TRI**,int*,POINT**,int,INTERFACE*);
 
-//assume the point on the ending of null sides are not boundary points
-//tris form a loop and it is called after sep_common_point_from_loop.
+/*assume the point on the ending of null sides are not boundary points
+  tris form a loop and it is called after sep_common_point_from_loop.
+*/
 EXPORT	boolean sep_common_edge_from_loop(
 	TRI		**new_tris,
 	TRI		**tris,
@@ -1720,25 +1657,26 @@ EXPORT	boolean sep_common_edge_from_loop(
 	    p = Point_of_tri(tri)[sides[i]];
 
 	    nt = set_tri_list_around_point(p, tri, &ptris, intfc);
-	    //if nt = 1, then tri has two null sides, don't need to consider.
+	    /*if nt = 1, then tri has two null sides, don't need to consider.*/
 	    for(j=0; j<nt-1; j++)
 	    {
 		tri1 = ptris[j];
 		iv = Vertex_of_point(tri1, p);
 		pt = Point_of_tri(tri1)[Prev_m3(iv)];
 		
-		//check if pt is on the null loop.
+		/* check if pt is on the null loop. */
 		for(k=0; k<num_tris; k++)
 		    if(pts[k] == pt)
 			break;
 		if(k == num_tris)
 		    continue;
 		
-		//since nt > 1, tri2 != NULL
+		/* since nt > 1, tri2 != NULL */
 		tri2 = Tri_on_side(tri1, Prev_m3(iv));
 		
-		//check for error cases: pt should not be a point on the null 
-		//loop adjecant to p.
+		/*check for error cases: pt should not be a point on the null 
+		  loop adjecant to p.
+		*/
 		iv = Vertex_of_point(ptris[0], p);
 		if(pt == Point_of_tri(ptris[0])[Next_m3(iv)])
 		{
@@ -1754,14 +1692,14 @@ EXPORT	boolean sep_common_edge_from_loop(
 		    clean_up(ERROR);
 		}
 
-		//seperate tri1 and tri2 on the edge.
+		/* seperate tri1 and tri2 on the edge. */
 		iv1 = Vertex_of_point(tri1, pt);
 		Tri_on_side(tri1, iv1) = NULL;
 		iv2 = Vertex_of_point(tri2, p);
 		Tri_on_side(tri2, iv2) = NULL;
 		
-		//for all tris related to tri1, 
-		//making a new point and assign its new coords.
+		/* for all tris related to tri1, */
+		/* making a new point and assign its new coords.*/
 		pc = Coords(Point_of_tri(tri1)[Prev_m3(iv1)]);
 		for(kt=0; kt<2; kt++)
 		{
@@ -1780,7 +1718,7 @@ EXPORT	boolean sep_common_edge_from_loop(
 		    }
 		}
 	
-		//for all tris related to tri2, ft_assigning its new coords.
+		/* for all tris related to tri2, ft_assigning its new coords. */
 		pc = Coords(Point_of_tri(tri2)[Prev_m3(iv2)]);
 		for(kt=0; kt<2; kt++)
 		{
@@ -1794,30 +1732,32 @@ EXPORT	boolean sep_common_edge_from_loop(
 			set_normal_of_tri(ptris[k]);
 		}
 
-		//after seperating the common edge, two new tris appear
-		//also the null loop will become two loops. Must return
-		//and redo find null loops.
+		/*after seperating the common edge, two new tris appear
+		  also the null loop will become two loops. Must return
+		  and redo find null loops.
+		*/
 		new_tris[0] = tri1;
 		new_tris[1] = tri2;
 		
 		DEBUG_LEAVE(sep_common_edge_from_loop)
 		return YES;
 	    
-	    }	//for j all points on a tri list
-	}	//for i, all points
+	    }	/* for j all points on a tri list */
+	}	/* for i, all points */
 
-	//no common edge is found.
+	/* no common edge is found. */
 	DEBUG_LEAVE(sep_common_edge_from_loop)
 	return NO;
 }
 
 #define	MAX_NEW_TRIS	2000
 
-//before calling this one sep_common_point_from_loop must be called for tris.
-//Tri_index of tris will be modified.
-//Note: if the above condition is satisfied, we can find only one null loop 
-//from one tri. moreover, one triangle belongs to only one null loop.
-//Note: change the order of tris in tris_in.
+/*before calling this one sep_common_point_from_loop must be called for tris.
+  Tri_index of tris will be modified.
+  Note: if the above condition is satisfied, we can find only one null loop 
+  from one tri. moreover, one triangle belongs to only one null loop.
+  Note: change the order of tris in tris_in.
+*/
 EXPORT	int	sep_common_edge_from_tris(
 	TRI		***new_tris,
 	TRI		**tris_in,
@@ -1856,7 +1796,7 @@ EXPORT	int	sep_common_edge_from_tris(
 	    for(i=0; i<num_tris; i++)
 		if(Tri_order(tris[i]) == 0)
 		    break;
-	    // all the triangles are visited and there are no double loops.
+	    /* all the triangles are visited and there are no double loops. */
 	    if(i == num_tris)
 	        break;	
 	    
@@ -1880,7 +1820,7 @@ EXPORT	int	sep_common_edge_from_tris(
 	    if(sep_common_edge_from_loop(new_null_tris, null_tris, 
 	    			null_sides, pts, num_null_tris, intfc))
 	    {
-	    //if the new null side tri is not in tris, insert it in tris
+	    /* if the new null side tri is not in tris, insert it in tris */
 		for(k=0; k<2; k++)
 		{
 		    Tri_order(new_null_tris[k]) = 0;
@@ -1898,13 +1838,13 @@ EXPORT	int	sep_common_edge_from_tris(
 	    }
 	    else
 	    {
-	    //These tris never form double loops, do not test them further.
+	    /* These tris never form double loops, do not test them further. */
 		for(i=0; i<num_null_tris; i++)
 		    Tri_order(null_tris[i]) = 1;
 	    }
 	}
 
-	//returned pointer new_tris is a static point!
+	/* returned pointer new_tris is a static point! */
 	*new_tris = tris;
 	
 	DEBUG_LEAVE(sep_common_edge_from_tris)
@@ -1914,9 +1854,10 @@ EXPORT	int	sep_common_edge_from_tris(
 
 #define	MAX_SIDES_TRIS	100
 
-//find all tris and corresponding sides which have relation with tri.
-//flag == 0 means they have common points.
-//flag == 1 means they have points on another tri.
+/*find all tris and corresponding sides which have relation with tri.
+  flag == 0 means they have common points.
+  flag == 1 means they have points on another tri.
+*/
 LOCAL	int	tris_with_crx_pts(
 	TRI	**tris,
 	int	*sides,
@@ -1973,7 +1914,7 @@ LOCAL	boolean	add_to_tri_pairs(
 	difference(p0, p1, v1, 3);
 	difference(p3, p2, v2, 3);
 	
-	//constraint, the angle between two null sides is not small.
+	/* constraint, the angle between two null sides is not small. */
 	if(angflag && Dot3d(v1,v2) > Mag3d(v1)*Mag3d(v2)*ang_tol)
 	    return NO;
 	
@@ -2026,12 +1967,12 @@ LOCAL  boolean  check_adjecant_constrain(
 		pt = Point_of_tri(tri)[j];
 		ptn = Point_of_tri(tri)[(j+1)%3];
 
-		//(1) adjecant to a null side tri is valid.
+		/* (1) adjecant to a null side tri is valid. */
 		if( ((p0 == pt) && (p2 == ptn)) || ((p3 == pt) && (p1 == ptn)) )
 		    return YES;
 
-		//(2) only the out_side or the in_side have common points with new_tris, 
-		//this constraint can avoid tangled surface.
+		/*(2) only the out_side or the in_side have common points 
+		  with new_tris, this constraint can avoid tangled surface. */
 		if(p0 == pt || p0 == ptn || p1 == pt || p1 == ptn)
 		    status_out = YES;
 		if(p2 == pt || p2 == ptn || p3 == pt || p3 == ptn)
@@ -2061,7 +2002,7 @@ LOCAL	boolean	make_tri_pairs_with_constraint(
 	in_tri = tri_pair->tri2;
 	in_side = tri_pair->side2;
 	
-	//in_tri or out_tri is already connectted, return.
+	/* in_tri or out_tri is already connectted, return. */
 	if(Tri_on_side(out_tri, out_side) != NULL)
 	    return NO;
 	if(Tri_on_side(in_tri, in_side) != NULL)
@@ -2075,13 +2016,13 @@ LOCAL	boolean	make_tri_pairs_with_constraint(
 	p2 = Point_of_tri(in_tri)[in_side];
 	p3 = Point_of_tri(in_tri)[Next_m3(in_side)];
 
-	//logical constraint is voilated, return.
+	/* logical constraint is voilated, return. */
 	if(!check_adjecant_constrain(p0,p1,p2,p3, new_tris, num_new))
 	    return NO;
 
 	if (tri_pair->connect == 0)
 	{
-	    //distance from p1 to p2 is less than that from p0 to p3.
+	    /* distance from p1 to p2 is less than that from p0 to p3. */
 	    new_tri1 = make_tri(p0,p1,p2,NULL,NULL,NULL,NO);
 	    new_tris[num_new++] = new_tri1;
 	    insert_tri_at_tail_of_list(new_tri1,surf);
@@ -2096,7 +2037,7 @@ LOCAL	boolean	make_tri_pairs_with_constraint(
 	}
 	else
 	{
-	    //distance from p0 to p3 is less than that from p1 to p2.
+	    /* distance from p0 to p3 is less than that from p1 to p2. */
 	    new_tri1 = make_tri(p0,p1,p3,NULL,NULL,NULL,NO);
 	    new_tris[num_new++] = new_tri1;
 	    insert_tri_at_tail_of_list(new_tri1,surf);
@@ -2133,7 +2074,7 @@ int compare_tri_pairs(const void *a, const void *b)
 	if(fabs(dist1-dist2) > min_len)
 	    return dist1 < dist2 ? -1 : 1;
 
-	//in_tri is different, compare in_tri
+	/* in_tri is different, compare in_tri */
 	if(c1->tri1 != c2->tri1)
 	{
 	    centroid_of_tri(cen1, c1->tri1);
@@ -2148,7 +2089,7 @@ int compare_tri_pairs(const void *a, const void *b)
 	    return 0;
 	}
 
-	//out_tri is different, compare out_tri
+	/* out_tri is different, compare out_tri */
 	centroid_of_tri(cen1, c1->tri2);
 	centroid_of_tri(cen2, c2->tri2);
 	
@@ -2164,8 +2105,9 @@ int compare_tri_pairs(const void *a, const void *b)
 
 #define	MAX_TRI_PAIRS	2000
 
-//linking the tri pairs in out_tris and in_tris, 
-//considering the crx_tris and the linking conditions.
+/*linking the tri pairs in out_tris and in_tris, 
+  considering the crx_tris and the linking conditions.
+*/
 EXPORT	int	linking_tris_with_pairs(
 	TRI	**new_tris,
 	int	max_tris,
@@ -2184,24 +2126,23 @@ EXPORT	int	linking_tris_with_pairs(
 	boolean		found;
 	double		min_dist;
 
-	//one crx_tris[i] determine only one tri pair.
+	/* one crx_tris[i] determine only one tri pair. */
 	n_pair = 0;
 	for(i=0; i<n_crx; i++)
 	{
 	    tri = crx_tris[i];
 	    
-	    nt_out = tris_with_crx_pts(out_list, out_sides, out_tris, n_out, tri, 0);
+	    nt_out = tris_with_crx_pts(out_list,out_sides,out_tris,n_out,tri,0);
 	    if(nt_out == 0)
 		continue;
 	    
-	    nt_in = tris_with_crx_pts(in_list, in_sides, in_tris, n_in, tri, 1);
+	    nt_in = tris_with_crx_pts(in_list,in_sides,in_tris,n_in,tri,1);
 	    if(nt_in == 0)
 		continue;
 
-	    //DEBUG_TMP printf("crx %d   nt_in = %d  nt_out = %d\n", i, nt_in, nt_out);
-
-	    //one crx_tris[i] will determine only one tris pair which has the 
-	    //smallest dist.
+	    /*one crx_tris[i] will determine only one tris pair which has the 
+	      smallest dist.
+	    */
 	    min_dist = HUGE_VAL;
 	    found = NO;
 	    for(j=0; j<nt_in; j++)
@@ -2230,7 +2171,6 @@ EXPORT	int	linking_tris_with_pairs(
 	    }
 	}
 
-	//DEBUG_TMP printf("n_pair = %d\n", n_pair);
 	if(n_pair == 0)
 	    return 0;
 
@@ -2239,8 +2179,6 @@ EXPORT	int	linking_tris_with_pairs(
 	n_new = 0;
 	for(i=0; i<n_pair; i++)
 	{
-	    //DEBUG_TMP printf("dist = %24.16e \n", tri_pairs[i].dist);
-
 	    make_tri_pairs_with_constraint(&tri_pairs[i], new_tris, &n_new);
 	    if(n_new >= max_tris - 2)
 	    {
@@ -2365,7 +2303,7 @@ EXPORT	int	linking_tris_with_pairs_fix(
 
 #define	MAX_NULL_SIDE_LOOP	2000
 
-//WARN static points are ft_assigned to null_loop.
+/* WARN static points are ft_assigned to null_loop. */
 LOCAL	boolean null_side_tris_loop(
 	NULL_LOOP	*null_loop,
 	TRI		*start,
@@ -2413,7 +2351,7 @@ LOCAL	boolean null_side_tris_loop(
 	    {
 		pts[num_sides] = p = Point_of_tri(next_tri)[Next_m3(side)];
 		
-		//the only way to exit while(1), pts must loop
+		/* the only way to exit while(1), pts must loop */
 		if (p == pts[0]) break;
 		side = next_null_sided_tri(next_tri,p,&next_tri);
 	    }
@@ -2425,7 +2363,7 @@ LOCAL	boolean null_side_tris_loop(
 	    	side = prev_null_sided_tri(next_tri,p,&next_tri);
 	    }
 
-	    //boundary point is not valid.
+	    /* boundary point is not valid. */
 	    if(Boundary_point(p))
 	    {
 		printf("ERROR null_side_tris_loop orient = %d,"
@@ -2433,7 +2371,7 @@ LOCAL	boolean null_side_tris_loop(
 		clean_up(ERROR);
 	    }
 
-	    //next_null_sided_tri or prev_null_sided_tri fail.
+	    /* next_null_sided_tri or prev_null_sided_tri fail. */
 	    if (side == ERROR)
 	    {
 		printf("ERROR null_side_tris_loop orient = %d,"
@@ -2441,7 +2379,7 @@ LOCAL	boolean null_side_tris_loop(
 		clean_up(ERROR);
 	    }
 
-	    //double loop is not valid after sep_common_point.
+	    /* double loop is not valid after sep_common_point. */
 	    for(i=0; i<num_sides; i++)
 	    {
 		if(p != pts[i])
@@ -2454,7 +2392,7 @@ LOCAL	boolean null_side_tris_loop(
 	    }
 	}
 
-	//evaluate the averaged normal
+	/* evaluate the averaged normal */
 	for (j = 0; j < 3; ++j)
 	    normal[j] = 0.0;
 	for (i = 0; i < num_sides; ++i)
@@ -2480,7 +2418,7 @@ LOCAL	boolean null_side_tris_loop(
 
 	DEBUG_LEAVE(null_side_tris_loop)
 	return YES;
-}	// end null_side_tris_loop
+}	/* end null_side_tris_loop */
 
 EXPORT	boolean	seal_degenerated_null_loop(
 	TRI		**seal_tris,
@@ -2509,16 +2447,11 @@ EXPORT	boolean	seal_degenerated_null_loop(
 
 	if (tris[0] == tris[1] && tris[1] == tris[2])
 	{
-	    //DEBUG_TMP printf("#check_deg  a single triangle is removed.\n");
-	    
 	    remove_tri_from_surface(tris[0],surf,NO);
 	}
 	else
 	{
-	    //assume the null loop has POSITIVE_ORIENTATION
-	    
-	    //DEBUG_TMP printf("#check_deg, a hole with 3 null sides is sealed.\n");
-	    
+	    /* assume the null loop has POSITIVE_ORIENTATION */
 	    new_tri = make_tri(pts[0],pts[2],pts[1], NULL,NULL,NULL, NO);
 	    link_neighbor_null_side_tris(new_tri, tris[0]);
 	    link_neighbor_null_side_tris(new_tri, tris[1]);
@@ -2531,9 +2464,10 @@ EXPORT	boolean	seal_degenerated_null_loop(
 
 	return YES;
 }
-//remove null loop which has only one tri, before finishing the lgb, a tri will
-//0, 1, 2, 3 null sides is valid. After finishing lgb, only tris with 0, 3 null
-//sides are valid. 
+/*remove null loop which has only one tri, before finishing the lgb, a tri will
+  0, 1, 2, 3 null sides is valid. After finishing lgb, only tris with 0, 3 null
+  sides are valid. 
+*/
 
 EXPORT	int	remove_single_tri_null_loop(
 	TRI		**tris,
@@ -2555,8 +2489,8 @@ EXPORT	int	remove_single_tri_null_loop(
 		tris[k] = NULL;
 	    else  if(sealed)
 	    {
-		//two or one sides of a tri is NULL, this is impossible.
-		//after sep_common_edge.
+		/*two or one sides of a tri is NULL, this is impossible.
+		  after sep_common_edge. */
 		printf("ERROR remove_single_tri_null_loop, "
 		       "a tri with %d null sides is found.\n", j);
 		clean_up(ERROR);
@@ -2571,9 +2505,6 @@ EXPORT	int	remove_single_tri_null_loop(
 	    tris[k] = tris[i];
 	    k++;
 	}
-	//DEBUG_TMP printf("#remove_single_tri_null_loop, tris number "
-	       //DEBUG_TMP "before %d after %d\n", nt, k);
-	
 	return k;
 }
 
@@ -2596,7 +2527,7 @@ EXPORT	void  seal_null_loop_in_center(
 	n_sides = null_loop->n_sides;
 	pts = null_loop->pts;
 
-	//find the center point
+	/* find the center point */
 	for(j=0; j<3; j++)
 	    avep[j] = 0;
 	for(i=0; i<n_sides; i++)
@@ -2611,13 +2542,10 @@ EXPORT	void  seal_null_loop_in_center(
 	side = null_sides[0];
 	surf = tri->surf;
 
-	//TMP copy the states from the first point, 
-	//otherwise sl, sr will be NULL
+	/*TMP copy the states from the first point, 
+	  otherwise sl, sr will be NULL */
 	midp = copy_point(Point_of_tri(tri)[side]);
 	ft_assign(Coords(midp), avep, 3*FLOAT);
-	
-	//DEBUG_TMP printf("#seal_null_loop_in_center is called. n_sides = %d\n", n_sides);
-	//DEBUG_TMP print_general_vector("avep= ", avep, 3, "\n");
 	
 	for(i=0; i<n_sides; i++)
 	{
@@ -2631,12 +2559,10 @@ EXPORT	void  seal_null_loop_in_center(
 	    seal_tris[*nstris] = new_tri;
 	    (*nstris)++;
 	    
-	    //link with the tri on the loop
+	    /* link with the tri on the loop */
 	    link_neighbor_null_side_tris(new_tri, tri);
 	    
-	    //DEBUG_TMP printf("#seal null %d\n", i);
-
-	    //link with the new tri
+	    /* link with the new tri */
 	    if(i == 0)
 		new_tri1 = new_tri;
 	    else  if(!link_neighbor_null_side_tris(new_tri, prev_tri))
@@ -2650,7 +2576,7 @@ EXPORT	void  seal_null_loop_in_center(
 	    prev_tri = new_tri;
 	}
 
-	//new_tri1 is the first new tri, new_tri is the last new_tri.
+	/* new_tri1 is the first new tri, new_tri is the last new_tri. */
 	if(!link_neighbor_null_side_tris(new_tri, new_tri1))
 	{
 	    printf("ERROR in seal_null_loop_in_center, "
@@ -2685,8 +2611,8 @@ LOCAL	boolean	apply_pt_constraint(
 	d2 = distance_between_positions(Coords(p2), Coords(p0), 3);
 	s = 0.5*(d0 + d1 + d2);
 
-	//p0, p1 and p2 are on a line, moving p2 so that they can
-	//form a triangle.
+	/*p0, p1 and p2 are on a line, moving p2 so that they can
+	  form a triangle. */
 	if(sqrt(s*(s-d0)*(s-d1)*(s-d2)) > tri_area_tol)
 	    return NO;
 
@@ -2737,8 +2663,8 @@ LOCAL	void	seal_null_loop_with_triangulation(
 	{
 	    min_dist = HUGE_VAL;
 
-	    //try to determine from which triangle we begin to 
-	    //seal the null loop
+	    /*try to determine from which triangle we begin to 
+	      seal the null loop */
 	    for (i=0; i<new_num_null_sides; i++)
 	    {
 		base_tri = null_tris[i];
@@ -2759,7 +2685,7 @@ LOCAL	void	seal_null_loop_with_triangulation(
 		}
 	    }
 
-	    //form a triangle
+	    /* form a triangle */
 	    base_tri = null_tris[i_base];
 	    side = null_sides[i_base];
 	    surf = base_tri->surf;
@@ -2782,7 +2708,7 @@ LOCAL	void	seal_null_loop_with_triangulation(
 	    link_neighbor_null_side_tris(new_tri,base_tri);
 	    link_neighbor_null_side_tris(new_tri,in_tri);
 
-	    //when the last triangle loop is sealed, stop.
+	    /* when the last triangle loop is sealed, stop. */
 	    if(new_num_null_sides == 3)
 	    {
 		i_in = (i_in+1)%new_num_null_sides;
@@ -2830,13 +2756,13 @@ EXPORT	void  smooth_null_tris_loop(
 	    clean_up(ERROR);
 	}
 
-	//smooth paramaters.
+	/* smooth paramaters. */
 	stol.cone_ratio = 0.1;
 	stol.max_cos = 0.6;
 	stol.alpha = sqrt(0.65);
 	s = null_tris[0]->surf;
 
-	//Compute the the parameters in each points
+	/* Compute the the parameters in each points */
 	num = 0;
 	for(i=0; i<num_null_sides; i++)
 	{
@@ -2848,17 +2774,16 @@ EXPORT	void  smooth_null_tris_loop(
 	    num++;
 	}
 
-	//DEBUG_TMP printf("#smooth_null  %d\n", num);
-
 	for(i=0; i<num; i++)
 	    compute_point_smooth(&smooth_que[i], &stol, s->interface);
 }
 
 
 
-//find all the null loops in tris and seal them. Also remove degenerated loops
-//from tris. Shoud be called after sep_common_point, otherwise, there will be 
-//errors.
+/*find all the null loops in tris and seal them. Also remove degenerated loops
+  from tris. Shoud be called after sep_common_point, otherwise, there will be 
+  errors.
+*/
 
 EXPORT	int	seal_all_loops_wo_constraint(
 	TRI		**seal_tris,
@@ -2876,14 +2801,13 @@ EXPORT	int	seal_all_loops_wo_constraint(
 	TRI		**new_tris;
 	int		i, j, k, side;
 
-	//(1) find and seal all the null loops in tris.
+	/*(1) find and seal all the null loops in tris. */
 	for(k=0; k<nt; k++)
 	    Tri_order(tris[k]) = 0;
 
 	for(k=0; k<nt; k++)
 	{
 	    tri = tris[k];
-	    //print_tri(tri, intfc);
 
 	    if(Tri_order(tri) == 1)
 		continue;
@@ -2896,7 +2820,7 @@ EXPORT	int	seal_all_loops_wo_constraint(
 		    break;
 		}
 	    
-	    //if no null sides for the tri, the loop is already sealed, 
+	    /*if no null sides for the tri, the loop is already sealed,  */
 	    if(i == 3)
 		continue;
 
@@ -2907,8 +2831,6 @@ EXPORT	int	seal_all_loops_wo_constraint(
 	    for(i=0; i<num_tris; i++)
 		Tri_order(null_tris[i]) = 1;
 		
-	    //DEBUG_TMP printf("CHECK a null loop is found, num_tris = %d\n", num_tris);
-		
 	    if(seal_degenerated_null_loop(seal_tris, nstris, &null_loop))
 		continue;
 	    if(seal_deg)
@@ -2918,11 +2840,11 @@ EXPORT	int	seal_all_loops_wo_constraint(
 	    {
 	    case 0:
 		seal_null_loop_in_center(seal_tris, nstris, &null_loop);
-	    	//after smoothing, both tris and new tris are changed.
+	    	/* after smoothing, both tris and new tris are changed. */
 		smooth_null_tris_loop(&null_loop);
 		break;
 	    case 1:
-	    	//sep_common_edge_from_tris must be called before.
+	    	/*sep_common_edge_from_tris must be called before. */
 		seal_null_loop_with_triangulation(seal_tris, nstris, 
 						 &null_loop);
 		break;
@@ -2933,8 +2855,9 @@ EXPORT	int	seal_all_loops_wo_constraint(
 	    }
 	}
 
-	//(2) check and remove degenerated loops from tris.
-	//if seal_deg is YES, only single null tri is sealed.
+	/*(2) check and remove degenerated loops from tris.
+	  if seal_deg is YES, only single null tri is sealed.
+	*/
 	if(seal_deg)
 	    nt = remove_single_tri_null_loop(tris, nt, NO);
 	else
@@ -2961,20 +2884,18 @@ void	connect_tris(
 	
 	for(i=0; i<nt; i++)
 	{
-	    //printf("i=%d\n", i);
 	    tri = otris[i];
 	    side = osides[i];
 
 	    tri_pair.tri1 = tri;
 	    tri_pair.side1 = side;
 	    tri_pair.tri2 = rtris[i];
-	    //after invert_surface, sides index are changed.
+	    /*after invert_surface, sides index are changed. */
 	    tri_pair.side2 = side_map[rsides[i]];
 	    tri_pair.connect = 0;
 
 	    n_new = 0;
 	    make_tri_pairs_with_constraint(&tri_pair, new_tris, &n_new);
-	    //printf("n_new = %d\n", n_new);
 
 	    p = Point_of_tri(tri)[side];
 	    nt1 = set_tri_list_around_point(p, tri, &ptris, intfc);
@@ -2997,12 +2918,12 @@ boolean	check_two_tris_cond(
 	POINT	*p, *p1;
 	int	i,j,k,m,nt;
 
-	//avoid topological invalid cases
+	/*avoid topological invalid cases */
 	for(i=0; i<3; i++)
 	{
 	    p = Point_of_tri(tri1)[i];
 	    
-	    //test if tri1 and tri2 are already connected.
+	    /* test if tri1 and tri2 are already connected. */
 	    nt = set_tri_list_around_point(p, tri1, &ptris, intfc);
 	    
 	    for(j=0; j<nt; j++)
@@ -3068,7 +2989,7 @@ boolean	connect_tris_holes(
 	tris[0] = tri1;
 	tris[1] = tri2;
 
-	//if tris are already touched or are boundary tris, return
+	/* if tris are already touched or are boundary tris, return */
 	flag = NO;
 	for(j=0; j<2; j++)
 	{
@@ -3109,7 +3030,7 @@ boolean	connect_tris_holes(
 	smin = HUGE_VAL;
 	side = -1;
 
-	//find the min distort configuration between tri1 and tri2
+	/* find the min distort configuration between tri1 and tri2 */
 	for(i=0; i<3; i++)
 	{
 	    s = 0.0;
@@ -3138,7 +3059,7 @@ boolean	connect_tris_holes(
 	    return NO;
 	}
 
-	//if the tri is already touched, return.
+	/* if the tri is already touched, return. */
 	for(j=0; j<2; j++)
 	{
 	    for(i=0; i<3; i++)
@@ -3156,7 +3077,7 @@ boolean	connect_tris_holes(
 	    }
 	}
 	
-	//flag tris
+	/* flag tris */
 	for(j=0; j<2; j++)
 	{
 	    for(i=0; i<3; i++)
@@ -3173,7 +3094,7 @@ boolean	connect_tris_holes(
 	
 	printf("#conn tris\n");
 
-	//construct tri pairs to connect to holes.
+	/* construct tri pairs to connect to holes. */
 	for(i=0; i<3; i++)
 	{
 	    tria = Tri_on_side(tri1, i);
@@ -3181,11 +3102,11 @@ boolean	connect_tris_holes(
 	    trib = Tri_on_side(tri2, (side-i+3)%3);
 	    sideb = neighbor_tri_side(trib, tri2);
 
-	    //do not check the angle
+	    /* do not check the angle */
 	    add_to_tri_pairs(&tri_pairs[i], tria, sidea, trib, sideb, NO);
 	}
 	
-	//remove tri1 and tri2
+	/* remove tri1 and tri2 */
 	remove_tri_from_surface(tri1,tri1->surf,NO);
 	remove_tri_from_surface(tri2,tri2->surf,NO);
 
@@ -3233,7 +3154,7 @@ EXPORT	boolean	check_valid_point(
 
 	ntris = set_tri_list_around_point(p,tri_in,&ptris,intfc);
 
-	//check the number of tri list around a point.
+	/* check the number of tri list around a point. */
 	for(k=0; k<nt; k++)
 	{
 	    tri = tris[k];
@@ -3250,7 +3171,7 @@ EXPORT	boolean	check_valid_point(
 	    }
 	}
 		
-	//check if there are double edge around a point.
+	/* check if there are double edge around a point. */
 	k = Vertex_of_point(ptris[0], p);
 	np = 0;
 	if(Tri_on_side(ptris[0], k) == NULL)
@@ -3319,8 +3240,9 @@ EXPORT	boolean	check_valid_tris(
 	return status;
 }
 
-//WARNNING make sure, use make_interface_topology_lists before calling 
-//this function
+/*WARNNING make sure, use make_interface_topology_lists before calling 
+  this function
+*/
 
 EXPORT	boolean	check_valid_intfc(
 	const char	*msg,
@@ -3370,7 +3292,7 @@ EXPORT	boolean	check_valid_intfc(
 }
 
 
-//Apply Laplacian smooth to a point.
+/* Apply Laplacian smooth to a point. */
 EXPORT	void	compute_point_smooth(
 	SMOOTH_PARA	*smooth_para,
 	SMOOTH_TOL	*stol,

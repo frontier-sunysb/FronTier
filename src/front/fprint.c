@@ -1512,7 +1512,6 @@ EXPORT  void show_front_output(
 	show_front_gd(front,out_name);
 	show_front_xg(front,out_name);
 	show_front_hdf(front,out_name);
-	//show_front_gv(front,out_name);
 	
 	show_front_vtk(front,out_name,print_in_binary);	
 	show_front_sdl(front,out_name);
@@ -3429,7 +3428,7 @@ LOCAL	void gd_plot_var(
         Locstate sl,sr;
 	int count;
 	boolean tracked_interior_point;
-	static *gd_file[10];
+	static FILE *gd_file[10];
 	char *var_name = hdf_movie_var->var_name[ivar];
 	double *var = hdf_movie_var->top_var[ivar];
 	double (*get_state_var)(Locstate) = hdf_movie_var->get_state_var[ivar];

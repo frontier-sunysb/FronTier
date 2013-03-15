@@ -313,7 +313,7 @@ EXPORT	void i_reconstruct_interface_pointers(
 
 	/* Reset addresses in top level arrays */
 
-	//for 3d code nintfc->points = NULL
+	/*for 3d code nintfc->points = NULL */
 	for (pp = nintfc->points; pp && *pp; pp++)
 	{
 		*pp = (POINT *)new_address(nintfc,
@@ -572,8 +572,10 @@ LIB_LOCAL	void i_reconstruct_tri_pointers(
 	t->surf = (SURFACE *)new_address(nintfc,t->surf,ocad,ncad,nchks);
 }		/*end i_reconstruct_tri_pointers*/
 
-//given the address in other processor oaddr and the old trunk starting address ocad, the new trunk 
-//starting address ncad. _new_address will return the address of ocad in the current processor.
+/*	given the address in other processor oaddr and the old trunk 
+ *	starting address ocad, the new trunk starting address ncad. 
+ *	_new_address will return the address of ocad in the current processor.
+*/
 
 EXPORT	POINTER _new_address(
 	INTERFACE	*nintfc,
