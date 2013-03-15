@@ -125,11 +125,6 @@ $$ME/src/util/mkfiles.pl \
 $$ME/src/util/ftrules \
 $$ME/src/util/gasrules \
 $$ME/src/pak/Makefile.in \
-$$ME/src/pak/odepack/Makefile.in \
-$$ME/src/pak/odepack/*.f \
-$$ME/src/pak/odepack/*.c \
-$$ME/src/pak/dierckx/Makefile.in \
-$$ME/src/pak/dierckx/*.f \
 $$ME/src/pak/linpak/Makefile.in \
 $$ME/src/pak/linpak/*.f \
 $$ME/src/pak/blas/Makefile.in \
@@ -239,10 +234,6 @@ $$ME/src/front/*.c \
 $$ME/src/front/*.h \
 $$ME/src/front/Makefile.in \
 $$ME/src/front/README \
-$$ME/src/pak/hypre-1.6.0.tar.gz \
-$$ME/src/pak/sn_ellip/*.C \
-$$ME/src/pak/sn_ellip/*.h \
-$$ME/src/pak/sn_ellip/Makefile.in \
 
 tar:
 	cd ./ && ME=`basename $$PWD` && cd .. && tar -cf "`date +FronTier++.%m_%d_%y.tar`" ${TARFLIST} && \
