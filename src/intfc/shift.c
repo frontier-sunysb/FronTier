@@ -96,7 +96,6 @@ EXPORT INTERFACE *remap_interface(
 		/* Reset boundary flags */
 
 	eps = grid_tolerance(rgr);
-#if defined(ONED)
 	if (new_intfc->dim == 1)
 	{
 	    POINT **pt;
@@ -108,8 +107,6 @@ EXPORT INTERFACE *remap_interface(
 		    set_is_bdry(*pt);
 	    }
 	}
-#endif /* defined(ONED) */
-#if defined(TWOD)
 	if (new_intfc->dim == 2)
 	{
 	    CURVE **c;
@@ -151,8 +148,6 @@ EXPORT INTERFACE *remap_interface(
 		    set_is_bdry(*c);
 	    }
 	}
-#endif /* defined(TWOD) */
-#if defined(THREED)
 	if (new_intfc->dim == 3)
 	{
 	    CURVE   **c;
@@ -236,7 +231,6 @@ EXPORT INTERFACE *remap_interface(
 		    set_is_bdry(*s);
 	    }
 	}
-#endif /* defined(THREED) */
 
 
 	if (DEBUG) (void) printf("Leaving remap_interface()\n\n");

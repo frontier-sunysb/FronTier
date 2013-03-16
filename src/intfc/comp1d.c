@@ -64,7 +64,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *
 */
 
-#if defined(ONED)
 #include <intfc/iloc.h>
 
 	/* LOCAL Function Declarations */
@@ -725,4 +724,3 @@ LOCAL	int	pt_compr(
 #if defined(__cplusplus)
 }
 #endif /* defined(__cplusplus) */
-#endif /* defined(ONED) */

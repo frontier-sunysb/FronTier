@@ -532,7 +532,6 @@ EXPORT	void	f_user_make_interface(
 	fuh = f_user_hook(dim);
 	f_user_interface(intfc) = *fuh;
 	size_of_state(intfc) = size_of_intfc_state;
-	//set_size_of_intfc_state(0);
 }		/*end f_user_make_interface*/
 
 EXPORT  INTERFACE *f_receive_interface(
@@ -2906,9 +2905,9 @@ EXPORT	BOND_TRI *f_link_tri_to_bond(
 	if (debugging("link_tri"))
 	{
 	    BOND *bp,*bn;
+	    BOND_TRI **btris,**bptris,**bntris;
 	    bp = b->prev;
 	    bn = b->next;
-	    BOND_TRI **btris,**bptris,**bntris;
 	    for (btris = Btris(b), bptris = Btris(bp), bntris = Btris(bn);
 		btris && *btris; btris++,bptris++,bntris++)
 	    {

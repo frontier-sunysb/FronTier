@@ -35,7 +35,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *        TODO:  merge this file with corresponding trigrid code.
 */
 
-#if defined(THREED)
 #include <intfc/iloc.h>
 
 /* LOCAL Function Declarations */
@@ -2498,4 +2497,3 @@ LOCAL double value_z(
 	return z;
 }                /*end value_z*/
 
-#endif /* defined(THREED) */

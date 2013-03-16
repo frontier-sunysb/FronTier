@@ -7,7 +7,6 @@
 *
 */
 
-#if defined(THREED)
 
 #include <intfc/int.h>
 
@@ -6839,4 +6838,3 @@ LOCAL	int is_positive_curve(
 }	/* end is_positive_curve */
 
 
-#endif /* defined(THREED) */

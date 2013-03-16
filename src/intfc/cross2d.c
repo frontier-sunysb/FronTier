@@ -38,7 +38,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
-#if defined(TWOD)
 #include <intfc/iloc.h>
 
 	/* LOCAL Function Declarations */
@@ -929,4 +928,3 @@ LOCAL	double distance_between_points_on_curve(
 	return dist;
 }		/*end distance_between_points_on_curve*/
 
-#endif /* defined(TWOD) */

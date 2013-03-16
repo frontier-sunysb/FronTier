@@ -32,7 +32,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-#if defined(TWOD)
 #define DEBUG_STRING    "setb2d"
 #include <intfc/iloc.h>
 
@@ -713,4 +712,3 @@ LOCAL	void	print_bpoint(
 	(void) printf("dist = %15.12g\n",bpoint->dist);
 	print_bdry_side("side = ",bpoint->side,"\n");
 }		/*end print_bpoint*/
-#endif /* defined(TWOD) */

@@ -69,10 +69,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 LOCAL	void	check_component(INTERFACE*);
 LOCAL	void	start_up(int,char**,INIT_DATA*);
-#if defined(ONED)
 LOCAL	void	test1d(void);
-#endif /* defined(ONED) */
-#if defined(TWOD)
 LOCAL	void test2d(void);
 LOCAL	void untangle_and_delete_loops(INTERFACE*, CROSS*);
 LOCAL	void check_delete_degenerate_node(INTERFACE*);
@@ -94,8 +91,6 @@ LOCAL 	int shear_motion_vel(POINTER,double*,double*);
 LOCAL 	int sine_motion_vel(POINTER,double*,double*);
 LOCAL 	double max_front_speed(RECT_GRID,int (*vfunc)(POINTER,double*,double*),
 			POINTER);
-#endif /* defined(TWOD) */
-#if defined(THREED)
 LOCAL	void test3d(void);
 LOCAL 	INTERFACE *make_plane_interface(RECT_GRID*);
 LOCAL 	INTERFACE *make_ellipsoid_interface(RECT_GRID*);
@@ -107,7 +102,6 @@ LOCAL   INTERFACE *make_temp_comp3_interface(RECT_GRID*);
 LOCAL	double hyperboloid_func(POINTER,double*);
 LOCAL	double paraboloid_func(POINTER,double*);
 LOCAL	double random_pert_func(POINTER,double*);
-#endif /* defined(THREED) */
 
 
 
@@ -118,13 +112,9 @@ int main(int argc, char **argv)
 	start_up(argc,argv,init_data(&Init));
 	set_binary_output(NO);
 
-#if defined(ONED) && !defined(TWOD) && !defined(THREED)
 	dim = 1;
-#elif defined(TWOD) && !defined(ONED) && !defined(THREED)
 	dim = 2;
-#elif defined(THREED) && !defined(ONED) && !defined(TWOD)
 	dim = 3;
-#endif /* defined(ONED) && !defined(TWOD) && !defined(THREED) */
 
 	if (dim == ERROR)
 	{
@@ -134,21 +124,15 @@ int main(int argc, char **argv)
 
 	switch (dim)
 	{
-#if defined(ONED)
 	case 1:
 	    test1d();
 	    break;
-#endif /* defined(ONED) */
-#if defined(TWOD)
 	case 2:
 	    test2d();
 	    break;
-#endif /* defined(TWOD) */
-#if defined(THREED)
 	case 3:
 	    test3d();
 	    break;
-#endif /* defined(THREED) */
 	}
 	clean_up(0);
 	return 0;
@@ -209,7 +193,6 @@ LOCAL void check_component(INTERFACE *intfc)
 	(void) printf("\n\n");
 }
 
-#if defined(ONED)
 LOCAL	void	test1d(void)
 {
 	INTERFACE  *intfc, *new_intfc;
@@ -243,9 +226,7 @@ LOCAL	void	test1d(void)
 	new_intfc = copy_interface(intfc);
 	print_interface(new_intfc);
 }
-#endif /* defined(ONED) */
 
-#if defined(TWOD)
 LOCAL	void test2d(void)
 {
 	int i;
@@ -887,9 +868,7 @@ LOCAL double max_front_speed(
 	}
 	return max_speed;
 }	/* end max_front_speed */
-#endif /* defined(TWOD) */
 
-#if defined(THREED)
 
 LOCAL	void test3d(void)
 {
@@ -1246,5 +1225,4 @@ LOCAL	double random_pert_func(
 	return coords[2] - z;
 }	/* end random_pert_func */
 
-#endif /* defined(THREED) */
 

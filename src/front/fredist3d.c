@@ -259,12 +259,10 @@ EXPORT  void    detect_and_move_points(
 	if (!(first_tri(s)))
 	    return;
 
-	//smooth paramaters.
-	stol.cone_ratio = 0.24;  // h/r = 1.5
-	//stol.cone_ratio = 0.2;  // h/r = 1.5
-	stol.max_cos = 0.939;      //20 deg
-	//stol.max_cos = 0.7;      //20 deg
-	stol.alpha = sqrt(0.25);  //0.65 prev
+	/* smooth paramaters. */
+	stol.cone_ratio = 0.24;  /* h/r = 1.5 */
+	stol.max_cos = 0.939;    /* 20 deg */
+	stol.alpha = sqrt(0.25); /* 0.65 prev */
 
 	for (tri=first_tri(s); !at_end_of_tri_list(tri,s); tri=tri->next)
 	{
@@ -275,7 +273,7 @@ EXPORT  void    detect_and_move_points(
 	}
 
 	num = 0;
-	//Compute the the parameters in each points
+	/* Compute the the parameters in each points */
 	for (tri=first_tri(s); !at_end_of_tri_list(tri,s); tri=tri->next)
 	{
 	    for (i = 0; i < 3; i++)
@@ -300,7 +298,7 @@ EXPORT  void    detect_and_move_points(
 	if(num > 0)
 	    s->interface->modified = YES;
 	
-	//Apply Laplacian smooth
+	/* Apply Laplacian smooth */
 	for(i=0; i<num; i++)
 	    compute_point_smooth(&smooth_que[i], &stol, s->interface);
 
@@ -308,7 +306,7 @@ EXPORT  void    detect_and_move_points(
 
 #define	MAX_CURVE_PTS	2000
 
-//must be called after sep_common_pt_for_open_bdry is called
+/* must be called after sep_common_pt_for_open_bdry is called */
 
 EXPORT  void	smooth_curve(
 	CURVE	*c,
@@ -391,7 +389,7 @@ int	collect_bdry_tris(
 		pc1 = Coords(p1)[dir];
 		pm = nor==0 ? min3(pc0,pc1,pm) : max3(pc0,pc1,pm);
 
-		//the null side should be outside the plane.
+		/* the null side should be outside the plane. */
 		if(nor==0 && (pc0>plane || pc1>plane))
 		    continue;
 		if(nor==1 && (pc0<plane || pc1<plane))
@@ -449,7 +447,7 @@ boolean	connect_reflect_surface(
 
 	printf("#reflect bf  %d %24.15e\n", nt, pm);
 
-	//reflect rs wrt pm, do not reflect states
+	/* reflect rs wrt pm, do not reflect states */
 	for(t = first_tri(rs); !at_end_of_tri_list(t,rs); t = t->next)
 	{
 	    for(i=0; i<3; i++)
@@ -472,7 +470,7 @@ boolean	connect_reflect_surface(
 	}
 	invert_surface(rs);
 
-	//adjoin the reflected surface.
+	/* adjoin the reflected surface. */
 	last_tri(os)->next = first_tri(rs);
 	first_tri(rs)->prev = last_tri(os);
 	link_tri_list_to_surface(first_tri(os),last_tri(rs),os);
@@ -528,8 +526,9 @@ void	reflect_extend_intfc(
 	dir = 2;
 	nor = 0;
 	
-	//for nor==0 case ONLY, pm: the global min coords in direction dir,
-	//plane: the global min reflect plane.
+	/*for nor==0 case ONLY, pm: the global min coords in direction dir,
+	  plane: the global min reflect plane.
+	*/
 	pm = intfc_bdry_coord(dir,nor,intfc);
 	pp_global_min(&pm, 1L);
 	printf("#pm %24.15e\n", pm);
@@ -538,7 +537,7 @@ void	reflect_extend_intfc(
 	pp_global_min(&plane, 1L);
 	printf("#plane %24.15e\n", plane);
 
-	//no curve formed.
+	/*no curve formed. */
 	if((nor==0 && pm > plane) || (nor==1 && pm < plane))
 	{
 	    DEBUG_LEAVE(reflect_extend_intfc)
@@ -552,11 +551,12 @@ void	reflect_extend_intfc(
 	remove_from_debug("sep_for_open");
 
 	printf("#ref enter %24.15e %24.15e\n", pm, plane);
-	//the reflect plane.
+	/*the reflect plane. */
 	pm = nor == 0 ? pm - ref_shift*h[dir] : pm + ref_shift*h[dir];
 	
-	//null sides outside plane should be connectted with the reflected 
-	//surface.
+	/*null sides outside plane should be connectted with the reflected 
+	  surface.
+	*/
 	if(rect_boundary_type(intfc, dir, nor) == OPEN_BOUNDARY)
 	{
 	    for(s=intfc->surfaces; s && *s; s++)
@@ -632,7 +632,7 @@ EXPORT	void	set_increased_buffer_grid(
 		      rgr->gmax,gr->dim,&gr->Remap,rgr);
 }
 
-//ref:  clip_intfc_at_grid_bdry1 for 4
+/* ref:  clip_intfc_at_grid_bdry1 for 4 */
 EXPORT	void	set_increased_open_bdry_grid(
 	RECT_GRID       *rgr,
 	const RECT_GRID *gr,
@@ -775,10 +775,11 @@ EXPORT int smooth_redistribute(
 		if(i != num_iter-1)
 		    Interface_redistributed(fr) = NO;
 		
-		//There are two cases, 
-		//    1. redistribute_surface fails for one proc, intfc is ok,
-		//    2. the scatter_front in surface_redistribute fails, 
-		//    intfc is changed and is not consistent.
+		/*There are two cases, 
+		      1. redistribute_surface fails for one proc, intfc is ok,
+		      2. the scatter_front in surface_redistribute fails, 
+		      intfc is changed and is not consistent.
+		*/
 	    	if (status == FUNCTION_FAILED)
 		{
 		    printf("WARNING in redistribute3d, Surface_redistribute "
@@ -796,7 +797,6 @@ EXPORT int smooth_redistribute(
 		    clean_up(0);
 	    }
 
-	    //remove_from_debug("pt_surface");
 	    if(debugging("pt_surface"))
 		clean_up(0);
 	    
@@ -1218,7 +1218,7 @@ EXPORT boolean surface_redistribute(
 
 	DEBUG_ENTER(surface_redistribute)
 
-		// Check on redistribution conditions
+	/* Check on redistribution conditions */
 
 	if (*force_redist)
 	{
@@ -1236,7 +1236,7 @@ EXPORT boolean surface_redistribute(
 	}
 	++Redistribution_count(fr);
 
-		// Redistribute vector surfaces
+	/* Redistribute vector surfaces */
 	
 	set_size_of_intfc_state(size_of_state(fr->interf));
 	set_copy_intfc_states(YES);
@@ -1261,12 +1261,14 @@ EXPORT boolean surface_redistribute(
 	    sav_c_gr = Computational_grid(intfc);
 	    sav_t_gr = topological_grid(intfc);
 	    
-	    //use a large grid, scatter_front will construct a large 
-	    //buffer for intfc.
+	    /*use a large grid, scatter_front will construct a large 
+	      buffer for intfc.
+	    */
 	    change_buffer_for_intfc(intfc);
 	   
-	    //after changing the grid, do not comm component because component3d 
-	    //will be called and make_tri_lists is needed.
+	    /*after changing the grid, do not comm component because 
+	      component3d will be called and make_tri_lists is needed.
+	    */
 	    status = scatter_front(fr);
 	    
 	    sav_fr_gr = fr->rect_grid;
@@ -1306,7 +1308,7 @@ EXPORT boolean surface_redistribute(
 	    }
 	}
 	
-	//insert_point_in_tri_side fails or delete_min_side_of_tri fails.
+	/* insert_point_in_tri_side fails or delete_min_side_of_tri fails. */
 	if(status == NO)
 	{
 	    printf("WARNING after #surface_redistribute, i"
@@ -1323,7 +1325,7 @@ EXPORT boolean surface_redistribute(
 
 	if(is_use_bd_dist())
 	{
-	    //recover the previous grid.
+	    /* recover the previous grid. */
 	    fr->rect_grid = sav_fr_gr;
 	    Computational_grid(intfc) = sav_c_gr;
 	    topological_grid(intfc) = sav_t_gr;
@@ -1378,7 +1380,7 @@ LOCAL	double	max_sqr_area;	/* maximum triangle area	*/
 LOCAL	double	min_sqr_area;	/* minimum triangle area	*/
 LOCAL	double	max_sqr_length; /* maximun triangle side length */
 LOCAL	double	aspect_tol2;	/* square of aspect ratio tolerance */
-LOCAL   double	min_sqr_norm;   //min sqr area of a tri
+LOCAL   double	min_sqr_norm;   /* min sqr area of a tri */
 
 double   Min_sqr_norm(RECT_GRID *gr)
 {
@@ -1438,7 +1440,7 @@ LOCAL POINTER_Q *alloc_and_add_to_queue(
 	ts->sqr_norm = Dot3d(nor,nor);
 
 	centroid_of_tri(cen, t);
-	// a distant for further check, should be shift invariant
+	/* a distant for further check, should be shift invariant */
 	ts->dist = 0.0;
 	ts->bd_dist = HUGE_VAL;
 	for(i=0; i<3; i++)
@@ -1501,13 +1503,6 @@ LOCAL  void  tecplot_tri_queue(
 		fprintf(file,"%-9g %-9g %-9g\n",Coords(p)[0],
 				 Coords(p)[1],Coords(p)[2]);
 		
-		if(distance_between_positions(Coords(Point_of_tri(tri)[i]), pt, 3)<0.05  || 
-		   distance_between_positions(Coords(Point_of_tri(tri)[i]), pt1, 3)<0.05 )
-		{
-		        //printf("#de tri sort  k = %d\n", k);
-			//printf("sqr_norm = %24.16e, dist = %24.16e\n", t_surf->sqr_norm, t_surf->dist);
-			//print_tri(tri, t_surf->surf->interface);
-		}
 	    }
 	    k++;
 	    q = q->next;
@@ -1615,9 +1610,6 @@ boolean	is_use_bd_dist()
 	return use_bd_dist;
 }
 
-//boolean	tri_inflow_side(TRI*);
-//boolean	tri_in_nozzle(TRI*);
-
 LOCAL  boolean redistribute_surface(
 	SURFACE		*s,
 	Front		*fr)
@@ -1643,7 +1635,7 @@ LOCAL  boolean redistribute_surface(
 	dim = intfc->dim;
 	gr = fr->rect_grid;
 	
-	//set the tolerance for tri_status
+	/* set the tolerance for tri_status */
 	wc = wave_type(s)< FIRST_VECTOR_PHYSICS_WAVE_TYPE ?
 				GENERAL_WAVE : VECTOR_WAVE;
 	max_sqr_area = Max_tri_sqr_area(fr,wc);
@@ -1716,7 +1708,7 @@ LOCAL  boolean redistribute_surface(
 	    
 	    nside = find_scaled_extrem_edge(tri,gr,LONGEST);
 	    
-	    //deal with ref strip
+	    /* deal with ref strip */
 	    nside1 = tri_on_ref_bdry(tri, intfc);
 	    if(nside1 >= 0)
 	    {
@@ -1739,10 +1731,7 @@ LOCAL  boolean redistribute_surface(
 	    if(is_tri_in_queue(oppt,delete_queue))
 		delete_queue = dequeue(oppt,delete_queue);
 
-	    //if(skip_bdry_tri(oppt) || skip_bdry_tri(tri))
-		//continue;
-
-	    // find and make tri side mid point
+	    /* find and make tri side mid point */
 	    for(i = 0; i < dim; ++i)
 		coords[i] = 0.5*(Coords(Point_of_tri(tri)[nside])[i] +
 		                 Coords(Point_of_tri(tri)[Next_m3(nside)])[i]);
@@ -1772,7 +1761,6 @@ LOCAL  boolean redistribute_surface(
 	    tri = Tri_of_q(delete_queue);
 
 	    nside = find_scaled_extrem_edge(tri,gr,SHORTEST);
-	    //add_to_debug("delete_dup");
 		
 	    delete_queue = dequeue(tri, delete_queue);
 
@@ -1788,8 +1776,8 @@ LOCAL  boolean redistribute_surface(
 	return status;
 }		/*end redistribute_surface*/
 
-//return number of small tris
-//-1 function fails
+/*return number of small tris */
+/*-1 function fails */
 LOCAL  int delete_zero_area_tri(
 	SURFACE		*s,
 	Front		*fr)
@@ -1811,7 +1799,7 @@ LOCAL  int delete_zero_area_tri(
 	intfc = s->interface;
 	gr = fr->rect_grid;
 
-	//min tri area tol
+	/* min tri area tol */
 	tol = min3(gr->h[0],gr->h[1],gr->h[2]);
 	tol = tol*tol*1.0e-8;
 	
@@ -1838,9 +1826,6 @@ LOCAL  int delete_zero_area_tri(
 	    DEBUG_ENTER(delete_zero_area_tri)
 	    return 0;
 	}
-
-	//triangles are small, do not sort
-	//sort_pointer_queue(delete_queue,intfc,SHORTEST);
 
 	printf("#zdelete redist\n");
 	while (delete_queue)
@@ -1891,7 +1876,6 @@ void	delete_zero_tris(Front *fr)
 			printf("ERROR delete_zero_tris, too many small tris "
 				"or boundary tri has 0 area.\n");
 			break;
-			//clean_up(ERROR);
 		    }
 		}
 	    }
@@ -2025,7 +2009,7 @@ void	seal_null_loop(TRI**,int*,POINT**,int);
 LOCAL	boolean	is_critical_tri(TRI *, int);
 
 
-//COND: there should be no boundary point in the bound of tris
+/* COND: there should be no boundary point in the bound of tris */
 EXPORT	int	remove_tris_and_seal(
 	TRI		**new_tris,
 	TRI		**tris,
@@ -2041,7 +2025,7 @@ EXPORT	int	remove_tris_and_seal(
 	
 	num_out_tris = bound_tris_set(out_tris, tris, nt);
 
-	//tris are already dequeue in delete_min_side_of_tri
+	/* tris are already dequeue in delete_min_side_of_tri */
 	for(i=0; i<nt; i++)
 	    remove_tri_from_surface(tris[i], s, NO);
 	    
@@ -2053,13 +2037,14 @@ EXPORT	int	remove_tris_and_seal(
 
 	sep_common_point_from_loop(out_tris, num_out_tris, NULL, NULL, intfc);
 	
-	//new null side tris can be added into out_tris
+	/* new null side tris can be added into out_tris */
 	num_out_tris = sep_common_edge_from_tris(&new_out_tris, 
 				out_tris, num_out_tris, intfc);
 
-	//since a smooth_null_loop is applied above, the positions of 
-	//3 vertics of a tri is changed, all the bound tris should be 
-	//removed from the que.
+	/*since a smooth_null_loop is applied above, the positions of 
+	  3 vertics of a tri is changed, all the bound tris should be 
+	  removed from the que.
+	*/
 	
 	for(i=0; i<num_out_tris; i++)
 	    *pq = dequeue(new_out_tris[i], *pq);
@@ -2985,7 +2970,7 @@ LOCAL void    cal_surface_area(
                    {
                         t = Tri_on_side(tri,j);
 
-                        //new triangle is found, add it to the array
+                        /* new triangle is found, add it to the array */
                         if(Tri_order(t) == 0)
                         {
                             tri_arr[num] = t;

@@ -33,7 +33,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *       Contains the routine i_intersections3d() and its support routines.
 */
 
-#if defined(THREED)
 #define DEBUG_STRING "isect3d"
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -2227,4 +2226,3 @@ LOCAL	void	show_crossing_tris(
 	                                  pBLUE,0.0,0,0);
 	(void) printf("\n");
 }		/*end show_crossing_tris*/
-#endif /* defined(THREED) */

@@ -187,14 +187,12 @@ EXPORT	void coords_on_ellips(
 	    er[1] = sin(theta[0]);
 	    r = 1.0/hypot(er[0]/rad[0],er[1]/rad[1]);
 	    break;
-#if defined(THREED)
 	case 3:
 	    er[0] = cos(theta[0])*sin(theta[1]);
 	    er[1] = sin(theta[0])*sin(theta[1]);
 	    er[2] = cos(theta[1]);
 	    r = 1.0/sqrt(sqr(er[0]/rad[0])+sqr(er[1]/rad[1])+sqr(er[2]/rad[2]));
 	    break;
-#endif /* defined(THREED) */
 	default:
 	    r = ERROR_FLOAT;
 	    screen("ERROR in coords_on_ellips(), "

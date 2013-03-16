@@ -44,7 +44,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *	For a more detailed documentation, see the file comp.c.
 */
 
-#if defined(THREED)
 
 #define DEBUG_STRING    "comp3d"
 
@@ -4302,4 +4301,3 @@ LOCAL double shortest_2line_dist_dir(
 
         return d;
 }       /* end shortest_2line_dist_dir */
-#endif /* defined(THREED) */

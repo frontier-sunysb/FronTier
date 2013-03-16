@@ -1,7 +1,6 @@
-#ifdef IMESH
+#if defined(IMESH)
 
 #include <intfc/int.h>
-
 
 struct iBase_Error FT_last_error;
 
@@ -3152,5 +3151,4 @@ iBase_EntityHandle entityOfTri(TRI *t)
 	entity->topo = iMesh_TRIANGLE;
 	return (iBase_EntityHandle)entity;
 }	/* end entityOfTri */
-
 #endif /*def IMESH*/

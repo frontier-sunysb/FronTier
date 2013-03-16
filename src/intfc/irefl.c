@@ -37,7 +37,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 LOCAL	void	reflect_coords(double*,double*,double*,int);
 
-#if defined(ONED)
 /*ARGSUSED*/
 LIB_LOCAL	void	i_reflect_interface1d(
 	INTERFACE*	intfc,	/* interface to be reflected */
@@ -86,10 +85,8 @@ LIB_LOCAL	void	i_reflect_interface1d(
 	        positive_component(pt[np-1]) = new_component(UNUSED_COMP);
 	}
 }		/*end i_reflect_interface1d*/
-#endif /* defined(ONED) */
 
 
-#if defined(TWOD)
 LIB_LOCAL	void	i_reflect_interface2d(
 	INTERFACE*	intfc,	/* interface to be reflected */
 	double*		p,	/* point on reflection plane */
@@ -103,9 +100,7 @@ LIB_LOCAL	void	i_reflect_interface2d(
 	for (c = intfc->curves; c && *c; ++c)
 	    reflect_curve(*c,p,nor);
 }		/*end i_reflect_interface2d*/
-#endif /* defined(TWOD) */
 
-#if defined(THREED)
 LIB_LOCAL	void	i_reflect_interface3d(
 	INTERFACE*	intfc,	/* interface to be reflected */
 	double*		p,	/* point on reflection plane */
@@ -119,7 +114,6 @@ LIB_LOCAL	void	i_reflect_interface3d(
         for (s = intfc->surfaces; s && *s; ++s)
             reflect_surface(*s,p,nor);
 }		/*end i_reflect_interface3d*/
-#endif /* defined(THREED) */
 
 
 EXPORT	void	i_reflect_node(
@@ -148,7 +142,6 @@ EXPORT	void	i_reflect_curve(
 	reverse_curve(curve);
 }		/*end i_reflect_curve*/
 
-#if defined(THREED)
 /*ARGSUSED*/
 EXPORT	void	i_reflect_surface(
 	SURFACE*	s,/* surface to be reflected */
@@ -187,7 +180,6 @@ EXPORT	void	i_reflect_surface(
 
         }
 }		/*end i_reflect_surface*/
-#endif /* defined(THREED) */
 
 EXPORT	void	i_reflect_point(
 	POINT		*pt,

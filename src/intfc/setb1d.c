@@ -32,7 +32,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-#if defined(ONED)
 #define DEBUG_STRING    "setb1d"
 #include <intfc/iloc.h>
 
@@ -151,4 +150,3 @@ EXPORT boolean i_set_boundary1d(
 }		/*end i_set_boundary1d*/
 
 
-#endif /* defined(ONED) */
