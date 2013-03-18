@@ -361,8 +361,6 @@ EXPORT void init_front(
 
 	Clear_redistribution_parameters(front);
 	front->redis_flag = NO;
-	front->dismin = front->dismax = front->distance = 0.0;
-        front->hmin_fre = front->hmax_fre = 0.0;
 	if (restart_io_type(init) != NULL)
 	    read_print_front(init,front);
 

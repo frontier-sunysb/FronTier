@@ -52,6 +52,12 @@ EXPORT	void FT_Propagate(
 	double dt_frac;
 	Front *newfront;
 
+	if (debugging("trace"))
+	{
+	    (void) printf("Entering FT_Propagate()\n");
+	    front->max_scaled_propagation = 0.0;
+	    front->max_prop_point = NULL;
+	}
 	if (front->grid_intfc == NULL)
 	    FT_MakeGridIntfc(front);
 	FrontAdvance(front->dt,&dt_frac,front,&newfront,
@@ -60,6 +66,8 @@ EXPORT	void FT_Propagate(
 	    FT_FreeGridIntfc(front);
         assign_interface_and_free_front(front,newfront);
 	FT_MakeGridIntfc(front);
+	if (debugging("trace"))
+	    (void) printf("Leaving FT_Propagate()\n");
 }	/* end FT_Propagate */
 
 EXPORT	void FT_Propagate2(

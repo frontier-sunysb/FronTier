@@ -183,7 +183,7 @@ void PETSc::SetMaxIter(int val)
 	
 	KSPGetTolerances(ksp, &rtol, &atol, &dtol, &maxits);
 	ierr = KSPSetTolerances(ksp, rtol, atol, dtol, val);
-}
+}	/* end SetMaxIter */
 
 void PETSc::SetTol(double val)
 {
@@ -202,12 +202,12 @@ void PETSc::SetKDim(int val)
 void PETSc::GetNumIterations(PetscInt *num_iterations)
 {
 	KSPGetIterationNumber(ksp,num_iterations);        
-}
+}	/* end GetNumIterations */
 
 void PETSc::GetFinalRelativeResidualNorm(double *rel_resid_norm)
 {
 	KSPGetResidualNorm(ksp,rel_resid_norm);
-}
+}	/* end GetFinalRelativeResidualNorm */
 
 void PETSc::Solve_GMRES(void)
 {
@@ -227,9 +227,6 @@ void PETSc::Solve_GMRES(void)
         KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN);
 	KSPSetType(ksp,KSPGMRES);
 
-	//KSPGetPC(ksp, &pc);
-	//PCSetType(pc, PCJACOBI);
-
         KSPSetFromOptions(ksp);
         KSPSetUp(ksp);
 
@@ -237,9 +234,14 @@ void PETSc::Solve_GMRES(void)
         KSPSolve(ksp,b,x);
 	stop_clock("KSPSolve");
 
-}
+}	/* end Solve_GMRES */
 
 void PETSc::Solve(void)
+{
+	Solve_GMRES();
+}	/* end Solve */
+
+void PETSc::Solve_BCGSL(void)
 {
         
         start_clock("Assemble matrix and vector");
@@ -257,9 +259,6 @@ void PETSc::Solve(void)
         KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN);
         KSPSetType(ksp,KSPBCGSL);
 	KSPBCGSLSetEll(ksp,2);
-
-	//KSPGetPC(ksp, &pc);
-	//PCSetType(pc, PCJACOBI);
 
         KSPSetFromOptions(ksp);
         KSPSetUp(ksp);
@@ -290,16 +289,19 @@ void PETSc::Solve_withPureNeumann_GMRES(void)
         
 	KSPSetType(ksp,KSPGMRES);
 
-	//KSPGetPC(ksp, &pc);
-	//PCSetType(pc, PCASM);
         KSPSetFromOptions(ksp);
         KSPSetUp(ksp);
 	start_clock("Petsc Solve in pure neumann solver");
         KSPSolve(ksp,b,x);
 	stop_clock("Petsc Solve in pure neumann solver");
-}
+}	/* end Solve_withPureNeumann_GMRES */
 
 void PETSc::Solve_withPureNeumann(void)
+{
+	Solve_withPureNeumann_GMRES();
+}	/* end Solve_withPureNeumann */
+
+void PETSc::Solve_withPureNeumann_BCGSL(void)
 {
 	ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
   	ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
@@ -316,42 +318,34 @@ void PETSc::Solve_withPureNeumann(void)
 	
         KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN);
         
-	//KSPSetType(ksp,KSPMINRES);
-	//KSPSetType(ksp,KSPGMRES);
-	//KSPSetType(ksp,KSPBCGS);
 	KSPSetType(ksp,KSPBCGSL);
 	KSPBCGSLSetEll(ksp,2);
 
-	//KSPGetPC(ksp, &pc);
-	//PCSetType(pc, PCASM);
-	//PCSetType(pc, PCMG);
-	//PCMGSetLevels(pc, 3, &PETSC_COMM_WORLD);
-	//PCMGSetType(pc,PC_MG_MULTIPLICATIVE);
-	//PCMGSetCycleType(pc,PC_MG_CYCLE_V);
-	//
         KSPSetFromOptions(ksp);
         KSPSetUp(ksp);
 
 	start_clock("Petsc Solve in pure neumann solver");
         KSPSolve(ksp,b,x);
 	stop_clock("Petsc Solve in pure neumann solver");
-}
+}	/* end Solve_withPureNeumann_BCGSL */
 
 void PETSc::Print_A(const char *filename)
 {
         ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
         ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
-	PetscViewerSetFormat(PETSC_VIEWER_STDOUT_WORLD,PETSC_VIEWER_ASCII_MATLAB);
+	PetscViewerSetFormat(PETSC_VIEWER_STDOUT_WORLD,
+			PETSC_VIEWER_ASCII_MATLAB);
         MatView(A, PETSC_VIEWER_STDOUT_WORLD);
-}
+}	/* end Print_A */
 
 void PETSc::Print_b(const char *filename)
 {
         ierr = VecAssemblyBegin(b);
         ierr = VecAssemblyEnd(b);
-	PetscViewerSetFormat(PETSC_VIEWER_STDOUT_WORLD,PETSC_VIEWER_ASCII_MATLAB);
+	PetscViewerSetFormat(PETSC_VIEWER_STDOUT_WORLD,
+			PETSC_VIEWER_ASCII_MATLAB);
         VecView(b, PETSC_VIEWER_STDOUT_WORLD);
-}
+}	/* end Print_b */
 
 extern void viewTopVariable(
 	Front *front,

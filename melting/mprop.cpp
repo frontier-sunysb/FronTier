@@ -147,13 +147,13 @@ static  void ice_point_propagate(
 	/* Update the state of the new interface point */
 	state = (STATE*)left_state(newp);
 	if (negative_component(oldhs) == LIQUID_COMP)
-	    state->temperature = eqn_params->Ti[1];			
+	    state->temperature = eqn_params->Ti[0];			
 	else if (negative_component(oldhs) == SOLID_COMP)
             state->temperature = eqn_params->Ti[0];
 
 	state = (STATE*)right_state(newp);
 	if (positive_component(oldhs) == LIQUID_COMP)
-	    state->temperature = eqn_params->Ti[1];
+	    state->temperature = eqn_params->Ti[0];
 	else if (positive_component(oldhs) == SOLID_COMP)
             state->temperature = eqn_params->Ti[0];
 	if (debugging("point_propagate"))

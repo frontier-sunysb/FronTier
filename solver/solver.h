@@ -29,8 +29,10 @@ public:
 	virtual ~SOLVER(){};
 	virtual void Create(int ilower, int iupper, int d_nz, int o_nz){};
 	
-	virtual void Set_A(PetscInt i, PetscInt j, double val){};	// A[i][j]=val;
-	virtual void Add_A(PetscInt i, PetscInt j, double val){};	// A[i][j]=A[i][j]+val;
+	virtual void Set_A(PetscInt i, PetscInt j, double val){};
+						// A[i][j]=val;
+	virtual void Add_A(PetscInt i, PetscInt j, double val){};
+						// A[i][j]=A[i][j]+val;
 	virtual void Set_x(PetscInt i, double val){};	// x[i]=val;
 	virtual void Set_x(double *p){};		// x[i]=p[i];
 	virtual void Add_x(PetscInt i, double val){};	// x[i]=x[i]+val;
@@ -106,8 +108,10 @@ public:
 	void GetFinalRelativeResidualNorm(double *rel_resid_norm);
 	void Solve(void);
 	void Solve_GMRES(void);
+	void Solve_BCGSL(void);
 	void Solve_withPureNeumann(void);
 	void Solve_withPureNeumann_GMRES(void);
+	void Solve_withPureNeumann_BCGSL(void);
 	virtual void Print_A(const char *filename);
         virtual void Print_b(const char *filename);
 };

@@ -120,7 +120,7 @@ extern void readPhaseParams(
 	}
 
 	eqn_params->num_scheme = UNSPLIT_IMPLICIT;  // default
-	eqn_params->pde_order = 1; //default
+	eqn_params->pde_order = 2; //default
 
 	if (CursorAfterStringOpt(infile,"Choose numerical scheme"))
 	{

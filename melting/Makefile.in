@@ -51,10 +51,10 @@ gif :
 	hdf2gif out/intfc.hdf out/intfc.gif
 
 TagsFile:
-	ctags *.h *.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+	ctags *.h *.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch] ../solver/parab.cpp ../solver/solver.cpp ../solver/*.h
 
 tagsfile:
-	ctags *.h *.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+	ctags *.h *.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch] ../solver/parab.cpp ../solver/solver.cpp ../solver/*.h
 
 etagsfile:
-	etags *.h *.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+	etags *.h *.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch] ../solver/parab.cpp ../solver/solver.cpp ../solver/*.h

@@ -540,7 +540,8 @@ struct _Front {
 	int step, max_step;
 	int num_mts,_max_num_mts;
 	boolean   redis_flag; /*flag for the redistribution after LGB*/
-	double distance, dismin, dismax, hmin_fre, hmax_fre;
+	double max_scaled_propagation;
+	POINT *max_prop_point;
 	boolean print_sdl_file;
         boolean tan_sec, parab;
         double subgrid_time;

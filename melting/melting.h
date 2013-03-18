@@ -188,6 +188,8 @@ public:
 	void xgraphOneDimPlot(char*);
 	void initMovieVariables(void);
 	void vtk_plot_temperature2d(char*);
+        void initSampleTemperature(char *in_name);
+        void sampleTemperature();
 
 	// Extra movie functions
 	void temperatureMovie(char*);
