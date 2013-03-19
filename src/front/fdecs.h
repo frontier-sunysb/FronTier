@@ -541,7 +541,7 @@ struct _Front {
 	int num_mts,_max_num_mts;
 	boolean   redis_flag; /*flag for the redistribution after LGB*/
 	double max_scaled_propagation;
-	POINT *max_prop_point;
+	double max_prop_point[MAXD];
 	boolean print_sdl_file;
         boolean tan_sec, parab;
         double subgrid_time;

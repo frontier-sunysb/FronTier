@@ -25,15 +25,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 /*
-*				crystal.c:
-*
-*		User initialization example for Front Package:
+*				melting.c:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
-*
-*	This is example of three circles all moving the a normal velocity.
-*	Bifurcation occurs when they meet each other. FronTier solves
-*	the bifurcation automatically.
 *
 */
 
@@ -70,7 +64,6 @@ char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 boolean ReadFromInput;
 int RestartStep;
-boolean binary = YES;
 
 int main(int argc, char **argv)
 {
@@ -147,6 +140,8 @@ int main(int argc, char **argv)
 	velo_func_pack.func = NULL;
 
         cartesian.initMesh();
+	if (debugging("sample_temperature"))
+            cartesian.initSampleTemperature(in_name);
 	if (RestartRun)
 	{
 	    FT_ParallelExchIntfcBuffer(&front);
@@ -224,62 +219,46 @@ static  void melting_driver(
 	    else
 	    	bdry_reached = fractal_dimension(front,s_params,&frac_dim,
 						&radius);
-	    if (pp_mynode() == 0 && dim != 1)
-	    {
-		char fname[200];
-		sprintf(fname,"%s/radius",out_name);
-	    	Radius_file = fopen(fname,"w");
-		sprintf(fname,"%s/FracDim",out_name);
-	    	FracDim_file = fopen(fname,"w");
-
-		fprintf(Radius_file,"\"Crystal radius\"\n\n");
-		fprintf(Radius_file,"%f  %f\n",front->time,radius);
-		fprintf(FracDim_file,"\"Fractal dimension\"\n\n");
-		fprintf(FracDim_file,"%f  %f\n",front->time,frac_dim);
-		fflush(Radius_file);
-		fflush(FracDim_file);
-	    }
-
 	    // Problem specific output
 
 	    FT_Propagate(front);
-	    if (debugging("trace"))
-		printf("After FrontAdvance(), before solve()\n");
 	    cartesian.solve(front->dt);
-	    if (debugging("trace"))
-		printf("After solve()\n");
 	    FT_SetTimeStep(front);
 	    cartesian.setAdvectionDt();
 	    front->dt = std::min(front->dt,CFL*cartesian.m_dt);
             cartesian.initMovieVariables();
-            if (debugging("trace"))
-            	printf("Passed initMovieVariables()\n");
-            FT_AddMovieFrame(front,out_name,binary);
+            FT_AddMovieFrame(front,out_name,YES);
         }
         else
 	    FT_SetOutputCounter(front);
-	if (debugging("trace"))
-	    printf("Passed second restart check()\n");
+
+	if (pp_mynode() == 0 && dim != 1)
+	{
+	    char fname[200];
+	    sprintf(fname,"%s/radius",out_name);
+	    Radius_file = fopen(fname,"w");
+	    sprintf(fname,"%s/FracDim",out_name);
+	    FracDim_file = fopen(fname,"w");
+
+	    fprintf(Radius_file,"\"Crystal radius\"\n\n");
+	    fprintf(Radius_file,"%f  %f\n",front->time,radius);
+	    fprintf(FracDim_file,"\"Fractal dimension\"\n\n");
+	    fprintf(FracDim_file,"%f  %f\n",front->time,frac_dim);
+	    fflush(Radius_file);
+	    fflush(FracDim_file);
+	}
+
 
 	FT_TimeControlFilter(front);
 
         for (;;)
         {
-	    if (debugging("trace"))
-		printf("Before solve()\n");
-	    cartesian.solve(front->dt);
-	    if (debugging("trace"))
-		printf("After solve()\n");
-	    if (debugging("trace"))
-		printf("Before FT_Propagate()\n");
 	    FT_Propagate(front);
-	    if (debugging("trace"))
-		printf("After FT_Propagate()\n");
+	    cartesian.solve(front->dt);
 
 	    FT_AddTimeStepToCounter(front);
-
 	    FT_SetTimeStep(front);
-	    front->dt = std::min(front->dt,CFL*cartesian.m_dt);
+	    front->dt = FT_Min(front->dt,CFL*cartesian.m_dt);
 
             printf("\ntime = %f   step = %7d   dt = %f\n",
                         front->time,front->step,front->dt);
@@ -296,7 +275,7 @@ static  void melting_driver(
 	    {
 		// Front standard output
         	cartesian.initMovieVariables();
-                FT_AddMovieFrame(front,out_name,binary);
+                FT_AddMovieFrame(front,out_name,YES);
 		if (dim == 1)
 	    	    cartesian.oneDimPlot(out_name);
 		else if (dim == 2)

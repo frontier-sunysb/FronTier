@@ -113,43 +113,71 @@ void CARTESIAN::setComponent(void)
 {
 	int i;
 
-	//TMP by Yijing Hu
-	static STATE *state = NULL;
-	double *coords;
-	int size = (int)cell_center.size();
-	
-	//cell center components
-	if (state == NULL)
-	    FT_ScalarMemoryAlloc((POINTER*)&state, sizeof(STATE));
+        static STATE *state = NULL;
+        double *coords;
+        int *icoords;
+        int size = (int)cell_center.size();
+        HYPER_SURF_ELEMENT *hse;
+        HYPER_SURF *hs;
+        double t[MAXD],point[MAXD];
+        int n;
 
-	for (i = 0; i < size; i++)
-	{
-	    coords = cell_center[i].coords;
-	    if (cell_center[i].comp != -1 &&
-		cell_center[i].comp != top_comp[i])
-	    {
-	        if (!FrontNearestIntfcState(front,coords,top_comp[i],
-			    	(POINTER)state))
-		{
-		    (void) printf("In setComponent()\n");
-		    (void) printf("FrontNearestIntfcState() failed\n");
-		    (void) printf("old_comp = %d new_comp = %d\n",
-			    		cell_center[i].comp,top_comp[i]);
-		    clean_up(ERROR);
-		}
-		field->temperature[i] = state->temperature;
+        if (state == NULL)
+            FT_ScalarMemoryAlloc((POINTER*)&state, sizeof(STATE));
+
+        for (i = 0; i < size; i++)
+        {
+            coords = cell_center[i].coords;
+            if (cell_center[i].comp != -1 &&
+                cell_center[i].comp != top_comp[i])
+            {
+                if (FT_FindNearestIntfcPointInRange(front,top_comp[i],coords,
+                                point,t,&hse,&hs,2))
+                {
+                    if (!FrontNearestIntfcState(front,coords,top_comp[i],
+                                (POINTER)state))
+                    {
+                        (void) printf("In setComponent()\n");
+                        (void) printf("FrontNearestIntfcState() failed\n");
+                        (void) printf("old_comp = %d new_comp = %d\n",
+                                        cell_center[i].comp,top_comp[i]);
+                        clean_up(ERROR);
+                    }
+                    field->temperature[i] = state->temperature;
+                }
+		else
+                {
+                    double temp_nb = 0.0;
+                    int ii,jj,ic[MAXD],index;
+                    icoords = cell_center[i].icoords;
+                    n = 0;
+                    for (ii = 0; ii < dim; ++ii)
+                    {
+                        for (jj = 0; jj < dim; ++jj) ic[jj] = icoords[jj];
+                        ic[ii] = (icoords[ii] == 0) ? 0 : icoords[ii] - 1;
+                        index = d_index(ic,top_gmax,dim);
+                        if (cell_center[index].comp != -1 &&
+                            cell_center[index].comp == top_comp[index])
+                        {
+                            temp_nb += field->temperature[index];
+                            n++;
+                        }
+                        ic[ii] = (icoords[ii] == top_gmax[ii]) ? top_gmax[ii]
+                                        : icoords[ii] + 1;
+                        index = d_index(ic,top_gmax,dim);
+                        if (cell_center[index].comp != -1 &&
+                            cell_center[index].comp == top_comp[index])
+                        {
+                            temp_nb += field->temperature[index];
+                            n++;
+                        }
+                    }
+                    field->temperature[i] = temp_nb/n;
+                }
 	    }
 	    cell_center[i].comp = top_comp[i];
-	}
-
-/*	// cell center components
-	for (i = 0; i < cell_center.size(); i++)
-	{
-	    cell_center[i].comp = 
-	    		getComponent(cell_center[i].icoords);
-	}
-*/
-}
+        }
+}	/* end setComponent */
 
 void CARTESIAN::setInitialCondition(void)
 {
@@ -1788,6 +1816,8 @@ void CARTESIAN::initMovieVariables()
 	static HDF_MOVIE_VAR *hdf_movie_var;
 	MOVIE_OPTION *movie_option = eqn_params->movie_option;
 
+        if (debugging("trace"))
+            printf("Entering initMovieVariables()\n");
 	if (hdf_movie_var == NULL)
 	{
 	    FT_ScalarMemoryAlloc((POINTER*)&hdf_movie_var,
@@ -1892,6 +1922,8 @@ void CARTESIAN::initMovieVariables()
 	    }
 	    front->hdf_movie_var = hdf_movie_var;
 	}
+        if (debugging("trace"))
+            printf("Leaving initMovieVariables()\n");
 }	/* end initMovieVariables */
 
 
