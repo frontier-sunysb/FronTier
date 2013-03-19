@@ -810,24 +810,31 @@ void CARTESIAN::solve(double dt)
 void CARTESIAN::setAdvectionDt()
 {
 	double D,Dl,Ds;
+	static double m_dt_expl,m_dt_impl;  // explicit and implicit time step
+	static boolean first = YES;
 
-	eqn_params = (PARAMS*)front->extra2;
-	Dl = eqn_params->k[1]/eqn_params->rho[1]/eqn_params->Cp[1];
-	Ds = eqn_params->k[0]/eqn_params->rho[0]/eqn_params->Cp[0];
-	D = std::max(Dl,Ds);
-
-	min_dt = 0.1*sqr(hmin)/D/(double)dim;
-	if (eqn_params->num_scheme == UNSPLIT_EXPLICIT)
+	if (first)
 	{
-	    m_dt = 0.5*sqr(hmin)/D/(double)dim;
+	    first = NO;
+	    eqn_params = (PARAMS*)front->extra2;
+	    Dl = eqn_params->k[1]/eqn_params->rho[1]/eqn_params->Cp[1];
+	    Ds = eqn_params->k[0]/eqn_params->rho[0]/eqn_params->Cp[0];
+	    D = std::max(Dl,Ds);
+	    m_dt_expl = 0.5*sqr(hmin)/D/(double)dim;
+	    m_dt_impl = 0.5*hmin/D/(double)dim;
+	    min_dt = 0.1*sqr(hmin)/D/(double)dim;
 	}
+
+	if (eqn_params->num_scheme == UNSPLIT_EXPLICIT)
+	    m_dt = m_dt_expl;
 	else
 	{
-	    m_dt = 0.5*hmin/D/(double)dim;
+	    m_dt = m_dt_impl;
 	}
 	if (debugging("trace"))
 	{
-	    printf("In setAdvectionDt: m_dt = %24.18g\n",m_dt);
+	    printf("In setAdvectionDt: m_dt = %24.18g min_dt = %f\n",
+				m_dt,min_dt);
 	}
 }	/* end setAdvectionDt */
 
@@ -1124,7 +1131,8 @@ void CARTESIAN::printFrontInteriorState(char *out_name)
 
 	sprintf(filename,"%s/state.ts%s",out_name,right_flush(front->step,7));
 #if defined(__MPI__)
-        sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+	if (pp_numnodes() > 1)
+            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
 #endif /* defined(__MPI__) */
 	outfile = fopen(filename,"w");
 	
