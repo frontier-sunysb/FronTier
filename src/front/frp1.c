@@ -30,7 +30,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
 */
 
-#if defined(TWOD)
 
 #include <front/fdecs.h>		/* includes int.h, table.h */
 
@@ -2482,4 +2481,3 @@ LOCAL	void f_print_rp_statistical_data(
 		      (POINTER)rp);
 	DEBUG_LEAVE(f_print_rp_statistical_data)
 }		/*end f_print_rp_statistical_data*/
-#endif /* defined(TWOD) */

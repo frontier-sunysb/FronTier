@@ -829,7 +829,11 @@ void CARTESIAN::setAdvectionDt()
 	    m_dt = m_dt_expl;
 	else
 	{
-	    m_dt = m_dt_impl;
+	    // For smooth transition to implicit step
+	    double tstep = (double)front->step;
+	    double smooth_factor; 
+	    smooth_factor = 1.0/(1.0 + sqr(tstep/20.0));
+	    m_dt = m_dt_impl - (m_dt_impl - m_dt_expl)*smooth_factor;
 	}
 	if (debugging("trace"))
 	{

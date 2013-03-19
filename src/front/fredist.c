@@ -30,7 +30,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
 */
 
-#if defined(TWOD) || defined(THREED)
 
 #include <front/fdecs.h>		/* includes int.h, table.h */
 
@@ -58,17 +57,12 @@ EXPORT int redistribute(
 	
 	switch(dim)
 	{
-#if defined(ONED)
 	case 1:
 	    status = redistribute1d(fr);
 	    break;
-#endif /* defined(ONED) */
-#if defined(TWOD)
 	case 2:
 	    status = redistribute2d(fr,do_redist,restart_init);
 	    break;
-#endif /* defined(TWOD) */
-#if defined(THREED)
 	case 3:
 	    status = redistribute3d(fr,do_redist,restart_init);
 	    /*In this case scatter_front fails,  */
@@ -76,7 +70,6 @@ EXPORT int redistribute(
 	    if(status == INCONSISTENT_RECONSTRUCTION)
 	    	return status;
 	    break;
-#endif /* defined(THREED) */
 	}
 
 
@@ -202,4 +195,3 @@ EXPORT	void	Clear_redistribution_parameters(
 	Node_redistribute_function(fr) = fnd;				\
 }		/*end Clear_redistribution_parameters*/
 
-#endif /* defined(TWOD) || defined(THREED) */

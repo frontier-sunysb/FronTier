@@ -31,7 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *
 */
 
-#if defined(THREED)
 
 #define DEBUG_STRING "crx_intfc"
 
@@ -5178,7 +5177,3 @@ EXPORT  void check_intfc_curve_connect(INTERFACE *intfc)
 	        check_surface_curve(*s);
 	}
 }
-
-#endif /* defined(THREED) */
-
-

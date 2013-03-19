@@ -115,14 +115,10 @@ LOCAL	void		error_in_find_correspond_hyper_surface(int,
 LOCAL	void		free_correspondence_struct(CORRESPOND*);
 LOCAL	void		insert_in_correspond_list(CORRESPOND*);
 LOCAL	void		print_correspondence(CORRESPOND*);
-#if defined(TWOD) || defined(THREED)
 LOCAL	int		corresponding_boundaries_are_consistent(HYPER_SURF*,
 			      HYPER_SURF_BDRY**,HYPER_SURF_BDRY**,INTERFACE*);
-#endif /* defined(TWOD) || defined(THREED) */
-#if defined(TWOD)
 LOCAL	CURVE		*closest_curve_in_list(CURVE*,HS_LIST*,INTERFACE*);
 LOCAL	int		correspond_curves_agree_in_orient(CURVE*,CURVE*);
-#endif /* defined(TWOD) */
 
 /*
 *			set_add_to_correspond_list():
@@ -192,9 +188,7 @@ EXPORT HYPER_SURF *find_correspond_hyper_surface(
 	int		**incmtrx;
 	int		entry;
 	int		hsi, chsj;
-#if defined(TWOD) || defined(THREED)
 	HYPER_SURF	*corr_hyp_surf;
-#endif /* defined(TWOD) || defined(THREED) */
 	
 	DEBUG_ENTER(find_correspond_hyper_surface)
 	if (DEBUG)
@@ -332,7 +326,6 @@ EXPORT HYPER_SURF *find_correspond_hyper_surface(
 	    		      hypersurface_number(hsl->hs));
 	    or_p_hsb = (hsl->orients_match) ? p_hsb : n_hsb;
 	    or_n_hsb = (hsl->orients_match) ? n_hsb : p_hsb;
-#if defined(TWOD) || defined(THREED)
 	    if (!corresponding_boundaries_are_consistent(hsl->hs,or_p_hsb,
 							    or_n_hsb,intfc))
 	    {
@@ -343,7 +336,6 @@ EXPORT HYPER_SURF *find_correspond_hyper_surface(
 	    }
 	    if (DEBUG)
 	       (void) printf("Hypersurface boundary information agrees\n");
-#endif /* defined(TWOD) || defined(THREED) */
 	    if (!correspondence_is_possible(hs,hsl->hs,
 	    				       or_p_hsb,or_n_hsb,fr))
 	    {
@@ -1172,19 +1164,13 @@ LOCAL	HYPER_SURF *closest_hyper_surf_in_list(
 {
 	switch (intfc->dim)
 	{
-#if defined(ONED)
 	case 1:/* TODO */
 		break;
-#endif /* defined(ONED) */
-#if defined(TWOD)
 	case 2:
 		return Hyper_surf(
 			closest_curve_in_list(Curve_of_hs(hs),Hsl,intfc));
-#endif /* defined(TWOD) */
-#if defined(THREED)
 	case 3:/* TODO */
 		break;
-#endif /* defined(THREED) */
 	}
 	return NULL;
 }		/*end closest_hyper_surf_in_list*/
@@ -1292,7 +1278,6 @@ LOCAL	void error_in_find_correspond_hyper_surface(
 	print_correspondence(crspd);
 }		/*end error_in_find_correspond_hyper_surface*/
 
-#if defined(TWOD) || defined(THREED)
 
 LOCAL	int corresponding_boundaries_are_consistent(
 	HYPER_SURF	*c_hs,
@@ -1308,11 +1293,8 @@ LOCAL	int corresponding_boundaries_are_consistent(
 
 	switch (intfc->dim)
 	{
-#if defined(ONED)
 	case 1:
 	    break;
-#endif /* defined(ONED) */
-#if defined(TWOD)
 	case 2:
 	    {
 	        CURVE	*c_c = Curve_of_hs(c_hs);
@@ -1328,8 +1310,6 @@ LOCAL	int corresponding_boundaries_are_consistent(
 		}
 	    }
 	    break;
-#endif /* defined(TWOD) */
-#if defined(THREED)
 	case 3:
 	    {
 	        CURVE   **c;
@@ -1348,7 +1328,6 @@ LOCAL	int corresponding_boundaries_are_consistent(
 	        }
 	    }
 	    break;
-#endif /* defined(THREED) */
 	}
 	return YES;
 }		/*end corresponding_boundaries_are_consistent*/
@@ -1445,9 +1424,7 @@ EXPORT	int rst_cor_after_join_hypersurfaces(
 	return YES;
 }		/*end rst_cor_after_join_hypersurfaces*/
 
-#endif /* defined(TWOD) || defined(THREED) */
 
-#if defined(TWOD)
 /*
 *		correspond_curves_agree_in_orient():
 *
@@ -1939,4 +1916,3 @@ EXPORT	boolean rst_cor_after_attach_curve_to_node(
 	DEBUG_LEAVE(rst_cor_after_attach_curve_to_node)
 	return YES;
 }		/*end rst_cor_after_attach_curve_to_node*/
-#endif /* defined(TWOD) */

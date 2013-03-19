@@ -562,7 +562,6 @@ EXPORT boolean clip_patch_front(
             interpolate_intfc_states(intfc) = sav_intrp;
             set_copy_intfc_states(sav_copy);
         }
-#if defined(TWOD)
         if(debugging("clip_patch_front"))
         {
             CURVE **c;
@@ -589,17 +588,6 @@ EXPORT boolean clip_patch_front(
                 }
             }
         }
-#endif  /* defined(TWOD) */
-/*
-#if defined(THREED)
-        if (debugging("consistency"))
-        {
-            (void) printf("Check consistency of interface ");
-            (void) printf("after scatter_front()\n");
-            check_consistency_of_tris_on_intfc(intfc);
-        }
-#endif */  /* defined(THREED) */
-
         DEBUG_LEAVE(clip_patch_front)
         return status;
 }

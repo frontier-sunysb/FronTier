@@ -31,7 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *
 */
 
-#if defined(THREED)
 
 #include <front/fdecs.h>
 
@@ -349,4 +348,3 @@ EXPORT  void detail_of_curve(
 	(void) printf("  end of detail_of_curve()\n");
 }                          /* end detail_of_curve */
 
-#endif /* defined(THREED) */

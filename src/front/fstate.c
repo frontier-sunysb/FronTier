@@ -402,7 +402,6 @@ LOCAL	FlowSpecifiedRegion *FSR_for_comp(
 	return NULL;
 }		/*end FSR_for_comp*/
 
-#if defined(THREED)
 EXPORT	boolean	f_sort_bond_tris(
 	INTERFACE	*intfc)
 {
@@ -489,4 +488,3 @@ EXPORT boolean  f_assign_btri_states(
 	return YES;
 }
 
-#endif /* defined(THREED) */

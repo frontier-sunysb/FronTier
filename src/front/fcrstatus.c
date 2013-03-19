@@ -34,7 +34,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *	rproblems.
 */
 
-#if defined(TWOD)
 
 #include <front/fdecs.h>
 
@@ -1816,4 +1815,3 @@ LOCAL	int unpropagated_nodes_remain_on_interface(
 	}
 	return NO;
 }		/*end unpropagated_nodes_remain_on_interface*/
-#endif /* defined(TWOD) */

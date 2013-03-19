@@ -33,7 +33,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *
 */
 
-#if defined(THREED)
 
 #include <front/fdecs.h>
 
@@ -283,4 +282,3 @@ EXPORT	boolean	f_consistent_interface(
 	return status;
 }        /*end f_consistent_interface*/
 
-#endif /* defined(THREED) */

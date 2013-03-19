@@ -626,10 +626,9 @@ S["dutilincs"]=" -I../.. -I../  -g   -I/usr/local/pkg/mpich2/include -D__MPI__  
 S["exampleincs"]=" -I/usr/local/pkg/mpich2/include -D__MPI__  -I/usr/local/pkg/hdf/include -DUSE_HDF   "
 S["utilincs"]=" -I../.. -I../  -g   -I/usr/local/pkg/mpich2/include -D__MPI__  -I/usr/local/pkg/hdf/include -DUSE_HDF  -DHAS_FENV    "
 S["gasincs"]=" -I. -I../../gas -I../.. -I../../util  -g   -I/usr/local/pkg/mpich2/include -D__MPI__  -I/usr/local/pkg/hdf/include -DUSE_HDF  -DCHECK_FOR_BAD_STATE"\
-"S -DDEBUG_GRIEMANN -DDEBUG_MUSCL -DDEBUG_POINT_PROPAGATE -DDEBUG_W_SPEED -DFULL_PHYSICS -DMULTI_COMPONENT -DPHASE_CODE   -DDEBUG_CROSSING -DDEBUG_NO"\
-"DE_PROPAGATE -DDEBUG_TRI_GRID  -DONED -DTWOD -DTHREED  -DHAS_FENV    -D__GD__ -I/usr/include  "
-S["ftlibincs"]=" -I.. -I../util -g   -I/usr/local/pkg/hdf/include -DUSE_HDF  -I/usr/local/pkg/mpich2/include -D__MPI__  -DDEBUG_CROSSING -DDEBUG_NODE_PROPAGATE -DDE"\
-"BUG_TRI_GRID  -DONED -DTWOD -DTHREED  -DHAS_FENV    -D__GD__ -I/usr/include  "
+"S -DDEBUG_GRIEMANN -DDEBUG_MUSCL -DDEBUG_POINT_PROPAGATE -DDEBUG_W_SPEED -DFULL_PHYSICS -DMULTI_COMPONENT -DPHASE_CODE    -DHAS_FENV    -D__GD__ -I/"\
+"usr/include  "
+S["ftlibincs"]=" -I.. -I../util -g   -I/usr/local/pkg/hdf/include -DUSE_HDF  -I/usr/local/pkg/mpich2/include -D__MPI__   -DHAS_FENV    -D__GD__ -I/usr/include  "
 S["tsttyesornoo"]=""
 S["debugg"]=" -g "
 S["gasclean"]=" "

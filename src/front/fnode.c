@@ -41,11 +41,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <front/fdecs.h>
 
 	/* LOCAL Function Declarations */
-#if defined(DEBUG_NODE_PROPAGATE)
 LOCAL	void	debug_print_B_node_curves(const char*,
 					  O_CURVE*,O_CURVE*,O_CURVE*,
 					  O_CURVE*,O_CURVE*);
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 LOCAL	void copy_state_to_node(Locstate,COMPONENT,NODE*,size_t);
 LOCAL	boolean close_to_subdomain_bdry(O_CURVE,O_CURVE,O_CURVE);
 LOCAL   int  free_end_node_propagate(Front*,POINTER,NODE*,NODE*,double);
@@ -101,10 +99,8 @@ EXPORT	int fixed_node_propagate(
 
 	o_ond = make_onode(oldn);
 
-#if defined(DEBUG_NODE_PROPAGATE)
 	if (debugging("fixed_node"))
 	    print_onode(o_ond);
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 
 	for (i = 0;  i < o_ond->num_c;  ++i)
 	{
@@ -118,7 +114,6 @@ EXPORT	int fixed_node_propagate(
 	    find_correspond_curve(oldc,newn,(NODE *)NULL,fr,n_intfc) :
 	    find_correspond_curve(oldc,(NODE *)NULL,newn,fr,n_intfc);
 
-#if defined(DEBUG_NODE_PROPAGATE)
 	    if (debugging("fixed_node"))
 	    {
 	    	lst =  Left_state_at_node(oldc,oc_or);
@@ -130,7 +125,6 @@ EXPORT	int fixed_node_propagate(
 	    	(void) printf("\t left - ");	(*fr->print_state)(lst);
 	    	(void) printf("\tright - ");	(*fr->print_state)(rst);
 	    }
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 
 	    oldb = Bond_at_node(oldc,oc_or);
 	    o_posn->hse = Hyper_surf_element(oldb);
@@ -144,7 +138,6 @@ EXPORT	int fixed_node_propagate(
 	    ft_assign(lst, left_state(n_posn),sizest);
 	    ft_assign(rst,right_state(n_posn),sizest);
 
-#if defined(DEBUG_NODE_PROPAGATE)
 	    if (debugging("fixed_node"))
 	    {
 	    	if (wave_type(newc) >= FIRST_PHYSICS_WAVE_TYPE)
@@ -155,7 +148,6 @@ EXPORT	int fixed_node_propagate(
 	    	(void) printf("\tright - ");	(*fr->print_state)(rst);
 	    	(void) printf("\n");
 	    }
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 	}
 
 		/* Correct neigboring states at node */
@@ -297,22 +289,18 @@ EXPORT int closed_node_propagate(
 	if (propagation_status(newn) == PROPAGATED_NODE)
 	    return GOOD_NODE;
 	debug_print("closed_node","Entered closed_node_propagate()\n");
-#if defined(DEBUG_NODE_PROPAGATE)
 	if (debugging("closed_node")) 
 	{
 	    (void) printf("\n\tOLD NODE:\n");
 	    print_node(oldn);
 	}
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 
 	oldc = oldn->out_curves[0];
-#if defined(DEBUG_NODE_PROPAGATE)
 	if (debugging("closed_node")) 
 	{
 	    (void) printf("\t\tOLD CURVE:\n");
 	    print_curve(oldc);
 	}
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 
 	np = newn->posn;
 	oldn->posn->hse = Hyper_surf_element(oldc->first);
@@ -336,7 +324,6 @@ EXPORT int closed_node_propagate(
 	for (i = 0; i < dim; ++i)
 	    Node_vel(newn)[i] = ERROR_FLOAT;
 
-#if defined(DEBUG_NODE_PROPAGATE)
 	if (debugging("closed_node")) 
 	{
 	    (void) printf("\n\tNEW NODE:\n");
@@ -344,7 +331,6 @@ EXPORT int closed_node_propagate(
 	    (void) printf("\t\tNEW CURVE:\n");
 	    print_curve(newc);
 	}
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 	debug_print("closed_node","Left closed_node_propagate()\n");
 	return GOOD_NODE;
 }		/*end closed_node_propagate*/
@@ -371,13 +357,11 @@ LOCAL int free_end_node_propagate(
         int             i, dim = fr->interf->dim;
 
         debug_print("free_end_node","Entered free_end_node_propagate()\n");
-#if defined(DEBUG_NODE_PROPAGATE)
         if (debugging("free_end_node"))
         {
             (void) printf("\n\tOLD NODE:\n");
             print_node(oldn);
         }
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 
         oldc = (oldn->out_curves != NULL) ? oldn->out_curves[0] :
                 oldn->in_curves[0];
@@ -411,13 +395,11 @@ LOCAL int free_end_node_propagate(
         for (i = 0; i < dim; ++i)
             Node_vel(newn)[i] = ERROR_FLOAT;
 
-#if defined(DEBUG_NODE_PROPAGATE)
         if (debugging("free_end_node"))
         {
             (void) printf("\n\tNEW NODE:\n");
             print_node(newn);
         }
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
         debug_print("free_end_node","Left free_end_node_propagate()\n");
         return GOOD_NODE;
 }               /*end closed_node_propagate*/
@@ -480,12 +462,10 @@ EXPORT int B_node_propagate(
 	i_to_prop_dir = ANGLE_DIRECTION_NOT_SET;
 	
 	debug_print("B_node","Entered B_node_propagate()\n");
-#if defined(DEBUG_NODE_PROPAGATE)
 	if (debugging("B_node")) 
 	{
 	    (void) printf("\n\tOLD NODE:\n");	print_node(oldn);
 	}
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 	if (pc == NULL)
 	{
 	    pc = Static_point(fr->interf);
@@ -598,7 +578,6 @@ find_prop_orient:
 	}
 
 fixed_node_loop:
-#if defined(DEBUG_NODE_PROPAGATE)
 	if (debugging("B_node")) 
 	{
 	    (void) printf("inc_side = %s, propagation_side = %s\n",
@@ -639,7 +618,6 @@ fixed_node_loop:
 		(void) printf("\nEND STATES AT OLD NODE\n\n");
 	     }
 	}
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 
 	     /* Identify new position of node */
 
@@ -650,11 +628,9 @@ fixed_node_loop:
 		(wave_type(Oldcphys.curve) >= FIRST_VECTOR_PHYSICS_WAVE_TYPE))
 	    {
 
-#if defined(DEBUG_NODE_PROPAGATE)
 	        if (debugging("B_node"))
 	            (void) printf("calling "
 		              "H_extend_crossing_of_two_propagated_curves()\n");
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 
 		status = H_extend_crossing_of_two_propagated_curves(
 			    &Oldcaprop,&Newcaprop,&Oldcphys,&Newcphys,
@@ -670,11 +646,9 @@ fixed_node_loop:
 	    }
 	    else
 	    {
-#if defined(DEBUG_NODE_PROPAGATE)
 	        if (debugging("B_node"))
 	            (void) printf("calling "
 		              "D_extend_crossing_of_two_propagated_curves()\n");
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 
 		ca = Newcaprop.curve;
 		status = D_extend_crossing_of_two_propagated_curves(
@@ -700,10 +674,8 @@ fixed_node_loop:
 	}
 	else
 	{
-#if defined(DEBUG_NODE_PROPAGATE)
 	    if (debugging("B_node"))
 	    	(void) printf("calling crossing_of_two_propagated_curves()\n");
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 
 	    status = crossing_of_two_propagated_curves(
 			&Oldcphys,&Newcphys,&Oldcaprop,&Newcaprop,
@@ -734,11 +706,9 @@ fixed_node_loop:
 	    	void	(*save_impose_bc)(POINT*,BOND*,CURVE*,double*,Front*,
 					  boolean,boolean);
 
-#if defined(DEBUG_NODE_PROPAGATE)
 		if (debugging("B_node"))
 		    (void) printf("invalid cross found, calling %s\n",
 				  "crossing_of_two_propagated_curves()");
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 
 		save_impose_bc = fr->impose_bc;
 		fr->impose_bc = NULL;
@@ -837,10 +807,8 @@ fixed_node_loop:
 	            copy_state_to_node(sr,positive_component(Newcphys.curve),
 				    newn,fr->sizest);
 		}
-#if defined(DEBUG_NODE_PROPAGATE)
 	        if (debugging("B_node"))
 	            print_curve(Newcphys.curve);
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 	        return GOOD_NODE;
 	    }
 	    debug_print("B_node","Left B_node_propagate(), ");
@@ -857,14 +825,12 @@ fixed_node_loop:
 
 	    /* Modify the interface and assign the new states */
 
-#if defined(DEBUG_NODE_PROPAGATE)
 	if (debugging("B_node")) 
 	{
 	    (void) printf("New curves after crossing functions\n\n");
 	    debug_print_B_node_curves("NEW ",&Newcphys,&Newcaprop,NULL,
 	                              &Newcbehind,NULL);
 	}
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 
 	status = modify_B_node(oldn,newn,&Oldcphys,&Newcphys,&Oldcahead,
 			       &Newcahead,&Oldcaprop,&Newcaprop,&Oldcbehind,
@@ -872,7 +838,6 @@ fixed_node_loop:
 		               crossbphys,crossbahead,i_to_prop_dir,tcr_phys,
 		               tcr_ahead,rp,fr,wave,dt,dt_frac,flag);
 
-#if defined(DEBUG_NODE_PROPAGATE)
 	if (debugging("B_node"))
 	{
 	    (void) printf("New node and new curves after B_node_propagate()\n");
@@ -909,7 +874,6 @@ fixed_node_loop:
 	    	(void) printf("\nEND STATES AT NEW NODE\n\n");
 	    }
 	}
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 	propagation_status(newn) = PROPAGATED_NODE;
 	debug_print("B_node","Left B_node_propagate(), ");
 	if (debugging("B_node"))
@@ -920,7 +884,6 @@ fixed_node_loop:
 
 
 
-#if defined(DEBUG_NODE_PROPAGATE)
 LOCAL   void debug_print_B_node_curves(
 	const char	*old_new,
 	O_CURVE		*cphys,
@@ -972,7 +935,6 @@ LOCAL   void debug_print_B_node_curves(
 	    else                 print_o_curve(cbprop);
 	}
 }		/*end debug_print_B_node_curves*/
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 
 /*ARGSUSED*/
 EXPORT	int pp_node_propagate(
@@ -1272,9 +1234,7 @@ EXPORT int f_node_propagate(
 
 	debug_print("node_propagate","Entered f_node_propagate()\n");
 
-#if defined(DEBUG_NODE_PROPAGATE)
 	if (debugging("node_propagate")) print_node(oldn);
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 
 	if (oldn != NULL && oldn->in_curves==NULL && oldn->out_curves==NULL) 
 	{
@@ -1326,9 +1286,7 @@ EXPORT int f_node_propagate(
 	}
 
 	debug_print("node_propagate","Left f_node_propagate(), \n");
-#if defined(DEBUG_NODE_PROPAGATE)
 	if (debugging("node_propagate")) print_node(newn);
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 	return status;
 }	/*end f_node_propagate*/
 

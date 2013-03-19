@@ -32,7 +32,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *	The routines in this file untangle a 3D interface.
 */
 
-#if defined(THREED)
 
 #define DEBUG_STRING "untan3d"
 
@@ -2005,4 +2004,3 @@ LOCAL	void	print_ncsurf(
 
 	(void) printf("End NCSURF structure 0x%p\n",ncs);
 }		/*end print_ncsurf*/
-#endif /* defined(THREED) */

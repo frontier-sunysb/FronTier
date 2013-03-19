@@ -31,7 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *
 */
 
-#if defined(THREED)
 
 #define DEBUG_STRING "crx_intfc"
 #define DB_TEC  true
@@ -6815,7 +6814,3 @@ EXPORT	boolean	rbox_repair_intfc(
 	DEBUG_LEAVE(rbox_repair_intfc)
 	return YES;
 }
-
-
-
-#endif /* defined(THREED) */

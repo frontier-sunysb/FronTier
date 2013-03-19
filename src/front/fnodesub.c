@@ -53,11 +53,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <front/fdecs.h>
 
 	/* LOCAL Function Declarations */
-#if defined(TWOD)
 LOCAL	void	move_node(NODE*,double*);
-#endif /* defined(TWOD) */
 
-#if defined(TWOD) || defined(THREED)
 /*
 *			find_tangent_to_curve():
 *
@@ -401,9 +398,7 @@ EXPORT	void find_secant_to_curve(
 }		/*end find_secant_to_curve*/
 
 
-#endif /* defined(TWOD) || defined(THREED) */
 
-#if defined(TWOD)
 EXPORT	int	velocity_satisfies_CFL(
 	NODE		*newn,
 	double		dt,
@@ -2161,4 +2156,3 @@ LOCAL	void	move_node(
 	for (c = n->out_curves; c && *c; ++c)
 	    set_bond_length((*c)->first,dim);
 }		/*end move_node */
-#endif /* defined(TWOD) */

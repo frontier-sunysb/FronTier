@@ -96,7 +96,7 @@ $(FT_C_OBJECTS):%.o: %.c
 
 
 $(build_cpu)/testintfc.o: testintfc.c
-	$(CC) -I.. -I../util -DHAS_FENV -DONED -DTHREED -DTWOD  -c testintfc.c -o $(build_cpu)/testintfc.o
+	$(CC) -I.. -I../util -DHAS_FENV -c testintfc.c -o $(build_cpu)/testintfc.o
 
 testintfc: FORCE 
 	$(MAKE) $(build_cpu)/testintfc.o

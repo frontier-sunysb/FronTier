@@ -485,9 +485,7 @@ fi
 ###################################
 #end overture
  
-ftlibdubug=" -DDEBUG_CROSSING -DDEBUG_NODE_PROPAGATE -DDEBUG_TRI_GRID "
-
-dim=" -DONED -DTWOD -DTHREED "
+ftlibdubug=" "
 
 optimization=$optimization 
 
@@ -505,7 +503,7 @@ gasdebug=" -DCHECK_FOR_BAD_STATES -DDEBUG_GRIEMANN -DDEBUG_MUSCL -DDEBUG_POINT_P
 #                           intfc 
 #                           tri
 
-scriptftlibincs=" -I.. -I../util"${debug}${cppflagss}${amrincs}${hdfincs}${hdf5incs}${mpichincs}${overinc}${appinc}${ftlibdubug}${itapsd}${dim}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${ompincs}${gdincs}${subgrid}
+scriptftlibincs=" -I.. -I../util"${debug}${cppflagss}${amrincs}${hdfincs}${hdf5incs}${mpichincs}${overinc}${appinc}${ftlibdubug}${itapsd}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${ompincs}${gdincs}${subgrid}
 
 
 #included in all code in: gas/gbifur 
@@ -519,7 +517,7 @@ scriptftlibincs=" -I.. -I../util"${debug}${cppflagss}${amrincs}${hdfincs}${hdf5i
 #                          gas/gprt 
 #                          gas/gstate/
 
-scriptgasincs=" -I. -I../../gas -I../.. -I../../util "${hypreincs}${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${overinc}${appinc}${gasdebug}${rotsym}${ftlibdubug}${dim}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${physincs}${ompincs}${gasincs}${gdincs}${subgrid}
+scriptgasincs=" -I. -I../../gas -I../.. -I../../util "${hypreincs}${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${overinc}${appinc}${gasdebug}${rotsym}${ftlibdubug}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${physincs}${ompincs}${gasincs}${gdincs}${subgrid}
 
 #included in all code in: example and testfront 
 scriptexampleincs=${mpichincs}${amrincs}${hdfincs}${hdf5incs}${hdfinc}${systemincs}${ompincs}${subgrid}

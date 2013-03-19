@@ -38,52 +38,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *	for use by node propagate routines.
 */
 
-#if defined(TWOD)
 
 #include <front/fdecs.h>
 
 	/* LOCAL Function Prototypes */
-#if defined(DEBUG_CROSSING)
 LOCAL	void	debug_print_improper_cross(POINT*,double,double,BOND*,CURVE*,
-					   BOND*,CURVE*,double*,double*,Front*);
-#endif /* defined(DEBUG_CROSSING) */
+			BOND*,CURVE*,double*,double*,Front*);
 LOCAL	int	found_crossing_of_a_propagated_curve_and_circle(BOND**,BOND*,
-                                                                BOND*,O_CURVE*,
-								POINT*,double,
-								Front*);
+                        BOND*,O_CURVE*,POINT*,double,Front*);
 LOCAL	int	found_crossing_of_two_propagated_curves(BOND**,BOND**,BOND*,
-                                                        BOND*,BOND*,BOND*,
-							NODE*,NODE*,O_CURVE*,
-							O_CURVE*,O_CURVE*,
-							O_CURVE*,POINT*,POINT*,
-							double,double,double*,
-							double*,double,double*,
-							Front*);
+                        BOND*,BOND*,BOND*,NODE*,NODE*,O_CURVE*,O_CURVE*,
+			O_CURVE*,O_CURVE*,POINT*,POINT*,double,double,double*,
+			double*,double,double*,Front*);
 LOCAL	int	leave_crossing_of_a_propagated_curve_and_circle(BOND*,O_CURVE*,
-                                                                NODE*,int);
+                        NODE*,int);
 LOCAL	int	leave_crossing_of_two_propagated_curves(int,O_CURVE*,O_CURVE*,
-                                                        BOND*,BOND*,
-							NODE*,NODE*);
+                        BOND*,BOND*,NODE*,NODE*);
 LOCAL	boolean	leave_intersection_of_two_o_curves(boolean,O_CURVE*,O_CURVE*,
-	                                           O_CURVE*,O_CURVE*,BOND*,
-						   BOND*,BOND**,BOND**,
-						   NODE*,NODE*);
+	                O_CURVE*,O_CURVE*,BOND*,BOND*,BOND**,BOND**,NODE*,
+			NODE*);
 LOCAL	int	no_crossing_of_two_propagated_curves(int,O_CURVE*,O_CURVE*,
-                                                     O_CURVE*,O_CURVE*,
-						     POINT*,POINT*,BOND*,BOND*,
-						     BOND*,BOND*,NODE*,NODE*,
-						     POINT*,Front*,POINTER,
-						     double,double*,RPROBLEM**);
+                        O_CURVE*,O_CURVE*,POINT*,POINT*,BOND*,BOND*,
+			BOND*,BOND*,NODE*,NODE*,POINT*,Front*,POINTER,
+			double,double*,RPROBLEM**);
 LOCAL	void	no_cross_of_propagated_curve_and_circle(int,O_CURVE*,O_CURVE*,
-	                                                BOND*,POINT*,POINT*,
-							POINT*,double,double,
-							double*,Front*,POINTER,
-							RPROBLEM**);
+	                BOND*,POINT*,POINT*,POINT*,double,double,double*,
+			Front*,POINTER,RPROBLEM**);
 LOCAL	void	set_vel_of_circle_crossing_node(BOND*,ORIENTATION,
-						BOND*,ORIENTATION,NODE*,
-						double,double,int);
+			BOND*,ORIENTATION,NODE*,double,double,int);
 LOCAL	void	set_virtual_opp_node(POINT*,O_CURVE*,O_CURVE*,NODE**,BOND**,
-				     Front*,POINTER,double);
+		        Front*,POINTER,double);
 
 /*
 *               crossing_of_two_propagated_curves():
@@ -159,7 +143,6 @@ EXPORT int crossing_of_two_propagated_curves(
 	init_curve_for_crossing(p2,p2_opp,b2virtual,oldc2,newc2,
 		                &oppn2,&oppb2,fr,wave,dt,v2,flag);
 	
-#if defined(DEBUG_CROSSING)
 	if (debugging("crossing")) 
 	{
 		(void) printf("Old and new curves in ");
@@ -173,7 +156,6 @@ EXPORT int crossing_of_two_propagated_curves(
 		(void) printf("b2virtual\n");	print_bond(b2virtual);
 
 	}
-#endif /* defined(DEBUG_CROSSING) */
 
 	if (node_velocity_preset(flag) == YES)
 	{
@@ -213,11 +195,9 @@ EXPORT int crossing_of_two_propagated_curves(
 		    }
 	    	    else
 	    	    {
-#if defined(DEBUG_CROSSING)
 	    		debug_print_improper_cross(pc,*s1,*s2,*newb1cr,
 	    			                   newc1->curve,*newb2cr,
 						   newc2->curve,low,high,fr);
-#endif /* defined(DEBUG_CROSSING) */
 	                return no_crossing_of_two_propagated_curves(cr_stat,
 			         oldc1,oldc2,newc1,newc2,p1_opp,p2_opp,
 				 b1virtual,b2virtual,oppb1,oppb2,oppn1,oppn2,
@@ -236,10 +216,8 @@ EXPORT int crossing_of_two_propagated_curves(
 	    }
 	    else if (Following_bond(newb1,newc1->orient) == NULL) 
 	    {
-#if defined(DEBUG_CROSSING)
 	    	if (debugging("crossing"))
 	    	    (void) printf("Curves don't cross\n");
-#endif /* defined(DEBUG_CROSSING) */
 	        break;
 	    }
 
@@ -260,11 +238,9 @@ EXPORT int crossing_of_two_propagated_curves(
 		    }
 	    	    else
 	    	    {
-#if defined(DEBUG_CROSSING)
 	    		debug_print_improper_cross(pc,*s1,*s2,
 	    				*newb1cr,newc1->curve,*newb2cr,
 	    				newc2->curve,low,high,fr);
-#endif /* defined(DEBUG_CROSSING) */
 	                return no_crossing_of_two_propagated_curves(cr_stat,
 			         oldc1,oldc2,newc1,newc2,p1_opp,p2_opp,
 				 b1virtual,b2virtual,oppb1,oppb2,oppn1,oppn2,
@@ -283,10 +259,8 @@ EXPORT int crossing_of_two_propagated_curves(
 	    }
 	    else if (Following_bond(newb2,newc2->orient) == NULL) 
 	    {
-#if defined(DEBUG_CROSSING)
 		if (debugging("crossing"))
 		    (void) printf("Curves don't cross\n");
-#endif /* defined(DEBUG_CROSSING) */
 		break;
 	    }
 	}
@@ -414,7 +388,6 @@ LOCAL	int found_crossing_of_two_propagated_curves(
 	if (*newb2cr == b2virtual)
 	    *newb2cr = Bond_at_node_of_o_curve(newc2);
 
-#if defined(DEBUG_CROSSING)
 	if (debugging("crossing")) 
 	{
 	    (void) printf("pc (%llu): (%g, %g)  s1 = %g s2 = %g\n",
@@ -424,7 +397,6 @@ LOCAL	int found_crossing_of_two_propagated_curves(
 	    (void) printf("*newb2cr:\n");
 	    print_bond_and_states(*newb2cr,newc2->curve,fr);
 	}
-#endif /* defined(DEBUG_CROSSING) */
 
 	/* Compute node velocity */
 
@@ -532,7 +504,6 @@ EXPORT int crossing_of_a_propagated_curve_and_circle(
 	newb = bvirtual = &B;
 	init_curve_for_crossing(p,p_opp,bvirtual,oldc,newc,
 		                &oppn,&oppb,fr,wave,dt,V,flag);
-#if defined(DEBUG_CROSSING)
 	if (debugging("circle_crossing")) 
 	{
 	    (void) printf("pcenter = (%g, %g), radius = %g\n",
@@ -540,7 +511,6 @@ EXPORT int crossing_of_a_propagated_curve_and_circle(
 	    (void) printf("bvirtual, ");	print_bond(bvirtual);
 	    (void) printf("newc, ");	print_o_curve(newc);
 	}
-#endif /* defined(DEBUG_CROSSING) */
 
 	if (node_velocity_preset(flag) == YES)
 	{
@@ -601,10 +571,8 @@ EXPORT int crossing_of_a_propagated_curve_and_circle(
 	    	Coords(pc)[i] = Coords(Node_of_o_curve(oldc)->posn)[i];
 	    *s = (newc->orient == POSITIVE_ORIENTATION) ? 0.0 : 1.0;
 	    newb = bvirtual;
-#if defined(DEBUG_CROSSING)
 	    if (debugging("circle_crossing"))
 	    	(void) printf("radius = %g eps = %g\n",radius,eps);
-#endif /* defined(DEBUG_CROSSING) */
 	    status = found_crossing_of_a_propagated_curve_and_circle(
 			     newbcr,newb,bvirtual,newc,pc,*s,fr);
 	    return leave_crossing_of_a_propagated_curve_and_circle(
@@ -671,13 +639,11 @@ LOCAL	void	no_cross_of_propagated_curve_and_circle(
 	    break;
 	}
 
-#if defined(DEBUG_CROSSING)
 	if (debugging("circle_crossing")) 
 	{
 	    (void) printf("p = %g %g\n",Coords(p)[0],Coords(p)[1]);
 	    print_o_curve(newc);
 	}
-#endif /* defined(DEBUG_CROSSING) */
 }		/*end no_cross_of_propagated_curve_and_circle*/
 
 LOCAL void set_vel_of_circle_crossing_node(
@@ -723,7 +689,6 @@ LOCAL	int	found_crossing_of_a_propagated_curve_and_circle(
 	Front   *fr)
 {
 	*newbcr = (newb == bvirtual) ? 	Bond_at_node_of_o_curve(newc) : newb;
-#if defined(DEBUG_CROSSING)
 	if (debugging("circle_crossing")) 
 	{
 	    (void) printf("pc (%llu): %g %g  s = %g\n",point_number(pc),
@@ -731,7 +696,6 @@ LOCAL	int	found_crossing_of_a_propagated_curve_and_circle(
 	    (void) printf("*newbcr:\n");
 	    print_bond_and_states(*newbcr,newc->curve,fr);
 	}
-#endif /* defined(DEBUG_CROSSING) */
 	return GOOD_NODE;
 }		/*end found_crossing_of_a_propagated_curve_and_circle*/
 
@@ -914,7 +878,6 @@ EXPORT	boolean intersection_of_two_o_curves(
 				&oppb2,fr,wave,dt);
 	    }
 	}
-#if defined(DEBUG_CROSSING)
 	if (debugging("intersection")) 
 	{
 	    if (oldc1 && oldc1->curve && debugging("states"))
@@ -946,7 +909,6 @@ EXPORT	boolean intersection_of_two_o_curves(
 	    else
 	    	(void) printf("oldc2 = NULL\n");
 	}
-#endif /* defined(DEBUG_CROSSING) */
 	for (b1 = Bond_at_node_of_o_curve(newc1); b1;
 		b1 = Following_bond(b1,newc1->orient)) 
 	{
@@ -967,7 +929,6 @@ EXPORT	boolean intersection_of_two_o_curves(
 				/* Store Data */
 			
 	    	*pcr = Point(Coords(pc));
-#if defined(DEBUG_CROSSING)
 	    	if (debugging("intersection"))
 	    	{
 	    	    (void) printf("True cross found\n");
@@ -976,7 +937,6 @@ EXPORT	boolean intersection_of_two_o_curves(
 	    	    (void) printf("Crossb1\n");	print_bond(b1);
 	    	    (void) printf("Crossb2\n");	print_bond(b2);
 	    	}
-#endif /* defined(DEBUG_CROSSING) */
 	    	*crossb1 = b1;
 	    	*crossb2 = b2;
 	        return leave_intersection_of_two_o_curves(YES,oldc1,oldc2,
@@ -995,13 +955,11 @@ EXPORT	boolean intersection_of_two_o_curves(
 	    bond_tangent_to_curve(Node_of_o_curve(newc1)->posn,
 			          Bond_at_node_of_o_curve(newc1),newc1->curve,
 			          newc1->orient,bdir1,fr);
-#if defined(DEBUG_CROSSING)
 	    if (debugging("intersection"))
 	    {
 	    	(void) printf("bdir1, ");	print_bond(bdir1);
 	    	print_orientation("orient = ",newc1->orient,"\n");
 	    }
-#endif /* defined(DEBUG_CROSSING) */
 		
 	    endbond = Following_bond(bdir1,Opposite_orient(newc1->orient));
 	
@@ -1018,7 +976,6 @@ EXPORT	boolean intersection_of_two_o_curves(
 	    	/* Store Data */
 		
 	    	*pcr = Point(Coords(pc));
-#if defined(DEBUG_CROSSING)
 	    	if (debugging("intersection"))
 	    	{
 	    	    (void) printf("Cross found by extending c1\n");
@@ -1027,7 +984,6 @@ EXPORT	boolean intersection_of_two_o_curves(
 	    	    (void) printf("bdir1, ");	print_bond(bdir1);
 	    	    (void) printf("crossb2, ");	print_bond(b2);
 	    	}
-#endif /* defined(DEBUG_CROSSING) */
 	    	*crossb1 = Bond_at_node_of_o_curve(newc1);
 	    	*crossb2 = b2;
 	        return leave_intersection_of_two_o_curves(YES,oldc1,oldc2,
@@ -1043,13 +999,11 @@ EXPORT	boolean intersection_of_two_o_curves(
 
 	    endbond = Following_bond(bdir2,Opposite_orient(newc2->orient));
 
-#if defined(DEBUG_CROSSING)
 	    if (debugging("intersection"))
 	    {
 	    	(void) printf("bdir2, ");	print_bond(bdir2);
 	    	print_orientation("orient = ",newc2->orient,"\n");
 	    }
-#endif /* defined(DEBUG_CROSSING) */
 
 	    for (b1 = Bond_at_node_of_o_curve(newc1); b1;
 	    	b1 = Following_bond(b1,newc1->orient)) 
@@ -1065,7 +1019,6 @@ EXPORT	boolean intersection_of_two_o_curves(
 		/* Store Data */
 		
 		*pcr = Point(Coords(pc));
-#if defined(DEBUG_CROSSING)
 		if (debugging("intersection"))
 		{
 		    (void) printf("Cross found by extending c2\n");
@@ -1074,7 +1027,6 @@ EXPORT	boolean intersection_of_two_o_curves(
 		    (void) printf("crossb1\n");	print_bond(b1);
 		    (void) printf("bdir2:\n");	print_bond(bdir2);
 		}
-#endif /* defined(DEBUG_CROSSING) */
 		*crossb1 = b1;
 		*crossb2 = Bond_at_node_of_o_curve(newc2);
 	        return leave_intersection_of_two_o_curves(YES,oldc1,oldc2,
@@ -1092,18 +1044,15 @@ EXPORT	boolean intersection_of_two_o_curves(
 	    	Coords(pmid)[i] = 0.5*(Coords(Node_of_o_curve(newc1)->posn)[i] +
 	    	                       Coords(Node_of_o_curve(newc2)->posn)[i]);
 	    }
-#if defined(DEBUG_CROSSING)
 	    if (debugging("intersection"))
 	    	(void) printf("pmid = (%g, %g)\n",Coords(pmid)[0],
 			      Coords(pmid)[1]);
-#endif /* defined(DEBUG_CROSSING) */
 	    if (robust_extend_bonds_to_cross(bdir1,newc1->orient,on_b1,bdir2,
 			                     newc2->orient,on_b2,pmid,s1,s2,
 					     pc,fr->rect_grid))
 	    {
 	    	found_cross = YES;
 	    	*pcr = Point(Coords(pc));
-#if defined(DEBUG_CROSSING)
 	    	if (debugging("intersection"))
 	    	{
 	    	    (void) printf("Cross found by double extention\n");
@@ -1112,7 +1061,6 @@ EXPORT	boolean intersection_of_two_o_curves(
 	    	    (void) printf("bdir1\n");	print_bond(bdir1);
 	    	    (void) printf("bdir2:\n");	print_bond(bdir2);
 	    	}
-#endif /* defined(DEBUG_CROSSING) */
 	    	*crossb1 = Bond_at_node_of_o_curve(newc1);
 	    	*crossb2 = Bond_at_node_of_o_curve(newc2);
 	    }
@@ -1180,7 +1128,6 @@ LOCAL	boolean leave_intersection_of_two_o_curves(
 	    set_bond_length(oppb2,dim);
 	}
 
-#if defined(DEBUG_CROSSING)
 	if (debugging("intersection")) 
 	{
 	    if (found_cross == YES)
@@ -1196,7 +1143,6 @@ LOCAL	boolean leave_intersection_of_two_o_curves(
 	    	(void) printf("found_cross = NO\n");
 	    (void) printf("Left intersection_of_two_o_curves()\n");
 	}
-#endif /* defined(DEBUG_CROSSING) */
 	return found_cross;
 }		/*end leave_intersection_of_two_o_curves*/
 
@@ -1399,15 +1345,12 @@ EXPORT void set_vel_of_crossing_node(
 	int		n_vel_set;
 	int		i, j, dim = fr->interf->dim;
 	static const double EXTEND_FACTOR = 30.0; /*TOLERANCE*/
-#if defined(DEBUG_CROSSING)
 	double		dt_current = dt;
-#endif /* defined(DEBUG_CROSSING) */
 	int		on_b1,on_b2;
 
 	on_b1 = (wt1 < FIRST_SCALAR_PHYSICS_WAVE_TYPE) ? YES : NO;
 	on_b2 = (wt2 < FIRST_SCALAR_PHYSICS_WAVE_TYPE) ? YES : NO;
 	debug_print("set_vel","Entered set_vel_of_crossing_node()\n");
-#if defined(DEBUG_CROSSING)
 	if (debugging("set_vel"))
 	{
 	    (void) printf("oldn\n");
@@ -1420,7 +1363,6 @@ EXPORT void set_vel_of_crossing_node(
 	    (void) printf("Bond newb2, ");	print_bond(newb2);
 	    (void) printf("dt = %g\n",dt);
 	}
-#endif /* defined(DEBUG_CROSSING) */
 	propagation_status(newn) = VEL_COMPUTED_NODE;
 	Node_vel(newn)[0] = 0.0;
 	Node_vel(newn)[1] = 0.0;
@@ -1448,7 +1390,6 @@ EXPORT void set_vel_of_crossing_node(
 	}
 	set_bond_length(newb1,dim);
 	set_bond_length(newb2,dim);
-#if defined(DEBUG_CROSSING)
 	if (debugging("set_vel"))
 	{
 	    (void) printf("newb1 after extension, ");
@@ -1456,7 +1397,6 @@ EXPORT void set_vel_of_crossing_node(
 	    (void) printf("newb2 after extension, ");
 	    print_bond(newb2);
 	}
-#endif /* defined(DEBUG_CROSSING) */
 
 	n_vel_set = NO;
 	for (j = 0; j < 10; j++)
@@ -1481,7 +1421,6 @@ EXPORT void set_vel_of_crossing_node(
 	    }
 	    set_bond_length(newb1,dim);
 	    set_bond_length(newb2,dim);
-#if defined(DEBUG_CROSSING)
 	    if (debugging("set_vel"))
 	    {
 	        (void) printf("newb1 after extension, ");
@@ -1489,7 +1428,6 @@ EXPORT void set_vel_of_crossing_node(
 	        (void) printf("newb2 after extension, ");
 	        print_bond(newb2);
 	    }
-#endif /* defined(DEBUG_CROSSING) */
 
 	}
 	if (n_vel_set == NO)
@@ -1512,7 +1450,6 @@ EXPORT void set_vel_of_crossing_node(
 	bond_length(newb1) = b1_len_hold;
 	bond_length(newb2) = b2_len_hold;
 
-#if defined(DEBUG_CROSSING)
 	if (debugging("set_vel"))
 	{
 	    (void) printf("computed node velocity = (%g, %g), ",
@@ -1520,7 +1457,6 @@ EXPORT void set_vel_of_crossing_node(
 	    (void) printf("dt/dt_current = %g",dt/dt_current);
 	    (void) printf("\nLeft set_vel_of_crossing_node()\n");
 	}
-#endif /* defined(DEBUG_CROSSING) */
 }		/*end set_vel_of_crossing_node*/
 
 
@@ -1547,7 +1483,6 @@ EXPORT	int set_node_velocity(
 	debug_print("set_node_velocity","Entered set_node_velocity()\n");
 	for (i = 0; i < dim; i++)
 	    d[i] = Coords(newp)[i] - Coords(oldp)[i];
-#if defined(DEBUG_CROSSING)
 	if (debugging("set_node_velocity"))
 	{
 	    (void) printf("dt = %g, h = (%g, %g)\n",dt,h[0],h[1]);
@@ -1555,7 +1490,6 @@ EXPORT	int set_node_velocity(
 	    (void) printf("v1 = (%g, %g), v2 = (%g, %g)\n",v1[0],v1[1],
 			  v2[0],v2[1]);
 	}
-#endif /* defined(DEBUG_CROSSING) */
 	if (((fabs(d[0]/h[0]) + fabs(d[1]/h[1])) < .01) ||
 			dt < MIN_SCALED_LENGTH(fr->interf)*min(h[0],h[1])) 
 	{
@@ -1570,14 +1504,12 @@ EXPORT	int set_node_velocity(
 	    (void) vector_product(t1,t2,&den,dim);
 	    num1 = t2[0]*(v1[1] - v2[1]) - t2[1]*(v1[0] - v2[0]);
 	    num2 = t1[0]*(v1[1] - v2[1]) - t1[1]*(v1[0] - v2[0]);
-#if defined(DEBUG_CROSSING)
 	    if (debugging("set_node_velocity"))
 	    {
 	        (void) printf("t1 = (%g, %g), t2 = (%g, %g)\n",
 	    		      t1[0],t1[1],t2[0],t2[1]);
 	        (void) printf("den = %g, num1 = %g, num2 = %g\n",den,num1,num2);
 	    }
-#endif /* defined(DEBUG_CROSSING) */
 	    if (fabs(den) > 0.0)
 	    {
 	    	for (i = 0; i < dim; i++)
@@ -1625,7 +1557,6 @@ EXPORT	int check_cross(
 {
 	int   status;
 
-#if defined(DEBUG_CROSSING)
 	debug_print("check_cross","Entered check_cross()\n");
 	if (debugging("check_cross")) 
 	{
@@ -1639,7 +1570,6 @@ EXPORT	int check_cross(
 	    (void) printf("c2\n");	print_o_curve(c2);
 	    (void) printf("L = <%g, %g>, U = <%g, %g>\n",L[0],L[1],U[0],U[1]);
 	}
-#endif /* defined(DEBUG_CROSSING) */
 
 	status = GOOD_CROSS;
 	if ((b1 && c1 && end_of_curve(s1,b1,c1->curve,c1->orient)) ||
@@ -1654,7 +1584,6 @@ EXPORT	int check_cross(
 	    status |= OUT_OF_BOUNDS_CROSS;
 	}
 	
-#if defined(DEBUG_CROSSING)
 	if (debugging("check_cross"))
 	{
 	    if (status == GOOD_CROSS)
@@ -1668,12 +1597,10 @@ EXPORT	int check_cross(
 	    	(void) printf("Out of bounds cross\n");
 	}
 	debug_print("check_cross","Left check_cross()\n");
-#endif /* defined(DEBUG_CROSSING) */
 
 	return status;
 }		/*end check_cross*/
 
-#if defined(DEBUG_CROSSING)
 LOCAL	void debug_print_improper_cross(
 	POINT		*pc,
 	double		s1,
@@ -1699,5 +1626,3 @@ LOCAL	void debug_print_improper_cross(
 			low[0],low[1],high[0],high[1]);
 	}
 }		/*end debug_print_improper_cross*/
-#endif /* defined(DEBUG_CROSSING) */
-#endif /* defined(TWOD) */

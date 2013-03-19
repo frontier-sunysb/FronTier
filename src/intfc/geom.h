@@ -43,30 +43,13 @@ extern "C" {
 
 
 /* The default is to compile all dimensional versions of the code */
-#if !defined(ONED) && !defined(TWOD) && !defined(THREED)
-#   define ONED
-#   define TWOD
-#   define THREED
-#endif /* !defined(ONED) && !defined(TWOD) && !defined(THREED) */
 
 enum {
-#if defined(THREED)
 	MAXD = 3
-#elif defined(TWOD)
-	MAXD = 2
-#elif defined(ONED)
-	MAXD = 1
-#endif /* defined(THREED) */
 };
 
 enum {
-#if defined(THREED)
 	MAX_LSQ_PTS = 100
-#elif defined(TWOD)
-	MAX_LSQ_PTS = 40
-#elif defined(ONED)
-	MAX_LSQ_PTS = 5
-#endif /* defined(THREED) */
 };
 
 #define	NOBUF	NULL

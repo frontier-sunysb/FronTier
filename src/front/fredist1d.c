@@ -32,7 +32,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *	The routines in this file untangle a interface.
 */
 
-#if defined(ONED)
 
 #include <front/fdecs.h>
 
@@ -147,4 +146,3 @@ EXPORT	int	redistribute1d(
 	debug_print("redist1d","Left redistribute1d()\n");
 	return GOOD_REDISTRIBUTION;
 }		/*end redistribute1d*/
-#endif /* defined(ONED) */

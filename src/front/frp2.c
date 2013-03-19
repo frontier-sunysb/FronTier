@@ -33,7 +33,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *	dimensional Riemann problems.
 */
 
-#if defined(TWOD)
 
 #define DEBUG_STRING "2drp"
 #include <front/fdecs.h>		/* includes int.h, table.h */
@@ -1238,4 +1237,3 @@ testnull:
 	if (*cfamily) goto testnull;
 	DEBUG_LEAVE(f_replace_null_curves_in_family)
 }		/*end f_replace_null_curves_in_family*/
-#endif /* defined(TWOD) */

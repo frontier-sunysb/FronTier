@@ -533,10 +533,8 @@ EXPORT	boolean closed_curve_node_redistribute(
 	BOND		*b;
 	CURVE		**c;
 
-#if defined(DEBUG_NODE_PROPAGATE)
         if (debugging("noCCNR"))
 	    return status;
-#endif /* defined(DEBUG_NODE_PROPAGATE) */
 	for (c = intfc->curves; *c ; ++c)
 	{
 	    if (is_bdry(*c))

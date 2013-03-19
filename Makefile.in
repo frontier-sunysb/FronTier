@@ -51,8 +51,7 @@ clean:
 	-cd lib/$(build_cpu)/; rm -rf gas *.a
 	-rm -rf incs
 	-rm -rf include
-tar:
-	cd src/gas && $(MAKE) tar	
+
 export:
 	cd src/gas && $(MAKE) export
 

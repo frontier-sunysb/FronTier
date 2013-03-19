@@ -39,7 +39,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *			f_boundary_untangle()
 */
 
-#if defined(TWOD)
 
 #include <front/fdecs.h>
 
@@ -1643,4 +1642,3 @@ LOCAL	boolean interior_curve_crosses_boundary(
 	    return NO;
 	return YES;
 }		/*end interior_curve_crosses_boundary*/
-#endif /* defined(TWOD) */

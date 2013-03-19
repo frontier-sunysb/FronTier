@@ -36,7 +36,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
-#if defined(TWOD)
 
 #include <front/fdecs.h>
 
@@ -373,4 +372,3 @@ EXPORT void set_states_by_interpolation(
 	}
 }		/*end set_states_by_interpolation*/
 
-#endif /* defined(TWOD) */

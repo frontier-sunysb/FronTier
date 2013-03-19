@@ -37,7 +37,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *			curve_exits()
 */
 
-#if defined(TWOD)
 
 #include <front/fdecs.h>
 
@@ -86,4 +85,3 @@ EXPORT int is_curve_in_cross_list(
 	return NO;
 }		/*end is_curve_in_cross_list*/
 
-#endif /* defined(TWOD) */

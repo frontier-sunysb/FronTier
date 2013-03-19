@@ -67,7 +67,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *	limit of the interior of the boundary.
 */
 
-#if defined(TWOD)
 
 #include <front/fdecs.h>
 
@@ -1013,4 +1012,3 @@ LOCAL	void short_dist(
 		t_last = t;
 }		/*end short_dist*/
 
-#endif /* defined(TWOD) */
