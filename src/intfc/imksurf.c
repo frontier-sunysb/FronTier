@@ -50,10 +50,10 @@ LOCAL   boolean    face_crx_in_dir(double (*func1)(POINTER,double*),POINTER,
                         double (*func2)(POINTER,double*),POINTER,
 			double*,double*,double*,int);
 LOCAL   int     count_bdry_coner_crx(int*,COMPONENT***);
-LOCAL   int     install_bdry_corner_crx(INTERFACE*,EG_CRX*,RECT_GRID,double*,double*,
-			NODE****,CURVE****,SURFACE***);
+LOCAL   int     install_bdry_corner_crx(INTERFACE*,EG_CRX*,RECT_GRID,
+			double*,double*,NODE****,CURVE****,SURFACE***);
 LOCAL	int 	count_side_comp(COMPONENT,COMPONENT,COMPONENT,COMPONENT);
-LOCAL   double  det4(double A[4][4]);
+LOCAL   double  det4(double**);
 
 /*	Initialization functions for level surfaces */
 
@@ -2291,48 +2291,45 @@ EXPORT double tetrahedron_func(
         double *coords)
 {
 	TETRAHEDRON_PARAMS *d_params = (TETRAHEDRON_PARAMS*)func_params;
+	int i,j,k;
         double d[5], arg;
-        double x,y,z;
-        double v[4][3] = {{-d_params->radius*2*sqrt(2)/3,0,
-					-d_params->radius/3},
-                          {d_params->radius*sqrt(2)/3,
-					d_params->radius*sqrt(6)/3,
-					-d_params->radius/3},
-                          {d_params->radius*sqrt(2)/3,
-					-d_params->radius*sqrt(6)/3,
-					-d_params->radius/3},
-                          {0,0,d_params->radius}};
+        double v[4][3];
+	static double ***D;
 
-        x = coords[0] - d_params->center[0];
-        y = coords[1] - d_params->center[1];
-        z = coords[2] - d_params->center[2];
+	if (D == NULL)
+	    tri_array(&D,5,4,4,sizeof(double));
+	/*coordinates of the four vertices*/
+	v[0][0]=-d_params->radius*2*sqrt(2)/3;  
+	v[0][1]=0; 			     
+	v[0][2]=-d_params->radius/3;
+        v[1][0]=d_params->radius*sqrt(2)/3; 	
+	v[1][1]=d_params->radius*sqrt(6)/3;  
+	v[1][2]=-d_params->radius/3;
+        v[2][0]=d_params->radius*sqrt(2)/3; 	
+	v[2][1]=-d_params->radius*sqrt(6)/3; 
+	v[2][3]=-d_params->radius/3;
+        v[3][0]=0; 				
+	v[3][1]=0; 			     
+	v[3][2]=d_params->radius;
 
-        double D0[4][4]={{v[0][0],v[0][1],v[0][2],1},
-                         {v[1][0],v[1][1],v[1][2],1},
-                         {v[2][0],v[2][1],v[2][2],1},
-                         {v[3][0],v[3][1],v[3][2],1}};
+	for (i = 0; i < 4; i++)
+	for (j = 0; j < 4; j++)
+	{
+	    if (j == 3)
+		for (k = 0; k < 5; ++k)
+		    D[k][i][j] = 1.0;
+	    else
+		for (k = 0; k < 5; ++k)
+		    D[k][i][j] = v[i][j];
+	}
 
-        double D1[4][4]={{x,y,z,1},
-                         {v[1][0],v[1][1],v[1][2],1},
-                         {v[2][0],v[2][1],v[2][2],1},
-                         {v[3][0],v[3][1],v[3][2],1}};
+	for (i = 0; i < 4; i++)
+	for (k = 0; k < 3; ++k)
+	    D[i+1][i][k] = coords[k] - d_params->center[k];
 
-        double D2[4][4]={{v[0][0],v[0][1],v[0][2],1},
-                         {x,y,z,1},
-                         {v[2][0],v[2][1],v[2][2],1},
-                         {v[3][0],v[3][1],v[3][2],1}};
+	for (i = 0; i < 5; ++i)
+	    d[i] = det4(D[i]);
 
-        double D3[4][4]={{v[0][0],v[0][1],v[0][2],1},
-                         {v[1][0],v[1][1],v[1][2],1},
-                         {x,y,z,1},
-                         {v[3][0],v[3][1],v[3][2],1}};
-
-        double D4[4][4]={{v[0][0],v[0][1],v[0][2],1},
-                         {v[1][0],v[1][1],v[1][2],1},
-                         {v[2][0],v[2][1],v[2][2],1},
-                         {x,y,z,1}};
-        d[0] = det4(D0); d[1] = det4(D1); d[2] = det4(D2); d[3] = det4(D3);
-        d[4] = det4(D4);
         if(d[0] == 0)
         {
             (void) printf("coplanar!\n");
@@ -2351,7 +2348,7 @@ EXPORT double tetrahedron_func(
 
 }	/*end tetrahedron_func*/
 
-LOCAL	double det4(double A[4][4])
+LOCAL	double det4(double **A)
 {
         double y;
         y =  A[0][0]*A[1][1]*A[2][2]*A[3][3]-A[0][0]*A[1][1]*A[2][3]*A[3][2]
