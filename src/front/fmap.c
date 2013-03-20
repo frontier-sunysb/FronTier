@@ -111,9 +111,9 @@ EXPORT	int FrontAdvance(
 	    start_dt = front->dt;
             status = advance_front(front->dt,dt_frac,front,newfront,wave);
             count++;
-            if (count > 10) 
+            if (count > 15) 
 	    {
-		screen("ERROR: in FrontAdvance() modified step 10 times\n");
+		screen("ERROR: in FrontAdvance() modified step 15 times\n");
 	    	clean_up(ERROR);
 	    }
         }

@@ -331,11 +331,12 @@ void PETSc::Solve_withPureNeumann_BCGSL(void)
 
 void PETSc::Print_A(const char *filename)
 {
+	PetscViewer viewer;
         ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
         ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
-	PetscViewerSetFormat(PETSC_VIEWER_STDOUT_WORLD,
-			PETSC_VIEWER_ASCII_MATLAB);
-        MatView(A, PETSC_VIEWER_STDOUT_WORLD);
+        PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
+        MatView(A, viewer);
+        PetscViewerDestroy(viewer);
 }	/* end Print_A */
 
 void PETSc::Print_b(const char *filename)

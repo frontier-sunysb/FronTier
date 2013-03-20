@@ -693,9 +693,6 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
 	static double *soln;
 	int i,j,k,index;
 
-	if (m_dt < 0.1*sqr(hmin)/eqn_params->D/(double)dim)
-	    //return computeAdvectionExplicit(sub_comp);
-	    return;
 	if (soln == NULL)
             FT_VectorMemoryAlloc((POINTER*)&soln,comp_size,FLOAT);
 
