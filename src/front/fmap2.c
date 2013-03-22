@@ -809,7 +809,7 @@ EXPORT  void FT_MakeConeSurf(
 EXPORT  void FT_MakeTetrahedronSurf(
         Front *front,
         double *center,
-        double radius,
+        double edge,
         COMPONENT neg_comp,
         COMPONENT pos_comp,
         int w_type,
@@ -822,7 +822,7 @@ EXPORT  void FT_MakeTetrahedronSurf(
         for (i = 0; i < dim; ++i)
         {
             tetrahedron_params.center[i] = center[i];
-            tetrahedron_params.radius = radius;
+            tetrahedron_params.edge = edge;
         }
         make_level_surface(rgr,front->interf,neg_comp,pos_comp,
                         tetrahedron_func,(POINTER)&tetrahedron_params,surf);

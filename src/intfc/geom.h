@@ -523,7 +523,7 @@ typedef struct {
 
 typedef struct {
 	double center[3];
-	double radius;
+	double edge;
 } TETRAHEDRON_PARAMS;
 
 typedef struct {

@@ -157,8 +157,8 @@ int main(int argc, char **argv)
 
 	//Test making tetrahedron surface
 	center[0] = center[1] = center[2] = 0.5;
-        radius = 0.4;
-        FT_MakeTetrahedronSurf(&front,center,radius,
+        edge = 0.4;
+        FT_MakeTetrahedronSurf(&front,center,edge,
                 exterior_component(front.interf),2,FIRST_PHYSICS_WAVE_TYPE,
                 &surf);
         FT_Save(&front,f_basic.out_name);

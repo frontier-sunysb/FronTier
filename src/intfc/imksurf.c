@@ -2291,61 +2291,47 @@ EXPORT double tetrahedron_func(
         double *coords)
 {
 	TETRAHEDRON_PARAMS *d_params = (TETRAHEDRON_PARAMS*)func_params;
-	int i,j,k;
-        double d[5], arg;
-        double v[4][3];
-	static double ***D;
+	int i,j;
+	double p[3];
+	double a = d_params->edge;
+	double r = a/sqrt(24);
+	double inner_prod, dis, cos_arg, d;
+	double MAX_COS = -1;
+	double temp_vec[3];
+	double nor_vec[4][3]={{-2, 0, 1.4142}, {2, 0, 1.4141},
+			      {0, 2, -1.4142}, {0, -2, -1.4142}};
 
-	if (D == NULL)
-	    tri_array(&D,5,4,4,sizeof(double));
-	/*coordinates of the four vertices*/
-	v[0][0]=-d_params->radius*2*sqrt(2)/3;  
-	v[0][1]=0; 			     
-	v[0][2]=-d_params->radius/3;
-        v[1][0]=d_params->radius*sqrt(2)/3; 	
-	v[1][1]=d_params->radius*sqrt(6)/3;  
-	v[1][2]=-d_params->radius/3;
-        v[2][0]=d_params->radius*sqrt(2)/3; 	
-	v[2][1]=-d_params->radius*sqrt(6)/3; 
-	v[2][3]=-d_params->radius/3;
-        v[3][0]=0; 				
-	v[3][1]=0; 			     
-	v[3][2]=d_params->radius;
-
-	for (i = 0; i < 4; i++)
-	for (j = 0; j < 4; j++)
+	for (i = 0; i < 3; i++)
+	    p[i] = coords[i] - d_params->center[i];		
+	
+	if(Mag3d(p) == 0)
 	{
-	    if (j == 3)
-		for (k = 0; k < 5; ++k)
-		    D[k][i][j] = 1.0;
-	    else
-		for (k = 0; k < 5; ++k)
-		    D[k][i][j] = v[i][j];
+	    dis = 10000;
+	    printf("origin point detected!\ndis = %f\n",dis);
+	    return dis;
 	}
+	else
+	{
+    	    for (i = 0; i < 4; ++i)
+    	    for (j = 0; j < 3; ++j)
+    	    {
+        	nor_vec[i][j] = nor_vec[i][j]*2/a;
+    	    }
+    	    for (i = 0; i < 4; i++)
+   	    {	
+		for (j = 0; j < 3; j++)
+		temp_vec[j] = nor_vec[i][j];
+		
+		inner_prod = Dot3d(p,temp_vec);
+		cos_arg = inner_prod/(Mag3d(p)*Mag3d(temp_vec));
 
-	for (i = 0; i < 4; i++)
-	for (k = 0; k < 3; ++k)
-	    D[i+1][i][k] = coords[k] - d_params->center[k];
-
-	for (i = 0; i < 5; ++i)
-	    d[i] = det4(D[i]);
-
-        if(d[0] == 0)
-        {
-            (void) printf("coplanar!\n");
-            clean_up(ERROR);
-        }
-        else
-        {
-            if(d[0]*d[1]>0 && d[0]*d[2]>0 && d[0]*d[3]>0 && d[0]*d[4]>0)
-            	arg = 1;
-            else if(d[1]*d[2]*d[3]*d[4]==0)
-            	arg = 0;
-            else
-		arg = -1;
-        }
-        return arg;
-
+		if (cos_arg > MAX_COS)
+		MAX_COS = cos_arg;
+	    }
+	    d = r/MAX_COS;
+	    dis = d - Mag3d(p);
+		return dis;
+	}
 }	/*end tetrahedron_func*/
 
 LOCAL	double det4(double **A)
