@@ -238,7 +238,7 @@ void PETSc::Solve_GMRES(void)
 
 void PETSc::Solve(void)
 {
-	Solve_GMRES();
+	Solve_BCGSL();
 }	/* end Solve */
 
 void PETSc::Solve_BCGSL(void)
