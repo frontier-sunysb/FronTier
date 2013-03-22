@@ -55,6 +55,7 @@ int main(int argc, char **argv)
 	// for cone
 	double slope;
 	// for tetrahedron
+	double tedge;
 
 	FT_Init(argc,argv,&f_basic);
 
@@ -157,8 +158,8 @@ int main(int argc, char **argv)
 
 	//Test making tetrahedron surface
 	center[0] = center[1] = center[2] = 0.5;
-        edge = 0.4;
-        FT_MakeTetrahedronSurf(&front,center,edge,
+        tedge = 0.4;
+        FT_MakeTetrahedronSurf(&front,center,tedge,
                 exterior_component(front.interf),2,FIRST_PHYSICS_WAVE_TYPE,
                 &surf);
         FT_Save(&front,f_basic.out_name);
