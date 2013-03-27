@@ -55,7 +55,6 @@ EXPORT	void FT_Propagate(
 	if (debugging("trace"))
 	{
 	    (void) printf("Entering FT_Propagate()\n");
-	    front->max_scaled_propagation = 0.0;
 	}
 	if (front->grid_intfc == NULL)
 	    FT_MakeGridIntfc(front);
@@ -99,6 +98,7 @@ EXPORT	int FrontAdvance(
 
 	*dt_frac = 1.0;
 	front->dt_frac = dt_frac;
+	front->max_scaled_propagation = 0.0;
         status = advance_front(front->dt,dt_frac,front,newfront,wave);
 
         count = 0;
@@ -109,6 +109,7 @@ EXPORT	int FrontAdvance(
 	    if (status == MODIFY_TIME_STEP)
             	front->dt = (*dt_frac)*start_dt;
 	    start_dt = front->dt;
+	    front->max_scaled_propagation = 0.0;
             status = advance_front(front->dt,dt_frac,front,newfront,wave);
             count++;
             if (count > 15) 
@@ -116,8 +117,8 @@ EXPORT	int FrontAdvance(
 		screen("ERROR: in FrontAdvance() modified step 15 times\n");
 	    	clean_up(ERROR);
 	    }
+	    printf("Final front->dt = %f\n",front->dt);
         }
-	printf("Final front->dt = %f\n",front->dt);
 }	/* end FrontAdvance */
 
 EXPORT	double FrontHypTimeStep(
