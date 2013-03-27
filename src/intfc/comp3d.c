@@ -3776,9 +3776,6 @@ EXPORT boolean tri_edge_crossing(
 	
 	n = Tri_normal(tri); 
 	
-	if(debugging("tst_crx"))
-	    print_general_vector("n", n, 3, "\n");
-
 	D = Mag3d(n);
 	for (i = 0; i < 3; ++i)
 	    norm[i] = n[i]/D;
@@ -3823,6 +3820,11 @@ EXPORT boolean tri_edge_crossing(
 	    p1 = Coords(p[i]);
 	    p2 = Coords(p[(i+1)%3]);
 
+	    if (p1 > p2)
+	    {
+		p1 = p2;
+		p2 = Coords(p[i]);
+	    }
 	    d = shortest_2line_dist_dir(ic,crds_start,p1,p2,crds_crx,pe_crx);
 	    if (d > crx_toll)
 		continue;

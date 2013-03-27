@@ -2224,10 +2224,10 @@ EXPORT  double cuboid_func(
             if((fabs(x) - e[0])*(fabs(y) - e[1])*(fabs(z) - e[2]) == 0)
                 arg = 0;
             else
-                 arg = 1;
+                 arg = -1;
         }
         else
-            arg = -1;
+            arg = 1;
         return arg;
 }	 /*end cuboid_func */
 
@@ -2330,7 +2330,7 @@ EXPORT double tetrahedron_func(
 	    }
 	    d = r/MAX_COS;
 	    dis = d - Mag3d(p);
-		return dis;
+	    return dis;
 	}
 }	/*end tetrahedron_func*/
 
