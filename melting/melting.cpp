@@ -208,8 +208,10 @@ static  void melting_driver(
             FT_Save(front,out_name);
 	    if (dim == 1)
 	    	cartesian.oneDimPlot(out_name);
-	    if (dim == 2)
+	    else if (dim == 2)
 		cartesian.vtk_plot_temperature2d(out_name);
+	    else
+		cartesian.vtk_plot_temperature3d(out_name);
 
 	    if (dim == 1)
 	    {
@@ -280,6 +282,8 @@ static  void melting_driver(
 	    	    cartesian.oneDimPlot(out_name);
 		else if (dim == 2)
 		    cartesian.vtk_plot_temperature2d(out_name);
+		else
+		    cartesian.vtk_plot_temperature3d(out_name);
 	    }
 	    if (dim == 1)
 	    {

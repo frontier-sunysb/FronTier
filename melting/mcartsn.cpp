@@ -1583,6 +1583,210 @@ void CARTESIAN::vtk_plot_temperature2d(
 	fclose(outfile);
 }       /* end vtk_plot_temperature2d */
 
+void CARTESIAN::vtk_plot_temperature3d(
+        char *outname)
+{
+        std::vector<int> ph_index;
+        int i,j,k,index;
+        char dirname[256],filename[256];
+        FILE *outfile;
+        double coord_x,coord_y,coord_z,xmin,ymin,zmin;
+        COMPONENT comp;
+        int pointsx,pointsy,pointsz,num_points,num_cells,num_cell_list;
+        int icoords[3],p_gmax[3];
+
+        sprintf(filename, "%s/vtk.ts%s",outname,
+                right_flush(front->step,7));
+        if (pp_numnodes() > 1)
+            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+	
+	//cell-based liquid phase
+	ph_index.clear();
+        if (!create_directory(filename,NO))
+        {
+            printf("Cannot create directory %s\n",filename);
+            clean_up(ERROR);
+        }
+        sprintf(filename,"%s/liquid.vtk",filename);
+        outfile = fopen(filename,"w");
+        fprintf(outfile,"# vtk DataFile Version 3.0\n");
+        fprintf(outfile,"liquid temperature\n");
+        fprintf(outfile,"ASCII\n");
+        fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
+
+        for (k = kmin; k <= kmax; k++)
+        for (j = jmin; j <= jmax; j++)
+        for (i = imin; i <= imax; i++)
+        {
+            index = d_index3d(i,j,k,top_gmax);
+            if (cell_center[index].comp == LIQUID_COMP)
+                ph_index.push_back(index);
+        }
+
+        pointsx = imax - imin + 2;
+        pointsy = jmax - jmin + 2;
+        pointsz = kmax - kmin + 2;
+        num_points = pointsx*pointsy*pointsz;
+
+        num_cells = (int)ph_index.size();
+        num_cell_list = 9*num_cells;
+
+        p_gmax[0] = pointsx - 1;
+        p_gmax[1] = pointsy - 1;
+        p_gmax[2] = pointsz - 1;
+
+	index = d_index3d(imin,jmin,kmin,top_gmax);
+        xmin = cell_center[index].coords[0] - top_h[0]/2.0;
+        ymin = cell_center[index].coords[1] - top_h[1]/2.0;
+        zmin = cell_center[index].coords[2] - top_h[2]/2.0;
+
+        fprintf(outfile,"POINTS %d double\n", num_points);
+        for (k = 0; k < pointsz; k++)
+        for (j = 0; j < pointsy; j++)
+        for (i = 0; i < pointsx; i++)
+        {
+            coord_x = xmin + i*top_h[0];
+            coord_y = ymin + j*top_h[1];
+            coord_z = zmin + k*top_h[2];
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
+        for (i = 0; i < num_cells; i++)
+        {
+            int index0,index1,index2,index3,index4,index5,index6,index7;
+            index = ph_index[i];
+            icoords[0] = cell_center[index].icoords[0];
+            icoords[1] = cell_center[index].icoords[1];
+            icoords[2] = cell_center[index].icoords[2];
+            index0 = d_index3d(icoords[0]-1,icoords[1]-1,icoords[2]-1,p_gmax);
+            index1 =
+                d_index3d(icoords[0]-1+1,icoords[1]-1,icoords[2]-1,p_gmax);
+            index2 =
+                d_index3d(icoords[0]-1,icoords[1]-1+1,icoords[2]-1,p_gmax);
+            index3 =
+                d_index3d(icoords[0]-1+1,icoords[1]-1+1,icoords[2]-1,p_gmax);
+            index4 =
+                d_index3d(icoords[0]-1,icoords[1]-1,icoords[2]-1+1,p_gmax);
+            index5 =
+                d_index3d(icoords[0]-1+1,icoords[1]-1,icoords[2]-1+1,p_gmax);
+            index6 =
+                d_index3d(icoords[0]-1,icoords[1]-1+1,icoords[2]-1+1,p_gmax);
+            index7 =
+                d_index3d(icoords[0]-1+1,icoords[1]-1+1,icoords[2]-1+1,p_gmax);
+
+            fprintf(outfile,"8 %i %i %i %i %i %i %i %i\n",
+                index0,index1,index2,index3,index4,index5,index6,index7);
+        }
+
+	fprintf(outfile, "CELL_TYPES %i\n", num_cells);
+        for (i = 0; i < num_cells; i++)
+            fprintf(outfile,"11\n");
+
+        fprintf(outfile, "CELL_DATA %i\n", num_cells);
+        fprintf(outfile, "SCALARS temperature double\n");
+        fprintf(outfile, "LOOKUP_TABLE default\n");
+        for (i = 0; i < num_cells; i++)
+        {
+            index = ph_index[i];
+            fprintf(outfile,"%f\n",eqn_params->field->temperature[index]);
+        }
+        fclose(outfile);
+
+	//cell-based solid phase
+	sprintf(filename,"%s/vtk.ts%s",outname,
+                right_flush(front->step,7));
+        if (pp_numnodes() > 1)
+            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+
+        ph_index.clear();
+        sprintf(filename,"%s/solid.vtk",filename);
+        outfile = fopen(filename,"w");
+        fprintf(outfile,"# vtk DataFile Version 3.0\n");
+        fprintf(outfile,"solid temperature\n");
+        fprintf(outfile,"ASCII\n");
+        fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
+
+        for (k = kmin; k <= kmax; k++)
+        for (j = jmin; j <= jmax; j++)
+        for (i = imin; i <= imax; i++)
+        {
+            index = d_index3d(i,j,k,top_gmax);
+            if (cell_center[index].comp == SOLID_COMP)
+                ph_index.push_back(index);
+        }
+
+        pointsx = imax - imin + 2;
+        pointsy = jmax - jmin + 2;
+        pointsz = kmax - kmin + 2;
+        num_points = pointsx*pointsy*pointsz;
+
+        num_cells = (int)ph_index.size();
+        num_cell_list = 9*num_cells;
+
+        p_gmax[0] = pointsx - 1;
+        p_gmax[1] = pointsy - 1;
+        p_gmax[2] = pointsz - 1;
+
+        index = d_index3d(imin,jmin,kmin,top_gmax);
+        xmin = cell_center[index].coords[0] - top_h[0]/2.0;
+        ymin = cell_center[index].coords[1] - top_h[1]/2.0;
+        zmin = cell_center[index].coords[2] - top_h[2]/2.0;
+
+	fprintf(outfile,"POINTS %d double\n", num_points);
+        for (k = 0; k < pointsz; k++)
+        for (j = 0; j < pointsy; j++)
+        for (i = 0; i < pointsx; i++)
+        {
+            coord_x = xmin + i*top_h[0];
+            coord_y = ymin + j*top_h[1];
+            coord_z = zmin + k*top_h[2];
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
+        for (i = 0; i < num_cells; i++)
+        {
+            int index0,index1,index2,index3,index4,index5,index6,index7;
+            index = ph_index[i];
+            icoords[0] = cell_center[index].icoords[0];
+            icoords[1] = cell_center[index].icoords[1];
+            icoords[2] = cell_center[index].icoords[2];
+            index0 = d_index3d(icoords[0]-1,icoords[1]-1,icoords[2]-1,p_gmax);
+            index1 =
+                d_index3d(icoords[0]-1+1,icoords[1]-1,icoords[2]-1,p_gmax);
+            index2 =
+                d_index3d(icoords[0]-1,icoords[1]-1+1,icoords[2]-1,p_gmax);
+            index3 =
+                d_index3d(icoords[0]-1+1,icoords[1]-1+1,icoords[2]-1,p_gmax);
+            index4 =
+                d_index3d(icoords[0]-1,icoords[1]-1,icoords[2]-1+1,p_gmax);
+            index5 =
+                d_index3d(icoords[0]-1+1,icoords[1]-1,icoords[2]-1+1,p_gmax);
+            index6 =
+                d_index3d(icoords[0]-1,icoords[1]-1+1,icoords[2]-1+1,p_gmax);
+            index7 =
+                d_index3d(icoords[0]-1+1,icoords[1]-1+1,icoords[2]-1+1,p_gmax);
+
+            fprintf(outfile,"8 %i %i %i %i %i %i %i %i\n",
+                index0,index1,index2,index3,index4,index5,index6,index7);
+        }
+
+	fprintf(outfile, "CELL_TYPES %i\n", num_cells);
+        for (i = 0; i < num_cells; i++)
+            fprintf(outfile,"11\n");
+
+        fprintf(outfile, "CELL_DATA %i\n", num_cells);
+        fprintf(outfile, "SCALARS temperature double\n");
+        fprintf(outfile, "LOOKUP_TABLE default\n");
+        for (i = 0; i < num_cells; i++)
+        {
+            index = ph_index[i];
+            fprintf(outfile,"%f\n",eqn_params->field->temperature[index]);
+        }
+        fclose(outfile);
+}       /* end vtk_plot_temperature3d */
+
 void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
 {
 	int i,j,k,l,m,ic,icn,icoords[MAXD],nc;

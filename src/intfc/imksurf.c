@@ -2208,8 +2208,9 @@ EXPORT  double cuboid_func(
 	double *coords)
 {
 	CUBOID_PARAMS *d_params = (CUBOID_PARAMS*)func_params;
-        double *c, *e;
-        double x,y,z,arg;
+        double *c, *e, v[3];
+        double x,y,z,v1,v2,v3,dist;
+	int i;
 
         c = d_params->center;
         e = d_params->edge;
@@ -2218,17 +2219,17 @@ EXPORT  double cuboid_func(
         y = coords[1] - c[1];
         z = coords[2] - c[2];
 	
-        if(fabs(x) <= e[0] && fabs(y) <= e[1]
-                && fabs(z) <= e[2])
+	v[0] = fabs(x) - e[0];
+	v[1] = fabs(y) - e[1];
+	v[2] = fabs(z) - e[2];
+
+	dist = -HUGE;
+	for (i = 0; i < 3; i++)
 	{
-            if((fabs(x) - e[0])*(fabs(y) - e[1])*(fabs(z) - e[2]) == 0)
-                arg = 0;
-            else
-                 arg = -1;
-        }
-        else
-            arg = 1;
-        return arg;
+	    if (dist < v[i])
+		dist = v[i];       
+	}
+	return dist;
 }	 /*end cuboid_func */
 
 EXPORT  double cylinder_func(
