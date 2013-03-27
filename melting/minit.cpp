@@ -231,24 +231,81 @@ static void initPhaseIntfc3d(
 	LEVEL_FUNC_PACK *level_func_pack,
 	PARAMS *eqn_params)
 {
+	FILE *infile = fopen(in_name,"r");	
+	char string[256];
 	static SEED_PARAMS seed_params;
-	read_seed_params(3,in_name,&seed_params);
-	if (seed_params.num_floor_seeds == 0 &&
-            seed_params.num_ceiling_seeds == 0 &&
-            seed_params.num_space_seeds == 0)
-        {
-            level_func_pack->func_params = NULL;
-            level_func_pack->func = NULL;
-        }
-        else
-        {
-            level_func_pack->func_params = (POINTER)&seed_params;
-            level_func_pack->func = seed_func;
-        }
-	level_func_pack->neg_component = SOLID_COMP;
-        level_func_pack->pos_component = LIQUID_COMP;
-        level_func_pack->wave_type = GROWING_BODY_BOUNDARY;
-	level_func_pack->set_3d_bdry = YES;
+	static CUBOID_PARAMS cuboid_params;
+	static TETRAHEDRON_PARAMS tetrahedron_params;
+	
+	CursorAfterString(infile,"Enter initial interface type: ");
+	fscanf(infile,"%s",string);
+	(void) printf("%s\n",string);
+	switch (string[0])
+	{
+	case 's':
+	case 'S':
+	    read_seed_params(3,in_name,&seed_params);
+	    if (seed_params.num_floor_seeds == 0 &&
+            	seed_params.num_ceiling_seeds == 0 &&
+            	seed_params.num_space_seeds == 0)
+      	    {
+        	level_func_pack->func_params = NULL;
+            	level_func_pack->func = NULL;
+       	    }
+            else
+            {
+                level_func_pack->func_params = (POINTER)&seed_params;
+                level_func_pack->func = seed_func;
+            }
+	    level_func_pack->neg_component = SOLID_COMP;
+            level_func_pack->pos_component = LIQUID_COMP;
+            level_func_pack->wave_type = GROWING_BODY_BOUNDARY;
+	    level_func_pack->set_3d_bdry = YES;
+	    break;
+	case 'c':
+	case 'C':
+	    CursorAfterString(infile,"Enter center of Cuboid: ");
+	    fscanf(infile,"%lf %lf %lf\n",&cuboid_params.center[0],
+				&cuboid_params.center[1],&cuboid_params.center[2]);
+	    (void) printf("%f %f %f\n",cuboid_params.center[0],
+				cuboid_params.center[1],cuboid_params.center[2]);
+	    CursorAfterString(infile,"Enter edge of Cuboid: ");
+	    fscanf(infile,"%lf %lf %lf\n",&cuboid_params.edge[0],
+				&cuboid_params.edge[1],&cuboid_params.edge[2]);
+	    (void) printf("%f %f %f\n",cuboid_params.edge[0],
+				cuboid_params.edge[1],cuboid_params.edge[2]);
+	    level_func_pack->func_params = (POINTER)&cuboid_params;
+	    level_func_pack->func = cuboid_func;
+	    level_func_pack->neg_component = SOLID_COMP;
+            level_func_pack->pos_component = LIQUID_COMP;
+            level_func_pack->wave_type = GROWING_BODY_BOUNDARY;
+            level_func_pack->set_3d_bdry = YES;
+	    break;
+	case 't':
+	case 'T':
+	    CursorAfterString(infile,"Enter center of Tetrahedron: ");
+	    fscanf(infile,"%lf %lf %lf\n",&tetrahedron_params.center[0],
+				&tetrahedron_params.center[1],
+				&tetrahedron_params.center[2]);
+	    (void) printf("%f %f %f\n",tetrahedron_params.center[0],
+				tetrahedron_params.center[1],
+				tetrahedron_params.center[2]);
+	    CursorAfterString(infile,"Enter edge of Tetrahedron: ");
+	    fscanf(infile,"%lf\n",&tetrahedron_params.edge);
+	    (void) printf("%f\n",tetrahedron_params.edge);
+	    level_func_pack->func_params = (POINTER)&tetrahedron_params;
+            level_func_pack->func = tetrahedron_func;
+            level_func_pack->neg_component = SOLID_COMP;
+            level_func_pack->pos_component = LIQUID_COMP;
+            level_func_pack->wave_type = GROWING_BODY_BOUNDARY;
+            level_func_pack->set_3d_bdry = YES; 
+	    break;
+	default:
+	    (void) printf("Unknow type of initial interface!\n");
+	    clean_up(ERROR);	    
+	}
+
+	fclose(infile);
 }	/* end initPhaseIntfc3d */
 
 static	void read_seed_params(

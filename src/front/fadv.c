@@ -141,14 +141,11 @@ EXPORT	int	return_advance_front(
 	}
 	if (debugging("trace"))
         {
+            int dim = front->rect_grid->dim;
             (void) printf("Maximum propagated scaled distance = %f\n",
                         front->max_scaled_propagation);
-            if (front->max_prop_point != NULL)
-            {
-                int dim = front->rect_grid->dim;
-                print_general_vector("Max propagated point: ",
+            print_general_vector("Max propagated point: ",
                         front->max_prop_point,dim,"\n");
-            }
         }
 	debug_front("final_front","after EnforceFlowSpecifedStates():",
 	           *newfront);

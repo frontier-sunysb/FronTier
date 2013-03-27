@@ -92,12 +92,11 @@ static  void ice_point_propagate(
         double Cp_l = eqn_params->Cp[1];
         double L = eqn_params->L[0];
 	double H;
+	double relative_dist;
+	double speed;
 
 	if (debugging("point_propagate"))
-	{
 	    (void) printf("Entering ice_point_propagate()\n");
-	    (void) printf("oldp = %f %f\n",Coords(oldp)[0],Coords(oldp)[1]);
-	}
 
         GetFrontNormal(oldp,oldhse,oldhs,nor_l,front);
         if (negative_component(oldhs) == LIQUID_COMP)
@@ -128,21 +127,33 @@ static  void ice_point_propagate(
 
         grad_s = (s1 - s0)/dn;
 	H = Cp_l*k_l*grad_l + Cp_s*k_s*grad_s;
+	speed = H/L/rho_s;
         for (i = 0; i < dim; ++i)
         {
 	    if (H > 0)
-		vel[i] = H/L/rho_s*nor_s[i];
+		vel[i] = speed*nor_s[i];
 	    else
-		vel[i] = H/L/rho_s*nor_s[i];
+		vel[i] = speed*nor_s[i];
 	}
-	if (debugging("point_propagate"))
-	    (void) printf("H = %f  vel = %f %f\n",H,vel[0],vel[1]);
 
         for (i = 0; i < dim; ++i)
         {
             Coords(newp)[i] = Coords(oldp)[i] + dt*vel[i];
             FT_RecordMaxFrontSpeed(i,fabs(vel[i]),NULL,Coords(newp),front);
         }
+	
+	relative_dist = fabs(speed*dt/dn);
+	if (front->max_scaled_propagation < relative_dist)
+	{
+	    front->max_scaled_propagation = relative_dist;
+	    if (relative_dist > 0.5)
+	    {
+	        (void) printf("WARNING: propagation too large!\n");
+	        (void) printf("relative distance = %f\n",relative_dist); 
+	    }
+	    for (i = 0; i < dim; ++i)
+	    	front->max_prop_point[i] = Coords(oldp)[i];
+	}
 
 	/* Update the state of the new interface point */
 	state = (STATE*)left_state(newp);
@@ -156,11 +167,21 @@ static  void ice_point_propagate(
 	    state->temperature = eqn_params->Ti[0];
 	else if (positive_component(oldhs) == SOLID_COMP)
             state->temperature = eqn_params->Ti[0];
+
 	if (debugging("point_propagate"))
-	{
+        {
+	    (void) printf("oldp = %f %f %f\n",Coords(oldp)[0],Coords(oldp)[1],
+    			Coords(oldp)[2]);
+            (void) printf("newp = %f %f %f\n",Coords(newp)[0],Coords(newp)[1],
+			Coords(newp)[2]);
+	    (void) printf("H = %f  vel = %f %f %f\n",H,vel[0],vel[1],vel[2]);
+	    (void) printf("relative propagate = %f %f %f\n",
+			(Coords(newp)[0]-Coords(oldp)[0])/h[0],
+			(Coords(newp)[1]-Coords(oldp)[1])/h[1],
+			(Coords(newp)[2]-Coords(oldp)[2])/h[2]);
+	    (void) printf("relative dist = %f\n",relative_dist); 
 	    (void) printf("Leaving ice_point_propagate()\n");
-	    (void) printf("newp = %f %f\n",Coords(newp)[0],Coords(newp)[1]);
-	}
+        }
 }       /* ice_point_propagate */
 
 static  void neumann_point_propagate(
