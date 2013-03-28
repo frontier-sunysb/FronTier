@@ -2307,7 +2307,7 @@ EXPORT double tetrahedron_func(
 	
 	if(Mag3d(p) == 0)
 	{
-	    dis = 10000;
+	    dis = -10000;
 	    printf("origin point detected!\ndis = %f\n",dis);
 	    return dis;
 	}
@@ -2330,7 +2330,7 @@ EXPORT double tetrahedron_func(
 		MAX_COS = cos_arg;
 	    }
 	    d = r/MAX_COS;
-	    dis = d - Mag3d(p);
+	    dis = Mag3d(p) - d;
 	    return dis;
 	}
 }	/*end tetrahedron_func*/
