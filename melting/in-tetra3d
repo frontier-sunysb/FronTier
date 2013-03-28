@@ -13,12 +13,12 @@ Upper boundary in 2-th dimension: NEUMANN_BOUNDARY
 
 *************Time control********************
 
-Max time: 60000.0
-Max step: 20
-Print interval: 30000 
-Movie frame interval: 2000
+Max time: 11000.0
+Max step: 3000
+Print interval: 250 
+Movie frame interval: 250
 CFL factor: 0.25
-Redistribution interval: 100
+Redistribution interval: 20
 
 ***********Initial phase conditions******************
 
