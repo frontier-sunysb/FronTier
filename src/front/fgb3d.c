@@ -1141,15 +1141,15 @@ LOCAL	boolean grid_based_box_untangle(
 	RECT_BOX 	*box,
 	boolean		tri_tag)
 {
-	SURFACE	**surfs;
+	SURFACE	**surfs,*ref_surfs[100];
 	RECT_GRID *gr;
 	int 	*gmax,*smin,*smax;
-	TRI	*tri, *last_tris[20];
+	TRI	*tri, *last_tris[100];
 	TRI 	**test_tris,**in_tris,**out_tris;
 	TRI	**ref_tris, **new_tris, **deg_tris, **sep_new_tris;
 	int	num_test_tris, num_ref_tris, num_in_tris, num_seal_tris;
 	int	num_out_tris, num_deg_tris, num_new_tris, max_n_new;
-	int 	i,j,k,total_nt, kmin[3], kmax[3];
+	int 	i,j,k,num_surfs,total_nt, kmin[3], kmax[3];
 	double	hmin;
 	FILE 	*file;
 	char 	dname[100],fname[100];
@@ -1253,13 +1253,23 @@ LOCAL	boolean grid_based_box_untangle(
 	i = 0;
 	for(surfs=intfc->surfaces; surfs && *surfs; ++surfs)
 	{
-	    last_tris[i++] = last_tri(*surfs);
+	    last_tris[i] = last_tri(*surfs);
+	    ref_surfs[i] = *surfs;
+	    i++;
 	}
+	num_surfs = i;
 	reconstruct_intfc3d_in_box_lgb(intfc,smin,smax,NO,NULL);
+	/* Check if any surface has been deleted */
+	for (i = 0; i < num_surfs; ++i)
+	{
+	    if (!surf_in_interface(ref_surfs[i],intfc))
+		last_tris[i] = NULL;
+	}
 	i = 0;
 	num_in_tris = 0;
 	for(surfs=intfc->surfaces; surfs && *surfs; ++surfs)
 	{
+	    if (last_tris[i] == NULL) continue; /* surface already deleted */
 	    if (at_end_of_tri_list(last_tris[i],*surfs))
 		continue;
 	    for (tri=last_tris[i]->next; !at_end_of_tri_list(tri,*surfs);

@@ -260,6 +260,9 @@ IMPORT boolean WLSP_compute_normal3d0(POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*);
 IMPORT void reset_surface_points(SURFACE*);
 IMPORT void PointAndFirstRingTris(POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,int*,
 			TRI**);
+IMPORT boolean surf_in_interface(SURFACE*,INTERFACE*);
+IMPORT boolean curve_in_interface(CURVE*,INTERFACE*);
+IMPORT boolean node_in_interface(NODE*,INTERFACE*);
 
 /*	iuserintfc.c*/
 IMPORT	I_USER_INTERFACE	*i_user_hook(int);

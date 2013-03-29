@@ -3172,6 +3172,35 @@ EXPORT boolean integer_in_list(
 	return NO; 
 }       /*end integer_in_list*/
 
+EXPORT boolean surf_in_interface(
+	SURFACE *surf,
+	INTERFACE *intfc)
+{
+	SURFACE **s;
+	for (s = intfc->surfaces; s && *s; ++s)
+	    if (surf == *s) return YES;
+	return NO;
+}	/* end surf_in_interface */
+
+EXPORT boolean curve_in_interface(
+	CURVE *curve,
+	INTERFACE *intfc)
+{
+	CURVE **c;
+	for (c = intfc->curves; c && *c; ++c)
+	    if (curve == *c) return YES;
+	return NO;
+}	/* end curve_in_interface */
+
+EXPORT boolean node_in_interface(
+	NODE *node,
+	INTERFACE *intfc)
+{
+	NODE **n;
+	for (n = intfc->nodes; n && *n; ++n)
+	    if (node == *n) return YES;
+	return NO;
+}	/* end node_in_interface */
 
 /* WLSP method for normal and curvature */
 #define         MAX_RING1_PTS            20
