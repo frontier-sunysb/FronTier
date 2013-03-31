@@ -146,6 +146,8 @@ $$ME/subsurf/Makefile.in \
 $$ME/subsurf/in-* \
 $$ME/airfoil/*.cpp \
 $$ME/airfoil/*.h \
+$$ME/airfoil/*.cu \
+$$ME/airfoil/*.cuh \
 $$ME/airfoil/Makefile.in \
 $$ME/airfoil/input-*/* \
 $$ME/airfoil/mrun* \

@@ -40,6 +40,19 @@ enum _SPRING_MODEL {
 };
 typedef enum _SPRING_MODEL SPRING_MODEL;
 
+struct _SPRING_VERTEX {
+	double *x;
+	double *v;
+	int num_nb;
+	double m;
+	double lambda;
+	double **x_nb;
+	double *k;
+	double *len0;
+	double ext_accel[MAXD];
+};
+typedef struct _SPRING_VERTEX SPRING_VERTEX;
+
 struct _PERT_PARAMS {
 	PERTURBATION_TYPE pert_type;
 	int dir;
@@ -259,11 +272,14 @@ extern void second_order_elastic_surf_propagate(Front*,double);
 extern void set_equilibrium_mesh(Front*);
 extern void unsort_surf_point(SURFACE*);
 extern void print_airfoil_stat(Front*,char*);
-extern void fourth_order_elastic_curve_propagate(Front*,Front*,INTERFACE*,
-                                CURVE*,CURVE*,double);
 extern void fixed_length_tan_curve_propagate(Front*,Front*,INTERFACE*,
                                 CURVE*,CURVE*,double);
+extern void fourth_order_elastic_curve_propagate(Front*,Front*,INTERFACE*,
+                                CURVE*,CURVE*,double);
 extern void fourth_order_elastic_surf_propagate(Front*,double);
+extern void legacy_fourth_order_elastic_curve_propagate(Front*,Front*,
+				INTERFACE*,CURVE*,CURVE*,double);
+extern void legacy_fourth_order_elastic_surf_propagate(Front*,double);
 
 // canopy.cpp
 extern void coating_mono_hyper_surf(Front*);
@@ -295,6 +311,25 @@ extern void compute_node_accel3(PARACHUTE_SET*,NODE*,double**,double**,double**,
 extern void propagate_surface(PARACHUTE_SET*,SURFACE*,double**,int*);
 extern void propagate_curve(PARACHUTE_SET*,CURVE*,double**,int*);
 extern void propagate_node(PARACHUTE_SET*,NODE*,double**,int*);
+
+// afsetd.cpp
+extern void count_node_neighbors(NODE*,SPRING_VERTEX*,int*);
+extern void count_curve_neighbors(CURVE*,SPRING_VERTEX*,int*);
+extern void count_surf_neighbors(SURFACE*,SPRING_VERTEX*,int*);
+extern void count_canopy_spring_neighbors(PARACHUTE_SET*,SPRING_VERTEX*);
+extern void count_string_spring_neighbors(PARACHUTE_SET*,SPRING_VERTEX*);
+extern void set_node_spring_vertex(PARACHUTE_SET*,NODE*,double**,double**,
+				SPRING_VERTEX*,int*);
+extern void set_curve_spring_vertex(PARACHUTE_SET*,CURVE*,double**,double**,
+				SPRING_VERTEX*,int*);
+extern void set_surf_spring_vertex(PARACHUTE_SET*,SURFACE*,double**,double**,
+				SPRING_VERTEX*,int*);
+extern void set_canopy_spring_vertex(PARACHUTE_SET*,double**,double**,
+				SPRING_VERTEX*);
+extern void set_string_spring_vertex(PARACHUTE_SET*,double**,double**,
+				SPRING_VERTEX*);
+extern void set_spring_vertex_memory(SPRING_VERTEX*,int);
+extern void compute_spring_accel1(SPRING_VERTEX,double*,int);
 
 // afvelo.cpp
 extern void setMotionParams(char*,Front*);

@@ -9,6 +9,7 @@ function parse_arguments {
         echo "    -d          Enable debugging."
         echo "    -n          Just configure. Do not run make."
         echo "    -g          Enable compilation of Gas directory."
+        echo "    --with-gpu  Enable compilation with GPU."
         echo "    --with-hdf  Enable compilation with HDF4."
         echo "    --with-gd   Enable compilation with graphics drawing for 1-D post processing."
         echo "    --enable-itaps  Enable compilation with ITAPS."
@@ -31,6 +32,8 @@ function parse_arguments {
 	    CONF="$CONF --enable-imesh"
         elif [[ "$arg" == "-g" ]]; then
 	    CONF="$CONF --with-gas"
+        elif [[ "$arg" == "--with-gpu" ]]; then
+            WITHGPU=1
         elif [[ "$arg" == "--with-hdf" ]]; then
             WITHHDF=1
         elif [[ "$arg" == "--with-gd" ]]; then
@@ -190,6 +193,10 @@ function config_alpha_omega {
     export PETSC_DIR=/usr/local/pkg/petsc
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
     export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -llapack -lblas -ldl -lm -L/usr/X11R6/lib -lX11"
+
+    if [[ -n "$WITHGPU" ]]; then
+        CONF="$CONF --with-gpu"
+    fi
 
     if [[ -n "$WITHHDF" ]]; then
         CONF="$CONF --with-hdf=/usr/local/pkg/hdf"

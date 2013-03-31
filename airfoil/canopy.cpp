@@ -494,8 +494,9 @@ extern void fourth_order_parachute_propagate(
         PARACHUTE_SET *new_geom_set)
 {
 	static int size = 0;
-	static double **x_old,**x_new,**v_old,**v_new,**f_old,**f_new;
-        static double **x_mid,**v_mid,**f_mid,**v_end;
+	static double **x_old,**x_new,**v_old,**v_new;
+	static double **x_pos,**v_pos;
+	static double **accel;
 	double lambda_s,m_s,lambda_l,m_l;
 	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
 	int i,j,num_pts;
@@ -507,6 +508,10 @@ extern void fourth_order_parachute_propagate(
 	double dt_tol;
 	double xcom[MAXD],vcom[MAXD];
 	double coeff1,coeff2;
+	static SPRING_VERTEX *sv;
+	static boolean first = YES;
+
+	start_clock("set_data");
 
 	n_cps = FT_NumOfSurfPoints(new_geom_set->canopy);  /* canopy pts */
 	n_sps = 1;				/* load node */
@@ -593,23 +598,41 @@ extern void fourth_order_parachute_propagate(
 	    size = num_pts;
 	    if (v_old != NULL)
 	    {
-		FT_FreeThese(9,v_old,v_new,x_old,x_new,f_old,f_new,
-				v_mid,x_mid,f_mid);
+		FT_FreeThese(8,v_old,v_new,x_old,x_new,sv,x_pos,v_pos,accel);
 	    }
+	    FT_VectorMemoryAlloc((POINTER*)&x_pos,size,sizeof(double*));
+	    FT_VectorMemoryAlloc((POINTER*)&v_pos,size,sizeof(double*));
+	    FT_VectorMemoryAlloc((POINTER*)&sv,size,sizeof(SPRING_VERTEX));
+
 	    FT_MatrixMemoryAlloc((POINTER*)&x_old,size,3,sizeof(double));
             FT_MatrixMemoryAlloc((POINTER*)&v_old,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&f_old,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&x_mid,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&v_mid,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&f_mid,size,3,sizeof(double));
             FT_MatrixMemoryAlloc((POINTER*)&x_new,size,3,sizeof(double));
             FT_MatrixMemoryAlloc((POINTER*)&v_new,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&f_new,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&v_end,size,3,sizeof(double));
+            FT_MatrixMemoryAlloc((POINTER*)&accel,size,3,sizeof(double));
 	}
 
-	compute_canopy_accel(new_geom_set,f_old,x_old,v_old);
-	compute_string_accel(new_geom_set,f_old,x_old,v_old);
+	count_canopy_spring_neighbors(new_geom_set,sv);
+	count_string_spring_neighbors(new_geom_set,sv);
+	if (first)
+	{
+	    set_spring_vertex_memory(sv,size);
+	    first = NO;
+	}
+	set_canopy_spring_vertex(new_geom_set,x_pos,v_pos,sv);
+	set_string_spring_vertex(new_geom_set,x_pos,v_pos,sv);
+	stop_clock("set_data");
+
+	start_clock("compute_data");
+	for (i = 0; i < size; ++i)
+	{
+	    compute_spring_accel1(sv[i],accel[i],3);
+	}
+	for (i = 0; i < size; ++i)
+        for (j = 0; j < 3; ++j)
+	{
+	    x_old[i][j] = x_pos[i][j];
+	    v_old[i][j] = v_pos[i][j];
+	}
 
 	for (n = 0; n < n_tan; ++n)
 	{
@@ -617,58 +640,71 @@ extern void fourth_order_parachute_propagate(
             for (j = 0; j < 3; ++j)
             {
                 x_new[i][j] = x_old[i][j] + dt*v_old[i][j]/6.0;
-                v_new[i][j] = v_old[i][j] + dt*f_old[i][j]/6.0;
-                x_mid[i][j] = x_old[i][j] + 0.5*v_old[i][j]*dt;
-                v_mid[i][j] = v_old[i][j] + 0.5*f_old[i][j]*dt;
+                v_new[i][j] = v_old[i][j] + dt*accel[i][j]/6.0;
+                x_pos[i][j] = x_old[i][j] + 0.5*v_old[i][j]*dt;
+                v_pos[i][j] = v_old[i][j] + 0.5*accel[i][j]*dt;
             }
-            assign_canopy_field(new_geom_set,x_mid,v_mid);
-            assign_string_field(new_geom_set,x_mid,v_mid);
-	    compute_canopy_accel(new_geom_set,f_mid,x_mid,v_mid);
-	    compute_string_accel(new_geom_set,f_mid,x_mid,v_mid);
+	    for (i = 0; i < size; ++i)
+	    {
+	    	compute_spring_accel1(sv[i],accel[i],3);
+	    }
 
 	    for (i = 0; i < size; ++i)
             for (j = 0; j < 3; ++j)
             {
-                x_new[i][j] += dt*v_mid[i][j]/3.0;
-                v_new[i][j] += dt*f_mid[i][j]/3.0;
-                x_mid[i][j] = x_old[i][j] + 0.5*v_mid[i][j]*dt;
-                v_mid[i][j] = v_old[i][j] + 0.5*f_mid[i][j]*dt;
+                x_new[i][j] += dt*v_pos[i][j]/3.0;
+                v_new[i][j] += dt*accel[i][j]/3.0;
+                x_pos[i][j] = x_old[i][j] + 0.5*v_pos[i][j]*dt;
+                v_pos[i][j] = v_old[i][j] + 0.5*accel[i][j]*dt;
             }
-            assign_canopy_field(new_geom_set,x_mid,v_mid);
-            assign_string_field(new_geom_set,x_mid,v_mid);
-	    compute_canopy_accel(new_geom_set,f_mid,x_mid,v_mid);
-	    compute_string_accel(new_geom_set,f_mid,x_mid,v_mid);
+	    for (i = 0; i < size; ++i)
+	    {
+	    	compute_spring_accel1(sv[i],accel[i],3);
+	    }
 
 	    for (i = 0; i < size; ++i)
             for (j = 0; j < 3; ++j)
             {
-                x_new[i][j] += dt*v_mid[i][j]/3.0;
-                v_new[i][j] += dt*f_mid[i][j]/3.0;
-                x_mid[i][j] = x_old[i][j] + v_mid[i][j]*dt;
-                v_mid[i][j] = v_old[i][j] + f_mid[i][j]*dt;
+                x_new[i][j] += dt*v_pos[i][j]/3.0;
+                v_new[i][j] += dt*accel[i][j]/3.0;
+                x_pos[i][j] = x_old[i][j] + v_pos[i][j]*dt;
+                v_pos[i][j] = v_old[i][j] + accel[i][j]*dt;
             }
-            assign_canopy_field(new_geom_set,x_mid,v_mid);
-            assign_string_field(new_geom_set,x_mid,v_mid);
-	    compute_canopy_accel(new_geom_set,f_mid,x_mid,v_mid);
-	    compute_string_accel(new_geom_set,f_mid,x_mid,v_mid);
+	    for (i = 0; i < size; ++i)
+	    {
+	    	compute_spring_accel1(sv[i],accel[i],3);
+	    }
 
 	    for (i = 0; i < size; ++i)
             for (j = 0; j < 3; ++j)
             {
-                x_new[i][j] += dt*v_mid[i][j]/6.0;
-                v_new[i][j] += dt*f_mid[i][j]/6.0;
+                x_new[i][j] += dt*v_pos[i][j]/6.0;
+                v_new[i][j] += dt*accel[i][j]/6.0;
             }
-
 	    propagate_canopy(new_geom_set,x_new);
 	    propagate_string(new_geom_set,x_new);
-            assign_canopy_field(new_geom_set,x_new,v_new);
-            assign_string_field(new_geom_set,x_new,v_new);
+	    for (i = 0; i < size; ++i)
+            for (j = 0; j < 3; ++j)
+            {
+		x_pos[i][j] = x_new[i][j];
+		v_pos[i][j] = v_new[i][j];
+	    }
 	    if (n != n_tan-1)
 	    {
-	    	compute_canopy_accel(new_geom_set,f_old,x_old,v_old);
-	    	compute_string_accel(new_geom_set,f_old,x_old,v_old);
+		for (i = 0; i < size; ++i)
+        	for (j = 0; j < 3; ++j)
+		{
+	    	    x_old[i][j] = x_pos[i][j];
+	    	    v_old[i][j] = v_pos[i][j];
+		}
+	    	for (i = 0; i < size; ++i)
+		{
+	    	    compute_spring_accel1(sv[i],accel[i],3);
+		}
 	    }
 	}
+	stop_clock("compute_data");
+
 	compute_center_of_mass_velo(new_geom_set);
 	set_canopy_velocity(new_geom_set,v_new);
 
@@ -990,7 +1026,7 @@ extern void compute_curve_accel1(
 	int i,j;
 	double x_diff;
 	BOND *b;
-	double dir[MAXD],len0,vect[MAXD];
+	double dir[MAXD],len,len0,vect[MAXD];
 	int dim = Dimension(curve->interface);
 	double kl,m_l,lambda_l;
 
@@ -1024,10 +1060,10 @@ extern void compute_curve_accel1(
 	i = *n;
 	for (b = curve->first; b != curve->last; b = b->next)
 	{
+	    x[i] = Coords(b->end);
+	    v[i] = b->end->vel;
 	    for (j = 0; j < dim; ++j)
 	    {
-	    	x[i][j] = Coords(b->end)[j];
-	    	v[i][j] = b->end->vel[j];
 		f[i][j] = -lambda_l*v[i][j]/m_l;
 	    }
 	    i++;
@@ -1036,12 +1072,13 @@ extern void compute_curve_accel1(
 	i = *n;
 	for (b = curve->first; b != NULL; b = b->next)
 	{
+	    len = separation(b->start,b->end,dim);
 	    len0 = bond_length0(b);
-	    x_diff = bond_length(b) - len0; 
+	    x_diff = len - len0; 
 	    for (j = 0; j < dim; ++j)
 	    {
 		dir[j] = (Coords(b->end)[j] - Coords(b->start)[j])
-				/bond_length(b);
+				/len;
 		vect[j] = x_diff*dir[j];
 		if (b != curve->first)
 		{
@@ -1142,21 +1179,22 @@ extern void compute_node_accel1(
 	else
             mass = geom_set->m_l;
 
+	x[*n] = Coords(node->posn);
+	v[*n] = node->posn->vel;
 	for (i = 0; i < dim; ++i)
 	{
-	    x[*n][i] = Coords(node->posn)[i];
-	    v[*n][i] = node->posn->vel[i];
 	    f[*n][i] = 0.0;
 	}
 	for (c = node->out_curves; c && *c; ++c)
 	{
 	    b = (*c)->first;
+	    len = separation(b->start,b->end,dim);
 	    len0 = bond_length0(b);
-	    x_diff = bond_length(b) - len0; 
+	    x_diff = len - len0; 
 	    for (j = 0; j < dim; ++j)
 	    {
 		dir[j] = (Coords(b->end)[j] - Coords(b->start)[j])
-				/bond_length(b);
+				/len;
 		vect[j] = x_diff*dir[j];
 		if (dim == 3)
 		{
@@ -1179,12 +1217,13 @@ extern void compute_node_accel1(
 		!is_closed_curve(*c)) 
 		continue;
 	    b = (*c)->last;
+	    len = separation(b->start,b->end,dim);
 	    len0 = bond_length0(b);
-	    x_diff = bond_length(b) - len0; 
+	    x_diff = len - len0; 
 	    for (j = 0; j < dim; ++j)
 	    {
 		dir[j] = (Coords(b->end)[j] - Coords(b->start)[j])
-				/bond_length(b);
+				/len;
 		vect[j] = x_diff*dir[j];
 		if (dim == 3)
 		{
@@ -1528,6 +1567,12 @@ static void set_canopy_velocity(
 	for (i = 0; i < ng; ++i)
 	{
 	    node = geom_set->gore_nodes[i];
+		if (the_point(node->posn))
+		{
+		    printf("n = %d\n",n);
+		    printf("position 1\n");
+		    clean_up(0);
+		}
 	    for (c = node->out_curves; c && *c; ++c)
             {
 		if (hsbdry_type(*c) != GORE_HSBDRY) continue;
@@ -1586,6 +1631,12 @@ static void set_canopy_velocity(
 	for (i = 0; i < ns; ++i)
 	{
 	    node = geom_set->string_node[i];
+		if (the_point(node->posn))
+		{
+		    printf("n = %d\n",n);
+		    printf("position 2\n");
+		    clean_up(0);
+		}
 	    for (c = node->out_curves; c && *c; ++c)
             {
 		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
@@ -1651,6 +1702,12 @@ static void set_canopy_velocity(
 	    for (b = curve->first; b != curve->last; b = b->next)
             {
             	p = b->end;
+		if (the_point(p))
+		{
+		    printf("n = %d\n",n);
+		    printf("position 3\n");
+		    clean_up(0);
+		}
 		for (btris = Btris(b); btris && *btris; ++btris)
             	{
                     p->hse = hse = Hyper_surf_element((*btris)->tri);
@@ -1674,6 +1731,12 @@ static void set_canopy_velocity(
 	    for (b = curve->first; b != curve->last; b = b->next)
             {
             	p = b->end;
+		if (the_point(p))
+		{
+		    printf("n = %d\n",n);
+		    printf("position 4\n");
+		    clean_up(0);
+		}
             	btris = Btris(b);
             	if (btris && *btris)
             	{
@@ -2570,7 +2633,8 @@ extern void propagate_surface(
                     for (j = 0; j < 3; ++j)
                     {
                         x[*n][j] += (sl->impulse[j] + 0.5*g[j]*dt)*dt;
-                        sr->impulse[j] = sl->impulse[j] = sl->impulse[j] + g[j]*dt;
+                        sr->impulse[j] = sl->impulse[j] = 
+					sl->impulse[j] + g[j]*dt;
                     }
                 }
                 sorted(p) = YES;
