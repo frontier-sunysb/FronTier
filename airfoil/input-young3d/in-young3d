@@ -18,7 +18,7 @@ Redistribution interval: 100000
 Type yes to turn off auto-redistribution: y
 Entering yes to turn off fluid solver: yes
 Enter velocity function: zero_velo
-Enter interior propagator: e
+Enter interior propagator: o
 Enter interior sub step number: 10
 
 Projection type can be
@@ -100,7 +100,7 @@ Type y to plot bullet in gd movie: y
 ************Debugging options*****************
 
 Enter yes for debugging: yes
-Enter the debugging string: ttrace
+Enter the debugging string: trace
 Enter the debugging string: tCLOCK
 Enter the debugging string: tstep_size
 Enter the debugging string: no_optimize

@@ -117,6 +117,11 @@ extern void setMotionParams(
 	    	    	front->interior_propagate 
 				= fourth_order_elastic_surf_propagate;
 	    	    break;
+	    	case 'o':
+	    	case 'O':
+	    	    front->interior_propagate 
+				= legacy_fourth_order_elastic_surf_propagate;
+	    	    break;
 	    	case 'p':
 	    	case 'P':
 	    	    front->interior_propagate 

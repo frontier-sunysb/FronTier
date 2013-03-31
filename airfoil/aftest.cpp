@@ -2376,7 +2376,7 @@ extern void legacy_fourth_order_elastic_curve_propagate(
 	    return;
 	if (debugging("trace"))
 	    (void) printf("Entering "
-			"fourth_order_elastic_curve_propagate()\n");
+			"legacy_fourth_order_elastic_curve_propagate()\n");
 	dt_tol = sqrt((af_params->m_l)/(af_params->kl))/10.0;
 	if (dt > dt_tol)
         {
@@ -2502,7 +2502,7 @@ extern void legacy_fourth_order_elastic_curve_propagate(
 	
 	if (debugging("trace"))
 	    (void) printf("Leaving "
-			"fourth_order_elastic_curve_propagate()\n");
+			"legacy_fourth_order_elastic_curve_propagate()\n");
 }	/* end fourth_order_elastic_curve_propagate */
 
 extern void legacy_fourth_order_elastic_surf_propagate(
@@ -2531,7 +2531,7 @@ extern void legacy_fourth_order_elastic_surf_propagate(
 	void (*compute_surf_accel)(PARACHUTE_SET*,SURFACE*,double**,
 				double**,double **,int*);
 
-	start_clock("fourth_order_elastic_surf_propagate");
+	start_clock("legacy_fourth_order_elastic_surf_propagate");
 	for (s = newfr->interf->surfaces; s && *s; ++s)
 	{
 	    if (wave_type(*s) == ELASTIC_BOUNDARY)
@@ -2561,7 +2561,7 @@ extern void legacy_fourth_order_elastic_surf_propagate(
 
 	if (debugging("trace"))
 	    (void) printf("Entering "
-			"fourth_order_elastic_surf_propagate()\n");
+			"legacy_fourth_order_elastic_surf_propagate()\n");
 
 	dt_tol = sqrt((af_params->m_s)/(af_params->ks))/10.0;
         if (af_params->m_l != 0.0 &&
@@ -2802,9 +2802,9 @@ extern void legacy_fourth_order_elastic_surf_propagate(
 	    	}
 	    }
 	}
-	stop_clock("fourth_order_elastic_surf_propagate");
+	stop_clock("legacy_fourth_order_elastic_surf_propagate");
 
 	if (debugging("trace"))
 	    (void) printf("Leaving "
-			"fourth_order_elastic_surf_propagate()\n");
+			"legacy_fourth_order_elastic_surf_propagate()\n");
 }	/* end fourth_order_elastic_surf_propagate */
