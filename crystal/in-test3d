@@ -9,6 +9,7 @@ Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
 Lower boundary in 2-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 2-th dimension: DIRICHLET_BOUNDARY
 
+Enter initial interface type: s
 Are there seeds grow from floor: N
 Are there seeds grow from ceiling: N
 Are there seeds grow from space: Y
@@ -32,7 +33,7 @@ Diffusion coefficient: 0.1
 Growth rate: 500.0
 Equilibrium concentration: 1.0
 Ambient concentration: 2
-Crystal density: 10
+Crystal density: 100000
 Choose numerical scheme
         Unsplit explicit (EX)
         Unsplit implicit (IM)
@@ -46,7 +47,7 @@ Enter scheme: MP
 Enter yes to add curvature effect: n
 
 Max time: 5.0
-Max step: 10000
+Max step: 10
 Print interval: 0.1
 Movie frame interval: 0.05
 CFL factor: 0.10

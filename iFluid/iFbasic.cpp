@@ -758,13 +758,13 @@ void Incompress_Solver_Smooth_Basis::augmentMovieVariables()
 	    {
 		FT_ScalarMemoryAlloc((POINTER*)&vtk_movie_var,
 				sizeof(VTK_MOVIE_VAR));
-		vtk_movie_var->num_var = 1;
-		FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->top_var,1,
+		vtk_movie_var->num_vector_var = 1;
+		FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->vector_var,1,
 					sizeof(double**));
-		FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->var_name,1,100,
-					sizeof(char));
-	    	sprintf(vtk_movie_var->var_name[0],"velo");
-		vtk_movie_var->top_var[0] = field->vel;
+		FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->vector_var_name,
+					1,100,sizeof(char));
+	    	sprintf(vtk_movie_var->vector_var_name[0],"VELOCITY");
+		vtk_movie_var->vector_var[0] = field->vel;
 		front->vtk_movie_var = vtk_movie_var;
 	    }
 	    else
@@ -943,13 +943,13 @@ void Incompress_Solver_Smooth_Basis::initMovieVariables()
 	    {
 		FT_ScalarMemoryAlloc((POINTER*)&vtk_movie_var,
 				sizeof(VTK_MOVIE_VAR));
-		vtk_movie_var->num_var = 1;
-		FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->top_var,1,
+		vtk_movie_var->num_vector_var = 1;
+		FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->vector_var,1,
 					sizeof(double**));
-		FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->var_name,1,100,
-					sizeof(char));
-	    	sprintf(vtk_movie_var->var_name[0],"velo");
-		vtk_movie_var->top_var[0] = field->vel;
+		FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->vector_var_name,
+					1,100,sizeof(char));
+	    	sprintf(vtk_movie_var->vector_var_name[0],"VELOCITY");
+		vtk_movie_var->vector_var[0] = field->vel;
 		front->vtk_movie_var = vtk_movie_var;
 	    }
 	    else

@@ -1,7 +1,7 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/******************************************************************************
+FronTier is a set of libraries that implements differnt types of Front Traking 
+algorithms. Front Tracking is a numerical method for the solution of partial 
+differential equations whose solutions have discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -98,7 +98,8 @@ LOCAL	void 	gd_plot_var(INTERFACE*,char*,double,HDF_MOVIE_VAR*,int,boolean);
 LOCAL   void    xgraph_plot_var(INTERFACE*,char*,double,char*,double*, 
                 double (*get_state_var)(Locstate),int,boolean); /* for 1d */
 LOCAL 	void 	fprint_front_time_stamp(FILE*,Front*);
-LOCAL 	void 	vtk_plot_vector_field(const char*,Front*);
+LOCAL 	void 	vtk_plot_vector_field(const char*,Front*,int);
+LOCAL 	void 	vtk_plot_scalar_field(const char*,Front*,int);
 LOCAL	void	show_front_gd(Front*,char*);
 LOCAL	void	show_front_xg(Front*,char*);
 LOCAL	void	show_front_hdf(Front*,char*);
@@ -1196,7 +1197,14 @@ LOCAL	void show_front_vtk(
         vtk_interface_plot(dirname,front->interf,print_in_binary,
 					front->time,front->step);
 	if (front->vtk_movie_var != NULL)
-	    vtk_plot_vector_field(dirname,front);
+	{
+	    VTK_MOVIE_VAR *vtk_movie_var = front->vtk_movie_var;
+	    int i;
+	    for (i = 0; i < vtk_movie_var->num_vector_var; ++i)
+	    	vtk_plot_vector_field(dirname,front,i);
+	    for (i = 0; i < vtk_movie_var->num_scalar_var; ++i)
+	    	vtk_plot_scalar_field(dirname,front,i);
+	}
 }	/* end show_front_vtk */
 
 LOCAL	void show_front_hdf(
@@ -3569,22 +3577,22 @@ LOCAL	void FrontGDMovie2d(
 
 LOCAL void vtk_plot_vector_field(
 	const char *dname,
-	Front *front)
+	Front *front,
+	int n)
 {
 	INTERFACE *grid_intfc = front->grid_intfc;
 	RECT_GRID *gr = &topological_grid(grid_intfc);
 	int gmax[MAXD],icoords[MAXD];
 	double h[MAXD],L[MAXD],vec[MAXD];
 	VTK_MOVIE_VAR *vtk_movie_var = front->vtk_movie_var;
-	double **top_var = vtk_movie_var->top_var[0];
-	char *vname = vtk_movie_var->var_name[0];
+	double **top_var = vtk_movie_var->vector_var[n];
+	char *vname = vtk_movie_var->vector_var_name[n];
 	static char *fname = NULL;
 	FILE *vfile;
 	size_t fname_len = 0;
 	int i,j,k,l,index,dim = grid_intfc->dim;
 	double time = front->time;
 
-	vname = vtk_movie_var->var_name[0];
 	fname = get_vtk_file_name(fname,dname,vname,&fname_len);
 	if (create_directory(dname,YES) == FUNCTION_FAILED)
         {
@@ -3610,7 +3618,7 @@ LOCAL void vtk_plot_vector_field(
 	fprintf(vfile,"SPACING %f %f %f\n",h[0], h[1],h[2]);
 	fprintf(vfile,"ORIGIN %f %f %f\n",L[0], L[1],L[2]);
 	fprintf(vfile,"POINT_DATA %d\n",(gmax[0]+1)*(gmax[1]+1)*(gmax[2]+1));
-	fprintf(vfile,"VECTORS VELOCITY double\n");
+	fprintf(vfile,"VECTORS %s double\n",vname);
 
 	for (l = 0; l < MAXD; ++l) vec[l] = 0.0;
 	for (k = 0; k <= gmax[2]; k++)
@@ -3627,6 +3635,84 @@ LOCAL void vtk_plot_vector_field(
 	}
 	fclose(vfile);
 }	/* end vtk_plot_vector_field */
+
+LOCAL void vtk_plot_scalar_field(
+	const char *dname,
+	Front *front,
+	int n)
+{
+	INTERFACE *grid_intfc = front->grid_intfc;
+        RECT_GRID *gr = &topological_grid(grid_intfc);
+        int gmax[MAXD],icoords[MAXD];
+        double h[MAXD],L[MAXD];
+	VTK_MOVIE_VAR *vtk_movie_var = front->vtk_movie_var;
+	double *top_var = vtk_movie_var->scalar_var[n];
+        char *vname = vtk_movie_var->scalar_var_name[n];
+	static char *fname = NULL;
+        FILE *vfile;
+        size_t fname_len = 0;
+        int i,j,k,index,dim = grid_intfc->dim;
+
+	fname = get_vtk_file_name(fname,dname,vname,&fname_len);
+        if (create_directory(dname,YES) == FUNCTION_FAILED)
+        {
+            (void) printf("WARNING in vtk_interface_plot(), directory "
+                          "%s doesn't exist and can't be created\n",dname);
+            return;
+        }
+	vfile = fopen(fname,"w");
+	vfile = fopen(fname,"w");
+        for (i = 0; i < dim; ++i)
+        {
+            gmax[i] = 1; L[i] = 0.0; h[i] = 0.0;
+        }
+        for (i = 0; i < dim; ++i)
+        {
+            gmax[i] = gr->gmax[i]; L[i] = gr->L[i]; h[i] = gr->h[i];
+        }
+
+        fprintf(vfile,"# vtk DataFile Version 3.0\n");
+        fprintf(vfile,"%s\n",vname);
+        fprintf(vfile,"ASCII\n");
+        fprintf(vfile,"DATASET STRUCTURED_GRID\n");
+	if (dim == 2)
+	{
+            fprintf(vfile,"DIMENSIONS %d %d\n",gmax[0]+1,gmax[1]+1);
+	    fprintf(vfile,"SPACING %f %f\n",h[0],h[1]);
+	    fprintf(vfile,"ORIGIN %f %f\n",L[0],L[1]);
+	    fprintf(vfile,"POINT_DATA %d\n",(gmax[0]+1)*(gmax[1]+1));
+	    fprintf(vfile,"SCALAR %s double\n",vname);
+            for (j = 0; j <= gmax[1]; j++)
+            for (i = 0; i <= gmax[0]; i++)
+            {
+            	icoords[0] = i;
+            	icoords[1] = j;
+            	index  = d_index(icoords,gmax,dim);
+            	fprintf(vfile,"%f\n",top_var[index]);
+            }
+	}
+	else
+	{
+            fprintf(vfile,"DIMENSIONS %d %d %d\n",gmax[0]+1,gmax[1]+1,
+					gmax[2]+1);
+	    fprintf(vfile,"SPACING %f %f %f\n",h[0],h[1],h[2]);
+	    fprintf(vfile,"ORIGIN %f %f %f\n",L[0],L[1],L[2]);
+	    fprintf(vfile,"POINT_DATA %d\n",
+					(gmax[0]+1)*(gmax[1]+1)*(gmax[2]+1));
+	    fprintf(vfile,"SCALAR %s double\n",vname);
+	    for (k = 0; k <= gmax[2]; k++)
+            for (j = 0; j <= gmax[1]; j++)
+            for (i = 0; i <= gmax[0]; i++)
+            {
+            	icoords[0] = i;
+            	icoords[1] = j;
+            	icoords[2] = k;
+            	index  = d_index(icoords,gmax,dim);
+            	fprintf(vfile,"%f\n",top_var[index]);
+            }
+	}
+        fclose(vfile);
+}       /* end vtk_plot_scalar_field */
 
 LOCAL	void	gv_plot_var2d( 
 	Front	*front, 

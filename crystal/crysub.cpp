@@ -506,12 +506,13 @@ extern	void read_crystal_params(
 	cRparams->crystal_dens_params = NULL;
 	if (cRparams->reaction_type == DISSOLUTION_ONLY)
 	{
-	    CursorAfterString(infile,
-		"Enter yes for varying crystal density:");
-	    fscanf(infile,"%s",s);
-	    (void) printf("%s\n",s);
-	    if (s[0] == 'y' || s[0] == 'Y')
+	    if (CursorAfterStringOpt(infile,
+		"Enter yes for varying crystal density:"))
 	    {
+	      fscanf(infile,"%s",s);
+	      (void) printf("%s\n",s);
+	      if (s[0] == 'y' || s[0] == 'Y')
+	      {
 		CursorAfterString(infile,
 			"Enter crystal density function type:");
 		fscanf(infile,"%s",string);
@@ -560,12 +561,13 @@ extern	void read_crystal_params(
 		    (void) printf("Unknow crystal density function!\n");
 		    clean_up(ERROR);
 		}
-	    }
-	    else
-	    {
+	      }
+	      else
+	      {
 		CursorAfterString(infile,"Crystal density:");
 		fscanf(infile,"%lf",&cRparams->rho_s);
 		(void) printf("%f\n",cRparams->rho_s);
+	      }
 	    }
 	}
 	else

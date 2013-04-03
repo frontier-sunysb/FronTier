@@ -475,9 +475,12 @@ struct _HDF_MOVIE_VAR {
 typedef struct _HDF_MOVIE_VAR HDF_MOVIE_VAR;
 
 struct _VTK_MOVIE_VAR {
-	int num_var;
-	char **var_name;
-	double ***top_var;
+	int num_vector_var;
+	char **vector_var_name;
+	double ***vector_var;
+	int num_scalar_var;
+	char **scalar_var_name;
+	double **scalar_var;
 };
 typedef struct _VTK_MOVIE_VAR VTK_MOVIE_VAR;
 

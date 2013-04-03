@@ -28,6 +28,7 @@ Diffusion coefficient: 0.1
 Growth rate: 500.0
 Equilibrium concentration: 1.0
 Ambient concentration: 0.5 
+Enter yes for varying crystal density: n
 Crystal density: 10.0
 Initial gap: 0.1
 Choose numerical scheme

@@ -950,12 +950,15 @@ void C_CARTESIAN::initMovieVariables()
 {
 	int n;
 	static HDF_MOVIE_VAR *hdf_movie_var;
+	static VTK_MOVIE_VAR *vtk_movie_var;
 	CRT_MOVIE_OPTION *movie_option = cRparams->movie_option;
 
 	if (hdf_movie_var == NULL)
 	{
 	    FT_ScalarMemoryAlloc((POINTER*)&hdf_movie_var,
 				sizeof(HDF_MOVIE_VAR));
+	    FT_ScalarMemoryAlloc((POINTER*)&vtk_movie_var,
+                                sizeof(VTK_MOVIE_VAR));
 	    switch (dim)
 	    {
 	    case 1:
@@ -982,6 +985,8 @@ void C_CARTESIAN::initMovieVariables()
 		break;
 	    case 2:
 	    	hdf_movie_var->num_var = 1;
+		vtk_movie_var->num_vector_var = 0;
+		vtk_movie_var->num_scalar_var = 1;
 	    	FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,1,
 					100,sizeof(char));
 	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,1,
@@ -994,6 +999,10 @@ void C_CARTESIAN::initMovieVariables()
                                         sizeof(double));
                 FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,1,
                                         sizeof(double));
+		FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->scalar_var,1,
+                                        sizeof(double*));
+                FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->scalar_var_name,
+					1,100,sizeof(char));
 		if (movie_option->plot_solute)
 		{
 	    	    sprintf(hdf_movie_var->var_name[0],"solute");
@@ -1003,10 +1012,14 @@ void C_CARTESIAN::initMovieVariables()
 			hdf_movie_var->obstacle_comp[0] = ERROR_COMP;
 		    else
 		    	hdf_movie_var->obstacle_comp[0] = CRYSTAL_COMP;
+                    sprintf(vtk_movie_var->scalar_var_name[0],"solute");
+                    vtk_movie_var->scalar_var[0] = field->solute;
 		}
 		break;
 	    case 3:
 	    	hdf_movie_var->num_var = n = 0;
+		vtk_movie_var->num_vector_var = 0;
+		vtk_movie_var->num_scalar_var = 1;
 	    	FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,3,100,
 					sizeof(char));
 	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,3,
@@ -1021,8 +1034,14 @@ void C_CARTESIAN::initMovieVariables()
                                         sizeof(double));
                 FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,3,
                                         sizeof(double));
+		FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->scalar_var,1,
+                                        sizeof(double*));
+                FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->scalar_var_name,
+					1,100,sizeof(char));
 		if (movie_option->plot_solute)
 		{
+                    sprintf(vtk_movie_var->scalar_var_name[0],"solute");
+                    vtk_movie_var->scalar_var[0] = field->solute;
 		    if (movie_option->plot_cross_section[0])
 		    {
 	    	    	sprintf(hdf_movie_var->var_name[n],"solute-yz");
@@ -1053,6 +1072,7 @@ void C_CARTESIAN::initMovieVariables()
 		}
 	    }
 	    front->hdf_movie_var = hdf_movie_var;
+            front->vtk_movie_var = vtk_movie_var;
 	}
 }	/* end initMovieVariables */
 
@@ -1790,7 +1810,7 @@ static int find_state_at_crossing(
         double *crx_coords)
 {
 	boolean status;
-	INTERFACE *grid_intfc;
+	INTERFACE *grid_intfc = front->grid_intfc;
 
 	status = FT_StateStructAtGridCrossing(front,grid_intfc,icoords,dir,
 				comp,state,hs,crx_coords);
