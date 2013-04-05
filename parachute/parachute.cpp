@@ -1,7 +1,7 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/******************************************************************************
+FronTier is a set of libraries that implements differnt types of Front Traking 
+algorithms. Front Tracking is a numerical method for the solution of partial 
+differential equations whose solutions have discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -25,15 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 /*
-*				example16.c:
-*
-*		User initialization example for Front Package:
-*
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
-*	
-*	This example shows a circle in a multiple vortex field. It 
-*	demonstrates the reversibility of the front tracking method.
-*
 */
 
 #include <iFluid.h>
@@ -125,7 +117,6 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-	    setRestartAirfoilIntfc(&front,&level_func_pack);
 	    read_iF_dirichlet_bdry_data(in_name,&front,f_basic);
 	}
 

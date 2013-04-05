@@ -8,7 +8,7 @@ incs =  @ftlibincs@
 libincs = @otherlibsinc@
 libs = @otherlibs@
 build_cpu = @build_cpu@
-incsloc = -I. -I../iFluid -I../solver -I../include
+incsloc = -I. -I../iFluid -I../airfoil -I../solver -I../include
 
 PETSC = yes
 PETSC_ARCH=@PETSC_ARCH@
@@ -38,24 +38,26 @@ dual_ellip.o : ../solver/solver.h ../solver/dual_ellip.cpp
 	${CXX} -c ../solver/dual_ellip.cpp $(incsloc) $(incs) ${Petsc_Include}
 iFsub.o : ../iFluid/iFluid.h ../iFluid/ifluid_basic.h ../iFluid/iFsub.cpp
 	${CXX} -c ../iFluid/iFsub.cpp $(incsloc) $(incs) ${Petsc_Include}
-afprop.o : airfoil.h ../iFluid/iFluid.h afprop.cpp
-	${CXX} -c afprop.cpp $(incsloc) $(incs) ${Petsc_Include}
-afinit.o : airfoil.h ../iFluid/iFluid.h afinit.cpp
-	${CXX} -c afinit.cpp $(incsloc) $(incs) ${Petsc_Include}
-afvelo.o : airfoil.h ../iFluid/iFluid.h afvelo.cpp
-	${CXX} -c afvelo.cpp $(incsloc) $(incs) ${Petsc_Include}
-aftest.o : airfoil.h ../iFluid/iFluid.h aftest.cpp
-	${CXX} -c aftest.cpp $(incsloc) $(incs) ${Petsc_Include}
-canopy.o : airfoil.h ../iFluid/iFluid.h canopy.cpp
-	${CXX} -c canopy.cpp $(incsloc) $(incs) ${Petsc_Include}
-parachute.o : airfoil.h ../iFluid/iFluid.h parachute.cpp
+afprop.o : ../airfoil/airfoil.h ../iFluid/iFluid.h ../airfoil/afprop.cpp
+	${CXX} -c ../airfoil/afprop.cpp $(incsloc) $(incs) ${Petsc_Include}
+afdata.o : ../airfoil/airfoil.h ../iFluid/iFluid.h ../airfoil/afdata.cpp
+	${CXX} -c ../airfoil/afdata.cpp $(incsloc) $(incs) ${Petsc_Include}
+afvelo.o : ../airfoil/airfoil.h ../iFluid/iFluid.h ../airfoil/afvelo.cpp
+	${CXX} -c ../airfoil/afvelo.cpp $(incsloc) $(incs) ${Petsc_Include}
+aftest.o : ../airfoil/airfoil.h ../iFluid/iFluid.h ../airfoil/aftest.cpp
+	${CXX} -c ../airfoil/aftest.cpp $(incsloc) $(incs) ${Petsc_Include}
+afsetd.o : ../airfoil/airfoil.h ../iFluid/iFluid.h ../airfoil/afsetd.cpp
+	${CXX} -c ../airfoil/afsetd.cpp $(incsloc) $(incs) ${Petsc_Include}
+afcnpy.o : ../airfoil/airfoil.h ../iFluid/iFluid.h ../airfoil/afcnpy.cpp
+	${CXX} -c ../airfoil/afcnpy.cpp $(incsloc) $(incs) ${Petsc_Include}
+parachute.o : ../airfoil/airfoil.h ../iFluid/iFluid.h parachute.cpp
 	${CXX} -c parachute.cpp $(incsloc) $(incs) ${Petsc_Include}
-modules.o : airfoil.h ../iFluid/iFluid.h modules.cpp
+modules.o : ../airfoil/airfoil.h ../iFluid/iFluid.h modules.cpp
 	${CXX} -c modules.cpp $(incsloc) $(incs) ${Petsc_Include}
 
-parachute: ../iFluid/iFluid.h ../solver/solver.h airfoil.h parachute.cpp afinit.o afprop.o afvelo.o aftest.o canopy.o modules.o iFsub.o ../lib/libiF.a
+parachute: ../iFluid/iFluid.h ../solver/solver.h ../airfoil/airfoil.h parachute.cpp afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o ../lib/libiF.a
 	${CXX} -c parachute.cpp $(incsloc) $(incs) ${Petsc_Include}
-	$(CXX) -o parachute parachute.o afinit.o afprop.o afvelo.o aftest.o canopy.o modules.o iFsub.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
+	$(CXX) -o parachute parachute.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
 
 ../lib/libiF.a: solver.o cim_ellip.o dual_ellip.o ellip.o hyperb.o iFbasic.o iFcartsn2d.o iFcartsn3d.o
 	$(AR) cru libiF.a $^
@@ -72,10 +74,10 @@ gif :
 	hdf2gif out/intfc.hdf out/intfc.gif
 
 TagsFile:
-	ctags *.h *.cpp ../iFluid/*.h ../iFluid/*.cpp ../solver/solver.h ../solver/*.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+	ctags *.cpp ../airfoil/*.h ../airfoil/*.cpp ../iFluid/*.h ../iFluid/*.cpp ../solver/solver.h ../solver/*.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
 
 tagsfile:
-	ctags *.h *.cpp ../iFluid/*.h ../iFluid/*.cpp ../solver/solver.h ../solver/*.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+	ctags *.cpp ../airfoil/*.h ../airfoil/*.cpp ../iFluid/*.h ../iFluid/*.cpp ../solver/solver.h ../solver/*.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
 
 etagsfile:
-	etags *.h *.cpp ../iFluid/*.h ../iFluid/*.cpp ../solver/solver.h ../solver/*.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+	etags *.cpp ../airfoil/*.h ../airfoil/*.cpp ../iFluid/*.h ../iFluid/*.cpp ../solver/solver.h ../solver/*.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]

@@ -239,8 +239,6 @@ void liquid_point_propagate(Front*,POINTER,POINT*,POINT*,
 
 // afinit.cpp
 extern void setInitialIntfcAF(Front*,LEVEL_FUNC_PACK*,char*);
-extern void printAfExtraDada(Front*,char*);
-extern void readAfExtraDada(Front*,char*);
 
 /* afinit3d.cpp */
 extern void initEllipticSurf(FILE*,Front*,LEVEL_FUNC_PACK*);
@@ -332,3 +330,10 @@ extern void compute_spring_accel1(SPRING_VERTEX,double*,int);
 
 // afvelo.cpp
 extern void setMotionParams(char*,Front*);
+
+// afmodule.cpp
+extern void initParachuteModules(Front*);
+
+// afdata.cpp
+extern void printAfExtraDada(Front*,char*);
+extern void readAfExtraDada(Front*,char*);
