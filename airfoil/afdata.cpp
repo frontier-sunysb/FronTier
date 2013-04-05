@@ -198,17 +198,17 @@ extern void readAfExtraDada(
 	for (c = intfc->curves; c && *c; ++c)
 	{
 	    C_PARAMS *c_params;
-	    next_output_line_containing_string(infile,"curve extra:");
+	    fgetstring(infile,"curve extra:");
             fscanf(infile,"%s",string);
 	    if (string[0] == 'n') continue;
 	    FT_ScalarMemoryAlloc((POINTER*)&c_params,sizeof(C_PARAMS));
-	    next_output_line_containing_string(infile,"point_mass = ");
+	    fgetstring(infile,"point_mass = ");
             fscanf(infile,"%lf",&c_params->point_mass);
-	    next_output_line_containing_string(infile,"load_mass = ");
+	    fgetstring(infile,"load_mass = ");
             fscanf(infile,"%lf",&c_params->load_mass);
-	    next_output_line_containing_string(infile,"load_type = ");
+	    fgetstring(infile,"load_type = ");
             fscanf(infile,"%d",&c_params->load_type);
-	    next_output_line_containing_string(infile,"dir = ");
+	    fgetstring(infile,"dir = ");
             fscanf(infile,"%d",&c_params->dir);
 	    (*c)->extra = (POINTER)c_params;
 	}
@@ -216,11 +216,11 @@ extern void readAfExtraDada(
 	for (n = intfc->nodes; n && *n; ++n)
 	{
 	    AF_NODE_EXTRA *n_params;
-	    next_output_line_containing_string(infile,"node extra:");
+	    fgetstring(infile,"node extra:");
             fscanf(infile,"%s",string);
 	    if (string[0] == 'n') continue;
 	    FT_ScalarMemoryAlloc((POINTER*)&n_params,sizeof(AF_NODE_EXTRA));
-	    next_output_line_containing_string(infile,"af_node_type =");
+	    fgetstring(infile,"af_node_type =");
             fscanf(infile,"%d",&n_params->af_node_type);
 	}
 }	/* end readAfExtraDada */
