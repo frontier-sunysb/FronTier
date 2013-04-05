@@ -1550,6 +1550,10 @@ extern void fourth_order_elastic_curve_propagate(
 	/* Start intensive computation */
 
 	start_clock("spring_model");
+#if defined(__GPU__)
+        printf("Using GPU code\n");
+        gpu_spring_solver(sv,x_pos,v_pos,size);
+#else //(__GPU__)
 	
 	for (n = 0; n < n_tan; ++n)
 	{
@@ -1614,6 +1618,7 @@ extern void fourth_order_elastic_curve_propagate(
 		    compute_spring_accel1(sv[i],accel[i],dim);
 	    }
 	}
+#endif
 
 	stop_clock("spring_model");
 
@@ -1788,7 +1793,7 @@ extern void fourth_order_elastic_surf_propagate(
 	num_nodes = num_curves = 0;
 	for (nc = news->pos_curves; nc && *nc; ++nc)
 	{
-	    if (hsbdry_type(*nc) == FIXED_HSBDRY) continue;
+	    //if (hsbdry_type(*nc) == FIXED_HSBDRY) continue;
 	    if (!pointer_in_list((POINTER)(*nc),num_curves,
 				(POINTER*)newc))
 	    {
@@ -1798,7 +1803,7 @@ extern void fourth_order_elastic_surf_propagate(
 	}
 	for (nc = news->neg_curves; nc && *nc; ++nc)
 	{
-	    if (hsbdry_type(*nc) == FIXED_HSBDRY) continue;
+	    //if (hsbdry_type(*nc) == FIXED_HSBDRY) continue;
 	    if (!pointer_in_list((POINTER)(*nc),num_curves,
 				(POINTER*)newc))
 	    {
@@ -1872,12 +1877,12 @@ extern void fourth_order_elastic_surf_propagate(
 	    x_old[i][j] = x_pos[i][j];
 	    v_old[i][j] = v_pos[i][j];
 	}
+#if defined(__GPU__)
+        printf("Using GPU code\n");
+        gpu_spring_solver(sv,x_old,v_old,size);
+#else //(__GPU__)
 	for (i = 0; i < size; ++i)
 	    compute_spring_accel1(sv[i],accel[i],3);
-	for (i = 0; i < num_curves; ++i)
-	    adjust_for_curve_type(newc[i],countc[i],accel,v_pos,mass,g);
-	for (i = 0; i < num_nodes; ++i)
-	    adjust_for_cnode_type(newn[i],countn[i],accel,v_pos,mass,g);
 
 	for (n = 0; n < n_tan; ++n)
 	{
@@ -1892,10 +1897,6 @@ extern void fourth_order_elastic_surf_propagate(
 
 	    for (i = 0; i < size; ++i)
 	    	compute_spring_accel1(sv[i],accel[i],3);
-	    for (i = 0; i < num_curves; ++i)
-	    	adjust_for_curve_type(newc[i],countc[i],accel,v_pos,mass,g);
-	    for (i = 0; i < num_nodes; ++i)
-	    	adjust_for_cnode_type(newn[i],countn[i],accel,v_pos,mass,g);
 
 	    for (i = 0; i < size; ++i)
             for (j = 0; j < 3; ++j)
@@ -1908,10 +1909,6 @@ extern void fourth_order_elastic_surf_propagate(
 
 	    for (i = 0; i < size; ++i)
 	    	compute_spring_accel1(sv[i],accel[i],3);
-	    for (i = 0; i < num_curves; ++i)
-	    	adjust_for_curve_type(newc[i],countc[i],accel,v_pos,mass,g);
-	    for (i = 0; i < num_nodes; ++i)
-	    	adjust_for_cnode_type(newn[i],countn[i],accel,v_pos,mass,g);
 
 	    for (i = 0; i < size; ++i)
             for (j = 0; j < 3; ++j)
@@ -1921,21 +1918,11 @@ extern void fourth_order_elastic_surf_propagate(
 		x_pos[i][j] = x_new[i][j];
 		v_pos[i][j] = v_new[i][j];
             }
-	    count = 0;
-	    propagate_surface(&geom_set,news,x_new,&count);
-	    for (i = 0; i < num_curves; ++i)
-	    	propagate_curve(&geom_set,newc[i],x_new,&count);
-	    for (i = 0; i < num_nodes; ++i)
-	    	propagate_node(&geom_set,newn[i],x_new,&count);
 
 	    if (n != n_tan-1)
 	    {
 	    	for (i = 0; i < size; ++i)
 	    	    compute_spring_accel1(sv[i],accel[i],3);
-	    	for (i = 0; i < num_curves; ++i)
-	    	    adjust_for_curve_type(newc[i],countc[i],accel,v_pos,mass,g);
-	    	for (i = 0; i < num_nodes; ++i)
-	    	    adjust_for_cnode_type(newn[i],countn[i],accel,v_pos,mass,g);
 
 		for (i = 0; i < size; ++i)
         	for (j = 0; j < 3; ++j)
@@ -1946,6 +1933,7 @@ extern void fourth_order_elastic_surf_propagate(
 
 	    }
 	}
+#endif
 	stop_clock("fourth_order_elastic_surf_propagate");
 
 	if (debugging("trace"))

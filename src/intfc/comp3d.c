@@ -2871,7 +2871,7 @@ LOCAL void blocks_on_tri(
 	    for(i=0; i<3; ++i)
 		i_diff[i] = 0;
 
-	if (i_diff[0] > 4)
+	if (i_diff[0] > 6)
 	{
 	    printf("In blocks_on_tri():\n");
 	    print_int_vector("i_diff = ", i_diff, 3, "\n");

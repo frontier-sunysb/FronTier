@@ -110,8 +110,7 @@ test:
 	cd example/; $(MAKE)
 
 TARFLIST = $$ME/README \
-$$ME/build.sh \
-$$ME/advbuild.sh \
+$$ME/build \
 $$ME/install-sh \
 $$ME/config.status \
 $$ME/config.sub \
@@ -152,7 +151,6 @@ $$ME/airfoil/Makefile.in \
 $$ME/airfoil/input-*/* \
 $$ME/airfoil/mrun* \
 $$ME/parachute/*.cpp \
-$$ME/parachute/*.h \
 $$ME/parachute/Makefile.in \
 $$ME/parachute/input-*/* \
 $$ME/parachute/mrun* \

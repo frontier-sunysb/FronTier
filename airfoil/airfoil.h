@@ -1,4 +1,8 @@
+#ifndef _AIRFOIL_
+#define _AIRFOIL_
+
 #include <FronTier.h>
+#include "airfoil_sv.h"
 
 typedef struct {
         double N[MAXD];         /* normal of the plane */
@@ -39,19 +43,6 @@ enum _SPRING_MODEL {
 	MODEL3
 };
 typedef enum _SPRING_MODEL SPRING_MODEL;
-
-struct _SPRING_VERTEX {
-	double *x;
-	double *v;
-	int num_nb;
-	double m;
-	double lambda;
-	double **x_nb;
-	double *k;
-	double *len0;
-	double ext_accel[MAXD];
-};
-typedef struct _SPRING_VERTEX SPRING_VERTEX;
 
 struct _PERT_PARAMS {
 	PERTURBATION_TYPE pert_type;
@@ -337,3 +328,4 @@ extern void initParachuteModules(Front*);
 // afdata.cpp
 extern void printAfExtraDada(Front*,char*);
 extern void readAfExtraDada(Front*,char*);
+#endif

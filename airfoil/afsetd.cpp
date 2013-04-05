@@ -46,6 +46,7 @@ extern void count_node_neighbors(
 	    num_nb++;
 	for (c = node->in_curves; c && *c; ++c)
 	    num_nb++;
+	node->posn->indx = *n;
 	if (dim == 3)
 	{
 	    BOND_TRI **btris;
@@ -143,6 +144,7 @@ extern void count_curve_neighbors(
 			}
 		    }
 		}
+		p->indx = i;
 		i++;
 	    }
 	}
@@ -173,6 +175,7 @@ extern void count_surf_neighbors(
 			Hyper_surf(surf),&nt,tris);
 		sv[i].num_nb = nt;
 		sorted(p) = YES;
+		p->indx = i;
 	    	++i;
 	    }
 	}
@@ -190,6 +193,7 @@ extern void set_spring_vertex_memory(
 	    FT_VectorMemoryAlloc((POINTER*)&sv[i].x_nb,num_nb,sizeof(double*));
 	    FT_VectorMemoryAlloc((POINTER*)&sv[i].k,num_nb,sizeof(double));
 	    FT_VectorMemoryAlloc((POINTER*)&sv[i].len0,num_nb,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&sv[i].ix_nb,num_nb,sizeof(int));
 	    for (j = 0; j < MAXD; ++j)	// reset external acceleration
 		sv[i].ext_accel[j] = 0.0;
 	}
@@ -215,6 +219,7 @@ extern void set_node_spring_vertex(
 	double lambda_s = geom_set->lambda_s;
 	double lambda_l = geom_set->lambda_l;
 	double lambda_g = geom_set->lambda_g;
+	boolean is_fixed = NO;
 
 	if (dim == 3)
 	{
@@ -245,6 +250,7 @@ extern void set_node_spring_vertex(
 	{
 	    b = (*c)->first;
 	    sv[*n].x_nb[nn] = Coords(b->end);
+	    sv[*n].ix_nb[nn] = b->end->indx;
 	    sv[*n].len0[nn] = bond_length0(b);
 	    sv[*n].m = mass;
 	    if (dim == 3)
@@ -257,6 +263,11 @@ extern void set_node_spring_vertex(
 		    sv[*n].k[nn] = ks;
 		else if (hsbdry_type(*c) == GORE_HSBDRY)
 		    sv[*n].k[nn] = kg;
+		else if (hsbdry_type(*c) == FIXED_HSBDRY)
+		{
+		    sv[*n].k[nn] = 0.0;
+		    is_fixed = YES;
+		}
 	    }
 	    else
 		sv[*n].k[nn] = kl;
@@ -266,6 +277,7 @@ extern void set_node_spring_vertex(
 	{
 	    b = (*c)->last;
 	    sv[*n].x_nb[nn] = Coords(b->start);
+	    sv[*n].ix_nb[nn] = b->start->indx;
 	    sv[*n].len0[nn] = bond_length0(b);
 	    sv[*n].m = mass;
 	    if (dim == 3)
@@ -278,6 +290,8 @@ extern void set_node_spring_vertex(
 		    sv[*n].k[nn] = ks;
 		else if (hsbdry_type(*c) == GORE_HSBDRY)
 		    sv[*n].k[nn] = kg;
+		else if (hsbdry_type(*c) == FIXED_HSBDRY)
+		    sv[*n].k[nn] = 0.0;
 	    }
 	    else
 		sv[*n].k[nn] = kl;
@@ -331,7 +345,9 @@ extern void set_node_spring_vertex(
 			    continue;
 			p_nb = Point_of_tri(tri)[(side+1)%3];
 			sv[*n].x_nb[nn] = Coords(p_nb);
+			sv[*n].ix_nb[nn] = p_nb->indx;
 			sv[*n].k[nn] = ks;
+			if (is_fixed) sv[*n].k[nn] = 0.0;
 			sv[*n].len0[nn] = tri->side_length0[side];
 			++nn;
 		    }
@@ -345,6 +361,7 @@ extern void set_node_spring_vertex(
 	else
 	{
 	    sv[*n].lambda = lambda_l;
+	    if (is_fixed) sv[*n].lambda = 0.0;
 	}
 	(*n)++;
 }	/* end set_node_spring_vertex */
@@ -376,6 +393,12 @@ extern void set_curve_spring_vertex(
 	    	m_l = geom_set->m_g;
 	    	lambda_l = geom_set->lambda_g;
 	    }
+	    else if (hsbdry_type(curve) == FIXED_HSBDRY)
+	    {
+	    	kl = 0.0;
+	    	m_l = geom_set->m_l;
+	    	lambda_l = 0.0;
+	    }
 	    else
 	    {
 	    	kl = geom_set->ks;
@@ -397,6 +420,8 @@ extern void set_curve_spring_vertex(
 	    v[i] = sv[i].v = b->end->vel;
 	    sv[i].x_nb[0] = Coords(b->start);
 	    sv[i].x_nb[1] = Coords(b->next->end);
+	    sv[i].ix_nb[0] = b->start->indx;
+	    sv[i].ix_nb[1] = b->next->end->indx;
 	    sv[i].len0[0] = bond_length0(b);
 	    sv[i].len0[1] = bond_length0(b->next);
 	    sv[i].k[0] = sv[i].k[1] = kl;
@@ -432,6 +457,7 @@ extern void set_curve_spring_vertex(
 				    continue;
 				p_nb = Point_of_tri(tris[j])[(side+1)%3];
 				sv[i].x_nb[nn] = Coords(p_nb);
+				sv[i].ix_nb[nn] = p_nb->indx;
 				sv[i].k[nn] = ks;
 				sv[i].len0[nn] = tris[j]->side_length0[side];
 				++nn;
@@ -484,6 +510,7 @@ extern void set_surf_spring_vertex(
 		{
 		    p_nb = Point_of_tri(tris[k])[(l+1)%3];
 		    sv[i].x_nb[k] = Coords(p_nb);
+		    sv[i].ix_nb[k] = p_nb->indx;
 		    sv[i].k[k] = ks;
 		    sv[i].len0[k] = tris[k]->side_length0[l];;
 		}

@@ -1,7 +1,7 @@
-Domain limit in 0-th dimension: 0 2.0
+Domain limit in 0-th dimension: 0 1.5
 Domain limit in 1-th dimension: 0 1
 Domain limit in 2-th dimension: 0.25 0.75
-Computational grid: 120 60 30
+Computational grid: 90 60 30
 Lower boundary in 0-th dimension: NEUMANN_BOUNDARY
 Upper boundary in 0-th dimension: NEUMANN_BOUNDARY
 Lower boundary in 1-th dimension: NEUMANN_BOUNDARY
@@ -48,7 +48,7 @@ Enter yes to fix upper boundary: n
 ----Start parameters for Young's modulus tests----
 Enter load type: RIGID_LOADED
 Enter total mass: 80
-Enter external force: 800 0 0
+Enter external force: 600 0 0
 ----End parameters for Young's modulus tests----
 
 For direction 1
