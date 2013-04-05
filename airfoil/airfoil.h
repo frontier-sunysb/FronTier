@@ -239,7 +239,6 @@ void liquid_point_propagate(Front*,POINTER,POINT*,POINT*,
 
 // afinit.cpp
 extern void setInitialIntfcAF(Front*,LEVEL_FUNC_PACK*,char*);
-extern void setRestartAirfoilIntfc(Front*,LEVEL_FUNC_PACK*);
 extern void printAfExtraDada(Front*,char*);
 extern void readAfExtraDada(Front*,char*);
 
