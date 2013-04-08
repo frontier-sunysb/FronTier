@@ -196,6 +196,9 @@ function config_alpha_omega {
 
     if [[ -n "$WITHGPU" ]]; then
         CONF="$CONF --with-gpu"
+	export USEGPU="yes"
+    else
+	export USEGPU="no"
     fi
 
     if [[ -n "$WITHHDF" ]]; then

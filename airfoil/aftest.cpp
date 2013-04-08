@@ -1803,7 +1803,6 @@ extern void fourth_order_elastic_surf_propagate(
 	}
 	for (nc = news->neg_curves; nc && *nc; ++nc)
 	{
-	    //if (hsbdry_type(*nc) == FIXED_HSBDRY) continue;
 	    if (!pointer_in_list((POINTER)(*nc),num_curves,
 				(POINTER*)newc))
 	    {
@@ -1892,6 +1891,18 @@ extern void fourth_order_elastic_surf_propagate(
 		x_new[i][j] = x_old[i][j] + dt*v_old[i][j]/6.0;
                 v_new[i][j] = v_old[i][j] + dt*accel[i][j]/6.0;
                 x_pos[i][j] = x_old[i][j] + 0.5*v_old[i][j]*dt;
+                v_pos[i][j] = v_old[i][j] + 0.5*accel[i][j]*dt;
+            }
+
+	    for (i = 0; i < size; ++i)
+	    	compute_spring_accel1(sv[i],accel[i],3);
+
+	    for (i = 0; i < size; ++i)
+            for (j = 0; j < 3; ++j)
+            {
+                x_new[i][j] += dt*v_pos[i][j]/3.0;
+                v_new[i][j] += dt*accel[i][j]/3.0;
+                x_pos[i][j] = x_old[i][j] + 0.5*v_pos[i][j]*dt;
                 v_pos[i][j] = v_old[i][j] + 0.5*accel[i][j]*dt;
             }
 

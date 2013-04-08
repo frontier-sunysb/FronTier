@@ -41,8 +41,15 @@ AC_ARG_WITH(rotsym,[  --with-rotsym                 Compilation of the FronTier 
 
 AC_ARG_WITH(gd,[  --with-gd=PFX             Links with gd library for 1d post processing],[scriptotherlibsinc=" -L$withval/lib "${scriptotherlibs} scriptotherlibs="-lgd "${scriptotherlibs} gdincs=" -D__GD__ -I"${withval}"/include "],[gdincs=""])
 
-AC_ARG_WITH(gpu,[--with-gpu  Support GPU],[gpuincs="-D__GPU__"],[gpuincs=""])
-        
+AC_ARG_WITH(gpu,[--with-gpu  Support GPU],[gpuincs="-D__GPU__" ],[gpuincs="" ])
+
+if test "$gpuincs" = ""; then
+    echo "GPU not enabled"
+    AC_SUBST(USEGPU,${USEGPU})        
+else
+    echo "GPU enabled"
+    AC_SUBST(USEGPU,${USEGPU})        
+fi
 
 ############################ END BUILD GAS ###########################
 
