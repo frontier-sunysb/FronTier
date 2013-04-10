@@ -58,6 +58,8 @@ LOCAL 	int 	propagate_points_tangentially(Front*,Front*,int,double,double*,
 						  int);
 LOCAL	int	reconstruct_front_advance_front3d(double,double*,Front*,
 						  Front**,POINTER);
+LOCAL	int	simple_advance_front3d(double,double*,Front*,
+						  Front**,POINTER);
 LOCAL	int	advance_structure_front3d(double,double*,Front*,
 						  Front**,POINTER);
 LOCAL	void	EnforceFlowSpecifedStates3d(Front*);
@@ -1671,6 +1673,11 @@ LOCAL 	int 	advance_front3d_tracking_control(
 	    step_status = GOOD_STEP;
 	    break;
 
+	case SIMPLE_TRACKING:
+	    step_status = simple_advance_front3d(dt,dt_frac,front,
+                                                         newfront,wave);
+	    break;
+
 	case STRUCTURE_TRACKING:
 	    step_status = advance_structure_front3d(dt,dt_frac,front,
 							 newfront,wave);
@@ -3008,3 +3015,55 @@ LOCAL int advance_structure_front3d(
 	
 	return return_advance_front(front,newfront,status,fname);
 }	/* end advance_structure_front3d */
+
+LOCAL int simple_advance_front3d(
+	double		dt,
+	double		*dt_frac,
+	Front		*front,
+	Front		**newfront,
+	POINTER		wave)
+{
+	static const char *fname = "simple_advance_structure_front3d";
+	boolean	   has_tracked_surfaces;
+	int	   status;
+	double	   V[MAXD];
+
+	*newfront = copy_front(front);
+	has_tracked_surfaces = (front->interf->surfaces != NULL) ? YES : NO;
+	if (pp_max_status(has_tracked_surfaces) == NO)
+	{
+	    set_size_of_intfc_state(size_of_state(front->interf));
+	    set_copy_intfc_states(YES);
+	    (*newfront)->interf = pp_copy_interface(front->interf);
+	    status = ((*newfront)->interf != NULL) ? GOOD_STEP : ERROR_IN_STEP;
+	    return return_advance_front(front,newfront,status,fname);
+	}
+
+		/* Initialize Newfront */
+
+	start_clock("copy_interface");
+	set_size_of_intfc_state(size_of_state(front->interf));
+	set_copy_intfc_states(NO);
+	(*newfront)->interf = pp_copy_interface(front->interf);
+	if ((*newfront)->interf == NULL)
+	{
+	    (void) printf("WARNING in advance_3d_front(), "
+	                  "unable to copy interface\n");
+	    return return_advance_front(front,newfront,ERROR_IN_STEP,fname);
+	}
+	stop_clock("copy_interface");
+
+		/* Propagate points on surfaces */
+
+	start_clock("propagate");
+
+	start_clock("interior_propagate");
+	if (front->interior_propagate != NULL)
+	    (*front->interior_propagate)(*newfront,dt);
+	stop_clock("interior_propagate");
+
+	stop_clock("propagate");
+	status = GOOD_STEP;
+
+	return return_advance_front(front,newfront,status,fname);
+}	/* end simple_advance_front3d */

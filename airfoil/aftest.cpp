@@ -1551,8 +1551,9 @@ extern void fourth_order_elastic_curve_propagate(
 
 	start_clock("spring_model");
 #if defined(__GPU__)
-        printf("Using GPU code\n");
-        gpu_spring_solver(sv,x_pos,v_pos,size);
+	if (debugging("trace"))
+            (void) printf("Using GPU code\n");
+	gpu_spring_solver(sv,x_pos,v_pos,size,n_tan,dt);
 #else //(__GPU__)
 	
 	for (n = 0; n < n_tan; ++n)
@@ -1740,7 +1741,7 @@ extern void fourth_order_elastic_surf_propagate(
         static boolean first = YES;
 	int countc[100],countn[100];
 
-	start_clock("fourth_order_elastic_surf_propagate");
+	start_clock("set_spring_model");
 	for (s = newfr->interf->surfaces; s && *s; ++s)
 	{
 	    if (wave_type(*s) == ELASTIC_BOUNDARY)
@@ -1870,16 +1871,24 @@ extern void fourth_order_elastic_surf_propagate(
 	for (i = 0; i < num_nodes; ++i)
 	    set_node_spring_vertex(&geom_set,newn[i],x_pos,v_pos,sv,&count);
 
+	stop_clock("set_spring_model");
+
+        /* Start intensive computation */
+
+	start_clock("spring_model");
+
+#if defined(__GPU__)
+	if (debugging("trace"))
+            (void) printf("Using GPU code\n");
+	gpu_spring_solver(sv,x_pos,v_pos,size,n_tan,dt);
+#else //(__GPU__)
+
 	for (i = 0; i < size; ++i)
         for (j = 0; j < 3; ++j)
 	{
 	    x_old[i][j] = x_pos[i][j];
 	    v_old[i][j] = v_pos[i][j];
 	}
-#if defined(__GPU__)
-        printf("Using GPU code\n");
-        gpu_spring_solver(sv,x_old,v_old,size);
-#else //(__GPU__)
 	for (i = 0; i < size; ++i)
 	    compute_spring_accel1(sv[i],accel[i],3);
 

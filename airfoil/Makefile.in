@@ -18,6 +18,8 @@ PETSC_DIR=@PETSC_DIR@
 Petsc_Include=@PETSC_INCLUDE@ 
 Petsc_Lib=@PETSC_LIB@ 
 
+USEGPU = @USEGPU@
+
 airfoil : @devel@ ../lib/libiF.a
 
 iFbasic.o  : ../iFluid/iFluid.h ../iFluid/iFbasic.cpp
@@ -60,12 +62,14 @@ airfoil_cpu.o: airfoil_cpu.cpp
 	${CXX} -c airfoil_cpu.cpp
 airfoil_gpu.o: airfoil_gpu.cu
 	nvcc -arch sm_20 -c -I. -I../include airfoil_gpu.cu
+
+ifeq ($(USEGPU),no)
 airfoil: ../iFluid/iFluid.h ../solver/solver.h airfoil.h airfoil.o afinit.o afinit3d.o afprop.o afvelo.o aftest.o afdata.o afsetd.o afcnpy.o iFsub.o ../lib/libiF.a
 	$(CXX) -o airfoil airfoil.o afinit.o afinit3d.o afprop.o afvelo.o aftest.o afdata.o afsetd.o afcnpy.o iFsub.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
-
-airfoil_gpu: ../iFluid/iFluid.h ../solver/solver.h airfoil.h airfoil.o afinit.o afinit3d.o afprop.o afvelo.o aftest.o afdata.o afsetd.o afcnpy.o iFsub.o airfoil_cpu.o airfoil_gpu.o ../lib/libiF.a airfoil_cpu.o airfoil_gpu.o
+else
+airfoil: ../iFluid/iFluid.h ../solver/solver.h airfoil.h airfoil.o afinit.o afinit3d.o afprop.o afvelo.o aftest.o afdata.o afsetd.o afcnpy.o iFsub.o airfoil_cpu.o airfoil_gpu.o ../lib/libiF.a airfoil_cpu.o airfoil_gpu.o
 	$(CXX) -o airfoil airfoil.o afinit.o afinit3d.o afprop.o afvelo.o aftest.o afdata.o afsetd.o afcnpy.o iFsub.o airfoil_cpu.o airfoil_gpu.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so
-
+endif
 
 
 ../lib/libiF.a: solver.o cim_ellip.o dual_ellip.o ellip.o hyperb.o iFbasic.o iFcartsn2d.o iFcartsn3d.o
