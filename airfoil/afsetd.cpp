@@ -264,10 +264,7 @@ extern void set_node_spring_vertex(
 		else if (hsbdry_type(*c) == GORE_HSBDRY)
 		    sv[*n].k[nn] = kg;
 		else if (hsbdry_type(*c) == FIXED_HSBDRY)
-		{
-		    sv[*n].k[nn] = 0.0;
 		    is_fixed = YES;
-		}
 	    }
 	    else
 		sv[*n].k[nn] = kl;
@@ -291,7 +288,7 @@ extern void set_node_spring_vertex(
 		else if (hsbdry_type(*c) == GORE_HSBDRY)
 		    sv[*n].k[nn] = kg;
 		else if (hsbdry_type(*c) == FIXED_HSBDRY)
-		    sv[*n].k[nn] = 0.0;
+		    is_fixed = YES;
 	    }
 	    else
 		sv[*n].k[nn] = kl;
@@ -357,11 +354,16 @@ extern void set_node_spring_vertex(
 	    {
 		sv[*n].lambda = lambda_s;
 	    }
+	    if (is_fixed) 
+	    {
+		sv[*n].lambda = 0.0;
+	    	for (i = 0; i < sv[*n].num_nb; ++i)
+		    sv[*n].k[nn] = 0.0;
+	    }
 	}
 	else
 	{
 	    sv[*n].lambda = lambda_l;
-	    if (is_fixed) sv[*n].lambda = 0.0;
 	}
 	(*n)++;
 }	/* end set_node_spring_vertex */
@@ -437,7 +439,12 @@ extern void set_curve_spring_vertex(
 	    BOND_TRI **btris;
 	    TRI **tris;
 	    int j,k,side,nt;
-	    double ks = geom_set->ks;
+	    double ks;
+
+	    if (hsbdry_type(curve) == FIXED_HSBDRY)
+		ks = 0.0;
+	    else
+		ks = geom_set->ks;
 	    i = *n;
 	    for (b = curve->first; b != curve->last; b = b->next)
 	    {
