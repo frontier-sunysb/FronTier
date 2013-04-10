@@ -57,6 +57,7 @@ static void setInitialIntfcAF3d(
 	af_params->num_opt_round = 20;
         af_params->spring_model = MODEL1;	// default
 	af_params->attach_gores = NO;		// default
+	af_params->use_gpu = NO;		// default
 	af_params->gore_len_fac = 1.0;		// default
 	CursorAfterString(infile,"Enter number of canopy surfaces:");
 	fscanf(infile,"%d",&num_canopy);
@@ -211,6 +212,7 @@ static void setInitialIntfcAF2d(
         level_func_pack->func = NULL;
 	af_params->is_parachute_system = NO;
 	af_params->spring_model = MODEL1;	// default
+	af_params->use_gpu = NO;	// default
 
 	if (CursorAfterStringOpt(infile,"Enter number of point: "))
 	{

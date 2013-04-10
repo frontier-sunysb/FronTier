@@ -30,7 +30,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #if defined(__GPU__)
 
 #include "airfoil_gpu.cuh"
-#include "airfoil_cpu.h"
 
 #endif
 
@@ -1471,7 +1470,6 @@ extern void fourth_order_elastic_curve_propagate(
         double           fr_dt)
 {
 	static int size = 0;
-	static double **x_old,**x_new,**v_old,**v_new,**accel;
 	static double **x_pos,**v_pos;
 	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
 	double mass;
@@ -1509,17 +1507,11 @@ extern void fourth_order_elastic_curve_propagate(
 	if (size < num_pts)
 	{
 	    size = num_pts;
-	    if (v_old != NULL)
-		FT_FreeThese(7,v_old,v_new,v_pos,x_old,x_new,x_pos,accel);
+	    if (x_pos != NULL)
+		FT_FreeThese(3,x_pos,v_pos,sv);
             FT_VectorMemoryAlloc((POINTER*)&x_pos,size,sizeof(double*));
             FT_VectorMemoryAlloc((POINTER*)&v_pos,size,sizeof(double*));
             FT_VectorMemoryAlloc((POINTER*)&sv,size,sizeof(SPRING_VERTEX));
-
-            FT_MatrixMemoryAlloc((POINTER*)&x_old,size,dim,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&v_old,size,dim,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&x_new,size,dim,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&accel,size,dim,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&v_new,size,dim,sizeof(double));
 	}
 
 	geom_set.front = fr;
@@ -1550,76 +1542,19 @@ extern void fourth_order_elastic_curve_propagate(
 	/* Start intensive computation */
 
 	start_clock("spring_model");
+
 #if defined(__GPU__)
-	if (debugging("trace"))
-            (void) printf("Using GPU code\n");
-	gpu_spring_solver(sv,x_pos,v_pos,size,n_tan,dt);
-#else //(__GPU__)
-	
-	for (n = 0; n < n_tan; ++n)
+	if (af_params->use_gpu)
 	{
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
-		x_old[i][j] = x_pos[i][j];
-		v_old[i][j] = v_pos[i][j];
-	    }
-
-	    for (i = 0; i < size; ++i)
-		compute_spring_accel1(sv[i],accel[i],dim);
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
-		x_new[i][j] = x_old[i][j] + dt*v_old[i][j]/6.0;
-                v_new[i][j] = v_old[i][j] + dt*accel[i][j]/6.0;
-	    	x_pos[i][j] = x_old[i][j] + 0.5*v_old[i][j]*dt;
-	    	v_pos[i][j] = v_old[i][j] + 0.5*accel[i][j]*dt;
-	    }
-
-	    for (i = 0; i < size; ++i)
-		compute_spring_accel1(sv[i],accel[i],dim);
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
-		x_new[i][j] += dt*v_pos[i][j]/3.0;
-                v_new[i][j] += dt*accel[i][j]/3.0;
-	    	x_pos[i][j] = x_old[i][j] + 0.5*v_pos[i][j]*dt;
-	    	v_pos[i][j] = v_old[i][j] + 0.5*accel[i][j]*dt;
-	    }
-	
-	    for (i = 0; i < size; ++i)
-		compute_spring_accel1(sv[i],accel[i],dim);
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
-		x_new[i][j] += dt*v_pos[i][j]/3.0;
-                v_new[i][j] += dt*accel[i][j]/3.0;
-	    	x_pos[i][j] = x_old[i][j] + v_pos[i][j]*dt;
-	    	v_pos[i][j] = v_old[i][j] + accel[i][j]*dt; 
-	    }
-
-	    for (i = 0; i < size; ++i)
-		compute_spring_accel1(sv[i],accel[i],dim);
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
-		x_new[i][j] += dt*v_pos[i][j]/6.0;
-                v_new[i][j] += dt*accel[i][j]/6.0;
-	    }
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
-		x_pos[i][j] = x_new[i][j];
-                v_pos[i][j] = v_new[i][j];
-	    }
-
-	    if (n != n_tan-1)
-	    {
-	    	for (i = 0; i < size; ++i)
-		    compute_spring_accel1(sv[i],accel[i],dim);
-	    }
+	    if (debugging("trace"))
+            	(void) printf("Enter gpu_spring_solver()\n");
+	    gpu_spring_solver(sv,x_pos,v_pos,dim,size,n_tan,dt);
+	    if (debugging("trace"))
+            	(void) printf("Left gpu_spring_solver()\n");
 	}
+	else
 #endif
+	generic_spring_solver(sv,x_pos,v_pos,dim,size,n_tan,dt);
 
 	stop_clock("spring_model");
 
@@ -1722,8 +1657,6 @@ extern void fourth_order_elastic_surf_propagate(
         double           fr_dt)
 {
 	static int size = 0;
-	static double **x_old,**x_new,**v_old,**v_new;
-        static double **accel;
         static double **x_pos,**v_pos;
 	AF_PARAMS *af_params = (AF_PARAMS*)newfr->extra2;
         double *g = af_params->gravity;
@@ -1740,6 +1673,7 @@ extern void fourth_order_elastic_surf_propagate(
 	static SPRING_VERTEX *sv;
         static boolean first = YES;
 	int countc[100],countn[100];
+	int dim = newfr->rect_grid->dim;
 
 	start_clock("set_spring_model");
 	for (s = newfr->interf->surfaces; s && *s; ++s)
@@ -1832,18 +1766,11 @@ extern void fourth_order_elastic_surf_propagate(
 	if (size < num_pts && first)
 	{
 	    size = num_pts;
-	    if (v_old != NULL)
-	    {
-		FT_FreeThese(5,v_old,v_new,x_old,x_new,accel);
-	    }
+	    if (x_pos != NULL)
+		FT_FreeThese(3,x_pos,v_pos,sv);
 	    FT_VectorMemoryAlloc((POINTER*)&sv,size,sizeof(SPRING_VERTEX));
 	    FT_VectorMemoryAlloc((POINTER*)&x_pos,size,sizeof(double*));
             FT_VectorMemoryAlloc((POINTER*)&v_pos,size,sizeof(double*));
-	    FT_MatrixMemoryAlloc((POINTER*)&x_old,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&v_old,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&x_new,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&v_new,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&accel,size,3,sizeof(double));
 	}
 
 	count = 0;
@@ -1878,83 +1805,19 @@ extern void fourth_order_elastic_surf_propagate(
 	start_clock("spring_model");
 
 #if defined(__GPU__)
-	if (debugging("trace"))
-            (void) printf("Using GPU code\n");
-	gpu_spring_solver(sv,x_pos,v_pos,size,n_tan,dt);
-#else //(__GPU__)
-
-	for (i = 0; i < size; ++i)
-        for (j = 0; j < 3; ++j)
+	if (af_params->use_gpu)
 	{
-	    x_old[i][j] = x_pos[i][j];
-	    v_old[i][j] = v_pos[i][j];
+	    if (debugging("trace"))
+            	(void) printf("Enter gpu_spring_solver()\n");
+	    gpu_spring_solver(sv,x_pos,v_pos,dim,size,n_tan,dt);
+	    if (debugging("trace"))
+            	(void) printf("Left gpu_spring_solver()\n");
 	}
-	for (i = 0; i < size; ++i)
-	    compute_spring_accel1(sv[i],accel[i],3);
-
-	for (n = 0; n < n_tan; ++n)
-	{
-	    for (i = 0; i < size; ++i)
-            for (j = 0; j < 3; ++j)
-            {
-		x_new[i][j] = x_old[i][j] + dt*v_old[i][j]/6.0;
-                v_new[i][j] = v_old[i][j] + dt*accel[i][j]/6.0;
-                x_pos[i][j] = x_old[i][j] + 0.5*v_old[i][j]*dt;
-                v_pos[i][j] = v_old[i][j] + 0.5*accel[i][j]*dt;
-            }
-
-	    for (i = 0; i < size; ++i)
-	    	compute_spring_accel1(sv[i],accel[i],3);
-
-	    for (i = 0; i < size; ++i)
-            for (j = 0; j < 3; ++j)
-            {
-                x_new[i][j] += dt*v_pos[i][j]/3.0;
-                v_new[i][j] += dt*accel[i][j]/3.0;
-                x_pos[i][j] = x_old[i][j] + 0.5*v_pos[i][j]*dt;
-                v_pos[i][j] = v_old[i][j] + 0.5*accel[i][j]*dt;
-            }
-
-	    for (i = 0; i < size; ++i)
-	    	compute_spring_accel1(sv[i],accel[i],3);
-
-	    for (i = 0; i < size; ++i)
-            for (j = 0; j < 3; ++j)
-            {
-		x_new[i][j] += dt*v_pos[i][j]/3.0;
-                v_new[i][j] += dt*accel[i][j]/3.0;
-                x_pos[i][j] = x_old[i][j] + v_pos[i][j]*dt;
-                v_pos[i][j] = v_old[i][j] + accel[i][j]*dt;
-            }
-
-	    for (i = 0; i < size; ++i)
-	    	compute_spring_accel1(sv[i],accel[i],3);
-
-	    for (i = 0; i < size; ++i)
-            for (j = 0; j < 3; ++j)
-            {
-		x_new[i][j] += dt*v_pos[i][j]/6.0;
-                v_new[i][j] += dt*accel[i][j]/6.0;
-		x_pos[i][j] = x_new[i][j];
-		v_pos[i][j] = v_new[i][j];
-            }
-
-	    if (n != n_tan-1)
-	    {
-	    	for (i = 0; i < size; ++i)
-	    	    compute_spring_accel1(sv[i],accel[i],3);
-
-		for (i = 0; i < size; ++i)
-        	for (j = 0; j < 3; ++j)
-		{
-	    	    x_old[i][j] = x_pos[i][j];
-	    	    v_old[i][j] = v_pos[i][j];
-		}
-
-	    }
-	}
+	else
 #endif
-	stop_clock("fourth_order_elastic_surf_propagate");
+	    generic_spring_solver(sv,x_pos,v_pos,dim,size,n_tan,dt);
+
+	stop_clock("spring_model");
 
 	if (debugging("trace"))
 	    (void) printf("Leaving "

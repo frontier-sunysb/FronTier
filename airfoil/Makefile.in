@@ -58,8 +58,6 @@ afcnpy.o : airfoil.h ../iFluid/iFluid.h afcnpy.cpp
 	${CXX} -c afcnpy.cpp $(incsloc) $(incs) ${Petsc_Include}
 airfoil.o: airfoil.h airfoil.cpp
 	${CXX} -c airfoil.cpp $(incsloc) $(incs) ${Petsc_Include}
-airfoil_cpu.o: airfoil_cpu.cpp
-	${CXX} -c airfoil_cpu.cpp
 airfoil_gpu.o: airfoil_gpu.cu
 	nvcc -arch sm_20 -c -I. -I../include airfoil_gpu.cu
 
@@ -67,8 +65,8 @@ ifeq ($(USEGPU),no)
 airfoil: ../iFluid/iFluid.h ../solver/solver.h airfoil.h airfoil.o afinit.o afinit3d.o afprop.o afvelo.o aftest.o afdata.o afsetd.o afcnpy.o iFsub.o ../lib/libiF.a
 	$(CXX) -o airfoil airfoil.o afinit.o afinit3d.o afprop.o afvelo.o aftest.o afdata.o afsetd.o afcnpy.o iFsub.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
 else
-airfoil: ../iFluid/iFluid.h ../solver/solver.h airfoil.h airfoil.o afinit.o afinit3d.o afprop.o afvelo.o aftest.o afdata.o afsetd.o afcnpy.o iFsub.o airfoil_cpu.o airfoil_gpu.o ../lib/libiF.a airfoil_cpu.o airfoil_gpu.o
-	$(CXX) -o airfoil airfoil.o afinit.o afinit3d.o afprop.o afvelo.o aftest.o afdata.o afsetd.o afcnpy.o iFsub.o airfoil_cpu.o airfoil_gpu.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so
+airfoil: ../iFluid/iFluid.h ../solver/solver.h airfoil.h airfoil.o afinit.o afinit3d.o afprop.o afvelo.o aftest.o afdata.o afsetd.o afcnpy.o iFsub.o airfoil_gpu.o ../lib/libiF.a airfoil_gpu.o
+	$(CXX) -o airfoil airfoil.o afinit.o afinit3d.o afprop.o afvelo.o aftest.o afdata.o afsetd.o afcnpy.o iFsub.o airfoil_gpu.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so
 endif
 
 

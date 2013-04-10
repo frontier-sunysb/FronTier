@@ -92,8 +92,20 @@ extern void setMotionParams(
 	    	    	front->tan_curve_propagate 
 				= second_order_elastic_curve_propagate;
 	    	    else
+		    {
 	    	    	front->tan_curve_propagate 
 				= fourth_order_elastic_curve_propagate;
+#if defined(__GPU__)
+            		if (CursorAfterStringOpt(infile,
+				"Enter yes to use GPU solver:"))
+			{
+	    		    fscanf(infile,"%s",string);
+	    		    (void) printf("%s\n",string);
+			    if (string[0] == 'y' || string[0] == 'Y')
+				af_params->use_gpu = YES;
+			}
+#endif
+		    }
 	    	    break;
 	    	default:
 		    (void) printf("Unknown interior propagator!\n");
@@ -114,8 +126,20 @@ extern void setMotionParams(
 	    	    	front->interior_propagate 
 				= second_order_elastic_surf_propagate;
 	    	    else
+		    {
 	    	    	front->interior_propagate 
 				= fourth_order_elastic_surf_propagate;
+#if defined(__GPU__)
+            		if (CursorAfterStringOpt(infile,
+				"Enter yes to use GPU solver:"))
+			{
+	    		    fscanf(infile,"%s",string);
+	    		    (void) printf("%s\n",string);
+			    if (string[0] == 'y' || string[0] == 'Y')
+				af_params->use_gpu = YES;
+			}
+#endif
+		    }
 	    	    break;
 	    	case 'o':
 	    	case 'O':

@@ -674,3 +674,93 @@ extern void set_string_spring_vertex(
 	if (debugging("canopy"))
 	    (void) printf("Leaving set_string_spring_vertex()\n");
 }	/* end  set_string_spring_vertex */
+
+extern void generic_spring_solver(
+	SPRING_VERTEX *sv,
+	double **x_pos,
+	double **v_pos,
+	int dim,
+	int size,
+	int n_loop,
+	double dt)
+{
+	static double **x_old,**x_new,**v_old,**v_new,**accel;
+	int i,j,n;
+	
+	if (debugging("trace"))
+	    (void) printf("Entering generic_spring_solver()\n");
+	if (x_old == NULL)
+	{
+	    FT_MatrixMemoryAlloc((POINTER*)&x_old,size,3,sizeof(double));
+            FT_MatrixMemoryAlloc((POINTER*)&v_old,size,3,sizeof(double));
+            FT_MatrixMemoryAlloc((POINTER*)&x_new,size,3,sizeof(double));
+            FT_MatrixMemoryAlloc((POINTER*)&v_new,size,3,sizeof(double));
+            FT_MatrixMemoryAlloc((POINTER*)&accel,size,3,sizeof(double));
+	}
+
+	for (n = 0; n < n_loop; ++n)
+	{
+	    for (i = 0; i < size; ++i)
+	    for (j = 0; j < dim; ++j)
+	    {
+		x_old[i][j] = x_pos[i][j];
+		v_old[i][j] = v_pos[i][j];
+	    }
+
+	    for (i = 0; i < size; ++i)
+		compute_spring_accel1(sv[i],accel[i],dim);
+	    for (i = 0; i < size; ++i)
+	    for (j = 0; j < dim; ++j)
+	    {
+		x_new[i][j] = x_old[i][j] + dt*v_old[i][j]/6.0;
+                v_new[i][j] = v_old[i][j] + dt*accel[i][j]/6.0;
+	    	x_pos[i][j] = x_old[i][j] + 0.5*v_old[i][j]*dt;
+	    	v_pos[i][j] = v_old[i][j] + 0.5*accel[i][j]*dt;
+	    }
+
+	    for (i = 0; i < size; ++i)
+		compute_spring_accel1(sv[i],accel[i],dim);
+	    for (i = 0; i < size; ++i)
+	    for (j = 0; j < dim; ++j)
+	    {
+		x_new[i][j] += dt*v_pos[i][j]/3.0;
+                v_new[i][j] += dt*accel[i][j]/3.0;
+	    	x_pos[i][j] = x_old[i][j] + 0.5*v_pos[i][j]*dt;
+	    	v_pos[i][j] = v_old[i][j] + 0.5*accel[i][j]*dt;
+	    }
+	
+	    for (i = 0; i < size; ++i)
+		compute_spring_accel1(sv[i],accel[i],dim);
+	    for (i = 0; i < size; ++i)
+	    for (j = 0; j < dim; ++j)
+	    {
+		x_new[i][j] += dt*v_pos[i][j]/3.0;
+                v_new[i][j] += dt*accel[i][j]/3.0;
+	    	x_pos[i][j] = x_old[i][j] + v_pos[i][j]*dt;
+	    	v_pos[i][j] = v_old[i][j] + accel[i][j]*dt; 
+	    }
+
+	    for (i = 0; i < size; ++i)
+		compute_spring_accel1(sv[i],accel[i],dim);
+	    for (i = 0; i < size; ++i)
+	    for (j = 0; j < dim; ++j)
+	    {
+		x_new[i][j] += dt*v_pos[i][j]/6.0;
+                v_new[i][j] += dt*accel[i][j]/6.0;
+	    }
+	    for (i = 0; i < size; ++i)
+	    for (j = 0; j < dim; ++j)
+	    {
+		x_pos[i][j] = x_new[i][j];
+                v_pos[i][j] = v_new[i][j];
+	    }
+
+	    if (n != n_loop-1)
+	    {
+	    	for (i = 0; i < size; ++i)
+		    compute_spring_accel1(sv[i],accel[i],dim);
+	    }
+	}
+	if (debugging("trace"))
+	    (void) printf("Leaving generic_spring_solver()\n");
+}	/* end spring_solver */

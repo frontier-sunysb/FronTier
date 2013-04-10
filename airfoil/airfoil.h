@@ -65,6 +65,7 @@ typedef struct {
 	boolean attach_gores;
 	boolean attach_fixer;
 	boolean cut_vent;
+	boolean use_gpu;
 	PERT_PARAMS pert_params;
 	STRING_NODE_TYPE start_type;
 	STRING_NODE_TYPE end_type;
@@ -318,6 +319,8 @@ extern void set_string_spring_vertex(PARACHUTE_SET*,double**,double**,
 				SPRING_VERTEX*);
 extern void set_spring_vertex_memory(SPRING_VERTEX*,int);
 extern void compute_spring_accel1(SPRING_VERTEX,double*,int);
+extern void generic_spring_solver(SPRING_VERTEX*,double**,double**,int,int,int,
+				double);
 
 // afvelo.cpp
 extern void setMotionParams(char*,Front*);
