@@ -539,7 +539,7 @@ scriptdutilincs=" -I../.. -I../ "${debug}${cppflagss}${mpichincs}${amrincs}${hdf
 
 flagsss=$FFLAGS${optimization}${firix}${fsun}${debug}${cppflagss}
 
-headers=`find ./src/util/ ./src/intfc ./src/front -name \*\.h | perl -e "s/\.\/src\/(.*)\n/include\/FronTier\/\1 /g" -p`
+headers=`find ./src/util/ ./src/intfc ./src/front -name \*\.*h | perl -e "s/\.\/src\/(.*)\n/include\/FronTier\/\1 /g" -p`
 
 include_dirs="include/FronTier/intfc include/FronTier/front include/FronTier/util"
 
