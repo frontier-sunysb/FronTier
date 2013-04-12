@@ -225,12 +225,16 @@ $$ME/iTaps/*.cpp \
 $$ME/iTaps/Makefile.in \
 $$ME/src/intfc/*.c \
 $$ME/src/intfc/*.h  \
+$$ME/src/intfc/*.cu \
+$$ME/src/intfc/*.cuh  \
 $$ME/src/intfc/Makefile.in \
 $$ME/src/util/*.h \
 $$ME/src/util/*.c \
 $$ME/src/util/Makefile.in \
 $$ME/src/front/*.c \
 $$ME/src/front/*.h \
+$$ME/src/front/*.cu \
+$$ME/src/front/*.cuh \
 $$ME/src/front/Makefile.in \
 $$ME/src/front/README \
 
