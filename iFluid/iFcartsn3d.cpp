@@ -471,7 +471,8 @@ void Incompress_Solver_Smooth_3D_Cartesian::
             solver.SetTol(1e-14);
 
 	    start_clock("Befor Petsc solve");
-            solver.Solve_GMRES();
+            //solver.Solve_GMRES();
+            solver.Solve();
             solver.GetNumIterations(&num_iter);
             solver.GetFinalRelativeResidualNorm(&rel_residual);
 
