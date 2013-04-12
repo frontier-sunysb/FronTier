@@ -12,9 +12,9 @@ struct _STATE {
         double phi;                     /* Potential */
         double vel[MAXD];               /* Velocities */
         double vort;                    /* Vorticity */
-        double vort3d[MAXD];            /* Vorticity in 3D */
-	double impulse[MAXD];             /* Accum impact from external force */
+	double impulse[MAXD];           /* Accum impact from external force */
         double solute;                  /* Solute concentration */
+	double temperature;             /* For melting with flow problem */
 };
 typedef struct _STATE STATE;
 

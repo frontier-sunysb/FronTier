@@ -2954,3 +2954,35 @@ void Incompress_Solver_Smooth_Basis::computeFieldPointGrad(
 	for (i = 0; i < dim; ++i)
 	    grad_field[i] = 0.5*(p_edge[i][1] - p_edge[i][0])/top_h[i];
 }
+
+extern int ifluid_find_state_at_crossing(
+	Front *front,
+	int *icoords,
+	GRID_DIRECTION dir,
+	int comp,
+	POINTER *state,
+	HYPER_SURF **hs,
+	double *crx_coords)
+{
+	boolean status;
+	INTERFACE *grid_intfc = front->grid_intfc;
+	status = FT_StateStructAtGridCrossing(front,grid_intfc,icoords,dir,
+				comp,state,hs,crx_coords);
+	if (status == NO) 
+	    return NO_PDE_BOUNDARY;
+	if (wave_type(*hs) == FIRST_PHYSICS_WAVE_TYPE) 
+	    return NO_PDE_BOUNDARY;
+	if (wave_type(*hs) == NEUMANN_BOUNDARY) 
+	    return CONST_V_PDE_BOUNDARY;
+	if (wave_type(*hs) == GROWING_BODY_BOUNDARY) 
+	    return CONST_V_PDE_BOUNDARY;
+	if (wave_type(*hs) == MOVABLE_BODY_BOUNDARY) 
+	    return CONST_V_PDE_BOUNDARY;
+	if (wave_type(*hs) == DIRICHLET_BOUNDARY) 
+	{
+	    if (boundary_state(*hs))
+	    	return CONST_V_PDE_BOUNDARY;
+	    else
+	    	return CONST_P_PDE_BOUNDARY;
+	}
+}	/* ifluid_find_state_at_crossing */

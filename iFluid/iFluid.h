@@ -39,6 +39,7 @@ struct _STATE {
         double vort;                    /* Vorticity in 2D */
         double impulse[MAXD];            /* Accum impact from external force */
 	double solute;			/* For subsurface problem */
+	double temperature;             /* For melting with flow problem */
 };
 typedef struct _STATE STATE;
 

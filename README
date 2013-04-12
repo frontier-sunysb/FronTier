@@ -61,16 +61,10 @@ In it should be located the src/ directory. It also contains various files
 required for configuration, and this README file.
 
 The src/        dir contains source code subdirectories:
-src/driver/         drives the FronTier gas dynamics package
-src/hyp/            contains the solvers for the gas dynamics package
-src/tri/            code for the crossing grid portion of the FT code
 src/front/          code for front tracking in FT_lite
 src/intfc/          code for front tracking geometry in FT_lite
 src/pak/            contains linear algebra solvers for use with gas
 src/util/           code for memory management and binding in FT_lite
-src/gas/            the FronTier gas dynamics package
-iMesh/          code for the ITAPS-iMesh plugin for FT_lite
-testfront/      simple geometric front tracking from input files
 example/        example applications that use the FT_lite API libraries
 example3d/        example applications that use the FT_lite API libraries
 
@@ -81,11 +75,11 @@ example3d/        example applications that use the FT_lite API libraries
 FronTier is configured and built using autoconf, configure, and make. 
 For most users, it is the easiest to build FronTier using the wrapper 
 shell script
-   ./build.sh
+   ./build
 This script sets some environment variables, calls autoconf and configure,
 and then optionally calls make. The build script has some command options 
 to control the modules to compile, which can be seen by running 
-"./build.sh -h".
+"./build -h".
 
 The build script recognizes a few systems commonly used by FronTier
 developers and users. For these platforms, the script should work
