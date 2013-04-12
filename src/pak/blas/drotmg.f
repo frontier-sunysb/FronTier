@@ -98,13 +98,15 @@ c
           dh12=one
           dflag=-one
    90 continue
-      go to igo,(120,150,180,210)
+c      go to igo,(120,150,180,210)
+      go to (120,150,180,210) igo
 c     procedure..scale-check
   100 continue
   110     continue
           if(.not. dd1 .le. rgamsq) go to 130
                if(dd1 .eq. zero) go to 160
-               assign 120 to igo
+c               assign 120 to igo
+               igo = 120
 c              fix-h..
                go to 70
   120          continue
@@ -116,7 +118,8 @@ c              fix-h..
   130 continue
   140     continue
           if(.not. dd1 .ge. gamsq) go to 160
-               assign 150 to igo
+c               assign 150 to igo
+               igo = 150
 c              fix-h..
                go to 70
   150          continue
@@ -129,7 +132,8 @@ c              fix-h..
   170     continue
           if(.not. dabs(dd2) .le. rgamsq) go to 190
                if(dd2 .eq. zero) go to 220
-               assign 180 to igo
+c               assign 180 to igo
+               igo = 180
 c              fix-h..
                go to 70
   180          continue
@@ -140,7 +144,8 @@ c              fix-h..
   190 continue
   200     continue
           if(.not. dabs(dd2) .ge. gamsq) go to 220
-               assign 210 to igo
+c               assign 210 to igo
+               igo = 210
 c              fix-h..
                go to 70
   210          continue

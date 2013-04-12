@@ -1,6 +1,6 @@
       subroutine cptsl(n,d,e,b)
       integer n
-      complex d(1),e(1),b(1)
+      complex d(1),e(1),b(2)
 c
 c     cptsl given a positive definite tridiagonal matrix and a right
 c     hand side will find the solution.

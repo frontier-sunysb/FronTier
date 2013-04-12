@@ -46,14 +46,17 @@ c
          dnrm2  = zero
          go to 300
 c
-   10 assign 30 to next
+c   10 assign 30 to next
+   10 next = 30
       sum = zero
       nn = n * incx
 c                                                 begin main loop
       i = 1
-   20    go to next,(30, 50, 70, 110)
+c   20    go to next,(30, 50, 70, 110)
+   20    go to (30, 50, 70, 110) next
    30 if( dabs(dx(i)) .gt. cutlo) go to 85
-      assign 50 to next
+c      assign 50 to next
+      next = 50
       xmax = zero
 c
 c                        phase 1.  sum is zero
@@ -62,13 +65,15 @@ c
       if( dabs(dx(i)) .gt. cutlo) go to 85
 c
 c                                prepare for phase 2.
-      assign 70 to next
+c      assign 70 to next
+      next = 70
       go to 105
 c
 c                                prepare for phase 4.
 c
   100 i = j
-      assign 110 to next
+c      assign 110 to next
+      next = 110
       sum = (sum / dx(i)) / dx(i)
   105 xmax = dabs(dx(i))
       go to 115

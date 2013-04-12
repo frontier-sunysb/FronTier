@@ -1,6 +1,6 @@
       subroutine dptsl(n,d,e,b)
       integer n
-      double precision d(1),e(1),b(1)
+      double precision d(1),e(1),b(2)
 c
 c     dptsl given a positive definite tridiagonal matrix and a right
 c     hand side will find the solution.

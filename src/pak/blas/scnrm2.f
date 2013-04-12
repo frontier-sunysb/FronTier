@@ -48,16 +48,19 @@ c
          scnrm2  = zero
          go to 300
 c
-   10 assign 30 to next
+c   10 assign 30 to next
+   10 next = 30
       sum = zero
       nn = n * incx
 c                                                 begin main loop
       do 210 i=1,nn,incx
          absx = abs(real(cx(i)))
          imag = .false.
-         go to next,(30, 50, 70, 90, 110)
+c         go to next,(30, 50, 70, 90, 110)
+         go to (30, 50, 70, 90, 110) next
    30 if( absx .gt. cutlo) go to 85
-      assign 50 to next
+c      assign 50 to next
+      next = 50
       scale = .false.
 c
 c                        phase 1.  sum is zero
@@ -66,12 +69,14 @@ c
       if( absx .gt. cutlo) go to 85
 c
 c                                prepare for phase 2.
-      assign 70 to next
+c      assign 70 to next
+      next = 70
       go to 105
 c
 c                                prepare for phase 4.
 c
-  100 assign 110 to next
+c  100 assign 110 to next
+  100 next = 110
       sum = (sum / absx) / absx
   105 scale = .true.
       xmax = absx
@@ -98,7 +103,8 @@ c                  prepare for phase 3.
 c
    75 sum = (sum * xmax) * xmax
 c
-   85 assign 90 to next
+c   85 assign 90 to next
+   85 next = 90
       scale = .false.
 c
 c     for real or d.p. set hitest = cuthi/n
@@ -116,7 +122,8 @@ c
       if(imag) go to 210
          absx = abs(aimag(cx(i)))
          imag = .true.
-      go to next,(  50, 70, 90, 110 )
+c      go to next,(  50, 70, 90, 110 )
+      go to (  50, 70, 90, 110 ) next
 c
   210 continue
 c
