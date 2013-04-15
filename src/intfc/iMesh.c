@@ -1,6 +1,6 @@
-#if defined(IMESH)
-
 #include <intfc/int.h>
+
+#if defined(IMESH)
 
 struct iBase_Error FT_last_error;
 
