@@ -6,6 +6,9 @@
 #include <intfc/iMesh.h>
 #include <intfc/iGeom.h>
 #include <intfc/iRel.h>
+#if defined __MPI__
+#include <intfc/iMeshP.h>
+#endif /* defined __MPI__ */
 
 
 struct _FTMESH
