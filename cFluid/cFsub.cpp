@@ -483,7 +483,7 @@ void cF_flowThroughBoundaryState(
 			eqn_params->vel[i],getStateVel[i],&vtmp,&s0->vel[i]);
 	    s1->vel[i] = vtmp;
 	}
-	if (dim != 1)
+	if (dim == 2)
 	{
 	    FT_IntrpStateVarAtCoords(front,comp,nsten->pts[1],
 			eqn_params->vort,getStateVort,&vort[2],&s0->vort);
