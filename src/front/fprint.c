@@ -1248,7 +1248,8 @@ LOCAL	void show_front_hdf(
 		 front->hdf_movie_var != NULL)
 	{
 	    HDF_MOVIE_VAR *hdf_movie_var = front->hdf_movie_var;
-	    if (hdf_movie_var->plot_comp)
+	    if (hdf_movie_var->plot_comp ||
+		front->hdf_movie_var != NULL)
 	    	hdf_plot_comp3d(front,dirname,first);
 	    if (front->hdf_movie_var != NULL)
 	    {

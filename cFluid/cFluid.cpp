@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/*****************************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions 
+have discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -26,8 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 /*
 *				cFluid.c:
-*
-*		User initialization example for Front Package:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
 *	
@@ -234,6 +233,7 @@ static  void gas_driver(
         {
             /* Propagating interface for time step dt */
 
+	    start_clock("time_loop");
 	    print_storage("Storage at start of time step","step_storage");
 	    if (debugging("trace")) printf("Begin a time step\n");
 	    FrontPreAdvance(front);
@@ -304,12 +304,14 @@ static  void gas_driver(
 		(void) printf("\ntime = %20.14f   step = %5d   ",
                                 front->time,front->step);
                 (void) printf("next dt = %20.14f\n",front->dt);
+	    	stop_clock("time_loop");
                 break;
 	    }
 	    FT_TimeControlFilter(front);
 	    (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
                         front->time,front->step,front->dt);
             fflush(stdout);
+	    stop_clock("time_loop");
         }
 	if (debugging("trace")) printf("After time loop\n");
 }       /* end gas_driver */

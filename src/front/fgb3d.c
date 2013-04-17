@@ -886,8 +886,8 @@ LOCAL	boolean track_comp_and_repair3d(
 	static int 	**ips = NULL;
 	RECT_GRID	*gr = &topological_grid(intfc);
 
-	DEBUG_ENTER(track_comp_and_repair3d)
-
+	if (debugging("trace"))
+	    (void) printf("Entering track_comp_and_repair3d()\n");
 	if(ips == NULL)
 	    stat_matrix(&ips,MAX_NUM_UNPHY_IP,3,INT);
 
@@ -898,7 +898,9 @@ LOCAL	boolean track_comp_and_repair3d(
 	
 	fill_physical_comps(smin,smax,gmax,intfc);
 
+	/*
 	fill_comp_with_component3d(smin,smax,gmax,intfc);
+	*/
 
 	if(debugging("compcrx"))
 	{
@@ -923,12 +925,18 @@ LOCAL	boolean track_comp_and_repair3d(
 
 	if(!set_reconstruction_boxes(smin,smax,ips,num_ip,&boxes,intfc))
 	{
-	    DEBUG_LEAVE(track_comp_and_repair3d)
+	    if (debugging("trace"))
+	    {
+		(void) printf("Function failed!\n");
+	    	(void) printf("Leaving track_comp_and_repair3d()\n");
+	    }
 	    return FUNCTION_FAILED;
 	}
 
 	remove_unphysical_crxings(smin,smax,gmax,intfc,SINGLE);
+	/*
 	check_and_repair_crx(intfc,smin,smax);
+	*/
 
 	communicate_box_recon(boxes, intfc, fr);
 	
@@ -937,7 +945,8 @@ LOCAL	boolean track_comp_and_repair3d(
 	    set_use_rect_tris(YES);
 	}
 
-	DEBUG_LEAVE(track_comp_and_repair3d)
+	if (debugging("trace"))
+	    (void) printf("Leaving track_comp_and_repair3d()\n");
 	return FUNCTION_SUCCEEDED;
 
 }	/* end track_comp_and_repair3d */
@@ -6713,7 +6722,9 @@ LOCAL	boolean rbox_repair_intfc_in_box(
 	
 	fill_physical_comps(smin,smax,gmax,intfc);
 
+	/*
 	fill_comp_with_component3d(smin,smax,gmax,intfc);
+	*/
 
 	remove_unphysical_crossings3d(intfc, smin, smax);
 	

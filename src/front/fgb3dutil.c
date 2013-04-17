@@ -1018,6 +1018,7 @@ EXPORT	void set_crx_storage_for_reconstruction(
 	Table *T = table_of_interface(intfc);
 	int n_segs,n_crx,i,n_reg_nodes;
 
+	start_clock("set_crx_storage_for_reconstruction");
 	n_segs = 0;
 	n_reg_nodes = 1;
 	switch (dim)
@@ -1056,6 +1057,7 @@ EXPORT	void set_crx_storage_for_reconstruction(
 	}
 	else
 	    T->area = T->vol_frac = NULL;
+	stop_clock("set_crx_storage_for_reconstruction");
 }	/*end set_crx_storage_for_reconstruction*/
 
 
@@ -1223,13 +1225,20 @@ EXPORT 	boolean track_comp_through_crxings3d(
 	/*adjust_crossings(smin,smax,intfc); */
 
 	/* assign components and isolate unphysical clusters */
+	start_clock("fill_physical_comps");
 	fill_physical_comps(smin,smax,gmax,intfc);
+	stop_clock("fill_physical_comps");
 
 	/* this is different from prev alg. if there are NO_COMP found,  */
 	/* the compoennt3d is always called.  */
+	/* Removed, not helpful, expensive
+	start_clock("fill_comp_with_component3d");
 	fill_comp_with_component3d(smin,smax,gmax,intfc);
+	stop_clock("fill_comp_with_component3d");
+	*/
 	
 	/* annihilate unphysical clusters */
+	start_clock("remove_unphysical_crxings");
 	while(unset_comp_exist(smin,smax,intfc))
 	{
 	    remove_unphysical_crxings(smin,smax,gmax,intfc,crx_type);
@@ -1239,13 +1248,18 @@ EXPORT 	boolean track_comp_through_crxings3d(
 		clean_up(ERROR);
 	    }
 	}
+	stop_clock("remove_unphysical_crxings");
 	
 	/* check and repair crossings */
+	/* Removed, not helpful, expensive
+	start_clock("check_and_repair_crx");
 	if (!check_and_repair_crx(intfc,smin,smax))
 	{
 	    DEBUG_LEAVE(track_comp_through_crxings3d)
 	    return FUNCTION_FAILED;
 	}
+	stop_clock("check_and_repair_crx");
+	*/
 
 	DEBUG_LEAVE(track_comp_through_crxings3d)
 	return FUNCTION_SUCCEEDED;
@@ -1469,8 +1483,9 @@ EXPORT	void fill_physical_comps(
 	    show_grid_components(smin,smax,2,intfc);
 	}
 
+	/* Removed, not helpful, expensive
 	status = check_and_unset_bad_comp(smin,smax,intfc);
-	
+	*/
 
 	if (status == YES)
 	{
@@ -1546,7 +1561,9 @@ EXPORT	void fill_physical_comps(
 	    show_grid_components(smin,smax,2,intfc);
 	}
 
+	/* Removed, not helpful, expensive
 	status = check_and_unset_bad_comp(smin,smax,intfc);
+	*/
 	
 	if(debugging("show_3c_comp"))
 	{
@@ -1621,6 +1638,9 @@ EXPORT	void fill_physical_comps(
 		}
 	    }
 	}
+	return;
+	/*The rest of the function is removed, not helpful
+	  and expensive */
 	
 	if(debugging("show_3c_comp"))
 	{

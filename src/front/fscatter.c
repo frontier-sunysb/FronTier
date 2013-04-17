@@ -422,7 +422,6 @@ EXPORT void scatter_top_grid_float_array(
 	static int storage_size;
 	static int min_gmax;
 
-	start_clock("scatter_top_grid_float_array");
 	myid = pp_mynode();
 	G = pp_grid->gmax;
 	find_Cartesian_coordinates(myid,pp_grid,me);
@@ -491,7 +490,6 @@ EXPORT void scatter_top_grid_float_array(
 		}
 	    }
 	}
-	stop_clock("scatter_top_grid_float_array");
 }	/* end scatter_top_grid_float_array */
 
 EXPORT void scatter_comp_grid_float_array(
