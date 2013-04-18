@@ -51,6 +51,8 @@ void G_CARTESIAN::initMesh(void)
 	// init cell_center
 	L_RECTANGLE       rectangle;
 
+	if (debugging("trace"))
+	    (void) printf("Entering g_cartesian.initMesh()\n");
 	/*TMP*/
 	min_dens = 0.0001;
 	min_pres = 0.0001;
@@ -106,6 +108,8 @@ void G_CARTESIAN::initMesh(void)
 	
 	setComponent();
 	FT_FreeGridIntfc(front);
+	if (debugging("trace"))
+	    (void) printf("Leaving g_cartesian.initMesh()\n");
 }
 
 void G_CARTESIAN::setComponent(void)
@@ -1234,6 +1238,8 @@ void G_CARTESIAN::solve(double dt)
 	m_dt = dt;
 	max_speed = 0.0;
 
+	if (debugging("trace"))
+	    printf("Entering solve()\n");
 	start_clock("solve");
 	setDomain();
 
@@ -1260,6 +1266,8 @@ void G_CARTESIAN::solve(double dt)
 
 	setAdvectionDt();
 	stop_clock("solve");
+	if (debugging("trace"))
+	    printf("Leaving solve()\n");
 }	/* end solve */
 
 
@@ -1805,6 +1813,8 @@ void G_CARTESIAN::initMovieVariables()
 	int n;
 	MOVIE_OPTION *movie_option = eqn_params->movie_option;
 
+        if (debugging("trace"))
+            (void) printf("Entering initMovieVariable()\n");
 	if (hdf_movie_var == NULL)
 	{
 	    FT_ScalarMemoryAlloc((POINTER*)&hdf_movie_var,
@@ -2049,6 +2059,8 @@ void G_CARTESIAN::initMovieVariables()
 	    }
 	}
 	front->hdf_movie_var = hdf_movie_var;
+        if (debugging("trace"))
+            (void) printf("Leaving initMovieVariable()\n");
 }	/* end initMovieVariables */
 
 double G_CARTESIAN::getVorticityX(int i, int j, int k)

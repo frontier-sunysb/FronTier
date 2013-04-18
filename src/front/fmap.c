@@ -470,7 +470,11 @@ EXPORT	void FT_AddMovieFrame(
 	char *out_name,
 	boolean print_in_binary)
 {
+        if (debugging("trace"))
+            (void) printf("Entering FT_AddMovieFrame()\n");
 	show_front_output(front,out_name,print_in_binary);
+        if (debugging("trace"))
+            (void) printf("Leaving FT_AddMovieFrame()\n");
 }	/* end FT_AddMovieFrame */
 
 EXPORT	void FT_Save(

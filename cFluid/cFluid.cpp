@@ -1,12 +1,10 @@
-/*****************************************************************************
+/***********************************************************************
 FronTier is a set of libraries that implements differnt types of 
 Front Traking algorithms. Front Tracking is a numerical method for 
 the solution of partial differential equations whose solutions 
 have discontinuities.  
 
-
 Copyright (C) 1999 by The University at Stony Brook. 
- 
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -21,9 +19,7 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-******************************************************************************/
-
+************************************************************************/
 
 /*
 *				cFluid.c:
@@ -48,15 +44,6 @@ boolean RestartRun;
 boolean ReadFromInput;
 int RestartStep;
 boolean binary = NO;
-
-
-/********************************************************************
- *	Level function parameters for the initial interface 	    *
- ********************************************************************/
-
-/********************************************************************
- *	Velocity function parameters for the front	 	    *
- ********************************************************************/
 
 int main(int argc, char **argv)
 {
@@ -165,9 +152,6 @@ int main(int argc, char **argv)
 	if (debugging("trace"))
 	    printf("Passed FT_InitVeloFunc()\n");
 
-	if (debugging("trace"))
-	    printf("Passed g_cartesian.initMesh()\n");
-
 	g_cartesian.initMesh();
 	if (RestartRun)
 	{
@@ -204,11 +188,19 @@ static  void gas_driver(
 	{
 	    FT_ResetTime(front);
 
-	    if (debugging("trace"))
-		printf("Calling initial FT_Propagate()\n");
 	    FrontPreAdvance(front);
 	    FT_Propagate(front);
 	    g_cartesian.solve(front->dt);
+
+	    FT_Save(front,out_name);
+            g_cartesian.printFrontInteriorStates(out_name);
+            if (compare_with_base_data(front))
+            {
+                g_cartesian.compareWithBaseData(out_name);
+                g_cartesian.freeBaseFront();
+            }
+            g_cartesian.initMovieVariables();
+            FT_AddMovieFrame(front,out_name,binary);
 
 	    FT_SetTimeStep(front);
 	    front->dt = std::min(front->dt,CFL*g_cartesian.max_dt);
@@ -239,11 +231,9 @@ static  void gas_driver(
 	    FrontPreAdvance(front);
 	    FT_Propagate(front);
 
-	    if (debugging("trace")) printf("Begin calling solve()\n");
 	    g_cartesian.solve(front->dt);
 	    if (debugging("trace")) 
 	    {
-		printf("Passed solve()\n");
 		print_storage("Storage after time step","trace");
 	    }
 
@@ -277,11 +267,7 @@ static  void gas_driver(
 	    }
             if (FT_IsMovieFrameTime(front))
 	    {
-	    	if (debugging("trace")) 
-		    printf("Calling initMovieVariable()\n");
 	        g_cartesian.initMovieVariables();
-	    	if (debugging("trace")) 
-		    printf("Calling FT_AddMovieFrame()\n");
             	FT_AddMovieFrame(front,out_name,binary);
 	    }
 
@@ -294,11 +280,7 @@ static  void gas_driver(
 		}
 		if (!FT_IsMovieFrameTime(front))
 		{
-		    if (debugging("trace")) 
-                    	printf("Calling initMovieVariable()\n");
                     g_cartesian.initMovieVariables();
-                    if (debugging("trace"))
-                    	printf("Calling FT_AddMovieFrame()\n");
                     FT_AddMovieFrame(front,out_name,binary);
 		}
 		(void) printf("\ntime = %20.14f   step = %5d   ",
