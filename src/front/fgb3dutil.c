@@ -5600,10 +5600,28 @@ LOCAL boolean remove_unphy_pair(
 	if ((c1 == c2 && num_crx%2 != 0) ||
 	    (c1 != c2 && num_crx%2 == 0))
 	{
-	    (void) printf("In segment: (%d %d %d)-->(%d %d %d):\n",
-		ip[0],ip[1],ip[2],ip2[0],ip2[1],ip2[2]);
-	    (void) printf("c1 = %d c2 = %d  num_crx = %d\n",c1,c2,num_crx);
-	    clean_up(ERROR);
+	    if (((dir == EAST && ip1[0] == smax[0]) ||
+		(dir == NORTH && ip1[1] == smax[1]) ||
+		(dir == UPPER && ip1[2] == smax[2])) && c2 == NO_COMP)
+	    {
+		if (num_crx%2 == 0)
+		{
+	    	    ic2 = d_index(ip1,gmax,3);
+	    	    c2 = comp[ic2] = c1;
+		}
+		else
+		{
+		    (void) printf("In remove_unphy_pair(), odd end case\n");
+	    	    clean_up(ERROR);
+		}
+	    }
+	    else
+	    {
+	    	(void) printf("In segment: (%d %d %d)-->(%d %d %d):\n",
+			ip[0],ip[1],ip[2],ip2[0],ip2[1],ip2[2]);
+	    	(void) printf("c1 = %d c2 = %d  num_crx = %d\n",c1,c2,num_crx);
+	    	clean_up(ERROR);
+	    }
 	}
 
 	if (debugging("seg_comp"))
