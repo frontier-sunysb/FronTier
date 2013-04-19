@@ -18,6 +18,8 @@ PETSC_DIR=@PETSC_DIR@
 Petsc_Include=@PETSC_INCLUDE@ 
 Petsc_Lib=@PETSC_LIB@ 
 
+USEGPU = @USEGPU@
+
 parachute : @devel@ ../lib/libiF.a
 
 iFbasic.o  : ../iFluid/iFluid.h ../iFluid/iFbasic.cpp
@@ -54,10 +56,19 @@ parachute.o : ../airfoil/airfoil.h ../iFluid/iFluid.h parachute.cpp
 	${CXX} -c parachute.cpp $(incsloc) $(incs) ${Petsc_Include}
 modules.o : ../airfoil/airfoil.h ../iFluid/iFluid.h modules.cpp
 	${CXX} -c modules.cpp $(incsloc) $(incs) ${Petsc_Include}
+airfoil_gpu.o: ../airfoil/airfoil_gpu.cu ../airfoil/airfoil_gpu.cuh
+	nvcc -arch sm_20 -c -I. -I../include ../airfoil/airfoil_gpu.cu
 
+ifeq ($(USEGPU),no)
 parachute: ../iFluid/iFluid.h ../solver/solver.h ../airfoil/airfoil.h parachute.cpp afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o ../lib/libiF.a
 	${CXX} -c parachute.cpp $(incsloc) $(incs) ${Petsc_Include}
 	$(CXX) -o parachute parachute.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
+else
+parachute: ../iFluid/iFluid.h ../solver/solver.h ../airfoil/airfoil.h parachute.cpp afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o ../lib/libiF.a airfoil_gpu.o
+	${CXX} -c parachute.cpp $(incsloc) $(incs) ${Petsc_Include}
+	$(CXX) -o parachute parachute.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o airfoil_gpu.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so
+endif
+
 
 ../lib/libiF.a: solver.o cim_ellip.o dual_ellip.o ellip.o hyperb.o iFbasic.o iFcartsn2d.o iFcartsn3d.o
 	$(AR) cru libiF.a $^

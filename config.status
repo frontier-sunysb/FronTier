@@ -427,7 +427,7 @@ Copyright (C) 2012 Free Software Foundation, Inc.
 This config.status script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it."
 
-ac_pwd='/home/linli/xgroup/FronTier++'
+ac_pwd='/export/home/linli/xgroup/FronTier++'
 srcdir='.'
 INSTALL='/usr/bin/install -c'
 AWK='gawk'

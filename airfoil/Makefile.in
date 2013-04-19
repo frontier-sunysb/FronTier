@@ -58,7 +58,7 @@ afcnpy.o : airfoil.h ../iFluid/iFluid.h afcnpy.cpp
 	${CXX} -c afcnpy.cpp $(incsloc) $(incs) ${Petsc_Include}
 airfoil.o: airfoil.h airfoil.cpp
 	${CXX} -c airfoil.cpp $(incsloc) $(incs) ${Petsc_Include}
-airfoil_gpu.o: airfoil_gpu.cu
+airfoil_gpu.o: airfoil_gpu.cu airfoil_gpu.cuh
 	nvcc -arch sm_20 -c -I. -I../include airfoil_gpu.cu
 
 ifeq ($(USEGPU),no)
