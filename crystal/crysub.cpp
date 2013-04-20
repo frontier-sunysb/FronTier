@@ -371,13 +371,6 @@ static  void reaction_point_propagate(
             FT_RecordMaxFrontSpeed(i,fabs(vel[i]),NULL,Coords(newp),front);
         }
 	FT_RecordMaxFrontSpeed(dim,sqrt(nor_speed),NULL,Coords(newp),front);
-	if (the_point(oldp))
-	{
-	    printf("oldp = %f %f %f\n",Coords(oldp)[0],Coords(oldp)[1],
-					Coords(oldp)[2]);
-	    printf("newp = %f %f %f\n",Coords(newp)[0],Coords(newp)[1],
-					Coords(newp)[2]);
-	}
 }       /* reaction_point_propagate */
 
 static 	void euler_forward_scheme(

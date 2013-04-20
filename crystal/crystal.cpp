@@ -1,8 +1,9 @@
 
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/************************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -22,33 +23,18 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-******************************************************************************/
-
+************************************************************************/
 
 /*
 *				crystal.c:
 *
-*		User initialization example for Front Package:
-*
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
-*
-*	This is example of three circles all moving the a normal velocity.
-*	Bifurcation occurs when they meet each other. FronTier solves
-*	the bifurcation automatically.
 *
 */
 
 #include "crystal.h"
 #include "crystal_basic.h"
 
-/********************************************************************
- *	Level function parameters for the initial interface 	    *
- ********************************************************************/
-
-
-/********************************************************************
- *	Velocity function parameters for the front	 	    *
- ********************************************************************/
 #define		MAX_NUM_VERTEX_IN_CELL		20
 
 	/*  Local Application Function Declarations */
@@ -111,8 +97,6 @@ int main(int argc, char **argv)
 
 	FT_StartUp(&front,&f_basic);
 	FT_InitDebug(in_name);
-	printf("front.interf->modified = %d\n",front.interf->modified);
-
 
 	cRparams.dim = f_basic.dim;
 	read_crt_movie_options(in_name,&cRparams);
@@ -122,8 +106,6 @@ int main(int argc, char **argv)
 	{
 	    /* Initialize interface through level function */
 	    setInitialIntfc(&front,&level_func_pack,in_name);
-
-	    if (debugging("trace")) printf("Passed setting intfc params()\n");
 	    FT_InitIntfc(&front,&level_func_pack);
 	}
 	if (debugging("trace")) printf("Passed FT_InitIntfc()\n");
@@ -159,18 +141,8 @@ int main(int argc, char **argv)
 	velo_func_pack.func = NULL;
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
-	if (debugging("trace")) printf("Passed FT_InitVeloFunc()\n");
 
-	if (debugging("trace")) printf("Before Crystal initMesh()\n");
         c_cartesian.initMesh();
-	if (debugging("trace")) printf("Passed Crystal initMesh()\n");
-
-        /* For geometry-dependent velocity, use first
-        * order point propagation function, higher order
-        * propagation requires surface propagate, currently
-        * in writing, not yet in use. The following override
-        * the assigned fourth_order_point_propagate.
-        */
 
         front._point_propagate = crystal_point_propagate;
 
@@ -181,9 +153,7 @@ int main(int argc, char **argv)
 	else
 	{
 	    initFrontStates(&front);
-	    if (debugging("trace")) printf("Passed initFrontStates()\n");
 	    c_cartesian.setInitialCondition();
-	    if (debugging("trace")) printf("Passed setInitialCondition()\n");
 	}
 	cRparams.field->vel = NULL;
 
@@ -303,8 +273,6 @@ static  void solute_main_driver(
 
         for (;;)
         {
-	    if (debugging("trace"))
-		printf("Before FT_Propagate()\n");
 	    if (debugging("sample"))
 	    {
 		cRparams->max_solute = -HUGE;	
@@ -312,21 +280,17 @@ static  void solute_main_driver(
 	    }
 
 	    FT_Propagate(front);
-	    if (debugging("trace")) printf("Passed FT_Propagate()\n");
 
 	    if (debugging("sample"))
 	    {
 		printf("Front: max_solute = %f  min_solute = %f\n",
 			cRparams->max_solute,cRparams->min_solute);
 	    }
-	    if (debugging("trace")) printf("Calling Cystal solve()\n");
 	    c_cartesian.solve(front->dt);
-	    if (debugging("trace")) printf("Passed Cystal solve()\n");
 
 	    if (debugging("trace"))
 	    {
-		printf("After solve()\n");
-		print_storage("at end of time step","trace");
+		print_storage("At end of time step","trace");
 	    }
 
 	    FT_AddTimeStepToCounter(front);
@@ -351,8 +315,6 @@ static  void solute_main_driver(
 		if (debugging("trace")) printf("Passed Crystal "
                                 "printFrontInteriorStates()\n");
 	    }
-	    if (debugging("trace"))
-		printf("After print output()\n");
             if (FT_IsMovieFrameTime(front))
 	    {
 		// Front standard output
@@ -363,8 +325,6 @@ static  void solute_main_driver(
 		if (dim == 1)
 	    	    c_cartesian.oneDimPlot(out_name);
 	    }
-	    if (debugging("trace"))
-		printf("After make movie frame()\n");
 	    if (dim == 1)
 	    {
 	    	bdry_reached = NO;

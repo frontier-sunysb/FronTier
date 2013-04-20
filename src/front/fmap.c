@@ -481,7 +481,11 @@ EXPORT	void FT_Save(
 	Front *front,
 	char *out_name)
 {
+        if (debugging("trace"))
+            (void) printf("Entering FT_Save()\n");
 	print_front_output(front,out_name);
+        if (debugging("trace"))
+            (void) printf("Leaving FT_Save()\n");
 }	/* end FT_Save */
 
 EXPORT	void FrontFreeAll(
@@ -2838,6 +2842,7 @@ EXPORT void FT_RecordMaxFrontSpeed(
 	double *coords,
 	Front *front)
 {
+	/* Calling f_set_max_front_speed() */
 	set_max_front_speed(dir,speed,state,coords,front);
 }	/* end FT_RecordMaxFrontSpeed */
 

@@ -156,6 +156,8 @@ void C_CARTESIAN::setInitialCondition(void)
 	double h;
 	int range;
 
+	if (debugging("trace")) 
+	    (void) printf("Entering setInitialCondition() for crystal\n");
 	/* Initialize states at the interface */
 	FT_MakeGridIntfc(front);
 	setDomain();
@@ -221,6 +223,8 @@ void C_CARTESIAN::setInitialCondition(void)
 	    else
 	    	field->solute[i] = 0.0;
 	}
+	if (debugging("trace")) 
+	    (void) printf("Leaving setInitialCondition() for crystal\n");
 }	/* end setInitialCondition */
 
 void C_CARTESIAN::setIndexMap(void)
@@ -683,7 +687,7 @@ void C_CARTESIAN::computeAdvectionImplicit(void)
 void C_CARTESIAN::solve(double dt)
 {
 
-	if (debugging("trace")) printf("Entering solve()\n");
+	if (debugging("trace")) printf("Entering crystal solve()\n");
 	m_dt = dt;
 	start_clock("solve");
 
@@ -706,7 +710,7 @@ void C_CARTESIAN::solve(double dt)
 	if (debugging("trace")) printf("Passing setBoundary()\n");
 
 	stop_clock("solve");
-	if (debugging("trace")) printf("Leaving solve()\n");
+	if (debugging("trace")) printf("Leaving crystal solve()\n");
 }
 
 
@@ -725,6 +729,7 @@ void C_CARTESIAN::setAdvectionDt()
 
 	if (cRparams->point_prop_scheme == EXPLICIT_EULER)
             max_dt = std::min(max_dt,0.25*hmin/k);
+	pp_global_min(&max_dt,1);
 
 	if (debugging("trace"))
 	{
@@ -1751,7 +1756,6 @@ void C_CARTESIAN::vtk_plot_concentration2d(
 	    if (rho_s <= 0.6)
 		count++;
 	}
-	printf("The porosity is %f\n", (double)count/num_cells);
 
 	fclose(outfile);
 }       /* end vtk_plot_concentration2d */   

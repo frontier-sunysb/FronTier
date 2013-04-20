@@ -764,6 +764,8 @@ EXPORT void FT_InitVeloFunc(
 
 	/* Initialize front velocity field */
 
+	if (debugging("trace")) 
+	    (void) printf("Entering FT_InitVeloFunc()\n");
 	if (velo_func_pack == NULL)
 	{
 	    screen("\n\t\tSpecifying Velocity Field\n\n");
@@ -871,5 +873,7 @@ EXPORT void FT_InitVeloFunc(
 	    else
 	    	front->_point_propagate = first_order_point_propagate;
 	}
+	if (debugging("trace")) 
+	    (void) printf("Leaving FT_InitVeloFunc()\n");
 }	/* end FT_InitVeloFunc_function */
 

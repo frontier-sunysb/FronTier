@@ -529,14 +529,11 @@ EXPORT	double	f_max_front_time_step(
 	if (debugging("time_step") || debugging("step_size"))
 	{
 	    (void) printf("In f_max_front_time_step()\n");
-	    for (i = 0; i < dim; ++i)
+	    for (i = 0; i <= dim; ++i)
 	    {
 	        (void) printf("front: spfr[%d] %g dt[%d]  %g dx[%d] %g\n",
 	                      i,spfr[i],i,dt[i],i,h[i]);
-	        (void) printf("front - max_dt = %g\n",max_dt);
 	    }
-	    (void) printf("front: spfr[%d] %g dt[%d]  %g\n",
-	                  i,spfr[i],i,dt[i]);
 	    (void) printf("front - max_dt = %g\n",max_dt);
 	    print_general_vector("coords = ",coords,dim,"\n");
 	}
@@ -687,12 +684,23 @@ EXPORT	void	f_set_max_front_speed(
 	if (fabs(spd) > Spfr(fr)[i])
 	{
 	    int	j, dim = fr->rect_grid->dim;
-	    Spfr(fr)[i] = fabs(spd);
+	    double *L,*U,*h;
+	    L = fr->rect_grid->L;
+	    U = fr->rect_grid->U;
+	    h = fr->rect_grid->h;
+
 	    if (coords != NULL)
 	    {
 	    	for (j = 0; j < dim; ++j)
+		{
+		    if (coords[j] < L[j] - h[j] ||
+			coords[j] > U[j] + h[j])
+			return;		/* sufficiently outside domain */
 	    	    MaxFrontSpeedCoords(fr)[i][j] = coords[j];
+		 
+		}
 	    }
+	    Spfr(fr)[i] = fabs(spd);
 	    if (state != NULL)
 	    	ft_assign(MaxFrontSpeedState(fr)[i],state,fr->sizest);
 	}
