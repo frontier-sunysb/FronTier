@@ -5332,14 +5332,16 @@ LOCAL boolean remove_unphy_pair(
 	    else
 		comp[ic1] = c1 = c2;
 	}
-	if ((c1 == c2 && num_crx%2 != 0) ||
-	    (c1 != c2 && num_crx%2 == 0))
+	if ((c1 == c2 && num_crx%2 != 0) || (c1 != c2 && num_crx%2 == 0))
 	{
-	    (void) printf("In segment: (%d %d %d)-->(%d %d %d):\n",
+	    if (c1 != T->ext_comp && c2 != T->ext_comp)
+	    {
+	    	(void) printf("In segment: (%d %d %d)-->(%d %d %d):\n",
 			ip[0],ip[1],ip[2],ip2[0],ip2[1],ip2[2]);
-	    (void) printf("c1 = %d c2 = %d  num_crx = %d\n",c1,c2,num_crx);
-	    print_comp_along_grid_line(ip1,ip2,dir,T,gmax,smin,smax);
-	    clean_up(ERROR);
+	    	(void) printf("c1 = %d c2 = %d  num_crx = %d\n",c1,c2,num_crx);
+	    	print_comp_along_grid_line(ip1,ip2,dir,T,gmax,smin,smax);
+	    	clean_up(ERROR);
+	    }
 	}
 
 	if (debugging("seg_comp"))
