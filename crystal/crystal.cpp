@@ -108,10 +108,11 @@ int main(int argc, char **argv)
 	    setInitialIntfc(&front,&level_func_pack,in_name);
 	    FT_InitIntfc(&front,&level_func_pack);
 	}
-	if (debugging("trace")) printf("Passed FT_InitIntfc()\n");
+	else
+	    read_restart_params(f_basic.dim,in_name,&front);
+
 	read_crt_dirichlet_bdry_data(in_name,&front,f_basic);
-	if (debugging("trace")) 
-	    printf("Passed read_crt_dirichlet_bdry_data()\n");
+
 	if (f_basic.dim == 2)
 	    FT_ClipIntfcToSubdomain(&front);
 	if (debugging("trace"))
@@ -143,6 +144,8 @@ int main(int argc, char **argv)
 	FT_InitVeloFunc(&front,&velo_func_pack);
 
         c_cartesian.initMesh();
+	if (debugging("sample_solute"))
+            c_cartesian.initSampleSolute(in_name);
 
         front._point_propagate = crystal_point_propagate;
 
@@ -256,6 +259,7 @@ static  void solute_main_driver(
 	    FT_SetTimeStep(front);
 	    c_cartesian.setAdvectionDt();
 	    front->dt = std::min(front->dt,CFL*c_cartesian.max_dt);
+            FT_Save(front,out_name);
 
 	    if (dim == 1)
 	    	c_cartesian.oneDimPlot(out_name);

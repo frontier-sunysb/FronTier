@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations
-whose solutions have discontinuities.
+/*************************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions 
+have discontinuities.
 
 
 Copyright (C) 1999 by The University at Stony Brook.
@@ -21,7 +22,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-******************************************************************************/
+**************************************************************************/
 
 
 /*
@@ -96,7 +97,6 @@ LOCAL	void	 fill_block_crx(int,int,int,BLK_CRX*,int*,
 			       GRID_DIRECTION,INTERFACE*);
 LOCAL	void	 fill_block_curve_crx(int,int,BLK_CRX*,int*,
 			       GRID_DIRECTION,INTERFACE*);
-LOCAL	void	 prt_block_crx(INTERFACE *);
 LOCAL   boolean     is_crx(int*,int*,int,int,int);
 LOCAL   void     install_curve_points_state(INTERFACE *);
 LOCAL   boolean     install_btri_states_from_crx(INTERFACE*,BOND_TRI*,CRXING*,
@@ -171,6 +171,17 @@ EXPORT 	boolean reconstruct_intfc3d_in_box_lgb(
 
 	DEBUG_ENTER(reconstruct_intfc3d_in_box_lgb)
 
+	/* Save sample to debug comp/crx along a grid line 
+	{
+	    int ip1[MAXD],ip2[MAXD];
+	    printf("In reconstruct_intfc3d_in_box_lgb()\n");
+	    ip1[0] = ip2[0] = 23;
+	    ip1[2] = ip2[2] = 92;
+	    ip1[1] = smin[1];
+	    ip2[1] = smax[1];
+	    print_comp_along_grid_line(ip1,ip2,NORTH,T,gmax,smin,smax);
+	}
+	*/
 	blk_info.num_surfs = 0;
         for (i = 0, s = intfc->surfaces; s && *s; ++i, ++s)
             ++blk_info.num_surfs;
@@ -741,10 +752,6 @@ EXPORT 	boolean reconstruct_intfc3d_in_box(
                             clean_up(ERROR);
                         }
 
-			if(debugging("print_blk"))
-                            printf("block ix,iy,iz =[%d,%d,%d], before stich_adj_blk %d %d %d\n",
-                                      ix,iy,iz, ixx, iyy, izz);
-
 			if (blk_info.do_volume_frac)
 			{
 			    area[ix][iy][iz] = bm->area;
@@ -968,8 +975,6 @@ LOCAL   void     install_curve_points_state(
 		}
 	    }
         }
-
-        /*remove_from_debug("install_c_st"); */
 }       /* end install_curve_points_state */
 
 EXPORT	SURFACE  * find_surf_with_comp(
@@ -1110,31 +1115,6 @@ int i, j, k, c;
 	return NO;
 }
 
-
-LOCAL	void prt_block_crx(
-	INTERFACE       *intfc)
-{
-	Table *T = table_of_interface(intfc);
-	RECT_GRID *gr = &topological_grid(intfc);
-	int *gmax = gr->gmax;
-	int l,nc,list;
-	CRXING *crx;
-	SURFACE   *s;
-
-	if(pp_mynode()!=1)
-	    return;
-        
-	list = T->seg_crx_lists[4379][0];
-	crx = &T->crx_store[list];
-	s = Surface_of_hs(crx->hs);
-
-	/*if(ip[0] == 11 && ip[1] == 12 && ip[2] == 20 && dir == 1) */
-	    printf("#block_crxp %p %p %p %p\n", crx->hs, s, Hyper_surf(s), crx);
-
-}	/* end fill_block_crx */
-
-
-
 LOCAL	void fill_block_crx(
 	int            i,
 	int            j,
@@ -1158,17 +1138,13 @@ LOCAL	void fill_block_crx(
 	    list = T->seg_crx_lists[l][0];
 	    crx = &T->crx_store[list];
 	    blk_crx->crx[i][j][k]->s = Surface_of_hs(crx->hs);
-	    
-	    /*if(ip[0] == 11 && ip[1] == 12 && ip[2] == 20 && dir == 1) */
-	    /*    print_wall_crx("fill_blk_crx",ip,dir,l,crx); */
-	    
 	    blk_crx->crx[i][j][k]->p = crx->pt;
 	}
 	else
 	{
-	    printf("ERROR fill_block_crx, can not find crx %d  %d %d\n", i, j, k);
-	    print_int_vector("ip=",ip,3,"  ");
-	    printf("dir = %d\n", dir);
+	    printf("ERROR fill_block_crx, can not find crx %d %d %d\n",i,j,k);
+	    print_int_vector("ip = ",ip,3,"  ");
+	    printf("dir = %s\n", grid_direction_name(dir));
 	    clean_up(ERROR);
 	}
 }	/* end fill_block_crx */
@@ -1195,9 +1171,6 @@ LOCAL   void fill_block_curve_crx(
             list = T->curve_crx_lists[l][0];
             crx = &T->curve_crx_store[list];
 	    
-	    /*if(ip[0] == 11 && ip[1] == 12 && ip[2] == 20 && dir == 1) */
-	    /*    print_wall_curve_crx("fill_blk_c_crx",ip,dir,l,crx); */
-	
             blk_crx->curve_crx[i][j]->c = Curve_of_hsb(crx->hsb);
             blk_crx->curve_crx[i][j]->p = crx->pt;
         }
@@ -1250,17 +1223,6 @@ EXPORT 	boolean track_comp_through_crxings3d(
 	}
 	stop_clock("remove_unphysical_crxings");
 	
-	/* check and repair crossings */
-	/* Removed, not helpful, expensive
-	start_clock("check_and_repair_crx");
-	if (!check_and_repair_crx(intfc,smin,smax))
-	{
-	    DEBUG_LEAVE(track_comp_through_crxings3d)
-	    return FUNCTION_FAILED;
-	}
-	stop_clock("check_and_repair_crx");
-	*/
-
 	DEBUG_LEAVE(track_comp_through_crxings3d)
 	return FUNCTION_SUCCEEDED;
 
@@ -1483,10 +1445,6 @@ EXPORT	void fill_physical_comps(
 	    show_grid_components(smin,smax,2,intfc);
 	}
 
-	/* Removed, not helpful, expensive
-	status = check_and_unset_bad_comp(smin,smax,intfc);
-	*/
-
 	if (status == YES)
 	{
 	    if (debugging("crx_intfc"))
@@ -1561,10 +1519,6 @@ EXPORT	void fill_physical_comps(
 	    show_grid_components(smin,smax,2,intfc);
 	}
 
-	/* Removed, not helpful, expensive
-	status = check_and_unset_bad_comp(smin,smax,intfc);
-	*/
-	
 	if(debugging("show_3c_comp"))
 	{
  	    printf("#inside comp y af\n");
@@ -1638,231 +1592,8 @@ EXPORT	void fill_physical_comps(
 		}
 	    }
 	}
-	return;
-	/*The rest of the function is removed, not helpful
-	  and expensive */
-	
-	if(debugging("show_3c_comp"))
-	{
- 	    printf("#inside comp z af\n");
-	    show_grid_components(smin,smax,2,intfc);
-	}
-	
-	status = check_and_unset_bad_comp(smin,smax,intfc);
-	
-	if (status == YES)
-	{
-	    if (debugging("crx_intfc"))
-	    {
-	        printf("After third check: status = %d\n",status);
-	        show_grid_components(smin,smax,2,intfc);
-	    }
-	    DEBUG_LEAVE(fill_physical_comps)
-	    return;
-        }
-
-        for (ip[2] = smin[2]; ip[2] <= smax[2]; ++ip[2])
-	{
-	    for (ip[1] = smin[1]; ip[1] <= smax[1]; ++ip[1])
-	    {
-	        for (ip[0] = smin[0]; ip[0] <= smax[0]; ++ip[0])
-		{
-		    if (comp[d_index3d(ip[0],ip[1],ip[2],gmax)] == NO_COMP)
-		    {
-		        if(ip[0] == smin[0] || ip[0] == smax[0])
-				continue;
-
-		        k = seg_index3d(ip[0],ip[1],ip[2],WEST,gmax);
-			if(use_wall_edge()  &&  ef[k] != INSIDE_WALL)
-			    continue;
-			nc = T->seg_crx_count[k];
-			if (nc == 0)
-			{
-			    k = seg_index3d(ip[0],ip[1],ip[2],EAST,gmax);
-			    if(use_wall_edge()  &&  ef[k] != INSIDE_WALL)
-			        continue;
-			    nc = T->seg_crx_count[k];
-			    if (nc == 0)
-			        continue;
-			    list = T->seg_crx_lists[k][0];
-			    crx = T->crx_store+list;
-			    comp[d_index3d(ip[0],ip[1],ip[2],gmax)]
-			                        = crx->lcomp;
-			}
-			else
-			{
-			    list = T->seg_crx_lists[k][nc-1];
-			    crx = T->crx_store+list;
-			    comp[d_index3d(ip[0],ip[1],ip[2],gmax)]
-			                        = crx->ucomp;
-			}
-		    }
-
-		    if (ip[0] != 0)
-		    {
-		        cn = comp[d_index3d(ip[0]-1,ip[1],ip[2],gmax)];
-			if (cn == NO_COMP)
-			    step = walk_comp_along_grid_line(intfc,smin,smax,
-			                                     gmax,ip,WEST);
-		    }
-		    if (ip[0] != smax[0])
-		    {
-		        cn = comp[d_index3d(ip[0]+1,ip[1],ip[2],gmax)];
-			if (cn == NO_COMP)
-			{
-			    step = walk_comp_along_grid_line(intfc,smin,smax,
-			                                     gmax,ip,EAST);
-			    ip[0] += step;
-			}
-		    }
-		}
-	    }
-	}
-	status = check_and_unset_bad_comp(smin,smax,intfc);
-	
-	if(debugging("show_3c_comp"))
-	{
- 	    printf("#inside comp x1 af\n");
-	    show_grid_components(smin,smax,2,intfc);
-	}
-	
-	if (status == YES)
-	{
-	    DEBUG_LEAVE(fill_physical_comps)
-	    return;
-	}
-	for (ip[2] = smin[2]; ip[2] <= smax[2]; ++ip[2])
-	{
-	    for (ip[0] = smin[0]; ip[0] <= smax[0]; ++ip[0])
-            {
-	        for (ip[1] = smin[1]; ip[1] <= smax[1]; ++ip[1])
-		{
-		    if (comp[d_index3d(ip[0],ip[1],ip[2],gmax)] == NO_COMP)
-		    {
-		 	if(ip[1] == smin[1] || ip[1] == smax[1])
-				continue;
-
-		        k = seg_index3d(ip[0],ip[1],ip[2],SOUTH,gmax);
-			if(use_wall_edge()  &&  ef[k] != INSIDE_WALL)
-			    continue;
-			nc = T->seg_crx_count[k];
-			if (nc == 0)
-			{
-			    k = seg_index3d(ip[0],ip[1],ip[2],NORTH,gmax);
-			    if(use_wall_edge()  &&  ef[k] != INSIDE_WALL)
-			        continue;
-			    nc = T->seg_crx_count[k];
-			    if (nc == 0)
-			        continue;
-			    list = T->seg_crx_lists[k][0];
-			    crx = T->crx_store+list;
-			    comp[d_index3d(ip[0],ip[1],ip[2],gmax)]
-			                        = crx->lcomp;
-			}
-			else
-			{
-			    list = T->seg_crx_lists[k][nc-1];
-			    crx = T->crx_store+list;
-			    comp[d_index3d(ip[0],ip[1],ip[2],gmax)]
-			                        = crx->ucomp;
-			}
-		    }
-
-		    if (ip[1] != 0)
-		    {
-		        cn = comp[d_index3d(ip[0],ip[1]-1,ip[2],gmax)];
-			if (cn == NO_COMP)
-			    step = walk_comp_along_grid_line(intfc,smin,smax,
-			                                     gmax,ip,SOUTH);
-		    }
-		    if (ip[1] != smax[1])
-		    {
-		        cn = comp[d_index3d(ip[0],ip[1]+1,ip[2],gmax)];
-			if (cn == NO_COMP)
-			{
-			    step = walk_comp_along_grid_line(intfc,smin,smax,
-			                                     gmax,ip,NORTH);
-			    ip[1] += step;
-			}
-		    }
-		}
-	    }
-	}
-	status = check_and_unset_bad_comp(smin,smax,intfc);
-	
-	if(debugging("show_3c_comp"))
-	{
- 	    printf("#inside comp y1 af\n");
-	    show_grid_components(smin,smax,2,intfc);
-	}
-
-	if (status == YES)
-	{
-	    DEBUG_LEAVE(fill_physical_comps)
-	    return;
-        }
-	for (ip[1] = smin[1]; ip[1] <= smax[1]; ++ip[1])
-	{
-	    for (ip[0] = smin[0]; ip[0] <= smax[0]; ++ip[0])
-	    {
-	        for (ip[2] = smin[2]; ip[2] <= smax[2]; ++ip[2])
-		{
-		    if (comp[d_index3d(ip[0],ip[1],ip[2],gmax)] == NO_COMP)
-		    {
-		 	if(ip[2] == smin[2] || ip[2] == smax[2])
-				continue;
-
-		         k = seg_index3d(ip[0],ip[1],ip[2],LOWER,gmax);
-			 if(use_wall_edge()  &&  ef[k] != INSIDE_WALL)
-			     continue;
-			 nc = T->seg_crx_count[k];
-			 if (nc == 0)
-		         {
-			     k = seg_index3d(ip[0],ip[1],ip[2],UPPER,gmax);
-			     if(use_wall_edge()  &&  ef[k] != INSIDE_WALL)
-			         continue;
-			     nc = T->seg_crx_count[k];
-			     if (nc == 0)
-			         continue;
-			     list = T->seg_crx_lists[k][0];
-                             crx = T->crx_store+list;
-			     comp[d_index3d(ip[0],ip[1],ip[2],gmax)]
-			                         = crx->ucomp;
-			 }
-		    }
-
-		    if (ip[2] != 0)
-		    {
-		        cn = comp[d_index3d(ip[0],ip[1],ip[2]-1,gmax)];
-			if (cn == NO_COMP)
-			    step = walk_comp_along_grid_line(intfc,smin,smax,
-			                                     gmax,ip,LOWER);
-		    }
-
-		    if (ip[2] != smax[2])
-		    {
-		        cn = comp[d_index3d(ip[0],ip[1],ip[2]+1,gmax)];
-			if (cn == NO_COMP)
-			{
-			    step = walk_comp_along_grid_line(intfc,smin,smax,
-			                                     gmax,ip,UPPER);
-			    ip[2] += step;
-			}
-		    }
-		}
-	    }	    
-	}
-       	
-        status = check_and_unset_bad_comp(smin,smax,intfc);
- 	
-	if(debugging("tst_comp3d1"))
-	{
- 	    printf("#inside comp z1 af\n");
-	    show_grid_components(smin,smax,2,intfc);
-	}
-	
 	DEBUG_LEAVE(fill_physical_comps)
-	
+	return;
 }	/* end fill_physical_comps */
 
 EXPORT	void  fill_comp_with_component3d(
@@ -1960,9 +1691,6 @@ EXPORT	int record_unphysical_ips(
 	return num_ip;
 }	/* end record_unphysical_ips */
 
-
-void show_line_components3d(int*, int*, int, INTERFACE*);
-
 EXPORT	void remove_unphysical_crxings(
         int      *smin,
         int      *smax,
@@ -1995,22 +1723,24 @@ EXPORT	void remove_unphysical_crxings(
 		    
 		    if(debugging("rm_crx"))
 		    {
-			show_line_components3d(smin, smax, 2, intfc);
+			show_line_components3d(ip,smin,smax,2,intfc);
 			remove_from_debug("rm_crx");
 		    }
 
+		    rm_unphy_crx_along_grid_line(intfc,smin,smax,
+					             gmax,ip,LOWER,crx_type);
 		    step = rm_unphy_crx_along_grid_line(intfc,smin,smax,
 					             gmax,ip,UPPER,crx_type);
 		    iz += step;
 		    if(debugging("rm_crx"))
-			show_line_components3d(smin, smax, 2, intfc);
+			show_line_components3d(ip,smin,smax,2,intfc);
 		}
 		remove_from_debug("rm_crx");
 	    }
 	}
 	
 	if(debugging("rm_crx"))
-	    show_grid_components(smin, smax, 2, intfc);
+	    show_grid_components(smin,smax,2,intfc);
 
 	unset_comp_along_grid_line(intfc,smin,smax,gmax,1);
 	for (iz = smin[2]; iz <= smax[2]; ++iz)
@@ -2026,6 +1756,8 @@ EXPORT	void remove_unphysical_crxings(
 		    if (c == NO_COMP)
 			continue;
 
+		    rm_unphy_crx_along_grid_line(intfc,smin,smax,
+					             gmax,ip,SOUTH,crx_type);
 		    step = rm_unphy_crx_along_grid_line(intfc,smin,smax,
 					             gmax,ip,NORTH,crx_type);
 		    iy += step;
@@ -2034,7 +1766,7 @@ EXPORT	void remove_unphysical_crxings(
 	}
 
 	if(debugging("rm_crx"))
-	    show_grid_components(smin, smax, 2, intfc);
+	    show_grid_components(smin,smax,2,intfc);
 
 
 	unset_comp_along_grid_line(intfc,smin,smax,gmax,0);
@@ -2050,6 +1782,8 @@ EXPORT	void remove_unphysical_crxings(
 	            c = comp[d_index3d(ix,iy,iz,gmax)];
 		    if (c == NO_COMP)
 			continue;
+		    rm_unphy_crx_along_grid_line(intfc,smin,smax,
+					             gmax,ip,WEST,crx_type);
 		    step = rm_unphy_crx_along_grid_line(intfc,smin,smax,
 					             gmax,ip,EAST,crx_type);
 		    ix += step;
@@ -2364,9 +2098,6 @@ LOCAL int fill_missing_crx(
 			   su,NULL,&hs);
 	}
 
-	/*printf("#af nearest intfc.\n"); */
-	/*remove_from_debug("line_tri"); */
-
 	printf("num_crx_fill %d dir = %d\n", num_crx_fill, dir);
 	print_int_vector("ip", ip, 3, "\n");
 
@@ -2380,8 +2111,6 @@ LOCAL int fill_missing_crx(
 			T->n_crx + num_crx_fill]);
 	T->seg_crx_lists[l][0] = T->n_crx + num_crx_fill;
 	
-	/*printf("#seg finish.\n"); */
-
 	/* ip is the edge of the top grid, comp3d is the center of the top grid. */
 	/*0 <= ip <= gmax */
 	if (dir == EAST)
@@ -2528,25 +2257,17 @@ EXPORT	void adjust_crossings(
 	                k = seg_index3d(ix,iy,iz,dir[i],gmax);
 	                nc = T->seg_crx_count[k];
 
-			/*if(dir[i] != UPPER) */
-			/*    continue; */
-			if( (ip[0] == 11 && ip[1] == 19 && ip[2] == 24 && pp_mynode() == 9) ||
-			    (ip[0] == 5 && ip[1] == 8 && ip[2] == 2 && pp_mynode() == 13) )
-			/*if (nc != 0  && ix == 15 && iy == 18 && iz == 13 && dir[i] ==UPPER) */
+			if((ip[0] == 11 && ip[1] == 19 && ip[2] == 24 
+			    && pp_mynode() == 9) ||
+			    (ip[0] == 5 && ip[1] == 8 && ip[2] == 2 
+			    && pp_mynode() == 13) )
 			{
 			    print_int_vector("#ip found", ip, 3, "\n");
 			    
-			    /*d0 = d_index3d(ix,iy,iz,gmax); */
-			    /*d1 = d_index3d(ix,iy+1,iz,gmax); */
-			    /*if(debugging("tst_edge")) */
-			    /*    printf("i = %d  nc = %d  ef = %d  comp = %d  %d\n",i, nc, T->edge_flag[k], comp[d0], comp[d1]); */
-
 			    for(j=0; j<nc; j++)
 			    {
 			        list1 = T->seg_crx_lists[k][j];
 	                        crx1 = T->crx_store+list1;
-	                        /*grid_crds = L[i] + ip[i]*h[i]; */
-	                        /*adjust_for_min_spacing(crx1,grid_crds,h,nc,i); */
 	                        print_wall_crx("fc ", ip, dir[i], k, crx1);
 			    }
 			} 
@@ -2794,33 +2515,6 @@ LOCAL	boolean check_comp_at(
 		    }
 	            return NO;
 	        }
-		/*
-	        if (crx->ucomp == crx->lcomp)
-	        {
-		    if (vocal)
-		    {
-	            	(void) printf("WARNING in check_comp_at(), "
-	                          "lower component of cross equal "
-	                          "to upper component\n");
-		    	rect_grid_corner(&gr,ip,fp);
-	            	(void) printf("  ip  = ( %7d %7d %7d ) comp = %2d  ",
-			      ip[0],ip[1],ip[2],
-			      comp[d_index3d(ip[0],ip[1],ip[2],gmax)]);
-		    	(void) printf("fp  = ( %g %g %g )\n",
-			      fp[0],fp[1],fp[2]);
-		    	rect_grid_corner(&gr,ipn,fp);
-	            	(void) printf("  ipn = ( %7d %7d %7d ) comp = %2d  ",
-			      ipn[0],ipn[1],ipn[2],
-			      comp[d_index3d(ipn[0],ipn[1],ipn[2],gmax)]);
-		    	(void) printf("fpn = ( %g %g %g )\n",
-			      fp[0],fp[1],fp[2]);
-	            	(void) printf("  Number of crossings = %d\n\n",nc);
-			(void) printf("crx->lcomp = %d  crx->ucomp = %d\n",
-					crx->lcomp,crx->ucomp);
-		    }
-	            return NO;
-	        }
-		*/
 	        return YES;
 	    case WEST:
 	    case SOUTH:
@@ -2871,31 +2565,6 @@ LOCAL	boolean check_comp_at(
 		    }
 	            return NO;
 	        }
-		/*
-	        if (crx->ucomp == crx->lcomp)
-	        {
-		    if (vocal)
-		    {
-	            	(void) printf("WARNING in check_comp_at(), "
-	                          "lower component of cross equal "
-	                          "to upper component\n");
-		    	rect_grid_corner(&gr,ip,fp);
-	            	(void) printf("  ip  = ( %7d %7d %7d ) comp = %2d  ",
-			      ip[0],ip[1],ip[2],
-			      comp[d_index3d(ip[0],ip[1],ip[2],gmax)]);
-		    	(void) printf("fp  = ( %g %g %g )\n",
-			      fp[0],fp[1],fp[2]);
-		    	rect_grid_corner(&gr,ipn,fp);
-	            	(void) printf("  ipn = ( %7d %7d %7d ) comp = %2d  ",
-			      ipn[0],ipn[1],ipn[2],
-			      comp[d_index3d(ipn[0],ipn[1],ipn[2],gmax)]);
-		    	(void) printf("fpn = ( %g %g %g )\n",
-			      fp[0],fp[1],fp[2]);
-	            	(void) printf("  Number of crossings = %d\n\n",nc);
-		    }
-	            return NO;
-	        }
-		*/
 	        return YES;
 	    default:
 		if (vocal)
@@ -3162,8 +2831,6 @@ LOCAL 	EDGE_TYPE edge_comp_walk(
 	else 
 	{
 	    status_of_edge = UNPHYSICAL_EDGE;
-	    /*if (debugging("multi_crx")) */
-	    /*    multi_crx_debug(crx_sort,crx_count,gp,start,end,unphys_crxing); */
 	}
 
 	free_these(3,crxing,crx_sort,crxing_point);
@@ -3580,7 +3247,8 @@ EXPORT	void fill_comps_in_box(
                 for (ip[2] = smin[2]; ip[2] <= smax[2]; ++ip[2])
                     comp[d_index3d(ip[0],ip[1],ip[2],gmax)] = NO_COMP;
 
-	/*if one face of the box is on the boundary of the domain, we can not approach from that direction. */
+	/*if one face of the box is on the boundary of the domain, 
+	  we can not approach from that direction. */
 	for (i = 0; i < 3; i++)
 	{
 	    end_min[i] = smin[i] == 0 ? YES : NO;
@@ -5279,24 +4947,28 @@ LOCAL void unset_comp_along_grid_line(
 {
 	Table	  *T = table_of_interface(intfc);
 	COMPONENT *comp = T->components;
-	GRID_DIRECTION dir;
-	int i,j,k,l,list,ic,nc,ip[MAXD];
+	GRID_DIRECTION dir,opp_dir;
+	int i,j,k,l,list,ic,nc,ip[MAXD],ipn[MAXD];
+	int ii,ll,nnc;
 	CRXING *crx;
 
 	switch (idir)
 	{
 	case 0:
 	    dir = EAST;
+	    opp_dir = WEST;
 	    break;
 	case 1:
 	    dir = NORTH;
+	    opp_dir = SOUTH;
 	    break;
 	case 2:
 	    dir = UPPER;
+	    opp_dir = LOWER;
 	}
-	for (i = smin[0]; i < smax[0]; ++i)
-	for (j = smin[1]; j < smax[1]; ++j)
 	for (k = smin[2]; k < smax[2]; ++k)
+	for (j = smin[1]; j < smax[1]; ++j)
+	for (i = smin[0]; i < smax[0]; ++i)
 	{
 	    l = seg_index3d(i,j,k,dir,gmax);
 	    nc = T->seg_crx_count[l];
@@ -5309,21 +4981,58 @@ LOCAL void unset_comp_along_grid_line(
 		if (crx->lcomp != comp[ic])
 		{
 		    comp[ic] = NO_COMP;
-		    ip[idir]++;
-		    ic = d_index3d(ip[0],ip[1],ip[2],gmax);
-		    comp[ic] = NO_COMP;
+		    while (next_ip_in_dir(ip,opp_dir,ipn,smin,smax))
+		    {
+			ll = seg_index3d(ip[0],ip[1],ip[2],opp_dir,gmax);
+			nnc = T->seg_crx_count[ll];
+			ii;
+			if (nnc != 0) break;
+		    	ic = d_index3d(ipn[0],ipn[1],ipn[2],gmax);
+		    	if (comp[ic] != crx->lcomp)
+			    comp[ic] = NO_COMP;
+			for (ii = 0; ii < 3; ++ii)
+			    ip[ii] = ipn[ii];
+		    }
 		}
+		else
+		{
+		    ll = seg_index3d(i,j,k,opp_dir,gmax);
+                    nnc = T->seg_crx_count[ll];
+		    if (nnc != 0)
+		    	comp[ic] = NO_COMP;
+		}
+		ip[0] = i; ip[1] = j; ip[2] = k;
 		list = T->seg_crx_lists[l][nc-1];
 		crx = &(T->crx_store[list]);
-		ip[0] = i; ip[1] = j; ip[2] = k;
 		ip[idir]++;
 		ic = d_index3d(ip[0],ip[1],ip[2],gmax);
 		if (crx->ucomp != comp[ic])
 		{
 		    comp[ic] = NO_COMP;
-		    ip[idir]--;
+		    while (next_ip_in_dir(ip,dir,ipn,smin,smax))
+		    {
+			ll = seg_index3d(ip[0],ip[1],ip[2],dir,gmax);
+			nnc = T->seg_crx_count[ll];
+			ii;
+			if (nnc != 0) break;
+		    	ic = d_index3d(ipn[0],ipn[1],ipn[2],gmax);
+		    	if (comp[ic] != crx->ucomp)
+			    comp[ic] = NO_COMP;
+			for (ii = 0; ii < 3; ++ii)
+			    ip[ii] = ipn[ii];
+		    }
+		}
+	    }
+	    else
+	    {
+		ip[0] = i; ip[1] = j; ip[2] = k;
+		if (next_ip_in_dir(ip,dir,ipn,smin,smax))
+		{
+		    COMPONENT icn;
 		    ic = d_index3d(ip[0],ip[1],ip[2],gmax);
-		    comp[ic] = NO_COMP;
+		    icn = d_index3d(ipn[0],ipn[1],ipn[2],gmax);
+		    if (comp[ic] != comp[icn])
+		    	comp[ic] = comp[icn] = NO_COMP;
 		}
 	    }
 	}
@@ -5588,7 +5297,11 @@ LOCAL boolean remove_unphy_pair(
 	{
 	    k = seg_index3d(ip1[0],ip1[1],ip1[2],dir,gmax);
 	    nc = T->seg_crx_count[k];
-	    num_crx += nc;
+	    if (nc != 0)
+	    {
+	    	num_crx += nc;
+	    	crx1 = next_crossing(ip1,gmax,dir,T,NULL);
+	    }
 	    ic2 = d_index(ip2,gmax,3);
 	    c2 = comp[ic2];
 	    if (c2 != NO_COMP)
@@ -5597,31 +5310,36 @@ LOCAL boolean remove_unphy_pair(
 		ip1[i] = ip2[i];
 	}
 
+	if (c2 == NO_COMP)
+	{
+	    ic2 = d_index(ip2,gmax,3);
+	    if (num_crx%2 == 1)
+	    {
+	    	c2 = (c1 == crx1->lcomp) ? crx1->ucomp : crx1->lcomp;
+	    	comp[ic2] = c2;
+	    }
+	    else
+		comp[ic2] = c2 = c1;
+	}
+	else if (c1 == NO_COMP)
+	{
+	    ic1 = d_index(ip,gmax,3);
+	    if (num_crx%2 == 1)
+	    {
+	    	c1 = (c2 == crx1->lcomp) ? crx1->ucomp : crx1->lcomp;
+	    	comp[ic1] = c1;
+	    }
+	    else
+		comp[ic1] = c1 = c2;
+	}
 	if ((c1 == c2 && num_crx%2 != 0) ||
 	    (c1 != c2 && num_crx%2 == 0))
 	{
-	    if (((dir == EAST && ip1[0] == smax[0]) ||
-		(dir == NORTH && ip1[1] == smax[1]) ||
-		(dir == UPPER && ip1[2] == smax[2])) && c2 == NO_COMP)
-	    {
-		if (num_crx%2 == 0)
-		{
-	    	    ic2 = d_index(ip1,gmax,3);
-	    	    c2 = comp[ic2] = c1;
-		}
-		else
-		{
-		    (void) printf("In remove_unphy_pair(), odd end case\n");
-	    	    clean_up(ERROR);
-		}
-	    }
-	    else
-	    {
-	    	(void) printf("In segment: (%d %d %d)-->(%d %d %d):\n",
+	    (void) printf("In segment: (%d %d %d)-->(%d %d %d):\n",
 			ip[0],ip[1],ip[2],ip2[0],ip2[1],ip2[2]);
-	    	(void) printf("c1 = %d c2 = %d  num_crx = %d\n",c1,c2,num_crx);
-	    	clean_up(ERROR);
-	    }
+	    (void) printf("c1 = %d c2 = %d  num_crx = %d\n",c1,c2,num_crx);
+	    print_comp_along_grid_line(ip1,ip2,dir,T,gmax,smin,smax);
+	    clean_up(ERROR);
 	}
 
 	if (debugging("seg_comp"))
@@ -5638,7 +5356,7 @@ LOCAL boolean remove_unphy_pair(
 	    (void) printf("Before removal:\n");
 	    print_comp_along_grid_line(ip1,ip2,dir,T,gmax,smin,smax);
 	}
-	while (count < 20)
+	while (count < 10000)
 	{
 	    count++;
 	    crx1 = next_crossing(ip1,gmax,dir,T,crx1);
@@ -5646,7 +5364,11 @@ LOCAL boolean remove_unphy_pair(
 	    {
 		next_ip_in_dir(ip1,dir,ip1,smin,smax);
 		if (ip1[0] == ip2[0] && ip1[1] == ip2[1] && ip1[2] == ip2[2])
+		{
+		    ic1 = d_index(ip1,gmax,3);
+		    comp[ic1] = c1;
 		    break;
+		}
 		ic1 = d_index(ip1,gmax,3);
 		comp[ic1] = c1;
 	    }
@@ -5659,12 +5381,14 @@ LOCAL boolean remove_unphy_pair(
 		    break;
 		}
 		else
+		{
 		    c1 = comp_of_next_side(crx1,dir);
+		}
 	    }
 	}
 	for (i = 0; i < 3; ++i)
 	    ip1[i] = ip[i];
-	while (count < 100)
+	while (count < 10000)
 	{
 	    count++;
 	    crx2 = next_crossing(ip2,gmax,opp_dir,T,crx2);
@@ -5673,6 +5397,8 @@ LOCAL boolean remove_unphy_pair(
 		next_ip_in_dir(ip2,opp_dir,ip2,smin,smax);
 		if (ip1[0] == ip2[0] && ip1[1] == ip2[1] && ip1[2] == ip2[2])
 		{
+		    ic2 = d_index(ip2,gmax,3);
+		    comp[ic2] = c2;
 		    crx2 = NULL;
 		    break;
 		}
@@ -5695,10 +5421,12 @@ LOCAL boolean remove_unphy_pair(
 	    return NO;
 	else if (crx1 == NULL || crx2 == NULL)
 	{
+	    (void) printf("In remove_unphy_pair():\n");
 	    (void) printf("Cannot find unphysical pair!\n");
 	    printf("ip = %d %d %d\n",ip[0],ip[1],ip[2]);
 	    printf("dir = %s\n",grid_direction_name(dir));
 	    printf("crx1 = %d  crx2 = %d\n",crx1,crx2);
+	    print_comp_along_grid_line(ip1,ip2,dir,T,gmax,smin,smax);
 	    clean_up(ERROR);
 	}
 	if (debugging("seg_comp"))

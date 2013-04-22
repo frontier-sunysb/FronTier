@@ -256,7 +256,7 @@ IMPORT  int     set_grid_intfc_components(INTERFACE*,INTERFACE*);
 IMPORT  INTERFACE *make_grid_intfc(INTERFACE*,GRID_TYPE,VOLUME_FRAC*);
 IMPORT	void	free_grid_intfc(INTERFACE*);
 IMPORT	void	show_grid_components(int*,int*,int,INTERFACE*);
-IMPORT	void	show_line_components3d(int*, int*, int, INTERFACE*);
+IMPORT	void	show_line_components3d(int*,int*,int*,int,INTERFACE*);
 IMPORT	void 	show_the_grid_comp(const char*,INTERFACE*);
 IMPORT	void	adjust_grid_intfc_points(INTERFACE*);
 	

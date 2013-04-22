@@ -196,6 +196,10 @@ public:
 	void oneDimPlot(char*);
 	void xgraphOneDimPlot(char*);
 	void vtk_plot_concentration2d(char*);
+	void initSampleSolute(char *in_name);
+        void sampleSolute();
+        void sampleSolute2d();
+        void sampleSolute3d();
 
 	// Extra movie functions
         void initMovieVariables(void);
@@ -251,5 +255,6 @@ extern void 	read_crt_dirichlet_bdry_data(char*,Front*,F_BASIC_DATA);
 extern boolean 	fractal_dimension(Front*,SEED_PARAMS,double*,double*);
 extern void	setInitialIntfc(Front*,LEVEL_FUNC_PACK*,char*);
 extern void	initFrontStates(Front*);
+extern void 	read_restart_params(int,char*,Front*);
 
 #endif

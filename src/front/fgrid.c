@@ -2027,44 +2027,56 @@ EXPORT	void show_grid_components(
 
 
 EXPORT	void show_line_components3d(
+	int *ip,
 	int *smin,
 	int *smax,
 	int idir,
 	INTERFACE *intfc)
 {
-	int 		ix,iy,iz,k,nc;
+	int 		i,k,nc;
 	Table		*T = table_of_interface(intfc);
 	RECT_GRID	gr = topological_grid(intfc);
 	COMPONENT       *comp = T->components;
 	int 		*gmax = gr.gmax;
+	int		ipn[MAXD];
+	GRID_DIRECTION	dir;
+	
 
-	if(pp_mynode() == 9)
+	switch (idir)
 	{
-	    ix = 12;
-	    iy = 7;
-	}
-	else
-	{
-	    ix = 12;
-	    iy = 27;
+	case 0:
+	    dir = EAST;
+	    break;
+	case 1:
+	    dir = NORTH;
+	    break;
+	case 2:
+	    dir = UPPER;
+	    break;
+	default:
+	    (void) printf("Unknown direction in show_line_components3d()\n");
+	    clean_up(ERROR);
 	}
 
-	for (iz = smin[2]; iz <= smax[2]; ++iz)
+	for (i = 0; i < 3; ++i)
+	    ipn[i] = ip[i];
+	printf("icoords = %d %d %d  dir = %s\n",ip[0],ip[1],ip[2],
+			grid_direction_name(dir));
+	for (ipn[idir] = smin[idir]; ipn[idir] <= smax[idir]; ++ipn[idir])
 	{
-	    printf("( %5d  ", iz);
-	    if (iz != smax[2])
+	    if (ipn[idir] != smax[idir])
 	    {
-		k = seg_index3d(ix,iy,iz,UPPER,gmax);
+		k = seg_index3d(ipn[0],ipn[1],ipn[2],dir,gmax);
 		nc = T->seg_crx_count[k];
 		if (nc == 0)
-		    printf("%2d ",comp[d_index3d(ix,iy,iz,gmax)]);
+		    printf("%2d ",comp[d_index(ipn,gmax,3)]);
 		else if (nc == 1)
-		    printf("%2d|",comp[d_index3d(ix,iy,iz,gmax)]);
+		    printf("%2d|",comp[d_index(ipn,gmax,3)]);
 		else
-		    printf("%2d*",comp[d_index3d(ix,iy,iz,gmax)]);
+		    printf("%2d*",comp[d_index(ipn,gmax,3)]);
 	    }
 	    else
-		printf("%2d ",comp[d_index3d(ix,iy,iz,gmax)]);
+		printf("%2d ",comp[d_index(ipn,gmax,3)]);
 	}
 	printf("\n");
 }

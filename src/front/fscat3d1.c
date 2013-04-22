@@ -2601,22 +2601,8 @@ LOCAL int append_buffer_surface1(
 	}
 	else 
 	{
-	    FILE  *fp;
-	    char  s[50];
-	
-	    screen("WARNING in append_buffer_surface1(), can't match "
-	           "tris on with buffer surface\n");
-            sprintf(s, "%sapp_nsna_%d.plt", get_directory(), pp_mynode());
-	    printf("#error surface file %s\n", s);
-
-	    fp = fopen(s, "w");
-	    tecplot_show_tris("ns", tris_s, ns, fp);
-	    tecplot_show_tris("na", tris_a, na, fp);
-	    
-	    tecplot_surface(NULL, fp, surf);
-	    tecplot_surface(NULL, fp, adj_surf);
-	    fclose(fp);
-	    
+	    gview_plot_tri_list("tris_s",tris_s,ns);
+	    gview_plot_tri_list("tris_a",tris_a,na);
 	    return NO;
 	}
 

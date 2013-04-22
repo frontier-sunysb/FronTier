@@ -898,10 +898,6 @@ LOCAL	boolean track_comp_and_repair3d(
 	
 	fill_physical_comps(smin,smax,gmax,intfc);
 
-	/*
-	fill_comp_with_component3d(smin,smax,gmax,intfc);
-	*/
-
 	if(debugging("compcrx"))
 	{
 	    int  tmin[3] = {0, 12, 20}, tmax[3] = {2, 14, 22};
@@ -2963,8 +2959,9 @@ LOCAL	boolean	merge_adjacent_boxes(
 			box->bmax[1]-box->bmin[1],
 			box->bmax[0]-box->bmin[0]) > 10)
 			{
-			    printf("WARNING merge_adjacent_boxes"
+			    printf("WARNING merge_adjacent_boxes "
 			    	    "box is too large when merging.\n");
+			    return NO;
 			}
 
 		for(nbox=box->next; nbox!=NULL; nbox=nbox->next)
@@ -6721,10 +6718,6 @@ LOCAL	boolean rbox_repair_intfc_in_box(
 	adjust_crossings(smin,smax,intfc);
 	
 	fill_physical_comps(smin,smax,gmax,intfc);
-
-	/*
-	fill_comp_with_component3d(smin,smax,gmax,intfc);
-	*/
 
 	remove_unphysical_crossings3d(intfc, smin, smax);
 	

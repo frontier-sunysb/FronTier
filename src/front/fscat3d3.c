@@ -64,7 +64,7 @@ LOCAL	int	append_adj_intfc_to_buffer1(INTERFACE*,INTERFACE*,
 					   RECT_GRID*,int,int);
 LOCAL	int	append_adj_intfc_to_buffer1_old(INTERFACE*,INTERFACE*,
 					   RECT_GRID*,int,int);
-LOCAL	int	append_buffer_surface1(SURFACE*,SURFACE*,RECT_GRID*,int,int,
+LOCAL	int	append_buffer_surface3(SURFACE*,SURFACE*,RECT_GRID*,int,int,
 				      P_LINK*,int);
 LOCAL	void	clip_intfc_at_grid_bdry1(INTERFACE*);
 LOCAL	boolean	tri_bond_out_domain(TRI*,double*,double*,int,int);
@@ -168,18 +168,6 @@ EXPORT	boolean f_intfc_communication3d3(
 		    else
 		        adj_intfc[(j+1)%2] = buf_intfc;
 		}
-                /*
-		else if (rect_boundary_type(intfc,i,j) == REFLECTION_BOUNDARY)
-		{
-		    nor = nors + 3*i + 9*j;
-		    buf_intfc = cut_buf_interface1(intfc,i,j,me,him);
-		    p[i] = (j > 0) ? U[i] : L[i];
-		    for (k = 1; k < dim; ++k)
-			p[(k+i)%dim] = 0.5*(U[(k+i)%dim] + L[(k+i)%dim]);
-		    reflect_interface(buf_intfc,p,nor);
-		    adj_intfc[j] = buf_intfc;
-		}
-                */
                 else if (rect_boundary_type(intfc,i,j) == REFLECTION_BOUNDARY)
                 {
                     adj_intfc[j] = NULL;
@@ -358,7 +346,7 @@ LOCAL 	int append_adj_intfc_to_buffer1(
 		if (surfaces_matched(*as,*s))
 		{
 		    corr_surf_found = YES;
-		    if (!append_buffer_surface1(*s,*as,grid,dir,nb,p_table,
+		    if (!append_buffer_surface3(*s,*as,grid,dir,nb,p_table,
 						   p_size))
 		    {
 			set_current_interface(cur_intfc);
@@ -458,7 +446,7 @@ LOCAL 	int append_adj_intfc_to_buffer1_old(
 		if (Hyper_surf_index(*s) == Hyper_surf_index(*as))
 		{
 		    corr_surf_found = YES;
-		    if (!append_buffer_surface1(*s,*as,grid,dir,nb,p_table,
+		    if (!append_buffer_surface3(*s,*as,grid,dir,nb,p_table,
 						   p_size))
 		    {
 			set_current_interface(cur_intfc);
@@ -498,7 +486,7 @@ LOCAL 	int append_adj_intfc_to_buffer1_old(
 }		/*end append_adj_intfc_to_buffer1*/
 
 
-LOCAL int append_buffer_surface1(
+LOCAL int append_buffer_surface3(
 	SURFACE		*surf,
 	SURFACE		*adj_surf,
 	RECT_GRID	*grid,
@@ -515,7 +503,7 @@ LOCAL int append_buffer_surface1(
 	static TRI **tris_s = NULL, **tris_a = NULL;
 	static int len_tris_s = 0, len_tris_a = 0;
 
-	DEBUG_ENTER(append_buffer_surface1)
+	DEBUG_ENTER(append_buffer_surface3)
 	
 	if (DEBUG)
 	{
@@ -565,13 +553,6 @@ LOCAL int append_buffer_surface1(
 		tri_bond_cross_test(tri,crx_coord,dir) == YES)
 	    {
 		tris_s[ns++] = tri;
-		/*
-		if(the_tri(tri))
-		{
-		    printf("#the_tri found\n");
-		    print_tri(tri, surf->interface);
-		}
-		*/
 	    }
 	}
 
@@ -593,7 +574,7 @@ LOCAL int append_buffer_surface1(
 	}
 	else 
 	{
-	    screen("WARNING in append_buffer_surface1(), can't match "
+	    screen("WARNING in append_buffer_surface3(), can't match "
 	           "tris on with buffer surface\n");
 	    FILE  *fp;
 	    char  s[50];
@@ -641,7 +622,7 @@ LOCAL int append_buffer_surface1(
 	for(c=adj_surf->pos_curves; c && *c; c++)
 	    if(! delete_from_pointers(adj_surf, &(*c)->pos_surfaces))
 	    {
-	        printf("ERROR: in append_buffer_surface1, "
+	        printf("ERROR: in append_buffer_surface3, "
 		       "adj_surf and pos_curves are not paired.\n");
 		clean_up(ERROR);
 	    }
@@ -651,7 +632,7 @@ LOCAL int append_buffer_surface1(
 	for(c=adj_surf->neg_curves; c && *c; c++)
 	    if(! delete_from_pointers(adj_surf, &(*c)->neg_surfaces))
 	    {
-	        printf("ERROR: in append_buffer_surface1, "
+	        printf("ERROR: in append_buffer_surface3, "
 		       "adj_surf and neg_curves are not paired.\n");
 		clean_up(ERROR);
 	    }
@@ -665,16 +646,16 @@ LOCAL int append_buffer_surface1(
 	/* average_btris*/
 	if (!match_tris_at_subdomain_bdry(surf,adj_surf,tris_s,tris_a,ns,na))
 	{
-	    (void) printf("WARNING in append_buffer_surface1(), "
+	    (void) printf("WARNING in append_buffer_surface3(), "
 	                  "no match of tris at subdomain\n");
 	    (void) printf("dir = %d, nb = %d\n",dir,nb);
-	    DEBUG_LEAVE(append_buffer_surface1)
+	    DEBUG_LEAVE(append_buffer_surface3)
 	    return NO;
 	}
 
-	DEBUG_LEAVE(append_buffer_surface1)
+	DEBUG_LEAVE(append_buffer_surface3)
 	return YES;
-}		/*end append_buffer_surface1*/
+}		/*end append_buffer_surface3*/
 
 
 LOCAL	void	synchronize_tris_at_subdomain_bdry(

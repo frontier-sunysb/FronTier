@@ -726,6 +726,7 @@ extern void read_fluid_params(
                 break;
             }
         }
+	iFparams->ub_speed = HUGE;
 
 	fclose(infile);
 }	/* end read_fluid_params */

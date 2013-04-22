@@ -1758,6 +1758,7 @@ EXPORT	void FT_InitIntfc(
         Front  *front,
 	LEVEL_FUNC_PACK *level_func_pack)
 {
+	if (debugging("trace")) printf("Entering FT_InitIntfc()\n");
 	switch (front->rect_grid->dim)
 	{
 	case 1:
@@ -1773,6 +1774,7 @@ EXPORT	void FT_InitIntfc(
 	    screen("Unknown dimension!\n");
 	    clean_up(ERROR);
 	}
+	if (debugging("trace")) printf("Leaving FT_InitIntfc()\n");
 }	/* end FT_InitIntfc */
 
 /*ARGSUSED*/

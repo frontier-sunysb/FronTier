@@ -1,7 +1,7 @@
 Domain limit in 0-th dimension: 0 1
 Domain limit in 1-th dimension: 0 1
 Domain limit in 2-th dimension: 0 1
-Computational grid: 60 60 60
+Computational grid: 64 64 64
 Lower boundary in 0-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 0-th dimension: DIRICHLET_BOUNDARY
 Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
@@ -29,11 +29,11 @@ Available reaction types are:
         DISSOLUTION_ONLY
         REVERSIBLE_REACTION
 Enter reaction type: DEPOSITION_ONLY
-Diffusion coefficient: 0.1
-Growth rate: 500.0
+Diffusion coefficient: 0.5
+Growth rate: 5000.0
 Equilibrium concentration: 1.0
-Ambient concentration: 2
-Crystal density: 100000
+Ambient concentration: 1
+Crystal density: 10
 Choose numerical scheme
         Unsplit explicit (EX)
         Unsplit implicit (IM)
@@ -46,37 +46,42 @@ Choose point propagation scheme
 Enter scheme: MP
 Enter yes to add curvature effect: n
 
-Max time: 5.0
-Max step: 10
-Print interval: 0.1
-Movie frame interval: 0.05
-CFL factor: 0.10
-Redistribution interval: 5
+Max time: 2.0
+Max step: 110
+Print interval: 0.01
+Movie frame interval: 0.01
+CFL factor: 0.40
+Redistribution interval: 10
 
 For lower boundary in 0-th dimension
 Enter type of Dirichlet boundary: CONSTANT_STATE
-Enter solute concentration: 2.0
+Enter solute concentration: 5.0
 For upper boundary in 0-th dimension
 Enter type of Dirichlet boundary: CONSTANT_STATE
-Enter solute concentration: 2.0
+Enter solute concentration: 5.0
 For lower boundary in 1-th dimension
 Enter type of Dirichlet boundary: CONSTANT_STATE
-Enter solute concentration: 2.0
+Enter solute concentration: 5.0
 For upper boundary in 1-th dimension
 Enter type of Dirichlet boundary: CONSTANT_STATE
-Enter solute concentration: 2.0
+Enter solute concentration: 5.0
 For lower boundary in 2-th dimension
 Enter type of Dirichlet boundary: CONSTANT_STATE
-Enter solute concentration: 2.0
+Enter solute concentration: 5.0
 For upper boundary in 2-th dimension
 Enter type of Dirichlet boundary: CONSTANT_STATE
-Enter solute concentration: 2.0
+Enter solute concentration: 5.0
 
 ************Debugging options*****************
 
 Enter yes for debugging: no
 Enter the debugging string: trace
-Enter the debugging string: default_comp
 Enter the debugging string: CLOCK
 Enter the debugging string: step_size
-Enter the debugging string: ttsample_velocity
+Enter the debugging string: tseg_comp
+Enter the debugging string: sample_solute
+Enter the sample line type: xy
+Enter the sample line coordinate: 0.5 0.5
+Enter the start step for sample: 0
+Enter the end step for sample: 10000
+Enter the step interval for sample: 1

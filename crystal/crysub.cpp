@@ -246,7 +246,7 @@ static  void reaction_point_propagate(
 	static boolean first = YES;
 	static double max_nor_speed = 0.0;
 	REACTION_TYPE reaction_type = cRparams->reaction_type;
-	double CFL;
+	double relative_dist;
 
 	if (first)
 	{
@@ -320,27 +320,25 @@ static  void reaction_point_propagate(
 	    clean_up(ERROR);
 	}
 
-	CFL = Time_step_factor(front);
-	if (fabs(nor_speed*dt) > CFL*dn)
-	{
-	    (void) printf("WARNING: speed higher than allowed by CFL\n");
-	    (void) printf("CFL*dn/dt = %f  nor_speed = %f\n",
-				CFL*dn/dt,nor_speed);
-	    nor_speed = nor_speed*CFL*dn/dt/fabs(nor_speed);
-	}
-
         for (i = 0; i < dim; ++i)
         {
             vel[i] = nor[i]*nor_speed;
             Coords(newp)[i] = Coords(oldp)[i] + dt*vel[i];
         }
-	if (max_nor_speed < nor_speed)
-	{
-	    max_nor_speed = nor_speed;
-	    if (debugging("step_size"))
-	    	(void) printf("Scaled max_prop_spacing = %f\n",
-				max_nor_speed/dn*dt);
-	}
+
+	relative_dist = fabs(nor_speed)*dt/dn;
+	if (front->max_scaled_propagation < relative_dist)
+        {
+            front->max_scaled_propagation = relative_dist;
+            if (relative_dist > 0.5)
+            {
+                (void) printf("WARNING: propagation too large!\n");
+                (void) printf("relative distance = %f\n",relative_dist);
+            }
+            for (i = 0; i < dim; ++i)
+                front->max_prop_point[i] = Coords(oldp)[i];
+        }
+
 	reaction_scheme(cRparams,dt,dn,kappa,s0,s1,&ans);
 
 	/* Update the state of the new interface point */
@@ -956,6 +954,8 @@ extern void read_crt_dirichlet_bdry_data(
 	HYPER_SURF *hs;
 	int i_surf;
 
+	if (debugging("trace")) 
+	    printf("Entering read_crt_dirichlet_bdry_data()\n");
 	for (i = 0; i < dim; ++i)
 	{
 	    if (f_basic.boundary[i][0] == DIRICHLET_BOUNDARY)
@@ -1016,6 +1016,8 @@ extern void read_crt_dirichlet_bdry_data(
 	    }
 	}
 	fclose(infile);
+	if (debugging("trace")) 
+	    printf("Leaving read_crt_dirichlet_bdry_data()\n");
 }	/* end read_crt_dirichlet_bdry_data */
 
 
@@ -1789,3 +1791,24 @@ static void vert_icoords(
 	    icoords[i] = irint(floor((vert[i] - L[i])/h[i]));
 	}
 }       /* end vert_icoords */
+
+extern	void read_restart_params(
+	int dim,
+	char *inname,
+	Front *front)
+{
+	char string[100];
+	CRT_PARAMS *cRparams = (CRT_PARAMS*)front->extra2;
+	FILE *infile = fopen(inname,"r");
+	static SEED_PARAMS s_params;
+
+	CursorAfterString(infile,"Enter initial interface type: ");
+	fscanf(infile,"%s",string);
+        (void) printf("%s\n",string);
+	if (string[0] == 's' || string[0] == 'S')
+	{
+	    read_seed_params(dim,infile,&s_params);
+	    cRparams->func_params = (POINTER)&s_params;
+            cRparams->func = seed_func;
+	}
+}	/* end read_restart_params */

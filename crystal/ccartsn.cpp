@@ -700,8 +700,12 @@ void C_CARTESIAN::solve(double dt)
 	setGlobalIndex();
 	if (debugging("trace")) printf("Passing setGlobalIndex()\n");
 
+	if (debugging("sample_solute"))
+            sampleSolute();
 	computeAdvection();
 	if (debugging("trace")) printf("Passing computeAdvection()\n");
+	if (debugging("sample_solute"))
+            sampleSolute();
 
 	setAdvectionDt();
 	if (debugging("trace")) printf("Passing setAdvectionDt()\n");
@@ -1833,3 +1837,434 @@ static int find_state_at_crossing(
 	else if (wave_type(*hs) == NEUMANN_BOUNDARY)
             return NEUMANN_PDE_BOUNDARY;
 }       /* find_state_at_crossing */
+
+void C_CARTESIAN::initSampleSolute(char *in_name)
+{
+        FILE *infile;
+        static SAMPLE *sample;
+        char *sample_type;
+        double *sample_line;
+
+        infile = fopen(in_name,"r");
+        FT_ScalarMemoryAlloc((POINTER*)&sample,sizeof(SAMPLE));
+        sample_type = sample->sample_type;
+        sample_line = sample->sample_coords;
+
+        if (dim == 2)
+        {
+            CursorAfterString(infile,"Enter the sample line type:");
+            fscanf(infile,"%s",sample_type);
+            (void) printf(" %s\n",sample_type);
+            CursorAfterString(infile,"Enter the sample line coordinate:");
+            fscanf(infile,"%lf",sample_line);
+            (void) printf(" %f\n",sample_line[0]);
+        }
+        else if (dim == 3)
+        {
+            CursorAfterString(infile,"Enter the sample line type:");
+            fscanf(infile,"%s",sample_type);
+            (void) printf(" %s\n",sample_type);
+            CursorAfterString(infile,"Enter the sample line coordinate:");
+            fscanf(infile,"%lf %lf",sample_line,sample_line+1);
+            (void) printf(" %f %f\n",sample_line[0],sample_line[1]);
+        }
+        CursorAfterString(infile,"Enter the start step for sample: ");
+        fscanf(infile,"%d",&sample->start_step);
+        (void) printf("%d\n",sample->start_step);
+        CursorAfterString(infile,"Enter the end step for sample: ");
+        fscanf(infile,"%d",&sample->end_step);
+        (void) printf("%d\n",sample->end_step);
+        CursorAfterString(infile,"Enter the step interval for sample: ");
+        fscanf(infile,"%d",&sample->step_interval);
+        (void) printf("%d\n",sample->step_interval);
+        front->sample = sample;
+        fclose(infile);
+}       /* end initSampleSolute */
+
+void C_CARTESIAN::sampleSolute()
+{
+        if (dim == 2)
+            sampleSolute2d();
+        else if (dim == 3)
+            sampleSolute3d();
+}       /* end sampleConcentration */
+
+void C_CARTESIAN::sampleSolute2d()
+{
+	int i,j,index;
+        SAMPLE *sample = front->sample;
+        char *sample_type = sample->sample_type;
+        double *line = sample->sample_coords;
+        char *out_name = front->out_name;
+        double coords[MAXD];
+        double var1,var2,var;
+        FILE *sfile;
+        char sname[100];
+        static int count = 0;
+        static int step = 0;
+        static int l = -1;
+        static double lambda;
+        char dirname[256];
+        static char **sample_color;
+
+	if (sample_color == NULL)
+        {
+            FT_MatrixMemoryAlloc((POINTER*)&sample_color,10,20,sizeof(char));
+            sprintf(sample_color[0],"red");
+            sprintf(sample_color[1],"blue");
+            sprintf(sample_color[2],"green");
+            sprintf(sample_color[3],"violet");
+            sprintf(sample_color[4],"orange");
+            sprintf(sample_color[5],"yellow");
+            sprintf(sample_color[6],"pink");
+            sprintf(sample_color[7],"cyan");
+            sprintf(sample_color[8],"light-gray");
+            sprintf(sample_color[9],"dark-gray");
+        }
+	if (pp_numnodes() > 1)
+            return;
+        if (front->step < sample->start_step || front->step > sample->end_step)
+            return;
+        if ((front->step - sample->start_step)%sample->step_interval)
+            return;
+        if (step != front->step)
+        {
+            step = front->step;
+            count = 0;
+        }
+        sprintf(dirname, "%s/sample-%d", out_name,step);
+        if (!create_directory(dirname,NO))
+        {
+            screen("Cannot create directory %s\n",dirname);
+            clean_up(ERROR);
+        }
+	switch (sample_type[0])
+        {
+        case 'x':
+            if (l == -1)
+            {
+                double x1,x2;
+                do
+                {
+                    ++l;
+                    index = d_index2d(l,0,top_gmax);
+                    getRectangleCenter(index, coords);
+                } while(line[0] >= coords[0]);
+                --l;
+                index = d_index2d(l,0,top_gmax);
+                getRectangleCenter(index,coords);
+                x1 = coords[0];
+                index = d_index2d(l+1,0,top_gmax);
+                getRectangleCenter(index,coords);
+                x2 = coords[0];
+                lambda = (line[0] - x1) / (x2 - line[0]);
+            }
+            i = l;
+            sprintf(sname, "%s/solute-%d.xg",dirname,count);
+            sfile = fopen(sname,"w");
+            fprintf(sfile,"Next\n");
+            fprintf(sfile,"color=%s\n",sample_color[count]);
+            fprintf(sfile,"thickness=1.5\n");
+            for (j = jmin; j <= jmax; ++j)
+            {
+                index = d_index2d(i,j,top_gmax);
+                var1 = field->solute[index];
+                index = d_index2d(i+1,j,top_gmax);
+                var2 = field->solute[index];
+                var = (var1 + lambda*var2) / (1.0 + lambda);
+                getRectangleCenter(index,coords);
+                fprintf(sfile,"%20.14f %20.14f\n",coords[1],var);
+            }
+            fclose(sfile);
+            break;
+	case 'y':
+            if (l == -1)
+            {
+                double y1,y2;
+                do
+                {
+                    ++l;
+                    index = d_index2d(0,l,top_gmax);
+                    getRectangleCenter(index, coords);
+                } while (line[0] >= coords[1]);
+                --l;
+                index = d_index2d(0,l,top_gmax);
+                getRectangleCenter(index,coords);
+                y1 = coords[1];
+                index = d_index2d(0,l+1,top_gmax);
+                getRectangleCenter(index,coords);
+                y2 = coords[1];
+                lambda = (line[0] - y1) / (y2 - line[0]);
+            }
+            j = l;
+            sprintf(sname, "%s/solute-%d.xg",dirname,count);
+            sfile = fopen(sname,"w");
+            fprintf(sfile,"Next\n");
+            fprintf(sfile,"color=%s\n",sample_color[count]);
+            fprintf(sfile,"thickness=1.5\n");
+            for (i = imin; i <= imax; ++i)
+            {
+                index = d_index2d(i,j,top_gmax);
+                var1 = field->solute[index];
+                index = d_index2d(i,j+1,top_gmax);
+                var2 = field->solute[index];
+                var = (var1 + lambda*var2) / (1.0 + lambda);
+                getRectangleCenter(index,coords);
+                fprintf(sfile,"%20.14f   %20.14f\n",coords[0],var);
+            }
+            fclose(sfile);
+            break;
+        default:
+            printf("Incorrect input for sample solute!\n");
+            break;
+        }
+        count++;
+}       /* sampleSolute2d */
+
+void C_CARTESIAN::sampleSolute3d()
+{
+	int i,j,k,index;
+        SAMPLE *sample = front->sample;
+        char *sample_type = sample->sample_type;
+        double *sample_line = sample->sample_coords;
+        char *out_name = front->out_name;
+        double coords[MAXD];
+        double var1,var2,var_tmp1,var_tmp2,var;
+        FILE *sfile;
+        char sname[100];
+        static int count = 0;
+        static int step = 0;
+        static int l = -1, m = -1;
+        static double lambda1,lambda2;
+        char dirname[256];
+        static char **sample_color;
+
+	if (sample_color == NULL)
+        {
+            FT_MatrixMemoryAlloc((POINTER*)&sample_color,10,20,sizeof(char));
+            sprintf(sample_color[0],"red");
+            sprintf(sample_color[1],"blue");
+            sprintf(sample_color[2],"green");
+            sprintf(sample_color[3],"violet");
+            sprintf(sample_color[4],"orange");
+            sprintf(sample_color[5],"yellow");
+            sprintf(sample_color[6],"pink");
+            sprintf(sample_color[7],"cyan");
+            sprintf(sample_color[8],"light-gray");
+            sprintf(sample_color[9],"dark-gray");
+        }
+        if (pp_numnodes() > 1)
+            return;
+        if (front->step < sample->start_step || front->step > sample->end_step)
+            return;
+        if ((front->step - sample->start_step)%sample->step_interval)
+            return;
+        if (step != front->step)
+        {
+            step = front->step;
+            count = 0;
+        }
+        sprintf(dirname, "%s/sample-%d", out_name,step);
+        if (!create_directory(dirname,NO))
+        {
+            screen("Cannot create directory %s\n",dirname);
+            clean_up(ERROR);
+        }
+
+	switch (sample_type[0])
+        {
+        case 'x':
+            if (l == -1)
+            {
+                double x1,x2;
+                do
+                {
+                    ++l;
+                    index = d_index3d(l,0,0,top_gmax);
+                    getRectangleCenter(index,coords);
+                }while(sample_line[0]>=coords[0]);
+                --l;
+                index = d_index3d(l,0,0,top_gmax);
+                getRectangleCenter(index,coords);
+                x1 = coords[0];
+                index = d_index3d(l+1,0,0,top_gmax);
+                getRectangleCenter(index,coords);
+                x2 = coords[0];
+                lambda1 = (sample_line[0] - x1) / (x2 - sample_line[0]);
+            }
+	    switch (sample_type[1])
+            {
+                case 'y':
+                    if (m == -1)
+                    {
+                        double y1,y2;
+                        do
+                        {
+                            ++m;
+                            index = d_index3d(0,m,0,top_gmax);
+                            getRectangleCenter(index,coords);
+                        }while(sample_line[1]>=coords[1]);
+                        --m;
+                        index = d_index3d(0,m,0,top_gmax);
+                        getRectangleCenter(index,coords);
+                        y1 = coords[1];
+                        index = d_index3d(0,m+1,0,top_gmax);
+                        getRectangleCenter(index,coords);
+                        y2 = coords[1];
+                        lambda2 = (sample_line[1] - y1)/(y2 - sample_line[1]);
+                    }
+                    i = l;
+                    j = m;
+		    sprintf(sname, "%s/solute-%d.xg",dirname,count);
+                    sfile = fopen(sname,"w");
+                    fprintf(sfile,"Next\n");
+                    fprintf(sfile,"color=%s\n",sample_color[count]);
+                    fprintf(sfile,"thickness=1.5\n");
+                    for (k = kmin; k <= kmax; ++k)
+                    {
+                        index = d_index3d(i,j,k,top_gmax);
+                        var1 = field->solute[index];
+                        index = d_index3d(i+1,j,k,top_gmax);
+                        var2 = field->solute[index];
+                        var_tmp1 = (var1 + lambda1*var2)/(1.0 + lambda1);
+
+                        index = d_index3d(i,j+1,k,top_gmax);
+                        var1 = field->solute[index];
+                        index = d_index3d(i+1,j+1,k,top_gmax);
+                        var2 = field->solute[index];
+                        var_tmp2 = (var1 + lambda1*var2)/(1.0 + lambda1);
+
+                        var = (var_tmp1 + lambda2*var_tmp2)/(1.0 + lambda2);
+                        getRectangleCenter(index,coords);
+                        fprintf(sfile,"%20.14f   %20.14f\n",coords[2],var);
+                    }
+                    fclose(sfile);
+                    break;
+		case 'z':
+                    if (m == -1)
+                    {
+                        double z1,z2;
+                        do
+                        {
+                            ++m;
+                            index = d_index3d(0,0,m,top_gmax);
+                            getRectangleCenter(index,coords);
+                        }while(sample_line[1]>=coords[2]);
+                        --m;
+                        index = d_index3d(0,0,m,top_gmax);
+                        getRectangleCenter(index,coords);
+                        z1 = coords[2];
+                        index = d_index3d(0,0,m+1,top_gmax);
+                        getRectangleCenter(index,coords);
+                        z2 = coords[2];
+                        lambda2 = (sample_line[1] - z1)/(z2 - sample_line[1]);
+                    }
+                    i = l;
+                    k = m;
+		    sprintf(sname, "%s/solute-%d.xg",dirname,count);
+                    sfile = fopen(sname,"w");
+                    fprintf(sfile,"Next\n");
+                    fprintf(sfile,"color=%s\n",sample_color[count]);
+                    fprintf(sfile,"thickness=1.5\n");
+                    for (j = jmin; j <= jmax; ++j)
+                    {
+                        index = d_index3d(i,j,k,top_gmax);
+                        var1 = field->solute[index];
+                        index = d_index3d(i+1,j,k,top_gmax);
+                        var2 = field->solute[index];
+                        var_tmp1 = (var1 + lambda1*var2)/(1.0 + lambda1);
+
+                        index = d_index3d(i,j,k+1,top_gmax);
+                        var1 = field->solute[index];
+                        index = d_index3d(i+1,j,k+1,top_gmax);
+                        var2 = field->solute[index];
+                        var_tmp2 = (var1 + lambda1*var2)/(1.0 + lambda1);
+
+                        var = (var_tmp1 + lambda2*var_tmp2)/(1.0 + lambda2);
+                        getRectangleCenter(index,coords);
+                        fprintf(sfile,"%20.14f   %20.14f\n",coords[2],var);
+                    }
+                    fclose(sfile);
+                    break;
+                default:
+                    printf("Incorrect input for sample solute!\n");
+                    break;
+            }
+	    break;
+	case 'y':
+            if (l == -1)
+            {
+                double y1,y2;
+                do
+                {
+                    ++l;
+                    index = d_index3d(0,l,0,top_gmax);
+                    getRectangleCenter(index, coords);
+                }while(sample_line[0]>=coords[1]);
+                --l;
+                index = d_index3d(0,l,0,top_gmax);
+                getRectangleCenter(index,coords);
+                y1 = coords[1];
+                index = d_index3d(0,l+1,0,top_gmax);
+                getRectangleCenter(index,coords);
+                y2 = coords[1];
+                lambda1 = (sample_line[0] - y1)/(y2 - sample_line[0]);
+            }
+	    switch (sample_type[1])
+            {
+                case 'z':
+                    if (m == -1)
+                    {
+                        double z1,z2;
+                        do
+                        {
+                            ++m;
+                            index = d_index3d(0,0,m,top_gmax);
+                            getRectangleCenter(index,coords);
+                        }while(sample_line[1]>=coords[2]);
+                        --m;
+                        index = d_index3d(0,0,m,top_gmax);
+                        getRectangleCenter(index,coords);
+                        z1 = coords[2];
+                        index = d_index3d(0,0,m+1,top_gmax);
+                        getRectangleCenter(index,coords);
+                        z2 = coords[2];
+                        lambda2 = (sample_line[1] - z1)/(z2 - sample_line[1]);
+                    }
+                    j = l;
+                    k = m;
+		    sprintf(sname, "%s/solute-%d.xg",dirname,count);
+                    sfile = fopen(sname,"w");
+                    fprintf(sfile,"Next\n");
+                    fprintf(sfile,"color=%s\n",sample_color[count]);
+                    fprintf(sfile,"thickness=1.5\n");
+                    for (i = imin; i <= imax; ++i)
+                    {
+                        index = d_index3d(i,j,k,top_gmax);
+                        var1 = field->solute[index];
+                        index = d_index3d(i,j+1,k,top_gmax);
+                        var2 = field->solute[index];
+                        var_tmp1 = (var1 + lambda1*var2)/(1.0 + lambda1);
+
+                        index = d_index3d(i,j,k+1,top_gmax);
+                        var1 = field->solute[index];
+                        index = d_index3d(i,j+1,k+1,top_gmax);
+                        var2 = field->solute[index];
+                        var_tmp2 = (var1 + lambda1*var2)/(1.0 + lambda1);
+
+                        var = (var_tmp1 + lambda2*var_tmp2)/(1.0 + lambda2);
+                        getRectangleCenter(index,coords);
+                        fprintf(sfile,"%20.14f   %20.14f\n",coords[0],var);
+                    }
+                    fclose(sfile);
+                    break;
+		default:
+                    printf("Incorrect input for sample solute!\n");
+                    break;
+            }
+        default:
+            printf("Incorrect input for sample solute!\n");
+            break;
+        }
+        count++;
+}       /* end sampleSolute3d */

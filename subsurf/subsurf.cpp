@@ -1,7 +1,7 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/*********************************************************************
+FronTier is a set of libraries that implements differnt types of Front 
+Traking algorithms. Front Tracking is a numerical method for the solution 
+of partial differential equations whose solutions have discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -21,35 +21,19 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-******************************************************************************/
+**************************************************************************/
 
 
 /*
 *				crystal.c:
 *
-*		User initialization example for Front Package:
-*
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
-*
-*	This is example of three circles all moving the a normal velocity.
-*	Bifurcation occurs when they meet each other. FronTier solves
-*	the bifurcation automatically.
 *
 */
 
 #include <iFluid.h>
 #include <crystal.h>
 #include "subsurf.h"
-
-/********************************************************************
- *	Level function parameters for the initial interface 	    *
- ********************************************************************/
-
-
-/********************************************************************
- *	Velocity function parameters for the front	 	    *
- ********************************************************************/
-#define		MAX_NUM_VERTEX_IN_CELL		20
 
 	/*  Local Application Function Declarations */
 
@@ -191,6 +175,8 @@ int main(int argc, char **argv)
         * the assigned fourth_order_point_propagate.
         */
 
+	if (debugging("sample_solute"))
+            c_cartesian.initSampleSolute(in_name);
         front._point_propagate = solute_point_propagate;
 
 	if (RestartRun)

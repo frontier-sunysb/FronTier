@@ -3,7 +3,7 @@ Domain limit in 0-th dimension: 0 1
 Domain limit in 1-th dimension: 0 1
 Domain limit in 2-th dimension: 0 2
 
-Computational grid: 40 40 80
+Computational grid: 64 64 128
 Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
 Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
 Lower boundary in 1-th dimension: PERIODIC_BOUNDARY
@@ -12,19 +12,26 @@ Lower boundary in 2-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 2-th dimension: DIRICHLET_BOUNDARY
 
 *****Crystal Input data*************
+Enter initial interface type: seed
 Are there seeds grow from floor: N
 Are there seeds grow from ceiling: N
 Are there seeds grow from space: Y
 Enter number of space seeds: 1
-Enter center coordinates of space seed 1: 0.5 0.5 1.0
+Enter center coordinates of space seed 1: 0.5 0.5 0.8
 Enter yes to add perturbation: n
-Enter radius of seeds: 0.05
+Enter radius of seeds: 0.1
 
 *****Physical information***********
+Choose reaction type
+Available reaction types are:
+        DEPOSITION_ONLY
+        DISSOLUTION_ONLY
+        REVERSIBLE_REACTION
+Enter reaction type: DEPOSITION_ONLY
 Diffusion coefficient: 0.5
 Growth rate: 80.0
 Equilibrium concentration: 1.0
-Ambient concentration: 2
+Ambient concentration: 1
 Crystal density: 10.0
 Choose numerical scheme
         Unsplit explicit (EX)
@@ -51,18 +58,30 @@ Projection type can be
 Enter projection type: SIMPLE
 
 *****Control information***********
-Max time: 5.0
-Max step: 10
-Print interval: 5
-Movie frame interval: 0.01
-CFL factor: 0.1
+Max time: 2.0
+Max step: 2000 
+Print interval: 0.05 
+Movie frame interval: 0.05
+CFL factor: 0.25
 Redistribution interval: 5
 
 *****Debugging options*********
-Enter yes for debugging: no 
+Enter yes for debugging: yes 
 Enter the debugging string: trace
-Enter the debugging string: CLOCK
-Enter the debugging string: step_size
+Enter the debugging string: tCLOCK
+Enter the debugging string: tstep_size
+Enter the debugging string: sample_velocity
+Enter the sample line type: xy
+Enter the sample line coordinate: 0.5 0.5
+Enter the start step for sample: 0
+Enter the end step for sample: 10000
+Enter the step interval for sample: 20
+Enter the debugging string: sample_solute
+Enter the sample line type: xy
+Enter the sample line coordinate: 0.5 0.5
+Enter the start step for sample: 0
+Enter the end step for sample: 10000
+Enter the step interval for sample: 20
 
 *****Movie output options************
 Type y to make movie of pressure: n
@@ -81,10 +100,8 @@ For lower boundary in 2-th dimension
 Enter type of Dirichlet boundary: FLOW_THROUGH
 Enter velocity: 0 0 0
 Enter pressure: 10
-Enter solute concentration: 2.0
 For upper boundary in 2-th dimension
 Enter type of Dirichlet boundary: CONSTANT_STATE
-Enter solute concentration: 2.0
 Enter velocity: 0 0 -2
 Enter pressure: 10
 Enter solute concentration: 2.0
