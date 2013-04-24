@@ -396,10 +396,14 @@ void G_CARTESIAN::computeMeshFlux(
 
 	if(eqn_params->tracked)
 	{
+	    start_clock("get_ghost_state");
 	    get_ghost_state(m_vst, 2, 0);
 	    get_ghost_state(m_vst, 3, 1);
 	    scatMeshGhost();
+	    stop_clock("get_ghost_state");
+	    start_clock("solve_exp_value");
 	    solve_exp_value();
+	    stop_clock("solve_exp_value");
 	}
 
 	resetFlux(m_flux);

@@ -485,6 +485,8 @@ EXPORT void assign_front_interface(
 *
 *	Sets max_dt to the maximum time step allowed by the
 *	Courant-Friedrichs-Levy condition for the advancing front.
+*	For safety, even with CFL = 1.0, the maximum spacing 
+*	predicted for next step should not exceed 0.2 hmin.
 */
 
 EXPORT	double	f_max_front_time_step(
@@ -497,13 +499,25 @@ EXPORT	double	f_max_front_time_step(
 	double		*h = fr->rect_grid->h;
 	double		hmin = HUGE;
 	int		i, j, dim = fr->interf->dim;
+	double		dim_fac;
 
+	switch (dim)
+	{
+	case 1:
+	    dim_fac = 0.50;	/* sqrt(0.5^2/1) */
+	    break;
+	case 2:
+	    dim_fac = 0.35; 	/* sqrt(0.5^2/2) */
+	    break;
+	case 3:
+	    dim_fac = 0.28; 	/* sqrt(0.5^2/3) */
+	}
 	for (i = 0; i < dim; ++i)
 	{
 	    if (hmin > h[i]) hmin = h[i];
 	    if (spfr[i] > 0.0)
 	    {
-	        dt[i] = h[i]/spfr[i];
+	        dt[i] = dim_fac*h[i]/spfr[i];
 	        if (max_dt > dt[i])
 	        {
 	            max_dt = dt[i];
@@ -516,7 +530,7 @@ EXPORT	double	f_max_front_time_step(
 	}
 	if (spfr[dim] > 0.0)
 	{
-	    dt[dim] = hmin/spfr[dim];
+	    dt[dim] = dim_fac*hmin/spfr[dim];
 	    if (max_dt > dt[dim])
 	    {
 	        max_dt = dt[dim];

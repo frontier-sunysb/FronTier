@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations
-whose solutions have discontinuities.
+/*********************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method 
+for the solution of partial differential equations whose solutions 
+have discontinuities.
 
 
 Copyright (C) 1999 by The University at Stony Brook.
@@ -21,7 +22,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-******************************************************************************/
+************************************************************************/
 
 
 /*
@@ -38,24 +39,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <front/fdecs.h>
 #include <front/fpatrecon.h>
 
-LOCAL	boolean    track_comp_and_repair3d(int*,int*,int*,INTERFACE*,Front*);
-LOCAL	boolean    track_comp_and_set_boxes(int*,int*,int*,INTERFACE*,Front*);
+LOCAL	boolean track_comp_and_repair3d(int*,int*,int*,INTERFACE*,Front*);
+LOCAL	boolean track_comp_and_set_boxes(int*,int*,int*,INTERFACE*,Front*);
 	boolean	communicate_boxes(RECT_BOX*,Front*);
 LOCAL	boolean	repair_intfc3d_in_box(INTERFACE*,int*,int*,Front*);
-LOCAL	boolean 	set_reconstruction_boxes(int*,int*,int**,int,RECT_BOX**,
+LOCAL	boolean set_reconstruction_boxes(int*,int*,int**,int,RECT_BOX**,
                                         INTERFACE*);
-LOCAL	boolean 	seal_strip_with_tris(RECT_BOX*,TRI**,int*,int,POINT**,
+LOCAL	boolean seal_strip_with_tris(RECT_BOX*,TRI**,int*,int,POINT**,
 				double*,char*,boolean,INTERFACE*);
-LOCAL   boolean    seal_strip_with_tris_once(RECT_BOX*,TRI**,int*,int,POINT**,
-                           double*,char*,boolean,INTERFACE*,TRI**,int,TRI**,int);
+LOCAL   boolean seal_strip_with_tris_once(RECT_BOX*,TRI**,int*,int,POINT**,
+                          double*,char*,boolean,INTERFACE*,TRI**,int,TRI**,int);
 
-LOCAL   boolean    null_sides_sharing_same_vertex(TRI*,int,TRI**,int);
-	boolean    null_side_loop(TRI*,int,ORIENTATION,TRI***,int**,POINT***,
+LOCAL   boolean null_sides_sharing_same_vertex(TRI*,int,TRI**,int);
+	boolean null_side_loop(TRI*,int,ORIENTATION,TRI***,int**,POINT***,
                                 int*,double**);
-LOCAL	boolean 	null_side_tri_in_list(TRI**,int,TRI**,int*);
-LOCAL	boolean 	grid_based_box_untangle(INTERFACE*,RECT_BOX*,boolean);
-LOCAL   boolean    tri_in_box(TRI*,INTERFACE*,RECT_BOX*);
-LOCAL	boolean 	check_extension_of_surface(TRI**, int, SURFACE*);
+LOCAL	boolean null_side_tri_in_list(TRI**,int,TRI**,int*);
+LOCAL	boolean grid_based_box_untangle(INTERFACE*,RECT_BOX*,boolean);
+LOCAL   boolean tri_in_box(TRI*,INTERFACE*,RECT_BOX*);
+LOCAL	boolean check_extension_of_surface(TRI**, int, SURFACE*);
 LOCAL	void 	gview_show_box_tri(RECT_BOX*,TRI**,int,FILE*);
 LOCAL   int     find_nearest_pts(POINT**,int,POINT**,int,int,TRI**,TRI**,
 				RECT_GRID,RECT_GRID);
@@ -69,36 +70,37 @@ LOCAL   void    find_nearest_tri_pair_crx(TRI**,int*,TRI**,int*,TRI**,
                 int*,TRI**,int*,TRI**,int*,TRI**,RECT_BOX*,INTERFACE*);
 LOCAL	boolean	null_sides_with_suitable_angle(TRI*, int, TRI*, int);
 LOCAL	boolean	bifurcation_detected(TRI**, int, TRI***, int*, TRI***, int*);
-LOCAL   boolean    pts_in_cross_zone(double*,double,double,int);
-LOCAL   boolean    pts_cross_line(double*,double,double,int);
-LOCAL   boolean    tri_cross_zone(TRI*,double,double,int);
-LOCAL   boolean    tri_cross_line1(TRI*,double,double,int);
+LOCAL   boolean pts_in_cross_zone(double*,double,double,int);
+LOCAL   boolean pts_cross_line(double*,double,double,int);
+LOCAL   boolean tri_cross_zone(TRI*,double,double,int);
+LOCAL   boolean tri_cross_line1(TRI*,double,double,int);
 LOCAL   void    find_comm_box(INTERFACE*,RECT_BOX*,int*,COMM_BOX*);
 LOCAL   void    initialize_comm_box(COMM_BOX*,boolean);
 LOCAL   void    pp_send_box(PP_GRID*,int*,int,int,COMM_BOX*,INTERFACE*);
 LOCAL   void    pp_receive_box(PP_GRID*,int*,int,int,COMM_BOX*,INTERFACE*);
-LOCAL   boolean    compare_comm_box(INTERFACE*,RECT_BOX*,
+LOCAL   boolean compare_comm_box(INTERFACE*,RECT_BOX*,
 				COMM_BOX*,COMM_BOX*,int*,int);
-LOCAL   boolean    boxes_sharing_tris(RECT_BOX*,RECT_BOX*, int*, INTERFACE*);
-LOCAL   boolean    boxes_crxing_same_boundary(RECT_BOX*,RECT_BOX*,INTERFACE*);
+LOCAL   boolean boxes_sharing_tris(RECT_BOX*,RECT_BOX*, int*, INTERFACE*);
+LOCAL   boolean boxes_crxing_same_boundary(RECT_BOX*,RECT_BOX*,INTERFACE*);
 LOCAL   void    extend_boundary_side(INTERFACE*,int*,int*,RECT_GRID*);
 LOCAL   void    check_and_extend_point(POINT*,TRI*,SURFACE*,double*,
                                 double*,double*);
 LOCAL   void    check_and_extend_side(TRI*,int,SURFACE*,double*,
                                 double*,double*);
-LOCAL   boolean    crx_bnd_out_tris(TRI**,int,TRI**,int,TRI*,INTERFACE*,RECT_BOX*);
-LOCAL   boolean    crx_out_tris_twice(TRI**,int,TRI**,int,TRI*,INTERFACE*,RECT_BOX*);
-LOCAL	boolean    ip_connected(int **, int, int*);
-LOCAL	boolean 	overlapping_boxes(RECT_BOX*, RECT_BOX*);
+LOCAL   boolean crx_bnd_out_tris(TRI**,int,TRI**,int,TRI*,INTERFACE*,RECT_BOX*);
+LOCAL   boolean crx_out_tris_twice(TRI**,int,TRI**,int,TRI*,INTERFACE*,
+				RECT_BOX*);
+LOCAL	boolean ip_connected(int **, int, int*);
+LOCAL	boolean overlapping_boxes(RECT_BOX*, RECT_BOX*);
 LOCAL	void 	tecplot_show_box(char*,RECT_BOX*,FILE*);
 LOCAL	void	tecplot_show_null_tris(TRI**, POINT**, int, FILE*);
 LOCAL	void 	remove_crx_tri_on_edge(TRI*,TRI*,int,TRI**,int*);
 LOCAL	boolean	check_adjecant_constrain0(POINT*,POINT*,POINT*,POINT*,
-					TRI**,int);
+				TRI**,int);
 LOCAL	void	seal_null_loop(TRI**,int*,POINT**,int);
-LOCAL	boolean 	rm_bad_crxs_in_box(int*,int*,int**,int,RECT_BOX*,INTERFACE*);
+LOCAL	boolean rm_bad_crxs_in_box(int*,int*,int**,int,RECT_BOX*,INTERFACE*);
 LOCAL	void  	smooth_null_loop(TRI**,int*,POINT**,int);
-LOCAL	boolean  	set_tst_recon_boxes(int*,int*,RECT_BOX**,INTERFACE*);
+LOCAL	boolean set_tst_recon_boxes(int*,int*,RECT_BOX**,INTERFACE*);
 	void 	smooth_tris(TRI **,int);
 
 boolean    set_use_rect_tris(boolean);
@@ -110,7 +112,6 @@ boolean	merge_near_interface(Front*);
 
 EXPORT	boolean  skip_tag_tri(TRI*);
 
-#define		MAX_NUM_UNPHY_IP		4500
 #define		MAX_NULL_SIDE_LOOP		1000
 
 
@@ -872,7 +873,7 @@ LOCAL   int num_tri_recorded;
 
 void   print_edge_crossings(int *, int*, INTERFACE *);
 LOCAL	boolean set_tst_recon_boxes(int*,int*,RECT_BOX**,INTERFACE*);
-void	communicate_box_recon(RECT_BOX*,INTERFACE*, Front*);
+LOCAL	void communicate_box_recon(RECT_BOX*,INTERFACE*, Front*);
 
 LOCAL	boolean track_comp_and_repair3d(
 	int		*smin,
@@ -891,34 +892,21 @@ LOCAL	boolean track_comp_and_repair3d(
 	if(ips == NULL)
 	    stat_matrix(&ips,MAX_NUM_UNPHY_IP,3,INT);
 
-	/* see function track_comp_through_crxings3d */
-	
 	adjust_crossings(smin,smax,intfc);
 	fill_comp_from_prev_intfc(intfc, smin, smax);
 	
 	fill_physical_comps(smin,smax,gmax,intfc);
 
-	if(debugging("compcrx"))
-	{
-	    int  tmin[3] = {0, 12, 20}, tmax[3] = {2, 14, 22};
-	    
-	    printf("#check comp physical\n");
+	remove_unphysical_crxings(smin,smax,gmax,intfc,SINGLE,&num_ip,ips);
 
-	    show_grid_components(tmin,tmax,0,intfc);
-	    show_grid_components(tmin,tmax,1,intfc);
-	    show_grid_components(tmin,tmax,2,intfc);
-	}
-
-	/* record all unphysical ip's */
-	num_ip = record_unphysical_ips(smin,smax,intfc,ips);
 	if (debugging("compcrx"))
-	    printf("#num_ip  %d\n", num_ip);
-	
-	if(debugging("mergecrx"))
 	{
-	    set_use_rect_tris(NO);
+	    printf("After remove_up\n");
+	    printf("#num_ip  %d\n", num_ip);
+	    for (i = 0; i < num_ip; ++i)
+		printf("ip[%d] = %d %d %d\n",i,ips[i][0],ips[i][1],ips[i][2]);
 	}
-
+	
 	if(!set_reconstruction_boxes(smin,smax,ips,num_ip,&boxes,intfc))
 	{
 	    if (debugging("trace"))
@@ -929,18 +917,8 @@ LOCAL	boolean track_comp_and_repair3d(
 	    return FUNCTION_FAILED;
 	}
 
-	remove_unphysical_crxings(smin,smax,gmax,intfc,SINGLE);
-	/*
-	check_and_repair_crx(intfc,smin,smax);
-	*/
-
 	communicate_box_recon(boxes, intfc, fr);
 	
-	if(debugging("mergecrx"))
-	{
-	    set_use_rect_tris(YES);
-	}
-
 	if (debugging("trace"))
 	    (void) printf("Leaving track_comp_and_repair3d()\n");
 	return FUNCTION_SUCCEEDED;
@@ -950,7 +928,7 @@ LOCAL	boolean track_comp_and_repair3d(
 
 boolean	rbox_communication_boxes(RECT_BOX*,Front*);
 
-void	communicate_box_recon(
+LOCAL void communicate_box_recon(
 	RECT_BOX	*boxes,
 	INTERFACE	*intfc,
 	Front		*fr)
@@ -1054,14 +1032,10 @@ LOCAL	boolean track_comp_and_set_boxes(
 
 	/* record all unphysical ip's */
 	num_ip = record_unphysical_ips(smin,smax,intfc,ips);
+
 	if (debugging("compcrx"))
 	    printf("#num_ip  %d\n", num_ip);
 
-	if(debugging("mergecrx"))
-	{
-	    set_use_rect_tris(NO);
-	}
-	
 	/* make the boxes for lgb reconstruction. */
 	if(!set_reconstruction_boxes(smin,smax,ips,num_ip,&boxes,intfc))
 	{
@@ -3146,7 +3120,7 @@ LOCAL	boolean  rm_bad_crxs_in_box(
 
 	    /* fix crossings in a box */
 	    remove_unphysical_crxings(box->bmin,box->bmax,gr->gmax,
-			intfc,SINGLE);
+			intfc,SINGLE,&num_ip,ips);
 	    check_and_repair_crx(intfc,box->bmin,box->bmax);
 	}
 
@@ -5276,13 +5250,13 @@ LOCAL	boolean  rm_bad_crxs_in_box_prev(
 
 	    /* fix crossings in a box */
 	    remove_unphysical_crxings(box->bmin,box->bmax,gr->gmax,
-			intfc,SINGLE);
+			intfc,SINGLE,&num_ip,ips);
 	    check_and_repair_crx(intfc,box->bmin,box->bmax);
 	}
 
 	DEBUG_LEAVE(rm_bad_crxs_in_box)
 	return YES;
-}
+}	/* end rm_bad_crxs_in_box_prev */
 
 void	make_ggrid(
 	GGRID		*ggr,

@@ -116,6 +116,9 @@ enum {
 #if !defined(MAX_N_NODE_FLAGS)
 #define MAX_N_NODE_FLAGS 64
 #endif /* !defined(MAX_N_NODE_FLAGS) */
+#if !defined(MAX_NUM_UNPHY_IP)
+#define MAX_NUM_UNPHY_IP 4500
+#endif /* !defined(MAX_NUM_UNPHY_IP) */
 
 struct _NODE_FLAG {
 	boolean _node_flags[MAX_N_NODE_FLAGS];
@@ -544,8 +547,8 @@ struct _Front {
 	int step, max_step;
 	int num_mts,_max_num_mts;
 	boolean   redis_flag; /*flag for the redistribution after LGB*/
-	double max_scaled_propagation;
-	double max_prop_point[MAXD];
+	double *max_scaled_propagation;
+	double *max_prop_point;
 	boolean print_sdl_file;
         boolean tan_sec, parab;
         double subgrid_time;

@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/*********************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions 
+have discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -21,7 +22,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-******************************************************************************/
+**********************************************************************/
 
 
 /*
@@ -88,6 +89,7 @@ LOCAL	void	merge_point_pointers_at_subdomain_bdry(TRI**,TRI**,
 LOCAL	void	strip_curve_from_surf(CURVE*,SURFACE*,ORIENTATION);
 LOCAL	void	synchronize_tris_at_subdomain_bdry(TRI**,TRI**,int,P_LINK*,int);
 	void 	sep_common_pt_for_open_bdry(INTERFACE*);
+LOCAL	void 	incremental_alloc_tris(TRI***,int*);
 LOCAL	INTERFACE	*cut_buf_interface1(INTERFACE*,int,int,int*,int*);
 LOCAL   boolean    find_null_side_loop(INTERFACE*,TRI*,int,TRI**,int*);
 LOCAL	COMPONENT buffer_component(INTERFACE*,int,int);
@@ -1430,15 +1432,18 @@ void sep_common_pt_for_ref_bdry(
 	int		nb)
 {
 	SURFACE			**s;
-	TRI			*tri, *tris[MAX_SUBDOMAIN_TRIS];
+	TRI			*tri;
 	POINT			**p, **p1;
 	int			i, j, nt, num;
 	double			tmp_fac, cut_plane, crds;
 	double			tol = tol1[dir];
+	TRI	 **tris = NULL;
+	int	 num_tri_allocated = 0;
 	
 	cut_plane = nb==0 ? -HUGE_VAL : HUGE_VAL;
 
 	nt = 0;
+	incremental_alloc_tris(&tris,&num_tri_allocated);
 	for(s=intfc->surfaces; s && *s; s++)
 	{
 	    for(tri=first_tri(*s); !at_end_of_tri_list(tri,*s); tri=tri->next)
@@ -1446,10 +1451,9 @@ void sep_common_pt_for_ref_bdry(
 		if(Tri_order(tri) != 0)
 		{
 		    tris[nt++] = tri;
-		    if(nt >= MAX_SUBDOMAIN_TRIS)
+		    if(nt >= num_tri_allocated)
 		    {
-			printf("ERROR sep_common_pt_for_ref_bdry, too many tris.\n ");
-			clean_up(ERROR);
+			incremental_alloc_tris(&tris,&num_tri_allocated);
 		    }
 
 		    /*tri is the triangle needed to connect with the strip
@@ -1500,11 +1504,10 @@ void sep_common_pt_for_ref_bdry(
 			if(j<num)
 			{
 			    tris[nt++] = tri;
-			    if(nt >= MAX_SUBDOMAIN_TRIS)
+			    if(nt >= num_tri_allocated)
 			    {
-				printf("ERROR sep_common_pt_for_ref_bdry,"
-				       " too many tris in the second.\n ");
-				clean_up(ERROR);
+				incremental_alloc_tris(&tris,
+						&num_tri_allocated);
 			    }
 			    break;
 			}
@@ -1518,6 +1521,7 @@ void sep_common_pt_for_ref_bdry(
 	if(nt > 0)
 	    sep_common_point_from_loop(tris, nt, NULL, NULL, intfc);
 	set_comm_pt_fac(tmp_fac);
+	free_these(1,tris);
 }
 
 void cut_buffer_tris_from_intfc(
@@ -1817,18 +1821,21 @@ EXPORT void install_subdomain_bdry_curves(
 	CURVE	 *curve, **c;
 	NODE	 *ns, *ne, **n, **n1;
 	POINT	 *p, *ps, *pe;
-	TRI	 *tri_start, *start_tri, *null_tris[MAX_SUBDOMAIN_TRIS];
+	TRI	 *tri_start, *start_tri;
 	SURFACE	 **s;
 	Locstate sl, sr;
 	boolean  	 sav_intrp, dup_nodes;
 	int	 side_start, start_side, ntris, i;
 	int	 dim = intfc->dim;
+	TRI	 **null_tris = NULL;
+	int	 num_tri_allocated = 0;
 
 	DEBUG_ENTER(install_subdomain_bdry_curves)
 	
 	sav_intrp = interpolate_intfc_states(intfc);
 	interpolate_intfc_states(intfc) = NO;
 	
+	incremental_alloc_tris(&null_tris,&num_tri_allocated);
 	for (s = intfc->surfaces; s && *s; ++s)
 	{
 	    while (null_side_on_surface(*s,&start_tri,&start_side))
@@ -1865,12 +1872,8 @@ EXPORT void install_subdomain_bdry_curves(
 	
 		    null_tris[ntris] = tri_start;
 		    ntris++;
-		    if(ntris >= MAX_SUBDOMAIN_TRIS)
-		    {
-			printf("ERROR install_subdomain_bdry_curves "
-			       "too many subdomain tris.\n");
-			clean_up(ERROR);
-		    }
+		    if(ntris >= num_tri_allocated)
+			incremental_alloc_tris(&null_tris,&num_tri_allocated);
 	    
 		    if (ns->posn == ne->posn) /*Closed loop formed */
 		    {
@@ -1888,7 +1891,8 @@ EXPORT void install_subdomain_bdry_curves(
 		
 		for(i=0, b=curve->first; b!=NULL; b=b->next, i++)
 		{
-		    btri = link_tri_to_bond(NULL,null_tris[ntris-1-i],*s,b,curve);
+		    btri = link_tri_to_bond(NULL,null_tris[ntris-1-i],*s,b,
+						curve);
 		    copy_tri_state_to_btri(btri,b,NEGATIVE_ORIENTATION,intfc);
 		    copy_tri_state_to_btri(btri,b,POSITIVE_ORIENTATION,intfc);
 		}
@@ -1926,6 +1930,7 @@ EXPORT void install_subdomain_bdry_curves(
 		    break;
 	    }
 	}
+	free_these(1,null_tris);
 
 	if (debugging("consistency"))
 	{
@@ -1943,16 +1948,19 @@ EXPORT void install_subdomain_bdry_curves(
 void sep_common_pt_for_open_bdry(
 	INTERFACE	*intfc)
 {
-	SURFACE			**s;
-	POINT			*p;
-	TRI			*tri, *tris[MAX_SUBDOMAIN_TRIS];
-	int			i, k, nt;
-	double			nor[4], tmp_fac;
+	SURFACE	**s;
+	POINT	*p;
+	TRI	*tri;
+	int	i, k, nt;
+	double	nor[4], tmp_fac;
+	TRI	**tris = NULL;
+	int	num_tri_allocated = 0;
 
 	if(!debugging("sep_for_open"))
 	    return;
 
 	nt = 0;
+	incremental_alloc_tris(&tris,&num_tri_allocated);
 	for(s=intfc->surfaces; s && *s; s++)
 	{
 	    for(tri=first_tri(*s); !at_end_of_tri_list(tri,*s); tri=tri->next)
@@ -1963,11 +1971,9 @@ void sep_common_pt_for_open_bdry(
 		    if(point_outside_open_bdry(&k, nor, p, intfc))
 		    {
 		        tris[nt++] = tri;
-			if(nt >= MAX_SUBDOMAIN_TRIS)
+			if(nt >= num_tri_allocated)
 			{
-			    printf("ERROR sep_common_pt_for_open_bdry ",
-				   "too many tris.\n");
-			    clean_up(ERROR);
+			     incremental_alloc_tris(&tris,&num_tri_allocated);
 			}
 		    }
 		}
@@ -1979,6 +1985,7 @@ void sep_common_pt_for_open_bdry(
 	if(nt > 0)
 	    sep_common_point_from_loop(tris, nt, NULL, NULL, intfc);
 	set_comm_pt_fac(tmp_fac);
+	free_these(1,tris);
 }
 
 EXPORT void install_subdomain_bdry_curves_org(
@@ -4666,18 +4673,21 @@ EXPORT void install_hsbdry_on_surface(
 	CURVE	 *curve, **c;
 	NODE	 *ns, *ne, **n, **n1;
 	POINT	 *p, *ps, *pe;
-	TRI	 *tri_start, *start_tri, *null_tris[MAX_SUBDOMAIN_TRIS];
+	TRI	 *tri_start, *start_tri;
 	Locstate sl, sr;
 	boolean  	 sav_intrp, dup_nodes;
 	int	 side_start, start_side, ntris, i;
 	INTERFACE *intfc = surf->interface;
 	int	 dim = intfc->dim;
+	TRI	 **null_tris = NULL;
+	int	 num_tri_allocated = 0;
 
 	DEBUG_ENTER(install_hsbdry_on_surface)
 	
 	sav_intrp = interpolate_intfc_states(intfc);
 	interpolate_intfc_states(intfc) = NO;
 	
+	incremental_alloc_tris(&null_tris,&num_tri_allocated);
 	while (null_side_on_surface(surf,&start_tri,&start_side))
 	{
 	    find_ending_null_side(start_tri,start_side,&tri_start,&side_start);
@@ -4711,11 +4721,9 @@ EXPORT void install_hsbdry_on_surface(
 	
 		null_tris[ntris] = tri_start;
 		ntris++;
-		if(ntris >= MAX_SUBDOMAIN_TRIS)
+		if(ntris >= num_tri_allocated)
 		{
-		    printf("ERROR install_hsbdry_on_surface "
-			       "too many subdomain tris.\n");
-		    clean_up(ERROR);
+		    incremental_alloc_tris(&null_tris,&num_tri_allocated);
 		}
 	    
 		if (ns->posn == ne->posn) /* Closed loop formed */
@@ -4770,6 +4778,7 @@ EXPORT void install_hsbdry_on_surface(
 		    break;
 	    }
 	}
+	free_these(1,null_tris);
 
 	if (debugging("consistency"))
 	{
@@ -4820,3 +4829,18 @@ int compare_points(const void *a, const void *b)
         return 0;
 }
 
+LOCAL	void incremental_alloc_tris(
+	TRI ***tris,
+	int *num_allocated_tris)
+{
+	TRI **new_tris;
+	int i,old_num_allocated_tris = *num_allocated_tris;
+
+	*num_allocated_tris += MAX_SUBDOMAIN_TRIS;
+	uni_array(&new_tris,*num_allocated_tris,sizeof(TRI*));
+	for (i = 0; i < old_num_allocated_tris; ++i)
+	    new_tris[i] = (*tris)[i];
+	if (old_num_allocated_tris != 0 || *tris != NULL)
+	    free_these(1,*tris);
+	*tris = new_tris;
+}	/* end incremental_alloc_tri */

@@ -327,9 +327,9 @@ static  void reaction_point_propagate(
         }
 
 	relative_dist = fabs(nor_speed)*dt/dn;
-	if (front->max_scaled_propagation < relative_dist)
+	if (*front->max_scaled_propagation < relative_dist)
         {
-            front->max_scaled_propagation = relative_dist;
+            *front->max_scaled_propagation = relative_dist;
             if (relative_dist > 0.5)
             {
                 (void) printf("WARNING: propagation too large!\n");

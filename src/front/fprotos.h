@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/**************************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -20,8 +21,7 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-******************************************************************************/
+****************************************************************************/
 
 
 /*
@@ -216,23 +216,29 @@ IMPORT	void 	fill_comps_in_box(int*,int*,int*,INTERFACE*);
 IMPORT	void 	fill_physical_comps(int*,int*,int*,INTERFACE*);
 IMPORT	void 	fill_comp_with_component3d(int*,int*,int*,INTERFACE*);
 IMPORT	void 	show_component_along_line(int,int,int*,int*,int,INTERFACE*);
-IMPORT	void 	remove_unphysical_crxings(int*,int*,int*,INTERFACE*,CRX_TYPE);
+IMPORT	void 	remove_unphysical_crxings(int*,int*,int*,INTERFACE*,CRX_TYPE,
+				int*,int**);
 IMPORT	boolean	remove_unphysical_crossings3d(INTERFACE*,int*,int*);
 IMPORT  SURFACE* find_surf_with_comp(INTERFACE*, int, int);
 IMPORT	boolean	curves_on_bdry_side(int,int,INTERFACE*);
 
-IMPORT	boolean 	adjacent_cell(int*,int*);
+IMPORT	boolean adjacent_cell(int*,int*);
 IMPORT	int 	record_unphysical_ips(int*,int*,INTERFACE*,int**);
-IMPORT  boolean	reconstruct_intfc3d_in_box_lgb(INTERFACE*,int*,int*,boolean,VOLUME_FRAC*);
-IMPORT  boolean	reconstruct_intfc3d_in_box(INTERFACE*,int*,int*,boolean,VOLUME_FRAC*);
+IMPORT  boolean	reconstruct_intfc3d_in_box_lgb(INTERFACE*,int*,int*,boolean,
+				VOLUME_FRAC*);
+IMPORT  boolean	reconstruct_intfc3d_in_box(INTERFACE*,int*,int*,boolean,
+				VOLUME_FRAC*);
 IMPORT	int	count_grid_intfc_crossings3d(INTERFACE*);
 IMPORT 	int	insert_grid_intfc_crossings3d(INTERFACE*);
 IMPORT	void	set_expanded_grid(RECT_GRID*,RECT_GRID*);
 IMPORT  void	set_crx_storage_for_reconstruction(INTERFACE*,VOLUME_FRAC*);
 IMPORT	void	free_crx_storage(INTERFACE*);
-IMPORT	void	linear_interp_coefs_three_pts(double*,double*,double*,double*,double*);
-IMPORT	boolean	track_comp_through_crxings3d(int*,int*,int*,INTERFACE*,CRX_TYPE);
-IMPORT	void    interpolate_crx_pt_states_on_tri(INTERFACE*,POINT*,TRI*,SURFACE*);
+IMPORT	void	linear_interp_coefs_three_pts(double*,double*,double*,double*,
+				double*);
+IMPORT	boolean	track_comp_through_crxings3d(int*,int*,int*,INTERFACE*,
+				CRX_TYPE);
+IMPORT	void    interpolate_crx_pt_states_on_tri(INTERFACE*,POINT*,TRI*,
+				SURFACE*);
 IMPORT	void    interpolate_crx_pt_states_on_edge(INTERFACE*,POINT*,TRI*,
                                 SURFACE*,int);
 IMPORT  void    check_surface_curve(SURFACE *);
@@ -248,6 +254,7 @@ IMPORT  boolean  vertex_index_of_face(int *,int,int,int,GRID_DIRECTION,int*);
 IMPORT	boolean  rebuild_intfc_at_crossings3d3(Front *);
 IMPORT  boolean  fill_comp_from_prev_intfc(INTERFACE *, int *, int *);
 IMPORT  TRI*  Tri_on_side_along_wall(int*,TRI*,int);
+IMPORT	int	idir_of_dir(GRID_DIRECTION);
 
         /* fgrid.c*/
 IMPORT	int  	count_grid_intfc_crossings(INTERFACE*);

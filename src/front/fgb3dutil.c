@@ -78,9 +78,9 @@ LOCAL	void	multi_crx_debug(CRX_SORT*,int,GRID_PT*,double*,double*,int);
 LOCAL	void	print_crx_sort(CRX_SORT*,int,GRID_PT*);
 LOCAL	void	print_edge_crxings(GRID_PT*,INTERFACE*);
 LOCAL	void	set_grid_crx_edge(RECT_GRID*,int*,GRID_DIRECTION,
-				  double*,double*,int*,int*);
+				double*,double*,int*,int*);
 LOCAL	int	rm_unphy_crx_along_grid_line(INTERFACE*,int*,int*,int*,int*,
-					     GRID_DIRECTION,CRX_TYPE);
+			     	GRID_DIRECTION,CRX_TYPE,int*,int**);
 
 /*insert grid crxings */
 LOCAL   int     count_block_crossings(RECT_GRID*,int*,TRI**,int,int*);
@@ -112,7 +112,7 @@ LOCAL void print_comp_along_grid_line(int*,int*,GRID_DIRECTION,struct Table*,
 LOCAL boolean reset_segment(int*,int*,int*,GRID_DIRECTION,COMPONENT*,int*,int*,
 				int*);
 LOCAL boolean remove_unphy_pair(int*,GRID_DIRECTION,struct Table *,int*,int*,
-				int*);
+				int*,int*,int**);
 LOCAL void enforce_single_crossing(int*,int*,GRID_DIRECTION,struct Table*,
 				int*,int*,int*);
 
@@ -1192,29 +1192,30 @@ EXPORT 	boolean track_comp_through_crxings3d(
 	CRX_TYPE crx_type)
 {
 	int count = 0;
+	static int **ips = NULL;
+	int num_ip;
+
 	DEBUG_ENTER(track_comp_through_crxings3d)
 
+	if(ips == NULL)
+            stat_matrix(&ips,MAX_NUM_UNPHY_IP,3,INT);
+
 	/* eliminate duplicate crossings */
-	/*adjust_crossings(smin,smax,intfc); */
+	adjust_crossings(smin,smax,intfc);
 
 	/* assign components and isolate unphysical clusters */
 	start_clock("fill_physical_comps");
 	fill_physical_comps(smin,smax,gmax,intfc);
 	stop_clock("fill_physical_comps");
 
-	/* this is different from prev alg. if there are NO_COMP found,  */
-	/* the compoennt3d is always called.  */
-	/* Removed, not helpful, expensive
-	start_clock("fill_comp_with_component3d");
-	fill_comp_with_component3d(smin,smax,gmax,intfc);
-	stop_clock("fill_comp_with_component3d");
-	*/
-	
 	/* annihilate unphysical clusters */
 	start_clock("remove_unphysical_crxings");
+	remove_unphysical_crxings(smin,smax,gmax,intfc,crx_type,&num_ip,ips);
+
 	while(unset_comp_exist(smin,smax,intfc))
 	{
-	    remove_unphysical_crxings(smin,smax,gmax,intfc,crx_type);
+	    remove_unphysical_crxings(smin,smax,gmax,intfc,crx_type,&num_ip,
+					ips);
 	    if (count++ == 4)
 	    {
 	    	screen("ERROR: unset component still exist after 4 rounds!\n");
@@ -1696,7 +1697,9 @@ EXPORT	void remove_unphysical_crxings(
         int      *smax,
         int      *gmax,
         INTERFACE *intfc,
-	CRX_TYPE crx_type)
+	CRX_TYPE crx_type,
+	int	 *num_ip,
+	int	 **ips)
 {
 	int 		ix, iy, iz, step;
 	int 		ip[3];
@@ -1706,6 +1709,7 @@ EXPORT	void remove_unphysical_crxings(
 
 	/* remove unphysical crossings */
 
+	*num_ip = 0;
 	unset_comp_along_grid_line(intfc,smin,smax,gmax,2);
 	for (ix = smin[0]; ix <= smax[0]; ++ix)
 	{
@@ -1728,9 +1732,9 @@ EXPORT	void remove_unphysical_crxings(
 		    }
 
 		    rm_unphy_crx_along_grid_line(intfc,smin,smax,
-					             gmax,ip,LOWER,crx_type);
+			             gmax,ip,LOWER,crx_type,num_ip,ips);
 		    step = rm_unphy_crx_along_grid_line(intfc,smin,smax,
-					             gmax,ip,UPPER,crx_type);
+				     gmax,ip,UPPER,crx_type,num_ip,ips);
 		    iz += step;
 		    if(debugging("rm_crx"))
 			show_line_components3d(ip,smin,smax,2,intfc);
@@ -1757,9 +1761,9 @@ EXPORT	void remove_unphysical_crxings(
 			continue;
 
 		    rm_unphy_crx_along_grid_line(intfc,smin,smax,
-					             gmax,ip,SOUTH,crx_type);
+			             gmax,ip,SOUTH,crx_type,num_ip,ips);
 		    step = rm_unphy_crx_along_grid_line(intfc,smin,smax,
-					             gmax,ip,NORTH,crx_type);
+			             gmax,ip,NORTH,crx_type,num_ip,ips);
 		    iy += step;
 		}
 	    }
@@ -1783,9 +1787,9 @@ EXPORT	void remove_unphysical_crxings(
 		    if (c == NO_COMP)
 			continue;
 		    rm_unphy_crx_along_grid_line(intfc,smin,smax,
-					             gmax,ip,WEST,crx_type);
+				       	gmax,ip,WEST,crx_type,num_ip,ips);
 		    step = rm_unphy_crx_along_grid_line(intfc,smin,smax,
-					             gmax,ip,EAST,crx_type);
+					gmax,ip,EAST,crx_type,num_ip,ips);
 		    ix += step;
 		}
 	    }
@@ -1873,6 +1877,23 @@ LOCAL	COMPONENT this_side_comp_at_crx(
 	}
 	return NO_COMP;
 }		/*end this_side_comp_at_crx*/
+
+EXPORT	int idir_of_dir(
+	GRID_DIRECTION dir)
+{
+	switch (dir)
+	{
+	case EAST:
+	case WEST:
+	    return 0;
+	case NORTH:
+	case SOUTH:
+	    return 1;
+	case UPPER:
+	case LOWER:
+	    return 2;
+	}
+}	/* end idir_of_dir */
 
 EXPORT	boolean check_and_repair_crx(
 	INTERFACE *intfc,
@@ -3439,7 +3460,9 @@ LOCAL	int	rm_unphy_crx_along_grid_line(
 	int            *gmax,
 	int            *ip,
 	GRID_DIRECTION dir,
-	CRX_TYPE       crx_type)
+	CRX_TYPE       crx_type,
+	int	       *num_ip,
+	int	       **ips)
 {
 	Table	  *T = table_of_interface(intfc);
 	COMPONENT *comp = T->components;
@@ -3480,7 +3503,7 @@ LOCAL	int	rm_unphy_crx_along_grid_line(
 	    if (step < fabs(ip[i] - ip_end[i])) 
 		step = fabs(ip[i] - ip_end[i]);
 	}
-	while (remove_unphy_pair(ip_start,dir,T,gmax,smin,smax))
+	while (remove_unphy_pair(ip_start,dir,T,gmax,smin,smax,num_ip,ips))
 	{
 	    count++;
 	    if (!reset_segment(ip,ip_start,ip_sub,dir,comp,gmax,smin,smax))
@@ -5190,6 +5213,8 @@ LOCAL	void print_comp_along_grid_line(
 	CRXING *crx;
 	int ip[MAXD];
 
+	printf("In print_comp_along_grid_line() dir = %s\n",
+			grid_direction_name(dir));
 	crx = NULL;
 	for (i = 0; i < 3; ++i) ip[i] = ip1[i];
 	printf("\nstart ip = %d %d %d comp = %d\n",ip[0],ip[1],ip[2],c1);
@@ -5232,15 +5257,16 @@ LOCAL boolean reset_segment(
 	boolean status = NO;
 	int i;
 	int ip_tmp[MAXD];
+	int idir = idir_of_dir(dir);
 
-	for (i = 0; i < 3; ++i) ip_start[i] = ip[i];
+	for (i = 0; i < 3; ++i) 
+	    ip_start[i] = ip_end[i] = ip[i];
 	while (next_ip_in_dir(ip_start,dir,ip_tmp,smin,smax))
 	{
 	    status = YES;
 	    ic = d_index(ip_tmp,gmax,3);
 	    if (comp[ic] == NO_COMP) break;
-	    if (ip_tmp[0] == smax[0] || ip_tmp[1] == smax[1] || 
-		ip_tmp[2] == smax[2])
+	    if (ip_tmp[idir] == smax[idir] || ip_tmp[idir] == smin[idir])
 		break;
 	    for (i = 0; i < 3; ++i) ip_start[i] = ip_tmp[i];
 	}
@@ -5252,8 +5278,7 @@ LOCAL boolean reset_segment(
 	    status = YES;
 	    ic = d_index(ip_end,gmax,3);
 	    if (comp[ic] != NO_COMP) break;
-	    if (ip_end[0] == smax[0] || ip_end[1] == smax[1] || 
-		ip_end[2] == smax[2])
+	    if (ip_end[idir] == smax[idir] || ip_end[idir] == smin[idir])
 		break;
 	}
 	return status;
@@ -5265,7 +5290,9 @@ LOCAL boolean remove_unphy_pair(
         struct Table *T,
 	int *gmax,
 	int *smin,
-	int *smax)
+	int *smax,
+	int *num_ip,
+	int **ips)
 {
 	COMPONENT *comp = T->components;
 	COMPONENT c1,c2;
@@ -5273,7 +5300,7 @@ LOCAL boolean remove_unphy_pair(
 	int ip_crx1[MAXD],ip_crx2[MAXD];
 	int ic1,ic2;
         GRID_DIRECTION opp_dir;
-	CRXING	  *crx1,*crx2;
+	CRXING	  *crx1,*crx2,*crx2_prev;
 	int k,nc,num_crx;
 	int count = 0;
 	boolean status = NO;
@@ -5347,7 +5374,7 @@ LOCAL boolean remove_unphy_pair(
 	if (debugging("seg_comp"))
 	{
 	    (void) printf("ip2 = %d %d %d\n",ip2[0],ip2[1],ip2[2]);
-	    (void) printf("c2 = %d\n",c2);
+	    (void) printf("c1 = %d  c2 = %d\n",c1,c2);
 	    (void) printf("num_crx = %d\n",num_crx);
 	}
 	for (i = 0; i < 3; ++i)
@@ -5393,6 +5420,7 @@ LOCAL boolean remove_unphy_pair(
 	while (count < 10000)
 	{
 	    count++;
+	    crx2_prev = crx2;
 	    crx2 = next_crossing(ip2,gmax,opp_dir,T,crx2);
 	    if (crx2 == NULL)
 	    {
@@ -5413,6 +5441,8 @@ LOCAL boolean remove_unphy_pair(
 		{
 		    for (i = 0; i < 3; ++i)
 			ip_crx2[i] = ip2[i];
+	    	    if (crx2 == crx1 && c1 != c2)
+			crx2 = crx2_prev;
 		    break;
 		}
 		else
@@ -5437,7 +5467,23 @@ LOCAL boolean remove_unphy_pair(
 	    (void) printf("remove crx2 = %d\n",crx2);
 	}
 	remove_crossing(crx1,ip_crx1,dir,gmax,T);
+	for (i = 0; i < 3; ++i)
+	    ips[*num_ip][i] = ip_crx1[i];
+	++(*num_ip);
+	next_ip_in_dir(ip_crx1,dir,ip_crx1,smin,smax);
+	for (i = 0; i < 3; ++i)
+	    ips[*num_ip][i] = ip_crx1[i];
+	++(*num_ip);
+
 	remove_crossing(crx2,ip_crx2,opp_dir,gmax,T);
+	for (i = 0; i < 3; ++i)
+	    ips[*num_ip][i] = ip_crx2[i];
+	++(*num_ip);
+	next_ip_in_dir(ip_crx2,opp_dir,ip_crx2,smin,smax);
+	for (i = 0; i < 3; ++i)
+	    ips[*num_ip][i] = ip_crx2[i];
+	++(*num_ip);
+
 	if (debugging("seg_comp"))
 	{
 	    (void) printf("After removal:\n");

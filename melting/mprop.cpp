@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/******************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -21,7 +22,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-******************************************************************************/
+*******************************************************************/
 
 
 #include "melting.h"
@@ -143,9 +144,9 @@ static  void ice_point_propagate(
         }
 	
 	relative_dist = fabs(speed*dt/dn);
-	if (front->max_scaled_propagation < relative_dist)
+	if (*front->max_scaled_propagation < relative_dist)
 	{
-	    front->max_scaled_propagation = relative_dist;
+	    *front->max_scaled_propagation = relative_dist;
 	    if (relative_dist > 0.5)
 	    {
 	        (void) printf("WARNING: propagation too large!\n");

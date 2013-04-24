@@ -853,12 +853,12 @@ sync_prop_stat1:
 	    if (status != GOOD_STEP)
 	        return return_advance_front(front,newfront,status,fname);
 	}
-	if (front->max_scaled_propagation > 0.5)
+	if (*front->max_scaled_propagation > 0.5)
 	{
 	    (void) printf("WARNING in advance_front2d(), "
 	                  "front->max_scaled_propagation = %f\n",
 			  front->max_scaled_propagation);
-	    *dt_frac = 0.4/front->max_scaled_propagation;
+	    *dt_frac = 0.4/(*front->max_scaled_propagation);
 	    status = MODIFY_TIME_STEP;
 	    goto sync_prop_stat2;
 	}
@@ -2091,12 +2091,12 @@ LOCAL int propagate_3d_front(
 	    debug_front("np_front","after normal propagation",newfront);
 	    stop_clock("normal_propagate");
 	}
-	if (front->max_scaled_propagation > 0.5)
+	if (*front->max_scaled_propagation > 0.5)
         {
             (void) printf("WARNING in advance_front2d(), "
                           "front->max_scaled_propagation = %f\n",
-                          front->max_scaled_propagation);
-            *dt_frac = 0.4/front->max_scaled_propagation;
+                          *front->max_scaled_propagation);
+            *dt_frac = 0.4/(*front->max_scaled_propagation);
             step_status = MODIFY_TIME_STEP;
 	    return step_status;
         }

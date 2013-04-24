@@ -98,7 +98,7 @@ EXPORT	int FrontAdvance(
 
 	*dt_frac = 1.0;
 	front->dt_frac = dt_frac;
-	front->max_scaled_propagation = 0.0;
+	*front->max_scaled_propagation = 0.0;
         status = advance_front(front->dt,dt_frac,front,newfront,wave);
 
         count = 0;
@@ -109,7 +109,7 @@ EXPORT	int FrontAdvance(
 	    if (status == MODIFY_TIME_STEP)
             	front->dt = (*dt_frac)*start_dt;
 	    start_dt = front->dt;
-	    front->max_scaled_propagation = 0.0;
+	    *front->max_scaled_propagation = 0.0;
             status = advance_front(front->dt,dt_frac,front,newfront,wave);
             count++;
             if (count > 15) 

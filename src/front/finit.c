@@ -357,6 +357,7 @@ EXPORT void init_front(
 	INIT_DATA     *init,
 	Front	      *front)
 {
+
 	debug_print("init","Entered init_front()\n");
 
 	Clear_redistribution_parameters(front);
@@ -1601,11 +1602,17 @@ EXPORT  void    FT_StartUp(
 	static int i_grid = 0;
         static F_INIT_DATA Init;
 	int **rect_bdry_type;
+	static double *max_scaled_propagation;
+        static double *max_prop_point;
 
 	start_clock("FT_StartUp");
         setbuf(stdin,NULL);
         init_clean_up(NULL,NULL);
 	front->f_basic = ft_basic;
+	scalar(&max_scaled_propagation,sizeof(double));
+        uni_array(&max_prop_point,MAXD,sizeof(double));
+        front->max_scaled_propagation = max_scaled_propagation;
+        front->max_prop_point = max_prop_point;
 
 	if(ft_basic == NULL) /* call build-in functions to prompt data */
 	{

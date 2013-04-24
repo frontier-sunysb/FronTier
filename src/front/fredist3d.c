@@ -910,7 +910,7 @@ EXPORT int redistribute3d(
 
 	if ((do_redist && fr->step > 0) || fr->step == 1 || do_auto_redist)
 	{
-	    int		num_iter=3;
+	    int		num_iter = 1;
 	    
 	    if (debugging("redistribute"))
 	    	printf("#redist inside\n");
