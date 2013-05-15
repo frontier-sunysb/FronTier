@@ -392,6 +392,15 @@ extern "C" {
 
    IMPORT  void FT_FreeCompGridIntfc(Front *front );
 
+/*! \fn void FT_FreeOldGridIntfc(Front *front)
+ *  *  \ingroup GRIDINTFC
+ *      \brief Delete and free space of grid crossing interface of
+ *           front->old_grid_intfc
+ *               \param front @b inout       Pointer to Front.
+ *                */
+
+   IMPORT  void FT_FreeOldGridIntfc(Front *front );
+
 /*! \fn void FT_FreeFront(Front *front)
  *  \ingroup GRIDINTFC
     \brief Delete and free space occupied by the front including grid_intfc 
