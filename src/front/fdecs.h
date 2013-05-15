@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions 
+have discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -19,9 +20,9 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-******************************************************************************/
+****************************************************************/
 
 
 /*
@@ -29,11 +30,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
 *
-*	Contains declarations of variables related to the front.  A front
+*	Contains declarations of variables related to the front. A front
 *	consists of an interface (see int.c for documentation) and
-*	and the values of the physical state variables on each side of the
-*	interface, together with further variables which specify algorithms for
-*	the processing of fronts.
+*	the values of the physical state variables on each side of the
+*	interface, together with further variables which specify algorithms 
+*	for the processing of fronts.
 */
 
 #if !defined(_FDECS_H)
@@ -543,6 +544,7 @@ struct _Front {
 	double dt, *dt_frac, time, max_time;
 	double print_time_interval, movie_frame_interval,resolution_level;
 	boolean is_print_time,is_movie_time,time_limit_reached;
+	boolean two_step_interface;
 	int im,ip;
 	int step, max_step;
 	int num_mts,_max_num_mts;
@@ -678,6 +680,7 @@ struct _Front {
 	INTERFACE *grid_intfc;		/* Grid Interface */
 	INTERFACE *comp_grid_intfc;		/* Grid Interface */
 	INTERFACE *emb_grid_intfc;	/* Grid Interface for embedded bdry */
+	INTERFACE *old_grid_intfc;      /* Grid Interface of previous step*/
 	boolean extrapolation_permitted;
 
 #if defined(USE_OVERTURE)
@@ -736,6 +739,7 @@ typedef struct _Wv_on_pc Wv_on_pc;
 
 #define InName(front)   (front)->f_basic->in_name
 #define OutName(front)  (front)->f_basic->out_name
+#define TwoStepIntfc(front)  (front)->two_step_interface
 
 	/*
 	*  Data structure for keeping tracking of the maximum wave speed

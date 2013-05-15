@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions 
+have discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -19,9 +20,9 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-******************************************************************************/
+****************************************************************/
 
 
 /*
@@ -57,7 +58,16 @@ EXPORT	void FT_Propagate(
 	    (void) printf("Entering FT_Propagate()\n");
 	}
 	if (front->grid_intfc == NULL)
-	    FT_MakeGridIntfc(front);
+	{
+	    if (TwoStepIntfc(front) == YES)
+            {
+                if (front->old_grid_intfc != NULL)
+                    FT_FreeOldGridIntfc(front);
+                front->old_grid_intfc = front->grid_intfc;
+            }
+	    else
+	    	FT_MakeGridIntfc(front);
+	}
 	FrontAdvance(front->dt,&dt_frac,front,&newfront,
                                 (POINTER)NULL);
 	if (front->grid_intfc != NULL)
@@ -521,6 +531,13 @@ EXPORT	void FT_FreeCompGridIntfc(
 	free_grid_intfc(front->comp_grid_intfc);
 	front->comp_grid_intfc = NULL;
 }	/* end FT_FreeGridIntfc */
+
+EXPORT  void FT_FreeOldGridIntfc(
+        Front *front)
+{
+        free_grid_intfc(front->old_grid_intfc);
+        front->old_grid_intfc = NULL;
+}       /* end FT_FreeOldGridIntfc */
 
 EXPORT	void FT_FreeFront(
 	Front *front)
