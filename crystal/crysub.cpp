@@ -199,13 +199,11 @@ static  void dirichlet_point_propagate(
 	{
        	    FT_GetStatesAtPoint(oldp,oldhse,oldhs,(POINTER*)&sl,(POINTER*)&sr);
 	    state =  (STATE*)left_state(newp);
-	    state->solute = sl->solute;
 	    if (cRparams->max_solute < state->solute)
 		cRparams->max_solute = state->solute;
 	    if (cRparams->min_solute > state->solute)
 		cRparams->min_solute = state->solute;
 	    state =  (STATE*)right_state(newp);
-	    state->solute = sr->solute;
 	    if (cRparams->max_solute < state->solute)
 		cRparams->max_solute = state->solute;
 	    if (cRparams->min_solute > state->solute)

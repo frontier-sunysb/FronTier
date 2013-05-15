@@ -349,7 +349,8 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 	    }
             else
             {
-		(void) printf("WARNING: isolated value!\n");
+	    	if (debugging("linear_solver"))
+		    (void) printf("WARNING: isolated value!\n");
                 solver.Set_A(I,I,1.0);
 		rhs = soln[index];
             }
@@ -363,11 +364,14 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 	start_clock("Petsc Solver");
 	if (use_neumann_solver)
 	{
-	    (void) printf("\nUsing Neumann Solver!\n");
-	    if (size < 6)
+	    if (debugging("linear_solver"))
+	    	(void) printf("\nUsing Neumann Solver!\n");
+	    if (size < 20)
 	    {
-	    	(void) printf("Isolated small region for solve2d()\n");
+	    	if (debugging("linear_solver"))
+	    	    (void) printf("Isolated small region for solve2d()\n");
 		stop_clock("Petsc Solver");
+		return;
 	    }
 	    solver.Solve_withPureNeumann();
 	    solver.GetNumIterations(&num_iter);
@@ -385,7 +389,8 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 	}
 	else
 	{
-	    (void) printf("\nUsing non-Neumann Solver!\n");
+	    if (debugging("linear_solver"))
+	        (void) printf("\nUsing non-Neumann Solver!\n");
 	    solver.Solve();
 	    solver.GetNumIterations(&num_iter);
 	    solver.GetFinalRelativeResidualNorm(&rel_residual);

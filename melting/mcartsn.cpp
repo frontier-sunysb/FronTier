@@ -6,9 +6,9 @@
       
 */
 
+#include <iFluid.h>
 #include "solver.h"
 #include "melting.h"
-#include "melting_basic.h"
 
 static int find_state_at_crossing(Front*,int*,GRID_DIRECTION,int,
                                 POINTER*,HYPER_SURF**,double*);
@@ -703,7 +703,6 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
         parab_solver.obst_comp = ERROR_COMP;
         parab_solver.var = field->temperature;
         parab_solver.soln = soln;
-        parab_solver.a = NULL;
         parab_solver.getStateVarFunc = getStateTemperature;
         parab_solver.findStateAtCrossing = find_state_at_crossing;
         parab_solver.source = NULL;
@@ -713,6 +712,11 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
         parab_solver.iupper = iupper;
         parab_solver.dt = m_dt;
         parab_solver.set_solver_domain();
+
+	if (sub_comp == LIQUID_COMP)
+	    parab_solver.a = eqn_params->field->vel;
+	else
+	    parab_solver.a = NULL;
 
 	switch(dim)
         {
@@ -1415,178 +1419,236 @@ void CARTESIAN::vtk_plot_temperature2d(
 	char *outname)
 {
 	std::vector<int>ph_index;
-	int i,j,k,index;
-	char dirname[256],filename[256];
-	FILE *outfile;
-	double coord_x,coord_y,coord_z,xmin,ymin;
-	COMPONENT comp;
-	int pointsx,pointsy,num_points,num_cells,num_cell_list;
-	int icoords[2],p_gmax[2];
+        int i,j,k,index;
+        char dirname[256],filename[256];
+        FILE *outfile;
+        double coord_x,coord_y,coord_z,xmin,ymin;
+        COMPONENT comp;
+        int pointsx,pointsy,num_points,num_cells,num_cell_list;
+        int icoords[2],p_gmax[2];
 
-	sprintf(filename, "%s/vtk.ts%s",outname,
-		right_flush(front->step,7));
-	if (pp_numnodes() > 1)
-	    sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+        sprintf(filename, "%s/vtk.ts%s",outname,
+                right_flush(front->step,7));
+        if (pp_numnodes() > 1)
+            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
 
-	//cell-based liquid phase
-	ph_index.clear();
-	if (!create_directory(filename,NO))
-	{
-	    printf("Cannot create directory %s\n",filename);
-	    clean_up(ERROR);
-	}
-	sprintf(filename,"%s/liquid.vtk",filename);
-	outfile = fopen(filename,"w");
-	fprintf(outfile,"# vtk DataFile Version 3.0\n");
-	fprintf(outfile,"liquid temperature\n");
-	fprintf(outfile,"ASCII\n");
-	fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
+        //cell-based liquid phase
+        ph_index.clear();
+        if (!create_directory(filename,NO))
+        {
+            printf("Cannot create directory %s\n",filename);
+            clean_up(ERROR);
+        }
+        sprintf(filename,"%s/liquid.vtk",filename);
+        outfile = fopen(filename,"w");
+        fprintf(outfile,"# vtk DataFile Version 3.0\n");
+        fprintf(outfile,"liquid temperature\n");
+        fprintf(outfile,"ASCII\n");
+        fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
 
-	for (j = jmin; j <= jmax; j++)
-	for (i = imin; i <= imax; i++)
-	{
-	    index = d_index2d(i,j,top_gmax);
-	    if (cell_center[index].comp == LIQUID_COMP)
-		ph_index.push_back(index);
-	}
+        for (j = jmin; j <= jmax; j++)
+        for (i = imin; i <= imax; i++)
+        {
+            index = d_index2d(i,j,top_gmax);
+            if (cell_center[index].comp == LIQUID_COMP)
+                ph_index.push_back(index);
+        }
 
-	pointsx = imax - imin + 2;
-	pointsy = jmax - jmin + 2;
-	num_points = pointsx*pointsy;
+        pointsx = top_gmax[0] + 2;
+        pointsy = top_gmax[1] + 2;
 
-	num_cells = (int) ph_index.size();
-	num_cell_list = 5*num_cells;
+        num_points = pointsx*pointsy;
 
-	p_gmax[0] = pointsx - 1;
-	p_gmax[1] = pointsy - 1;
+        num_cells = (int) ph_index.size();
+        num_cell_list = 5*num_cells;
 
-	index = d_index2d(imin,jmin,top_gmax);
-	xmin = cell_center[index].coords[0] - top_h[0]/2.0;
-	ymin = cell_center[index].coords[1] - top_h[1]/2.0;
-	
-	fprintf(outfile,"POINTS %d double\n", num_points);
-	for (j = 0; j < pointsy; j++)
-	for (i = 0; i < pointsx; i++)
-	{
-	    coord_x = xmin + i*top_h[0];
-	    coord_y = ymin + j*top_h[1];
-	    coord_z = 0.0;
-	    fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-	}
+
+        index = d_index2d(imin,jmin,top_gmax);
+        xmin = cell_center[index].coords[0] - top_h[0]/2.0;
+        ymin = cell_center[index].coords[1] - top_h[1]/2.0;
+
+        fprintf(outfile,"POINTS %d double\n", num_points);
+        for (j = 0; j <= top_gmax[1]; j++)
+        for (i = 0; i <= top_gmax[0]; i++)
+        {
+            index = d_index2d(i,j,top_gmax);
+            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
+            coord_z = 0.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+	for (i = 0; i <= top_gmax[0]; i++)
+        {
+            j = top_gmax[1];
+            index = d_index2d(i,j,top_gmax);
+            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
+            coord_z = 0.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        for (j = 0; j <= top_gmax[1]; j++)
+        {
+            i = top_gmax[0];
+            index = d_index2d(i,j,top_gmax);
+            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
+            coord_z = 0.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        i = top_gmax[0];
+        j = top_gmax[1];
+        index = d_index2d(i,j,top_gmax);
+        coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
+        coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
+        coord_z = 0.0;
+        fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
 
 	fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
-	for (i = 0; i < num_cells; i++)
-	{
-	    int index0,index1,index2,index3;
-	    index = ph_index[i];
-	    icoords[0] = cell_center[index].icoords[0];
-	    icoords[1] = cell_center[index].icoords[1];
-	    index0 = d_index2d(icoords[0]-1,icoords[1]-1,p_gmax);
-	    index1 = d_index2d(icoords[0]-1+1,icoords[1]-1,p_gmax);
-	    index2 = d_index2d(icoords[0]-1,icoords[1]-1+1,p_gmax);
-	    index3 = d_index2d(icoords[0]-1+1,icoords[1]-1+1,p_gmax);
+        for (i = 0; i < num_cells; i++)
+        {
+            int index0,index1,index2,index3;
+            index = ph_index[i];
+            icoords[0] = cell_center[index].icoords[0];
+            icoords[1] = cell_center[index].icoords[1];
 
-	    fprintf(outfile,"4 %i %i %i %i\n",
-		    index0,index1,index2,index3);
-	}
-	
-	fprintf(outfile, "CELL_TYPES %i\n", num_cells);
-	for (i = 0; i < num_cells; i++)
-	    fprintf(outfile, "8\n");
+            index0 = d_index2d(icoords[0],icoords[1],top_gmax);
+            index1 = d_index2d(icoords[0]+1,icoords[1],top_gmax);
+            index2 = d_index2d(icoords[0],icoords[1]+1,top_gmax);
+            index3 = d_index2d(icoords[0]+1,icoords[1]+1,top_gmax);
 
-	fprintf(outfile, "CELL_DATA %i\n", num_cells);
-	fprintf(outfile, "SCALARS temperature double\n");
-	fprintf(outfile, "LOOKUP_TABLE default\n");
-	for (i = 0; i < num_cells; i++)
-	{
-	    index = ph_index[i];
-	    fprintf(outfile,"%f\n", eqn_params->field->temperature[index]);
-	}
+            fprintf(outfile,"4 %i %i %i %i\n",
+                    index0,index1,index2,index3);
+        }
 
-	fclose(outfile);
+        fprintf(outfile, "CELL_TYPES %i\n", num_cells);
+        for (i = 0; i < num_cells; i++)
+            fprintf(outfile, "8\n");
+
+        fprintf(outfile, "CELL_DATA %i\n", num_cells);
+        fprintf(outfile, "SCALARS temperature double\n");
+        fprintf(outfile, "LOOKUP_TABLE default\n");
+        for (i = 0; i < num_cells; i++)
+        {
+            index = ph_index[i];
+            fprintf(outfile,"%f\n", eqn_params->field->temperature[index]);
+        }
+
+        fclose(outfile);
 
 	//cell-based solid phase
 	sprintf(filename,"%s/vtk.ts%s",outname,
-		right_flush(front->step,7));
-	if (pp_numnodes() > 1)
-	    sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
-	
-	ph_index.clear();
-	sprintf(filename,"%s/solid.vtk",filename);
-	outfile = fopen(filename,"w");
-	fprintf(outfile,"# vtk DataFile Version 3.0\n");
-	fprintf(outfile,"solid temperature\n");
-	fprintf(outfile,"ASCII\n");
-	fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
+                right_flush(front->step,7));
+        if (pp_numnodes() > 1)
+            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
 
-	for (j = jmin; j <= jmax; j++)
-	for (i = imin; i <= imax; i++)
-	{
-	    index = d_index2d(i,j,top_gmax);
-	    if (cell_center[index].comp == SOLID_COMP)
-		ph_index.push_back(index);
-	}
+        ph_index.clear();
+        sprintf(filename,"%s/solid.vtk",filename);
+        outfile = fopen(filename,"w");
+        fprintf(outfile,"# vtk DataFile Version 3.0\n");
+        fprintf(outfile,"solid temperature\n");
+        fprintf(outfile,"ASCII\n");
+        fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
 
-	pointsx = imax - imin + 2;
-	pointsy = jmax - jmin + 2;
-	num_points = pointsx*pointsy;
+        for (j = jmin; j <= jmax; j++)
+        for (i = imin; i <= imax; i++)
+        {
+            index = d_index2d(i,j,top_gmax);
+            if (cell_center[index].comp == SOLID_COMP)
+                ph_index.push_back(index);
+        }
 
-	num_cells = (int) ph_index.size();
-	num_cell_list = 5*num_cells;
+        pointsx = top_gmax[0] + 2;
+        pointsy = top_gmax[1] + 2;
+        num_points = pointsx*pointsy;
 
-	p_gmax[0] = pointsx - 1;
-	p_gmax[1] = pointsy - 1;
+        num_cells = (int) ph_index.size();
+        num_cell_list = 5*num_cells;
 
-	index = d_index2d(imin,jmin,top_gmax);
-	xmin = cell_center[index].coords[0] - top_h[0]/2.0;
-	ymin = cell_center[index].coords[1] - top_h[1]/2.0;
+        index = d_index2d(imin,jmin,top_gmax);
+        xmin = cell_center[index].coords[0] - top_h[0]/2.0;
+        ymin = cell_center[index].coords[1] - top_h[1]/2.0;
 
-	fprintf(outfile,"POINTS %d double\n", num_points);
-	for (j = 0; j < pointsy; j++)
-	for (i = 0; i < pointsx; i++)
-	{
-	    coord_x = xmin + i*top_h[0];
-	    coord_y = ymin + j*top_h[1];
-	    coord_z = 0.0;
-	    fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-	}
+        fprintf(outfile,"POINTS %d double\n", num_points);
+        for (j = 0; j <= top_gmax[1]; j++)
+        for (i = 0; i <= top_gmax[0]; i++)
+        {
+            index = d_index2d(i,j,top_gmax);
+            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
+            coord_z = 0.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
 
-	fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
-	for (i = 0; i < num_cells; i++)
-	{
-	    int index0,index1,index2,index3;
-	    index = ph_index[i];
-	    icoords[0] = cell_center[index].icoords[0];
-	    icoords[1] = cell_center[index].icoords[1];
-	    index0 = d_index2d(icoords[0]-1,icoords[1]-1,p_gmax); 
-	    index1 = d_index2d(icoords[0]-1+1,icoords[1]-1,p_gmax);
-	    index2 = d_index2d(icoords[0]-1,icoords[1]-1+1,p_gmax);
-	    index3 = d_index2d(icoords[0]-1+1,icoords[1]-1+1,p_gmax);
-		
-	    fprintf(outfile,"4 %i %i %i %i\n",
-		    index0,index1,index2,index3);
-	}
+	for (i = 0; i <= top_gmax[0]; i++)
+        {
+            j = top_gmax[1];
+            index = d_index2d(i,j,top_gmax);
+            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
+            coord_z = 0.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        for (j = 0; j <= top_gmax[1]; j++)
+        {
+            i = top_gmax[0];
+            index = d_index2d(i,j,top_gmax);
+            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
+            coord_z = 0.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        i = top_gmax[0];
+        j = top_gmax[1];
+        index = d_index2d(i,j,top_gmax);
+        coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
+        coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
+        coord_z = 0.0;
+        fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+
+
+
+        fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
+        for (i = 0; i < num_cells; i++)
+        {
+            int index0,index1,index2,index3;
+            index = ph_index[i];
+            icoords[0] = cell_center[index].icoords[0];
+            icoords[1] = cell_center[index].icoords[1];
+
+            index0 = d_index2d(icoords[0],icoords[1],top_gmax);
+            index1 = d_index2d(icoords[0]+1,icoords[1],top_gmax);
+            index2 = d_index2d(icoords[0],icoords[1]+1,top_gmax);
+            index3 = d_index2d(icoords[0]+1,icoords[1]+1,top_gmax);
+
+            fprintf(outfile,"4 %i %i %i %i\n",
+                    index0,index1,index2,index3);
+        }
 
 	fprintf(outfile, "CELL_TYPES %i\n", num_cells);
-	for (i = 0; i < num_cells; i++)
-	    fprintf(outfile, "8\n");
-	
-	fprintf(outfile, "CELL_DATA %i\n", num_cells);
-	fprintf(outfile, "SCALARS temperature double\n");
-	fprintf(outfile, "LOOKUP_TABLE default\n");
-	for (i = 0; i < num_cells; i++)
-	{
-	    index = ph_index[i];
-	    fprintf(outfile,"%f\n",eqn_params->field->temperature[index]);
-	}
+        for (i = 0; i < num_cells; i++)
+            fprintf(outfile, "8\n");
 
-	fclose(outfile);
+        fprintf(outfile, "CELL_DATA %i\n", num_cells);
+        fprintf(outfile, "SCALARS temperature double\n");
+        fprintf(outfile, "LOOKUP_TABLE default\n");
+        for (i = 0; i < num_cells; i++)
+        {
+            index = ph_index[i];
+            fprintf(outfile,"%f\n",eqn_params->field->temperature[index]);
+        }
+
+        fclose(outfile);
 }       /* end vtk_plot_temperature2d */
 
 void CARTESIAN::vtk_plot_temperature3d(
         char *outname)
 {
-        std::vector<int> ph_index;
+	std::vector<int> ph_index;
         int i,j,k,index;
         char dirname[256],filename[256];
         FILE *outfile;
@@ -1595,13 +1657,16 @@ void CARTESIAN::vtk_plot_temperature3d(
         int pointsx,pointsy,pointsz,num_points,num_cells,num_cell_list;
         int icoords[3],p_gmax[3];
 
+        int ii,jj,kk;
+        double ih,jh,kh;
+
         sprintf(filename, "%s/vtk.ts%s",outname,
                 right_flush(front->step,7));
         if (pp_numnodes() > 1)
             sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
-	
-	//cell-based liquid phase
-	ph_index.clear();
+
+        //cell-based liquid phase
+        ph_index.clear();
         if (!create_directory(filename,NO))
         {
             printf("Cannot create directory %s\n",filename);
@@ -1623,33 +1688,102 @@ void CARTESIAN::vtk_plot_temperature3d(
                 ph_index.push_back(index);
         }
 
-        pointsx = imax - imin + 2;
-        pointsy = jmax - jmin + 2;
-        pointsz = kmax - kmin + 2;
+        pointsx = top_gmax[0] + 2;
+        pointsy = top_gmax[1] + 2;
+        pointsz = top_gmax[2] + 2;
         num_points = pointsx*pointsy*pointsz;
 
         num_cells = (int)ph_index.size();
         num_cell_list = 9*num_cells;
 
-        p_gmax[0] = pointsx - 1;
-        p_gmax[1] = pointsy - 1;
-        p_gmax[2] = pointsz - 1;
-
-	index = d_index3d(imin,jmin,kmin,top_gmax);
-        xmin = cell_center[index].coords[0] - top_h[0]/2.0;
-        ymin = cell_center[index].coords[1] - top_h[1]/2.0;
-        zmin = cell_center[index].coords[2] - top_h[2]/2.0;
-
         fprintf(outfile,"POINTS %d double\n", num_points);
-        for (k = 0; k < pointsz; k++)
-        for (j = 0; j < pointsy; j++)
-        for (i = 0; i < pointsx; i++)
+
+        for (k = 0; k <= top_gmax[2]; k++)
+        for (j = 0; j <= top_gmax[1]; j++)
+        for (i = 0; i <= top_gmax[0]; i++)
         {
-            coord_x = xmin + i*top_h[0];
-            coord_y = ymin + j*top_h[1];
-            coord_z = zmin + k*top_h[2];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
+            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
             fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
         }
+
+	for (i = 0; i <= top_gmax[0]; i++)
+        for (j = 0; j <= top_gmax[1]; j++)
+        {
+            k = top_gmax[2];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
+            coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        for (i = 0; i <= top_gmax[0]; i++)
+        for (k = 0; k <= top_gmax[2]; k++)
+        {
+            j = top_gmax[1];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
+            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        for (j = 0; j <= top_gmax[1]; j++)
+        for (k = 0; k <= top_gmax[2]; k++)
+        {
+            i = top_gmax[0];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
+            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+	for (i = 0; i <= top_gmax[0]; i++)
+        {
+            j = top_gmax[1];
+            k = top_gmax[2];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
+            coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        for (j = 0; j <= top_gmax[1]; j++)
+        {
+            i = top_gmax[0];
+            k = top_gmax[2];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
+            coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        for (k = 0; k <= top_gmax[2]; k++)
+        {
+            i = top_gmax[0];
+            j = top_gmax[1];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
+            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+	i = top_gmax[0];
+        j = top_gmax[1];
+        k = top_gmax[2];
+        index = d_index3d(i,j,k,top_gmax);
+        coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
+        coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
+        coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
+        fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+
 
         fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
         for (i = 0; i < num_cells; i++)
@@ -1659,21 +1793,21 @@ void CARTESIAN::vtk_plot_temperature3d(
             icoords[0] = cell_center[index].icoords[0];
             icoords[1] = cell_center[index].icoords[1];
             icoords[2] = cell_center[index].icoords[2];
-            index0 = d_index3d(icoords[0]-1,icoords[1]-1,icoords[2]-1,p_gmax);
+            index0 = d_index3d(icoords[0],icoords[1],icoords[2],top_gmax);
             index1 =
-                d_index3d(icoords[0]-1+1,icoords[1]-1,icoords[2]-1,p_gmax);
+                d_index3d(icoords[0]+1,icoords[1],icoords[2],top_gmax);
             index2 =
-                d_index3d(icoords[0]-1,icoords[1]-1+1,icoords[2]-1,p_gmax);
+                d_index3d(icoords[0],icoords[1]+1,icoords[2],top_gmax);
             index3 =
-                d_index3d(icoords[0]-1+1,icoords[1]-1+1,icoords[2]-1,p_gmax);
+                d_index3d(icoords[0]+1,icoords[1]+1,icoords[2],top_gmax);
             index4 =
-                d_index3d(icoords[0]-1,icoords[1]-1,icoords[2]-1+1,p_gmax);
+                d_index3d(icoords[0],icoords[1],icoords[2]+1,top_gmax);
             index5 =
-                d_index3d(icoords[0]-1+1,icoords[1]-1,icoords[2]-1+1,p_gmax);
+                d_index3d(icoords[0]+1,icoords[1],icoords[2]+1,top_gmax);
             index6 =
-                d_index3d(icoords[0]-1,icoords[1]-1+1,icoords[2]-1+1,p_gmax);
+                d_index3d(icoords[0],icoords[1]+1,icoords[2]+1,top_gmax);
             index7 =
-                d_index3d(icoords[0]-1+1,icoords[1]-1+1,icoords[2]-1+1,p_gmax);
+                d_index3d(icoords[0]+1,icoords[1]+1,icoords[2]+1,top_gmax);
 
             fprintf(outfile,"8 %i %i %i %i %i %i %i %i\n",
                 index0,index1,index2,index3,index4,index5,index6,index7);
@@ -1693,8 +1827,8 @@ void CARTESIAN::vtk_plot_temperature3d(
         }
         fclose(outfile);
 
-	//cell-based solid phase
-	sprintf(filename,"%s/vtk.ts%s",outname,
+        //cell-based solid phase
+        sprintf(filename,"%s/vtk.ts%s",outname,
                 right_flush(front->step,7));
         if (pp_numnodes() > 1)
             sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
@@ -1716,9 +1850,10 @@ void CARTESIAN::vtk_plot_temperature3d(
                 ph_index.push_back(index);
         }
 
-        pointsx = imax - imin + 2;
-        pointsy = jmax - jmin + 2;
-        pointsz = kmax - kmin + 2;
+
+        pointsx = top_gmax[0] + 2;
+        pointsy = top_gmax[1] + 2;
+        pointsz = top_gmax[2] + 2;
         num_points = pointsx*pointsy*pointsz;
 
         num_cells = (int)ph_index.size();
@@ -1728,21 +1863,93 @@ void CARTESIAN::vtk_plot_temperature3d(
         p_gmax[1] = pointsy - 1;
         p_gmax[2] = pointsz - 1;
 
-        index = d_index3d(imin,jmin,kmin,top_gmax);
-        xmin = cell_center[index].coords[0] - top_h[0]/2.0;
-        ymin = cell_center[index].coords[1] - top_h[1]/2.0;
-        zmin = cell_center[index].coords[2] - top_h[2]/2.0;
+        fprintf(outfile,"POINTS %d double\n", num_points);
 
-	fprintf(outfile,"POINTS %d double\n", num_points);
-        for (k = 0; k < pointsz; k++)
-        for (j = 0; j < pointsy; j++)
-        for (i = 0; i < pointsx; i++)
+	for (k = 0; k <= top_gmax[2]; k++)
+        for (j = 0; j <= top_gmax[1]; j++)
+        for (i = 0; i <= top_gmax[0]; i++)
         {
-            coord_x = xmin + i*top_h[0];
-            coord_y = ymin + j*top_h[1];
-            coord_z = zmin + k*top_h[2];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
+            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
             fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
         }
+
+        for (i = 0; i <= top_gmax[0]; i++)
+        for (j = 0; j <= top_gmax[1]; j++)
+        {
+            k = top_gmax[2];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
+            coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        for (i = 0; i <= top_gmax[0]; i++)
+        for (k = 0; k <= top_gmax[2]; k++)
+        {
+            j = top_gmax[1];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
+            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        for (j = 0; j <= top_gmax[1]; j++)
+        for (k = 0; k <= top_gmax[2]; k++)
+        {
+            i = top_gmax[0];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
+            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+	for (i = 0; i <= top_gmax[0]; i++)
+        {
+            j = top_gmax[1];
+            k = top_gmax[2];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
+            coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        for (j = 0; j <= top_gmax[1]; j++)
+        {
+            i = top_gmax[0];
+            k = top_gmax[2];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
+            coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        for (k = 0; k <= top_gmax[2]; k++)
+        {
+            i = top_gmax[0];
+            j = top_gmax[1];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
+            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
+            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+	i = top_gmax[0];
+        j = top_gmax[1];
+        k = top_gmax[2];
+        index = d_index3d(i,j,k,top_gmax);
+        coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
+        coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
+        coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
+        fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
 
         fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
         for (i = 0; i < num_cells; i++)
@@ -1752,21 +1959,23 @@ void CARTESIAN::vtk_plot_temperature3d(
             icoords[0] = cell_center[index].icoords[0];
             icoords[1] = cell_center[index].icoords[1];
             icoords[2] = cell_center[index].icoords[2];
-            index0 = d_index3d(icoords[0]-1,icoords[1]-1,icoords[2]-1,p_gmax);
+
+            index0 = d_index3d(icoords[0],icoords[1],icoords[2],top_gmax);
             index1 =
-                d_index3d(icoords[0]-1+1,icoords[1]-1,icoords[2]-1,p_gmax);
+                d_index3d(icoords[0]+1,icoords[1],icoords[2],top_gmax);
             index2 =
-                d_index3d(icoords[0]-1,icoords[1]-1+1,icoords[2]-1,p_gmax);
+                d_index3d(icoords[0],icoords[1]+1,icoords[2],top_gmax);
             index3 =
-                d_index3d(icoords[0]-1+1,icoords[1]-1+1,icoords[2]-1,p_gmax);
+                d_index3d(icoords[0]+1,icoords[1]+1,icoords[2],top_gmax);
             index4 =
-                d_index3d(icoords[0]-1,icoords[1]-1,icoords[2]-1+1,p_gmax);
+                d_index3d(icoords[0],icoords[1],icoords[2]+1,top_gmax);
             index5 =
-                d_index3d(icoords[0]-1+1,icoords[1]-1,icoords[2]-1+1,p_gmax);
+                d_index3d(icoords[0]+1,icoords[1],icoords[2]+1,top_gmax);
             index6 =
-                d_index3d(icoords[0]-1,icoords[1]-1+1,icoords[2]-1+1,p_gmax);
+                d_index3d(icoords[0],icoords[1]+1,icoords[2]+1,top_gmax);
             index7 =
-                d_index3d(icoords[0]-1+1,icoords[1]-1+1,icoords[2]-1+1,p_gmax);
+                d_index3d(icoords[0]+1,icoords[1]+1,icoords[2]+1,top_gmax);
+
 
             fprintf(outfile,"8 %i %i %i %i %i %i %i %i\n",
                 index0,index1,index2,index3,index4,index5,index6,index7);
@@ -1793,17 +2002,20 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
 	int gmin[MAXD],ipn[MAXD];
 	int index0;
 	double coords[MAXD],crx_coords[MAXD];
-	double temperature,temperature_nb,dgrad[MAXD];
+	double temperature,temperature_nb[2],dgrad[MAXD],grad_plus[MAXD],
+	       grad_minus[MAXD];
 	double coef;
 	COMPONENT comp;
 	boolean fr_crx_grid_seg;
 	const GRID_DIRECTION dir[3][2] = 
 		{{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
 	double *Temp = field->temperature;
+	double v[MAXD],**vel,v_plus[MAXD],v_minus[MAXD];
 
 	start_clock("computeAdvectionExplicit");
 
 	coef = eqn_params->D*m_dt;
+	vel = eqn_params->field->vel;
 
 	for (i = 0; i < dim; ++i) gmin[i] = 0;
 
@@ -1818,24 +2030,44 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
                 if (comp != sub_comp)
                      continue;
                 array[ic] = temperature = Temp[ic];
+		for (l = 0; l < dim; ++l)
+		{
+		    v[l] = 0.0;
+		    v_plus[l] = 0.0;
+		    v_minus[l] = 0.0;
+		}
+		if (sub_comp == LIQUID_COMP && vel != NULL)
+		{
+		    for (l = 0; l < dim; ++l)
+		    {
+			v[l] = vel[l][ic];
+			v_plus[l] = std::max(0.0,v[l]);
+			v_minus[l] = std::min(0.0,v[l]);
+		    }
+		}	
                 for (l = 0; l < dim; ++l)
                 {
                     dgrad[l] = 0.0;
+		    grad_plus[l] = 0.0;
+		    grad_minus[l] = 0.0;
                     for (m = 0; m < 2; ++m)
                     {
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
                                 icoords,dir[l][m],comp,getStateTemperature,
-                                &temperature_nb,crx_coords);
+                                &temperature_nb[m],crx_coords);
                         if (!fr_crx_grid_seg)
                         {
                              next_ip_in_dir(icoords,dir[l][m],ipn,gmin,
 							top_gmax);
                              icn = d_index1d(ipn[0],top_gmax);
-			     temperature_nb = Temp[icn];
+			     temperature_nb[m] = Temp[icn];
                         }
-                        dgrad[l] += (temperature_nb - temperature)/top_h[l];
+                        dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
                     }
-                    array[ic] += coef*dgrad[l]/top_h[l];
+		    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
+		    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
+                    array[ic] += coef*dgrad[l]/top_h[l]-m_dt*(v_plus[l]*grad_minus[l]+
+					v_minus[l]*grad_plus[l]);
                 }
             }
             break;
@@ -1851,22 +2083,43 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
 	    	    continue;
                 array[ic] = temperature = Temp[ic];
 		for (l = 0; l < dim; ++l)
+                {
+                    v[l] = 0.0;
+                    v_plus[l] = 0.0;
+                    v_minus[l] = 0.0;
+                }
+                if (sub_comp == LIQUID_COMP && vel != NULL)
+                {
+                    for (l = 0; l < dim; ++l)
+                    {
+                        v[l] = vel[l][ic];
+                        v_plus[l] = std::max(0.0,v[l]);
+                        v_minus[l] = std::min(0.0,v[l]);
+                    }
+                } 
+		for (l = 0; l < dim; ++l)
 		{
 	            dgrad[l] = 0.0;
+		    grad_plus[l] = 0.0;
+                    grad_minus[l] = 0.0;
+
                     for (m = 0; m < 2; ++m)
                     {
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
                                 icoords,dir[l][m],comp,getStateTemperature,
-                                &temperature_nb,crx_coords);
+                                &temperature_nb[m],crx_coords);
                         if (!fr_crx_grid_seg)
                         {
                             next_ip_in_dir(icoords,dir[l][m],ipn,gmin,top_gmax);
                             icn = d_index2d(ipn[0],ipn[1],top_gmax);
-			    temperature_nb = Temp[icn];
+			    temperature_nb[m] = Temp[icn];
                         }
-                        dgrad[l] += (temperature_nb - temperature)/top_h[l];
+                        dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
                     }
-		    array[ic] += coef*dgrad[l]/top_h[l];
+		    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
+		    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
+		    array[ic] += coef*dgrad[l]/top_h[l] - m_dt*(v_plus[l]*grad_minus[l]+
+					v_minus[l]*grad_plus[l]);
 		}
 	    }
 	    break;
@@ -1884,22 +2137,43 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
 	    	    continue;
                 array[ic] = temperature = Temp[ic];
 		for (l = 0; l < dim; ++l)
+                {
+                    v[l] = 0.0;
+                    v_plus[l] = 0.0;
+                    v_minus[l] = 0.0;
+                }
+                if (sub_comp == LIQUID_COMP && vel != NULL)
+                {
+                    for (l = 0; l < dim; ++l)
+                    {
+                        v[l] = vel[l][ic];
+                        v_plus[l] = std::max(0.0,v[l]);
+                        v_minus[l] = std::min(0.0,v[l]);
+                    }
+                }
+		for (l = 0; l < dim; ++l)
 		{
 	            dgrad[l] = 0.0;
+		    grad_plus[l] = 0.0;
+                    grad_minus[l] = 0.0;
+
                     for (m = 0; m < 2; ++m)
                     {
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
                                 icoords,dir[l][m],comp,getStateTemperature,
-                                &temperature_nb,crx_coords);
+                                &temperature_nb[m],crx_coords);
                         if (!fr_crx_grid_seg)
                         {
                             next_ip_in_dir(icoords,dir[l][m],ipn,gmin,top_gmax);
                             icn = d_index3d(ipn[0],ipn[1],ipn[2],top_gmax);
-                	    temperature_nb = Temp[icn];
+                	    temperature_nb[m] = Temp[icn];
                         }
-                        dgrad[l] += (temperature_nb - temperature)/top_h[l];
+                        dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
                     }
-		    array[ic] += coef*dgrad[l]/top_h[l];
+		    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
+		    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
+		    array[ic] += coef*dgrad[l]/top_h[l] - m_dt*(v_plus[l]*grad_minus[l]+
+					v_minus[l]*grad_plus[l]);
 		}
 	    }
 	    break;
@@ -2215,6 +2489,14 @@ void CARTESIAN::initSampleTemperature(char *in_name)
 
 void CARTESIAN::sampleTemperature()
 {
+        if (dim == 2)
+            sampleTemperature2d();
+        else if (dim == 3)
+            sampleTemperature3d();
+}       /* end sampleTemperature */
+
+void CARTESIAN::sampleTemperature2d()
+{
 	int i,j,index;
 	SAMPLE *sample = front->sample;
 	char *sample_type = sample->sample_type;
@@ -2338,6 +2620,257 @@ void CARTESIAN::sampleTemperature()
             }
             fclose(sfile);
             break;
+	default:
+            printf("Incorrect input for sample temperature!\n");
+            break;
 	}
 	count++;
-}	/* end sampleTemperature */
+}	/* end sampleTemperature2d */
+
+void CARTESIAN::sampleTemperature3d()
+{
+        int i,j,k,index;
+        SAMPLE *sample = front->sample;
+        char *sample_type = sample->sample_type;
+        double *sample_line = sample->sample_coords;
+        char *out_name = front->out_name;
+        double coords[MAXD];
+        double var1,var2,var_tmp1,var_tmp2,var;
+        FILE *sfile;
+        char sname[100];
+        static int count = 0;
+        static int step = 0;
+        static int l = -1, m = -1;
+        static double lambda1,lambda2;
+        char dirname[256];
+        static char **sample_color;
+
+        if (sample_color == NULL)
+        {
+            FT_MatrixMemoryAlloc((POINTER*)&sample_color,10,20,sizeof(char));
+            sprintf(sample_color[0],"red");
+            sprintf(sample_color[1],"blue");
+            sprintf(sample_color[2],"green");
+            sprintf(sample_color[3],"violet");
+            sprintf(sample_color[4],"orange");
+            sprintf(sample_color[5],"yellow");
+            sprintf(sample_color[6],"pink");
+            sprintf(sample_color[7],"cyan");
+            sprintf(sample_color[8],"light-gray");
+            sprintf(sample_color[9],"dark-gray");
+        }
+        if (pp_numnodes() > 1)
+            return;
+        if (front->step < sample->start_step || front->step > sample->end_step)
+            return;
+        if ((front->step - sample->start_step)%sample->step_interval)
+            return;
+        if (step != front->step)
+        {
+            step = front->step;
+            count = 0;
+        }
+	sprintf(dirname, "%s/sample-%d", out_name,step);
+        if (!create_directory(dirname,NO))
+        {
+            screen("Cannot create directory %s\n",dirname);
+            clean_up(ERROR);
+        }
+
+        switch (sample_type[0])
+        {
+        case 'x':
+            if (l == -1)
+            {
+                double x1,x2;
+                do
+                {
+                    ++l;
+                    index = d_index3d(l,0,0,top_gmax);
+                    getRectangleCenter(index,coords);
+                }while(sample_line[0]>=coords[0]);
+                --l;
+                index = d_index3d(l,0,0,top_gmax);
+                getRectangleCenter(index,coords);
+                x1 = coords[0];
+                index = d_index3d(l+1,0,0,top_gmax);
+                getRectangleCenter(index,coords);
+                x2 = coords[0];
+                lambda1 = (sample_line[0] - x1) / (x2 - sample_line[0]);
+            }
+	    switch (sample_type[1])
+            {
+                case 'y':
+                    if (m == -1)
+                    {
+                        double y1,y2;
+                        do
+                        {
+                            ++m;
+                            index = d_index3d(0,m,0,top_gmax);
+                            getRectangleCenter(index,coords);
+                        }while(sample_line[1]>=coords[1]);
+                        --m;
+                        index = d_index3d(0,m,0,top_gmax);
+                        getRectangleCenter(index,coords);
+                        y1 = coords[1];
+                        index = d_index3d(0,m+1,0,top_gmax);
+                        getRectangleCenter(index,coords);
+                        y2 = coords[1];
+                        lambda2 = (sample_line[1] - y1)/(y2 - sample_line[1]);
+                    }
+                    i = l;
+                    j = m;
+                    sprintf(sname, "%s/t-%d.xg",dirname,count);
+                    sfile = fopen(sname,"w");
+                    fprintf(sfile,"Next\n");
+                    fprintf(sfile,"color=%s\n",sample_color[count]);
+                    fprintf(sfile,"thickness=1.5\n");
+                    for (k = kmin; k <= kmax; ++k)
+                    {
+                        index = d_index3d(i,j,k,top_gmax);
+                        var1 = field->temperature[index];
+                        index = d_index3d(i+1,j,k,top_gmax);
+                        var2 = field->temperature[index];
+                        var_tmp1 = (var1 + lambda1*var2)/(1.0 + lambda1);
+
+                        index = d_index3d(i,j+1,k,top_gmax);
+                        var1 = field->temperature[index];
+                        index = d_index3d(i+1,j+1,k,top_gmax);
+                        var2 = field->temperature[index];
+                        var_tmp2 = (var1 + lambda1*var2)/(1.0 + lambda1);
+
+                        var = (var_tmp1 + lambda2*var_tmp2)/(1.0 + lambda2);
+                        getRectangleCenter(index,coords);
+                        fprintf(sfile,"%20.14f   %20.14f\n",coords[2],var);
+                    }
+                    fclose(sfile);
+                    break;
+		case 'z':
+                    if (m == -1)
+                    {
+                        double z1,z2;
+                        do
+                        {
+                            ++m;
+                            index = d_index3d(0,0,m,top_gmax);
+                            getRectangleCenter(index,coords);
+                        }while(sample_line[1]>=coords[2]);
+                        --m;
+                        index = d_index3d(0,0,m,top_gmax);
+                        getRectangleCenter(index,coords);
+                        z1 = coords[2];
+                        index = d_index3d(0,0,m+1,top_gmax);
+                        getRectangleCenter(index,coords);
+                        z2 = coords[2];
+                        lambda2 = (sample_line[1] - z1)/(z2 - sample_line[1]);
+                    }
+                    i = l;
+                    k = m;
+                    sprintf(sname, "%s/t-%d.xg",dirname,count);
+                    sfile = fopen(sname,"w");
+                    fprintf(sfile,"Next\n");
+                    fprintf(sfile,"color=%s\n",sample_color[count]);
+                    fprintf(sfile,"thickness=1.5\n");
+                    for (j = jmin; j <= jmax; ++j)
+                    {
+                        index = d_index3d(i,j,k,top_gmax);
+                        var1 = field->temperature[index];
+                        index = d_index3d(i+1,j,k,top_gmax);
+                        var2 = field->temperature[index];
+                        var_tmp1 = (var1 + lambda1*var2)/(1.0 + lambda1);
+
+                        index = d_index3d(i,j,k+1,top_gmax);
+                        var1 = field->temperature[index];
+                        index = d_index3d(i+1,j,k+1,top_gmax);
+                        var2 = field->temperature[index];
+                        var_tmp2 = (var1 + lambda1*var2)/(1.0 + lambda1);
+
+                        var = (var_tmp1 + lambda2*var_tmp2)/(1.0 + lambda2);
+                        getRectangleCenter(index,coords);
+                        fprintf(sfile,"%20.14f   %20.14f\n",coords[2],var);
+                    }
+                    fclose(sfile);
+                    break;
+                default:
+                    printf("Incorrect input for sample temperature!\n");
+                    break;
+	    }
+            break;
+	case 'y':
+            if (l == -1)
+            {
+                double y1,y2;
+                do
+                {
+                    ++l;
+                    index = d_index3d(0,l,0,top_gmax);
+                    getRectangleCenter(index, coords);
+                }while(sample_line[0]>=coords[1]);
+                --l;
+                index = d_index3d(0,l,0,top_gmax);
+                getRectangleCenter(index,coords);
+                y1 = coords[1];
+                index = d_index3d(0,l+1,0,top_gmax);
+                getRectangleCenter(index,coords);
+                y2 = coords[1];
+                lambda1 = (sample_line[0] - y1)/(y2 - sample_line[0]);
+            }
+            switch (sample_type[1])
+            {
+                case 'z':
+                    if (m == -1)
+                    {
+                        double z1,z2;
+                        do
+                        {
+                            ++m;
+                            index = d_index3d(0,0,m,top_gmax);
+                            getRectangleCenter(index,coords);
+                        }while(sample_line[1]>=coords[2]);
+                        --m;
+                        index = d_index3d(0,0,m,top_gmax);
+                        getRectangleCenter(index,coords);
+                        z1 = coords[2];
+                        index = d_index3d(0,0,m+1,top_gmax);
+                        getRectangleCenter(index,coords);
+                        z2 = coords[2];
+                        lambda2 = (sample_line[1] - z1)/(z2 - sample_line[1]);
+                    }
+		    j = l;
+                    k = m;
+                    sprintf(sname, "%s/t-%d.xg",dirname,count);
+                    sfile = fopen(sname,"w");
+                    fprintf(sfile,"Next\n");
+                    fprintf(sfile,"color=%s\n",sample_color[count]);
+                    fprintf(sfile,"thickness=1.5\n");
+                    for (i = imin; i <= imax; ++i)
+                    {
+                        index = d_index3d(i,j,k,top_gmax);
+                        var1 = field->temperature[index];
+                        index = d_index3d(i,j+1,k,top_gmax);
+                        var2 = field->temperature[index];
+                        var_tmp1 = (var1 + lambda1*var2)/(1.0 + lambda1);
+
+                        index = d_index3d(i,j,k+1,top_gmax);
+                        var1 = field->temperature[index];
+                        index = d_index3d(i,j+1,k+1,top_gmax);
+                        var2 = field->temperature[index];
+                        var_tmp2 = (var1 + lambda1*var2)/(1.0 + lambda1);
+
+                        var = (var_tmp1 + lambda2*var_tmp2)/(1.0 + lambda2);
+                        getRectangleCenter(index,coords);
+                        fprintf(sfile,"%20.14f   %20.14f\n",coords[0],var);
+                    }
+                    fclose(sfile);
+                    break;
+                default:
+                    printf("Incorrect input for sample temperature!\n");
+                    break;
+            }
+        default:
+            printf("Incorrect input for sample temperature!\n");
+            break;
+        }
+        count++;
+}       /* end sampleTemperature3d */

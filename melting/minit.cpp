@@ -22,8 +22,8 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 ******************************************************************************/
+#include <iFluid.h>
 #include "melting.h"
-#include "melting_basic.h"
 
 #define		MAX_NUM_VERTEX_IN_CELL		20
 

@@ -196,6 +196,8 @@ void Incompress_Solver_Smooth_Basis::setIndexMap(void)
 	    for (i = imin; i <= imax; i++)
 	    {
 		ic = d_index2d(i,j,top_gmax);
+		if (domain_status[ic] != TO_SOLVE)
+		    continue;
                 if (cell_center[ic].comp != SOLID_COMP)
                 {
                     ij_to_I[i][j] = index + ilower;
@@ -487,6 +489,7 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 					sizeof(double));
 	    	FT_MatrixMemoryAlloc((POINTER*)&field->f_surf,2,size,
 					sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&domain_status,size,INT);
 	    	first = NO;
 	    }
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
@@ -567,6 +570,7 @@ void Incompress_Solver_Smooth_Basis::setGlobalIndex()
 	    {
 		ic = d_index2d(i,j,top_gmax);
 		if (cell_center[ic].comp == SOLID_COMP) continue;
+		if (domain_status[ic] != TO_SOLVE) continue;
 		NLblocks++;
 	    }
 	    break;
@@ -2464,6 +2468,12 @@ void Incompress_Solver_Smooth_Basis::paintAllGridPoint(int status)
 	switch(dim)
 	{
 	case 2:
+	    for (j = jmin; j <= jmax; j++)
+	    for (i = imin; i <= imax; i++)
+	    {
+		ic = d_index2d(i,j,top_gmax);
+		domain_status[ic] = status;
+	    }
 	    break;
 	case 3:
 	    for (k = kmin; k <= kmax; k++)
@@ -2483,6 +2493,13 @@ void Incompress_Solver_Smooth_Basis::paintSolvedGridPoint()
 	switch(dim)
 	{
 	case 2:
+	    for (j = jmin; j <= jmax; j++)
+	    for (i = imin; i <= imax; i++)
+	    {
+		ic = d_index2d(i,j,top_gmax);
+		if (domain_status[ic] == TO_SOLVE)
+		    domain_status[ic] = SOLVED;
+	    }
 	    break;
 	case 3:
 	    for (k = kmin; k <= kmax; k++)
@@ -2520,26 +2537,49 @@ boolean Incompress_Solver_Smooth_Basis::paintToSolveGridPoint()
 	}
 
 	seed_found = NO;
-	for (k = kmin; k <= kmax; k++)
+	switch (dim)
 	{
+	case 2:
 	    for (j = jmin; j <= jmax; j++)
+            {
+                for (i = imin; i <= imax; i++)
+                {
+                    ic = d_index2d(i,j,top_gmax);
+                    if (domain_status[ic] == NOT_SOLVED)
+                    {
+                        ip_seed[0] = i;
+                        ip_seed[1] = j;
+                        domain_status[ic] = TO_SOLVE;
+                        seed_found = YES;
+                        break;
+                    }
+                }
+                if (seed_found) break;
+            }
+	    break;
+	case 3:
+	    for (k = kmin; k <= kmax; k++)
 	    {
-		for (i = imin; i <= imax; i++)
-		{
-		    ic = d_index3d(i,j,k,top_gmax);	
-		    if (domain_status[ic] == NOT_SOLVED)
+	    	for (j = jmin; j <= jmax; j++)
+	    	{
+		    for (i = imin; i <= imax; i++)
 		    {
-			ip_seed[0] = i;
-			ip_seed[1] = j;
-			ip_seed[2] = k;
-			domain_status[ic] = TO_SOLVE;
-			seed_found = YES;
-			break;
+		    	ic = d_index3d(i,j,k,top_gmax);	
+		    	if (domain_status[ic] == NOT_SOLVED)
+		    	{
+			    ip_seed[0] = i;
+			    ip_seed[1] = j;
+			    ip_seed[2] = k;
+			    domain_status[ic] = TO_SOLVE;
+			    seed_found = YES;
+			    break;
+		    	}
 		    }
-		}
-		if (seed_found) break;
+		    if (seed_found) break;
+	    	}
+	    	if (seed_found) break;
 	    }
-	    if (seed_found) break;
+	    break;
 	}
 	if (!seed_found)
 	{

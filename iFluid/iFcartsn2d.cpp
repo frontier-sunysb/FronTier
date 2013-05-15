@@ -249,17 +249,24 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
         }
         elliptic_solver.D = diff_coeff;
         elliptic_solver.source = source;
-        elliptic_solver.ilower = ilower;
-        elliptic_solver.iupper = iupper;
         elliptic_solver.soln = array;
-        elliptic_solver.ij_to_I = ij_to_I;
 	elliptic_solver.set_solver_domain();
 	elliptic_solver.getStateVar = getStatePhi;
 	elliptic_solver.findStateAtCrossing = findStateAtCrossing;
-	if (iFparams->total_div_cancellation)
-	    elliptic_solver.dsolve(array);
-	else
-	    elliptic_solver.solve(array);
+	paintAllGridPoint(NOT_SOLVED);
+	while (paintToSolveGridPoint())
+	{
+	    setGlobalIndex();
+            setIndexMap();
+            elliptic_solver.ij_to_I = ij_to_I;
+            elliptic_solver.ilower = ilower;
+            elliptic_solver.iupper = iupper;
+	    if (iFparams->total_div_cancellation)
+	    	elliptic_solver.dsolve(array);
+	    else
+	    	elliptic_solver.solve(array);
+	    paintSolvedGridPoint();
+	}
 	//viewTopVariable(front,array,NO,0.0,0.0,(char*)"test-simple",
 	//			(char*)"array");
 
@@ -371,6 +378,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 	setComponent();
 	if (debugging("trace"))
 	    printf("Passed setComponent()\n");
+
+	paintAllGridPoint(TO_SOLVE);
 	setGlobalIndex();
 	if (debugging("trace"))
 	    printf("Passed setGlobalIndex()\n");

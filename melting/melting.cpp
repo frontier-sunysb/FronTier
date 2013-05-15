@@ -1,7 +1,7 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/*********************************************************************
+FronTier is a set of libraries that implements differnt types of Front 
+Traking algorithms. Front Tracking is a numerical method for the solution 
+of partial differential equations whose solutions have discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -21,7 +21,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-******************************************************************************/
+**********************************************************************/
 
 
 /*
@@ -31,17 +31,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *
 */
 
+#include "../iFluid/iFluid.h"
 #include "melting.h"
-#include "melting_basic.h"
 
-/********************************************************************
- *	Level function parameters for the initial interface 	    *
- ********************************************************************/
-
-
-/********************************************************************
- *	Velocity function parameters for the front	 	    *
- ********************************************************************/
 #define		MAX_NUM_VERTEX_IN_CELL		20
 
 typedef struct {
@@ -51,7 +43,8 @@ typedef struct {
 
 	/*  Local Application Function Declarations */
 
-static void 	melting_driver(Front*,TEST_SPHERE_PARAMS,CARTESIAN&);
+static void	melting_flow_driver(Front*,TEST_SPHERE_PARAMS,CARTESIAN&,
+			Incompress_Solver_Smooth_Basis *);
 static void	record_1d_growth(Front*,double***,int*);
 static void 	plot_growth_data(char*,double**,int);
 static double 	temperature_func(double*,COMPONENT,double);
@@ -59,6 +52,8 @@ static double 	crystal_curve(POINTER,double*);
 static double 	sphere_surf(POINTER,double*);
 static boolean 	fractal_dimension(Front*,TEST_SPHERE_PARAMS,double*,double*);
 static void 	read_movie_options(char*,PARAMS*);
+static void	melt_flow_point_propagate(Front*,POINTER,POINT*,POINT*,
+			HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -73,14 +68,20 @@ int main(int argc, char **argv)
 	static VELO_FUNC_PACK velo_func_pack;
 	TEST_SPHERE_PARAMS s_params;
 	PARAMS eqn_params;
+	IF_PARAMS iFparams;
 	SEED_PARAMS seed_params;
 	int dim;
-
-	CARTESIAN       cartesian(front);
 
 	FT_Init(argc,argv,&f_basic);
 
         PetscInitialize(&argc,&argv,PETSC_NULL,PETSC_NULL);
+
+	CARTESIAN	cartesian(front);
+	Incompress_Solver_Smooth_Basis *l_cartesian = NULL;
+	if (f_basic.dim == 2)
+	    l_cartesian = new Incompress_Solver_Smooth_2D_Cartesian(front);
+	else if (f_basic.dim == 3)
+	    l_cartesian = new Incompress_Solver_Smooth_3D_Cartesian(front);
 
 	/* Initialize basic computational data */
 	f_basic.size_of_intfc_state = sizeof(STATE);
@@ -112,48 +113,76 @@ int main(int argc, char **argv)
 	FT_StartUp(&front,&f_basic);
 	FT_InitDebug(in_name);
 
-	readPhaseParams(in_name,&eqn_params);
+	eqn_params.dim = f_basic.dim;
+	iFparams.dim = f_basic.dim;
 	read_movie_options(in_name,&eqn_params);
+	read_iF_movie_options(in_name,&iFparams);
+	front.extra1 = (POINTER)&iFparams;
+	front.extra2 = (POINTER)&eqn_params;
 
 	if (!RestartRun)
 	{
+	    if (f_basic.dim == 1)
+	    {
+		(void) printf("Melting in flow problem has no 1D version!\n");
+		clean_up(ERROR);
+	    }	
+
 	    /* Initialize interface through level function */
 
 	    initPhaseIntfc(in_name,dim,&level_func_pack,&eqn_params);
 	    if (debugging("trace")) printf("Passed initPhaseIntfc()\n");
 
 	    FT_InitIntfc(&front,&level_func_pack);
+	    read_melt_dirichlet_bdry_data(in_name,&front,f_basic);
+	    if (f_basic.dim != 3)
+                FT_ClipIntfcToSubdomain(&front);
+	    if (debugging("trace"))
+                printf("Passed FT_ClipIntfcToSubdomain()\n");
 	}
-	if (debugging("trace")) printf("Passed FT_InitIntfc()\n");
-	read_crt_dirichlet_bdry_data(in_name,&front,f_basic);
+	else
+	    read_melt_dirichlet_bdry_data(in_name,&front,f_basic);
+
+	readPhaseParams(in_name,&eqn_params);
+        read_fluid_params(in_name,&iFparams);
 
         Time_step_factor(&front);
 	FT_ReadTimeControl(in_name,&front);
 
 	/* Initialize velocity field function */
 
-	front.extra2 = (POINTER)&eqn_params;
-
-	eqn_params.dim = f_basic.dim;
-
-	velo_func_pack.func_params = (POINTER)&eqn_params;
+	velo_func_pack.func_params = (POINTER)&iFparams;
 	velo_func_pack.func = NULL;
 
+	FT_InitVeloFunc(&front,&velo_func_pack);
         cartesian.initMesh();
+	l_cartesian->initMesh();
+	l_cartesian->findStateAtCrossing = ifluid_find_state_at_crossing;
+	if (debugging("sample_velocity"))
+	    l_cartesian->initSampleVelocity(in_name);
 	if (debugging("sample_temperature"))
             cartesian.initSampleTemperature(in_name);
+
 	if (RestartRun)
 	{
 	    FT_ParallelExchIntfcBuffer(&front);
 	    cartesian.readFrontInteriorState(restart_state_name);
+	    FT_FreeGridIntfc(&front);
+	    l_cartesian->readFrontInteriorStates(restart_state_name);
 	}
 	else
 	{
 	    cartesian.setInitialCondition();
+	    if (debugging("trace")) 
+                printf("Passed cartesian setInitialCondition()\n");
+	    FT_FreeGridIntfc(&front);
+            init_fluid_state_func(&front,l_cartesian);
+            l_cartesian->setInitialCondition();
+            if (debugging("trace"))
+                printf("Passed iFluid setInitialCondition()\n");
 	}
-	if (debugging("trace"))
-	    printf("Passed state initialization\n");
 
+	eqn_params.field->vel = iFparams.field->vel;
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
 
@@ -166,23 +195,26 @@ int main(int argc, char **argv)
         * the assigned fourth_order_point_propagate.
         */
 
-        front._point_propagate = melting_point_propagate;
-
+	FT_SetGlobalIndex(&front);
+	front._point_propagate = melt_flow_point_propagate; 
+	
 	/* Propagate the front */
 
-	melting_driver(&front,s_params,cartesian);
+	melting_flow_driver(&front,s_params,cartesian, l_cartesian);
 
 	PetscFinalize();
 	clean_up(0);
 }
 
-static  void melting_driver(
+static  void melting_flow_driver(
         Front *front,
 	TEST_SPHERE_PARAMS s_params,
-	CARTESIAN &cartesian)
+	CARTESIAN &cartesian,
+	Incompress_Solver_Smooth_Basis *l_cartesian)
 {
         double CFL;
         int  dim = front->rect_grid->dim;
+	IF_PARAMS *iFparams;
 	PARAMS *eqn_params;
 	double frac_dim,radius;
 	FILE *Radius_file,*FracDim_file;
@@ -192,10 +224,11 @@ static  void melting_driver(
 	Radius_file = FracDim_file = NULL;
 
 	if (debugging("trace"))
-	    printf("Entering melting_driver()\n");
+	    printf("Entering melting_flow_driver()\n");
 	Curve_redistribution_function(front) = expansion_redistribute;
         CFL = Time_step_factor(front);
 
+	iFparams = (IF_PARAMS*)front->extra1;
 	eqn_params = (PARAMS*)front->extra2;
 
 	front->hdf_movie_var = NULL;
@@ -223,16 +256,30 @@ static  void melting_driver(
 						&radius);
 	    // Problem specific output
 
+	    FT_ResetTime(front);
+	    FT_Save(front,out_name);
+            cartesian.printFrontInteriorState(out_name);
+            l_cartesian->printFrontInteriorStates(out_name);
+
 	    FT_Propagate(front);
 	    cartesian.solve(front->dt);
+	    l_cartesian->solve(front->dt);
 	    FT_SetTimeStep(front);
 	    cartesian.setAdvectionDt();
 	    front->dt = std::min(front->dt,CFL*cartesian.m_dt);
+	    l_cartesian->setAdvectionDt();
+	    front->dt = std::min(front->dt,CFL*l_cartesian->max_dt);	    
+
             cartesian.initMovieVariables();
-            FT_AddMovieFrame(front,out_name,YES);
+            l_cartesian->augmentMovieVariables();
+	    FT_AddMovieFrame(front,out_name,YES);
         }
         else
+	{
 	    FT_SetOutputCounter(front);
+            cartesian.initMovieVariables();
+            FT_AddMovieFrame(front,out_name,YES);
+	}
 
 	if (pp_mynode() == 0 && dim != 1)
 	{
@@ -257,10 +304,12 @@ static  void melting_driver(
         {
 	    FT_Propagate(front);
 	    cartesian.solve(front->dt);
+	    l_cartesian->solve(front->dt);
 
 	    FT_AddTimeStepToCounter(front);
 	    FT_SetTimeStep(front);
 	    front->dt = FT_Min(front->dt,CFL*cartesian.m_dt);
+	    front->dt = FT_Min(front->dt,CFL*l_cartesian->max_dt);
 
             printf("\ntime = %f   step = %7d   dt = %f\n",
                         front->time,front->step,front->dt);
@@ -272,6 +321,7 @@ static  void melting_driver(
                 FT_Save(front,out_name);
 		// Problem specific output
 		cartesian.printFrontInteriorState(out_name);
+		l_cartesian->printFrontInteriorStates(out_name);
 	    }
             if (FT_IsMovieFrameTime(front))
 	    {
@@ -307,6 +357,8 @@ static  void melting_driver(
 	    {
 		if (dim == 1)
 		    plot_growth_data(out_name,growth_data,count);
+        	cartesian.initMovieVariables();
+	    	FT_AddMovieFrame(front,out_name,YES);
                 break;
 	    }
 	    /* Output section, next dt may be modified */
@@ -318,7 +370,21 @@ static  void melting_driver(
 	    fclose(Radius_file);
 	    fclose(FracDim_file);
 	}
-}       /* end melting_driver */
+}       /* end melting_flow_driver */
+
+static void melt_flow_point_propagate(
+	Front *front,
+        POINTER wave,
+        POINT *oldp,
+        POINT *newp,
+        HYPER_SURF_ELEMENT *oldhse,
+        HYPER_SURF         *oldhs,
+        double              dt,
+        double              *V)
+{
+        ifluid_point_propagate(front,wave,oldp,newp,oldhse,oldhs,dt,V);
+        melting_point_propagate(front,wave,oldp,newp,oldhse,oldhs,dt,V);
+}       /* end melt_flow_point_propagate */
 
 LOCAL double crystal_curve(
         POINTER func_params,
@@ -579,7 +645,7 @@ static void read_movie_options(
 	    return;
 	}
 
-        CursorAfterString(infile,"Type y to make movie of solute:");
+        CursorAfterString(infile,"Type y to make movie of temperature:");
         fscanf(infile,"%s",string);
 	(void) printf("%s\n",string);
         if (string[0] == 'Y' || string[0] == 'y')

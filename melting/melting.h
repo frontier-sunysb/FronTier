@@ -13,7 +13,7 @@
 #include <petscksp.h>
 #include <assert.h>
 
-#define         LIQUID_COMP            2
+#define         LIQUID_COMP            3
 #define         SOLID_COMP             1
 #define		alternate_comp(comp) 					\
 		(comp) == LIQUID_COMP ? SOLID_COMP : LIQUID_COMP
@@ -191,6 +191,8 @@ public:
         void vtk_plot_temperature3d(char*);
 	void initSampleTemperature(char *in_name);
         void sampleTemperature();
+	void sampleTemperature2d();
+	void sampleTemperature3d();
 
 	// Extra movie functions
 	void temperatureMovie(char*);
@@ -239,9 +241,16 @@ public:
 
 extern void readPhaseParams(char*,PARAMS*);
 extern void initPhaseIntfc(char*,int,LEVEL_FUNC_PACK*,PARAMS*);
+extern void ifluid_point_propagate(Front*,POINTER,POINT*,POINT*,
+			HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 extern void melting_point_propagate(Front*,POINTER,POINT*,POINT*,
                     HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 extern void read_crt_dirichlet_bdry_data(char*,Front*,F_BASIC_DATA);
+extern void read_melt_dirichlet_bdry_data(char*,Front*,F_BASIC_DATA);
+extern void melt_flowThroughBoundaryState(double*,HYPER_SURF*,Front*,
+			POINTER,POINTER);
+extern void read_fluid_params(char*,IF_PARAMS*);
+extern void init_fluid_state_func(Front*,Incompress_Solver_Smooth_Basis*);		
 extern void assignStateTemperature(double,POINTER);
 extern double getStateTemperature(POINTER);
 extern double jumpT(POINTER,int,double*);

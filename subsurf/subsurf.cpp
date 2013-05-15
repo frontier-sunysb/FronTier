@@ -144,7 +144,10 @@ int main(int argc, char **argv)
 	    	printf("Passed FT_ClipIntfcToSubdomain()\n");
 	}
 	else
+	{
 	    read_ss_dirichlet_bdry_data(in_name,&front,f_basic);
+	    read_restart_params(f_basic.dim,in_name,&front);
+	}
 
 	read_crystal_params(in_name,&cRparams);
 	if (debugging("trace")) printf("Passed read_crystal_params()\n");

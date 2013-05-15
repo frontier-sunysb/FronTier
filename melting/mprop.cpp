@@ -1,8 +1,8 @@
-/******************************************************************
+/***************************************************************
 FronTier is a set of libraries that implements differnt types of 
-Front Traking algorithms. Front Tracking is a numerical method for 
-the solution of partial differential equations whose solutions have 
-discontinuities.  
+Front Traking algorithms. Front Tracking is a numerical method 
+for the solution of partial differential equations whose solutions 
+have discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -22,11 +22,10 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-*******************************************************************/
+****************************************************************/
 
-
+#include <iFluid.h>
 #include "melting.h"
-#include "melting_basic.h"
 
 static void ice_point_propagate(Front*,POINTER,POINT*,POINT*,	
 		HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
@@ -204,11 +203,11 @@ static  void neumann_point_propagate(
         STATE *sl,*sr,*state;
         PARAMS *params = (PARAMS*)front->extra2;
         double *Temp = params->field->temperature;
-	COMPONENT ext_comp = exterior_component(front->interf);
-	COMPONENT phase_comp;
+        COMPONENT ext_comp = exterior_component(front->interf);
+        COMPONENT phase_comp;
 
 	phase_comp = (negative_component(oldhs) == ext_comp) ?
-		positive_component(oldhs) : negative_component(oldhs);
+                positive_component(oldhs) : negative_component(oldhs);
         for (i = 0; i < dim; ++i)
             Coords(newp)[i] = Coords(oldp)[i];
         FT_GetStatesAtPoint(oldp,oldhse,oldhs,(POINTER*)&sl,(POINTER*)&sr);
@@ -230,8 +229,8 @@ static  void neumann_point_propagate(
         return;
 }	/* end neumann_point_propagate */
 
-static  void dirichlet_point_propagate(
-        Front *front,
+static void dirichlet_point_propagate(
+	Front *front,
         POINTER wave,
         POINT *oldp,
         POINT *newp,
@@ -244,7 +243,7 @@ static  void dirichlet_point_propagate(
         STATE *sl,*sr,*state,*bstate;
         PARAMS *params = (PARAMS*)front->extra2;
 
-        for (i = 0; i < dim; ++i)
+	for (i = 0; i < dim; ++i)
             Coords(newp)[i] = Coords(oldp)[i];
         if (boundary_state(oldhs) != NULL)
         {
@@ -263,21 +262,20 @@ static  void dirichlet_point_propagate(
             if (params->min_temperature > state->temperature)
                 params->min_temperature = state->temperature;
         }
-        else
-        {
+	else
+	{
             FT_GetStatesAtPoint(oldp,oldhse,oldhs,(POINTER*)&sl,(POINTER*)&sr);
             state =  (STATE*)left_state(newp);
-            state->temperature = sl->temperature;
             if (params->max_temperature < state->temperature)
                 params->max_temperature = state->temperature;
             if (params->min_temperature > state->temperature)
                 params->min_temperature = state->temperature;
             state =  (STATE*)right_state(newp);
-            state->temperature = sr->temperature;
             if (params->max_temperature < state->temperature)
                 params->max_temperature = state->temperature;
             if (params->min_temperature > state->temperature)
                 params->min_temperature = state->temperature;
         }
         return;
-}	/* end dirichlet_point_propagate */
+}       /* end dirichlet_point_propagate */
+

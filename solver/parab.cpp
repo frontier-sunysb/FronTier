@@ -78,10 +78,10 @@ void PARABOLIC_SOLVER::solve2d(
 		    coeff_nb = -lambda;
 		    fr_crx_grid_seg =(*findStateAtCrossing)(front,icoords,
 				dir[l][m],comp,&state,&hs,crx_coords);
-		    if (m == 0) coeff_nb -= eta;
-		    else coeff_nb += eta;
                     if (fr_crx_grid_seg == NO_PDE_BOUNDARY)
                     {
+		    	if (m == 0) coeff_nb -= eta;
+		    	else coeff_nb += eta;
 			solver.Add_A(I,I_nb,coeff_nb);
                     }
 		    else if (fr_crx_grid_seg == DIRICHLET_PDE_BOUNDARY)
@@ -90,12 +90,19 @@ void PARABOLIC_SOLVER::solve2d(
 			    boundary_state_function(hs) &&
                             strcmp(boundary_state_function_name(hs),
                             "flowThroughBoundaryState") == 0)
+			{
 			    C_nb = var_in[ic];
+			    coeff -= lambda;
+			    if (m == 0) coeff -= eta;
+			    else coeff += eta;
+			}
 			else
+			{
 			    C_nb = (*getStateVarFunc)(state);
-			rhs -= coeff_nb*C_nb;
-			if (m == 0) rhs += eta*C_nb;
-			else rhs -= eta*C_nb;
+			    rhs -= coeff_nb*C_nb;
+			    if (m == 0) rhs += eta*C_nb;
+			    else rhs -= eta*C_nb;
+			}
 		    }
 		    else if (fr_crx_grid_seg == NEUMANN_PDE_BOUNDARY)
 			coeff -= lambda;
@@ -213,10 +220,12 @@ void PARABOLIC_SOLVER::solve1d(
         int num_iter = 0;
 	int size;
         double rel_residual = 0;
-        boolean fr_crx_grid_seg;
+        int fr_crx_grid_seg;
 	const GRID_DIRECTION dir[3][2] =
                 {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
 	double v[MAXD];
+	HYPER_SURF *hs;
+        POINTER state;
 
         start_clock("solve1d");
 
@@ -256,21 +265,30 @@ void PARABOLIC_SOLVER::solve1d(
                     icn = d_index(ipn,top_gmax,dim);
 		    I_nb = i_to_I[ipn[0]];
 		    coeff_nb = -lambda;
-                    fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                    icoords,dir[l][m],comp,getStateVarFunc,
-                                    &C_nb,crx_coords);
+                    fr_crx_grid_seg = (*findStateAtCrossing)(front,icoords,
+				dir[l][m],comp,&state,&hs,crx_coords); 
 		    if (m == 0) coeff_nb -= eta;
 		    else coeff_nb += eta;
-                    if (!fr_crx_grid_seg)
+                    if (fr_crx_grid_seg == NO_PDE_BOUNDARY)
                     {
 			solver.Add_A(I,I_nb,coeff_nb);
                     }
-		    else
+		    else if (fr_crx_grid_seg == DIRICHLET_PDE_BOUNDARY)
 		    {
-			rhs -= coeff_nb*C_nb;
-			if (m == 0) rhs += eta*C_nb;
-			else rhs -= eta*C_nb;
+			if (wave_type(hs) == DIRICHLET_BOUNDARY &&
+                            boundary_state_function(hs) &&
+                            strcmp(boundary_state_function_name(hs),
+                            "flowThroughBoundaryState") == 0)
+                            C_nb = var_in[ic];
+                        else
+                            C_nb = (*getStateVarFunc)(state);
+                        rhs -= coeff_nb*C_nb;
+                        if (m == 0) rhs += eta*C_nb;
+                        else rhs -= eta*C_nb;
 		    }
+		    else if (fr_crx_grid_seg == NEUMANN_PDE_BOUNDARY)
+                        coeff -= lambda;
+
                 }
 	    }
 	    solver.Add_A(I,I,coeff);
@@ -328,10 +346,12 @@ void PARABOLIC_SOLVER::solve3d(
         int num_iter = 0;
 	int size;
         double rel_residual = 0;
-        boolean fr_crx_grid_seg;
+        int fr_crx_grid_seg;
 	const GRID_DIRECTION dir[3][2] =
                 {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
 	double v[MAXD];
+	HYPER_SURF *hs;
+	POINTER state;
 
         start_clock("solve3d");
 
@@ -375,21 +395,29 @@ void PARABOLIC_SOLVER::solve3d(
                     icn = d_index(ipn,top_gmax,dim);
 		    I_nb = ijk_to_I[ipn[0]][ipn[1]][ipn[2]];
 		    coeff_nb = -lambda;
-                    fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                    icoords,dir[l][m],comp,getStateVarFunc,
-                                    &C_nb,crx_coords);
+                    fr_crx_grid_seg =(*findStateAtCrossing)(front,icoords,
+				dir[l][m],comp,&state,&hs,crx_coords);
 		    if (m == 0) coeff_nb -= eta;
 		    else coeff_nb += eta;
-                    if (!fr_crx_grid_seg)
+                    if (fr_crx_grid_seg == NO_PDE_BOUNDARY)
                     {
 			solver.Add_A(I,I_nb,coeff_nb);
                     }
-		    else
+		    else if (fr_crx_grid_seg == DIRICHLET_PDE_BOUNDARY)
 		    {
-			rhs -= coeff_nb*C_nb;
-			if (m == 0) rhs += eta*C_nb;
-			else rhs -= eta*C_nb;
+			if (wave_type(hs) == DIRICHLET_BOUNDARY &&
+                            boundary_state_function(hs) &&
+                            strcmp(boundary_state_function_name(hs),
+                            "flowThroughBoundaryState") == 0)
+                            C_nb = var_in[ic];
+                        else
+                            C_nb = (*getStateVarFunc)(state);
+                        rhs -= coeff_nb*C_nb;
+                        if (m == 0) rhs += eta*C_nb;
+                        else rhs -= eta*C_nb;
 		    }
+		    else if (fr_crx_grid_seg == NEUMANN_PDE_BOUNDARY)
+                        coeff -= lambda;
                 }
 	    }
 	    solver.Add_A(I,I,coeff);
