@@ -1,0 +1,48 @@
+Domain limit in 0-th dimension: 0.000000 2.000000
+Domain limit in 1-th dimension: 0.000000 4.000000
+Computational grid: 80 160 
+Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
+Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
+Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
+Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
+Enter yes for debugging: yes
+Enter the debugging string: rigid_body
+Enter projection type: SIMPLE
+The default advection order is WENO-Runge-Kutta 4
+Enter advection order: 
+Cannot find the string, using default
+Available elliptic methods are:
+	Simple elliptic (S)
+	CIM elliptic (C)
+	Double elliptic (DB)
+	Dual elliptic (DU)
+Enter elliptic method: 
+Cannot find the string, using default
+Enter fluid ambient velocity: 
+Cannot find the string, using default
+Enter upper bound for speed: 
+Cannot find the string, using default
+Enter yes to use total divergence cancellation: 
+Cannot find the string, using default
+Type y to make movie of pressure: y
+Type y to make movie of vorticity: y
+Type y to make movie of velocity: y
+Type y to make vector velocity field movie: y
+Type y to plot bullet in gd movie: 
+Cannot find the string, using default
+For lower boundary in 1-th dimension 
+Enter type of Dirichlet boundary: FLOW_THROUGH
+For upper boundary in 1-th dimension 
+Enter type of Dirichlet boundary: CONSTANT_STATE
+Enter velocity: 0.000000 -100.000000 
+Enter pressure: 20.000000
+Entering initWaterDrops()
+Two methods for initialization:
+	Prompt initialization (P)
+	Random initialization (R)
+Enter method of initialization: P
+Enter number of water drops: 2
+Enter center of water drop 1: 0.5 0.6
+Enter radius of water drop 1: 0.1
+Enter center of water drop 2: 1.4 3.2
+Enter radius of water drop 2: 0.2
