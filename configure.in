@@ -601,6 +601,7 @@ MonteCarlo/Makefile
 timeSeries/Makefile
 iFluid/Makefile
 frgb/Makefile
+climate/Makefile
 poisson/Makefile
 cFluid/Makefile
 cim/Makefile
@@ -650,6 +651,7 @@ MonteCarlo/Makefile
 timeSeries/Makefile
 iFluid/Makefile
 frgb/Makefile
+climate/Makefile
 subsurf/Makefile
 airfoil/Makefile
 parachute/Makefile

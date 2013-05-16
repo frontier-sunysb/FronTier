@@ -19,6 +19,7 @@ all:
 	cd curvature && $(MAKE)
 	cd finance && $(MAKE)
 	cd frgb && $(MAKE)
+	cd climate && $(MAKE)
 	cd iFluid && $(MAKE)
 	cd melting && $(MAKE)
 	cd pde && $(MAKE)
@@ -41,6 +42,7 @@ clean:
 	cd curvature && $(MAKE) clean
 	cd finance && $(MAKE) clean
 	cd frgb && $(MAKE) clean
+	cd climate && $(MAKE) clean
 	cd melting && $(MAKE) clean
 	cd pde && $(MAKE) clean
 	cd MonteCarlo && $(MAKE) clean
@@ -197,6 +199,11 @@ $$ME/frgb/*.h \
 $$ME/frgb/Makefile.in \
 $$ME/frgb/in-* \
 $$ME/frgb/mrun* \
+$$ME/climate/*.cpp \
+$$ME/climate/*.h \
+$$ME/climate/Makefile.in \
+$$ME/climate/in-* \
+$$ME/climate/mrun* \
 $$ME/README \
 $$ME/finance/*.cpp \
 $$ME/finance/*.h \

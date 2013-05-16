@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -19,9 +20,9 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-******************************************************************************/
+****************************************************************/
 
 
 /*
@@ -883,3 +884,28 @@ EXPORT  void FT_CutSurfBdry(
         }
         cut_surface(surf,constr_func,func_params,YES);
 }       /* end FT_CutSurfBdry */
+
+EXPORT	void FT_MakeEllipticCurve(
+	Front *front,
+	double *center,
+	double *radius,
+	COMPONENT   neg_comp,
+        COMPONENT   pos_comp,
+	int w_type,
+	CURVE **curve)
+{
+	ELLIP2D_PARAMS ellip_params;
+	int i,num_seg;
+	CURVE **curves;
+
+	ellip_params.x0 = center[0];
+	ellip_params.y0 = center[1];
+	ellip_params.a = radius[0];
+	ellip_params.b = radius[1];
+	curves = make_level_curves(front->rect_grid,front->interf,neg_comp,
+			pos_comp,ellipse_func,(POINTER)&ellip_params,
+			NO,&num_seg);
+	for (i = 0; i < num_seg; ++i)
+	    wave_type(curves[i]) = w_type;
+	*curve = curves[0];
+}	/* end FT_MakeEllipticCurve */

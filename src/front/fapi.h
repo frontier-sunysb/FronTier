@@ -1403,6 +1403,22 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 
    IMPORT  void FT_CutSurfBdry(SURFACE *surf,boolean constr_func(POINTER,double*),POINTER func_params,double **insert_coords,int num_pts,int insert_idir);
 
+/*! \fn void FT_MakeEllipticCurve(Front *front, double *center, double *radius, COMPONENT neg_comp, COMPONENT pos_comp, int w_type,CURVE **curve)
+ *  \ingroup INSERT
+    \brief This function inserts an elliptic curve into the front with given
+     information of center, radii, components, and wave type.
+    
+    \param front @b inout Pointer to the front in which curve is inserted.
+    \param center @b in center of the ellipse.
+    \param radius @b in radii of the ellipse.
+    \param neg_comp @b in index for negative side of the curve (inner side).
+    \param pos_comp @b in index for positive side of the curve (outer side).
+    \param w_type @b int wave type of the curve.
+    \param curve @b out curve made by this function.
+ */
+
+   IMPORT  void FT_MakeEllipticCurve(Front *front,double *center,double *radius,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,CURVE **curve);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif
