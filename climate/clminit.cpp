@@ -4,8 +4,8 @@
 static void prompt_for_rigid_body_params(int,char*,RG_PARAMS*);
 static void set_rgbody_params(RG_PARAMS,HYPER_SURF*);
 static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
-static void initWaterDrops2d(Front*);
-static void initWaterDrops3d(Front*);
+static void initRandomDrops(int,double*,double*,double**,double*,int,
+				double,double);
 
 extern void init_fluid_state_func(
 	Incompress_Solver_Smooth_Basis *cartesian)
@@ -161,29 +161,17 @@ static void set_rgbody_params(
 extern void initWaterDrops(
 	Front *front)
 {
-	int dim = front->rect_grid->dim;
-	printf("Entering initWaterDrops()\n");
-	switch (dim)
-	{
-	case 2:
-	    initWaterDrops2d(front);
-	    clean_up(0);
-	    return;
-	case 3:
-	    initWaterDrops3d(front);
-	    return;
-	}
-}	/* end initWaterDrops */
-
-static void initWaterDrops2d(
-	Front *front)
-{
 	char string[100],msg[200];
 	char *inname = InName(front);
 	FILE *infile = fopen(inname,"r");
-	int i,num_drops;
+	int i,j,num_drops;
 	double **center,*radius;
+	double r_bar,sigma;
 	CURVE *curve;
+	SURFACE *surf;
+	double *L = front->rect_grid->L;
+	double *U = front->rect_grid->U;
+	int dim = front->rect_grid->dim;
 
 	(void) printf("Two methods for initialization:\n");
 	(void) printf("\tPrompt initialization (P)\n");
@@ -204,16 +192,29 @@ static void initWaterDrops2d(
 	    {
 		sprintf(msg,"Enter center of water drop %d:",i+1);
 		CursorAfterString(infile,msg);
-		fscanf(infile,"%lf %lf",&center[i][0],&center[i][1]);
-		(void) printf("%f %f\n",center[i][0],center[i][1]);
+		for (j = 0; j < dim; ++j)
+		{
+		    fscanf(infile,"%lf ",&center[i][j]);
+		    (void) printf("%f ",center[i][j]);
+		}
+		(void) printf("\n");
 		sprintf(msg,"Enter radius of water drop %d:",i+1);
 		CursorAfterString(infile,msg);
 		fscanf(infile,"%lf",&radius[i]);
 		(void) printf("%f\n",radius[i]);
 	    }
 	    break;
-	case 'd':
-	case 'D':
+	case 'r':
+	case 'R':
+	    sprintf(msg,"Enter mean radius of water drop:");
+	    CursorAfterString(infile,msg);
+	    fscanf(infile,"%lf",&r_bar);
+	    (void) printf("%f\n",r_bar);
+	    sprintf(msg,"Enter standard deviation of radius:");
+	    CursorAfterString(infile,msg);
+	    fscanf(infile,"%lf",&sigma);
+	    (void) printf("%f\n",sigma);
+	    initRandomDrops(dim,L,U,center,radius,num_drops,r_bar,sigma);
 	    break;
 	default:
 	    (void) printf("Unknown option for initialization!\n");
@@ -221,15 +222,68 @@ static void initWaterDrops2d(
 	}
 	for (i = 0; i < num_drops; ++i)
 	{
-	    double radii[2];
-	    radii[0] = radii[1] = radius[i];
-	    FT_MakeEllipticCurve(front,center[i],radii,SOLID_COMP,
-			LIQUID_COMP2,PARTICLE_BOUNDARY,&curve);
+	    double radii[MAXD];
+	    for (j = 0; j < dim; ++j)
+	    	radii[j] = radius[i];
+	    if (dim == 2)
+	    	FT_MakeEllipticCurve(front,center[i],radii,SOLID_COMP,
+			LIQUID_COMP2,PARTICLE_BOUNDARY,1,&curve);
+	    else if (dim == 3)
+	    	FT_MakeEllipticSurf(front,center[i],radii,SOLID_COMP,
+			LIQUID_COMP2,PARTICLE_BOUNDARY,1,&surf);
 	}
-	xgraph_2d_intfc("test.xg",front->interf);
-}	/* end initWaterDrops2d */
+	if (debugging("init_intfc"))
+	{
+	    if (dim == 2)
+	    	xgraph_2d_intfc("test.xg",front->interf);
+	    else if (dim == 3)
+		gview_plot_interface("init_intfc",front->interf);
+	}
 
-static void initWaterDrops3d(
-	Front *front)
+}	/* end initWaterDrops */
+
+static void initRandomDrops(
+	int dim,
+	double *L,
+	double *U,
+	double **center,
+	double *radius,
+	int num_drops,
+	double r_bar,
+	double sigma)
 {
-}	/* end initWaterDrops3d */
+	int i,j,n;
+	GAUSS_PARAMS gauss_params;
+	UNIFORM_PARAMS uniform_params;
+	unsigned short int xsubi[3];
+	double x,dist;
+
+	xsubi[0] = 10;
+	xsubi[1] = 100;
+	xsubi[2] = 1000;
+
+	n = 0;
+	gauss_params.mu = r_bar;
+	gauss_params.sigma = sigma;
+	uniform_params.a = 0.0;
+	uniform_params.b = 1.0;
+
+	for (i = 0; i < num_drops*3; ++i)
+	{
+	    for (j = 0; j < dim; ++j)
+	    {
+	    	x = dist_uniform((POINTER)&uniform_params,xsubi);
+	    	center[n][j] = L[j] + x*(U[j] - L[j]);
+	    }
+	    radius[n] = gauss_center_limit((POINTER)&gauss_params,xsubi);
+	    for (j = 0; j < n; ++j)
+	    {
+		dist = distance_between_positions(center[j],center[n],dim);
+		if (dist < (radius[j] + radius[n]))
+		    break;
+	    }
+	    if (j < n) continue;
+	    n++;
+	    if (n == num_drops) break;
+	}
+}	/* end initRandomDrops */

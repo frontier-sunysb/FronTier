@@ -14,6 +14,7 @@ fsort.$(OBJEXT)    \
 output.$(OBJEXT)   \
 ppsub.$(OBJEXT)    \
 quad.$(OBJEXT)     \
+random.$(OBJEXT)    \
 roots.$(OBJEXT)    \
 runga.$(OBJEXT)    \
 sphhar.$(OBJEXT)   \

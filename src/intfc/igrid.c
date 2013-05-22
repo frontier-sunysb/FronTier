@@ -1374,3 +1374,39 @@ LOCAL	double spherical_Volume(
 	return  4.0*PI*dr*(r*r + dr*dr/12.0);
 }		/*end sperical_Volume*/
 
+EXPORT void set_box_rect_grid(
+	double *L,
+	double *U,
+	int *gmax,
+	int *lbuf,
+	int *ubuf,
+	int dim,
+	RECT_GRID *rect_grid)
+{
+	int i;
+	int nobuf[3] = {0, 0, 0};
+
+	rect_grid->dim = dim;
+	if (lbuf == NULL) lbuf = nobuf;
+	if (ubuf == NULL) ubuf = nobuf;
+	rect_grid->Remap.remap = IDENTITY_REMAP;
+	for (i = 0; i < dim; ++i)
+	{
+	    rect_grid->L[i] = L[i];
+            rect_grid->U[i] = U[i];
+	    rect_grid->GL[i] = L[i];
+            rect_grid->GU[i] = U[i];
+            rect_grid->lbuf[i] = lbuf[i];
+            rect_grid->ubuf[i] = ubuf[i];
+            rect_grid->gmax[i] = gmax[i];
+	    rect_grid->h[i] = (gmax[i] > 0) ? (U[i] - L[i])/gmax[i] : 0;
+            rect_grid->VL[i] = rect_grid->L[i] - lbuf[i]*rect_grid->h[i];
+            rect_grid->VU[i] = rect_grid->U[i] + ubuf[i]*rect_grid->h[i];
+            rect_grid->edges[i] = NULL;
+            rect_grid->centers[i] = NULL;
+            rect_grid->dh[i] = NULL;
+            rect_grid->variable_mesh[i] = NO;
+	}
+	rect_grid->glstore = NULL;
+        rect_grid->Remap.area = area_of_rect_grid(rect_grid);
+}	/* end set_box_rect_grid */

@@ -1,7 +1,8 @@
-/******************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking 
-algorithms. Front Tracking is a numerical method for the solution of partial 
-differential equations whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 Copyright (C) 1999 by The University at Stony Brook. 
  
@@ -19,7 +20,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-******************************************************************************/
+****************************************************************/
 
 
 /*
@@ -78,7 +79,7 @@ int main(int argc, char **argv)
 	radii[2] = 0.3;
 	FT_MakeEllipticSurf(&front,center,radii,
 		exterior_component(front.interf),2,FIRST_PHYSICS_WAVE_TYPE,
-		&surf);
+		1,&surf);
 	FT_Save(&front,f_basic.out_name);
 	delete_surface(surf);
 	FT_AddTimeStepToCounter(&front);

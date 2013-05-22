@@ -1230,7 +1230,7 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 				double seg_length, 
 				REDISTRIBUTION_DIRECTION dir);
 
-/*! \fn void FT_MakeEllipticSurf(Front *front, double *center, double *radius, COMPONENT neg_comp, COMPONENT pos_comp, int w_type,SURFACE **surf)
+/*! \fn void FT_MakeEllipticSurf(Front *front, double *center, double *radius, COMPONENT neg_comp, COMPONENT pos_comp, int w_type,int refinement_level,SURFACE **surf)
  *  \ingroup INSERT
     \brief This function inserts an elliptic surface into the front with given
      information of center, radii, components, and wave type.
@@ -1241,10 +1241,11 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
     \param neg_comp @b in index for negative side of the surface (inner side).
     \param pos_comp @b in index for positive side of the surface (outer side).
     \param w_type @b int wave type of the surface.
+    \param refinement_level @b int refinement level of the surface.
     \param surf @b out surface made by this function.
  */
 
-   IMPORT  void FT_MakeEllipticSurf(Front *front,double *center,double *radius,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf);
+   IMPORT  void FT_MakeEllipticSurf(Front *front,double *center,double *radius,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,int refinement_level,SURFACE **surf);
 
 /*! \fn void FT_MakeDumbBellSurf(Front *front, double x0, double x1,double y0,double z0,double R,double r,COMPONENT neg_comp, COMPONENT pos_comp, int w_type,SURFACE **surf)
  *  \ingroup INSERT
@@ -1403,7 +1404,7 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 
    IMPORT  void FT_CutSurfBdry(SURFACE *surf,boolean constr_func(POINTER,double*),POINTER func_params,double **insert_coords,int num_pts,int insert_idir);
 
-/*! \fn void FT_MakeEllipticCurve(Front *front, double *center, double *radius, COMPONENT neg_comp, COMPONENT pos_comp, int w_type,CURVE **curve)
+/*! \fn void FT_MakeEllipticCurve(Front *front, double *center, double *radius, COMPONENT neg_comp, COMPONENT pos_comp, int w_type,int refinement_level,CURVE **curve)
  *  \ingroup INSERT
     \brief This function inserts an elliptic curve into the front with given
      information of center, radii, components, and wave type.
@@ -1414,10 +1415,11 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
     \param neg_comp @b in index for negative side of the curve (inner side).
     \param pos_comp @b in index for positive side of the curve (outer side).
     \param w_type @b int wave type of the curve.
+    \param refinement_level @b int level of refinement.
     \param curve @b out curve made by this function.
  */
 
-   IMPORT  void FT_MakeEllipticCurve(Front *front,double *center,double *radius,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,CURVE **curve);
+   IMPORT  void FT_MakeEllipticCurve(Front *front,double *center,double *radius,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,int refinement_level,CURVE **curve);
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }

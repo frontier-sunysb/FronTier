@@ -619,19 +619,31 @@ EXPORT	void FT_MakeEllipticSurf(
 	COMPONENT   neg_comp,
         COMPONENT   pos_comp,
 	int w_type,
+	int refinement_level,
 	SURFACE **surf)
 {
 	RECT_GRID *rgr = front->rect_grid;
+	RECT_GRID box_rg;
 	ELLIP_PARAMS ellip_params;
 	int i,dim = rgr->dim;
-	double coords[MAXD];
+	double L[MAXD],U[MAXD],dh;
+	int gmax[MAXD];
+	double *h = rgr->h;
 
 	for (i = 0; i < dim; ++i)
 	{
 	    ellip_params.cen[i] = center[i];
 	    ellip_params.rad[i] = radius[i];
+	    L[i] = center[i] - radius[i];
+	    U[i] = center[i] + radius[i];
+	    gmax[i] = rint((U[i] - L[i])/h[i]);
+	    dh = gmax[i]*h[i] - (U[i] - L[i]);
+	    L[i] -= 0.5*dh;
+	    U[i] += 0.5*dh;
+	    gmax[i] = refinement_level*rint((U[i] - L[i])/h[i]);
 	}
-	make_level_surface(rgr,front->interf,neg_comp,pos_comp,
+	set_box_rect_grid(L,U,gmax,NULL,NULL,dim,&box_rg);
+	make_level_surface(&box_rg,front->interf,neg_comp,pos_comp,
 			ellipsoid_func,(POINTER)&ellip_params,surf);
 	wave_type(*surf) = w_type;
 	front->interf->modified = YES;
@@ -892,19 +904,37 @@ EXPORT	void FT_MakeEllipticCurve(
 	COMPONENT   neg_comp,
         COMPONENT   pos_comp,
 	int w_type,
+	int refinement_level,
 	CURVE **curve)
 {
 	ELLIP2D_PARAMS ellip_params;
 	int i,num_seg;
 	CURVE **curves;
+	RECT_GRID box_rg;
+	RECT_GRID *rgr = front->rect_grid;
+	int dim = rgr->dim;
+        double L[MAXD],U[MAXD],dh;
+        int gmax[MAXD];
+        double *h = rgr->h;
 
 	ellip_params.x0 = center[0];
 	ellip_params.y0 = center[1];
 	ellip_params.a = radius[0];
 	ellip_params.b = radius[1];
-	curves = make_level_curves(front->rect_grid,front->interf,neg_comp,
+	for (i = 0; i < dim; ++i)
+        {
+            L[i] = center[i] - radius[i];
+            U[i] = center[i] + radius[i];
+            gmax[i] = rint((U[i] - L[i])/h[i]);
+            dh = gmax[i]*h[i] - (U[i] - L[i]);
+            L[i] -= 0.5*dh;
+            U[i] += 0.5*dh;
+            gmax[i] = refinement_level*rint((U[i] - L[i])/h[i]);
+        }
+	set_box_rect_grid(L,U,gmax,NULL,NULL,dim,&box_rg);
+	curves = make_level_curves(&box_rg,front->interf,neg_comp,
 			pos_comp,ellipse_func,(POINTER)&ellip_params,
-			NO,&num_seg);
+			YES,&num_seg);
 	for (i = 0; i < num_seg; ++i)
 	    wave_type(curves[i]) = w_type;
 	*curve = curves[0];

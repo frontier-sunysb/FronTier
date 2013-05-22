@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -19,9 +20,9 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-******************************************************************************/
+****************************************************************/
 
 
 /*
@@ -688,6 +689,8 @@ IMPORT	void	set_dual_grid(RECT_GRID*,const RECT_GRID*);
 IMPORT	void	set_rect_grid(const double*,const double*,const double*,
 			      const double*,const int*,const int*,const int*,
 			      int,const REMAP*,RECT_GRID*);
+IMPORT	void	set_box_rect_grid(double*,double*,int*,int*,int*,int,
+				RECT_GRID*);
 IMPORT	void	set_remap(int,GEOMETRY_REMAP,REMAP*);
 IMPORT	void	set_remap_identity(int,GEOMETRY_REMAP);
 IMPORT	void	zoom_rect_grid(RECT_GRID*,const RECT_GRID*);
