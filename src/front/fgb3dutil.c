@@ -5328,6 +5328,14 @@ LOCAL boolean remove_unphy_pair(
 	    {
 	    	num_crx += nc;
 	    	crx1 = next_crossing(ip1,gmax,dir,T,NULL);
+		if (crx1->lcomp == crx1->ucomp)
+		    num_crx--;
+		while ((crx1 = next_crossing(ip1,gmax,dir,T,crx1)) != NULL)
+		{
+		    if (crx1->lcomp == crx1->ucomp)
+                    	num_crx--;
+		}
+	    	crx1 = next_crossing(ip1,gmax,dir,T,NULL);
 	    }
 	    ic2 = d_index(ip2,gmax,3);
 	    c2 = comp[ic2];
