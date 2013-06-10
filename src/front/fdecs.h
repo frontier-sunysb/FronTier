@@ -542,10 +542,10 @@ struct _Front {
 
 		/* Real and mesh times for front->interf */
 	double dt, *dt_frac, time, max_time;
-	double print_time_interval, movie_frame_interval,resolution_level;
+	double print_time_interval, movie_frame_interval;
 	boolean is_print_time,is_movie_time,time_limit_reached;
 	boolean two_step_interface;
-	int im,ip;
+	int im,ip,resolution_level;
 	int step, max_step;
 	int num_mts,_max_num_mts;
 	boolean   redis_flag; /*flag for the redistribution after LGB*/
@@ -567,6 +567,8 @@ struct _Front {
 	SAMPLE *sample;
 	COMPONENT *hdf_comps[MAXD];	/* Saved for hdf plotting */
 	HDF_MOVIE_VAR *hdf_movie_var;	/* variables for hdf movies */
+	boolean hdf_cut_frame;
+	double cut_L[MAXD],cut_U[MAXD];
 	VTK_MOVIE_VAR *vtk_movie_var;	/* variables for vtk movies */
 	int  (*init_topology_of_new_interface)(struct _Front*,struct _Front*);
 	struct _F_WAVE_CAPTURE *_f_wave_capture;
@@ -739,6 +741,9 @@ typedef struct _Wv_on_pc Wv_on_pc;
 
 #define InName(front)   (front)->f_basic->in_name
 #define OutName(front)  (front)->f_basic->out_name
+#define ReSetTime(front)  (front)->f_basic->ReSetTime
+#define RestartRun(front)  (front)->f_basic->RestartRun
+#define RestartStep(front)  (front)->f_basic->RestartStep
 #define TwoStepIntfc(front)  (front)->two_step_interface
 
 	/*

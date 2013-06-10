@@ -13,6 +13,7 @@ all:
 	cd parachute && $(MAKE)
 	cd cell && $(MAKE)
 	cd cFluid && $(MAKE)
+	cd wings && $(MAKE)
 	cd cim && $(MAKE)
 	cd inverse && $(MAKE)
 	cd crystal && $(MAKE)
@@ -33,6 +34,7 @@ clean:
 	cd example3d && $(MAKE) clean
 	cd iFluid && $(MAKE) clean
 	cd cFluid && $(MAKE) clean
+	cd wings && $(MAKE) clean
 	cd cim && $(MAKE) clean
 	cd inverse && $(MAKE) clean
 	cd airfoil && $(MAKE) clean
@@ -177,6 +179,11 @@ $$ME/cFluid/*.h \
 $$ME/cFluid/Makefile.in \
 $$ME/cFluid/in-* \
 $$ME/cFluid/mrun* \
+$$ME/wings/*.cpp \
+$$ME/wings/*.h \
+$$ME/wings/Makefile.in \
+$$ME/wings/in-* \
+$$ME/wings/mrun* \
 $$ME/cim/*.cpp \
 $$ME/cim/*.h \
 $$ME/cim/Makefile.in \

@@ -2442,7 +2442,6 @@ LOCAL void FrontPreAdvance2d(
 	{
 	    if (wave_type(*c) == MOVABLE_BODY_BOUNDARY)
 	    {
-		if (motion_type(*c) == PRESET_MOTION) continue;
 		index = body_index(*c);
 		FrontForceAndTorqueOnHs(front,Hyper_surf(*c),dt,f,&t);
 		torque[index] += t;

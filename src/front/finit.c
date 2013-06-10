@@ -1861,6 +1861,8 @@ LOCAL   void FT_InitIntfc2d(
 	else
 	{
 	    intfc->default_comp = level_func_pack->pos_component;
+	    left_c = exterior_component(intfc);
+	    right_c = intfc->default_comp;
 	}
 
 	set_topological_grid(intfc,computational_grid(intfc));

@@ -1554,6 +1554,7 @@ EXPORT	boolean f_user_join_curves(
 	    status = f_user_2d_join_curves(curve,curve1,curve2);
 	    start_status(curve) = start_status(curve1);
 	    end_status(curve) = end_status(curve2);
+	    curve->extra = curve1->extra;
 	    break;
 	case 3:
 	    status = f_user_3d_join_curves(curve,curve1,curve2);

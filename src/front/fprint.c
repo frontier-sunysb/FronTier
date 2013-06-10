@@ -85,6 +85,8 @@ LOCAL	void	hdf_plot_var2d(Front*,char*,char*,double*,COMPONENT,
 		double (*get_state_var)(Locstate),boolean);
 LOCAL	void	hdf_plot_var3d(Front*,char*,char*,double*,COMPONENT, 
 		double (*get_state_var)(Locstate),int,boolean);
+LOCAL 	void 	add_cut_frame(char*,char*,int,int,uint8*,double*,double,
+				double,double*,double*,boolean);
 #endif /* defined(USE_HDF) */
 LOCAL   void    show_front_gv(Front*,char*);
 LOCAL	void	gv_plot_var2d(Front*,char*,HDF_MOVIE_VAR*,int);
@@ -3033,6 +3035,7 @@ LOCAL	void	hdf_plot_var2d(
 	{
 	    (void) printf("Entered hdf_plot_var2d().\n");
 	    (void) printf("Plotting: %s\n",var_name);
+	    (void) printf("Resolution level: %d\n",resolution_level);
 	}
 
 	pwidth = irint(sqrt(Total_Pixels*(PU[0] - PL[0])/(PU[1] - PL[1])));
@@ -3122,7 +3125,7 @@ LOCAL	void	hdf_plot_var2d(
 	    for (i = 0; i < pp_numnodes(); i++)
 	    {
 #if defined(__MPI__)
-	        find_Cartesian_coordinates( i, pp, icoords);
+	        find_Cartesian_coordinates(i,pp,icoords);
 	        if (i != 0)
 	            pp_recv(hdf_comp_tag,i,tmp_val, width*height*sizeof(uint8)); 
 	        tmp2_val = tmp_val;
@@ -3132,24 +3135,34 @@ LOCAL	void	hdf_plot_var2d(
 	        for (j = 0; j < width; ++j)
 	        for (k = 0; k < height; ++k)
                 {
-		      index = j + (height - k - 1)*width;    
+		     index = j + (height - k - 1)*width;    
 #if defined(__MPI__)
-                     index = pwidth*(pheight - icoords[1]*height - k - 1) + icoords[0]*width + j;   
+                     index = pwidth*(pheight - icoords[1]*height - k - 1) + 						icoords[0]*width + j;   
 #endif /* defined(__MPI__) */
-                     index2= j +(height-k-1)*width;
+                     index2= j + (height - k - 1)*width;
                    
-	            pr_val[index] = tmp2_val[index2];
+	             pr_val[index] = tmp2_val[index2];
 		}
 	    }   
+
+	    if (front->hdf_cut_frame)
+	    {
+	    	add_cut_frame(dirname,var_name,pheight,pwidth,pr_val,PL,
+				hx,hy,front->cut_L,front->cut_U,first);
+	    }
+	    else
+	    {
+       	    	(void) DFR8setpalette(palette);
+	    	if(first == YES)
+            	    (void) DFR8putimage(file_name,pr_val,pwidth,pheight,
+					COMP_NONE);
+	    	else
+            	    (void) DFR8addimage(file_name,pr_val,pwidth,pheight,
+					COMP_NONE);
+	    }
 	}
 
-       	(void) DFR8setpalette(palette);
-	if(first == YES)
-            (void) DFR8putimage(file_name,pr_val,pwidth,pheight,COMP_NONE);
-	else
-            (void) DFR8addimage(file_name,pr_val,pwidth,pheight,COMP_NONE);
-     
-	
+
 	free_these(2,var_val,r_val);
 	if(pp_mynode() == 0)
 	{
@@ -3158,6 +3171,70 @@ LOCAL	void	hdf_plot_var2d(
 	if (debugging("hdf"))
 	    (void) printf("Left hdf_plot_var2d().\n");
 }	/* end hdf_plot_var2d */
+
+LOCAL void add_cut_frame(
+	char *dirname,
+	char *var_name,
+	int pheight,
+	int pwidth,
+	uint8 *pr_val,
+	double *PL,
+	double hx,
+	double hy,
+	double *cut_L,
+	double *cut_U,
+	boolean first)
+{
+	int i,j,is,js,ie,je;
+	int ii,jj,index0,index1;
+	char cut_file_name[1024];
+	double coords[2];
+	static uint8 *cut_pr_val;
+	static uint8 *palette = dflt_palette;
+	int cut_height,cut_width;
+	
+	is = js = ie = je = -1;
+	for (j = 0; j < pwidth; ++j)
+	{
+	    if (PL[0]+j*hx <= cut_L[0] && PL[0]+(j+1)*hx > cut_L[0])
+		js = j;
+	    if (PL[0]+j*hx < cut_U[0] && PL[0]+(j+1)*hx >= cut_U[0])
+		je = j+1;
+	}
+	if (js == -1 || je == -1) return;
+	for (i = 0; i < pheight; ++i)
+	{
+	    if (PL[1]+i*hy <= cut_L[1] && PL[1]+(i+1)*hx > cut_L[1])
+		is = i;
+	    if (PL[1]+i*hx < cut_U[1] && PL[1]+(i+1)*hx >= cut_U[1])
+		ie = i+1;
+	}
+	if (is == -1 || ie == -1) return;
+	cut_height = ie - is;
+	cut_width = je - js;
+	uni_array(&cut_pr_val,cut_height*cut_width,sizeof(uint8));
+	printf("size = %d\n",cut_height*cut_width);
+	for (j = 0; j < pwidth; ++j)
+	for (i = 0; i < pheight; ++i)
+	{
+	    if (i >= is && j >= js && i < ie && j < je)
+	    {
+		jj = j - js;
+		ii = i - is;
+		index0 = j + (pheight - i - 1)*pwidth;
+		index1 = jj + (cut_height - ii - 1)*cut_width;
+		cut_pr_val[index1] = pr_val[index0];
+	    }
+	}
+	sprintf(cut_file_name,"%s/%s-cut.hdf",dirname,var_name);
+	(void) DFR8setpalette(palette);
+        if(first == YES)
+            (void) DFR8putimage(cut_file_name,cut_pr_val,je-js,ie-is,COMP_NONE);
+        else
+            (void) DFR8addimage(cut_file_name,cut_pr_val,je-js,ie-is,COMP_NONE);
+	free_these(1,cut_pr_val);
+}	/* end add_cut_frame */
+
 
 LOCAL	void	hdf_plot_var3d( 
 	Front	*front, 

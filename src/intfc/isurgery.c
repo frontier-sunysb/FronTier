@@ -864,6 +864,37 @@ repeat:
 	return curve;
 }	/* end insert_curve_in_surf */
 
+/*	
+ *	This is a two dimensional rotation with polar angles 
+ */
+
+EXPORT void rotate_point_with_angle(
+	POINT *p,
+	double *center,			/* Rotation center */
+	double phi,			/* Angle in counter-clock wise dir */
+	boolean first)
+{
+	static double rot_matrix[2][2];
+	double x0,y0,x1,y1;
+
+	if (first)
+	{
+	    rot_matrix[0][0] = cos(phi);	 
+	    rot_matrix[0][1] = -sin(phi);	 
+	    rot_matrix[1][0] = sin(phi);	 
+	    rot_matrix[1][1] = cos(phi);	 
+	}
+	x0 = Coords(p)[0] - center[0];
+	y0 = Coords(p)[1] - center[1];
+	x1 = rot_matrix[0][0]*x0 + rot_matrix[0][1]*y0;
+	y1 = rot_matrix[1][0]*x0 + rot_matrix[1][1]*y0;
+	Coords(p)[0] = x1 + center[0];
+	Coords(p)[1] = y1 + center[1];
+}	/* end rotate_point_with_angle */
+
+/*	
+ *	This is a three dimensional rotation with polar angles 
+ */
 
 EXPORT void rotate_point_with_polar_angle(
 	POINT *p,

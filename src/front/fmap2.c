@@ -611,6 +611,24 @@ EXPORT	void FT_SetGlobalIndex(
 	    Gindex(*s) = sindex++;
 }	/* end FT_SetGlobalIndex */
 
+EXPORT	CURVE *FT_MakePointArrayCurve(
+	Front *front,
+	int num_points,
+	double **point_array,
+	COMPONENT   neg_comp,
+        COMPONENT   pos_comp,
+	boolean is_closed_curve,
+	int w_type)
+{
+	CURVE *curve;
+	curve = make_array_curve(front->interf,neg_comp,pos_comp,num_points,
+			point_array,is_closed_curve);
+	wave_type(curve) = w_type;
+	if (is_closed_curve)
+	    node_type(curve->start) = CLOSED_NODE;
+	return curve;
+}	/* end FT_MakePointArrayCurve */
+		
 
 EXPORT	void FT_MakeEllipticSurf(
 	Front *front,
@@ -648,6 +666,7 @@ EXPORT	void FT_MakeEllipticSurf(
 	wave_type(*surf) = w_type;
 	front->interf->modified = YES;
 }	/* end FT_MakeEllipticSurf */
+
 
 EXPORT	void FT_MakeDumbBellSurf(
 	Front *front,

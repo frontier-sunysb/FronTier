@@ -1230,6 +1230,22 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 				double seg_length, 
 				REDISTRIBUTION_DIRECTION dir);
 
+/*! \fn CURVE *FT_MakePointArrayCurve(Front *front, int num_points, double **point_array, COMPONENT neg_comp, COMPONENT pos_comp, boolean is_closed_curve)
+ *  \ingroup INSERT
+    \brief This function inserts a curve into the front with given
+     array of points, if is_closed_curve is true, the curve is closed.
+    
+    \param front @b inout Pointer to the front in which surface is inserted.
+    \param num_points @b in number of points in the given array.
+    \param point_array @b in an array of point coordinates.
+    \param neg_comp @b in index for negative side of the curve (inner side).
+    \param pos_comp @b in index for positive side of the curve (outer side).
+    \param is_closed_curve @b in indicate whether the curve is closed.
+    \param w_type @b in wave type of the curve.
+ */
+
+   IMPORT  CURVE *FT_MakePointArrayCurve(Front *front,int num_points,double **point_array,COMPONENT neg_comp,COMPONENT pos_comp,boolean is_closed_curve,int w_type);
+
 /*! \fn void FT_MakeEllipticSurf(Front *front, double *center, double *radius, COMPONENT neg_comp, COMPONENT pos_comp, int w_type,int refinement_level,SURFACE **surf)
  *  \ingroup INSERT
     \brief This function inserts an elliptic surface into the front with given

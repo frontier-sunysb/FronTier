@@ -604,6 +604,7 @@ frgb/Makefile
 climate/Makefile
 poisson/Makefile
 cFluid/Makefile
+wings/Makefile
 cim/Makefile
 inverse/Makefile
 solver/Makefile
@@ -658,6 +659,7 @@ parachute/Makefile
 crystal/Makefile
 poisson/Makefile
 cFluid/Makefile
+wings/Makefile
 cim/Makefile
 inverse/Makefile
 solver/Makefile
