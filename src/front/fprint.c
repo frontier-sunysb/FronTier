@@ -81,8 +81,7 @@ LOCAL	void	hdf_plot_cross_sectional_comp(Front*,char*,int,boolean);
 LOCAL	boolean	write_sds_slab(boolean,int32,int32,int32*,int32*,int32*,
 			       double**,const char**,const char*,int32,
 			       comp_coder_t,comp_info*,VOIDP);
-LOCAL	void	hdf_plot_var2d(Front*,char*,char*,double*,COMPONENT, 
-		double (*get_state_var)(Locstate),boolean);
+LOCAL	void	hdf_plot_var2d(Front*,char*,int,boolean);
 LOCAL	void	hdf_plot_var3d(Front*,char*,char*,double*,COMPONENT, 
 		double (*get_state_var)(Locstate),int,boolean);
 LOCAL 	void 	add_cut_frame(char*,char*,int,int,uint8*,double*,double,
@@ -1239,10 +1238,7 @@ LOCAL	void show_front_hdf(
 		int i,num_var = hdf_movie_var->num_var;
 		for (i = 0; i < num_var; ++i)
 		{
-	    	    hdf_plot_var2d(front,dirname,hdf_movie_var->var_name[i],
-				hdf_movie_var->top_var[i],
-				hdf_movie_var->obstacle_comp[i],
-				hdf_movie_var->get_state_var[i],first);
+	    	    hdf_plot_var2d(front,dirname,i,first);
 		}
 	    }
         }
@@ -2981,12 +2977,15 @@ LOCAL	void	hdf_plot_cross_sectional_comp(
 LOCAL	void	hdf_plot_var2d( 
 	Front	*front, 
 	char	*dirname,
-	char	*var_name,
-	double	*var,
-	COMPONENT obs_comp,
-	double (*get_state_var)(Locstate),
+	int	ivar,
 	boolean first)
 {
+	HDF_MOVIE_VAR *hdf_movie_var = front->hdf_movie_var;
+	char *var_name = hdf_movie_var->var_name[ivar];
+	double *var = hdf_movie_var->top_var[ivar];
+	COMPONENT obs_comp = hdf_movie_var->obstacle_comp[ivar];
+	double (*get_state_var)(Locstate) = hdf_movie_var->get_state_var[ivar];
+	boolean preset_bound = hdf_movie_var->preset_bound[ivar];
 	COMPONENT	*comps = front->hdf_comps[0];
 	int		width;
 	int		height;
@@ -3080,6 +3079,26 @@ LOCAL	void	hdf_plot_var2d(
 	}
 	pp_global_max(&max_val,1);
 	pp_global_min(&min_val,1);
+	if (debugging("hdf"))
+	{
+	    printf("Maximum variable value: %f\n",max_val);
+	    printf("Minimum variable value: %f\n",min_val);
+	}
+	if (preset_bound)
+	{
+	    double mid_val,half_interval;
+	    double preset_max = hdf_movie_var->var_max[ivar];
+	    double preset_min = hdf_movie_var->var_min[ivar];
+	    mid_val = 0.5*(preset_max + preset_min);
+	    half_interval = 0.5*(preset_max - preset_min);
+	    max_val = 1.0;	min_val = -1.0;
+	    for (j = 0; j < width; ++j)
+	    for (i = 0; i < height; ++i)
+	    {
+		k = j + (height - i - 1)*width;
+		var_val[k] = erf(1.4*(var_val[k] - mid_val)/half_interval);
+	    }
+	}
 
 	vrng = max_val - min_val;
 	if (vrng == 0.0)
@@ -3169,7 +3188,7 @@ LOCAL	void	hdf_plot_var2d(
 	    free_these(2,tmp_val,pr_val);
 	}
 	if (debugging("hdf"))
-	    (void) printf("Left hdf_plot_var2d().\n");
+	    (void) printf("Left hdf_plot_var2d()\n\n");
 }	/* end hdf_plot_var2d */
 
 LOCAL void add_cut_frame(

@@ -1794,6 +1794,13 @@ void G_CARTESIAN::initMovieVariables()
 	    	    hdf_movie_var->get_state_var[n] = getStateDens;
 	    	    hdf_movie_var->top_var[n] = eqn_params->dens;
 	    	    hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
+		    if (movie_option->set_bounds)
+		    {
+			hdf_movie_var->preset_bound[n] = YES;
+			hdf_movie_var->var_min[n] = movie_option->min_dens;
+			hdf_movie_var->var_max[n] = movie_option->max_dens;
+		    }
+		    else hdf_movie_var->preset_bound[n] = NO;
 		    hdf_movie_var->num_var = ++n;
 		}
 		if (movie_option->plot_pres)
@@ -1802,6 +1809,13 @@ void G_CARTESIAN::initMovieVariables()
 	    	    hdf_movie_var->get_state_var[n] = getStatePres;
 	    	    hdf_movie_var->top_var[n] = eqn_params->pres;
 	    	    hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
+		    if (movie_option->set_bounds)
+		    {
+			hdf_movie_var->preset_bound[n] = YES;
+			hdf_movie_var->var_min[n] = movie_option->min_pres;
+			hdf_movie_var->var_max[n] = movie_option->max_pres;
+		    }
+		    else hdf_movie_var->preset_bound[n] = NO;
 		    hdf_movie_var->num_var = ++n;
 		}
 		if (movie_option->plot_vort)
@@ -1818,11 +1832,25 @@ void G_CARTESIAN::initMovieVariables()
 	    	    hdf_movie_var->get_state_var[n] = getStateXvel;
 	    	    hdf_movie_var->top_var[n] = eqn_params->vel[0];
 	    	    hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
+		    if (movie_option->set_bounds)
+		    {
+			hdf_movie_var->preset_bound[n] = YES;
+			hdf_movie_var->var_min[n] = movie_option->min_velo;
+			hdf_movie_var->var_max[n] = movie_option->max_velo;
+		    }
+		    else hdf_movie_var->preset_bound[n] = NO;
 		    hdf_movie_var->num_var = ++n;
 	    	    sprintf(hdf_movie_var->var_name[n],"yvel");
 	    	    hdf_movie_var->get_state_var[n] = getStateYvel;
 	    	    hdf_movie_var->top_var[n] = eqn_params->vel[1];
 	    	    hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
+		    if (movie_option->set_bounds)
+		    {
+			hdf_movie_var->preset_bound[n] = YES;
+			hdf_movie_var->var_min[n] = movie_option->min_velo;
+			hdf_movie_var->var_max[n] = movie_option->max_velo;
+		    }
+		    else hdf_movie_var->preset_bound[n] = NO;
 		    hdf_movie_var->num_var = ++n;
 		}
 		break;
