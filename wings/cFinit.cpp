@@ -57,6 +57,7 @@ static void initWing(
 	double alpha;		// Pitch angle
 	POINT *p;
 	BOND *b;
+	double scale_factor;
 
 	if (debugging("trace"))
 	    (void) printf("Entering initWing()\n");
@@ -67,10 +68,19 @@ static void initWing(
 	fscanf(wfile,"%d",&num_points);
 	FT_MatrixMemoryAlloc((POINTER*)&point_array,num_points,MAXD,
 				sizeof(double));
+	scale_factor = 1.0;
+	if (CursorAfterStringOpt(infile,"Enter scale factor of the wing:"))
+	{
+	    fscanf(infile,"%lf",&scale_factor);
+	    (void) printf("%f\n",scale_factor);
+	}
 	for (i = 0; i < num_points; ++i)
 	{
 	    fscanf(wfile,"%lf %lf %lf",&point_array[i][0],&point_array[i][1],
 					&point_array[i][2]);
+	    point_array[i][0] *= scale_factor;
+	    point_array[i][1] *= scale_factor;
+	    point_array[i][2] *= scale_factor;
 	}
 	if (point_array[0][0] == point_array[num_points-1][0] &&
 	    point_array[0][1] == point_array[num_points-1][1] &&
@@ -94,7 +104,10 @@ static void initWing(
 	fscanf(infile,"%lf %lf",&com[0],&com[1]);
 	(void) printf("%f %f\n",com[0],com[1]);
 	for (i = 0; i < 2; ++i)
+	{
+	    com[i] *= scale_factor;
 	    center_of_mass(Hyper_surf(curve))[i] = com[i];
+	}
 	CursorAfterString(infile,"Enter pitch angle in degree:");
 	fscanf(infile,"%lff",&alpha);
 	(void) printf("%f\n",alpha);
