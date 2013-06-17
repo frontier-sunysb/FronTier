@@ -1,7 +1,8 @@
-/******************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking 
-algorithms. Front Tracking is a numerical method for the solution of partial 
-differential equations whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -19,30 +20,15 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-******************************************************************************/
+****************************************************************/
 
 
 /*
 *				fprint.c:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
-*
-*	Contains printing routines for front debugging and for all front
-*	structures.
-*
-*			debug_front(debug_string,title,front)
-*			fshow_curve_states(file,curve)
-*			show_curve_states(curve)
-*			fshow_surface_states(file,surface)
-*			show_surface_states(surface)
-*			print_bond_and_states(b,c,fr)
-*			f_print_front(fr,file)
-*			f_print_Front_structure(fr)
-*			print_AFLIN(aflin)
-*			f_print_rproblem(rp)
-*			f_print_rp_node(rpn,rp)
 *
 */
 
@@ -2646,8 +2632,8 @@ LOCAL	void	hdf_plot_comp2d(
 	boolean	first)
 {
 	static 	COMPONENT *comps;
-	int		width;
-	int		height;
+	static	COMPONENT *pcomps;
+	static	int *ic_index;
 	int		pwidth;
 	int		pheight;
 	int		i, j, k;
@@ -2662,7 +2648,7 @@ LOCAL	void	hdf_plot_comp2d(
 	RECT_GRID       *global_gr = &(pp->Global_grid);
 
 	char		file_name[1024];
-	static uint8	*r_val, *pr_val, *tmp_val, *tmp2_val;
+	static uint8	*pr_val;
 	static uint8    line_color = 255;
 	static uint8    num_table_colors = 8;
 	uint8    num_colors = 256 - num_table_colors - 2;
@@ -2675,118 +2661,154 @@ LOCAL	void	hdf_plot_comp2d(
 	int resolution_level = front->resolution_level;
 	int Total_Pixels = pixel[resolution_level];
 	int hdf_comp_tag = 666;
+	int ic,size,max_size;
+	boolean data_in_domain = NO;
 
- 	width = gr->gmax[0];
- 	height = gr->gmax[1];
 	L = gr->L;
 	U = gr->U;
-	PL = global_gr->L;
-	PU = global_gr->U;
-	pwidth = global_gr->gmax[0];
-	pheight = global_gr->gmax[1];
+	if (front->hdf_cut_frame)
+	{
+	    PL = front->cut_L;
+	    PU = front->cut_U;
+	}
+	else
+	{
+	    PL = global_gr->L;
+	    PU = global_gr->U;
+	}
 
 	debug_print("HDF","Entered plot_hdf_comp2d().\n");
 
 	pwidth = irint(sqrt(Total_Pixels*(PU[0] - PL[0])/(PU[1] - PL[1])));
 	pheight = irint(sqrt(Total_Pixels*(PU[1] - PL[1])/(PU[0] - PL[0])));
-	if (pwidth > 800)
+	if (pwidth > 1000)
 	{
-	    pwidth = 800;
-	    pheight = irint(800*(PU[1] - PL[1])/(PU[0] - PL[0]));
+	    pwidth = 1000;
+	    pheight = irint(1000*(PU[1] - PL[1])/(PU[0] - PL[0]));
 	}
 	else if (pheight > 800)
 	{
 	    pheight = 800;
 	    pwidth = irint(800*(PU[0] - PL[0])/(PU[1] - PL[1]));
 	}
-	width = (int)((1.0*pwidth)/(1.0*pp->gmax[0])); 
-	height = (int)((1.0*pheight)/(1.0*pp->gmax[1])); 
-	hx = (U[0] - L[0])/(width - 1);
-	hy = (U[1] - L[1])/(height - 1);
-	uni_array(&r_val,width*height,sizeof(uint8));
-	if (comps == NULL)
-	    uni_array(&comps,width*height,sizeof(COMPONENT));
-	front->hdf_comps[0] = comps;
-	
-	if(pp_mynode() == 0)
+	hx = (PU[0] - PL[0])/(pwidth - 1);
+	hy = (PU[1] - PL[1])/(pheight - 1);
+	max_size = (irint(pwidth*(U[0] - L[0])/(PU[0] - PL[0])) + 1);
+	max_size *= (irint(pheight*(U[1] - L[1])/(PU[1] - PL[1])) + 1);
+	size = 0;
+	for (j = 0; j < pwidth; ++j)
+	for (i = 0; i < pheight; ++i)
 	{
-	    uni_array(&tmp_val,width*height,sizeof(uint8));
-	    uni_array(&pr_val,pwidth*pheight,sizeof(uint8));
+	    coords[0] = PL[0]+j*hx;
+            coords[1] = PL[1]+i*hy;
+	    if (coords[0] < L[0] || coords[0] >= U[0]) continue;
+	    if (coords[1] < L[1] || coords[1] >= U[1]) continue;
+	    data_in_domain = YES;
+	    size++;
 	}
-	for (j = 0; j < width; ++j)
+	if (comps == NULL)
 	{
-	    for (i = 0; i < height; ++i)
+	    if (pp_mynode() == 0)
 	    {
-		coords[0] = L[0]+j*hx;
-                coords[1] = L[1]+i*hy;
-		k = j + (height - i - 1)*width;
-	        comps[k] = component(coords,front->interf);
+	    	uni_array(&comps,max_size,sizeof(COMPONENT));
+	    	uni_array(&ic_index,max_size,sizeof(int));
+	    	uni_array(&pcomps,pwidth*pheight,sizeof(COMPONENT));
+	    }
+	    else if (size != 0)
+	    {
+	    	uni_array(&comps,size,sizeof(COMPONENT));
+	    	uni_array(&ic_index,size,sizeof(int));
 	    }
 	}
-
-	for (i = 0; i < width; ++i)
-            r_val[i] = r_val[i+(height-2)*width] = line_color;
-	for (j = 1; j < height-1; ++j)
-            r_val[width*j] = r_val[width*(j+1)-1] = line_color;
-	
-        for (j = 0; j < width; ++j)
-        for (i = 0; i < height; ++i)
+	k = 0;
+	for (j = 0; j < pwidth; ++j)
+	for (i = 0; i < pheight; ++i)
 	{
-	       k = j + (height - i - 1)*width;
-
-	    if (k > width && k%width != 0 && 
-	    	((comps[k] != comps[k-1]) || (comps[k] != comps[k-width]) 
-		|| (comps[k] != comps[k-width-1])))
-	  	r_val[k] = line_color; 
-	    else
-	    {
-		int ic = (int)comps[k];
-		r_val[k] = (uint8)(num_table_colors + 
-			irint(cfunc[ic]/64.0*num_colors));
-            }
+	    coords[0] = PL[0]+j*hx;
+            coords[1] = PL[1]+i*hy;
+	    if (coords[0] < L[0] || coords[0] >= U[0]) continue;
+	    if (coords[1] < L[1] || coords[1] >= U[1]) continue;
+	    comps[k] = component(coords,front->interf);
+	    ic_index[k] = j + (pheight - i - 1)*pwidth;
+	    k++;
 	}
-	sprintf(file_name,"%s/comp.hdf",dirname);
-	
 #if defined(__MPI__)
 	if(pp_mynode() != 0)
 	{
-	    pp_send(hdf_comp_tag, r_val,width*height*sizeof(uint8),0);
+	    pp_send(hdf_comp_tag,(POINTER)&data_in_domain,sizeof(boolean),0);
+	    if (data_in_domain)
+	    {
+	    	pp_send(hdf_comp_tag,(POINTER)&size,sizeof(int),0);
+	    	pp_send(hdf_comp_tag,(POINTER)comps,size*sizeof(COMPONENT),0);
+	    	pp_send(hdf_comp_tag,(POINTER)ic_index,size*sizeof(int),0);
+	    }
 	}
 #endif /* defined(__MPI__) */
-	
 	if(pp_mynode() == 0)
 	{
-	    for (i = 0; i < pp_numnodes(); i++)
+	    uni_array(&pr_val,pwidth*pheight,sizeof(uint8));
+	    for (k = 0; k < size; ++k)
 	    {
+	    	ic = ic_index[k];
+	    	pcomps[ic] = comps[k];
+	    }
 #if defined(__MPI__)
-	        find_Cartesian_coordinates( i, pp, icoords);
-	        if (i != 0)
-	            pp_recv(hdf_comp_tag,i,tmp_val, width*height*sizeof(uint8)); 
-	        tmp2_val = tmp_val;
-#endif /* defined(__MPI__) */
-	        if(i == 0)
-	            tmp2_val = r_val;
-	        for (j = 0; j < width; ++j)
-	        for (k = 0; k < height; ++k)
-                {
-		      index = j + (height - k - 1)*width;    
-#if defined(__MPI__)
-                     index = pwidth*(pheight - icoords[1]*height - k - 1) + icoords[0]*width + j;   
-#endif /* defined(__MPI__) */
-                     index2= j +(height-k-1)*width;
-                   
-	            pr_val[index] = tmp2_val[index2];
+	    for (i = 1; i < pp_numnodes(); i++)
+	    {
+	        pp_recv(hdf_comp_tag,i,(POINTER)&data_in_domain,	
+				sizeof(boolean)); 
+		if (data_in_domain == YES)
+		{
+	            pp_recv(hdf_comp_tag,i,(POINTER)&size,sizeof(int));
+	            pp_recv(hdf_comp_tag,i,(POINTER)comps,
+				size*sizeof(COMPONENT));
+	            pp_recv(hdf_comp_tag,i,(POINTER)ic_index,size*sizeof(int));
+		    for (k = 0; k < size; ++k)
+		    {
+	    		ic = ic_index[k];
+	    		pcomps[ic] = comps[k];
+		    }
 		}
-	    }   
+	    }
+#endif /* defined(__MPI__) */
+            for (j = 0; j < pwidth; ++j)
+            for (i = 0; i < pheight; ++i)
+	    {
+	    	k = j + (pheight - i - 1)*pwidth;
+
+	    	if (k > pwidth && k%pwidth != 0 && ((pcomps[k] != pcomps[k-1]) 
+		    || (pcomps[k] != pcomps[k-pwidth]) 
+		    || (pcomps[k] != pcomps[k-pwidth-1])))
+	  	    pr_val[k] = line_color; 
+	    	else
+	    	{
+		    int ic = (int)pcomps[k];
+		    pr_val[k] = (uint8)(num_table_colors + 
+			irint(cfunc[ic]/64.0*num_colors));
+            	}
+	    }
+	    sprintf(file_name,"%s/comp.hdf",dirname);
+	
+	    for (i = 0; i < pwidth; ++i)
+            	pr_val[i] = pr_val[i+(pheight-2)*pwidth] = line_color;
+	    for (j = 1; j < pheight-1; ++j)
+            	pr_val[pwidth*j] = pr_val[pwidth*(j+1)-1] = line_color;
+
        	    (void) DFR8setpalette(palette);
 	    if(first == YES)
             	(void) DFR8putimage(file_name,pr_val,pwidth,pheight,COMP_NONE);
 	    else
             	(void) DFR8addimage(file_name,pr_val,pwidth,pheight,COMP_NONE);
-	    free_these(2,tmp_val,pr_val);
+	    free_these(1,pr_val);
 	}
+	if (pp_mynode() == 0)
+	    front->hdf_comps[0] = pcomps;
+	else
+	    front->hdf_comps[0] = comps;
+#if defined(__MPI__)
+	pp_gsync();
+#endif /* defined(__MPI__) */
 
-	free_these(1,r_val);
 	debug_print("HDF","Left plot_hdf_comp2d().\n");
 }	/* end plot_hdf_comp2d */
 
@@ -2983,12 +3005,10 @@ LOCAL	void	hdf_plot_var2d(
 	HDF_MOVIE_VAR *hdf_movie_var = front->hdf_movie_var;
 	char *var_name = hdf_movie_var->var_name[ivar];
 	double *var = hdf_movie_var->top_var[ivar];
-	COMPONENT obs_comp = hdf_movie_var->obstacle_comp[ivar];
 	double (*get_state_var)(Locstate) = hdf_movie_var->get_state_var[ivar];
 	boolean preset_bound = hdf_movie_var->preset_bound[ivar];
-	COMPONENT	*comps = front->hdf_comps[0];
-	int		width;
-	int		height;
+	COMPONENT obs_comp = hdf_movie_var->obstacle_comp[ivar];
+	COMPONENT *comps = front->hdf_comps[0];
 	int		pwidth;
 	int		pheight;
 	int		i, j, k;
@@ -3001,16 +3021,17 @@ LOCAL	void	hdf_plot_var2d(
  	RECT_GRID       *gr = front->rect_grid;
 	PP_GRID         *pp = front->pp_grid;
 	RECT_GRID       *global_gr = &(pp->Global_grid);
-	double		*var_val;
 	int pixel[8] = {100000,200000,300000,400000,500000,600000,
                                         700000,800000};
 	int resolution_level = front->resolution_level;
 	int Total_Pixels = pixel[resolution_level];
 	COMPONENT ext_comp = exterior_component(front->interf);
 
-	char		file_name[1024];
+	char	file_name[1024];
 	double	min_val,max_val,vrng;
-	static uint8	*r_val, *pr_val, *tmp_val, *tmp2_val;
+	static uint8	*pr_val;
+	static int	*ic_index;
+	static double	*var_val,*pvar_val;
 	static uint8    line_color = 255;
 	static uint8    num_table_colors = 8;
 	static uint8    obs_color = 0;
@@ -3019,240 +3040,205 @@ LOCAL	void	hdf_plot_var2d(
 	uint8    max_colors = num_table_colors + num_colors;
 	int 		icoords[3], index, index2;
 	static uint8 *palette = dflt_palette;
-	int hdf_comp_tag;
 	boolean use_mid_color = NO;
+	int hdf_comp_tag = 666;
+	int ic,size,max_size;
+	boolean data_in_domain = NO;
+	COMPONENT c;
+	static int count = 0;
+	count++;
 
- 	width = gr->gmax[0];
- 	height = gr->gmax[1];
-	L = gr->L;
-	U = gr->U;
-	PL = global_gr->L;
-	PU = global_gr->U;
-	pwidth = global_gr->gmax[0];
-	pheight = global_gr->gmax[1];
 	if (debugging("hdf"))
 	{
 	    (void) printf("Entered hdf_plot_var2d().\n");
 	    (void) printf("Plotting: %s\n",var_name);
 	    (void) printf("Resolution level: %d\n",resolution_level);
 	}
+	L = gr->L;
+	U = gr->U;
+	if (front->hdf_cut_frame)
+        {
+            PL = front->cut_L;
+            PU = front->cut_U;
+        }
+        else
+        {
+            PL = global_gr->L;
+            PU = global_gr->U;
+        }
 
 	pwidth = irint(sqrt(Total_Pixels*(PU[0] - PL[0])/(PU[1] - PL[1])));
 	pheight = irint(sqrt(Total_Pixels*(PU[1] - PL[1])/(PU[0] - PL[0])));
-	if (pwidth > 800)
+	if (pwidth > 1000)
 	{
-	    pwidth = 800;
-	    pheight = irint(800*(PU[1] - PL[1])/(PU[0] - PL[0]));
+	    pwidth = 1000;
+	    pheight = irint(1000*(PU[1] - PL[1])/(PU[0] - PL[0]));
 	}
 	else if (pheight > 800)
 	{
 	    pheight = 800;
 	    pwidth = irint(800*(PU[0] - PL[0])/(PU[1] - PL[1]));
 	}
-	width = (int)((1.0*pwidth)/(1.0*pp->gmax[0])); 
-	height = (int)((1.0*pheight)/(1.0*pp->gmax[1])); 
-	hx = (U[0] - L[0])/(width - 1);
-	hy = (U[1] - L[1])/(height - 1);
-	uni_array(&r_val,width*height,sizeof(uint8));
-	uni_array(&var_val,width*height,FLOAT);
-	if(pp_mynode() == 0)
+	hx = (PU[0] - PL[0])/(pwidth - 1);
+	hy = (PU[1] - PL[1])/(pheight - 1);
+	max_size = (irint(pwidth*(U[0] - L[0])/(PU[0] - PL[0])) + 1);
+	max_size *= (irint(pheight*(U[1] - L[1])/(PU[1] - PL[1])) + 1);
+        size = 0;
+        for (j = 0; j < pwidth; ++j)
+        for (i = 0; i < pheight; ++i)
+        {
+            coords[0] = PL[0]+j*hx;
+            coords[1] = PL[1]+i*hy;
+            if (coords[0] < L[0] || coords[0] >= U[0]) continue;
+            if (coords[1] < L[1] || coords[1] >= U[1]) continue;
+            data_in_domain = YES;
+            size++;
+        }
+	if (pr_val == NULL)
 	{
-	    uni_array(&tmp_val,width*height,sizeof(uint8));
-	    uni_array(&pr_val,pwidth*pheight,sizeof(uint8));
-	}
-
-	max_val = -HUGE; 	min_val = HUGE;
-	
-	for (j = 0; j < width; ++j)
-	{
-	    for (i = 0; i < height; ++i)
+	    if (pp_mynode() == 0)
 	    {
-		coords[0] = L[0] + j*hx;
-                coords[1] = L[1] + i*hy;
-		k = j + (height - i - 1)*width;
-		if (comps[k] == obs_comp || comps[k] == ext_comp) continue;
-		FT_IntrpStateVarAtCoords(front,comps[k],coords,var,
-				get_state_var,var_val+k,NULL);
-		if (var_val[k] < min_val) min_val = var_val[k];
-		if (var_val[k] > max_val) max_val = var_val[k];
+	    	uni_array(&ic_index,max_size,sizeof(int));
+	    	uni_array(&var_val,max_size,sizeof(double));
+	    	uni_array(&pvar_val,pheight*pwidth,sizeof(double));
+	    	uni_array(&pr_val,pheight*pwidth,sizeof(uint8));
+	    }
+	    else
+	    {
+	    	uni_array(&ic_index,size,sizeof(int));
+	    	uni_array(&var_val,size,sizeof(double));
 	    }
 	}
+	k = 0;
+	max_val = -HUGE; 	min_val = HUGE;
+	for (j = 0; j < pwidth; ++j)
+	for (i = 0; i < pheight; ++i)
+	{
+            coords[0] = PL[0]+j*hx;
+            coords[1] = PL[1]+i*hy;
+            if (coords[0] < L[0] || coords[0] >= U[0]) continue;
+            if (coords[1] < L[1] || coords[1] >= U[1]) continue;
+	    ic_index[k] = ic = j + (pheight - i - 1)*pwidth;
+	    if (pp_mynode() == 0) c = comps[ic]; /* master uses global index */
+	    else c = comps[k];			 /* sub-node uses local index */
+	    if (c == obs_comp || c == ext_comp) 
+	    {
+            	k++;
+		continue;
+	    }
+	    FT_IntrpStateVarAtCoords(front,c,coords,var,get_state_var,
+					var_val+k,NULL);
+	    if (var_val[k] < min_val)
+		min_val = var_val[k];
+	    if (var_val[k] > max_val)
+		max_val = var_val[k];
+            k++;
+	}
+#if defined(__MPI__)
 	pp_global_max(&max_val,1);
 	pp_global_min(&min_val,1);
-	if (debugging("hdf"))
-	{
-	    printf("Maximum variable value: %f\n",max_val);
-	    printf("Minimum variable value: %f\n",min_val);
-	}
-	if (preset_bound)
-	{
-	    double mid_val,half_interval;
-	    double preset_max = hdf_movie_var->var_max[ivar];
-	    double preset_min = hdf_movie_var->var_min[ivar];
-	    mid_val = 0.5*(preset_max + preset_min);
-	    half_interval = 0.5*(preset_max - preset_min);
-	    max_val = 1.0;	min_val = -1.0;
-	    for (j = 0; j < width; ++j)
-	    for (i = 0; i < height; ++i)
-	    {
-		k = j + (height - i - 1)*width;
-		var_val[k] = erf(1.4*(var_val[k] - mid_val)/half_interval);
-	    }
-	}
-
-	vrng = max_val - min_val;
-	if (vrng == 0.0)
-	    use_mid_color = YES;
-
-	for (i = 0; i < width; ++i)
-            r_val[i] = r_val[i+(height-2)*width] = line_color;
-	for (j = 1; j < height-1; ++j)
-            r_val[width*j] = r_val[width*(j+1)-1] = line_color;
-	
-        for (j = 0; j < width; ++j)
-        for (i = 0; i < height; ++i)
-	{
-	       k = j + (height - i - 1)*width;
-
-	    if (comps[k] == obs_comp)
-		r_val[k] = obs_color;
-	    else if (k > width && k%width != 0 && 
-	    	((comps[k] != comps[k-1]) || (comps[k] != comps[k-width]) 
-		|| (comps[k] != comps[k-width-1])))
-	  	r_val[k] = line_color; 
-	    else
-	    {
-		if (use_mid_color)
-		    r_val[k] = (uint8)(num_table_colors + 0.5*num_colors);
-		else
-		    r_val[k] = (uint8)(num_table_colors + 
-			(var_val[k] - min_val)/vrng*(num_colors-1));
+        if(pp_mynode() != 0)
+        {
+            pp_send(hdf_comp_tag,(POINTER)&data_in_domain,sizeof(boolean),0);
+            if (data_in_domain)
+            {
+                pp_send(hdf_comp_tag,(POINTER)&size,sizeof(int),0);
+                pp_send(hdf_comp_tag,(POINTER)ic_index,size*sizeof(int),0);
+                pp_send(hdf_comp_tag,(POINTER)var_val,size*sizeof(double),0);
             }
-	}
-	sprintf(file_name,"%s/%s.hdf",dirname,var_name);
-	hdf_comp_tag = 666;
-	
-#if defined(__MPI__)
-	if(pp_mynode() != 0)
-	{
-	    pp_send(hdf_comp_tag, r_val,width*height*sizeof(uint8),0);
-	}
+        }
 #endif /* defined(__MPI__) */
-	
-	if(pp_mynode() == 0)
-	{
-	    for (i = 0; i < pp_numnodes(); i++)
-	    {
+        if(pp_mynode() == 0)
+        {
+            for (k = 0; k < size; ++k)
+            {
+            	ic = ic_index[k];
+            	pvar_val[ic] = var_val[k];
+            }
 #if defined(__MPI__)
-	        find_Cartesian_coordinates(i,pp,icoords);
-	        if (i != 0)
-	            pp_recv(hdf_comp_tag,i,tmp_val, width*height*sizeof(uint8)); 
-	        tmp2_val = tmp_val;
-#endif /* defined(__MPI__) */
-	        if(i == 0)
-	            tmp2_val = r_val;
-	        for (j = 0; j < width; ++j)
-	        for (k = 0; k < height; ++k)
+            for (i = 1; i < pp_numnodes(); i++)
+            {
+                pp_recv(hdf_comp_tag,i,(POINTER)&data_in_domain,
+                                sizeof(boolean));
+                if (data_in_domain == YES)
                 {
-		     index = j + (height - k - 1)*width;    
-#if defined(__MPI__)
-                     index = pwidth*(pheight - icoords[1]*height - k - 1) + 						icoords[0]*width + j;   
+                    pp_recv(hdf_comp_tag,i,(POINTER)&size,sizeof(int));
+                    pp_recv(hdf_comp_tag,i,(POINTER)ic_index,size*sizeof(int));
+                    pp_recv(hdf_comp_tag,i,(POINTER)var_val,
+                                size*sizeof(double));
+                    for (k = 0; k < size; ++k)
+                    {
+                        ic = ic_index[k];
+                        pvar_val[ic] = var_val[k];
+                    }
+                }
+            }
 #endif /* defined(__MPI__) */
-                     index2= j + (height - k - 1)*width;
-                   
-	             pr_val[index] = tmp2_val[index2];
-		}
-	    }   
-
-	    if (front->hdf_cut_frame)
+	    if (debugging("hdf"))
 	    {
-	    	add_cut_frame(dirname,var_name,pheight,pwidth,pr_val,PL,
-				hx,hy,front->cut_L,front->cut_U,first);
+	    	printf("Maximum variable value: %f\n",max_val);
+	    	printf("Minimum variable value: %f\n",min_val);
 	    }
-	    else
+	    if (preset_bound)
 	    {
-       	    	(void) DFR8setpalette(palette);
-	    	if(first == YES)
-            	    (void) DFR8putimage(file_name,pr_val,pwidth,pheight,
-					COMP_NONE);
+	    	double mid_val,half_interval;
+	    	double preset_max = hdf_movie_var->var_max[ivar];
+	    	double preset_min = hdf_movie_var->var_min[ivar];
+	    	mid_val = 0.5*(preset_max + preset_min);
+	    	half_interval = 0.5*(preset_max - preset_min);
+	    	max_val = 1.0;	min_val = -1.0;
+	    	for (j = 0; j < pwidth; ++j)
+	    	for (i = 0; i < pheight; ++i)
+	    	{
+		    k = j + (pheight - i - 1)*pwidth;
+		    pvar_val[k] = erf(1.4*(pvar_val[k] - mid_val)/
+					half_interval);
+	    	}
+	    }
+
+	    vrng = max_val - min_val;
+	    if (vrng == 0.0)
+	    	use_mid_color = YES;
+
+	    for (i = 0; i < pwidth; ++i)
+            	pr_val[i] = pr_val[i+(pheight-2)*pwidth] = line_color;
+	    for (j = 1; j < pheight-1; ++j)
+            	pr_val[pwidth*j] = pr_val[pwidth*(j+1)-1] = line_color;
+	
+            for (j = 0; j < pwidth; ++j)
+            for (i = 0; i < pheight; ++i)
+	    {
+	    	k = j + (pheight - i - 1)*pwidth;
+	    	if (comps[k] == obs_comp)
+		    pr_val[k] = obs_color;
+	    	else if (k > pwidth && k%pwidth != 0 && 
+	    	    ((comps[k] != comps[k-1]) || (comps[k] != comps[k-pwidth]) 
+		    || (comps[k] != comps[k-pwidth-1])))
+	  	    pr_val[k] = line_color; 
 	    	else
-            	    (void) DFR8addimage(file_name,pr_val,pwidth,pheight,
-					COMP_NONE);
+	    	{
+		    if (use_mid_color)
+		        pr_val[k] = (uint8)(num_table_colors + 0.5*num_colors);
+		    else
+		        pr_val[k] = (uint8)(num_table_colors + 
+			    (pvar_val[k] - min_val)/vrng*(num_colors-1));
+            	}
 	    }
+	    sprintf(file_name,"%s/%s.hdf",dirname,var_name);
+	
+       	    (void) DFR8setpalette(palette);
+	    if(first == YES)
+            	(void) DFR8putimage(file_name,pr_val,pwidth,pheight,COMP_NONE);
+	    else
+            	(void) DFR8addimage(file_name,pr_val,pwidth,pheight,COMP_NONE);
 	}
+#if defined(__MPI__)
+	pp_gsync();
+#endif /* defined(__MPI__) */
 
-
-	free_these(2,var_val,r_val);
-	if(pp_mynode() == 0)
-	{
-	    free_these(2,tmp_val,pr_val);
-	}
 	if (debugging("hdf"))
 	    (void) printf("Left hdf_plot_var2d()\n\n");
 }	/* end hdf_plot_var2d */
-
-LOCAL void add_cut_frame(
-	char *dirname,
-	char *var_name,
-	int pheight,
-	int pwidth,
-	uint8 *pr_val,
-	double *PL,
-	double hx,
-	double hy,
-	double *cut_L,
-	double *cut_U,
-	boolean first)
-{
-	int i,j,is,js,ie,je;
-	int ii,jj,index0,index1;
-	char cut_file_name[1024];
-	double coords[2];
-	static uint8 *cut_pr_val;
-	static uint8 *palette = dflt_palette;
-	int cut_height,cut_width;
-	
-	is = js = ie = je = -1;
-	for (j = 0; j < pwidth; ++j)
-	{
-	    if (PL[0]+j*hx <= cut_L[0] && PL[0]+(j+1)*hx > cut_L[0])
-		js = j;
-	    if (PL[0]+j*hx < cut_U[0] && PL[0]+(j+1)*hx >= cut_U[0])
-		je = j+1;
-	}
-	if (js == -1 || je == -1) return;
-	for (i = 0; i < pheight; ++i)
-	{
-	    if (PL[1]+i*hy <= cut_L[1] && PL[1]+(i+1)*hx > cut_L[1])
-		is = i;
-	    if (PL[1]+i*hx < cut_U[1] && PL[1]+(i+1)*hx >= cut_U[1])
-		ie = i+1;
-	}
-	if (is == -1 || ie == -1) return;
-	cut_height = ie - is;
-	cut_width = je - js;
-	uni_array(&cut_pr_val,cut_height*cut_width,sizeof(uint8));
-	printf("size = %d\n",cut_height*cut_width);
-	for (j = 0; j < pwidth; ++j)
-	for (i = 0; i < pheight; ++i)
-	{
-	    if (i >= is && j >= js && i < ie && j < je)
-	    {
-		jj = j - js;
-		ii = i - is;
-		index0 = j + (pheight - i - 1)*pwidth;
-		index1 = jj + (cut_height - ii - 1)*cut_width;
-		cut_pr_val[index1] = pr_val[index0];
-	    }
-	}
-	sprintf(cut_file_name,"%s/%s-cut.hdf",dirname,var_name);
-	(void) DFR8setpalette(palette);
-        if(first == YES)
-            (void) DFR8putimage(cut_file_name,cut_pr_val,je-js,ie-is,COMP_NONE);
-        else
-            (void) DFR8addimage(cut_file_name,cut_pr_val,je-js,ie-is,COMP_NONE);
-	free_these(1,cut_pr_val);
-}	/* end add_cut_frame */
 
 
 LOCAL	void	hdf_plot_var3d( 

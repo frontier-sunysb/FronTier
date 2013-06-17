@@ -3718,7 +3718,8 @@ LIB_LOCAL void i_fprint_point(
 	FILE		*file,
 	POINT		*point)
 {
-	int		dim;
+	INTERFACE	*intfc = current_interface();
+	int		dim = intfc->dim;
  
 	(void) fprintf(file,"\tPoint %llu:\n",point_number(point));
 	if (point == NULL)
@@ -3726,7 +3727,6 @@ LIB_LOCAL void i_fprint_point(
 	    (void) fprintf(file,"\t\tNULL Point\n\t\tEnd Point\n");
 	    return;
 	}
-	dim = point->interface->dim;
 	(void) fprintf(file,"\t\tPosition ");
 	if (is_binary_output() == YES)
 	{

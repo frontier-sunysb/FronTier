@@ -109,6 +109,8 @@ typedef struct {
 	double rho0;
         double rho1;
         double rho2;
+	double min_dens;
+	double min_pres;
 	double v0[MAXD];
         double v1[MAXD];
         double v2[MAXD];

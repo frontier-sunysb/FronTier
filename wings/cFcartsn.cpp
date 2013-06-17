@@ -47,15 +47,15 @@ void G_CARTESIAN::initMesh(void)
 	int i,j,k, index;
 	double coords[2];
 	int num_cells;
+	EQN_PARAMS *eqn_params = (EQN_PARAMS*)front->extra1;
 
 	// init cell_center
 	L_RECTANGLE       rectangle;
 
 	if (debugging("trace"))
 	    (void) printf("Entering g_cartesian.initMesh()\n");
-	/*TMP*/
-	min_dens = 0.0001;
-	min_pres = 0.0001;
+	min_dens = eqn_params->min_dens;
+	min_pres = eqn_params->min_pres;
 	FT_MakeGridIntfc(front);
 	setDomain();
 	num_cells = 1;

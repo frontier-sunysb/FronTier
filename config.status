@@ -427,7 +427,7 @@ Copyright (C) 2012 Free Software Foundation, Inc.
 This config.status script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it."
 
-ac_pwd='/export/home/linli/xgroup/FronTier++'
+ac_pwd='/home/linli/hdf/FronTier++'
 srcdir='.'
 INSTALL='/usr/bin/install -c'
 AWK='gawk'
@@ -625,13 +625,13 @@ S["sn_ellip"]=" "
 S["hypre"]=" "
 S["gass"]=" "
 S["include_dirs"]="include/FronTier/intfc include/FronTier/front include/FronTier/util"
-S["headers"]="include/FronTier/util/cdecs.h include/FronTier/util/fnamedebug.h include/FronTier/util/plotdecs.h include/FronTier/util/uprotos.h include/FronTier/u"\
-"til/vmalloc.h include/FronTier/util/navdecs.h include/FronTier/intfc/triangledefs.h include/FronTier/intfc/int.h include/FronTier/intfc/iprotos.h in"\
-"clude/FronTier/intfc/array.h include/FronTier/intfc/int_amr.h include/FronTier/intfc/userint.h include/FronTier/intfc/iRel.h include/FronTier/intfc/"\
-"iBase.h include/FronTier/intfc/iTaps.h include/FronTier/intfc/geom.h include/FronTier/intfc/iMesh.h include/FronTier/intfc/iloc.h include/FronTier/i"\
-"ntfc/intfc_gpu.cuh include/FronTier/intfc/table.h include/FronTier/intfc/iGeom.h include/FronTier/intfc/iMeshP.h include/FronTier/intfc/ilocprotos.h"\
-" include/FronTier/front/fpatrecon.h include/FronTier/front/fprotos.h include/FronTier/front/fapi.h include/FronTier/front/fvelo.h include/FronTier/f"\
-"ront/frp.h include/FronTier/front/fdecs.h include/FronTier/front/fuserint.h include/FronTier/front/front_gpu.cuh "
+S["headers"]="include/FronTier/util/fnamedebug.h include/FronTier/util/cdecs.h include/FronTier/util/plotdecs.h include/FronTier/util/vmalloc.h include/FronTier/u"\
+"til/navdecs.h include/FronTier/util/uprotos.h include/FronTier/intfc/ilocprotos.h include/FronTier/intfc/array.h include/FronTier/intfc/iBase.h incl"\
+"ude/FronTier/intfc/iMesh.h include/FronTier/intfc/iloc.h include/FronTier/intfc/iTaps.h include/FronTier/intfc/table.h include/FronTier/intfc/geom.h"\
+" include/FronTier/intfc/iMeshP.h include/FronTier/intfc/triangledefs.h include/FronTier/intfc/int_amr.h include/FronTier/intfc/iprotos.h include/Fro"\
+"nTier/intfc/userint.h include/FronTier/intfc/int.h include/FronTier/intfc/iGeom.h include/FronTier/intfc/iRel.h include/FronTier/intfc/intfc_gpu.cuh"\
+" include/FronTier/front/fuserint.h include/FronTier/front/fprotos.h include/FronTier/front/fpatrecon.h include/FronTier/front/fapi.h include/FronTie"\
+"r/front/fvelo.h include/FronTier/front/fdecs.h include/FronTier/front/front_gpu.cuh include/FronTier/front/frp.h "
 S["libext"]=""
 S["F77_LIBS"]=""
 S["name"]=""

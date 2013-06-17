@@ -1097,7 +1097,7 @@ LOCAL	int insert_grid_intfc_crossings2d(
 	int		ix1,ix2,iy1,iy2;
 	double		max_lenx,max_leny;
 	int   		n_new_intfc_points = 0;
-	POINT		*new_intfc_points[50];	
+	POINT		*new_intfc_points[200];	
 	int		*gmax = rgr->gmax;
 				/*POTENTIAL BUG, static array size*/
 

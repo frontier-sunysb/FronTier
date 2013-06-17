@@ -58,6 +58,8 @@ static void initWing(
 	POINT *p;
 	BOND *b;
 	double scale_factor;
+	int num_optimization = 200;
+	SCALED_REDIST_PARAMS scaled_redist_params;
 
 	if (debugging("trace"))
 	    (void) printf("Entering initWing()\n");
@@ -96,6 +98,14 @@ static void initWing(
 	}
 	curve = FT_MakePointArrayCurve(front,num_points,point_array,
 		exterior_component(front->interf),GAS_COMP1,YES,w_type);
+	scaled_redist_params.min_scaled_bond_length = 0.45;
+        scaled_redist_params.max_scaled_bond_length = 1.05;
+	for (i = 0; i < num_optimization; ++i)
+	{
+	    boolean nothing_done = FT_OptimizeCurveMesh(front,curve,
+                                scaled_redist_params);
+	    if (nothing_done) break;
+	}
 	if (w_type == MOVABLE_BODY_BOUNDARY)
 	{
 	    motion_type(curve) = PRESET_MOTION;
@@ -154,10 +164,12 @@ extern void initStateParams(
 	CursorAfterString(infile,str);
         fscanf(infile,"%lf",&eqn_params->rho1);
         (void) printf("%f\n",eqn_params->rho1);
+	eqn_params->min_dens = 0.0001*eqn_params->rho1;
 	sprintf(str, "Enter pressure of fluid with comp %d:",GAS_COMP1);
 	CursorAfterString(infile,str);
         fscanf(infile,"%lf",&eqn_params->p0);
         (void) printf("%f\n",eqn_params->p0);
+	eqn_params->min_pres = 0.0001*eqn_params->p0;
 	sprintf(str, "Enter velocity of fluid with comp %d:",GAS_COMP1);
 	CursorAfterString(infile,str);
         fscanf(infile,"%lf %lf",&eqn_params->v1[0],&eqn_params->v1[1]);

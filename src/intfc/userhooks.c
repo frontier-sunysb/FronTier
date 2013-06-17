@@ -711,9 +711,17 @@ EXPORT	void fprint_point(
 	FILE		*file,
 	POINT		*p)
 {
-	if (p == NULL || p->interface == NULL)
+        INTERFACE *intfc = current_interface();
+	int       dim = intfc->dim;
+	if (p == NULL || (p->interface == NULL && dim == 1))
+	{
+	    if (p == NULL)
+		fprintf(file,"NULL point\n");
+	    else
+		fprintf(file,"NULL interface of point\n");
 	    return;
-	(*i_user_interface(p->interface)._fprint_point)(file,p);
+	}
+	(*i_user_interface(intfc)._fprint_point)(file,p);
 }		/*end fprint_point*/
 
 EXPORT	void user_fprint_point(

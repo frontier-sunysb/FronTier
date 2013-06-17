@@ -164,7 +164,6 @@ EXPORT	const char	*bdry_side_as_string(
 	}
 }		/*end node_status_as_string*/
 
-
 EXPORT	void print_bond(
 	BOND		*b)
 {

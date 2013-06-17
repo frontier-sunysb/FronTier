@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -19,9 +20,9 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-******************************************************************************/
+****************************************************************/
 
 
 /*
@@ -175,8 +176,6 @@ EXPORT	I_USER_INTERFACE *i_user_hook(
 	    User_hooks[0]._make_point = i_make_point;
 	    User_hooks[0]._Point = i_Point;
 	    User_hooks[0]._delete_point = i_delete_point;
-	    User_hooks[0]._fprint_point = i_fprint_point;
-	    User_hooks[0]._user_fprint_point = i_user_fprint_point;
 	    User_hooks[0]._read_point = i_read_point;
 	    User_hooks[0]._user_read_point = i_user_read_point;
 	    User_hooks[0]._read_print_point = i_read_print_point;
@@ -208,6 +207,8 @@ EXPORT	I_USER_INTERFACE *i_user_hook(
 	        User_hooks[i]._make_curve = i_make_curve;
 	        User_hooks[i]._copy_curve = i_copy_curve;
 	        User_hooks[i]._delete_curve = i_delete_curve;
+	    	User_hooks[i]._fprint_point = i_fprint_point;
+	    	User_hooks[i]._user_fprint_point = i_user_fprint_point;
 	        User_hooks[i]._fprint_curve = i_fprint_curve;
 	        User_hooks[i]._user_fprint_curve = i_user_fprint_curve;
 	        User_hooks[i]._read_curve = i_read_curve;
