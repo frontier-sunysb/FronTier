@@ -1082,6 +1082,7 @@ enum {
 #define Coords(p)	((p)->_coords)
 #define COORDS(P)	((P)._coords)
 #define Gindex(P)       ((P)->global_index)
+#define ERROR_INDEX	-1
 
 /* Stored normal vector at point */
 #define	normal_at_point(p) ((p)->_nor)
@@ -1507,7 +1508,13 @@ typedef struct _SCALED_REDIST_PARAMS SCALED_REDIST_PARAMS;
 	(tri) = (tri)->next)
 
 #define	curve_bond_loop(c,bond)	\
-	for ((bond) = (c)->first); (bond) != NULL; (bond) = (bond)->next 
+	for ((bond) = (c)->first; (bond) != NULL; (bond) = (bond)->next) 
+
+#define	intfc_curve_loop(intfc,c)	\
+	for ((c) = (intfc)->curves; (c) && *(c); ++(c)) 
+
+#define	intfc_surface_loop(intfc,s)	\
+	for ((s) = (intfc)->surfaces; (s) && *(s); ++(s)) 
 
 #define E_comps(intfc)          ((EQUIV_COMPS *) (intfc)->e_comps)
 

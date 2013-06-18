@@ -3316,6 +3316,7 @@ EXPORT POINT *i_Point(
 	    normal_at_point(p)[1] = HUGE_VAL;
 	    normal_at_point(p)[2] = HUGE_VAL;
 	}
+	Gindex(p) = ERROR_INDEX;
 	return p;
 }		/*end i_Point*/
 
@@ -3721,13 +3722,13 @@ LIB_LOCAL void i_fprint_point(
 	INTERFACE	*intfc = current_interface();
 	int		dim = intfc->dim;
  
-	(void) fprintf(file,"\tPoint %llu:\n",point_number(point));
+	(void) fprintf(file,"Point %llu:\n",point_number(point));
 	if (point == NULL)
 	{
-	    (void) fprintf(file,"\t\tNULL Point\n\t\tEnd Point\n");
+	    (void) fprintf(file,"\tNULL Point\n\t\tEnd Point\n");
 	    return;
 	}
-	(void) fprintf(file,"\t\tPosition ");
+	(void) fprintf(file,"\tPosition ");
 	if (is_binary_output() == YES)
 	{
 	    (void) fprintf(file,"\f%c",dim);

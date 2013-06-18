@@ -173,10 +173,9 @@ static  void gas_driver(
                 g_cartesian.compareWithBaseData(out_name);
                 g_cartesian.freeBaseFront();
             }
-	    /*
             g_cartesian.initMovieVariables();
             FT_AddMovieFrame(front,out_name,binary);
-	    */
+	    recordWingVar(front);
 
 	    FT_SetTimeStep(front);
 	    front->dt = std::min(front->dt,CFL*g_cartesian.max_dt);
@@ -245,6 +244,7 @@ static  void gas_driver(
 	    {
 	        g_cartesian.initMovieVariables();
             	FT_AddMovieFrame(front,out_name,binary);
+	    	recordWingVar(front);
 	    }
 
             if (FT_TimeLimitReached(front))
@@ -258,6 +258,7 @@ static  void gas_driver(
 		{
                     g_cartesian.initMovieVariables();
                     FT_AddMovieFrame(front,out_name,binary);
+	    	    recordWingVar(front);
 		}
 		(void) printf("\ntime = %20.14f   step = %5d   ",
                                 front->time,front->step);

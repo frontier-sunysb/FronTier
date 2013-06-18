@@ -1161,3 +1161,260 @@ extern	void preset_wing_motion(
 	    clean_up(ERROR);
 	}
 }	/* end preset_motion */
+
+/**********************************************************************
+ * 	This is a special purpose function to print out the physical  *
+ * 	variable (density, pressure, etc) on top and at bottom of a   *
+ * 	wing. The assumption is that the wing is a counter-clock-wise *
+ * 	curve with starting point from the left tip. Would need       *
+ * 	adjustment if configuration is different.                     *
+ * ********************************************************************/
+
+extern void recordWingVar(
+	Front *front)
+{
+	INTERFACE *intfc = front->interf;
+	POINT *p;
+	BOND *b;
+	CURVE **c;
+	int num_pts,max_npt,max_gindex;
+	double *dens,*pres,*x,*tmp_dens,*tmp_pres,*tmp_x;
+	int *gindex;
+	int wing_tag = 888;
+	int i,indx,n;
+	char *out_name = OutName(front);
+	int step = front->step;
+	STATE *sl,*sr,*state;
+	static char **sample_color;
+	static int count = 0;
+
+        if (sample_color == NULL && pp_mynode() == 0)
+        {
+            FT_MatrixMemoryAlloc((POINTER*)&sample_color,10,20,sizeof(char));
+            sprintf(sample_color[0],"red");
+            sprintf(sample_color[1],"blue");
+            sprintf(sample_color[2],"green");
+            sprintf(sample_color[3],"violet");
+            sprintf(sample_color[4],"orange");
+            sprintf(sample_color[5],"yellow");
+            sprintf(sample_color[6],"pink");
+            sprintf(sample_color[7],"cyan");
+            sprintf(sample_color[8],"light-gray");
+            sprintf(sample_color[9],"dark-gray");
+        }
+
+	if (debugging("trace"))
+	    (void) printf("Entering recordWingVar()\n");
+	num_pts = 0;
+	max_gindex = 0;
+	intfc_curve_loop(intfc,c)
+	{
+	    if (wave_type(*c) == MOVABLE_BODY_BOUNDARY)
+	    {
+		if (Gindex((*c)->first->start) != ERROR_INDEX)
+		{
+		    max_gindex = Gindex((*c)->first->start);
+		    num_pts++;
+		}
+		curve_bond_loop(*c,b)
+		{
+		    if (Gindex(b->end) == ERROR_INDEX) continue;
+		    num_pts++;
+		    if (Gindex(b->end) > max_gindex)
+			max_gindex = Gindex(b->end);
+		}
+	    }
+	}
+#if defined(__MPI__)
+	max_npt = num_pts;
+	pp_global_imax(&max_npt,1);
+	pp_global_imax(&max_gindex,1);
+#endif /* defined(__MPI__) */
+	if (pp_mynode() == 0)
+	{
+	    FT_VectorMemoryAlloc((POINTER*)&x,max_gindex,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&dens,max_gindex,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&pres,max_gindex,sizeof(double));
+	    intfc_curve_loop(intfc,c)
+	    {
+	    	if (wave_type(*c) == MOVABLE_BODY_BOUNDARY)
+	    	{
+		    b = (*c)->first;
+		    p = b->start;
+		    if (Gindex(p) != ERROR_INDEX)
+		    {
+		    	indx = Gindex(p);
+		    	FT_GetStatesAtPoint(p,Hyper_surf_element(b),
+				Hyper_surf(*c),(POINTER*)&sl,(POINTER*)&sr);
+		    	state = gas_comp(negative_component(*c)) ? sl : sr;
+		    	dens[indx] = state->dens;
+		    	pres[indx] = state->pres;
+			x[indx] = Coords(p)[0];
+		    }
+		    curve_bond_loop(*c,b)
+		    {
+		    	p = b->end;
+		    	indx = Gindex(p);
+		    	if (Gindex(p) == ERROR_INDEX) continue;
+		    	FT_GetStatesAtPoint(p,Hyper_surf_element(b),
+				Hyper_surf(*c),(POINTER*)&sl,(POINTER*)&sr);
+		    	state = gas_comp(negative_component(*c)) ? sl : sr;
+		    	dens[indx] = state->dens;
+		    	pres[indx] = state->pres;
+			x[indx] = Coords(p)[0];
+		    }
+		}
+	    }
+#if defined(__MPI__)
+	    FT_VectorMemoryAlloc((POINTER*)&gindex,max_npt,sizeof(int));
+	    FT_VectorMemoryAlloc((POINTER*)&tmp_x,max_npt,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&tmp_dens,max_npt,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&tmp_pres,max_npt,sizeof(double));
+	    for (i = 1; i < pp_numnodes(); ++i)
+	    {
+		pp_recv(wing_tag,i,(POINTER)&num_pts,sizeof(int));
+		if (num_pts != 0)
+		{
+		    pp_recv(wing_tag,i,(POINTER)gindex,num_pts*sizeof(int));
+		    pp_recv(wing_tag,i,(POINTER)tmp_x,num_pts*sizeof(double));
+		    pp_recv(wing_tag,i,(POINTER)tmp_dens,
+					num_pts*sizeof(double));
+		    pp_recv(wing_tag,i,(POINTER)tmp_pres,
+					num_pts*sizeof(double));
+		    for (n = 0; n < num_pts; ++n)
+		    {
+			indx = gindex[n];
+			dens[indx] = tmp_dens[n];
+			pres[indx] = tmp_pres[n];
+			x[indx] = tmp_x[n];
+		    }
+		}
+	    }
+#endif /* defined(__MPI__) */
+	}
+#if defined(__MPI__)
+	else
+	{
+	    FT_VectorMemoryAlloc((POINTER*)&gindex,num_pts,sizeof(int));
+	    FT_VectorMemoryAlloc((POINTER*)&x,num_pts,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&dens,num_pts,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&pres,num_pts,sizeof(double));
+	    n = 0;
+	    intfc_curve_loop(intfc,c)
+	    {
+	    	if (wave_type(*c) == MOVABLE_BODY_BOUNDARY)
+	    	{
+		    b = (*c)->first;
+		    p = b->start;
+		    if (Gindex(p) != ERROR_INDEX)
+		    {
+		    	gindex[n] = Gindex(p);
+		    	FT_GetStatesAtPoint(p,Hyper_surf_element(b),
+				Hyper_surf(*c),(POINTER*)&sl,(POINTER*)&sr);
+		    	state = gas_comp(negative_component(*c)) ? sl : sr;
+			x[n] = Coords(p)[0];
+		    	dens[n] = state->dens;
+		    	pres[n] = state->pres;
+		    	n++;
+		    }
+		    curve_bond_loop(*c,b)
+		    {
+		    	p = b->end;
+		    	if (Gindex(p) == ERROR_INDEX) continue;
+		    	gindex[n] = Gindex(p);
+		    	FT_GetStatesAtPoint(p,Hyper_surf_element(b),
+				Hyper_surf(*c),(POINTER*)&sl,(POINTER*)&sr);
+		    	state = gas_comp(negative_component(*c)) ? sl : sr;
+			x[n] = Coords(p)[0];
+		    	dens[n] = state->dens;
+		    	pres[n] = state->pres;
+		    	n++;
+		    }
+		}
+	    }
+	    pp_send(wing_tag,(POINTER)&num_pts,sizeof(int),0);
+	    if (num_pts != 0)
+	    {
+	    	pp_send(wing_tag,(POINTER)gindex,num_pts*sizeof(int),0);
+	    	pp_send(wing_tag,(POINTER)x,num_pts*sizeof(double),0);
+	    	pp_send(wing_tag,(POINTER)dens,num_pts*sizeof(double),0);
+	    	pp_send(wing_tag,(POINTER)pres,num_pts*sizeof(double),0);
+	    }
+	}
+#endif /* defined(__MPI__) */
+	if (pp_mynode() == 0)
+	{
+	    char dirname[200],fname[200];
+	    int itop_end;
+	    FILE *ofile;
+
+	    for (i = 1; i < max_gindex; ++i)
+	    {
+		if (x[i-1] < x[i])
+		    itop_end = i+1;
+	    }
+
+	    sprintf(dirname, "%s/wing-top-%s",out_name,
+			right_flush(front->step,7));
+	    if (!create_directory(dirname,NO))
+            {
+            	screen("Cannot create directory %s\n",dirname);
+            	clean_up(ERROR);
+            }
+	    /* Print top density */
+	    sprintf(fname,"%s/density.xg",dirname);
+	    ofile = fopen(fname,"w");
+	    fprintf(ofile,"Next\n");
+            fprintf(ofile,"color=%s\n",sample_color[count%10]);
+            fprintf(ofile,"thickness=1.5\n");
+	    for (i = 0; i < itop_end; ++i)
+	    {
+		fprintf(ofile,"%f  %f\n",x[i],dens[i]);
+	    }
+	    fclose(ofile);
+	    /* Print top pressure */
+	    sprintf(fname,"%s/pressure.xg",dirname);
+	    ofile = fopen(fname,"w");
+	    fprintf(ofile,"Next\n");
+            fprintf(ofile,"color=%s\n",sample_color[count%10]);
+            fprintf(ofile,"thickness=1.5\n");
+	    for (i = 0; i < itop_end; ++i)
+	    {
+		fprintf(ofile,"%f  %f\n",x[i],pres[i]);
+	    }
+	    fclose(ofile);
+
+	    sprintf(dirname, "%s/wing-bot-%s",out_name,
+			right_flush(front->step,7));
+	    if (!create_directory(dirname,NO))
+            {
+            	screen("Cannot create directory %s\n",dirname);
+            	clean_up(ERROR);
+            }
+	    /* Print bottom density */
+	    sprintf(fname,"%s/density.xg",dirname);
+	    ofile = fopen(fname,"w");
+	    fprintf(ofile,"Next\n");
+            fprintf(ofile,"color=%s\n",sample_color[count%10]);
+            fprintf(ofile,"thickness=1.5\n");
+	    for (i = itop_end-1; i < max_gindex; ++i)
+	    {
+		fprintf(ofile,"%f  %f\n",x[i],dens[i]);
+	    }
+	    fclose(ofile);
+	    /* Print top bottom */
+	    sprintf(fname,"%s/pressure.xg",dirname);
+	    ofile = fopen(fname,"w");
+	    fprintf(ofile,"Next\n");
+            fprintf(ofile,"color=%s\n",sample_color[count%10]);
+            fprintf(ofile,"thickness=1.5\n");
+	    for (i = itop_end-1; i < max_gindex; ++i)
+	    {
+		fprintf(ofile,"%f  %f\n",x[i],pres[i]);
+	    }
+	    fclose(ofile);
+	    count++;
+	}
+	if (debugging("trace"))
+	    (void) printf("Leaving recordWingVar()\n");
+}	/* end recordWingVar */

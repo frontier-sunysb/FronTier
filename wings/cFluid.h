@@ -531,3 +531,4 @@ private:
 extern void initModules(Front*);
 extern void initStateParams(Front*);
 extern void initMotionParams(Front*);
+extern void recordWingVar(Front*);

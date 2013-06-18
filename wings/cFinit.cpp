@@ -55,8 +55,8 @@ static void initWing(
 	CURVE *curve;
 	double com[MAXD];	// Center of mass
 	double alpha;		// Pitch angle
-	POINT *p;
-	BOND *b;
+	POINT *p,*pl;
+	BOND *b,*bl;
 	double scale_factor;
 	int num_optimization = 200;
 	SCALED_REDIST_PARAMS scaled_redist_params;
@@ -122,14 +122,35 @@ static void initWing(
 	fscanf(infile,"%lff",&alpha);
 	(void) printf("%f\n",alpha);
 	alpha *= -2.0*PI/360.0;
+
+	if (is_closed_curve(curve))
+	{
+	    b = bl = curve->first;
+	    p = pl = b->start;
+	    for (b = curve->first; b != NULL; b = b->next)
+	    {
+	    	p = b->end;
+	    	if (Coords(p)[0] < Coords(pl)[0])
+	    	{
+		    pl = p;
+		    bl = b->next;
+	    	}
+	    }
+	    if (bl != NULL)
+		move_closed_loop_node(curve,bl);
+	}
 	p = curve->first->start;
 	rotate_point_with_angle(p,com,alpha,YES);
+	Gindex(p) = i = 0;
+	++i;
 	for (b = curve->first; b != NULL; b = b->next)
 	{
 	    if (b == curve->last && is_closed_curve(curve))
 		continue;
 	    p = b->end;
 	    rotate_point_with_angle(p,com,alpha,NO);
+	    Gindex(p) = i;
+	    ++i;
 	}
 
 	if (debugging("trace"))

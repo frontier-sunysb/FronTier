@@ -20,11 +20,11 @@ all: cFluid ../lib/libcF.a
 
 cFluid : @devel@
 
-cFtvd.o : cFluid.h cFtvd.cpp
-	${CXX} -c cFtvd.cpp $(incsloc) $(incs) ${Petsc_Include}
+cFtvd.o : cFluid.h ../cFluid/cFtvd.cpp
+	${CXX} -c ../cFluid/cFtvd.cpp $(incsloc) $(incs) ${Petsc_Include}
 
-cFweno.o : cFluid.h cFweno.cpp
-	${CXX} -c cFweno.cpp $(incsloc) $(incs) ${Petsc_Include}
+cFweno.o : cFluid.h ../cFluid/cFweno.cpp
+	${CXX} -c ../cFluid/cFweno.cpp $(incsloc) $(incs) ${Petsc_Include}
 
 cFsub.o : cFluid.h cFsub.cpp
 	${CXX} -c cFsub.cpp $(incsloc) $(incs) ${Petsc_Include}
@@ -32,8 +32,8 @@ cFsub.o : cFluid.h cFsub.cpp
 cFcartsn.o : cFluid.h cFcartsn.cpp
 	${CXX} -c cFcartsn.cpp $(incsloc) $(incs) ${Petsc_Include}
 
-cFbase.o : cFluid.h cFbase.cpp
-	${CXX} -c cFbase.cpp $(incsloc) $(incs) ${Petsc_Include}
+cFbase.o : cFluid.h ../cFluid/cFbase.cpp
+	${CXX} -c ../cFluid/cFbase.cpp $(incsloc) $(incs) ${Petsc_Include}
 
 cFphys.o : cFluid.h cFphys.cpp
 	${CXX} -c cFphys.cpp $(incsloc) $(incs) ${Petsc_Include}
@@ -41,8 +41,8 @@ cFphys.o : cFluid.h cFphys.cpp
 cFinit.o : cFluid.h cFinit.cpp
 	${CXX} -c cFinit.cpp $(incsloc) $(incs) ${Petsc_Include}
 
-cFeos.o : cFluid.h cFeos.cpp
-	${CXX} -c cFeos.cpp $(incsloc) $(incs) ${Petsc_Include}
+cFeos.o : cFluid.h ../cFluid/cFeos.cpp
+	${CXX} -c ../cFluid/cFeos.cpp $(incsloc) $(incs) ${Petsc_Include}
 
 cFluid: cFluid.h cFluid.cpp cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o
 	${CXX} -c cFluid.cpp -I../include $(incs) ${Petsc_Include}
