@@ -41,6 +41,7 @@ static void spring_node_propagate(Front*,POINTER,NODE*,NODE*,double);
 static void gviewSurfaceStrain(Front*);
 static void gviewSurfaceStress(Front*);
 static void naturalStressOfTri(TRI*,double);
+static void vtkPlotSurfaceStress(Front*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -422,6 +423,7 @@ static void gviewSurfaceStress(
 	sprintf(dirname,"%s/%s-ts%s",outname,"gv.stress",
 			right_flush(front->step,7));
 	gview_plot_color_scaled_interface(dirname,intfc);
+	vtkPlotSurfaceStress(front);
 }	/* end gviewSurfaceStress */
 
 static void naturalStressOfTri(
@@ -439,7 +441,7 @@ static void naturalStressOfTri(
 	for (i = 0; i < 3; ++i)
 	{
 	    len0 = tri->side_length0[i];
-	    for (j = 0; j < 2; ++j)
+	    for (j = 0; j < 3; ++j)
 	    {
 		vec[j] = Coords(Point_of_tri(tri)[(i+1)%3])[j] -
 			Coords(Point_of_tri(tri)[i])[j];
@@ -463,3 +465,80 @@ static void naturalStressOfTri(
 	// Use von Mises stress as a measure
 	tri->color = sqrt(sqr(sigma1) + sqr(sigma2) - sigma1*sigma2);
 }	/* end naturalStressOfTri */
+
+static void vtkPlotSurfaceStress(
+	Front *front)
+{
+	char *outname = OutName(front);
+	INTERFACE *intfc = front->interf;
+	SURFACE **s;
+	TRI *tri;
+	POINT *p;
+	char dirname[200],fname[200];
+	int i,j;
+	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
+	int n,N;
+	double *color;
+	FILE *vfile;
+	int num_tri;
+	
+	n = 0;
+	sprintf(dirname,"%s/%s-ts%s",outname,"vtk.stress",
+			right_flush(front->step,7));
+	if (!create_directory(dirname,NO))
+        {
+            printf("Cannot create directory %s\n",dirname);
+            clean_up(ERROR);
+        }
+	sprintf(fname,"%s/%s",dirname,"stress.vtk");
+	vfile = fopen(fname,"w");
+	fprintf(vfile,"# vtk DataFile Version 3.0\n");
+        fprintf(vfile,"Surface stress\n");
+        fprintf(vfile,"ASCII\n");
+        fprintf(vfile,"DATASET UNSTRUCTURED_GRID\n");
+
+	num_tri = 0;
+
+	intfc_surface_loop(intfc,s)
+	{
+	    if (Boundary(*s)) continue;
+	    num_tri += (*s)->num_tri;
+	}
+	fprintf(vfile,"POINTS %d double\n", 3*num_tri);
+	intfc_surface_loop(intfc,s)
+	{
+	    if (Boundary(*s)) continue;
+	    surf_tri_loop(*s,tri)
+	    {
+		for (i = 0; i < 3; ++i)
+		{
+		    p = Point_of_tri(tri)[i];
+		    fprintf(vfile,"%f %f %f\n",Coords(p)[0],Coords(p)[1],
+						Coords(p)[2]);
+		}
+	    }
+	}
+	fprintf(vfile,"CELLS %d %d\n",num_tri,4*num_tri);
+	n = 0;
+	intfc_surface_loop(intfc,s)
+	{
+	    if (Boundary(*s)) continue;
+	    surf_tri_loop(*s,tri)
+	    {
+		fprintf(vfile,"3 %d %d %d\n",3*n,3*n+1,3*n+2);
+		n++;
+	    }
+	}
+	fprintf(vfile, "CELL_DATA %i\n", num_tri);
+        fprintf(vfile, "SCALARS von_Mises_stress double\n");
+        fprintf(vfile, "LOOKUP_TABLE default\n");
+	intfc_surface_loop(intfc,s)
+	{
+	    if (Boundary(*s)) continue;
+	    surf_tri_loop(*s,tri)
+	    {
+		fprintf(vfile,"%f\n",tri->color);
+	    }
+	}
+}	/* end gviewSurfaceStress */
+
