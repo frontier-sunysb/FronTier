@@ -587,6 +587,7 @@ src/front/Makefile
 src/intfc/Makefile 
 airfoil/Makefile
 parachute/Makefile
+sprModel/Makefile
 subsurf/Makefile
 crystal/Makefile
 example/Makefile
@@ -656,6 +657,7 @@ climate/Makefile
 subsurf/Makefile
 airfoil/Makefile
 parachute/Makefile
+sprModel/Makefile
 crystal/Makefile
 poisson/Makefile
 cFluid/Makefile

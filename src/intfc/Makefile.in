@@ -53,6 +53,7 @@ iwallsurf.$(OBJEXT) \
 itrisset.$(OBJEXT) \
 iMesh.$(OBJEXT) \
 iMeshP.$(OBJEXT) \
+imap.$(OBJEXT) \
 
 ########################################################################################
 # DO NOT MODIFY BELOW THIS LINE UNLESS YOUR POSITIVE YOU KNOW WHAT YOU WANT TO DO 

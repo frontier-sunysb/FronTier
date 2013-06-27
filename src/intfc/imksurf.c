@@ -5110,22 +5110,25 @@ EXPORT boolean plane_constr_func(
 	    else 
 		return (coords[0] <= P[0]) ? YES : NO;
 	}
-	if (N[0] == 0.0 && N[1] == 0.0)
+	else if (N[0] == 0.0 && N[1] == 0.0)
 	{
 	    if (N[2] > 0.0) 
 		return (coords[2] >= P[2]) ? YES : NO;
 	    else 
 		return (coords[2] <= P[2]) ? YES : NO;
 	}
-	if (N[0] == 0.0 && N[2] == 0.0)
+	else if (N[0] == 0.0 && N[2] == 0.0)
 	{
 	    if (N[1] > 0.0) 
 		return (coords[1] >= P[1]) ? YES : NO;
 	    else 
 		return (coords[1] <= P[1]) ? YES : NO;
 	}
-	for (i = 0; i < 3; ++i)
-	    v[i] = coords[i] - P[i];
-	return (Dot3d(v,N) >= 0.0) ? YES : NO;
+	else
+	{
+	    for (i = 0; i < 3; ++i)
+	    	v[i] = coords[i] - P[i];
+	    return (Dot3d(v,N) >= 0.0) ? YES : NO;
+	}
 }	/* end plane_constr_func */
 

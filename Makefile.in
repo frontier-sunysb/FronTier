@@ -158,6 +158,10 @@ $$ME/parachute/*.cpp \
 $$ME/parachute/Makefile.in \
 $$ME/parachute/input-*/* \
 $$ME/parachute/mrun* \
+$$ME/sprModel/*.cpp \
+$$ME/sprModel/Makefile.in \
+$$ME/sprModel/in-* \
+$$ME/sprModel/mrun* \
 $$ME/crystal/*.cpp \
 $$ME/crystal/*.h \
 $$ME/crystal/Makefile.in \
@@ -184,6 +188,7 @@ $$ME/wings/*.h \
 $$ME/wings/Makefile.in \
 $$ME/wings/in-* \
 $$ME/wings/mrun* \
+$$ME/wings/wing/* \
 $$ME/cim/*.cpp \
 $$ME/cim/*.h \
 $$ME/cim/Makefile.in \

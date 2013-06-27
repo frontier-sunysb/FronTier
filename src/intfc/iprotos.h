@@ -227,6 +227,7 @@ IMPORT	const double	   *Tri_normal(const TRI*);
 IMPORT	double              length_of_tri_side(const TRI*,int);
 IMPORT	double              sqr_norm(const TRI*);
 IMPORT	double              tri_area(const TRI*);
+IMPORT	double  tri_area_on_sides(double,double,double);
 IMPORT	void	area_weighted_normal3d(POINT*,HYPER_SURF_ELEMENT*,
                                        HYPER_SURF*,double*);
 IMPORT	void	sine_weighted_normal3d(POINT*,HYPER_SURF_ELEMENT*,
@@ -513,6 +514,7 @@ IMPORT	void	set_vector_bounding_box(const double*,const double*,double,
 IMPORT	void	gview_point_tri_rings(const char*,POINT*);
 IMPORT	void	gview_plot_surf_within_range(const char*,SURFACE*,double*,
 					double);
+IMPORT	void	gview_plot_color_scaled_interface(const char*,INTERFACE*);
 
 /*	int3d.c*/
 IMPORT	BOND_TRI *i_link_tri_to_bond(BOND_TRI*,TRI*,SURFACE*,BOND*,CURVE*);
@@ -969,5 +971,6 @@ IMPORT iBase_EntityHandle entityOfTri(TRI *t);
 }
 #endif
 
+#include <intfc/iapi.h>
 
 #endif /* !defined(_IPROTOS_H) */

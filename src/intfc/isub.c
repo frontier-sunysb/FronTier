@@ -1482,6 +1482,15 @@ EXPORT double tri_area(
 	return 0.5*sqrt(sqr_norm(tri));
 }	/* end tri_area */
 
+EXPORT double tri_area_on_sides(
+	double a,
+	double b,
+	double c)
+{
+	double p = 0.5*(a + b + c);
+	return sqrt(p*(p-a)*(p-b)*(p-c));
+}	/* end tri_area_on_sides */
+
 EXPORT	const double* const* side_vector(
 	const TRI *tri)
 {

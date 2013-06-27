@@ -507,6 +507,8 @@ EXPORT	void FrontFreeAll(
 EXPORT	void FT_MakeGridIntfc(
 	Front *front)
 {
+	if (Tracking_algorithm(front) == SIMPLE_TRACKING)
+	    return;
 	front->grid_intfc = make_grid_intfc(front->interf,
 			EXPANDED_DUAL_GRID,NULL);
 }	/* end FT_MakeGridIntfc */

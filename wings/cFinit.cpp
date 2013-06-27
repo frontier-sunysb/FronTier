@@ -49,7 +49,7 @@ static void initWing(
 	FILE *infile = fopen(inname,"r");
 	char string[100];
 	FILE *wfile;
-	int i,num_points;
+	int i,j,num_points,data_dim;
 	double **point_array;
 	int w_type;
 	CURVE *curve;
@@ -67,7 +67,7 @@ static void initWing(
 	fscanf(infile,"%s",string);
 	(void) printf("%s\n",string);
 	wfile = fopen(string,"r");
-	fscanf(wfile,"%d",&num_points);
+	fscanf(wfile,"%d  %d",&num_points,&data_dim);
 	FT_MatrixMemoryAlloc((POINTER*)&point_array,num_points,MAXD,
 				sizeof(double));
 	scale_factor = 1.0;
@@ -77,12 +77,15 @@ static void initWing(
 	    (void) printf("%f\n",scale_factor);
 	}
 	for (i = 0; i < num_points; ++i)
+	for (j = 0; j < data_dim; ++j)
+	    point_array[i][j] = 0.0;
+	for (i = 0; i < num_points; ++i)
 	{
-	    fscanf(wfile,"%lf %lf %lf",&point_array[i][0],&point_array[i][1],
-					&point_array[i][2]);
-	    point_array[i][0] *= scale_factor;
-	    point_array[i][1] *= scale_factor;
-	    point_array[i][2] *= scale_factor;
+	    for (j = 0; j < data_dim; ++j)
+	    {
+	    	fscanf(wfile,"%lf ",&point_array[i][j]);
+	    	point_array[i][j] *= scale_factor;
+	    }
 	}
 	if (point_array[0][0] == point_array[num_points-1][0] &&
 	    point_array[0][1] == point_array[num_points-1][1] &&

@@ -1739,6 +1739,9 @@ EXPORT NODE *i_copy_node(
 	}
 	Boundary(newnode) = Boundary(node);
 	newnode->extra = node->extra;
+	newnode->vparams = node->vparams;
+	newnode->vfunc = node->vfunc;
+	Gindex(newnode) = Gindex(node);
 
 	return newnode;
 }		/*end i_copy_node*/
@@ -2211,6 +2214,8 @@ EXPORT CURVE *i_copy_curve(
 	    new_curve->redist_order = curve->redist_order;
 	}
 	new_curve->extra = curve->extra;
+	new_curve->vparams = curve->vparams;
+	new_curve->vfunc = curve->vfunc;
 	Gindex(new_curve) = Gindex(curve);
 	return new_curve;
 }		/*end i_copy_curve*/

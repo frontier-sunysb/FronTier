@@ -603,6 +603,7 @@ EXPORT	POINT *f_copy_point(
 	for (i = 0; i < dim; ++i)
 	{
 	    newp->vel[i] = p->vel[i];
+	    newp->force[i] = p->force[i];
 	}
 	return newp;
 }		/*end f_copy_point*/

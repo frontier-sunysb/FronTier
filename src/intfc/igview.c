@@ -25,6 +25,10 @@ LOCAL	void	gview_plot_surfaces(INTERFACE*,RECT_GRID*,const double*,
 	                            const double*,boolean,
 				    const char*,const char*,
 				    boolean,SURFACE_COLOR,SURFACE_COLOR);
+LOCAL	void	gview_plot_color_scaled_surfaces(INTERFACE*,RECT_GRID*,
+				    const double*,const double*,boolean,
+				    const char*,const char*,
+				    boolean,SURFACE_COLOR,SURFACE_COLOR);
 LOCAL	void	print_polyline_description(FILE*,const char*,double* const*,int,
                                            SURFACE_COLOR color,double,int);
 LOCAL	void	write_interpolated_color(FILE*,SURFACE_COLOR,
@@ -1164,6 +1168,38 @@ EXPORT void geomview_interface_plot(
 	gview_plot_curves(intfc,BBL,BBU,dname,"curves",pYELLOW,1);
 }		/*end geomview_interface_plot*/
 
+EXPORT void gview_plot_color_scaled_interface(
+	const char *dname,
+	INTERFACE  *intfc)
+{
+	RECT_GRID  *gr = &topological_grid(intfc);
+	double *BBL = topological_grid(intfc).GL;
+	double *BBU = topological_grid(intfc).GU;
+
+	if (intfc->dim != 3)
+	    return;
+	if (create_directory(dname,YES) == FUNCTION_FAILED)
+	{
+	    (void) printf("WARNING in geomview_interface_plot(), directory "
+			  "%s doesn't exist and can't be created\n",dname);
+	    return;
+	}
+
+	gview_plot_cube(dname,"grid",gr->L,gr->U,BBL,BBU);
+	gview_plot_cube(dname,"vgrid",gr->VL,gr->VU,BBL,BBU);
+	gview_plot_cube(dname,"ggrid",gr->GL,gr->GU,BBL,BBU);
+	gview_plot_axes(dname,"axes",BBL,BBU,BBL,BBU);
+
+	gview_plot_color_scaled_surfaces(intfc,gr,BBL,BBU,YES,dname,"surfs",
+			    NO,pBLACK,pWHITE);
+			    //NO,pBLUE,pRED);
+
+	gview_plot_surfaces(intfc,gr,BBL,BBU,YES,dname,"bdry",
+			    YES,pBLUE,pGREEN);
+
+	gview_plot_curves(intfc,BBL,BBU,dname,"curves",pYELLOW,1);
+}		/*end gview_plot_color_scaled_interface*/
+
 /*	This function plots two rings of triangles around the point  *
  *	p. It assumes that one triangle is attached to the point.    */
 
@@ -1456,6 +1492,194 @@ LOCAL	void	gview_plot_surfaces(
 			   3,verts[4*j],verts[4*j+1],verts[4*j+2]);
 	    write_interpolated_color(file,color1,color2,verts[4*j+3]/D,
 				     intensity);
+	}
+	(void) fprintf(file,"%s}\n",indent);
+	(void) fprintf(file,"}\n");
+	(void) fclose(file);
+}		/*end gview_plot_surfaces*/
+
+LOCAL	void	gview_plot_color_scaled_surfaces(
+	INTERFACE     *intfc,
+	RECT_GRID     *gr,
+	const double   *BBL,
+	const double   *BBU,
+	boolean          clip,
+	const char    *dname,
+	const char    *name,
+	boolean	      bdry,
+	SURFACE_COLOR color1,
+	SURFACE_COLOR color2)
+{
+	FILE	          *file;
+	POINT             *p;
+	SURFACE	          **s;
+	TRI	          *tri;
+	boolean              plot_surf,plot_tri;
+	double 	          D, range;
+	double             L[MAXD],U[MAXD],tol[MAXD];
+	double	          *crds;
+	int	          num_surfs, num_tris, i, j, k, l;
+	int               npts, ntris, count = 0;
+	static const char *indent = "    ";
+	static double      *pts = NULL;
+	static int        *verts = NULL;
+	static double	  *color_intensity;
+	static int        alloc_len_verts = 0, alloc_len_pts = 0;
+	static int	  alloc_len_color = 0;
+	static char       *fname = NULL;
+	static size_t     fname_len = 0;
+	double		  max_color,min_color;
+
+	max_color = -HUGE;
+	min_color = HUGE;
+	fname = get_list_file_name(fname,dname,name,&fname_len);
+
+	for (num_tris = 0, s = intfc->surfaces; s && *s; ++s)
+	{
+	    num_tris += (*s)->num_tri;
+	    for (tri=first_tri(*s); !at_end_of_tri_list(tri,*s); tri=tri->next)
+	    {
+	        for (k = 0; k < 3; ++k)
+		    Index_of_point(Point_of_tri(tri)[k]) = -1;
+	    }
+	}
+	
+	if (alloc_len_pts < 3*intfc->num_points)
+	{
+	    if (pts != NULL)
+		free(pts);
+	    alloc_len_pts = 3*intfc->num_points;
+	    uni_array(&pts,alloc_len_pts,FLOAT);
+	}
+	if (alloc_len_verts < 4*num_tris)
+	{
+	    if (verts != NULL)
+		free(verts);
+	    alloc_len_verts = 4*num_tris;
+	    uni_array(&verts,alloc_len_verts,INT);
+	}
+	if (alloc_len_color < num_tris)
+	{
+	    if (color_intensity != NULL)
+		free(color_intensity);
+	    alloc_len_color = num_tris;
+	    uni_array(&color_intensity,alloc_len_color,FLOAT);
+	}
+	for (i = 0; i < 3; i++)
+	{
+	    L[i] = gr->L[i] - 0.5*gr->h[i];
+	    U[i] = gr->U[i] + 0.5*gr->h[i];
+	    tol[i] = 0.00001*gr->h[i];
+	}
+
+        for (npts=0, ntris=0, num_surfs=0, s = intfc->surfaces; s && *s; ++s)
+	{
+	    if (bdry == YES  &&  !Boundary(*s))
+		continue; 
+	    if (bdry == NO  &&  Boundary(*s))
+		continue;
+	    if (clip == YES)
+	    {
+		plot_surf = NO;
+	        for (tri = first_tri(*s); !at_end_of_tri_list(tri,*s); 
+		     tri = tri->next)
+	        {
+		    plot_tri = NO;
+		    for (k = 0; k < 3; ++k)
+		    {
+			crds = Coords(Point_of_tri(tri)[k]);
+	                for (l = 0; l < 3; ++l)
+			    if ((crds[l] < L[l] - tol[l]) || 
+			        (crds[l] > U[l] + tol[l]))
+				break;
+			if (l == 3) /* a point is inside the domain */
+			{
+			    plot_tri = plot_surf = YES;
+			    break;
+		        }
+		    }
+		    if (plot_tri)
+		    {
+			if (max_color < tri->color)
+			    max_color = tri->color;
+			if (min_color > tri->color)
+			    min_color = tri->color;
+			color_intensity[ntris] = tri->color;
+			for (k = 0; k < 3; ++k)
+			{
+		            p = Point_of_tri(tri)[k];
+			    if (Index_of_point(p) == -1)
+			    {
+			        crds = Coords(p);
+	                        for (l = 0; l < 3; ++l)
+				    pts[3*npts+l] = crds[l];
+				Index_of_point(p) = npts++;
+			    }
+			    verts[4*ntris+k] = Index_of_point(p);
+			}
+			verts[4*ntris+3] = num_surfs;
+			++ntris;
+		    }
+		}
+		if (plot_surf == YES)
+		    ++num_surfs;
+	    }
+	    else
+	    {
+	        for (tri = first_tri(*s); !at_end_of_tri_list(tri,*s); 
+		     tri = tri->next)
+	        {
+		    if (max_color < tri->color)
+			max_color = tri->color;
+		    if (min_color > tri->color)
+			min_color = tri->color;
+		    color_intensity[ntris] = tri->color;
+	            for (k = 0; k < 3; ++k)
+		    {
+		        p = Point_of_tri(tri)[k];
+			if (Index_of_point(p) == -1)
+			{
+			    crds = Coords(p);
+	                    for (l = 0; l < 3; ++l)
+				pts[3*npts+l] = crds[l];
+			    Index_of_point(p) = npts++;
+			}
+			verts[4*ntris+k] = Index_of_point(p);
+		    }
+		    verts[4*ntris+3] = num_surfs;
+		    ++ntris;
+		}
+		++num_surfs;
+	    }
+	}
+	if (num_surfs == 0)
+	    return;
+
+	if ((file = fopen(fname,"w")) == NULL)
+	{
+	    (void) printf("WARNING in gview_plot_surfaces(), "
+	                  "can't open %s\n",fname);
+	    return;
+	}
+	(void) fprintf(file,"{ LIST\n");
+
+	gview_bounding_box(file,BBL,BBU,1,indent);
+
+	(void) fprintf(file,"%s{\n%s%sOFF\n%s%s%6d %6d %6d\n",indent,
+		       indent,indent,indent,indent,npts,ntris,0);
+	for (i = 0; i < npts; ++i)
+	{
+	    (void) fprintf(file,"%s%s%-9g %-9g %-9g\n",indent,indent,
+			   pts[3*i],pts[3*i+1],pts[3*i+2]);
+	}
+	D = (num_surfs == 1) ? 1.0 : 1/(num_surfs - 1.0);
+	range = max_color - min_color;
+	for (j = 0; j < ntris; ++j)
+	{
+	    (void) fprintf(file,"%s%s%-4d %-4d %-4d %-4d ",indent,indent,
+			   3,verts[4*j],verts[4*j+1],verts[4*j+2]);
+	    write_interpolated_color(file,color1,color2,verts[4*j+3]/D,
+			   (color_intensity[j]-min_color)/range);
 	}
 	(void) fprintf(file,"%s}\n",indent);
 	(void) fprintf(file,"}\n");
@@ -1933,9 +2157,9 @@ LOCAL void write_interpolated_color(
 	{
 	    { 0.0, 0.0, 0.0, 0.75 }, /* black     */
 	    { 1.0, 0.0, 0.0, 0.75 }, /* red       */
+	    { 0.0, 0.0, 1.0, 0.75 }, /* blue      */ 
 	    { 0.0, 1.0, 0.0, 0.75 }, /* green     */
 	    { 1.0, 1.0, 0.0, 0.75 }, /* yellow    */
-	    { 0.0, 0.0, 1.0, 0.75 }, /* blue      */ 
 	    { 1.0, 0.0, 1.0, 0.75 }, /* magenta   */
 	    { 0.0, 1.0, 1.0, 0.75 }, /* cyan      */
 	    { 1.0, 1.0, 1.0, 0.75 }, /* white     */
@@ -1946,8 +2170,13 @@ LOCAL void write_interpolated_color(
 
 	for (i = 0 ; i < 4 ; ++i)
         {
+	    /*
 	    write_color = ((1.0 - d)*color[color1][i] + d*color[color2][i])*
 			  intensity;
+	    */
+	    write_color = ((1.0 - intensity)*color[color1][i] + 
+				intensity*color[color2][i]);
+	    if (i == 3) write_color = 1.0;
 	    (void) fprintf(file,"%7.5f ",write_color);
 	}
 	(void) fprintf(file,"\n");

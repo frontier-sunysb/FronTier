@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -19,9 +20,8 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-******************************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+****************************************************************/
 
 
 /*
@@ -3027,7 +3027,10 @@ LOCAL int simple_advance_front3d(
 	boolean	   has_tracked_surfaces;
 	int	   status;
 	double	   V[MAXD];
+	INTERFACE *intfc_old,*intfc_new;
 
+	if (debugging("trace"))
+	    (void) printf("Entering simple_advance_front3d()\n");
 	*newfront = copy_front(front);
 	has_tracked_surfaces = (front->interf->surfaces != NULL) ? YES : NO;
 	if (pp_max_status(has_tracked_surfaces) == NO)
@@ -3055,6 +3058,30 @@ LOCAL int simple_advance_front3d(
 
 		/* Propagate points on surfaces */
 
+	intfc_old = front->interf;
+	intfc_new = (*newfront)->interf;
+	if (front->_surface_propagate != NULL)
+	{
+	    SURFACE **olds,**news;
+	    for (olds = intfc_old->surfaces, news = intfc_new->surfaces;
+		 olds && *olds; ++olds, ++news)
+		(*front->_surface_propagate)(front,wave,*olds,*news,dt);
+	}
+	if (front->_curve_propagate != NULL)
+	{
+	    CURVE **oldc,**newc;
+	    for (oldc = intfc_old->curves, newc = intfc_new->curves;
+		 oldc && *oldc; ++oldc, ++newc)
+		(*front->_curve_propagate)(front,wave,*oldc,*newc,dt);
+	}
+	if (front->_node_propagate != NULL)
+	{
+	    NODE **oldn,**newn;
+	    for (oldn = intfc_old->nodes, newn = intfc_new->nodes;
+		 oldn && *oldn; ++oldn, ++newn)
+		(*front->_node_propagate)(front,wave,*oldn,*newn,dt);
+	}
+
 	start_clock("propagate");
 
 	start_clock("interior_propagate");
@@ -3065,5 +3092,7 @@ LOCAL int simple_advance_front3d(
 	stop_clock("propagate");
 	status = GOOD_STEP;
 
+	if (debugging("trace"))
+	    (void) printf("Entering simple_advance_front3d()\n");
 	return return_advance_front(front,newfront,status,fname);
 }	/* end simple_advance_front3d */

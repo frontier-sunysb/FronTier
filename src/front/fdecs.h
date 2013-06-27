@@ -616,6 +616,14 @@ struct _Front {
 	void (*surface_propagate)(struct _Front*,struct _Front*,POINTER,
 				double,double*);
 
+	/* The following is a new set of propagation family */
+	void (*_surface_propagate)(struct _Front*,POINTER,SURFACE*,SURFACE*,
+					double);
+	void (*_curve_propagate)(struct _Front*,POINTER,CURVE*,CURVE*,
+					double);
+	void (*_node_propagate)(struct _Front*,POINTER,NODE*,NODE*,
+					double);
+
 		/* Untangling the Front */
 	boolean (*_check_delete_redundant_node)(NODE*,CURVE*,CURVE*);
 	int  (*fr_bdry_untangle)(struct _Front*,CROSS**,RPROBLEM*,NODE*,int);

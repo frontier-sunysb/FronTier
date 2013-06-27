@@ -958,3 +958,8 @@ EXPORT	void FT_MakeEllipticCurve(
 	    wave_type(curves[i]) = w_type;
 	*curve = curves[0];
 }	/* end FT_MakeEllipticCurve */
+
+EXPORT	int FT_Dimension()
+{
+	return Dimension(current_interface());
+}	/* end FT_Dimension */

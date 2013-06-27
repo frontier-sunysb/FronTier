@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -21,7 +22,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-******************************************************************************/
+****************************************************************/
 
 
 /*
@@ -89,7 +90,8 @@ struct _POINT
 	double		_nor[3];
 	double		_nor0[3];	/* First order normal for WLSP */
 	double		curvature;
-	double           vel[3];
+	double          vel[3];
+	double          force[3];
 	boolean		crx;
 	int		indx;
 	long            global_index;
@@ -177,6 +179,9 @@ struct _CURVE
 	double min_bond_length;
 	double max_bond_length;
 	int global_index;
+	/* The folllowing are used for curve propagation */
+	POINTER vparams;
+	void (*vfunc)(POINTER,double*);
 };
 typedef struct _CURVE CURVE;
 
@@ -216,6 +221,10 @@ struct _NODE
 	struct _CURVE **in_curves;	/* Pointer to Set of In Curves */
 	struct _CURVE **out_curves;	/* Pointer to Set of Out Curves */
 	POINTER extra;			/* For special use */
+	int global_index;
+	/* The folllowing are used for curve propagation */
+	POINTER vparams;
+	void (*vfunc)(POINTER,double*);
 };
 typedef struct _NODE NODE;
 
@@ -245,6 +254,7 @@ struct _TRI
 	TRI_NEIGHBOR neighbor[3];
 	double side_length0[3];		/* equilibrium length of each side */
 	double side_dir0[3][3];		/* equilibrium length of each side */
+	double color;			/* to plot color scale of triangle */
 	struct _SURFACE	*surf;		/* surface in which the triangle lies */
 	struct _TRI *prev;
 	struct _TRI *next;
@@ -335,6 +345,9 @@ struct _SURFACE
 	int num_tri;
 	POINTER extra;
 	int global_index;
+	/* The folllowing are used for surface propagation */
+	POINTER vparams;
+	void (*vfunc)(POINTER,double*);
 };
 typedef struct _SURFACE SURFACE;
 
@@ -1515,6 +1528,12 @@ typedef struct _SCALED_REDIST_PARAMS SCALED_REDIST_PARAMS;
 
 #define	intfc_surface_loop(intfc,s)	\
 	for ((s) = (intfc)->surfaces; (s) && *(s); ++(s)) 
+
+#define	surf_pos_curve_loop(surf,c)	\
+	for ((c) = (surf)->pos_curves; (c) && (*c); ++(c))
+
+#define	surf_neg_curve_loop(surf,c)	\
+	for ((c) = (surf)->neg_curves; (c) && (*c); ++(c))
 
 #define E_comps(intfc)          ((EQUIV_COMPS *) (intfc)->e_comps)
 

@@ -744,6 +744,12 @@ extern "C" {
    			char *in_name,
    			Front *front);
 
+/*! \fn int FT_Dimension()
+ *  \ingroup QUERY
+    \brief This function returns the spatial dimension of current run. */
+
+   IMPORT  int FT_Dimension();
+
 /*! \fn HYPER_SURF *FT_RectBoundaryHypSurf(INTERFACE *intfc, int wave_type, int dir, int side)
  *  \ingroup QUERY
     \brief This function looks for a boundary hyper surface (curve in 2D and

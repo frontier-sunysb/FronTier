@@ -359,6 +359,8 @@ EXPORT SURFACE *i_copy_surface(
 
 	user_copy_hyper_surf(Hyper_surf(news),Hyper_surf(s));
 	news->extra = s->extra;
+	news->vparams = s->vparams;
+	news->vfunc = s->vfunc;
 	Gindex(news) = Gindex(s);
 	debug_print("copy_surface","Left copy_surface\n");
 	return news;
