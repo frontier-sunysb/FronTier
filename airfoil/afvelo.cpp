@@ -37,10 +37,9 @@ static void init_fixarea_params(Front*,FILE*,FIXAREA_PARAMS*);
 static void init_fixpoint_params(Front*,FILE*,FIXAREA_PARAMS*);
 
 extern void setMotionParams(
-	char *inname,
 	Front *front)
 {
-	FILE *infile = fopen(inname,"r");
+	FILE *infile = fopen(InName(front),"r");
 	int i,dim = front->rect_grid->dim;
 	char string[100];
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
@@ -165,7 +164,8 @@ extern void setMotionParams(
         {
             fscanf(infile,"%lf",&af_params->gravity[i]);
             (void) printf("%f ",af_params->gravity[i]);
-	    iFparams->gravity[i] = af_params->gravity[i];
+	    if (af_params->no_fluid == NO)
+	    	iFparams->gravity[i] = af_params->gravity[i];
         }
         (void) printf("\n");
 	CursorAfterString(infile,"Enter payload:");
@@ -798,3 +798,63 @@ static int marker_velo(
 	    vel[j] = 0.0;
 	return YES;
 }	/* end marker_velo */
+
+extern void resetFrontVelocity(Front *front)
+{
+	INTERFACE *intfc = front->interf;
+	POINT *p;
+	HYPER_SURF_ELEMENT *hse;
+	HYPER_SURF *hs;
+	STATE *sl,*sr;
+	int i,dim = front->rect_grid->dim;
+	CURVE **c;
+	BOND *b;
+
+	next_point(intfc,NULL,NULL,NULL);
+	while (next_point(intfc,&p,&hse,&hs))
+	{
+	    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+	    for (i = 0; i < dim; ++i)
+	    {
+		p->vel[i] = 0.0;
+		sl->vel[i] = sr->vel[i] = 0.0;
+		sl->impulse[i] = sr->impulse[i] = 0.0;
+	    }
+	}
+	if (dim == 3)
+	{
+	    for (c = intfc->curves; c && *c; ++c)
+	    {
+		p = (*c)->start->posn;
+		sl = (STATE*)left_state(p);
+		sr = (STATE*)right_state(p);
+	        for (i = 0; i < dim; ++i)
+		{
+		    p->vel[i] = 0.0;
+		    sl->vel[i] = sr->vel[i] = 0.0;
+		    sl->impulse[i] = sr->impulse[i] = 0.0;
+		}
+		for (b = (*c)->first; b != (*c)->last; b = b->next)
+		{
+		    p = b->end;
+		    sl = (STATE*)left_state(p);
+		    sr = (STATE*)right_state(p);
+	            for (i = 0; i < dim; ++i)
+		    {
+		    	p->vel[i] = 0.0;
+		    	sl->vel[i] = sr->vel[i] = 0.0;
+		    	sl->impulse[i] = sr->impulse[i] = 0.0;
+		    }
+		}
+		p = (*c)->end->posn;
+		sl = (STATE*)left_state(p);
+		sr = (STATE*)right_state(p);
+	        for (i = 0; i < dim; ++i)
+		{
+		    p->vel[i] = 0.0;
+		    sl->vel[i] = sr->vel[i] = 0.0;
+		    sl->impulse[i] = sr->impulse[i] = 0.0;
+		}
+	    }
+	}
+}	/* end resetFrontVelocity */

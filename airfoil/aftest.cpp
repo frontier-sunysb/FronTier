@@ -1,7 +1,8 @@
-/******************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -19,9 +20,8 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-******************************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+****************************************************************/
 
 #include <iFluid.h>
 #include <airfoil.h>
@@ -912,6 +912,7 @@ static void print_airfoil_stat3d_1(
 	static FILE *gfile;
 	POINTER obj_max;
 
+	printf("Entering print_airfoil_stat3d_1()\n");
 	if (eskfile == NULL)
         {
 	    sprintf(fname,"%s/max_index.dat",out_name);
@@ -1796,7 +1797,10 @@ extern void fourth_order_elastic_surf_propagate(
 	for (i = 0; i < num_curves; ++i)
 	    set_curve_spring_vertex(&geom_set,newc[i],x_pos,v_pos,sv,&count);
 	for (i = 0; i < num_nodes; ++i)
+	{
+	    printf("count = %d\n",count);
 	    set_node_spring_vertex(&geom_set,newn[i],x_pos,v_pos,sv,&count);
+	}
 
 	stop_clock("set_spring_model");
 

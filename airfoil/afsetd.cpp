@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -19,9 +20,8 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-******************************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+****************************************************************/
 
 #include <iFluid.h>
 #include <airfoil.h>
@@ -226,7 +226,9 @@ extern void set_node_spring_vertex(
 	    AF_NODE_EXTRA *extra = (AF_NODE_EXTRA*)node->extra;
 	    if (extra != NULL)
 	    {
-		if (extra->af_node_type == LOAD_NODE)
+		if (extra->af_node_type == PRESET_NODE)
+		    is_fixed = YES;
+		else if (extra->af_node_type == LOAD_NODE)
 		{
 	    	    Front *front = geom_set->front;
 	    	    AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
@@ -246,6 +248,7 @@ extern void set_node_spring_vertex(
 	nn = 0;
 	x[*n] = sv[*n].x = Coords(node->posn);
 	v[*n] = sv[*n].v = node->posn->vel;
+	sv[*n].f = node->posn->force;
 	for (c = node->out_curves; c && *c; ++c)
 	{
 	    b = (*c)->first;
@@ -255,7 +258,9 @@ extern void set_node_spring_vertex(
 	    sv[*n].m = mass;
 	    if (dim == 3)
 	    {
-		if (is_load_node(node) == YES)
+		if (is_fixed)
+		    sv[*n].k[nn] = 0.0;
+		else if (is_load_node(node) == YES)
 		    sv[*n].k[nn] = kl;
 		else if (hsbdry_type(*c) == STRING_HSBDRY)
 		    sv[*n].k[nn] = kl;
@@ -279,7 +284,9 @@ extern void set_node_spring_vertex(
 	    sv[*n].m = mass;
 	    if (dim == 3)
 	    {
-		if (is_load_node(node) == YES)
+		if (is_fixed)
+		    sv[*n].k[nn] = 0.0;
+		else if (is_load_node(node) == YES)
 		    sv[*n].k[nn] = kl;
 		else if (hsbdry_type(*c) == STRING_HSBDRY)
 		    sv[*n].k[nn] = kl;
@@ -420,6 +427,7 @@ extern void set_curve_spring_vertex(
 	{
 	    x[i] = sv[i].x = Coords(b->end);
 	    v[i] = sv[i].v = b->end->vel;
+	    sv[i].f = b->end->force;
 	    sv[i].x_nb[0] = Coords(b->start);
 	    sv[i].x_nb[1] = Coords(b->next->end);
 	    sv[i].ix_nb[0] = b->start->indx;
@@ -508,6 +516,7 @@ extern void set_surf_spring_vertex(
 		sv[i].lambda = lambda_s;
 		x[i] = sv[i].x = Coords(p);
 		v[i] = sv[i].v = p->vel;
+		sv[i].f = p->force;
 		PointAndFirstRingTris(p,Hyper_surf_element(tri),
 				Hyper_surf(surf),&nt,tris);
 		sv[i].num_nb = nt;
@@ -553,6 +562,8 @@ extern void compute_spring_accel1(
 		f[k] += sv.k[i]*((len - sv.len0[i])*vec[k])/sv.m;
 	    }
 	}
+	for (k = 0; k < dim; ++k)
+	    sv.f[k] = f[k]*sv.m;
 	for (k = 0; k < dim; ++k)
 	{
 	    f[k] += -sv.lambda*sv.v[k]/sv.m + sv.ext_accel[k];
@@ -708,7 +719,9 @@ extern void generic_spring_solver(
 	    }
 
 	    for (i = 0; i < size; ++i)
+	    {
 		compute_spring_accel1(sv[i],accel[i],dim);
+	    }
 	    for (i = 0; i < size; ++i)
 	    for (j = 0; j < dim; ++j)
 	    {
@@ -763,4 +776,4 @@ extern void generic_spring_solver(
 	}
 	if (debugging("trace"))
 	    (void) printf("Leaving generic_spring_solver()\n");
-}	/* end spring_solver */
+}	/* end generic_spring_solver */

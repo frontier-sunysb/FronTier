@@ -225,3 +225,218 @@ extern void readAfExtraDada(
 	}
 }	/* end readAfExtraDada */
 
+extern void printHyperSurfQuality(
+	Front *front)
+{
+	INTERFACE *intfc = front->interf;
+	int dim = Dimension(intfc);
+	CURVE **c,*curve;
+	SURFACE **s,*surf;
+	BOND *bond;
+	TRI *tri;
+	double max_area,min_area,max_length,min_length;
+	double scaled_area,len[MAXD];
+	int i;
+	RECT_GRID *gr = &topological_grid(intfc);
+	double *h = gr->h;
+
+	switch (dim)
+	{
+	case 2:
+	    max_length = 0.0;
+	    min_length = HUGE;
+	    for (c = intfc->curves; c && *c; ++c)
+	    {
+		if (wave_type(*c) != ELASTIC_BOUNDARY)
+		    continue;
+		curve = *c;
+		for (bond = curve->first; bond != NULL; bond = bond->next)
+		{
+		    if (scaled_bond_length(bond,h,dim) > max_length)
+			max_length = scaled_bond_length(bond,h,dim);
+		    if (scaled_bond_length(bond,h,dim) < min_length)
+			min_length = scaled_bond_length(bond,h,dim);
+		}
+	    }
+	    (void) printf("\n\nElastic surface quality:\n");
+	    (void) printf("min_length = %f\n",min_length);
+	    (void) printf("max_length = %f\n",max_length);
+	    (void) printf("\n\n");
+	    break;
+	case 3:
+	    max_length = 0.0;
+	    min_length = HUGE;
+	    for (c = intfc->curves; c && *c; ++c)
+	    {
+		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
+		    hsbdry_type(*c) != GORE_HSBDRY)
+		    continue;
+		curve = *c;
+		for (bond = curve->first; bond != NULL; bond = bond->next)
+		{
+		    if (scaled_bond_length(bond,h,dim) > max_length)
+			max_length = scaled_bond_length(bond,h,dim);
+		    if (scaled_bond_length(bond,h,dim) < min_length)
+			min_length = scaled_bond_length(bond,h,dim);
+		}
+	    }
+	    (void) printf("\n\nElastic curve quality:\n");
+	    (void) printf("min_scaled_length = %14.10f\n",min_length);
+	    (void) printf("max_scaled_length = %14.10f\n",max_length);
+
+	    max_length = 0.0;
+	    min_length = HUGE;
+	    for (c = intfc->curves; c && *c; ++c)
+	    {
+		if (hsbdry_type(*c) != STRING_HSBDRY)
+		    continue;
+		curve = *c;
+		for (bond = curve->first; bond != NULL; bond = bond->next)
+		{
+		    if (scaled_bond_length(bond,h,dim) > max_length)
+			max_length = scaled_bond_length(bond,h,dim);
+		    if (scaled_bond_length(bond,h,dim) < min_length)
+			min_length = scaled_bond_length(bond,h,dim);
+		}
+	    }
+	    (void) printf("\nElastic string quality:\n");
+	    (void) printf("min_scaled_length = %14.10f\n",min_length);
+	    (void) printf("max_scaled_length = %14.10f\n",max_length);
+
+	    max_area = max_length = 0.0;
+	    min_area = min_length = HUGE;
+	    for (s = intfc->surfaces; s && *s; ++s)
+	    {
+		if (wave_type(*s) != ELASTIC_BOUNDARY)
+		    continue;
+		surf = *s;
+		for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
+				tri = tri->next)
+		{
+		    scaled_tri_params(tri,h,&scaled_area,len);
+		    if (scaled_area > max_area) max_area = scaled_area;
+		    if (scaled_area < min_area) min_area = scaled_area;
+		    for (i = 0; i < 3; ++i)
+		    {
+			if (len[i] > max_length) 
+			    max_length = len[i];
+			if (len[i] < min_length) 
+			    min_length = len[i];
+		    }
+		}
+	    }
+	    (void) printf("\nElastic surface quality:\n");
+	    (void) printf("min_scaled_area = %14.10f\n",min_area);  
+	    (void) printf("max_scaled_area = %14.10f\n",max_area); 
+	    (void) printf("min_scaled_tri_side = %14.10f\n",sqrt(min_length));
+	    (void) printf("max_scaled_tri_side = %14.10f\n",sqrt(max_length));
+	    (void) printf("\n\n");
+	    break;
+	}
+}	/* end printHyperSurfQuality */
+
+extern void optimizeElasticMesh(
+	Front *front)
+{
+	INTERFACE *intfc = front->interf;
+	RECT_GRID *gr = computational_grid(intfc);
+	boolean nothing_done;
+	int i,status;
+	CURVE **c,*curve;
+	SURFACE **s,*surf;
+	SCALED_REDIST_PARAMS scaled_redist_params;
+	int old_string_pts,new_string_pts,old_canopy_pts,new_canopy_pts;
+	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
+	int num_opt_round;
+
+	if (debugging("trace"))
+	    (void) printf("Entering optimizeElasticMesh()\n");
+	if (debugging("optimize_intfc"))
+	{
+	    (void) printf("Quality of mesh before optimization:\n");
+	    printHyperSurfQuality(front);
+	    (void) printf("Checking consistency of interface\n");
+	    consistent_interface(front->interf);
+	    (void) printf("Checking completed\n");
+	    gview_plot_interface("gview-before-optimize",intfc);
+	    if (debugging("no_optimize"))
+		clean_up(0);
+	}
+	if (debugging("no_optimize")) return;
+	if (gr->dim == 2) return;
+
+	num_opt_round = af_params->num_opt_round;
+	scaled_redist_params.min_scaled_bond_length = 0.45/2.0;
+	scaled_redist_params.max_scaled_bond_length = 1.05/2.0;
+
+	scaled_redist_params.min_scaled_tri_area = 0.1083;
+	scaled_redist_params.max_scaled_tri_area = 0.4330;
+	scaled_redist_params.min_scaled_tri_area = 0.1083/2.0;
+	scaled_redist_params.max_scaled_tri_area = 0.4330/2.0;
+	scaled_redist_params.min_scaled_side_length = 0.45/2.0;
+	scaled_redist_params.max_scaled_side_length = 1.05/2.0;
+	scaled_redist_params.aspect_tol = 3.0;
+
+	old_string_pts = old_canopy_pts = 0;
+	for (s = intfc->surfaces; s && *s; ++s)
+	    if (wave_type(*s) == ELASTIC_BOUNDARY)
+		old_canopy_pts += FT_NumOfSurfPoints(*s);
+	for (c = intfc->curves; c && *c; ++c)
+	    if (hsbdry_type(*c) == STRING_HSBDRY)
+		old_string_pts += FT_NumOfCurvePoints(*c) - 2;
+
+	printf("num_opt_round = %d\n",num_opt_round);
+	num_opt_round = 20;
+	for (i = 0; i < num_opt_round; ++i)
+	{
+	    status = YES;
+	    if (debugging("optimize_intfc"))
+		(void) printf("Optimization round %d\n",i);
+	    for (c = intfc->curves; c && *c; ++c)
+	    {
+	    	if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
+		    hsbdry_type(*c) != STRING_HSBDRY &&
+		    hsbdry_type(*c) != GORE_HSBDRY)
+		    continue;
+	    	curve = *c;
+	    	nothing_done = FT_OptimizeCurveMesh(front,curve,
+				scaled_redist_params);
+	    	status *= (int)nothing_done;
+	    }
+	    for (s = intfc->surfaces; s && *s; ++s)
+	    {
+	    	if (wave_type(*s) != ELASTIC_BOUNDARY)
+		    continue;
+	    	surf = *s;
+	    	nothing_done = FT_OptimizeSurfMesh(front,surf,
+				scaled_redist_params);
+	    	status *= (int)nothing_done;
+	    }
+	    FT_ParallelExchIntfcBuffer(front);
+	    if (debugging("optimize_intfc"))
+	    {
+		(void) printf("Quality of mesh after %d-th round:\n",i);
+	    	printHyperSurfQuality(front);
+		(void) printf("Checking consistency of interface\n");
+		consistent_interface(front->interf);
+		(void) printf("After checking\n");
+	    }
+	    if (status) break;
+	}
+
+	new_string_pts = new_canopy_pts = 0;
+	for (s = intfc->surfaces; s && *s; ++s)
+	    if (wave_type(*s) == ELASTIC_BOUNDARY)
+		new_canopy_pts += FT_NumOfSurfPoints(*s);
+	for (c = intfc->curves; c && *c; ++c)
+	    if (hsbdry_type(*c) == STRING_HSBDRY)
+		new_string_pts += FT_NumOfCurvePoints(*c) - 2;
+	if (debugging("optimize_intfc"))
+	{
+	    gview_plot_interface("gview-after-optimize",intfc);
+	    //clean_up(0);
+	}
+	if (debugging("trace"))
+	    (void) printf("Leaving optimizeElasticMesh()\n");
+}	/* end optimizeElasticMesh */
+

@@ -4,6 +4,7 @@
 struct _SPRING_VERTEX {
         double *x;
         double *v;
+	double *f;
         int num_nb;
         double m;
         double lambda;

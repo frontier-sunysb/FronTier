@@ -32,7 +32,8 @@ enum _AF_NODE_TYPE {
 	UNKNOWN_AF_NODE = -1,
 	LOAD_NODE	= 1,
 	GORE_NODE,
-	STRING_NODE
+	STRING_NODE,
+	PRESET_NODE
 };
 typedef enum _AF_NODE_TYPE AF_NODE_TYPE;
 
@@ -323,7 +324,8 @@ extern void generic_spring_solver(SPRING_VERTEX*,double**,double**,int,int,int,
 				double);
 
 // afvelo.cpp
-extern void setMotionParams(char*,Front*);
+extern void setMotionParams(Front*);
+extern void resetFrontVelocity(Front*);
 
 // afmodule.cpp
 extern void initParachuteModules(Front*);
@@ -331,4 +333,9 @@ extern void initParachuteModules(Front*);
 // afdata.cpp
 extern void printAfExtraDada(Front*,char*);
 extern void readAfExtraDada(Front*,char*);
+extern void printHyperSurfQuality(Front*);
+extern void optimizeElasticMesh(Front*);
+
+// sprModel/modules.cpp
+extern void initSpringModel(Front*);
 #endif
