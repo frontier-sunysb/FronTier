@@ -963,3 +963,130 @@ EXPORT	int FT_Dimension()
 {
 	return Dimension(current_interface());
 }	/* end FT_Dimension */
+
+
+EXPORT	void FT_XgraphSampleLine(
+	char *dirname,
+	char *varname,
+	boolean data_in_domain,
+	int size,
+	double *x,
+	double *var)
+{
+	static int alloc_total_size = 0;
+	static int alloc_nb_size = 0;
+	static double *global_x;
+	static double *global_var;
+	static double *nb_x;
+	static double *nb_var;
+	static int *nb_size;
+	boolean *data_in_nbdomain;
+	int tmp_size,max_nb_size;
+	int i,j,n,total_size;
+	int xtag = 999;
+	char fname[200];
+	FILE *xfile;
+
+	if (pp_mynode() != 0)
+	{
+	    pp_send(xtag,(POINTER)&data_in_domain,sizeof(boolean),0);
+	    if (data_in_domain == YES)
+	    {
+	    	pp_send(xtag,(POINTER)&size,sizeof(int),0);
+	    	pp_send(xtag,(POINTER)x,size*sizeof(double),0);
+	    	pp_send(xtag,(POINTER)var,size*sizeof(double),0);
+	    }
+	}
+	else
+	{
+	    uni_array(&nb_size,pp_numnodes(),sizeof(int));
+	    uni_array(&data_in_nbdomain,pp_numnodes(),sizeof(boolean));
+	    total_size = (data_in_domain == YES) ? size : 0;
+	    max_nb_size = 0;
+	    for (i = 1; i < pp_numnodes(); ++i)
+	    {
+		pp_recv(xtag,i,(POINTER)(data_in_nbdomain+i),sizeof(boolean));
+		if (data_in_nbdomain[i] == YES)
+		{
+		    pp_recv(xtag,i,(POINTER)&tmp_size,sizeof(int));
+		    total_size += tmp_size;
+		    nb_size[i] = tmp_size;
+		    if (max_nb_size < tmp_size)
+			max_nb_size = tmp_size;
+		}
+		else
+		    nb_size[i] = 0;
+	    }
+	}
+	if (pp_mynode() == 0)
+	{
+	    if (create_directory(dirname,YES) == FUNCTION_FAILED)
+            {
+                screen("ERROR directory %s doesn't exist ",
+                           "and can't be made\n",dirname);
+                clean_up(ERROR);
+            }
+	    sprintf(fname,"%s/%s",dirname,varname);
+	    xfile = fopen(fname,"w");
+	    fprintf(xfile,"\n");
+            fprintf(xfile,"Next\n");
+            fprintf(xfile,"color=red\n");
+            fprintf(xfile,"thickness=1.0\n");
+	    if (alloc_nb_size < max_nb_size)
+	    {
+	    	if (nb_x != NULL)
+		    free_these(2,nb_x,nb_var);
+		uni_array(&nb_x,max_nb_size,sizeof(double));
+		uni_array(&nb_var,max_nb_size,sizeof(double));
+		alloc_nb_size = max_nb_size;
+	    }
+	    if (alloc_total_size < total_size)
+	    {
+	    	if (global_x != NULL)
+		    free_these(2,global_x,global_var);
+		uni_array(&global_x,total_size,sizeof(double));
+		uni_array(&global_var,total_size,sizeof(double));
+		alloc_total_size = total_size;
+	    }
+	    n = 0;
+	    if (data_in_domain == YES)
+	    {
+	    	for (i = 0; i < size; ++i)
+	    	{
+		    global_x[i]   = x[i];
+		    global_var[i] = var[i];
+	    	}
+		n = size;
+	    }
+	    for (i = 1; i < pp_numnodes(); ++i)
+	    {
+		if (data_in_nbdomain[i] == NO) continue;
+		pp_recv(xtag,i,(POINTER)nb_x,nb_size[i]*sizeof(double));
+		pp_recv(xtag,i,(POINTER)nb_var,nb_size[i]*sizeof(double));
+		for (j = 0; j < nb_size[i]; ++j)
+		{
+		    global_x[n+j] = nb_x[j];
+		    global_var[n+j] = nb_var[j];
+		}
+		n += nb_size[i];
+	    }
+	    for (i = 0; i < total_size-1; ++i)
+	    for (j = i+1; j < total_size; ++j)
+	    {
+		if (global_x[i] > global_x[j])
+		{
+		    double tmpx,tmpv;
+		    tmpx = global_x[i];
+		    global_x[i] = global_x[j];
+		    global_x[j] = tmpx;
+		    tmpv = global_var[i];
+		    global_var[i] = global_var[j];
+		    global_var[j] = tmpv;
+		}
+	    }
+	    for (i = 0; i < total_size; ++i)
+		fprintf(xfile,"%f %f\n",global_x[i],global_var[i]);
+	    fclose(xfile);
+	}
+	pp_gsync();
+}	/* end FT_XgraphSampleLine */

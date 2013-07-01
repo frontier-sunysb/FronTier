@@ -1523,6 +1523,9 @@ typedef struct _SCALED_REDIST_PARAMS SCALED_REDIST_PARAMS;
 #define	curve_bond_loop(c,bond)	\
 	for ((bond) = (c)->first; (bond) != NULL; (bond) = (bond)->next) 
 
+#define	intfc_node_loop(intfc,n)	\
+	for ((n) = (intfc)->nodes; (n) && *(n); ++(n)) 
+
 #define	intfc_curve_loop(intfc,c)	\
 	for ((c) = (intfc)->curves; (c) && *(c); ++(c)) 
 

@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 /*  Local Function Declarations */
 static void spring_driver(Front*);
 static void initSpringPropagation(Front*);
+static void initCurvePropagation(Front*);
 static void initNodePropagation(Front*);
 static void spring_surface_propagate(Front*,POINTER,SURFACE*,SURFACE*,double);
 static void spring_curve_propagate(Front*,POINTER,CURVE*,CURVE*,double);
@@ -229,6 +230,7 @@ static void initSpringPropagation(
 	Tracking_algorithm(front) = SIMPLE_TRACKING;
 	front->_surface_propagate = spring_surface_propagate;
 	front->_curve_propagate = spring_curve_propagate;
+	initCurvePropagation(front);
 	initNodePropagation(front);
 
 	front->interior_propagate = fourth_order_elastic_surf_propagate;;
@@ -241,6 +243,14 @@ struct _NODE_VEL_PARAMS {
         double stop_time;
 };
 typedef struct _NODE_VEL_PARAMS NODE_VEL_PARAMS;
+
+struct _CURVE_VEL_PARAMS {
+	double dir[MAXD];
+        double v0;
+	double *time;
+        double stop_time;
+};
+typedef struct _CURVE_VEL_PARAMS CURVE_VEL_PARAMS;
 
 static void node_vel_func(
 	POINTER vparams,
@@ -258,19 +268,38 @@ static void node_vel_func(
 	}
 }	/* end node_vel_func */
 
-static void initNodePropagation(
+static void initCurvePropagation(
 	Front *front)
 {
-	static NODE_VEL_PARAMS *vparams;
-	static AF_NODE_EXTRA node_extra;
-	NODE *n[20];
+	static CURVE_VEL_PARAMS *vparams;
+	CURVE *curves[20];
 	INTERFACE *intfc = front->interf;
 	SURFACE **s,*surf;
 	CURVE **c;
-	int i,num_nodes = 0;
-	FILE *infile = fopen(InName(front),"r");
+	char string[200];
+	int i,num_curves = 0;
+	FILE *infile;
+	static AF_NODE_EXTRA node_extra;
 
-	front->_node_propagate = spring_node_propagate;
+	infile = fopen(InName(front),"r");
+	if (!CursorAfterStringOpt(infile,"Enter yes to set curve motion:"))
+	{
+	    fclose(infile);
+	    return;
+	}
+	else
+	{
+	    fscanf(infile,"%s",string);
+	    (void) printf("%s\n",string);
+	    if (string[0] != 'y' && string[0] != 'Y')
+	    {
+	    	fclose(infile);
+		return;
+	    }
+	}
+
+	front->_curve_propagate = spring_curve_propagate;
+	node_extra.af_node_type = PRESET_NODE;
 	intfc_surface_loop(intfc,s)
 	{
 	    if (wave_type(*s) == ELASTIC_BOUNDARY)
@@ -278,32 +307,34 @@ static void initNodePropagation(
 		surf = *s;
 		surf_pos_curve_loop(surf,c)
 		{
-		    if (!pointer_in_list((POINTER)(*c)->start,num_nodes,
-					(POINTER*)n))
-			n[num_nodes++] = (*c)->start;
-		    if (!pointer_in_list((POINTER)(*c)->end,num_nodes,
-					(POINTER*)n))
-			n[num_nodes++] = (*c)->end;
+		    if (!pointer_in_list((POINTER)(*c),num_curves,
+					(POINTER*)curves))
+			curves[num_curves++] = *c;
 		}
 		surf_neg_curve_loop(surf,c)
 		{
-		    if (!pointer_in_list((POINTER)(*c)->start,num_nodes,
-					(POINTER*)n))
-			n[num_nodes++] = (*c)->start;
-		    if (!pointer_in_list((POINTER)(*c)->end,num_nodes,
-					(POINTER*)n))
-			n[num_nodes++] = (*c)->end;
+		    if (!pointer_in_list((POINTER)(*c),num_curves,
+					(POINTER*)curves))
+			curves[num_curves++] = *c;
 		}
 	    }
 	}
-	printf("num_nodes = %d\n",num_nodes);
-	FT_VectorMemoryAlloc((POINTER*)&vparams,num_nodes,
-			sizeof(NODE_VEL_PARAMS));
-	node_extra.af_node_type = PRESET_NODE;
-	for (i = 0; i < num_nodes; ++i)
+	FT_VectorMemoryAlloc((POINTER*)&vparams,num_curves,
+			sizeof(CURVE_VEL_PARAMS));
+	for (i = 0; i < num_curves; ++i)
 	{
-	    (void) printf("For node at (%f %f %f)\n",Coords(n[i]->posn)[0],
-				Coords(n[i]->posn)[1],Coords(n[i]->posn)[2]);
+	    (void) printf("For curve from (%f %f %f) to (%f %f %f)\n",
+			Coords(curves[i]->first->start)[0],
+			Coords(curves[i]->first->start)[1],
+			Coords(curves[i]->first->start)[2],
+			Coords(curves[i]->last->end)[0],
+			Coords(curves[i]->last->end)[1],
+			Coords(curves[i]->last->end)[2]);
+	    CursorAfterString(infile,"Type yes to set the curve motion:");
+	    fscanf(infile,"%s",string);
+	    (void) printf("%s\n",string);
+	    if (string[0] != 'y' && string[0] != 'Y')
+		continue;
 	    CursorAfterString(infile,"Enter velocity direction:");
 	    fscanf(infile,"%lf %lf %lf",&vparams[i].dir[0],&vparams[i].dir[1],
 				&vparams[i].dir[2]);
@@ -315,9 +346,86 @@ static void initNodePropagation(
 	    CursorAfterString(infile,"Enter stop time:");
 	    fscanf(infile,"%lf",&vparams[i].stop_time);
 	    (void) printf("%f\n",vparams[i].stop_time);
-	    n[i]->vparams = (POINTER)&vparams[i];
-	    n[i]->vfunc = node_vel_func;
-	    n[i]->extra = &node_extra;
+	    curves[i]->vparams = (POINTER)&vparams[i];
+	    curves[i]->vfunc = node_vel_func;
+	    vparams[i].time = &front->time;
+	    hsbdry_type(curves[i]) = PRESET_CURVE;
+	    curves[i]->start->extra = &node_extra;
+	    curves[i]->end->extra = &node_extra;
+	}
+}	/* end initCurvePropagation */
+
+static void initNodePropagation(
+	Front *front)
+{
+	static NODE_VEL_PARAMS *vparams;
+	static AF_NODE_EXTRA node_extra;
+	NODE **n,*nodes[20];
+	INTERFACE *intfc = front->interf;
+	SURFACE **s,*surf;
+	CURVE **c;
+	int i,num_nodes = 0;
+	FILE *infile = fopen(InName(front),"r");
+
+	intfc_node_loop(intfc,n)
+	    sorted((*n)->posn) = NO;
+	intfc_curve_loop(intfc,c)
+	{
+	    if (hsbdry_type(*c) == PRESET_CURVE) 
+		sorted((*c)->start->posn) = sorted((*c)->end->posn) = YES;
+	}
+	intfc_surface_loop(intfc,s)
+	{
+	    if (wave_type(*s) == ELASTIC_BOUNDARY)
+	    {
+		surf = *s;
+		surf_pos_curve_loop(surf,c)
+		{
+		    if (!pointer_in_list((POINTER)(*c)->start,num_nodes,
+				(POINTER*)nodes) && !sorted((*c)->start->posn))
+			nodes[num_nodes++] = (*c)->start;
+		    if (!pointer_in_list((POINTER)(*c)->end,num_nodes,
+				(POINTER*)nodes) && !sorted((*c)->end->posn))
+			nodes[num_nodes++] = (*c)->end;
+		}
+		surf_neg_curve_loop(surf,c)
+		{
+		    if (!pointer_in_list((POINTER)(*c)->start,num_nodes,
+				(POINTER*)nodes) && !sorted((*c)->start->posn))
+			nodes[num_nodes++] = (*c)->start;
+		    if (!pointer_in_list((POINTER)(*c)->end,num_nodes,
+				(POINTER*)nodes) && !sorted((*c)->end->posn))
+			nodes[num_nodes++] = (*c)->end;
+		}
+	    }
+	}
+	if (num_nodes == 0)
+	{
+	    fclose(infile);
+	    return;
+	}
+	front->_node_propagate = spring_node_propagate;
+	FT_VectorMemoryAlloc((POINTER*)&vparams,num_nodes,
+			sizeof(NODE_VEL_PARAMS));
+	node_extra.af_node_type = PRESET_NODE;
+	for (i = 0; i < num_nodes; ++i)
+	{
+	    (void) printf("For node at (%f %f %f)\n",Coords(nodes[i]->posn)[0],
+			Coords(nodes[i]->posn)[1],Coords(nodes[i]->posn)[2]);
+	    CursorAfterString(infile,"Enter velocity direction:");
+	    fscanf(infile,"%lf %lf %lf",&vparams[i].dir[0],&vparams[i].dir[1],
+				&vparams[i].dir[2]);
+	    (void) printf("%f %f %f\n",vparams[i].dir[0],vparams[i].dir[1],
+				vparams[i].dir[2]);
+	    CursorAfterString(infile,"Enter speed:");
+	    fscanf(infile,"%lf",&vparams[i].v0);
+	    (void) printf("%f\n",vparams[i].v0);
+	    CursorAfterString(infile,"Enter stop time:");
+	    fscanf(infile,"%lf",&vparams[i].stop_time);
+	    (void) printf("%f\n",vparams[i].stop_time);
+	    nodes[i]->vparams = (POINTER)&vparams[i];
+	    nodes[i]->vfunc = node_vel_func;
+	    nodes[i]->extra = &node_extra;
 	    vparams[i].time = &front->time;
 	}
 }	/* end initNodePropagation */
@@ -338,6 +446,48 @@ static void spring_curve_propagate(
 	CURVE *newc,
 	double dt)
 {
+	double vel[MAXD],s;
+	int i,dim;
+	POINT *oldp,*newp;
+	BOND *oldb,*newb;
+
+	if (debugging("trace"))
+	    (void) printf("Entering spring_curve_propagate()\n");
+	if (hsbdry_type(oldc) != PRESET_CURVE || oldc->vfunc == NULL) 
+	{
+	    if (debugging("trace"))
+	    	(void) printf("Leaving spring_curve_propagate()\n");
+	    return;
+	}
+
+	dim = FT_Dimension();
+	(*oldc->vfunc)(oldc->vparams,vel);
+
+	oldb = oldc->first;
+	newb = newc->first;
+	oldp = oldb->start;
+	newp = newb->start;
+	for (i = 0; i < dim; ++i)
+	{
+	    Coords(newp)[i] = Coords(oldp)[i] + dt*vel[i];
+	    set_max_front_speed(i,fabs(vel[i]),NULL,Coords(newp),front);
+	}
+	s = mag_vector(vel,dim);
+        set_max_front_speed(dim,s,NULL,Coords(newp),front);
+	for (oldb = oldc->first, newb = newc->first; oldb != NULL;
+		oldb = oldb->next, newb = newb->next)
+	{
+	    oldp = oldb->end;	newp = newb->end;
+	    for (i = 0; i < dim; ++i)
+	    {
+	    	Coords(newp)[i] = Coords(oldp)[i] + dt*vel[i];
+	    	set_max_front_speed(i,fabs(vel[i]),NULL,Coords(newp),front);
+	    }
+	    s = mag_vector(vel,dim);
+            set_max_front_speed(dim,s,NULL,Coords(newp),front);
+	}
+	if (debugging("trace"))
+	    (void) printf("Leaving spring_curve_propagate()\n");
 }	/* end spring_curve_propagate */
 
 static void spring_node_propagate(
@@ -352,10 +502,6 @@ static void spring_node_propagate(
 
 	if (oldn->vfunc == NULL) return;
 	dim = FT_Dimension();
-	printf("oldn->vfunc = %d\n",oldn->vfunc);
-	printf("oldn->vparams = %d\n",oldn->vparams);
-	printf("oldn->posn = %f %f %f\n",Coords(oldn->posn)[0],
-				Coords(oldn->posn)[1],Coords(oldn->posn)[2]);
 	(*oldn->vfunc)(oldn->vparams,vel);
 	for (i = 0; i < dim; ++i)
 	{
@@ -364,8 +510,6 @@ static void spring_node_propagate(
 	}
 	s = mag_vector(vel,dim);
         set_max_front_speed(dim,s,NULL,Coords(newn->posn),front);
-	printf("newn->posn = %f %f %f\n",Coords(newn->posn)[0],
-				Coords(newn->posn)[1],Coords(newn->posn)[2]);
 }	/* end spring_node_propagate */
 
 static void gviewSurfaceStrain(
@@ -483,7 +627,7 @@ static void vtkPlotSurfaceStress(
 	int num_tri;
 	
 	n = 0;
-	sprintf(dirname,"%s/%s-ts%s",outname,"vtk.stress",
+	sprintf(dirname,"%s/%s%s",outname,"vtk.ts",
 			right_flush(front->step,7));
 	if (!create_directory(dirname,NO))
         {
@@ -518,17 +662,27 @@ static void vtkPlotSurfaceStress(
 		}
 	    }
 	}
-	fprintf(vfile,"CELLS %d %d\n",num_tri,4*num_tri);
+	fprintf(vfile,"CELLS %i %i\n",num_tri,4*num_tri);
 	n = 0;
 	intfc_surface_loop(intfc,s)
 	{
 	    if (Boundary(*s)) continue;
 	    surf_tri_loop(*s,tri)
 	    {
-		fprintf(vfile,"3 %d %d %d\n",3*n,3*n+1,3*n+2);
+		fprintf(vfile,"3 %i %i %i\n",3*n,3*n+1,3*n+2);
 		n++;
 	    }
 	}
+	fprintf(vfile, "CELL_TYPES %i\n",num_tri);
+        intfc_surface_loop(intfc,s)
+	{
+            if (Boundary(*s)) continue;
+            surf_tri_loop(*s,tri)
+            {
+                fprintf(vfile,"5\n");
+            }
+        }
+
 	fprintf(vfile, "CELL_DATA %i\n", num_tri);
         fprintf(vfile, "SCALARS von_Mises_stress double\n");
         fprintf(vfile, "LOOKUP_TABLE default\n");
@@ -540,5 +694,5 @@ static void vtkPlotSurfaceStress(
 		fprintf(vfile,"%f\n",tri->color);
 	    }
 	}
-}	/* end gviewSurfaceStress */
+}	/* end vtkSurfaceStress */
 

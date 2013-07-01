@@ -1192,7 +1192,6 @@ EXPORT void gview_plot_color_scaled_interface(
 
 	gview_plot_color_scaled_surfaces(intfc,gr,BBL,BBU,YES,dname,"surfs",
 			    NO,pBLACK,pWHITE);
-			    //NO,pBLUE,pRED);
 
 	gview_plot_surfaces(intfc,gr,BBL,BBU,YES,dname,"bdry",
 			    YES,pBLUE,pGREEN);

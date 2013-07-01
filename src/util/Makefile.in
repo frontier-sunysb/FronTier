@@ -24,7 +24,8 @@ simpleio.$(OBJEXT) \
 times.$(OBJEXT)    \
 uinit.$(OBJEXT)    \
 vectormalloc.$(OBJEXT)\
-vtk.$(OBJEXT)
+vtk.$(OBJEXT)\
+umap.$(OBJEXT)\
 
 
 libext = @libext@

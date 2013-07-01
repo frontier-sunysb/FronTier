@@ -348,6 +348,24 @@ extern "C" {
 	   		      char *out_name ,
 			      boolean binary );
 
+/*! \fn void FT_XgraphSampleLine(char *dirname,char *varname,boolean data_in_domain,int size,double *x,double *var)
+    \ingroup OUTPUT
+    \brief  This function output variable sample along a grid line as
+     xgraph data file. It considers parallelization of subdomains.
+    \param dirname @b in Name of the directory for the output file.
+    \param varname @b in Name of the variable for the output file.
+    \param data_in_domain @b in Yes if the subdomain contains data.
+    \param size @b in Size of the data in the subdomain.
+    \param x @b in Horizontal axis containing coordinate of the sample line.
+    \param var @b in Vertical axis containing variable data.
+ */
+   IMPORT  void FT_XgraphSampleLine(char *dirname,
+			char *varname,
+			boolean data_in_domain,
+			int size,
+			double *x,
+			double *var);
+
 /*! \fn void FT_MakeGridIntfc(Front *front)
  *  \ingroup GRIDINTFC
     \brief Make a duplicate interface whose topological grid is the
