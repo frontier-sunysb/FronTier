@@ -16,6 +16,7 @@
  *  \defgroup FIELD          	FronTier Field (State) Functions
  *  \defgroup MEMORY          	FronTier Memory Management Functions
  *  \defgroup CREATE          	FronTier Create Hypersurface
+ *  \defgroup INFO          	FronTier Print Information
  **/
 
 #include <front/fdecs.h>
@@ -768,6 +769,19 @@ extern "C" {
 
    IMPORT  int FT_Dimension();
 
+/*! \fn int FT_RectBoundaryType(Front *front, int dir, int side)
+ *  \ingroup QUERY
+    \brief This function returns rectangular boundary type in direction
+     dir and side side.
+    \param front @b in	Pointer the front.
+    \param dir @b in Direction of the boundary.
+    \param side @b in Side of the rectangular domain, 0 for lower side and 1 for upper side.
+ */
+
+   IMPORT  int FT_RectBoundaryType(Front *front ,
+				int dir,
+				int side);
+
 /*! \fn HYPER_SURF *FT_RectBoundaryHypSurf(INTERFACE *intfc, int wave_type, int dir, int side)
  *  \ingroup QUERY
     \brief This function looks for a boundary hyper surface (curve in 2D and
@@ -1460,6 +1474,32 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
  */
 
    IMPORT  void FT_MakeEllipticCurve(Front *front,double *center,double *radius,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,int refinement_level,CURVE **curve);
+
+/*! \fn void FT_PrintWaveType(int w_type)
+ *  \ingroup INFO
+    \brief This function print wave type as a string.
+    \param w_type @b in Wave type as enumerate number.
+ */
+
+   IMPORT  void FT_PrintWaveType(int w_type);
+
+/*! \fn void FT_PrintBoundaryType(int dir, int side)
+ *  \ingroup INFO
+    \brief This function print boundary type as a string.
+    \param dir @b in Direction of the boundary.
+    \param side @b in Side of the boundary.
+ */
+
+   IMPORT  void FT_PrintBoundaryType(int dir,int side);
+
+/*! \fn int FT_BoundaryType(int dir, int side)
+ *  \ingroup QUERY
+    \brief This function return boundary type as an enumerated.
+    \param dir @b in Direction of the boundary.
+    \param side @b in Side of the boundary.
+ */
+
+   IMPORT  int FT_BoundaryType(int dir,int side);
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }

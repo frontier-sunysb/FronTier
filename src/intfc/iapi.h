@@ -46,6 +46,24 @@ extern "C" {
    IMPORT  void I_SmoothSurfColor(SURFACE *surf,
 			int num_rounds);
 
+/*! \fn SURFACE *I_CopySurface(SURFACE *surf)
+    \ingroup SURFACE
+    \brief This function return a copy of the input surface on the
+     same interface structure.
+    \param surf @b in Input of the surface.
+ */
+   IMPORT  SURFACE *I_CopySurface(SURFACE *surf);
+
+/*! \fn void I_ShiftSurface(SURFACE *surf,double *displacement)
+    \ingroup SURFACE
+    \brief This function shift each point of the surface by
+     given displacement.
+    \param surf @b inout Input of the surface to be operated.
+    \param displacement @b in displacement each point is to be shifted.
+ */
+   IMPORT  void I_ShiftSurface(SURFACE *surf,
+			double *displacement);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif

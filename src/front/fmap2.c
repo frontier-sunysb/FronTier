@@ -1090,3 +1090,48 @@ EXPORT	void FT_XgraphSampleLine(
 	}
 	pp_gsync();
 }	/* end FT_XgraphSampleLine */
+
+EXPORT void FT_PrintWaveType(
+	int w_type)
+{
+	INTERFACE *intfc = current_interface();
+	printf("Wave type = %s\n",wave_type_as_string(w_type,intfc));
+}	/* end FT_PrintWaveType */
+
+EXPORT void FT_PrintBoundaryType(
+	int dir,
+	int side)
+{
+	const char *bdry_type;
+	
+	switch (FT_BoundaryType(dir,side))
+	{
+	case SUBDOMAIN_BOUNDARY:
+	    bdry_type = "PERIODIC_BOUNDARY/SUBDOMAIN_BOUNDARY";
+	    break;
+	case REFLECTION_BOUNDARY:
+	    bdry_type = "REFLECTION_BOUNDARY";
+	    break;
+	case MIXED_TYPE_BOUNDARY:
+	    bdry_type = "MIXED_TYPE_BOUNDARY";
+	    break;
+	case OPEN_BOUNDARY:
+	    bdry_type = "OPEN_BOUNDARY";
+	    break;
+	case FIRST_USER_BOUNDARY_TYPE:
+	    bdry_type = "FIRST_USER_BOUNDARY_TYPE";
+	    break;
+	default:
+	    bdry_type = "UNKNOWN_BOUNDARY_TYPE";
+	}
+	(void) printf("Direction %d side %d: Boundary type = %s\n",
+				dir,side,bdry_type);
+}	/* end FT_PrintBoundaryType */
+
+EXPORT int FT_BoundaryType(
+	int dir,
+	int side)
+{
+	INTERFACE *intfc = current_interface();
+	return rect_boundary_type(intfc,dir,side);
+}	/* end FT_BoundaryType */

@@ -1959,13 +1959,12 @@ EXPORT  void FT_InsertDirichletBoundary(
 }       /* end FT_SetDirichletBoundary */
 
 
-EXPORT HYPER_SURF *BoundaryHyperSurf(
-	INTERFACE *intfc,
-	int w_type,
+EXPORT int FT_RectBoundaryType(
+	Front *front,
 	int dir,
 	int side)
 {
-	FT_RectBoundaryHypSurf(intfc,w_type,dir,side);
+	return rect_boundary_type(front->interf,dir,side);
 }	/* end BoundaryHyperSurf */
 
 EXPORT HYPER_SURF *FT_RectBoundaryHypSurf(
@@ -3321,6 +3320,7 @@ EXPORT	boolean FT_ReflectPointThroughBdry(
 	if (wave_type(hs) != NEUMANN_BOUNDARY &&
 	    wave_type(hs) != MOVABLE_BODY_BOUNDARY &&
 	    wave_type(hs) != GROWING_BODY_BOUNDARY &&
+	    wave_type(hs) != ICE_PARTICLE_BOUNDARY &&
 	    wave_type(hs) != ELASTIC_BOUNDARY)
 	    return NO;
 

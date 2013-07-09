@@ -92,7 +92,6 @@ int main(int argc, char **argv)
 	    restart_set_dirichlet_bdry_function(&front);
 
 	front._compute_force_and_torque = ifluid_compute_force_and_torque;
-	clean_up(0);
 
 	/* Initialize velocity field function */
 

@@ -36,13 +36,23 @@ For upper boundary in 1-th dimension
 Enter type of Dirichlet boundary: CONSTANT_STATE
 Enter velocity: 0.000000 -100.000000 
 Enter pressure: 20.000000
-Entering initWaterDrops()
+Water phase state can be
+        Ice Particle (I)
+        Liquid Water Drop (W)
+Enter phase state of water drop: I
+Enter number of water drops: 2
 Two methods for initialization:
 	Prompt initialization (P)
 	Random initialization (R)
 Enter method of initialization: P
-Enter number of water drops: 2
 Enter center of water drop 1: 0.5 0.6
 Enter radius of water drop 1: 0.1
 Enter center of water drop 2: 1.4 3.2
 Enter radius of water drop 2: 0.2
+
+Max time: 0.030
+Max step: 1
+Print interval: 0.005
+Movie frame interval: 0.00030
+CFL factor: 0.75
+Redistribution interval: 1000

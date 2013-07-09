@@ -35,6 +35,8 @@ static int marker_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
                                 double*);
 static void init_fixarea_params(Front*,FILE*,FIXAREA_PARAMS*);
 static void init_fixpoint_params(Front*,FILE*,FIXAREA_PARAMS*);
+static void convert_to_point_mass(Front*, AF_PARAMS*);
+
 
 extern void setMotionParams(
 	Front *front)
@@ -195,6 +197,15 @@ extern void setMotionParams(
 	CursorAfterString(infile,"Enter interior sub step number:");
 	fscanf(infile,"%d",&af_params->n_tan);
 	(void) printf("%d\n",af_params->n_tan);
+        af_params->use_total_mass = NO;
+        if (CursorAfterStringOpt(infile,"Enter yes to use total mass:"))
+        {
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'y' || string[0] == 'Y')
+                af_params->use_total_mass = YES;
+        }
+
 	if (dim == 3)
 	{
 	    CursorAfterString(infile,"Enter fabric spring constant:");
@@ -203,10 +214,19 @@ extern void setMotionParams(
             CursorAfterString(infile,"Enter fabric friction constant:");
             fscanf(infile,"%lf",&af_params->lambda_s);
             (void) printf("%f\n",af_params->lambda_s);
-            CursorAfterString(infile,"Enter fabric point mass:");
-            fscanf(infile,"%lf",&af_params->m_s);
-            (void) printf("%f\n",af_params->m_s);
-	    if (af_params->attach_gores == YES)
+            if (af_params->use_total_mass)
+            {
+                CursorAfterString(infile,"Enter fabric total mass:");
+                fscanf(infile,"%lf",&af_params->total_canopy_mass);
+                (void) printf("%f\n",af_params->total_canopy_mass);
+            }
+            else
+	    {
+	    	CursorAfterString(infile,"Enter fabric point mass:");
+            	fscanf(infile,"%lf",&af_params->m_s);
+            	(void) printf("%f\n",af_params->m_s);
+	    }
+            if (af_params->attach_gores == YES)
 	    {
 		CursorAfterString(infile,"Enter gore spring constant:");
         	fscanf(infile,"%lf",&af_params->kg);
@@ -214,9 +234,19 @@ extern void setMotionParams(
         	CursorAfterString(infile,"Enter gore friction constant:");
         	fscanf(infile,"%lf",&af_params->lambda_g);
         	(void) printf("%f\n",af_params->lambda_g);
-        	CursorAfterString(infile,"Enter gore point mass:");
-        	fscanf(infile,"%lf",&af_params->m_g);
-        	(void) printf("%f\n",af_params->m_g);
+                if (af_params->use_total_mass)
+                {
+                    CursorAfterString(infile,"Enter gore total mass:");
+                    fscanf(infile,"%lf",&af_params->total_gore_mass);
+                    (void) printf("%f\n",af_params->total_gore_mass);
+                }
+                else
+                {
+                    CursorAfterString(infile,"Enter gore point mass:");
+                    fscanf(infile,"%lf",&af_params->m_g);
+                    (void) printf("%f\n",af_params->m_g);
+                }
+
 	    }
 	}
 	CursorAfterString(infile,"Enter string spring constant:");
@@ -225,12 +255,73 @@ extern void setMotionParams(
         CursorAfterString(infile,"Enter string friction constant:");
         fscanf(infile,"%lf",&af_params->lambda_l);
         (void) printf("%f\n",af_params->lambda_l);
-        CursorAfterString(infile,"Enter string point mass:");
-        fscanf(infile,"%lf",&af_params->m_l);
-        (void) printf("%f\n",af_params->m_l);
-	//convert_to_point_mass(front,af_params);
+        if (af_params->use_total_mass)
+        {
+            CursorAfterString(infile,"Enter string total mass:");
+            fscanf(infile,"%lf",&af_params->total_string_mass);
+            (void) printf("%f\n",af_params->total_string_mass);
+        }
+        else
+        {
+            CursorAfterString(infile,"Enter string point mass:");
+            fscanf(infile,"%lf",&af_params->m_l);
+            (void) printf("%f\n",af_params->m_l);
+        }
+        if (af_params->use_total_mass)
+            convert_to_point_mass(front,af_params);
 	fclose(infile);
 }	/* end setMotionParams */
+
+static void convert_to_point_mass(
+        Front *front,
+        AF_PARAMS *af_params)
+{
+        INTERFACE *intfc;
+        int num_str_pts, num_fabric_pts, num_gore_pts;
+        SURFACE **s;
+        CURVE **c;
+        intfc = front->interf;
+        int dim = Dimension(intfc);
+
+        switch (dim)
+        {
+        case 2:
+            num_str_pts = 0;
+            for (c = intfc->curves; c && *c; ++c)
+            {
+                if (wave_type(*c) == ELASTIC_BOUNDARY)
+                    num_str_pts +=  FT_NumOfCurvePoints(*c);
+            }
+            num_str_pts -= 2; //ignore the boundary points
+            af_params->m_l = af_params->total_string_mass/num_str_pts;
+            printf("string total mass = %f\n",af_params->total_string_mass);
+            printf("string point number = %d\n",num_str_pts);
+            printf("string point mass = %f\n",af_params->m_l);
+            break;
+        case 3:
+            num_str_pts = num_fabric_pts  = 0;
+            for (s = intfc->surfaces; s && *s; ++s)
+            {
+                if (wave_type(*s) == ELASTIC_BOUNDARY)
+                    num_fabric_pts += FT_NumOfSurfPoints(*s);
+            }
+            for (c = intfc->curves; c && *c; ++c)
+            {
+                if (hsbdry_type(*c) == STRING_HSBDRY)
+                     num_str_pts += FT_NumOfCurvePoints(*c);
+            }
+            af_params->m_s = af_params->total_canopy_mass/num_fabric_pts;
+            if (num_str_pts != 0)
+                af_params->m_l = af_params->total_string_mass/num_str_pts;
+            else
+                af_params->m_l = 0.01;
+            printf("fabric total mass = %f\n",af_params->total_canopy_mass);
+            printf("fabric point number = %d\n",num_fabric_pts);
+            printf("fabric point mass = %f\n",af_params->m_s);
+        }
+
+}       /* end convert_to_point_mass */
+
 
 static void initVelocityFunc(
 	FILE *infile,

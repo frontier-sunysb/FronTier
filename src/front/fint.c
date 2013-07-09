@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -20,8 +21,7 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-******************************************************************************/
+****************************************************************/
 
 
 /*
@@ -830,6 +830,8 @@ EXPORT	const char *f_wave_type_as_string(
 	    return "MOVABLE_BODY_BOUNDARY";
 	case GROWING_BODY_BOUNDARY:
 	    return "GROWING_BODY_BOUNDARY";
+	case ICE_PARTICLE_BOUNDARY:
+	    return "ICE_PARTICLE_BOUNDARY";
 	case ELASTIC_BOUNDARY:
 	    return "ELASTIC_BOUNDARY";
 	case FIRST_PHYSICS_WAVE_TYPE:
@@ -884,6 +886,8 @@ EXPORT	int f_read_wave_type_from_string(
 	    {"MOVABLE_BODY_BOUNDARY",   MOVABLE_BODY_BOUNDARY},
 	    {"M",                  MOVABLE_BODY_BOUNDARY},
 	    {"GROWING_BODY_BOUNDARY",   GROWING_BODY_BOUNDARY},
+	    {"IP",                  ICE_PARTICLE_BOUNDARY},
+	    {"ICE_PARTICLE_BOUNDARY",   ICE_PARTICLE_BOUNDARY},
 	    {"G",                  GROWING_BODY_BOUNDARY},
 	    {"ELASTIC_BOUNDARY",   ELASTIC_BOUNDARY},
 	    {"E",                  ELASTIC_BOUNDARY},

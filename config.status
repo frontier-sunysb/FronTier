@@ -625,13 +625,14 @@ S["sn_ellip"]=" "
 S["hypre"]=" "
 S["gass"]=" "
 S["include_dirs"]="include/FronTier/intfc include/FronTier/front include/FronTier/util"
-S["headers"]="include/FronTier/util/fnamedebug.h include/FronTier/util/navdecs.h include/FronTier/util/vmalloc.h include/FronTier/util/uprotos.h include/FronTier/"\
-"util/cdecs.h include/FronTier/util/plotdecs.h include/FronTier/intfc/intfc_gpu.cuh include/FronTier/intfc/iTaps.h include/FronTier/intfc/ilocprotos."\
-"h include/FronTier/intfc/iMeshP.h include/FronTier/intfc/iMesh.h include/FronTier/intfc/iGeom.h include/FronTier/intfc/iBase.h include/FronTier/intf"\
-"c/userint.h include/FronTier/intfc/iRel.h include/FronTier/intfc/iloc.h include/FronTier/intfc/triangledefs.h include/FronTier/intfc/iapi.h include/"\
-"FronTier/intfc/iprotos.h include/FronTier/intfc/table.h include/FronTier/intfc/int_amr.h include/FronTier/intfc/geom.h include/FronTier/intfc/array."\
-"h include/FronTier/intfc/int.h include/FronTier/front/front_gpu.cuh include/FronTier/front/frp.h include/FronTier/front/fapi.h include/FronTier/fron"\
-"t/fvelo.h include/FronTier/front/fdecs.h include/FronTier/front/fuserint.h include/FronTier/front/fprotos.h include/FronTier/front/fpatrecon.h "
+S["headers"]="include/FronTier/util/fnamedebug.h include/FronTier/util/navdecs.h include/FronTier/util/vmalloc.h include/FronTier/util/uapi.h include/FronTier/uti"\
+"l/uprotos.h include/FronTier/util/cdecs.h include/FronTier/util/plotdecs.h include/FronTier/intfc/intfc_gpu.cuh include/FronTier/intfc/iTaps.h inclu"\
+"de/FronTier/intfc/ilocprotos.h include/FronTier/intfc/iMeshP.h include/FronTier/intfc/iMesh.h include/FronTier/intfc/iGeom.h include/FronTier/intfc/"\
+"iBase.h include/FronTier/intfc/userint.h include/FronTier/intfc/iRel.h include/FronTier/intfc/iloc.h include/FronTier/intfc/triangledefs.h include/F"\
+"ronTier/intfc/iapi.h include/FronTier/intfc/iprotos.h include/FronTier/intfc/table.h include/FronTier/intfc/int_amr.h include/FronTier/intfc/geom.h "\
+"include/FronTier/intfc/array.h include/FronTier/intfc/int.h include/FronTier/front/front_gpu.cuh include/FronTier/front/frp.h include/FronTier/front"\
+"/fapi.h include/FronTier/front/fvelo.h include/FronTier/front/fdecs.h include/FronTier/front/fuserint.h include/FronTier/front/fprotos.h include/Fro"\
+"nTier/front/fpatrecon.h "
 S["libext"]=""
 S["F77_LIBS"]=""
 S["name"]=""

@@ -2,7 +2,6 @@
 #include <airfoil.h>
 
 static SURFACE *canopy_of_string_node(NODE*);
-static void convert_to_point_mass(Front*,AF_PARAMS*);
 static void string_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
 static void mono_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
 static void gore_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
@@ -191,30 +190,6 @@ extern void fourth_order_elastic_set_propagate(
 	if (debugging("trace"))
 	    (void) printf("Leaving fourth_order_elastic_set_propagate()\n");
 }	/* end fourth_order_elastic_set_propagate() */
-
-static void convert_to_point_mass(
-	Front *front,
-	AF_PARAMS *af_params)
-{
-	INTERFACE *intfc;
-	int num_str_pts,num_fabric_pts;
-	SURFACE **s;
-	int dim = Dimension(intfc);
-	
-	switch (dim)
-	{
-	case 2:
-	    printf("In convert_to_point_mass(): 2D code needed!\n");
-	    clean_up(ERROR);
-	case 3:
-	    for (s = intfc->surfaces; s && *s; ++s)
-	    {
-		if (wave_type(*s) == ELASTIC_BOUNDARY)
-		{
-		}
-	    }
-	}
-}	/* end convert_to_point_mass */
 
 extern void airfoil_curve_propagate(
         Front *front,

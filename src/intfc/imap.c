@@ -110,3 +110,38 @@ EXPORT	void I_SmoothSurfColor(
 	}
 	free_these(1,color);
 }	/* end I_SmoothSurfColor */
+
+EXPORT SURFACE *I_CopySurface(
+	SURFACE *surf)
+{
+	return copy_surface(surf,surf->pos_curves,surf->neg_curves,YES);
+}	/* end I_CopySurface */
+
+EXPORT void I_ShiftSurface(
+	SURFACE *surf,
+	double *displacement)
+{
+	TRI *tri;
+	POINT *p;
+	int i,j;
+
+	surf_tri_loop(surf,tri)
+	{
+	    for (i = 0; i < 3; ++i)
+	    {
+		p = Point_of_tri(tri)[i];
+		sorted(p) = NO;
+	    }
+	}
+	surf_tri_loop(surf,tri)
+	{
+	    for (i = 0; i < 3; ++i)
+	    {
+		p = Point_of_tri(tri)[i];
+		if (sorted(p) == YES) continue;
+		for (j = 0; j < 3; ++j)
+		    Coords(p)[j] += displacement[j];
+		sorted(p) = YES;
+	    }
+	}
+}	/* end I_ShiftSurface */

@@ -66,6 +66,7 @@ typedef struct {
 	boolean attach_gores;
 	boolean attach_fixer;
 	boolean cut_vent;
+        boolean use_total_mass;
 	boolean use_gpu;
 	PERT_PARAMS pert_params;
 	STRING_NODE_TYPE start_type;
@@ -92,6 +93,7 @@ typedef struct {
 	double m_g;                     /* point mass of gore curves */
 	double total_string_mass;	/* Total mass of string chord */
 	double total_canopy_mass;	/* Total mass of string chord */
+        double total_gore_mass;         /* Total mass of gore */
 	double gamma;			/* canopy porosity */
 	double area_dens;		/* canopy area density */
 	double min_len;
@@ -335,6 +337,8 @@ extern void printAfExtraDada(Front*,char*);
 extern void readAfExtraDada(Front*,char*);
 extern void printHyperSurfQuality(Front*);
 extern void optimizeElasticMesh(Front*);
+
+// afprops.cpp
 
 // sprModel/modules.cpp
 extern void initSpringModel(Front*);
