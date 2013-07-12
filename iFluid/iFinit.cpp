@@ -71,7 +71,7 @@ static void initRayleiTaylorIntfc(
 	(void) printf("%f\n",level_func_params.z0);
 	CursorAfterString(infile,"Enter number of sine modes:");
 	fscanf(infile,"%d",&num_modes);
-	(void) printf("%d",num_modes);
+	(void) printf("%d\n",num_modes);
 	level_func_params.num_modes = num_modes;
 	FT_MatrixMemoryAlloc((POINTER*)&level_func_params.nu,num_modes,
 			dim-1,sizeof(double));

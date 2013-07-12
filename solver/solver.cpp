@@ -270,6 +270,7 @@ void PETSc::Solve_BCGSL(void)
 
 void PETSc::Solve_withPureNeumann_GMRES(void)
 {
+	printf("Entering Solve_withPureNeumann_GMRES()\n");
     	ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
   	ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
   	
@@ -294,15 +295,17 @@ void PETSc::Solve_withPureNeumann_GMRES(void)
 	start_clock("Petsc Solve in pure neumann solver");
         KSPSolve(ksp,b,x);
 	stop_clock("Petsc Solve in pure neumann solver");
+	printf("Leaving Solve_withPureNeumann_GMRES()\n");
 }	/* end Solve_withPureNeumann_GMRES */
 
 void PETSc::Solve_withPureNeumann(void)
 {
-	Solve_withPureNeumann_GMRES();
+	Solve_withPureNeumann_BCGSL();
 }	/* end Solve_withPureNeumann */
 
 void PETSc::Solve_withPureNeumann_BCGSL(void)
 {
+	printf("Entering Solve_withPureNeumann_BCGSL()\n");
 	ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
   	ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
   	
@@ -327,6 +330,7 @@ void PETSc::Solve_withPureNeumann_BCGSL(void)
 	start_clock("Petsc Solve in pure neumann solver");
         KSPSolve(ksp,b,x);
 	stop_clock("Petsc Solve in pure neumann solver");
+	printf("Leaving Solve_withPureNeumann_BCGSL()\n");
 }	/* end Solve_withPureNeumann_BCGSL */
 
 void PETSc::Print_A(const char *filename)
