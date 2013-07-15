@@ -665,6 +665,7 @@ EXPORT	void FT_MakeEllipticSurf(
 			ellipsoid_func,(POINTER)&ellip_params,surf);
 	wave_type(*surf) = w_type;
 	front->interf->modified = YES;
+	interface_reconstructed(front->interf) = NO;
 }	/* end FT_MakeEllipticSurf */
 
 

@@ -101,6 +101,11 @@ EXPORT boolean scatter_front(
 	set_copy_intfc_states(YES);
 	interpolate_intfc_states(intfc) = NO;
 
+	/* hooked to: 
+ 		      f_intfc_communication1d()
+ 		      f_intfc_communication2d()
+		      f_intfc_communication3d()
+ 	*/
 	status = form_subintfc_via_communication(front);
 	
 	if(dim == 3)

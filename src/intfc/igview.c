@@ -5135,6 +5135,24 @@ EXPORT void sdl_interface_plot(
 }	/*end sdl_interface_plot*/
 
 
+EXPORT void gview_plot_surface(
+	const char *dname,
+	SURFACE *surf)
+{
+	int i,j,num_tris;
+	TRI **tris,*t;
+		
+	num_tris = surf->num_tri;
+	uni_array(&tris,num_tris,sizeof(TRI*));
+	num_tris = 0;
+	for (t = first_tri(surf); !at_end_of_tri_list(t,surf); t = t->next)
+	{
+	    tris[num_tris++] = t;
+	}
+	gview_plot_tri_list(dname,tris,num_tris);
+	free_these(1,tris);
+}	/* end gview_plot_surface*/
+
 EXPORT void gview_plot_surf_within_range(
 	const char *dname,
 	SURFACE *surf,
