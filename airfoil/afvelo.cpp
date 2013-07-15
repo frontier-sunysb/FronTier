@@ -502,9 +502,9 @@ static void initVelocityFunc(
             case 'F':
 	    	FT_ScalarMemoryAlloc((POINTER*)&fixarea_params,
 				sizeof(FIXAREA_PARAMS));
-		if (string[1] == 'a')
+		if (string[1] == 'a' || string[1] == 'A')
 		    init_fixarea_params(front,infile,fixarea_params);
-		else if (string[1] == 'p')
+		else if (string[1] == 'p' || string[1] == 'P')
 		    init_fixpoint_params(front,infile,fixarea_params);
             	velo_func_pack.func_params = (POINTER)fixarea_params;
             	velo_func_pack.func = marker_velo;
@@ -722,6 +722,9 @@ static void init_fixarea_params(
 	INTERFACE *intfc = front->interf;
 	SURFACE *surf;
 
+	(void) printf("Available initial areas are:\n");
+	(void) printf("\tRectangle (R)\n");
+	(void) printf("\tEllipse (E)\n");
 	CursorAfterString(infile,"Enter initial shape of fixed area:");
         fscanf(infile,"%s",string);
         (void) printf("%s\n",string);
