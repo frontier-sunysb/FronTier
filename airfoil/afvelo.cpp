@@ -226,6 +226,7 @@ extern void setMotionParams(
             	fscanf(infile,"%lf",&af_params->m_s);
             	(void) printf("%f\n",af_params->m_s);
 	    }
+	    af_params->m_g = 0.0;
             if (af_params->attach_gores == YES)
 	    {
 		CursorAfterString(infile,"Enter gore spring constant:");
