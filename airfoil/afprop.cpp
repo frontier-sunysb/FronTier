@@ -162,6 +162,7 @@ extern void fourth_order_elastic_set_propagate(
 
 	if (debugging("trace"))
 	    (void) printf("Entering fourth_order_elastic_set_propagate()\n");
+	newn = NULL;
 	for (n = new_intfc->nodes; n && *n; ++n)
 	{
 	    extra = (AF_NODE_EXTRA*)(*n)->extra;
@@ -169,6 +170,11 @@ extern void fourth_order_elastic_set_propagate(
 		continue;
 	    newn = *n;
 	    break;
+	}
+	if (newn == NULL)
+	{
+	    (void) printf("ERROR: No load node!\n");
+	    clean_up(ERROR);
 	}
 
 	new_geom_set.load_node = newn;

@@ -114,6 +114,7 @@ extern void printAfExtraDada(
                 fprintf(outfile,"af_node_type = %d\n",n_params->af_node_type);
 	    }
 	}
+	fclose(outfile);
 }	/* end printAfExtraDada */
 
 extern void readAfExtraDada(
@@ -222,6 +223,7 @@ extern void readAfExtraDada(
 	    FT_ScalarMemoryAlloc((POINTER*)&n_params,sizeof(AF_NODE_EXTRA));
 	    fgetstring(infile,"af_node_type =");
             fscanf(infile,"%d",&n_params->af_node_type);
+	    (*n)->extra = (POINTER)n_params;
 	}
 }	/* end readAfExtraDada */
 
