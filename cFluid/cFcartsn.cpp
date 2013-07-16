@@ -2892,14 +2892,22 @@ void G_CARTESIAN::sampleVelocity2d()
         double *line = sample->sample_coords;
         char *out_name = front->out_name;
         double coords[MAXD];
-        double velo1,velo2,velo;
-        FILE *sfile;
-        char sname[100];
+        double velox1,velox2,velox;
+        double veloy1,veloy2,veloy;
+        char dirname[200],sname[200];
         static int count = 0;
         static int step = 0;
         static int l = -1;
         static double lambda;
-	double dens;
+	double dens1,dens2,c1,c2,c,mach;
+	boolean data_in_domain;
+	double *L = front->rect_grid->L;
+	double *U = front->rect_grid->U;
+	EOS_PARAMS *eos;
+	STATE state1,state2;
+	COMPONENT comp1,comp2;
+	double *crds,*vx,*vy,*mc;
+	int n,size;
 
 	if (front->step < sample->start_step || front->step > sample->end_step)
             return;
@@ -2908,20 +2916,30 @@ void G_CARTESIAN::sampleVelocity2d()
         if (step != front->step)
             step = front->step;
 	
+	state1.dim = state2.dim = 2;
+	sprintf(dirname,"%s/sample-%s",out_name,right_flush(front->step,6));
+	if (!create_directory(dirname,NO))
+	{
+            screen("Cannot create directory %s\n",dirname);
+	    clean_up(ERROR);
+	}
         switch (sample_type[0])
         {
         case 'x':
-            sprintf(sname, "%s/vertical-x-%d-%d.xg",out_name,step,count);
-            sfile = fopen(sname,"w");
-            if (l == -1)
+	    if (line[0] < L[0] || line[0] >= U[0])
+		data_in_domain = NO;
+	    else
+		data_in_domain = YES;
+            if (data_in_domain == YES)
             {
                 double x1,x2;
-                do
-                {
-                    ++l;
+		for (l = imin[0]; l <= imax[0]; ++l)
+		{
                     index = d_index2d(l,0,top_gmax);
                     getRectangleCenter(index, coords);
-                } while(line[0] >= coords[0]);
+		    if (line[0] >= coords[0])
+			break;
+                }
                 --l;
                 index = d_index2d(l,0,top_gmax);
                 getRectangleCenter(index,coords);
@@ -2930,41 +2948,83 @@ void G_CARTESIAN::sampleVelocity2d()
                 getRectangleCenter(index,coords);
                 x2 = coords[0];
                 lambda = (line[0] - x1) / (x2 - line[0]);
+            	i = l;
+	    	size = imax[1] - imin[1] + 1;
+	    	FT_VectorMemoryAlloc((POINTER*)&crds,size,sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&vx,size,sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&vy,size,sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&mc,size,sizeof(double));
+            	for (j = imin[1]; j <= imax[1]; ++j)
+            	{
+                    index = d_index2d(i,j,top_gmax);
+                    getRectangleCenter(index,coords);
+		    comp1 = top_comp[index];
+		    state1.eos = &eqn_params->eos[comp1];
+		    state1.dens = field.dens[index];
+		    state1.engy = field.engy[index];
+		    state1.pres = field.pres[index];
+		    state1.momn[0] = field.momn[0][index];
+		    state1.momn[1] = field.momn[1][index];
+		    c1 = EosSoundSpeed(&state1);
+		    dens1 = field.dens[index];
+                    velox1 = field.momn[0][index]/dens1;
+                    veloy1 = field.momn[1][index]/dens1;
+
+                    index = d_index2d(i+1,j,top_gmax);
+		    comp2 = top_comp[index];
+		    state2.eos = &eqn_params->eos[comp2];
+		    state2.dens = field.dens[index];
+		    state2.engy = field.engy[index];
+		    state2.pres = field.pres[index];
+		    state2.momn[0] = field.momn[0][index];
+		    state2.momn[1] = field.momn[1][index];
+		    c2 = EosSoundSpeed(&state2);
+		    dens2 = field.dens[index];
+                    velox2 = field.momn[0][index]/dens2;
+                    veloy2 = field.momn[1][index]/dens2;
+
+		    crds[n] = coords[1];
+		    if (gas_comp(comp1) && gas_comp(comp2))
+		    {
+                    	vx[n] = (velox1 + lambda*velox2) / (1.0 + lambda);
+                    	vy[n] = (veloy1 + lambda*veloy2) / (1.0 + lambda);
+                    	c = (c1 + lambda*c1) / (1.0 + lambda);
+		    	mc[n] = sqrt(sqr(vx[n]) + sqr(vy[n]))/c;
+		    }
+		    else if (gas_comp(comp1))
+		    {
+                    	vx[n] = velox1;
+                    	vy[n] = veloy1;
+                    	c = c1;
+		    	mc[n] = sqrt(sqr(vx[n]) + sqr(vy[n]))/c;
+		    }
+		    else if (gas_comp(comp2))
+		    {
+                    	vx[n] = velox2;
+                    	vy[n] = veloy2;
+                    	c = c2;
+		    	mc[n] = sqrt(sqr(vx[n]) + sqr(vy[n]))/c;
+		    }
+		    else
+		    {
+		    	vx[n] = vy[n] = mc[n] = 0.0;
+		    }
+		    n++;
+            	}
             }
-            i = l;
-            for (j = imin[1]; j <= imax[1]; ++j)
-            {
-                index = d_index2d(i,j,top_gmax);
-		dens = field.dens[index];
-                velo1 = field.momn[0][index]/dens;
-                index = d_index2d(i+1,j,top_gmax);
-		dens = field.dens[index];
-                velo2 = field.momn[0][index]/dens;
-                velo = (velo1 + lambda*velo2) / (1.0 + lambda);
-                getRectangleCenter(index,coords);
-                fprintf(sfile,"%20.14f   %20.14f\n",coords[1],velo);
-            }
-            fclose(sfile);
-            sprintf(sname,"%s/vertical-y-%d-%d.xg",out_name,step,count++);
-            sfile = fopen(sname,"w");
-            for (j = imin[1]; j <= imax[1]; ++j)
-            {
-                index = d_index2d(i,j,top_gmax);
-                dens = field.dens[index];
-                velo1 = field.momn[1][index]/dens;
-                index = d_index2d(i+1,j,top_gmax);
-                dens = field.dens[index];
-                velo2 = field.momn[1][index]/dens;
-                velo = (velo1 + lambda*velo2) / (1.0 + lambda);
-                getRectangleCenter(index,coords);
-                fprintf(sfile,"%20.14f   %20.14f\n",coords[1],velo);
-            }
-            fclose(sfile);
+            sprintf(sname, "vertical-vx-%d.xg",count);
+	    FT_XgraphSampleLine(dirname,sname,data_in_domain,size,crds,vx);
+            sprintf(sname, "vertical-vy-%d.xg",count);
+	    FT_XgraphSampleLine(dirname,sname,data_in_domain,size,crds,vy);
+            sprintf(sname, "vertical-mach-%d.xg",count);
+	    FT_XgraphSampleLine(dirname,sname,data_in_domain,size,crds,mc);
             break;
         case 'y':
-            sprintf(sname, "%s/horizontal-x-%d-%d.xg",out_name,step,count);
-            sfile = fopen(sname,"w");
-            if (l == -1)
+	    if (line[0] < L[1] || line[0] >= U[1])
+		data_in_domain = NO;
+	    else
+		data_in_domain = YES;
+            if (data_in_domain == YES)
             {
                 double y1,y2;
                 do
@@ -2980,37 +3040,78 @@ void G_CARTESIAN::sampleVelocity2d()
                 index = d_index2d(0,l+1,top_gmax);
                 getRectangleCenter(index,coords);
                 y2 = coords[1];
-               lambda = (line[0] - y1) / (y2 - line[0]);
+                lambda = (line[0] - y1) / (y2 - line[0]);
+            	j = l;
+	    	size = imax[0] - imin[0] + 1;
+	    	FT_VectorMemoryAlloc((POINTER*)&crds,size,sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&vx,size,sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&vy,size,sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&mc,size,sizeof(double));
+		n = 0;
+            	for (i = imin[0]; i <= imax[0]; ++i)
+            	{
+                    index = d_index2d(i,j,top_gmax);
+                    getRectangleCenter(index,coords);
+		    comp1 = top_comp[index];
+		    state1.eos = &eqn_params->eos[comp1];
+		    state1.dens = field.dens[index];
+		    state1.engy = field.engy[index];
+		    state1.pres = field.pres[index];
+		    state1.momn[0] = field.momn[0][index];
+		    state1.momn[1] = field.momn[1][index];
+		    c1 = EosSoundSpeed(&state1);
+		    dens1 = field.dens[index];
+                    velox1 = field.momn[0][index]/dens1;
+                    veloy1 = field.momn[1][index]/dens1;
+
+                    index = d_index2d(i,j+1,top_gmax);
+		    comp2 = top_comp[index];
+		    state2.eos = &eqn_params->eos[comp2];
+		    state2.dens = field.dens[index];
+		    state2.engy = field.engy[index];
+		    state2.pres = field.pres[index];
+		    state2.momn[0] = field.momn[0][index];
+		    state2.momn[1] = field.momn[1][index];
+		    c2 = EosSoundSpeed(&state2);
+		    dens2 = field.dens[index];
+                    velox2 = field.momn[0][index]/dens2;
+                    veloy2 = field.momn[1][index]/dens2;
+
+		    crds[n] = coords[0];
+		    if (gas_comp(comp1) && gas_comp(comp2))
+		    {
+                    	vx[n] = (velox1 + lambda*velox2) / (1.0 + lambda);
+                    	vy[n] = (veloy1 + lambda*veloy2) / (1.0 + lambda);
+                    	c = (c1 + lambda*c1) / (1.0 + lambda);
+		    	mc[n] = sqrt(sqr(vx[n]) + sqr(vy[n]))/c;
+		    }
+		    else if (gas_comp(comp1))
+		    {
+                    	vx[n] = velox1;
+                    	vy[n] = veloy1;
+                    	c = c1;
+		    	mc[n] = sqrt(sqr(vx[n]) + sqr(vy[n]))/c;
+		    }
+		    else if (gas_comp(comp2))
+		    {
+                    	vx[n] = velox2;
+                    	vy[n] = veloy2;
+                    	c = c2;
+		    	mc[n] = sqrt(sqr(vx[n]) + sqr(vy[n]))/c;
+		    }
+		    else
+		    {
+		    	vx[n] = vy[n] = mc[n] = 0.0;
+		    }
+		    n++;
+            	}
             }
-            j = l;
-            for (i = imin[0]; i <= imax[0]; ++i)
-            {
-                index = d_index2d(i,j,top_gmax);
-                dens = field.dens[index];
-                velo1 = field.momn[0][index]/dens;
-                index = d_index2d(i,j+1,top_gmax);
-                dens = field.dens[index];
-                velo2 = field.momn[0][index]/dens;
-                velo = (velo1 + lambda*velo2) / (1.0 + lambda);
-                getRectangleCenter(index,coords);
-                fprintf(sfile,"%20.14f   %20.14f\n",coords[0],velo);
-            }
-            fclose(sfile);
-            sprintf(sname,"%s/horizontal-y-%d-%d.xg",out_name,step,count++);
-            sfile = fopen(sname,"w");
-            for (i = imin[0]; i <= imax[0]; ++i)
-            {
-                index = d_index2d(i,j,top_gmax);
-                dens = field.dens[index];
-                velo1 = field.momn[1][index]/dens;
-                index = d_index2d(i,j+1,top_gmax);
-                dens = field.dens[index];
-                velo2 = field.momn[1][index]/dens;
-                velo = (velo1 + lambda*velo2) / (1.0 + lambda);
-                getRectangleCenter(index,coords);
-                fprintf(sfile,"%20.14f   %20.14f\n",coords[0],velo);
-            }
-            fclose(sfile);
+            sprintf(sname, "horizontal-vx-%d.xg",count);
+	    FT_XgraphSampleLine(dirname,sname,data_in_domain,size,crds,vx);
+            sprintf(sname, "horizontal-vy-%d.xg",count);
+	    FT_XgraphSampleLine(dirname,sname,data_in_domain,size,crds,vy);
+            sprintf(sname, "horizontal-mach-%d.xg",count);
+	    FT_XgraphSampleLine(dirname,sname,data_in_domain,size,crds,mc);
             break;
         }
 }	/* end sampleVelocity2d */
@@ -5390,7 +5491,8 @@ void G_CARTESIAN::setNeumannStates(
 	for (i = istart; i <= nrad; ++i)
 	{
 	    /* Find ghost point */
-	    ic[idir] = (nb == 0) ? icoords[idir] - i : icoords[idir] + i;
+	    ic[idir] = (nb == 0) ? icoords[idir] - (i - istart + 1) :
+                                icoords[idir] + (i - istart + 1);
 	    for (j = 0; j < dim; ++j)
 		coords_ref[j] = top_L[j] + ic[j]*top_h[j];
 

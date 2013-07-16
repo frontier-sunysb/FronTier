@@ -2608,8 +2608,12 @@ LOCAL int append_buffer_surface1(
 	}
 	else 
 	{
+	    gview_plot_surface("surf_s",surf);
+	    gview_plot_surface("surf_a",adj_surf);
 	    gview_plot_tri_list("tris_s",tris_s,ns);
 	    gview_plot_tri_list("tris_a",tris_a,na);
+	    /*TMP*/
+	    clean_up(0);
 	    return NO;
 	}
 
@@ -4801,7 +4805,15 @@ EXPORT 	boolean surfaces_matched(
 	    return (Hyper_surf_index(as) == Hyper_surf_index(s)) ? YES : NO;
 	else if (negative_component(as) == negative_component(s) &&
 	    positive_component(as) == positive_component(s))
-	    return YES;
+	{
+	    if (wave_type(s) == ICE_PARTICLE_BOUNDARY ||
+		wave_type(as) == ICE_PARTICLE_BOUNDARY)
+	    {
+		return (Gindex(s) == Gindex(as)) ? YES : NO;
+	    }
+	    else
+	    	return YES;
+	}
 	else
 	    return NO;
 }	/* end surfaces_matched */

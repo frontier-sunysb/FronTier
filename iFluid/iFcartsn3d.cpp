@@ -225,7 +225,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
 
 	start_clock("setSmoothedProperties");
 	setSmoothedProperties();
-	stop_clock("computeAdvection");
 	stop_clock("setSmoothedProperties");
 	if (debugging("trace"))
 	    printf("Passed setSmoothedProperties()\n");

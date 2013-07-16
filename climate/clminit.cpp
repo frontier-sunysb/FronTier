@@ -174,6 +174,7 @@ extern void initWaterDrops(
 	double T[MAXD];
 	int dim = front->rect_grid->dim;
 	int w_type;
+	int global_index = 6;
 
 	(void) printf("Water phase state can be\n");
 	(void) printf("\tIce Particle (I)\n");
@@ -253,28 +254,26 @@ extern void initWaterDrops(
 	    	FT_MakeEllipticCurve(front,center[i],radii,SOLID_COMP,
 			LIQUID_COMP2,w_type,1,&curve);
 	    else if (dim == 3)
+	    {
 	    	FT_MakeEllipticSurf(front,center[i],radii,SOLID_COMP,
 			LIQUID_COMP2,w_type,1,&surf);
-	    for (dir = 0; dir < dim; ++dir)
-	    {
-		continue;
-		if (FT_BoundaryType(dir,0) == PERIODIC_BOUNDARY)
-		{
-		    printf("Before copying:\n");
-		    printf("number of surfs = %d\n",
-				FT_NumOfIntfcSurfaces(surf->interface));
-		    psurf = I_CopySurface(surf);
-		    printf("After copying:\n");
-		    printf("number of surfs = %d\n",
-				FT_NumOfIntfcSurfaces(surf->interface));
-	    	    for (j = 0; j < dim; ++j)
-		    	T[j] = 0.0;
-		    if (center[i][dir] > 0.5*(L[dir] + U[dir]))
-			T[dir] = L[dir] - U[dir];
-		    else
-			T[dir] = U[dir] - L[dir];
-		    I_ShiftSurface(psurf,T);
-		}
+		Gindex(surf) = global_index;
+	    	for (dir = 0; dir < dim; ++dir)
+	    	{
+		    if (FT_BoundaryType(dir,0) == PERIODIC_BOUNDARY)
+		    {
+		    	psurf = I_CopySurface(surf);
+	    	    	for (j = 0; j < dim; ++j)
+		    	    T[j] = 0.0;
+		    	if (center[i][dir] > 0.5*(L[dir] + U[dir]))
+			    T[dir] = L[dir] - U[dir];
+		    	else
+			    T[dir] = U[dir] - L[dir];
+		    	I_ShiftSurface(psurf,T);
+			Gindex(psurf) = global_index;
+		    }
+	    	}
+		global_index++;
 	    }
 	}
 	if (debugging("init_intfc"))

@@ -282,7 +282,7 @@ static void installStringChord(
 	(void) printf("Available string chord configurations are\n");
 	(void) printf("\tParallel (P)\n");
 	(void) printf("\tAngular (A)\n");
-	CursorAfterString(infile,"Enter string configurationtype:");
+	CursorAfterString(infile,"Enter string configuration type:");
 	fscanf(infile,"%s",string);
 	(void) printf("%s\n",string);
 	switch (string[0])

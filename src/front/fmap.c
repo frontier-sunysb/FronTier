@@ -1156,11 +1156,6 @@ LOCAL void collect_cell_ptst(
 		    blk_cell->var[nv] = grid_array[index];
 		    blk_cell->dist[nv] = distance_between_positions(coords,
 				blk_cell->coords[nv],dim);
-		    if (debugging("the_pt"))
-		    {
-			printf("grid : var[%d] = %f  d[%d] = %f\n",
-				nv,blk_cell->var[nv],nv,blk_cell->dist[nv]);
-		    }
 		    nv++;
 	    	}
 	    	else

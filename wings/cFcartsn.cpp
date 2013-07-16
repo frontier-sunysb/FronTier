@@ -5409,7 +5409,8 @@ void G_CARTESIAN::setNeumannStates(
 	for (i = istart; i <= nrad; ++i)
 	{
 	    /* Find ghost point */
-	    ic[idir] = (nb == 0) ? icoords[idir] - i : icoords[idir] + i;
+	    ic[idir] = (nb == 0) ? icoords[idir] - (i - istart + 1) : 
+				icoords[idir] + (i - istart + 1);
 	    for (j = 0; j < dim; ++j)
 		coords_ref[j] = top_L[j] + ic[j]*top_h[j];
 
@@ -5480,14 +5481,6 @@ void G_CARTESIAN::setNeumannStates(
 	    }
 	    else
 	    {
-		/* Debug selectively!
-		if (debugging("crx_reflection"))
-		{
-	            sprintf(fname,"intfc-%d-%d",count,i);
-	            xgraph_2d_reflection(fname,front->grid_intfc,coords,
-				crx_coords,coords_ref,nor);
-		}
-		*/
 		vst->dens[n+nrad+i-1] = st_tmp.dens;
 		vst->engy[n+nrad+i-1] = st_tmp.engy;
 		vst->pres[n+nrad+i-1] = st_tmp.pres;

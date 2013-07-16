@@ -11,6 +11,8 @@ Upper boundary in 2-th dimension: PERIODIC_BOUNDARY
 
 Enter yes for debugging: yes
 Enter the debugging string: init_intfc
+Enter the debugging string: trace
+Enter the debugging string: CLOCK
 
 Enter projection type: SIMPLE
 The default advection order is WENO-Runge-Kutta 4
