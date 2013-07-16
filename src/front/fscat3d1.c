@@ -2612,8 +2612,6 @@ LOCAL int append_buffer_surface1(
 	    gview_plot_surface("surf_a",adj_surf);
 	    gview_plot_tri_list("tris_s",tris_s,ns);
 	    gview_plot_tri_list("tris_a",tris_a,na);
-	    /*TMP*/
-	    clean_up(0);
 	    return NO;
 	}
 
