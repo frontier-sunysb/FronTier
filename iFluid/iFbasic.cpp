@@ -1453,7 +1453,7 @@ void Incompress_Solver_Smooth_2D_Basis::sampleVelocity()
             step = front->step;
             count = 0;
         }
-	sprintf(dirname, "%s/sample-%d",out_name,step);
+	sprintf(dirname, "%s/samples/sample-%d",out_name,step);
 	if (!create_directory(dirname,NO))
         {
             screen("Cannot create directory %s\n",dirname);
@@ -1810,7 +1810,7 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
             count = 0;
         }
 
-        sprintf(dirname, "%s/sample-%d",out_name,step);
+        sprintf(dirname, "%s/samples/sample-%d",out_name,step);
 	if (!create_directory(dirname,NO))
         {
             screen("Cannot create directory %s\n",dirname);

@@ -1131,7 +1131,7 @@ EXPORT void print_front_output(
 	int numnodes = pp_numnodes();
 	boolean save_binary_output = is_binary_output();
 
-	sprintf(dirname,"%s/gv.ts%s",out_name,right_flush(step,7));
+	sprintf(dirname,"%s/gview/gv.ts%s",out_name,right_flush(step,7));
 	if (numnodes > 1)
 	    sprintf(dirname,"%s-nd%s",dirname,right_flush(pp_mynode(),4));
 
@@ -1173,7 +1173,7 @@ LOCAL	void show_front_vtk(
 
 	/* Create vtk directories */
 
-        sprintf(dirname,"%s/vtk.ts%s",out_name,right_flush(step,7));
+        sprintf(dirname,"%s/vtk/vtk.ts%s",out_name,right_flush(step,7));
 	if (pp_numnodes() > 1)
             sprintf(dirname,"%s-nd%s",dirname,right_flush(pp_mynode(),4));
 	if (!create_directory(dirname,YES))
@@ -1486,7 +1486,7 @@ LOCAL	void show_front_sdl(
 
 	if (!front->print_sdl_file)
 	    return;
-	sprintf(dirname,"%s/sdl.ts%s",out_name,right_flush(step,7));
+	sprintf(dirname,"%s/sdl/sdl.ts%s",out_name,right_flush(step,7));
 	if (pp_numnodes() > 1)
             sprintf(dirname,"%s-nd%s",dirname,right_flush(pp_mynode(),4));
 	if (!create_directory(dirname,NO))

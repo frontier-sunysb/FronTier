@@ -2917,7 +2917,8 @@ void G_CARTESIAN::sampleVelocity2d()
             step = front->step;
 	
 	state1.dim = state2.dim = 2;
-	sprintf(dirname,"%s/sample-%s",out_name,right_flush(front->step,6));
+	sprintf(dirname,"%s/samples/sample-%s",
+			out_name,right_flush(front->step,6));
 	if (!create_directory(dirname,NO))
 	{
             screen("Cannot create directory %s\n",dirname);

@@ -1345,7 +1345,7 @@ extern void recordWingVar(
 	if (pp_mynode() == 0)
 	{
 	    char dirname[200],fname[200];
-	    int itop_end;
+	    int itop_end = 0;
 	    FILE *ofile;
 
 	    for (i = 1; i < max_gindex; ++i)
@@ -1354,7 +1354,7 @@ extern void recordWingVar(
 		    itop_end = i+1;
 	    }
 
-	    sprintf(dirname, "%s/wing-top-%s",out_name,
+	    sprintf(dirname, "%s/wing-top/wing-top-%s",out_name,
 			right_flush(front->step,7));
 	    if (!create_directory(dirname,NO))
             {
@@ -1384,7 +1384,7 @@ extern void recordWingVar(
 	    }
 	    fclose(ofile);
 
-	    sprintf(dirname, "%s/wing-bot-%s",out_name,
+	    sprintf(dirname, "%s/wing-bot/wing-bot-%s",out_name,
 			right_flush(front->step,7));
 	    if (!create_directory(dirname,NO))
             {
