@@ -1147,7 +1147,7 @@ EXPORT void print_front_output(
 	fprintf(out_file,"\n#");
 	fprint_interface(out_file,front->interf);
 	fclose(out_file);
-	if (front->rect_grid->dim == 2)
+	if (front->rect_grid->dim == 2 && debugging("component"))
 	{
 	    sprintf(comp_name,"%s/comp.ts%s",out_name,right_flush(step,7));
 	    if (numnodes > 1)
