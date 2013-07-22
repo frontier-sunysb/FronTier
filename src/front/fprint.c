@@ -1131,7 +1131,17 @@ EXPORT void print_front_output(
 	int numnodes = pp_numnodes();
 	boolean save_binary_output = is_binary_output();
 
-	sprintf(dirname,"%s/gview/gv.ts%s",out_name,right_flush(step,7));
+	sprintf(dirname,"%s/gview",out_name);
+	if (pp_mynode() == 0)
+	{
+	    if (!create_directory(dirname,YES))
+	    {
+	    	screen("Cannot create directory %s\n",dirname);
+	    	clean_up(ERROR);
+	    }
+	}
+	pp_gsync();
+	sprintf(dirname,"%s/gv.ts%s",dirname,right_flush(step,7));
 	if (numnodes > 1)
 	    sprintf(dirname,"%s-nd%s",dirname,right_flush(pp_mynode(),4));
 
@@ -1173,7 +1183,17 @@ LOCAL	void show_front_vtk(
 
 	/* Create vtk directories */
 
-        sprintf(dirname,"%s/vtk/vtk.ts%s",out_name,right_flush(step,7));
+        sprintf(dirname,"%s/vtk",out_name);
+	if (pp_mynode() == 0)
+	{
+	    if (!create_directory(dirname,YES))
+	    {
+	    	screen("Cannot create directory %s\n",dirname);
+	    	clean_up(ERROR);
+	    }
+	}
+	pp_gsync();
+        sprintf(dirname,"%s/vtk.ts%s",dirname,right_flush(step,7));
 	if (pp_numnodes() > 1)
             sprintf(dirname,"%s-nd%s",dirname,right_flush(pp_mynode(),4));
 	if (!create_directory(dirname,YES))
@@ -1273,6 +1293,7 @@ LOCAL	void show_front_gv(
 	    	clean_up(ERROR);
 	    }
 	}
+	pp_gsync();
 	if (front->hdf_movie_var != NULL)
 	{
 	    HDF_MOVIE_VAR *hdf_movie_var = front->hdf_movie_var;
@@ -1305,6 +1326,7 @@ EXPORT	void gview_var2d_on_top_grid(
 	    	clean_up(ERROR);
 	    }
 	}
+	pp_gsync();
 	if (front->hdf_movie_var != NULL)
 	{
 	    HDF_MOVIE_VAR *hdf_movie_var = front->hdf_movie_var;
@@ -3683,6 +3705,7 @@ LOCAL void vtk_plot_vector_field(
                           "%s doesn't exist and can't be created\n",dname);
             return;
         }
+	pp_gsync();
 	vfile = fopen(fname,"w");
 	for (i = 0; i < 3; ++i)
 	{
