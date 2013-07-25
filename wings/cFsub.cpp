@@ -49,6 +49,18 @@ static void cF_variableBoundaryState2d(double*,HYPER_SURF*,Front*,
 static void cF_variableBoundaryState3d(double*,HYPER_SURF*,Front*,
 					POINTER,POINTER);
 
+double getStateMach(POINTER state)
+{
+	STATE *fstate = (STATE*)state;
+	double c = EosSoundSpeed(fstate);
+	double speed;
+	int i,dim = fstate->dim;
+	speed = 0.0;
+	for (i = 0; i < dim; ++i)
+	    speed += sqr(fstate->momn[i]/fstate->dens);
+	return sqrt(speed)/c;
+}	/* end getStateDens */
+
 double getStateDens(POINTER state)
 {
 	STATE *fstate = (STATE*)state;

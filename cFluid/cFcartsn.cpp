@@ -2955,7 +2955,6 @@ void G_CARTESIAN::sampleVelocity2d()
 	    	FT_VectorMemoryAlloc((POINTER*)&vx,size,sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&vy,size,sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&mc,size,sizeof(double));
-		n = 0;
             	for (j = imin[1]; j <= imax[1]; ++j)
             	{
                     index = d_index2d(i,j,top_gmax);

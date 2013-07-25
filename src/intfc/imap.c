@@ -117,6 +117,17 @@ EXPORT SURFACE *I_CopySurface(
 	return copy_surface(surf,surf->pos_curves,surf->neg_curves,YES);
 }	/* end I_CopySurface */
 
+EXPORT SURFACE *I_AddTwoSurfaces(
+	SURFACE *surf1,
+	SURFACE *surf2)
+{
+	last_tri(surf1)->next = first_tri(surf2);
+	first_tri(surf2)->prev = last_tri(surf1);
+	last_tri(surf1) = last_tri(surf2);
+	delete_surface(surf2);
+	return surf1;	
+}	/* end I_AddTwoSurfaces */
+
 EXPORT void I_ShiftSurface(
 	SURFACE *surf,
 	double *displacement)

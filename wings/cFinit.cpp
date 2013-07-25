@@ -230,7 +230,8 @@ void G_CARTESIAN::initFrontInteriorStates()
 		sl->pres = eqn_params->p0;
 		sl->momn[0] = eqn_params->rho1*eqn_params->v1[0];
 		sl->momn[1] = eqn_params->rho1*eqn_params->v1[1];
-		sl->engy = EosInternalEnergy(sl);
+		//sl->engy = EosInternalEnergy(sl);
+		sl->engy = EosEnergy(sl);
 	    }
 	    else if (positive_component(hs) == GAS_COMP1)
 	    {
@@ -239,12 +240,14 @@ void G_CARTESIAN::initFrontInteriorStates()
 		sr->pres = eqn_params->p0;
 		sr->momn[0] = eqn_params->rho1*eqn_params->v1[0];
 		sr->momn[1] = eqn_params->rho1*eqn_params->v1[1];
-		sr->engy = EosInternalEnergy(sr);
+		//sr->engy = EosInternalEnergy(sr);
+		sr->engy = EosEnergy(sr);
 	    }
         }
         FT_MakeGridIntfc(front);
 	setDomain();
 	state.eos = eos;
+	state.dim = dim;
 	switch (dim)
 	{
 	case 2:
@@ -260,7 +263,8 @@ void G_CARTESIAN::initFrontInteriorStates()
 				eqn_params->rho1*eqn_params->v1[1];
 		state.dens = dens[index] = eqn_params->rho1;
 		state.pres = pres[index] = eqn_params->p0;
-		engy[index] = EosInternalEnergy(&state);
+		//engy[index] = EosInternalEnergy(&state);
+		engy[index] = EosEnergy(&state);
 	    }
 	    break;
 	case 3:
@@ -275,7 +279,8 @@ void G_CARTESIAN::initFrontInteriorStates()
 		    momn[l][index] = 0.0;
 		state.dens = dens[index] = eqn_params->rho1;
 		state.pres = pres[index] = eqn_params->p0;
-		engy[index] = EosInternalEnergy(&state);
+		//engy[index] = EosInternalEnergy(&state);
+		engy[index] = EosEnergy(&state);
 	    }
 	    break;
 	}

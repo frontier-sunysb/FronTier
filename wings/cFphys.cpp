@@ -200,11 +200,31 @@ extern void read_movie_options(
 	    movie_option->plot_velo = YES;
 	    if (movie_option->set_bounds)
 	    {
-		CursorAfterString(infile,"Enter min and max velocity:");
-		fscanf(infile,"%lf %lf",&movie_option->min_velo,
-				&movie_option->max_velo);
-		(void) printf("%f %f\n",movie_option->min_velo,
-				movie_option->max_velo);
+		CursorAfterString(infile,"Enter min and max x-velocity:");
+		fscanf(infile,"%lf %lf",&movie_option->min_xvel,
+				&movie_option->max_xvel);
+		(void) printf("%f %f\n",movie_option->min_xvel,
+				movie_option->max_xvel);
+		CursorAfterString(infile,"Enter min and max y-velocity:");
+		fscanf(infile,"%lf %lf",&movie_option->min_yvel,
+				&movie_option->max_yvel);
+		(void) printf("%f %f\n",movie_option->min_yvel,
+				movie_option->max_yvel);
+	    }
+	}
+	CursorAfterString(infile,"Type y to make movie of mach number:");
+	fscanf(infile,"%s",string);
+	(void) printf("%s\n",string);
+	if (string[0] == 'Y' || string[0] == 'y')
+	{
+	    movie_option->plot_mach = YES;
+	    if (movie_option->set_bounds)
+	    {
+		CursorAfterString(infile,"Enter min and max mach number:");
+		fscanf(infile,"%lf %lf",&movie_option->min_mach,
+				&movie_option->max_mach);
+		(void) printf("%f %f\n",movie_option->min_mach,
+				movie_option->max_mach);
 	    }
 	}
 

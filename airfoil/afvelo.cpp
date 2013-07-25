@@ -166,8 +166,7 @@ extern void setMotionParams(
         {
             fscanf(infile,"%lf",&af_params->gravity[i]);
             (void) printf("%f ",af_params->gravity[i]);
-	    if (af_params->no_fluid == NO)
-	    	iFparams->gravity[i] = af_params->gravity[i];
+	    iFparams->gravity[i] = af_params->gravity[i];
         }
         (void) printf("\n");
 	CursorAfterString(infile,"Enter payload:");

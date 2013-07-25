@@ -502,6 +502,7 @@ extern void set_surf_spring_vertex(
 	double ks = geom_set->ks;
 	double m_s = geom_set->m_s;
 	double lambda_s = geom_set->lambda_s;
+	boolean is_stationary_point;
 
 	unsort_surf_point(surf);
 	i = *n;
@@ -512,8 +513,11 @@ extern void set_surf_spring_vertex(
 	    {
 		p = Point_of_tri(tri)[j];
 		if (sorted(p) || Boundary_point(p)) continue;
+		is_stationary_point = is_registered_point(surf,p);
 		sv[i].m = m_s;
 		sv[i].lambda = lambda_s;
+		if (is_stationary_point == YES)
+		    sv[i].lambda = 0.0;
 		x[i] = sv[i].x = Coords(p);
 		v[i] = sv[i].v = p->vel;
 		sv[i].f = p->force;
@@ -527,7 +531,10 @@ extern void set_surf_spring_vertex(
 		    p_nb = Point_of_tri(tris[k])[(l+1)%3];
 		    sv[i].x_nb[k] = Coords(p_nb);
 		    sv[i].ix_nb[k] = p_nb->indx;
-		    sv[i].k[k] = ks;
+		    if (is_stationary_point == YES)
+		    	sv[i].k[k] = 0.0;
+		    else
+		    	sv[i].k[k] = ks;
 		    sv[i].len0[k] = tris[k]->side_length0[l];;
 		}
 		sorted(p) = YES;

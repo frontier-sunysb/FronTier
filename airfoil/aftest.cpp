@@ -912,7 +912,6 @@ static void print_airfoil_stat3d_1(
 	static FILE *gfile;
 	POINTER obj_max;
 
-	printf("Entering print_airfoil_stat3d_1()\n");
 	if (eskfile == NULL)
         {
 	    sprintf(fname,"%s/max_index.dat",out_name);

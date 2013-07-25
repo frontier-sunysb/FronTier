@@ -64,6 +64,16 @@ extern "C" {
    IMPORT  void I_ShiftSurface(SURFACE *surf,
 			double *displacement);
 
+/*! \fn SURFACE *I_AddTwoSurfaces(SURFACE *surf1,SURFACE *surf2)
+    \ingroup SURFACE
+    \brief This function add tris of surf2 to surf1, delete surf2 and
+     return surf1, no other operations is performed.
+    \param surf1 @b in Input of the surface 1.
+    \param surf2 @b in Input of the surface 2.
+ */
+   IMPORT  SURFACE *I_AddTwoSurfaces(SURFACE *surf1,
+			SURFACE *surf2);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif

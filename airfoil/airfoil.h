@@ -273,7 +273,7 @@ extern void legacy_fourth_order_elastic_curve_propagate(Front*,Front*,
 				INTERFACE*,CURVE*,CURVE*,double);
 extern void legacy_fourth_order_elastic_surf_propagate(Front*,double);
 
-// canopy.cpp
+// afcnpy.cpp
 extern void coating_mono_hyper_surf(Front*);
 extern void compute_total_canopy_force(Front*,double*,double*);
 extern int airfoil_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
@@ -303,6 +303,7 @@ extern void compute_node_accel3(PARACHUTE_SET*,NODE*,double**,double**,double**,
 extern void propagate_surface(PARACHUTE_SET*,SURFACE*,double**,int*);
 extern void propagate_curve(PARACHUTE_SET*,CURVE*,double**,int*);
 extern void propagate_node(PARACHUTE_SET*,NODE*,double**,int*);
+extern boolean is_registered_point(SURFACE*,POINT*);
 
 // afsetd.cpp
 extern void count_node_neighbors(NODE*,SPRING_VERTEX*,int*);

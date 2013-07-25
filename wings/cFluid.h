@@ -60,11 +60,14 @@ struct _MOVIE_OPTION {
         boolean plot_pres;
         boolean plot_vort;
         boolean plot_velo;
+        boolean plot_mach;
         boolean plot_cross_section[MAXD];  /* 3D 0: yz; 1: zx; 2: xy */
 	boolean set_bounds;
 	double min_dens,max_dens;
 	double min_pres,max_pres;
-	double min_velo,max_velo;
+	double min_xvel,max_xvel;
+	double min_yvel,max_yvel;
+	double min_mach,max_mach;
 	double min_vort,max_vort;
 };
 typedef struct _MOVIE_OPTION MOVIE_OPTION;
@@ -126,6 +129,7 @@ typedef struct {
 	double *dens;
 	double *engy;
 	double *pres;
+	double *mach;
 	double *vort;
 	//GFM
 	double **gnor;
@@ -224,6 +228,7 @@ struct _FIELD
 	double *engy;
 	double *pres;
 	double *vort;
+	double *mach;
 };
 
 struct _SWEEP
@@ -452,6 +457,7 @@ private:
 	void checkCorrectForTolerance(STATE*);
 };
 
+extern double getStateMach(POINTER);
 extern double getStateDens(POINTER);
 extern double getStateEngy(POINTER);
 extern double getStateXmom(POINTER);

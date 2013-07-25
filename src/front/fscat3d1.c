@@ -1,4 +1,4 @@
-/*********************************************************************
+/***************************************************************
 FronTier is a set of libraries that implements differnt types of 
 Front Traking algorithms. Front Tracking is a numerical method for 
 the solution of partial differential equations whose solutions 
@@ -20,9 +20,8 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-**********************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+****************************************************************/
 
 
 /*
@@ -3111,6 +3110,11 @@ LOCAL boolean add_matching_pt_to_hash_table(
 	    for (pla = plista; pla != NULL; pla = pla->next)
 	    {
 	        min_len = HUGE_VAL;
+		if (plists == NULL)
+		{
+		    (void) printf("plists is NULL\n");
+		    continue;
+		}
 		for (pls = plists; pls != NULL; pls = pls->next)
 	        {
 		    len = distance_between_positions(Coords(pla->p), Coords(pls->p), 3);

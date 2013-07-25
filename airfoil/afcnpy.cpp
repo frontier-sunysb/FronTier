@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -19,9 +20,8 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-******************************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+****************************************************************/
 
 #include <iFluid.h>
 #include <airfoil.h>
@@ -43,7 +43,6 @@ static void compute_total_canopy_force3d(Front*,double*,double*);
 static void compute_center_of_mass_velo(PARACHUTE_SET*);
 static void set_canopy_velocity(PARACHUTE_SET*,double**);
 static boolean curve_in_pointer_list(CURVE*,CURVE**);
-static boolean is_registered_point(SURFACE*,POINT*);
 
 #define 	MAX_NUM_RING1		30
 
@@ -2333,7 +2332,6 @@ extern void compute_node_accel3(
 	}
 	for (c = node->in_curves; c && *c; ++c)
 	{
-	    //if (curve_in_pointer_list(*c,node->out_curves)) continue;
 	    b = (*c)->last;
 	    len0 = bond_length0(b);
 	    for (j = 0; j < dim; ++j)
@@ -2396,7 +2394,6 @@ extern void compute_node_accel3(
 	    }
 	    for (c = node->in_curves; c && *c; ++c)
 	    {
-	   	//if (curve_in_pointer_list(*c,node->out_curves)) continue;
 		if (is_closed_curve(*c)) continue;
 		b = (*c)->last;
 		p = b->end;
@@ -2572,7 +2569,7 @@ static boolean curve_in_pointer_list(
 	return NO;
 }	/* end curve_in_pointer_list */
 
-static boolean is_registered_point(
+extern boolean is_registered_point(
 	SURFACE *surf,
 	POINT *p)
 {

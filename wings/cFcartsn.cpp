@@ -1354,6 +1354,8 @@ void G_CARTESIAN::setDomain()
 					sizeof(double));
 	    FT_VectorMemoryAlloc((POINTER*)&eqn_params->engy,size,
 					sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&eqn_params->mach,size,
+					sizeof(double));
 	    FT_MatrixMemoryAlloc((POINTER*)&eqn_params->vel,dim,size,
 					sizeof(double));
 	    FT_MatrixMemoryAlloc((POINTER*)&eqn_params->mom,dim,size,
@@ -1375,6 +1377,7 @@ void G_CARTESIAN::setDomain()
 	    field.dens = eqn_params->dens;
 	    field.engy = eqn_params->engy;
 	    field.pres = eqn_params->pres;
+	    field.mach = eqn_params->mach;
 	    field.momn = eqn_params->mom;
 	    field.vel = eqn_params->vel;
 	}
@@ -1645,7 +1648,7 @@ void G_CARTESIAN::augmentMovieVariables()
 	    return initMovieVariables();
 	else
 	{
-	    num_var = offset + dim + 3;
+	    num_var = offset + dim + 4;
 	    FT_ScalarMemoryAlloc((POINTER*)&hdf_movie_var,
 				sizeof(HDF_MOVIE_VAR));
 	    hdf_movie_var->num_var = num_var;
@@ -1675,24 +1678,27 @@ void G_CARTESIAN::augmentMovieVariables()
 	    sprintf(hdf_movie_var->var_name[offset+2],"vort");
 	    sprintf(hdf_movie_var->var_name[offset+3],"xvel");
 	    sprintf(hdf_movie_var->var_name[offset+4],"yvel");
+	    sprintf(hdf_movie_var->var_name[offset+5],"mach");
 	    hdf_movie_var->get_state_var[offset+0] = getStateDens;
 	    hdf_movie_var->get_state_var[offset+1] = getStatePres;
 	    hdf_movie_var->get_state_var[offset+2] = getStateVort;
 	    hdf_movie_var->get_state_var[offset+3] = getStateXvel;
 	    hdf_movie_var->get_state_var[offset+4] = getStateYvel;
+	    hdf_movie_var->get_state_var[offset+5] = getStateMach;
 	    if (dim == 3)
 	    {
-	    	sprintf(hdf_movie_var->var_name[offset+5],"zvel");
-	    	hdf_movie_var->get_state_var[offset+5] = getStateZvel;
+	    	sprintf(hdf_movie_var->var_name[offset+6],"zvel");
+	    	hdf_movie_var->get_state_var[offset+6] = getStateZvel;
 	    }
 	}
 	hdf_movie_var->top_var[offset+0] = eqn_params->dens;
 	hdf_movie_var->top_var[offset+1] = eqn_params->pres;
+	hdf_movie_var->top_var[offset+5] = eqn_params->mach;
 	hdf_movie_var->top_var[offset+2] = eqn_params->vort;
 	hdf_movie_var->top_var[offset+3] = eqn_params->vel[0];
 	hdf_movie_var->top_var[offset+4] = eqn_params->vel[1];
 	if (dim == 3)
-	    hdf_movie_var->top_var[offset+5] = eqn_params->vel[2];
+	    hdf_movie_var->top_var[offset+6] = eqn_params->vel[2];
 	FT_FreeThese(2,front->hdf_movie_var->var_name,
 			front->hdf_movie_var->top_var);
 	FT_FreeThese(1,front->hdf_movie_var);
@@ -1719,17 +1725,17 @@ void G_CARTESIAN::initMovieVariables()
 	    {
 	    case 1:
 		hdf_movie_var->num_var = n = 0;
-	    	FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,3,100,
+	    	FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,4,100,
 				sizeof(char));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,3,
+	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,4,
 				sizeof(double*));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,3,
+	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,4,
 				sizeof(COMPONENT));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,3,
+	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,4,
 				sizeof(boolean));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,3,
+	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,4,
 				sizeof(double));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,3,
+	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,4,
 				sizeof(double));
 		if (movie_option->plot_dens)
 		{
@@ -1767,8 +1773,22 @@ void G_CARTESIAN::initMovieVariables()
 		    if (movie_option->set_bounds)
 		    {
 			hdf_movie_var->preset_bound[n] = YES;
-			hdf_movie_var->var_min[n] = movie_option->min_velo;
-			hdf_movie_var->var_max[n] = movie_option->max_velo;
+			hdf_movie_var->var_min[n] = movie_option->min_xvel;
+			hdf_movie_var->var_max[n] = movie_option->max_xvel;
+		    }
+		    else hdf_movie_var->preset_bound[n] = NO;
+		    hdf_movie_var->num_var = ++n;
+		}
+		if (movie_option->plot_mach)
+		{
+	    	    sprintf(hdf_movie_var->var_name[n],"mach");
+	    	    hdf_movie_var->get_state_var[n] = getStateMach;
+	    	    hdf_movie_var->top_var[n] = eqn_params->mach;
+		    if (movie_option->set_bounds)
+		    {
+			hdf_movie_var->preset_bound[n] = YES;
+			hdf_movie_var->var_min[n] = movie_option->min_mach;
+			hdf_movie_var->var_max[n] = movie_option->max_mach;
 		    }
 		    else hdf_movie_var->preset_bound[n] = NO;
 		    hdf_movie_var->num_var = ++n;
@@ -1776,17 +1796,17 @@ void G_CARTESIAN::initMovieVariables()
 		break;
 	    case 2:
 		hdf_movie_var->num_var = n = 0;
-	    	FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,5,100,
+	    	FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,6,100,
 					sizeof(char));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,5,
+	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,6,
 					sizeof(double*));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,5,
+	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,6,
 					sizeof(COMPONENT));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,5,
+	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,6,
 				sizeof(boolean));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,5,
+	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,6,
 				sizeof(double));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,5,
+	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,6,
 				sizeof(double));
 		if (movie_option->plot_dens)
 		{
@@ -1835,8 +1855,8 @@ void G_CARTESIAN::initMovieVariables()
 		    if (movie_option->set_bounds)
 		    {
 			hdf_movie_var->preset_bound[n] = YES;
-			hdf_movie_var->var_min[n] = movie_option->min_velo;
-			hdf_movie_var->var_max[n] = movie_option->max_velo;
+			hdf_movie_var->var_min[n] = movie_option->min_xvel;
+			hdf_movie_var->var_max[n] = movie_option->max_xvel;
 		    }
 		    else hdf_movie_var->preset_bound[n] = NO;
 		    hdf_movie_var->num_var = ++n;
@@ -1847,8 +1867,23 @@ void G_CARTESIAN::initMovieVariables()
 		    if (movie_option->set_bounds)
 		    {
 			hdf_movie_var->preset_bound[n] = YES;
-			hdf_movie_var->var_min[n] = movie_option->min_velo;
-			hdf_movie_var->var_max[n] = movie_option->max_velo;
+			hdf_movie_var->var_min[n] = movie_option->min_yvel;
+			hdf_movie_var->var_max[n] = movie_option->max_yvel;
+		    }
+		    else hdf_movie_var->preset_bound[n] = NO;
+		    hdf_movie_var->num_var = ++n;
+		}
+		if (movie_option->plot_mach)
+		{
+	    	    sprintf(hdf_movie_var->var_name[n],"mach");
+	    	    hdf_movie_var->get_state_var[n] = getStateMach;
+	    	    hdf_movie_var->top_var[n] = eqn_params->mach;
+	    	    hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
+		    if (movie_option->set_bounds)
+		    {
+			hdf_movie_var->preset_bound[n] = YES;
+			hdf_movie_var->var_min[n] = movie_option->min_mach;
+			hdf_movie_var->var_max[n] = movie_option->max_mach;
 		    }
 		    else hdf_movie_var->preset_bound[n] = NO;
 		    hdf_movie_var->num_var = ++n;
@@ -2835,8 +2870,8 @@ void G_CARTESIAN::sampleVelocity2d()
             step = front->step;
 	
 	state1.dim = state2.dim = 2;
-	sprintf(dirname,"%s/samples/sample-%s",
-		out_name,right_flush(front->step,6));
+	sprintf(dirname,"%s/sample/sample-%s",
+			out_name,right_flush(front->step,6));
 	if (!create_directory(dirname,NO))
 	{
             screen("Cannot create directory %s\n",dirname);
@@ -3342,6 +3377,7 @@ void G_CARTESIAN::copyFromMeshVst(
 	double *dens = field.dens;
 	double *engy = field.engy;
 	double *pres = field.pres;
+	double *mach = field.mach;
 	double **momn = field.momn;
 	
 	//GFM
@@ -3373,6 +3409,7 @@ void G_CARTESIAN::copyFromMeshVst(
 		dens[index] = state.dens;
 		engy[index] = state.engy;
 		pres[index] = state.pres;
+		mach[index] = getStateMach(&state);
 		for (l = 0; l < dim; ++l)
 		    momn[l][index] = state.momn[l];
 	    }
@@ -3396,6 +3433,7 @@ void G_CARTESIAN::copyFromMeshVst(
 		dens[index] = state.dens;
 		engy[index] = state.engy;
 		pres[index] = state.pres;
+		mach[index] = getStateMach(&state);
 		for (l = 0; l < dim; ++l)
 		    momn[l][index] = state.momn[l];
 	    }
@@ -3420,6 +3458,7 @@ void G_CARTESIAN::copyFromMeshVst(
 		dens[index] = state.dens;
 		engy[index] = state.engy;
 		pres[index] = state.pres;
+		mach[index] = getStateMach(&state);
 		for (l = 0; l < dim; ++l)
 		    momn[l][index] = state.momn[l];
 	    }
@@ -5528,6 +5567,8 @@ void G_CARTESIAN::setDirichletStates(
 	    state = (STATE*)boundary_state(hs);
 	    for (k = istart; k <= nrad; ++k)
 	    {
+		index = d_index(icoords,top_gmax, dim);
+		//vst->engy[nrad-k] = m_vst->engy[index];
 		vst->dens[nrad-k] = state->dens;
 		vst->engy[nrad-k] = state->engy;
 		vst->pres[nrad-k] = state->pres;
