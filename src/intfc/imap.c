@@ -21,7 +21,6 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-
 ****************************************************************/
 
 
@@ -32,6 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
 #include <intfc/int.h>		/* includes int.h, table.h */
+
+LOCAL boolean curve_of_boundary_hs(CURVE*);
 
 EXPORT	void I_MoveNodeToPoint(
 	POINT *pt,
@@ -156,3 +157,108 @@ EXPORT void I_ShiftSurface(
 	    }
 	}
 }	/* end I_ShiftSurface */
+
+EXPORT void I_TransInteriorIntfcPoints(
+	INTERFACE *intfc,
+	double *disp)
+{
+	/*
+	POINT              *p;
+        HYPER_SURF_ELEMENT *hse;
+        HYPER_SURF         *hs;
+	int i,dim = Dimension(intfc);
+
+	next_point(intfc,NULL,NULL,NULL);
+	while (next_point(intfc,&p,&hse,&hs))
+	{
+	    if (Boundary_hs(hs)) continue;
+	    for (i = 0; i < dim; ++i)
+		Coords(p)[i] += disp[i];
+	}
+	*/
+        POINT *p;
+	int i,dim = intfc->dim;
+	SURFACE **s;
+	CURVE **c;
+	TRI *t;
+	BOND *b;
+
+	intfc_surface_loop(intfc,s)
+	{
+	    surf_tri_loop(*s,t)
+	    {
+		for (i = 0; i < 3; ++i)
+		{
+		    p = Point_of_tri(t)[i];
+		    sorted(p) = NO;
+		}
+	    }
+	}
+	intfc_curve_loop(intfc,c)
+	{
+	    b = (*c)->first;	p = b->start;
+	    sorted(p) = NO;
+	    curve_bond_loop(*c,b)
+	    {
+		p = b->end;
+	    	sorted(p) = NO;
+	    }
+	}
+
+	intfc_surface_loop(intfc,s)
+	{
+	    if (is_bdry_hs(Hyper_surf(*s)))
+		continue;
+	    surf_tri_loop(*s,t)
+	    {
+		for (i = 0; i < 3; ++i)
+		{
+		    p = Point_of_tri(t)[i];
+		    if (sorted(p)) continue;
+	    	    for (i = 0; i < dim; ++i)
+			Coords(p)[i] += disp[i];
+		    sorted(p) = YES;
+		}
+	    }
+	}
+	intfc_curve_loop(intfc,c)
+	{
+	    if (curve_of_boundary_hs(*c))
+	    {
+		printf("Skip boundary curve:\n");
+		continue;
+	    }
+	    b = (*c)->first;	p = b->start;
+	    if (!sorted(p))
+	    {
+	    	for (i = 0; i < dim; ++i)
+		    Coords(p)[i] += disp[i];
+	    	sorted(p) = YES;
+	    }
+	    curve_bond_loop(*c,b)
+	    {
+		p = b->end;
+		if (sorted(p)) continue;
+	    	for (i = 0; i < dim; ++i)
+		    Coords(p)[i] += disp[i];
+	    	sorted(p) = YES;
+	    }
+	}
+}	/* end I_TransInteriorIntfcPoints */
+
+LOCAL boolean curve_of_boundary_hs(
+	CURVE *c)
+{
+	SURFACE **s;
+	curve_pos_surf_loop(c,s)
+	{
+	    if (Boundary_hs(Hyper_surf(*s)))
+		return YES;
+	}
+	curve_neg_surf_loop(c,s)
+	{
+	    if (Boundary_hs(Hyper_surf(*s)))
+		return YES;
+	}
+	return NO;
+}	/* end curve_of_boundary_hs */

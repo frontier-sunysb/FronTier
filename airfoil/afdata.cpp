@@ -34,7 +34,8 @@ extern void printAfExtraDada(
             if (wave_type(hs) != ELASTIC_BOUNDARY) continue;
             FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
             for (i = 0; i < dim; ++i)
-                fprintf(outfile,"%24.18g %24.18g\n",sl->impulse[i],sr->impulse[i]);
+                fprintf(outfile,"%24.18g %24.18g\n",sl->impulse[i],
+					sr->impulse[i]);
             for (i = 0; i < dim; ++i)
                 fprintf(outfile,"%24.18g ",p->vel[i]);
 	    fprintf(outfile,"\n");
@@ -442,3 +443,32 @@ extern void optimizeElasticMesh(
 	    (void) printf("Leaving optimizeElasticMesh()\n");
 }	/* end optimizeElasticMesh */
 
+extern void modifyInitialization(
+	Front *front)
+{
+	char *inname = InName(front);
+	FILE *infile = fopen(inname,"r");
+	char string[200];
+	double disp[MAXD];
+	INTERFACE *intfc = front->interf;
+	
+	if (CursorAfterStringOpt(infile,
+            "Entering yes to modify initialization:"))
+        {
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] != 'y' && string[0] != 'Y')
+		return;
+        }
+	CursorAfterString(infile,
+		"Enter yes for translation of interior interface:");
+        fscanf(infile,"%s",string);
+        (void) printf("%s\n",string);
+	if (string[0] != 'y' || string[0] != 'Y')
+	{
+	    CursorAfterString(infile,"Enter displacement of translation:");
+            fscanf(infile,"%lf %lf %lf",disp,disp+1,disp+2);
+            (void) printf("%lf %lf %lf\n",disp[0],disp[1],disp[2]);
+	}
+	I_TransInteriorIntfcPoints(intfc,disp);
+}	/* end modifyInitialization */

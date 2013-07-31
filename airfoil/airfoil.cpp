@@ -127,6 +127,7 @@ int main(int argc, char **argv)
 	else
 	{
 	    read_iF_dirichlet_bdry_data(in_name,&front,f_basic);
+	    modifyInitialization(&front);
 	}
 
 	/* Time control */

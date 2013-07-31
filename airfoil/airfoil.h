@@ -338,6 +338,7 @@ extern void printAfExtraDada(Front*,char*);
 extern void readAfExtraDada(Front*,char*);
 extern void printHyperSurfQuality(Front*);
 extern void optimizeElasticMesh(Front*);
+extern void modifyInitialization(Front*);
 
 // afprops.cpp
 

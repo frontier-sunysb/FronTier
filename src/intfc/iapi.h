@@ -74,6 +74,16 @@ extern "C" {
    IMPORT  SURFACE *I_AddTwoSurfaces(SURFACE *surf1,
 			SURFACE *surf2);
 
+/*! \fn void I_TransInteriorIntfcPoints(INTERFACE *intfc,double *displacement)
+    \ingroup INTERFACE
+    \brief This function makes translation of all interior points in
+     the interface.
+    \param intfc @b inout Input of the interface.
+    \param displacement @b in Displacement of points.
+ */
+   IMPORT  void I_TransInteriorIntfcPoints(INTERFACE *intfc,
+			double *displacement);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif
