@@ -474,5 +474,6 @@ extern int ifluid_find_state_at_dual_crossing(Front*,int*,GRID_DIRECTION,
 extern double p_jump(POINTER,int,double*);
 extern double grad_p_jump_n(POINTER,int,double*,double*);
 extern double grad_p_jump_t(POINTER,int,int,double*,double*);
+extern boolean neumann_type_bdry(int);
 
 #endif

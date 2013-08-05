@@ -175,6 +175,7 @@ extern void initWaterDrops(
 	double T[MAXD];
 	int dim = front->rect_grid->dim;
 	int w_type;
+	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
 
 	(void) printf("Water phase state can be\n");
 	(void) printf("\tIce Particle (I)\n");
@@ -260,7 +261,6 @@ extern void initWaterDrops(
 	    else if (dim == 3)
 	    {
 		SURFACE **s;
-		printf("i = %d\n",i);
 	    	FT_MakeEllipticSurf(front,center[i],radii,SOLID_COMP,
 			LIQUID_COMP2,w_type,1,&surf);
 		Gindex(surf) = gindex[i] + 10;
@@ -272,6 +272,17 @@ extern void initWaterDrops(
 		}
 	    }
 	}
+	CursorAfterString(infile,
+		"Enter density and viscosity of ambient fluid:");
+        fscanf(infile,"%lf %lf",&iFparams->rho1,&iFparams->mu1);
+        (void) printf("%f %f\n",iFparams->rho1,iFparams->mu1);
+	CursorAfterString(infile,"Enter gravity:");
+        for (i = 0; i < dim; ++i)
+        {
+            fscanf(infile,"%lf",&iFparams->gravity[i]);
+            (void) printf("%f ",iFparams->gravity[i]);
+        }
+        (void) printf("\n");
 	FT_FreeThese(3,radius,gindex,center);
 	if (debugging("init_intfc"))
 	{

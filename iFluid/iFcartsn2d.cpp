@@ -580,7 +580,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
                         else
                             U_nb[nb] = getStateVel[l](intfc_state);
 			if (wave_type(hs) == DIRICHLET_BOUNDARY ||
-                            wave_type(hs) == NEUMANN_BOUNDARY)
+			    neumann_type_bdry(wave_type(hs)))
                             mu[nb] = mu0;
 			else
 			    mu[nb] = 1.0/2*(mu0 + field->mu[index_nb[nb]]);
