@@ -60,9 +60,7 @@ LOCAL	boolean	match_tris_at_subdomain_bdry(SURFACE*,SURFACE*,TRI**,TRI**,
 LOCAL	boolean	match_two_tris(TRI*,TRI*);
 LOCAL	boolean	tri_cross_line(TRI*,double,int);
 LOCAL	boolean	tri_out_domain1(TRI*,double*,double*,int,int);
-LOCAL	int	append_adj_intfc_to_buffer1(INTERFACE*,INTERFACE*,
-					   RECT_GRID*,int,int);
-LOCAL	int	append_adj_intfc_to_buffer1_old(INTERFACE*,INTERFACE*,
+LOCAL	int	append_adj_intfc_to_buffer3(INTERFACE*,INTERFACE*,
 					   RECT_GRID*,int,int);
 LOCAL	int	append_buffer_surface3(SURFACE*,SURFACE*,RECT_GRID*,int,int,
 				      P_LINK*,int);
@@ -247,30 +245,18 @@ LOCAL boolean buffer_extension3d3(
 
 		/* Patch tris from adj_intfc to intfc */
 
-	if (debugging("scatter_old"))
-	{
-	    if (!append_adj_intfc_to_buffer1_old(intfc,adj_intfc,gr,dir,nb))
-	    {
-	        status = FUNCTION_FAILED;
-	        (void) printf("WARNING in buffer_extension3d3(), "
-	                  "append_adj_intfc_to_buffer1() failed\n");
-	    }
-	    DEBUG_LEAVE(buffer_extension3d3)
-	    return status;
-	}
-
-	if (!append_adj_intfc_to_buffer1(intfc,adj_intfc,gr,dir,nb))
+	if (!append_adj_intfc_to_buffer3(intfc,adj_intfc,gr,dir,nb))
 	{
 	    status = FUNCTION_FAILED;
 	    (void) printf("WARNING in buffer_extension3d3(), "
-	                  "append_adj_intfc_to_buffer1() failed\n");
+	                  "append_adj_intfc_to_buffer3() failed\n");
 	}
 
 	DEBUG_LEAVE(buffer_extension3d3)
 	return status;
 }	/*end buffer_extension3d3*/
 
-LOCAL 	int append_adj_intfc_to_buffer1(
+LOCAL 	int append_adj_intfc_to_buffer3(
 	INTERFACE	*intfc,		/* my interface 	       */
 	INTERFACE	*adj_intfc,	/* received interface	       */
 	RECT_GRID	*grid,		/* Rectangular grid for region */
@@ -285,7 +271,7 @@ LOCAL 	int append_adj_intfc_to_buffer1(
 	static int      len_p_table = 0;
 	boolean      	corr_surf_found;
 
-	DEBUG_ENTER(append_adj_intfc_to_buffer1)
+	DEBUG_ENTER(append_adj_intfc_to_buffer3)
 
 	if (DEBUG)
 	{
@@ -295,12 +281,12 @@ LOCAL 	int append_adj_intfc_to_buffer1(
 	    static const char *strnb[2] = { "LOWER", "UPPER" };
 
 	    (void) sprintf(dname,"fscatter/"
-				 "append_adj_intfc_to_buffer1/Data%d-%s_%s/%s",
+				 "append_adj_intfc_to_buffer3/Data%d-%s_%s/%s",
 			         ntimes[dir][nb],strdir[dir],strnb[nb],
 				 "intfc_gv");
 	    gview_plot_interface(dname,intfc);
 	    (void) sprintf(dname,"fscatter/"
-				 "append_adj_intfc_to_buffer1/Data%d-%s_%s/%s",
+				 "append_adj_intfc_to_buffer3/Data%d-%s_%s/%s",
 			         ntimes[dir][nb],strdir[dir],strnb[nb],
 				 "adj_intfc_gv");
 	    gview_plot_interface(dname,adj_intfc);
@@ -352,10 +338,10 @@ LOCAL 	int append_adj_intfc_to_buffer1(
 			set_current_interface(cur_intfc);
 			
 			(void) printf("WARNING in "
-			              "append_adj_intfc_to_buffer1(), "
+			              "append_adj_intfc_to_buffer3(), "
 			              "append surface failed\n");
 			
-			DEBUG_LEAVE(append_adj_intfc_to_buffer1)
+			DEBUG_LEAVE(append_adj_intfc_to_buffer3)
 			return NO;
 		    }
 		}
@@ -374,117 +360,9 @@ LOCAL 	int append_adj_intfc_to_buffer1(
 	
 	set_current_interface(cur_intfc);
 	
-	DEBUG_LEAVE(append_adj_intfc_to_buffer1)
+	DEBUG_LEAVE(append_adj_intfc_to_buffer3)
 	return YES;
-}		/*end append_adj_intfc_to_buffer1*/
-
-LOCAL 	int append_adj_intfc_to_buffer1_old(
-	INTERFACE	*intfc,		/* my interface 	       */
-	INTERFACE	*adj_intfc,	/* received interface	       */
-	RECT_GRID	*grid,		/* Rectangular grid for region */
-	int		dir,
-	int		nb)
-{
-	INTERFACE	*cur_intfc;
-	SURFACE		**s, **as;
-	int		p_size;		/*Size of space allocated for p_table*/
-	static P_LINK	*p_table = NULL;/* Table of matching points on intfc
-					 * and adj_intfc*/
-	static int      len_p_table = 0;
-	boolean      	corr_surf_found;
-
-	DEBUG_ENTER(append_adj_intfc_to_buffer1)
-
-	if (DEBUG)
-	{
-	    char dname[256];
-	    static int ntimes[3][2];
-	    static const char *strdir[3] = { "X", "Y", "Z" };
-	    static const char *strnb[2] = { "LOWER", "UPPER" };
-
-	    (void) sprintf(dname,"fscatter/"
-				 "append_adj_intfc_to_buffer1/Data%d-%s_%s/%s",
-			         ntimes[dir][nb],strdir[dir],strnb[nb],
-				 "intfc_gv");
-	    gview_plot_interface(dname,intfc);
-	    (void) sprintf(dname,"fscatter/"
-				 "append_adj_intfc_to_buffer1/Data%d-%s_%s/%s",
-			         ntimes[dir][nb],strdir[dir],strnb[nb],
-				 "adj_intfc_gv");
-	    gview_plot_interface(dname,adj_intfc);
-
-	    ++ntimes[dir][nb];
-	}
-
-	cur_intfc = current_interface();
-	set_current_interface(intfc);
-
-	p_size = 4*(adj_intfc->num_points) + 1;
-	if (len_p_table < p_size)
-	{
-	    len_p_table = p_size;
-	    if (p_table != NULL)
-		free(p_table);
-	    uni_array(&p_table,len_p_table,sizeof(P_LINK));
-	}
-
-	reset_hash_table(p_table,p_size);
-	
-	/* Begin patching adj_intfc to current interface */
-	for (s = intfc->surfaces; s && *s; ++s)
-	{
-	    corr_surf_found = NO;
-	    for (as = adj_intfc->surfaces; as && *as; ++as)
-	    {
-		/*
-		*  COMMENT -
-		*  The Hyper_surf_index() function is not
-		*  fully supported.  This will fail in the
-		*  presence of interface changes in topology
-		*  TODO: FULLY SUPPORT THIS OBJECT
-		*/
-		if (Hyper_surf_index(*s) == Hyper_surf_index(*as))
-		{
-		    corr_surf_found = YES;
-		    if (!append_buffer_surface3(*s,*as,grid,dir,nb,p_table,
-						   p_size))
-		    {
-			set_current_interface(cur_intfc);
-			
-			(void) printf("WARNING in "
-			              "append_adj_intfc_to_buffer1(), "
-			              "append surface failed\n");
-			if (debugging("append_surf"))
-			{
-			    (void) printf("Surface\n");
-			    (void) print_surface(*s);
-			    (void) printf("Adjacent surface\n");
-			    (void) print_surface(*as);
-			    (void) printf("intfc\n");
-			    (void) print_interface(intfc);
-			    (void) printf("adj_intfc\n");
-			    (void) print_interface(adj_intfc);
-			}
-			
-			DEBUG_LEAVE(append_adj_intfc_to_buffer1)
-			return NO;
-		    }
-		}
-	    }
-	    if (!corr_surf_found && as && *as)
-	    {
-	    	SURFACE *surf;
-		if (as==NULL)
-		    continue;
-		surf = copy_buffer_surface(*as,p_table,p_size);
-		Hyper_surf_index(surf) = Hyper_surf_index((*as));
-	    }
-	}
-	set_current_interface(cur_intfc);
-	DEBUG_LEAVE(append_adj_intfc_to_buffer1)
-	return YES;
-}		/*end append_adj_intfc_to_buffer1*/
-
+}		/*end append_adj_intfc_to_buffer3*/
 
 LOCAL int append_buffer_surface3(
 	SURFACE		*surf,

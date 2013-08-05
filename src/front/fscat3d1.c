@@ -73,8 +73,6 @@ LOCAL	boolean	tri_cross_line(TRI*,double,int);
 LOCAL	boolean	tri_out_domain1(TRI*,double*,double*,int,int);
 LOCAL	int	append_adj_intfc_to_buffer1(INTERFACE*,INTERFACE*,
 					   RECT_GRID*,int,int);
-LOCAL	int	append_adj_intfc_to_buffer1_old(INTERFACE*,INTERFACE*,
-					   RECT_GRID*,int,int);
 LOCAL	int	append_buffer_surface1(SURFACE*,SURFACE*,RECT_GRID*,int,int,
 				      P_LINK*,int);
 LOCAL	void	clip_intfc_at_grid_bdry1(INTERFACE*);
@@ -208,28 +206,10 @@ void    construct_reflect_bdry(
                 if (rect_boundary_type(intfc,i,j) != REFLECTION_BOUNDARY)
                     continue;
 
-if(debugging("opbdz"))
-{
-                /*TMP deal with open bdry*/
-                if(i == 2 && j == 0)
-                    set_open_bdry_flag(YES);
-                else
-                    set_open_bdry_flag(NO);
-}
-else
-{
                 set_open_bdry_flag(NO);
-}
 
                 clip_intfc_in_dir(intfc, i, j);
                 buf_intfc = cut_buf_interface1(intfc,i,j,me,him);
-
-                    if(NO && i == 0 && j ==0 && pp_mynode() == 44)
-                    {
-                        printf("#cut_ref -2\n");
-                        tecplot_interface("cut_ref_buf_intfc_2.plt", buf_intfc);
-                    }
-
 
                 nor = nors + 3*i + 9*j;
                 p[i] = (j > 0) ? U[i] : L[i];
@@ -238,20 +218,8 @@ else
 
                 if(debugging("cut_ref"))
                 {
-                    if(NO && i == 0 && j ==1 && pp_mynode() == 1)
-                    {
-                        printf("#cut_ref 0\n");
-                        tecplot_interface("cut_ref_intfc_bf.plt", intfc);
-                    }
-
                     cut_intfc_along_bdry(i, j, intfc);
                     cut_intfc_along_bdry(i, j, buf_intfc);
-
-                    if(NO && i == 0 && j ==1 && pp_mynode() == 1)
-                    {
-                        printf("#cut_ref 1\n");
-                        tecplot_interface("cut_ref_intfc.plt", intfc);
-                    }
 
                     flag_buffer_tris(i, j, intfc);
                     printf("#cut_ref  buf_intfc\n");
@@ -284,54 +252,15 @@ else
                 reflect_interface(buf_intfc, p, nor);
                 reflect_curves_on_intfc(buf_intfc, p, nor);
 
-                    if(NO && i == 0 && j ==0 && pp_mynode() == 44)
-                    {
-                        printf("#cut_ref -11\n");
-
-                        null_sides_are_consistent();
-                        check_print_intfc("After cut_buf buf", "intfc", 'g',
-                                          intfc, 1, -1, YES);
-
-                        null_sides_are_consistent();
-                        check_print_intfc("After cut_buf buf", "cut_intfc_buf", 'g',
-                                          buf_intfc, 1, -1, YES);
-                    }
-
                 make_ref_strip(p, nor, intfc);
                 make_ref_strip(p, nor, buf_intfc);
 
-                    if(i == 0 && j ==0 && pp_mynode() == 44 && NO)
-                    {
-                        printf("#cut_ref -12\n");
-                        tecplot_interface("cut_ref_buf_intfc_1_2.plt", buf_intfc);
-
-                        null_sides_are_consistent();
-                        check_print_intfc("After cut_buf buf", "cut_intfcc", 'g',
-                                          intfc, 1, 1, NO);
-
-                        null_sides_are_consistent();
-                        check_print_intfc("After cut_buf buf", "cut_intfc_bufc", 'g',
-                                          buf_intfc, 1, 1, NO);
-                    }
-
-
                 set_current_interface(intfc);
-
 
                 status = FUNCTION_SUCCEEDED;
                 set_ref_append(YES);
                 status = buffer_extension3d1(intfc,buf_intfc,i,j,status);
                 set_ref_append(NO);
-
-                    if(NO && i == 0 && j ==0 && pp_mynode() == 4)
-                    {
-                        printf("#cut_ref -13\n");
-                        tecplot_interface("cut_ref_buf_intfc_1_3.plt", buf_intfc);
-
-                        null_sides_are_consistent();
-                        check_print_intfc("After cut_buf buf", "intfcd", 'g',
-                                          intfc, 1, 1, NO);
-                    }
 
                 if (!status)
                 {
@@ -2198,18 +2127,6 @@ LOCAL boolean buffer_extension3d1(
 
 		/* Patch tris from adj_intfc to intfc */
 
-	if (debugging("scatter_old"))
-	{
-	    if (!append_adj_intfc_to_buffer1_old(intfc,adj_intfc,gr,dir,nb))
-	    {
-	        status = FUNCTION_FAILED;
-	        (void) printf("WARNING in buffer_extension3d1(), "
-	                  "append_adj_intfc_to_buffer1() failed\n");
-	    }
-	    DEBUG_LEAVE(buffer_extension3d1)
-	    return status;
-	}
-
 	if (!append_adj_intfc_to_buffer1(intfc,adj_intfc,gr,dir,nb))
 	{
 	    status = FUNCTION_FAILED;
@@ -2387,115 +2304,6 @@ LOCAL 	int append_adj_intfc_to_buffer1(
 	return YES;
 }		/*end append_adj_intfc_to_buffer1*/
 
-LOCAL 	int append_adj_intfc_to_buffer1_old(
-	INTERFACE	*intfc,		/* my interface 	       */
-	INTERFACE	*adj_intfc,	/* received interface	       */
-	RECT_GRID	*grid,		/* Rectangular grid for region */
-	int		dir,
-	int		nb)
-{
-	INTERFACE	*cur_intfc;
-	SURFACE		**s, **as;
-	int		p_size;		/*Size of space allocated for p_table*/
-	static P_LINK	*p_table = NULL;/* Table of matching points on intfc
-					 * and adj_intfc*/
-	static int      len_p_table = 0;
-	boolean      	corr_surf_found;
-
-	DEBUG_ENTER(append_adj_intfc_to_buffer1)
-
-	if (DEBUG)
-	{
-	    char dname[256];
-	    static int ntimes[3][2];
-	    static const char *strdir[3] = { "X", "Y", "Z" };
-	    static const char *strnb[2] = { "LOWER", "UPPER" };
-
-	    (void) sprintf(dname,"fscatter/"
-				 "append_adj_intfc_to_buffer1/Data%d-%s_%s/%s",
-			         ntimes[dir][nb],strdir[dir],strnb[nb],
-				 "intfc_gv");
-	    gview_plot_interface(dname,intfc);
-	    (void) sprintf(dname,"fscatter/"
-				 "append_adj_intfc_to_buffer1/Data%d-%s_%s/%s",
-			         ntimes[dir][nb],strdir[dir],strnb[nb],
-				 "adj_intfc_gv");
-	    gview_plot_interface(dname,adj_intfc);
-
-	    ++ntimes[dir][nb];
-	}
-
-	cur_intfc = current_interface();
-	set_current_interface(intfc);
-
-	p_size = 4*(adj_intfc->num_points) + 1;
-	if (len_p_table < p_size)
-	{
-	    len_p_table = p_size;
-	    if (p_table != NULL)
-		free(p_table);
-	    uni_array(&p_table,len_p_table,sizeof(P_LINK));
-	}
-
-	reset_hash_table(p_table,p_size);
-	
-	/* Begin patching adj_intfc to current interface */
-	for (s = intfc->surfaces; s && *s; ++s)
-	{
-	    corr_surf_found = NO;
-	    for (as = adj_intfc->surfaces; as && *as; ++as)
-	    {
-		/*
-		*  COMMENT -
-		*  The Hyper_surf_index() function is not
-		*  fully supported.  This will fail in the
-		*  presence of interface changes in topology
-		*  TODO: FULLY SUPPORT THIS OBJECT
-		*/
-		if (Hyper_surf_index(*s) == Hyper_surf_index(*as))
-		{
-		    corr_surf_found = YES;
-		    if (!append_buffer_surface1(*s,*as,grid,dir,nb,p_table,
-						   p_size))
-		    {
-			set_current_interface(cur_intfc);
-			
-			(void) printf("WARNING in "
-			              "append_adj_intfc_to_buffer1(), "
-			              "append surface failed\n");
-			if (debugging("append_surf"))
-			{
-			    (void) printf("Surface\n");
-			    (void) print_surface(*s);
-			    (void) printf("Adjacent surface\n");
-			    (void) print_surface(*as);
-			    (void) printf("intfc\n");
-			    (void) print_interface(intfc);
-			    (void) printf("adj_intfc\n");
-			    (void) print_interface(adj_intfc);
-			}
-			
-			DEBUG_LEAVE(append_adj_intfc_to_buffer1)
-			return NO;
-		    }
-		}
-	    }
-	    if (!corr_surf_found && as && *as)
-	    {
-	    	SURFACE *surf;
-		if (as==NULL)
-		    continue;
-		surf = copy_buffer_surface(*as,p_table,p_size);
-		Hyper_surf_index(surf) = Hyper_surf_index((*as));
-	    }
-	}
-	set_current_interface(cur_intfc);
-	DEBUG_LEAVE(append_adj_intfc_to_buffer1)
-	return YES;
-}		/*end append_adj_intfc_to_buffer1*/
-
-
-
 EXPORT void set_floating_point_tolerance1(
 	double		*h)
 {
@@ -2579,13 +2387,6 @@ LOCAL int append_buffer_surface1(
 		tri_bond_cross_test(tri,crx_coord,dir) == YES)
 	    {
 		tris_s[ns++] = tri;
-		/*
-		if(the_tri(tri))
-		{
-		    printf("#the_tri found\n");
-		    print_tri(tri, surf->interface);
-		}
-		*/
 	    }
 	}
 
@@ -2607,6 +2408,7 @@ LOCAL int append_buffer_surface1(
 	}
 	else 
 	{
+	    printf("dir = %d  nb = %d\n",dir,nb);
 	    gview_plot_surface("surf_s",surf);
 	    gview_plot_surface("surf_a",adj_surf);
 	    gview_plot_tri_list("tris_s",tris_s,ns);

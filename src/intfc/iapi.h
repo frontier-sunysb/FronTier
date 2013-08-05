@@ -3,8 +3,10 @@
     \brief The iapi.h contains the functions used to operate the interface.
  */
 
-/*! \defgroup CURVE    Curve Functions
-/*! \defgroup SURFACE  SURFACE Functions
+/*! \defgroup POINT      Point Functions
+/*! \defgroup CURVE      Curve Functions
+/*! \defgroup SURFACE    SURFACE Functions
+/*! \defgroup INTERFACE  INTERFACE Functions
  **/
 
 #include <intfc/int.h>
@@ -83,6 +85,51 @@ extern "C" {
  */
    IMPORT  void I_TransInteriorIntfcPoints(INTERFACE *intfc,
 			double *displacement);
+
+/*! \fn void I_SphericalRoratePoint(POINT *p,double *center,double phi,double theta,boolean first)
+    \ingroup POINT
+    \brief This function rotate the point about the center with spherical angle.
+    \param p @b inout Point to be rotated.
+    \param center @b in Center of the rotation.
+    \param phi @b in Azimuthal angle.
+    \param theta @b in Polar angle.
+    \param first @b in Flag if rotation parameters is first uesd.
+ */
+   IMPORT  void I_SphericalRotatePoint(
+			POINT *p,
+        		double *center,                 /* Rotation center */
+        		double phi,                     /* Azimuthal angle */
+        		double theta,                   /* Polar angle */
+        		boolean first);
+
+/*! \fn void I_PolarRoratePoint(POINT *p,double *center,double phi,boolean first)
+    \ingroup POINT
+    \brief This function rotates the point about the center with polar angle.
+    \param p @b inout Point to be rotated.
+    \param center @b in Center of the rotation.
+    \param phi @b in Polar angle.
+    \param first @b in Flag if rotation parameters is first uesd.
+ */
+   IMPORT  void I_PolarRotatePoint(
+			POINT *p,
+        		double *center,                 /* Rotation center */
+        		double phi,                     /* Polar angle */
+        		boolean first);
+
+/*! \fn void I_SphericalRorateInteriorIntfcPoints(INTERFACE *intfc,double *center,double phi,double theta,boolean first)
+    \ingroup POINT
+    \brief This function rotates the interior points of the input interface 
+     about the center with spherical angle.
+    \param intfc @b inout Interface whose interior points to be rotated.
+    \param center @b in Center of the rotation.
+    \param phi @b in Azimuthal angle.
+    \param theta @b in Polar angle.
+ */
+   IMPORT  void I_SphericalRotateInteriorIntfcPoints(
+			INTERFACE *intfc,
+        		double *center,                 /* Rotation center */
+        		double phi,                     /* Azimuthal angle */
+        		double theta);                   /* Polar angle */
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }

@@ -143,7 +143,7 @@ static void initWing(
 		move_closed_loop_node(curve,bl);
 	}
 	p = curve->first->start;
-	rotate_point_with_angle(p,com,alpha,YES);
+	I_PolarRotatePoint(p,com,alpha,YES);
 	Gindex(p) = i = 0;
 	++i;
 	for (b = curve->first; b != NULL; b = b->next)
@@ -151,7 +151,7 @@ static void initWing(
 	    if (b == curve->last && is_closed_curve(curve))
 		continue;
 	    p = b->end;
-	    rotate_point_with_angle(p,com,alpha,NO);
+	    I_PolarRotatePoint(p,com,alpha,NO);
 	    Gindex(p) = i;
 	    ++i;
 	}

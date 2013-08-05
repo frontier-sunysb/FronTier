@@ -805,6 +805,7 @@ void HYPERB_SOLVER::appendGhostBuffer(
 		    case NEUMANN_BOUNDARY:
 		    case MOVABLE_BODY_BOUNDARY:
 		    case GROWING_BODY_BOUNDARY:
+		    case ICE_PARTICLE_BOUNDARY:
 		    	setNeumannStates(vst,m_vst,hs,state,ic,idir,
 					nb,0,i,comp);
 		    	break;
@@ -849,6 +850,7 @@ void HYPERB_SOLVER::appendGhostBuffer(
 		    case NEUMANN_BOUNDARY:
 		    case MOVABLE_BODY_BOUNDARY:
 		    case GROWING_BODY_BOUNDARY:
+		    case ICE_PARTICLE_BOUNDARY:
 		    	setNeumannStates(vst,m_vst,hs,state,ic,idir,
 					nb,n,i,comp);
 		    	break;

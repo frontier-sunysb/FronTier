@@ -391,8 +391,8 @@ IMPORT	int 	next_null_sided_tri(TRI*,POINT*,TRI**);
 IMPORT	int 	prev_null_sided_tri(TRI*,POINT*,TRI**);
 IMPORT 	POINT *insert_point_in_surface(int,double*,SURFACE*);
 IMPORT 	CURVE *insert_curve_in_surface(double*,NODE*,NODE*,SURFACE*);
-IMPORT 	void rotate_point_with_angle(POINT*,double*,double,boolean);
-IMPORT 	void rotate_point_with_polar_angle(POINT*,double*,double,double,
+IMPORT 	void rotate_point_with_polar_angle(POINT*,double*,double,boolean);
+IMPORT 	void rotate_point_with_spherical_angle(POINT*,double*,double,double,
 					boolean);
 
 /*	setb1d.c*/

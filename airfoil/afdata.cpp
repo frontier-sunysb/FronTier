@@ -449,7 +449,8 @@ extern void modifyInitialization(
 	char *inname = InName(front);
 	FILE *infile = fopen(inname,"r");
 	char string[200];
-	double disp[MAXD];
+	double disp[MAXD],center[MAXD];
+	double phi,theta;
 	INTERFACE *intfc = front->interf;
 	
 	if (CursorAfterStringOpt(infile,
@@ -468,7 +469,23 @@ extern void modifyInitialization(
 	{
 	    CursorAfterString(infile,"Enter displacement of translation:");
             fscanf(infile,"%lf %lf %lf",disp,disp+1,disp+2);
-            (void) printf("%lf %lf %lf\n",disp[0],disp[1],disp[2]);
+            (void) printf("%f %f %f\n",disp[0],disp[1],disp[2]);
+	    I_TransInteriorIntfcPoints(intfc,disp);
 	}
-	I_TransInteriorIntfcPoints(intfc,disp);
+	CursorAfterString(infile,
+		"Enter yes for rotation of interior interface:");
+        fscanf(infile,"%s",string);
+        (void) printf("%s\n",string);
+	if (string[0] != 'y' || string[0] != 'Y')
+	{
+	    CursorAfterString(infile,"Enter center of rotation:");
+            fscanf(infile,"%lf %lf %lf",center,center+1,center+2);
+            (void) printf("%f %f %f\n",center[0],center[1],center[2]);
+	    CursorAfterString(infile,"Enter azimuthal and polar angles:");
+            fscanf(infile,"%lf %lf",&phi,&theta);
+            (void) printf("%f %f\n",phi,theta);
+	    theta *= PI/180.0;
+	    phi *= PI/180.0;
+	    I_SphericalRotateInteriorIntfcPoints(intfc,center,phi,theta);
+	}
 }	/* end modifyInitialization */

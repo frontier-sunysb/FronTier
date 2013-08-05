@@ -868,7 +868,7 @@ repeat:
  *	This is a two dimensional rotation with polar angles 
  */
 
-EXPORT void rotate_point_with_angle(
+EXPORT void rotate_point_with_polar_angle(
 	POINT *p,
 	double *center,			/* Rotation center */
 	double phi,			/* Angle in counter-clock wise dir */
@@ -890,17 +890,17 @@ EXPORT void rotate_point_with_angle(
 	y1 = rot_matrix[1][0]*x0 + rot_matrix[1][1]*y0;
 	Coords(p)[0] = x1 + center[0];
 	Coords(p)[1] = y1 + center[1];
-}	/* end rotate_point_with_angle */
+}	/* end rotate_point_with_polar_angle */
 
 /*	
  *	This is a three dimensional rotation with polar angles 
  */
 
-EXPORT void rotate_point_with_polar_angle(
+EXPORT void rotate_point_with_spherical_angle(
 	POINT *p,
 	double *center,			/* Rotation center */
-	double phi,			/* Polar angle */
-	double theta,			/* Azimuthal angle */
+	double phi,			/* Azimuthal angle */
+	double theta,			/* Polar angle */
 	boolean first)
 {
 	static double roty_matrix[3][3];
@@ -951,4 +951,4 @@ EXPORT void rotate_point_with_polar_angle(
 	}
 	for (i = 0; i < 3; i++)
 	    Coords(p)[i] += center[i];
-}	/* end rotate_point */
+}	/* end rotate_point_with_spherical_angle */

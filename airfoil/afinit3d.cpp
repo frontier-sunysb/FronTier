@@ -669,9 +669,9 @@ static boolean install_strings_and_rotate(
 	num_points = FT_NumOfSurfPoints(surf);
 	FT_VectorMemoryAlloc((POINTER*)&pts,num_points,sizeof(POINT*));
 	FT_ArrayOfSurfPoints(surf,pts);
-	rotate_point_with_polar_angle(nload->posn,cload,rot_phi,rot_theta,YES);
+	I_SphericalRotatePoint(nload->posn,cload,rot_phi,rot_theta,YES);
 	for (i = 0; i < num_points; ++i)
-	    rotate_point_with_polar_angle(pts[i],cload,rot_phi,rot_theta,NO);
+	    I_SphericalRotatePoint(pts[i],cload,rot_phi,rot_theta,NO);
 
 	FT_FreeThese(1,pts);
 	return YES;
@@ -894,9 +894,9 @@ static boolean install_strings_and_rotate_w_gores(
 	num_points = FT_NumOfSurfPoints(surf);
 	FT_VectorMemoryAlloc((POINTER*)&pts,num_points,sizeof(POINT*));
 	FT_ArrayOfSurfPoints(surf,pts);
-	rotate_point_with_polar_angle(nload->posn,cload,rot_phi,rot_theta,YES);
+	I_SphericalRotatePoint(nload->posn,cload,rot_phi,rot_theta,YES);
 	for (i = 0; i < num_points; ++i)
-	    rotate_point_with_polar_angle(pts[i],cload,rot_phi,rot_theta,NO);
+	    I_SphericalRotatePoint(pts[i],cload,rot_phi,rot_theta,NO);
 
 	FT_FreeThese(1,pts);
 	return YES;
@@ -1132,63 +1132,6 @@ static boolean change_mono_boundary(
 	}
 	return YES;
 }	/* end change_mono_boundary */
-
-static void rotate_point(
-	POINT *p,
-	double *center,			// Rotation center
-	double phi,			// Polar angle
-	double theta,			// Azimuthal angle
-	boolean first)
-{
-	static double roty_matrix[3][3];
-	static double rotz_matrix[3][3];
-	double pt[3];
-	int i,j;
-
-	if (first == YES)
-	{
-	    /* Set up rotation matrix */
-	    roty_matrix[0][0] = cos(theta);
-	    roty_matrix[0][1] = 0.0;
-	    roty_matrix[0][2] = sin(theta);
-	    roty_matrix[1][0] = 0.0;
-	    roty_matrix[1][1] = 1.0;
-	    roty_matrix[1][2] = 0.0;
-	    roty_matrix[2][0] = -sin(theta);
-	    roty_matrix[2][1] = 0.0;
-	    roty_matrix[2][2] = cos(theta);
-	    
-	    rotz_matrix[0][0] = cos(phi);
-	    rotz_matrix[0][1] = -sin(phi);
-	    rotz_matrix[0][2] = 0.0;
-	    rotz_matrix[1][0] = sin(phi);
-	    rotz_matrix[1][1] = cos(phi);
-	    rotz_matrix[1][2] = 0.0;
-	    rotz_matrix[2][0] = 0.0;
-	    rotz_matrix[2][1] = 0.0;
-	    rotz_matrix[2][2] = 1.0;
-	}
-	for (i = 0; i < 3; i++)
-	    Coords(p)[i] -= center[i];
-	for (i = 0; i < 3; i++)
-	{
-	    pt[i] = 0.0; 
-	    for (j = 0; j < 3; j++)
-	    {
-		pt[i] += roty_matrix[i][j]*Coords(p)[j];
-	    }
-	}
-	for (i = 0; i < 3; i++)
-	{
-	    Coords(p)[i] = 0.0;
-	    for (j = 0; j < 3; j++)
-	    {
-		Coords(p)[i] += rotz_matrix[i][j]*pt[j];
-	    }
-	}
-	for (i = 0; i < 3; i++)
-	    Coords(p)[i] += center[i];
-}	/* end rotate_point */
 
 static void set_side_curves(
 	double *L,
@@ -1600,9 +1543,9 @@ static boolean install_strings_and_rotate_w_fixer(
 	num_points = FT_NumOfSurfPoints(surf);
 	FT_VectorMemoryAlloc((POINTER*)&pts,num_points,sizeof(POINT*));
 	FT_ArrayOfSurfPoints(surf,pts);
-	rotate_point_with_polar_angle(nload->posn,cload,rot_phi,rot_theta,YES);
+	I_SphericalRotatePoint(nload->posn,cload,rot_phi,rot_theta,YES);
 	for (i = 0; i < num_points; ++i)
-	    rotate_point_with_polar_angle(pts[i],cload,rot_phi,rot_theta,NO);
+	    I_SphericalRotatePoint(pts[i],cload,rot_phi,rot_theta,NO);
 
 	FT_FreeThese(1,pts);
 	return YES;

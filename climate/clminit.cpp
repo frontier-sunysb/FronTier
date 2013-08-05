@@ -4,7 +4,7 @@
 static void prompt_for_rigid_body_params(int,char*,RG_PARAMS*);
 static void set_rgbody_params(RG_PARAMS,HYPER_SURF*);
 static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
-static void initRandomDrops(Front*,double**,double*,int,
+static void initRandomDrops(Front*,double**,double*,int*,int*,
 				double,double);
 
 extern void init_fluid_state_func(
@@ -165,6 +165,7 @@ extern void initWaterDrops(
 	char *inname = InName(front);
 	FILE *infile = fopen(inname,"r");
 	int i,j,dir,num_drops;
+	int *gindex;
 	double **center,*radius;
 	double r_bar,sigma;
 	CURVE *curve;
@@ -174,7 +175,6 @@ extern void initWaterDrops(
 	double T[MAXD];
 	int dim = front->rect_grid->dim;
 	int w_type;
-	int global_index = 6;
 
 	(void) printf("Water phase state can be\n");
 	(void) printf("\tIce Particle (I)\n");
@@ -200,8 +200,9 @@ extern void initWaterDrops(
 	CursorAfterString(infile,"Enter number of water drops:");
 	fscanf(infile,"%d",&num_drops);
 	(void) printf("%d\n",num_drops);
-	FT_VectorMemoryAlloc((POINTER*)&radius,num_drops,sizeof(double));
-	FT_MatrixMemoryAlloc((POINTER*)&center,num_drops,MAXD,sizeof(double));
+	FT_VectorMemoryAlloc((POINTER*)&gindex,8*num_drops,sizeof(int));
+	FT_VectorMemoryAlloc((POINTER*)&radius,8*num_drops,sizeof(double));
+	FT_MatrixMemoryAlloc((POINTER*)&center,8*num_drops,MAXD,sizeof(double));
 
 	(void) printf("Two methods for initialization:\n");
 	(void) printf("\tPrompt initialization (P)\n");
@@ -239,7 +240,7 @@ extern void initWaterDrops(
 	    CursorAfterString(infile,msg);
 	    fscanf(infile,"%lf",&sigma);
 	    (void) printf("%f\n",sigma);
-	    initRandomDrops(front,center,radius,num_drops,r_bar,sigma);
+	    initRandomDrops(front,center,radius,gindex,&num_drops,r_bar,sigma);
 	    break;
 	default:
 	    (void) printf("Unknown option for initialization!\n");
@@ -251,31 +252,27 @@ extern void initWaterDrops(
 	    for (j = 0; j < dim; ++j)
 	    	radii[j] = radius[i];
 	    if (dim == 2)
+	    {
 	    	FT_MakeEllipticCurve(front,center[i],radii,SOLID_COMP,
 			LIQUID_COMP2,w_type,1,&curve);
+		Gindex(curve) = gindex[i] + 10;
+	    }
 	    else if (dim == 3)
 	    {
+		SURFACE **s;
+		printf("i = %d\n",i);
 	    	FT_MakeEllipticSurf(front,center[i],radii,SOLID_COMP,
 			LIQUID_COMP2,w_type,1,&surf);
-		Gindex(surf) = global_index;
-	    	for (dir = 0; dir < dim; ++dir)
-	    	{
-		    if (FT_BoundaryType(dir,0) == PERIODIC_BOUNDARY)
-		    {
-		    	psurf = I_CopySurface(surf);
-	    	    	for (j = 0; j < dim; ++j)
-		    	    T[j] = 0.0;
-		    	if (center[i][dir] > 0.5*(L[dir] + U[dir]))
-			    T[dir] = L[dir] - U[dir];
-		    	else
-			    T[dir] = U[dir] - L[dir];
-		    	I_ShiftSurface(psurf,T);
-			Gindex(psurf) = global_index;
-		    }
-	    	}
-		global_index++;
+		Gindex(surf) = gindex[i] + 10;
+	        intfc_surface_loop(front->interf,s)
+		{
+		    if (*s == surf) continue;
+		    if (Gindex(surf) == Gindex(*s))
+			I_AddTwoSurfaces(*s,surf);
+		}
 	    }
 	}
+	FT_FreeThese(3,radius,gindex,center);
 	if (debugging("init_intfc"))
 	{
 	    if (dim == 2)
@@ -289,26 +286,31 @@ static void initRandomDrops(
 	Front *front,
 	double **center,
 	double *radius,
-	int num_drops,
+	int *gindex,
+	int *num_drops,
 	double r_bar,
 	double sigma)
 {
-	int i,j,n,dir,side;
+	int i,j,ii,jj,n,dir,side;
 	GAUSS_PARAMS gauss_params;
 	UNIFORM_PARAMS uniform_params;
 	unsigned short int xsubi[3];
-	double x,dist;
+	double x,dist,R;
 	int dim = FT_Dimension();
 	double *L = front->rect_grid->L;
 	double *U = front->rect_grid->U;
 	double T[MAXD];
 	boolean periodic_pair_passed;
+	int np;			// number of periodic image
+	int n0,num_d0;		// number of true drops (without periodics)
+	double **pcenter;	// centers of periodic image
 
 	xsubi[0] = 10;
 	xsubi[1] = 100;
 	xsubi[2] = 1000;
+	FT_MatrixMemoryAlloc((POINTER*)&pcenter,8,MAXD,sizeof(double));
+	num_d0 = *num_drops;
 
-	n = 0;
 	gauss_params.mu = r_bar;
 	gauss_params.sigma = sigma;
 	uniform_params.a = 0.0;
@@ -316,14 +318,16 @@ static void initRandomDrops(
 
 	for (i = 0; i < dim; ++i)
 	    T[i] = U[i] - L[i];
-	for (i = 0; i < num_drops*3; ++i)
+
+	n = n0 = 0;
+	for (i = 0; i < 3*num_d0; ++i)
 	{
 	    for (j = 0; j < dim; ++j)
 	    {
 	    	x = dist_uniform((POINTER)&uniform_params,xsubi);
 	    	center[n][j] = L[j] + x*(U[j] - L[j]);
 	    }
-	    radius[n] = gauss_center_limit((POINTER)&gauss_params,xsubi);
+	    R = radius[n] = gauss_center_limit((POINTER)&gauss_params,xsubi);
 	    for (j = 0; j < n; ++j)
 	    {
 		dist = distance_between_positions(center[j],center[n],dim);
@@ -331,29 +335,53 @@ static void initRandomDrops(
 		    break;
 	    }
 	    if (j < n) continue;
+
+	    for (jj = 0; jj < dim; ++jj)
+		pcenter[0][jj] = center[n][jj];
+	    np = 1;
 	    periodic_pair_passed = YES;
 	    for (dir = 0; dir < dim; ++dir)
 	    {
 		if (FT_BoundaryType(dir,0) == PERIODIC_BOUNDARY)
 		{
-		    // Test periodic image
-		    double pcen[MAXD];
-		    for (j = 0; j < dim; ++j)
-			pcen[j] = center[n][j];
-		    if (center[n][dir] > 0.5*(L[dir] + U[dir]))
-			pcen[dir] -= T[dir];
-		    else
-			pcen[dir] += T[dir];
-	    	    for (j = 0; j < n; ++j)
+		    for (ii = 0; ii < np; ++ii)
+		    {
+		    	for (jj = 0; jj < dim; ++jj)
+			    pcenter[np+ii][jj] = pcenter[ii][jj];
+		    	if (pcenter[ii][dir] > 0.5*(L[dir] + U[dir]))
+			    pcenter[np+ii][dir] -= T[dir];
+		    	else
+			    pcenter[np+ii][dir] += T[dir];
+		    }
+		    for (ii = 0; ii < np; ++ii)
+		    for (jj = 0; jj < n; ++jj)
 	    	    {
-			dist = distance_between_positions(center[j],pcen,dim);
-			if (dist < (radius[j] + radius[n]))
+			dist = distance_between_positions(pcenter[np+ii],
+					center[jj],dim);
+			if (dist < (radius[jj] + radius[n]))
 				periodic_pair_passed = NO;
 		    }
+		    if (periodic_pair_passed == NO) break;
+		    np *= 2;
 		}
 	    }
 	    if (periodic_pair_passed == NO) continue;
-	    n++;
-	    if (n == num_drops) break;
+	    else
+	    {
+		for (ii = 0; ii < np; ++ii)
+		{
+		    for (jj = 0; jj < dim; ++jj)
+		    {
+			center[n][jj] = pcenter[ii][jj];
+			gindex[n] = n0;
+			radius[n] = R;
+		    }
+		    n++;
+		}
+	    }
+	    n0++;
+	    if (n0 == num_d0) break;
 	}
+	*num_drops = n;
+	FT_FreeThese(1,pcenter);
 }	/* end initRandomDrops */

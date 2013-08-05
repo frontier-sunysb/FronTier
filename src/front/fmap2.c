@@ -753,7 +753,7 @@ EXPORT	void FT_RotateSurface(
 		p = Point_of_tri(tri)[i];
 		if (sorted(p)) continue;
 		sorted(p) = YES;
-		rotate_point_with_polar_angle(p,center,phi,theta,first);
+		rotate_point_with_spherical_angle(p,center,phi,theta,first);
 		first = NO;
 	    }
 	}
