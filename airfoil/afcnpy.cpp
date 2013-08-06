@@ -1566,12 +1566,6 @@ static void set_canopy_velocity(
 	for (i = 0; i < ng; ++i)
 	{
 	    node = geom_set->gore_nodes[i];
-		if (the_point(node->posn))
-		{
-		    printf("n = %d\n",n);
-		    printf("position 1\n");
-		    clean_up(0);
-		}
 	    for (c = node->out_curves; c && *c; ++c)
             {
 		if (hsbdry_type(*c) != GORE_HSBDRY) continue;
@@ -1630,12 +1624,6 @@ static void set_canopy_velocity(
 	for (i = 0; i < ns; ++i)
 	{
 	    node = geom_set->string_node[i];
-		if (the_point(node->posn))
-		{
-		    printf("n = %d\n",n);
-		    printf("position 2\n");
-		    clean_up(0);
-		}
 	    for (c = node->out_curves; c && *c; ++c)
             {
 		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
@@ -1701,12 +1689,6 @@ static void set_canopy_velocity(
 	    for (b = curve->first; b != curve->last; b = b->next)
             {
             	p = b->end;
-		if (the_point(p))
-		{
-		    printf("n = %d\n",n);
-		    printf("position 3\n");
-		    clean_up(0);
-		}
 		for (btris = Btris(b); btris && *btris; ++btris)
             	{
                     p->hse = hse = Hyper_surf_element((*btris)->tri);
@@ -1730,12 +1712,6 @@ static void set_canopy_velocity(
 	    for (b = curve->first; b != curve->last; b = b->next)
             {
             	p = b->end;
-		if (the_point(p))
-		{
-		    printf("n = %d\n",n);
-		    printf("position 4\n");
-		    clean_up(0);
-		}
             	btris = Btris(b);
             	if (btris && *btris)
             	{
