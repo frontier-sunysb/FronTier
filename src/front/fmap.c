@@ -2538,7 +2538,8 @@ LOCAL void FrontPreAdvance3d(
 	    (void) printf("Entering FrontPreAdvance()\n");
 	for (s = intfc->surfaces; s && *s; ++s)
 	{
-	    if (wave_type(*s) == MOVABLE_BODY_BOUNDARY)
+	    if (wave_type(*s) == MOVABLE_BODY_BOUNDARY ||
+		wave_type(*s) == ICE_PARTICLE_BOUNDARY)
 		if (body_index(*s) > max_body_index)
 		    max_body_index = body_index(*s);
 	}
@@ -2570,13 +2571,22 @@ LOCAL void FrontPreAdvance3d(
 		    torque[index][j] += t[j];
 		}
 	    }
+	    else if (wave_type(*s) == ICE_PARTICLE_BOUNDARY)
+	    {
+		index = body_index(*s);
+		FrontForceAndTorqueOnHs(front,Hyper_surf(*s),dt,f,t);
+	    	for (j = 0; j < dim; ++j)
+		{
+	    	    force[index][j] = f[j];
+		}
+	    }
 	}
 	for (i = 0; i < max_body_index; ++i)
 	{
 	    pp_global_sum(force[i],dim);
 	    pp_global_sum(torque[i],dim);
 	}
-	for (s = intfc->surfaces; s && *s; ++s)
+	intfc_surface_loop(intfc,s)
 	{
 	    if (wave_type(*s) == MOVABLE_BODY_BOUNDARY)
 	    {
@@ -2620,6 +2630,29 @@ LOCAL void FrontPreAdvance3d(
 		    printf("force = %f %f %f\n",force[index][0],
 					force[index][1],force[index][2]);
 		    printf("angular_velo = %f\n",angular_velo(*s));
+		    printf("center_of_mass = %f  %f  %f\n",
+					center_of_mass(*s)[0],
+					center_of_mass(*s)[1],
+					center_of_mass(*s)[2]);
+		    printf("center_of_mass_velo = %f  %f  %f\n",
+					center_of_mass_velo(*s)[0],
+					center_of_mass_velo(*s)[1],
+					center_of_mass_velo(*s)[2]);
+		}
+	    }
+	    else if (wave_type(*s) == ICE_PARTICLE_BOUNDARY)
+	    {
+		for (i = 0; i < dim; ++i)
+		{
+		    center_of_mass_velo(*s)[i] +=
+                        	dt*force[index][i]/total_mass(*s);
+                    center_of_mass(*s)[i] += dt*center_of_mass_velo(*s)[i];
+		}
+		if (debugging("rigid_body"))
+		{
+		    printf("Body index: %d\n",index);
+		    printf("force = %f %f %f\n",force[index][0],
+					force[index][1],force[index][2]);
 		    printf("center_of_mass = %f  %f  %f\n",
 					center_of_mass(*s)[0],
 					center_of_mass(*s)[1],

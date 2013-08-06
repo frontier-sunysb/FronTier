@@ -603,6 +603,7 @@ extern void ifluid_point_propagate(
         case SUBDOMAIN_BOUNDARY:
             return;
 	case MOVABLE_BODY_BOUNDARY:
+	case ICE_PARTICLE_BOUNDARY:
 	    return rgbody_point_propagate(front,wave,oldp,newp,oldhse,
 					oldhs,dt,V);
 	case NEUMANN_BOUNDARY:

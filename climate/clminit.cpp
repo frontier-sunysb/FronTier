@@ -164,7 +164,7 @@ extern void initWaterDrops(
 	char string[100],msg[200];
 	char *inname = InName(front);
 	FILE *infile = fopen(inname,"r");
-	int i,j,dir,num_drops;
+	int i,j,l,dir,num_drops;
 	int *gindex;
 	double **center,*radius;
 	double r_bar,sigma;
@@ -176,6 +176,7 @@ extern void initWaterDrops(
 	int dim = front->rect_grid->dim;
 	int w_type;
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+	double drop_dens;
 
 	(void) printf("Water phase state can be\n");
 	(void) printf("\tIce Particle (I)\n");
@@ -201,6 +202,9 @@ extern void initWaterDrops(
 	CursorAfterString(infile,"Enter number of water drops:");
 	fscanf(infile,"%d",&num_drops);
 	(void) printf("%d\n",num_drops);
+	CursorAfterString(infile,"Enter density of water drops:");
+	fscanf(infile,"%lf",&drop_dens);
+	(void) printf("%d\n",drop_dens);
 	FT_VectorMemoryAlloc((POINTER*)&gindex,8*num_drops,sizeof(int));
 	FT_VectorMemoryAlloc((POINTER*)&radius,8*num_drops,sizeof(double));
 	FT_MatrixMemoryAlloc((POINTER*)&center,8*num_drops,MAXD,sizeof(double));
@@ -264,6 +268,15 @@ extern void initWaterDrops(
 	    	FT_MakeEllipticSurf(front,center[i],radii,SOLID_COMP,
 			LIQUID_COMP2,w_type,1,&surf);
 		Gindex(surf) = gindex[i] + 10;
+		body_index(surf) = gindex[i];
+		total_mass(Hyper_surf(surf)) = drop_dens*PI*4.0/3.0*
+				radius[i]*radius[i]*radius[i];
+		for (l = 0; l < dim; ++l)
+		{
+		    center_of_mass(surf)[l] = center[i][l];
+		    center_of_mass_velo(surf)[l] = 0.0;
+		}
+		motion_type(Hyper_surf(surf)) = COM_MOTION;
 	        intfc_surface_loop(front->interf,s)
 		{
 		    if (*s == surf) continue;

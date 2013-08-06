@@ -14,10 +14,13 @@ static boolean force_on_hse2d(HYPER_SURF_ELEMENT*,HYPER_SURF*,RECT_GRID*,
 static boolean force_on_hse3d(HYPER_SURF_ELEMENT*,HYPER_SURF*,RECT_GRID*,
 					double*,double*,double*,boolean);
 static double intrp_between(double,double,double,double,double);
-static void ifluid_compute_force_and_torque2d(Front*,HYPER_SURF*,double,
+static void compute_ice_particle_force(Front*,HYPER_SURF*,double,
 			double*,double*);
-static void ifluid_compute_force_and_torque3d(Front*,HYPER_SURF*,double,
+static void compute_ice_particle_force2d(Front*,HYPER_SURF*,double,
 			double*,double*);
+static void compute_ice_particle_force3d(Front*,HYPER_SURF*,double,
+			double*,double*);
+static void gview_particle_trajectory(Front*,boolean);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -91,7 +94,7 @@ int main(int argc, char **argv)
 	else
 	    restart_set_dirichlet_bdry_function(&front);
 
-	front._compute_force_and_torque = ifluid_compute_force_and_torque;
+	front._compute_force_and_torque = compute_ice_particle_force;
 
 	/* Initialize velocity field function */
 
@@ -138,6 +141,7 @@ static  void fluid_driver(
 	{
 	    FT_RedistMesh(front);
 	    FT_ResetTime(front);
+	    gview_particle_trajectory(front,NO);
 
 	    if (debugging("trace"))
 		printf("Calling initial FT_Propagate()\n");
@@ -192,6 +196,7 @@ static  void fluid_driver(
 	
             /* Output section */
 
+	    gview_particle_trajectory(front,NO);
             if (FT_IsSaveTime(front))
 	    {
             	FT_Save(front,out_name);
@@ -221,6 +226,7 @@ static  void fluid_driver(
                         front->time,front->step,front->dt);
             fflush(stdout);
         }
+	gview_particle_trajectory(front,YES);
 	if (debugging("trace")) printf("After time loop\n");
 }       /* end fluid_driver */
 
@@ -234,26 +240,13 @@ static int rgbody_vel(
 	double *vel)
 {
 	int i,dim; 
-	double omega,crds_at_com[MAXD];
 
 	dim  = front->rect_grid->dim;
 	for (i = 0; i < dim; ++i)
 	{
-	    crds_at_com[i] = Coords(p)[i] - rotation_center(hs)[i];
             vel[i] = center_of_mass_velo(hs)[i];
 	}
-	switch(dim)
-	{
-	case 2:
-	    omega = angular_velo(hs);
-	    vel[0] += omega*crds_at_com[1];
-	    vel[1] += -omega*crds_at_com[0];
-	    break;
-	case 3:
-	    omega = angular_velo(hs);
-            vel[0] += omega*crds_at_com[2];
-            vel[2] += -omega*crds_at_com[0];
-	}
+	printf("In rgbody_vel vel = %f %f %f\n",vel[0],vel[1],vel[2]);
 	return YES;
 }	/* end rgbody_vel */
 
@@ -261,7 +254,7 @@ static int rgbody_vel(
  *  	angular velocity of a regid body, must be a closed curve. 
 */
 
-extern	void ifluid_compute_force_and_torque(
+extern	void compute_ice_particle_force(
 	Front *fr,
 	HYPER_SURF *hs,
 	double dt,
@@ -271,13 +264,13 @@ extern	void ifluid_compute_force_and_torque(
 	switch (fr->rect_grid->dim)
 	{
 	case 2:
-	    return ifluid_compute_force_and_torque2d(fr,hs,dt,force,torque);
+	    return compute_ice_particle_force2d(fr,hs,dt,force,torque);
 	case 3:
-	    return ifluid_compute_force_and_torque3d(fr,hs,dt,force,torque);
+	    return compute_ice_particle_force3d(fr,hs,dt,force,torque);
 	}
-}	/* end ifluid_compute_force_and_torque */
+}	/* end compute_ice_particle_force */
 
-static	void ifluid_compute_force_and_torque2d(
+static	void compute_ice_particle_force2d(
 	Front *fr,
 	HYPER_SURF *hs,
 	double dt,
@@ -296,7 +289,7 @@ static	void ifluid_compute_force_and_torque2d(
 	CURVE *curve = Curve_of_hs(hs);
 
 	if (debugging("rigid_body"))
-	    (void) printf("Entering ifluid_compute_force_and_torque2d()\n");
+	    (void) printf("Entering compute_ice_particle_force2d()\n");
 
 	if (ifluid_comp(negative_component(curve)))
 	    pos_side = NO;
@@ -332,14 +325,14 @@ static	void ifluid_compute_force_and_torque2d(
 	}
 	if (debugging("rigid_body"))
 	{
-	    (void) printf("Leaving ifluid_compute_force_and_torque2d()\n");
+	    (void) printf("Leaving compute_ice_particle_force2d()\n");
 	    (void) printf("total_force = %f %f\n",force[0],force[1]);
 	    (void) printf("torque = %f\n",*torque);
 	}
-}	/* end ifluid_compute_force_and_torque2d */
+}	/* end compute_ice_particle_force2d */
 
 #define         MAX_TRI_FOR_INTEGRAL            100
-static	void ifluid_compute_force_and_torque3d(
+static	void compute_ice_particle_force3d(
 	Front *fr,
 	HYPER_SURF *hs,
 	double dt,
@@ -347,15 +340,20 @@ static	void ifluid_compute_force_and_torque3d(
 	double *torque)
 {
 	RECT_GRID *gr = computational_grid(fr->interf);
-	double f[MAXD],rr[MAXD];
-	double t[MAXD],tdir,pres;
+	double *L = gr->L;
+	double *U = gr->U;
+	double f[MAXD];
+	double pres;
 	double area[MAXD],posn[MAXD];
+	double tri_center[MAXD];
 	TRI *tri;
+	POINT *p;
 	boolean pos_side;
-	int i,dim = gr->dim;
+	int i,j,dim = gr->dim;
 	IF_PARAMS *iFparams = (IF_PARAMS*)fr->extra1;
 	double *gravity = iFparams->gravity;
 	SURFACE *surface = Surface_of_hs(hs);
+	boolean out_domain_tri;
 
 	if (ifluid_comp(negative_component(surface)))
 	    pos_side = NO;
@@ -370,6 +368,27 @@ static	void ifluid_compute_force_and_torque3d(
 	for (tri = first_tri(surface); !at_end_of_tri_list(tri,surface); 
 			tri = tri->next)
 	{
+	    // Eliminate periodic duplicates
+	    out_domain_tri = NO;
+	    for (i = 0; i < dim; ++i)
+		tri_center[i] = 0;
+	    for (j = 0; j < 3; ++j)
+	    {
+		p = Point_of_tri(tri)[j];
+	    	for (i = 0; i < dim; ++i)
+		    tri_center[i] += Coords(p)[i];
+	    }
+	    for (i = 0; i < dim; ++i)
+	    {
+		tri_center[i] /= 3.0;
+		if (tri_center[i] <= L[i] || tri_center[i] > U[i])
+		    out_domain_tri = YES;
+	    }
+	    if (out_domain_tri == YES) 
+	    {
+		continue;
+	    }
+
 	    if (force_on_hse(Hyper_surf_element(tri),Hyper_surf(surface),gr,
 			&pres,area,posn,pos_side))
 	    {
@@ -377,14 +396,6 @@ static	void ifluid_compute_force_and_torque3d(
 	    	{
 		    f[i] = pres*area[i];
 	    	    force[i] += f[i];
-		    rr[i] = posn[i] - rotation_center(surface)[i];
-		}
-		Cross3d(rr,f,t);
-		tdir = Dot3d(t,(rotation_direction(hs)));
-	    	for (i = 0; i < dim; ++i)
-		{
-		    t[i] = tdir*rotation_direction(hs)[i];
-		    torque[i] += t[i];
 		}
 	    }
 	}
@@ -396,11 +407,10 @@ static	void ifluid_compute_force_and_torque3d(
 	}
 	if (debugging("rigid_body"))
 	{
-	    printf("In ifluid_compute_force_and_torque3d()\n");
+	    printf("In compute_ice_particle_force3d()\n");
 	    printf("total_force = %f %f %f\n",force[0],force[1],force[2]);
-	    printf("torque = %f %f %f\n",torque[0],torque[1],torque[2]);
 	}
-}	/* end ifluid_compute_force_and_torque3d */
+}	/* end compute_ice_particle_force3d */
 
 
 static boolean force_on_hse(
@@ -570,3 +580,56 @@ static double intrp_between(
 	return y;
 }
 
+#define		MAX_TIME_STEPS		5000
+
+static void gview_particle_trajectory(
+	Front *front,
+	boolean end_of_run)
+{
+	INTERFACE *intfc = front->interf;
+	SURFACE **s;
+	static int num_particles = 0;
+	static int *pindex,max_index,min_index;
+	static boolean first = YES;
+	static double ***com;
+	int step = front->step;
+	static int num_steps;
+	int i,ip,dim = Dimension(intfc);
+
+	if (first == YES)
+	{
+	    max_index = 0;
+	    min_index = 10000;
+	    intfc_surface_loop(intfc,s)
+	    {
+		if (wave_type(*s) == ICE_PARTICLE_BOUNDARY)
+		{
+		    if (max_index < body_index(*s))
+			max_index = body_index(*s);
+		    if (min_index > body_index(*s))
+			min_index = body_index(*s);
+		}
+	    }
+	    pp_global_imax(&max_index,1);
+	    pp_global_imin(&min_index,1);
+	    num_particles = max_index - min_index + 1;
+	    tri_array(&com,MAX_TIME_STEPS,num_particles,MAXD,sizeof(double));
+	    uni_array(&pindex,num_particles,sizeof(int));
+	    num_steps = MAX_TIME_STEPS;
+	}	
+	if (step >= num_steps)
+	{
+	    FT_FreeThese(1,com);
+	    num_steps += MAX_TIME_STEPS;
+	    tri_array(&com,num_steps,num_particles,MAXD,sizeof(double));
+	}
+	intfc_surface_loop(intfc,s)
+	{
+	    if (wave_type(*s) == ICE_PARTICLE_BOUNDARY)
+	    {
+		ip = body_index(*s);
+		for (i = 0; i < dim; ++i)
+		    com[step][ip][i] = center_of_mass(*s)[i];
+	    }
+	}
+}	/* end gview_particle_trajectory */

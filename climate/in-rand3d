@@ -10,9 +10,11 @@ Lower boundary in 2-th dimension: PERIODIC_BOUNDARY
 Upper boundary in 2-th dimension: PERIODIC_BOUNDARY
 
 Enter yes for debugging: yes
-Enter the debugging string: init_intfc
-Enter the debugging string: trace
-Enter the debugging string: CLOCK
+Enter the debugging string: tinit_intfc
+Enter the debugging string: trigid_body
+Enter the debugging string: ttrace
+Enter the debugging string: step_size
+Enter the debugging string: tCLOCK
 
 Enter projection type: SIMPLE
 The default advection order is WENO-Runge-Kutta 4
@@ -41,6 +43,7 @@ Water phase state can be
         Liquid Water Drop (W)
 Enter phase state of water drop: I
 Enter number of water drops: 20
+Enter density of water drops: 5
 Two methods for initialization:
 	Prompt initialization (P)
 	Random initialization (R)
@@ -48,12 +51,12 @@ Enter method of initialization: R
 Enter mean radius of water drop: 0.15
 Enter standard deviation of radius: 0.02
 Enter density and viscosity of ambient fluid: 1 0.000628
-Enter gravity: -10.0
+Enter gravity: -9.8
 
 
-Max time: 0.030
-Max step: 10
-Print interval: 0.005
-Movie frame interval: 0.00030
+Max time: 1
+Max step: 10000
+Print interval: 0.025
+Movie frame interval: 0.025
 CFL factor: 0.75
-Redistribution interval: 1000
+Redistribution interval: 100000
