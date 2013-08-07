@@ -189,6 +189,8 @@ extern void initWaterDrops(
 	case 'I':
 	case 'i':
 	    w_type = ICE_PARTICLE_BOUNDARY;
+	    iFparams->m_comp1 = SOLID_COMP;
+	    iFparams->m_comp2 = LIQUID_COMP2;
 	    break;
 	case 'W':
 	case 'w':
@@ -287,8 +289,8 @@ extern void initWaterDrops(
 	}
 	CursorAfterString(infile,
 		"Enter density and viscosity of ambient fluid:");
-        fscanf(infile,"%lf %lf",&iFparams->rho1,&iFparams->mu1);
-        (void) printf("%f %f\n",iFparams->rho1,iFparams->mu1);
+        fscanf(infile,"%lf %lf",&iFparams->rho2,&iFparams->mu2);
+        (void) printf("%f %f\n",iFparams->rho2,iFparams->mu2);
 	CursorAfterString(infile,"Enter gravity:");
         for (i = 0; i < dim; ++i)
         {

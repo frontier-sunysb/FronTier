@@ -3018,6 +3018,8 @@ extern int ifluid_find_state_at_crossing(
 	    return CONST_V_PDE_BOUNDARY;
 	if (wave_type(*hs) == MOVABLE_BODY_BOUNDARY) 
 	    return CONST_V_PDE_BOUNDARY;
+	if (wave_type(*hs) == ICE_PARTICLE_BOUNDARY) 
+	    return CONST_V_PDE_BOUNDARY;
 	if (wave_type(*hs) == DIRICHLET_BOUNDARY) 
 	{
 	    if (boundary_state(*hs))

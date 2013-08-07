@@ -147,7 +147,7 @@ static  void fluid_driver(
 		printf("Calling initial FT_Propagate()\n");
 	    FrontPreAdvance(front);
             FT_Propagate(front);
-	    //cartesian->solve(front->dt);
+	    cartesian->solve(front->dt);
 	    FT_SetOutputCounter(front);
 	    FT_SetTimeStep(front);
         }
@@ -246,7 +246,6 @@ static int rgbody_vel(
 	{
             vel[i] = center_of_mass_velo(hs)[i];
 	}
-	printf("In rgbody_vel vel = %f %f %f\n",vel[0],vel[1],vel[2]);
 	return YES;
 }	/* end rgbody_vel */
 
@@ -408,7 +407,8 @@ static	void compute_ice_particle_force3d(
 	if (debugging("rigid_body"))
 	{
 	    printf("In compute_ice_particle_force3d()\n");
-	    printf("total_force = %f %f %f\n",force[0],force[1],force[2]);
+	    printf("body_index = %d\n",body_index(hs));
+	    printf("total_force = %f %f %f\n\n",force[0],force[1],force[2]);
 	}
 }	/* end compute_ice_particle_force3d */
 
