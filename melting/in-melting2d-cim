@@ -11,7 +11,7 @@ Upper boundary in 1-th dimension: NEUMANN_BOUNDARY
 *************Time control********************
 
 Max time: 1.0
-Max step: 10
+Max step: 1
 Print interval: 0.5
 Movie frame interval: 0.05
 CFL factor: 0.4
@@ -41,7 +41,10 @@ Choose numerical scheme
 	UNSPLIT_IMPLICIT (IM)
 	CRANK_NICOLSON (CN)
 Enter scheme: CIM
-Enter position of interface 1: 0.3
+Enter density and viscosity of the fluid: 1.0 0.0628
+Enter surface tension: 0.0
+Enter factor of smoothing radius: 0.0
+Enter projection type: SIMPLE
 
 ************Initial seeding*****************
 
@@ -58,7 +61,11 @@ Enter radius of seeds: 0.2
 
 ************Movie option********************
 
-Type y to make movie of solute: y
+Type y to make movie of temperature: y
+Type y to make movie of pressure: y
+Type y to make movie of vorticity: y
+Type y to make movie of velocity: n
+Type y to make vector velocity field movie: y
 
 ************Debugging options*****************
 
