@@ -1573,17 +1573,3 @@ extern int ifluid_find_state_at_dual_crossing(
 	    	return CONST_P_PDE_BOUNDARY;
 	}
 }	/* ifluid_find_state_at_crossing */
-
-extern boolean neumann_type_bdry(int w_type)
-{
-	switch (w_type)
-	{
-	case NEUMANN_BOUNDARY:
-	case MOVABLE_BODY_BOUNDARY:
-	case GROWING_BODY_BOUNDARY:
-	case ICE_PARTICLE_BOUNDARY:
-	    return YES;
-	default:
-	    return NO;
-	}
-}	/* end neumann_type_bdry */
