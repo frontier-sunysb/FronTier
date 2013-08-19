@@ -57,6 +57,7 @@ struct _PARAMS {
 	double D;
 	double min_temperature;
 	double max_temperature;
+	boolean no_fluid;
 };
 typedef struct _PARAMS PARAMS;
 
@@ -239,7 +240,7 @@ public:
 	void save(char *filename);
 };
 
-extern void readPhaseParams(char*,PARAMS*);
+extern void readPhaseParams(Front*);
 extern void initPhaseIntfc(char*,int,LEVEL_FUNC_PACK*,PARAMS*);
 extern void ifluid_point_propagate(Front*,POINTER,POINT*,POINT*,
 			HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
@@ -249,7 +250,7 @@ extern void read_crt_dirichlet_bdry_data(char*,Front*,F_BASIC_DATA);
 extern void read_melt_dirichlet_bdry_data(char*,Front*,F_BASIC_DATA);
 extern void melt_flowThroughBoundaryState(double*,HYPER_SURF*,Front*,
 			POINTER,POINTER);
-extern void read_fluid_params(char*,IF_PARAMS*);
+extern void read_fluid_params(Front*);
 extern void init_fluid_state_func(Front*,Incompress_Solver_Smooth_Basis*);		
 extern void assignStateTemperature(double,POINTER);
 extern double getStateTemperature(POINTER);
