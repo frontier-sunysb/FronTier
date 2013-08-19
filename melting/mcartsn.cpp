@@ -2066,8 +2066,8 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
                     }
 		    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
 		    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
-                    array[ic] += coef*dgrad[l]/top_h[l]-m_dt*(v_plus[l]*grad_minus[l]+
-					v_minus[l]*grad_plus[l]);
+                    array[ic] += coef*dgrad[l]/top_h[l]-m_dt*
+			(v_plus[l]*grad_minus[l]+v_minus[l]*grad_plus[l]);
                 }
             }
             break;
@@ -2118,8 +2118,8 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
                     }
 		    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
 		    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
-		    array[ic] += coef*dgrad[l]/top_h[l] - m_dt*(v_plus[l]*grad_minus[l]+
-					v_minus[l]*grad_plus[l]);
+		    array[ic] += coef*dgrad[l]/top_h[l] - m_dt*
+			(v_plus[l]*grad_minus[l]+v_minus[l]*grad_plus[l]);
 		}
 	    }
 	    break;
@@ -2172,8 +2172,8 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
                     }
 		    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
 		    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
-		    array[ic] += coef*dgrad[l]/top_h[l] - m_dt*(v_plus[l]*grad_minus[l]+
-					v_minus[l]*grad_plus[l]);
+		    array[ic] += coef*dgrad[l]/top_h[l] - m_dt*
+			(v_plus[l]*grad_minus[l]+v_minus[l]*grad_plus[l]);
 		}
 	    }
 	    break;
