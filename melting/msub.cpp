@@ -536,12 +536,15 @@ static void zero_state(
 }       /* end zero_state */
 
 extern void read_fluid_params(
-	char *inname,
-	IF_PARAMS *iFparams)
+	Front *front)
 {
 	char string[100];
+	PARAMS *eqn_params = (PARAMS*)front->extra2;
+	char *inname = InName(front);
 	FILE *infile = fopen(inname,"r");
+	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
 
+	if (eqn_params->no_fluid == YES) return;
 	/* defaults numerical schemes */
         iFparams->num_scheme.projc_method = SIMPLE;
         iFparams->num_scheme.advec_method = WENO;

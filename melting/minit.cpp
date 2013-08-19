@@ -61,13 +61,14 @@ static double crystal_curve(
 }       /* end crystal_curve */
 
 extern void readPhaseParams(
-	char *in_name,
-	PARAMS *eqn_params)
+	Front *front)
 {
 	FILE *infile;
 	char scheme[200];
 	int i,num_phases;
 	char string[200];
+	char *in_name = InName(front);
+	PARAMS *eqn_params = (PARAMS*)front->extra2;
 
 	infile = fopen(in_name,"r");
 
@@ -149,6 +150,14 @@ extern void readPhaseParams(
 	    	fscanf(infile,"%d",&eqn_params->pde_order);
 		(void) printf("%d\n",eqn_params->pde_order);
 	    }
+	}
+	eqn_params->no_fluid = YES;
+	if (CursorAfterStringOpt(infile,"Enter yes to turn on fluid solver:"))
+	{
+	    fscanf(infile,"%s",string);
+	    (void) printf("%s\n",string);
+	    if (string[0] == 'y' || string[0] == 'Y')
+		eqn_params->no_fluid = NO;
 	}
 	fclose(infile);
 }

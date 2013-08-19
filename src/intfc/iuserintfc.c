@@ -176,6 +176,8 @@ EXPORT	I_USER_INTERFACE *i_user_hook(
 	    User_hooks[0]._make_point = i_make_point;
 	    User_hooks[0]._Point = i_Point;
 	    User_hooks[0]._delete_point = i_delete_point;
+	    User_hooks[0]._fprint_point = i_fprint_point;
+	    User_hooks[0]._user_fprint_point = i_user_fprint_point;
 	    User_hooks[0]._read_point = i_read_point;
 	    User_hooks[0]._user_read_point = i_user_read_point;
 	    User_hooks[0]._read_print_point = i_read_print_point;

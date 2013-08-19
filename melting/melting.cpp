@@ -119,15 +119,11 @@ int main(int argc, char **argv)
 	read_iF_movie_options(in_name,&iFparams);
 	front.extra1 = (POINTER)&iFparams;
 	front.extra2 = (POINTER)&eqn_params;
+	readPhaseParams(&front);
+        read_fluid_params(&front);
 
 	if (!RestartRun)
 	{
-	    if (f_basic.dim == 1)
-	    {
-		(void) printf("Melting in flow problem has no 1D version!\n");
-		clean_up(ERROR);
-	    }	
-
 	    /* Initialize interface through level function */
 
 	    initPhaseIntfc(in_name,dim,&level_func_pack,&eqn_params);
@@ -143,9 +139,6 @@ int main(int argc, char **argv)
 	else
 	    read_melt_dirichlet_bdry_data(in_name,&front,f_basic);
 
-	readPhaseParams(in_name,&eqn_params);
-        read_fluid_params(in_name,&iFparams);
-
         Time_step_factor(&front);
 	FT_ReadTimeControl(in_name,&front);
 
@@ -156,8 +149,11 @@ int main(int argc, char **argv)
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
         cartesian.initMesh();
-	l_cartesian->initMesh();
-	l_cartesian->findStateAtCrossing = ifluid_find_state_at_crossing;
+	if (eqn_params.no_fluid == NO)
+	{
+	    l_cartesian->initMesh();
+	    l_cartesian->findStateAtCrossing = ifluid_find_state_at_crossing;
+	}
 	if (debugging("sample_velocity"))
 	    l_cartesian->initSampleVelocity(in_name);
 	if (debugging("sample_temperature"))
@@ -176,13 +172,17 @@ int main(int argc, char **argv)
 	    if (debugging("trace")) 
                 printf("Passed cartesian setInitialCondition()\n");
 	    FT_FreeGridIntfc(&front);
-            init_fluid_state_func(&front,l_cartesian);
-            l_cartesian->setInitialCondition();
+	    if (eqn_params.no_fluid == NO)
+	    {
+            	init_fluid_state_func(&front,l_cartesian);
+            	l_cartesian->setInitialCondition();
+	    }
             if (debugging("trace"))
                 printf("Passed iFluid setInitialCondition()\n");
 	}
 
-	eqn_params.field->vel = iFparams.field->vel;
+	if (eqn_params.no_fluid == NO)
+	    eqn_params.field->vel = iFparams.field->vel;
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
 
@@ -259,19 +259,25 @@ static  void melting_flow_driver(
 	    FT_ResetTime(front);
 	    FT_Save(front,out_name);
             cartesian.printFrontInteriorState(out_name);
-            l_cartesian->printFrontInteriorStates(out_name);
+	    if (eqn_params->no_fluid == NO)
+            	l_cartesian->printFrontInteriorStates(out_name);
 
 	    FT_Propagate(front);
 	    cartesian.solve(front->dt);
-	    l_cartesian->solve(front->dt);
+	    if (eqn_params->no_fluid == NO)
+	    	l_cartesian->solve(front->dt);
 	    FT_SetTimeStep(front);
 	    cartesian.setAdvectionDt();
 	    front->dt = std::min(front->dt,CFL*cartesian.m_dt);
-	    l_cartesian->setAdvectionDt();
-	    front->dt = std::min(front->dt,CFL*l_cartesian->max_dt);	    
+	    if (eqn_params->no_fluid == NO)
+	    {
+	    	l_cartesian->setAdvectionDt();
+	    	front->dt = std::min(front->dt,CFL*l_cartesian->max_dt);
+	    }
 
             cartesian.initMovieVariables();
-            l_cartesian->augmentMovieVariables();
+	    if (eqn_params->no_fluid == NO)
+            	l_cartesian->augmentMovieVariables();
 	    FT_AddMovieFrame(front,out_name,YES);
         }
         else
@@ -304,12 +310,14 @@ static  void melting_flow_driver(
         {
 	    FT_Propagate(front);
 	    cartesian.solve(front->dt);
-	    l_cartesian->solve(front->dt);
+	    if (eqn_params->no_fluid == NO)
+	    	l_cartesian->solve(front->dt);
 
 	    FT_AddTimeStepToCounter(front);
 	    FT_SetTimeStep(front);
 	    front->dt = FT_Min(front->dt,CFL*cartesian.m_dt);
-	    front->dt = FT_Min(front->dt,CFL*l_cartesian->max_dt);
+	    if (eqn_params->no_fluid == NO)
+	    	front->dt = FT_Min(front->dt,CFL*l_cartesian->max_dt);
 
             printf("\ntime = %f   step = %7d   dt = %f\n",
                         front->time,front->step,front->dt);
@@ -321,7 +329,8 @@ static  void melting_flow_driver(
                 FT_Save(front,out_name);
 		// Problem specific output
 		cartesian.printFrontInteriorState(out_name);
-		l_cartesian->printFrontInteriorStates(out_name);
+	    	if (eqn_params->no_fluid == NO)
+		    l_cartesian->printFrontInteriorStates(out_name);
 	    }
             if (FT_IsMovieFrameTime(front))
 	    {
@@ -382,7 +391,9 @@ static void melt_flow_point_propagate(
         double              dt,
         double              *V)
 {
-        ifluid_point_propagate(front,wave,oldp,newp,oldhse,oldhs,dt,V);
+	PARAMS *eqn_params = (PARAMS*)front->extra2;
+	if (eqn_params->no_fluid == NO)
+            ifluid_point_propagate(front,wave,oldp,newp,oldhse,oldhs,dt,V);
         melting_point_propagate(front,wave,oldp,newp,oldhse,oldhs,dt,V);
 }       /* end melt_flow_point_propagate */
 
