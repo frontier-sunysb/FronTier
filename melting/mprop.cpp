@@ -114,7 +114,7 @@ static  void ice_point_propagate_secondorder(
 	const GRID_DIRECTION dir[3][2] =
                 {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
 
-	if (debugging("point_propagate_secondorder"))
+	if (debugging("point_propagate"))
 	    (void) printf("Entering ice_point_propagate_secondorder()\n");
 
 	for(i = 0; i < dim; ++i) gmin[i] = 0;
@@ -211,7 +211,8 @@ static  void ice_point_propagate_secondorder(
 		    next_ip_in_dir(ic1,dir[i][1-m],ic2,gmin,top_gmax);
 		    id2 = d_index(ic2, top_gmax, dim);
 		    T2  = temperature[id2]-temp_nb[m];
-		    Txx[i] += (1-a)*T2 + 2*(a*a+a-1)/(1+a)*T1 - (1+a)*(T0-temp_nb[m]) - (T1+temp_nb[m] - T0);
+		    Txx[i] += (1-a)*T2 + 2*(a*a+a-1)/(1+a)*T1 - (1+a)*
+				(T0-temp_nb[m]) - (T1+temp_nb[m] - T0);
 		}
 		else
 		{
@@ -279,7 +280,8 @@ static  void ice_point_propagate_secondorder(
 		    next_ip_in_dir(ic1,dir[i][1-m],ic2,gmin,top_gmax);
 		    id2 = d_index(ic2, top_gmax, dim);
 		    T2  = temperature[id2]-temp_nb[m];
-		    Txx[i] += (1-a)*T2 + 2*(a*a+a-1)/(1+a)*T1 - (1+a)*(T0-temp_nb[m]) - (T1+temp_nb[m] - T0);
+		    Txx[i] += (1-a)*T2 + 2*(a*a+a-1)/(1+a)*T1 - 
+				(1+a)*(T0-temp_nb[m]) - (T1+temp_nb[m] - T0);
 		}
 		else
 		{
@@ -323,36 +325,6 @@ static  void ice_point_propagate_secondorder(
 	    grad_l += Tx[i]*nor_l[i];
 
 	H = Cp_l*k_l*grad_l + Cp_s*k_s*grad_s;
-	/* 
-	else 
-	{
-        dn = grid_size_in_direction(nor_l,h,dim);
-
-        for (i = 0; i < dim; ++i)
-            p1[i] = p0[i] + nor_l[i]*dn;
-        FT_GetStatesAtPoint(oldp,oldhse,oldhs,(POINTER*)&sl,(POINTER*)&sr);
-        state = (negative_component(oldhs) == LIQUID_COMP) ? sl : sr;
-        s0 = state->temperature;
-	FT_IntrpStateVarAtCoords(front,LIQUID_COMP,p1,temperature,
-				getStateTemperature,&s1,(double*)state);
-        grad_l = (s1 - s0)/dn;
-
-        GetFrontNormal(oldp,oldhse,oldhs,nor_s,front);
-        if (negative_component(oldhs) == SOLID_COMP)
-            for (i = 0; i < dim; ++i)
-                nor_s[i] *= -1.0;
-        dn = grid_size_in_direction(nor_s,h,dim);
-        for (i = 0; i < dim; ++i)
-            p1[i] = p0[i] + nor_s[i]*dn;
-        FT_GetStatesAtPoint(oldp,oldhse,oldhs,(POINTER*)&sl,(POINTER*)&sr);
-        state = (negative_component(oldhs) == SOLID_COMP) ? sl : sr;
-        s0 = state->temperature;
-	FT_IntrpStateVarAtCoords(front,SOLID_COMP,p1,temperature,
-				getStateTemperature,&s1,(double*)state);
-
-        grad_s = (s1 - s0)/dn;
-	H = Cp_l*k_l*grad_l + Cp_s*k_s*grad_s;
-	}*/
 	speed = H/L/rho_s;
         for (i = 0; i < dim; ++i)
         {
@@ -406,9 +378,12 @@ static  void ice_point_propagate_secondorder(
 			(Coords(newp)[1]-Coords(oldp)[1])/h[1],
 			(Coords(newp)[2]-Coords(oldp)[2])/h[2]);
 	    (void) printf("relative dist = %f\n",relative_dist); 
-	    (void) printf("Leaving ice_point_propagate()\n");
+	    (void) printf("Leaving ice_point_propagate_secondorder()\n");
         }
-}       /* ice_point_propagate */
+	if (dim > 1)
+	    clean_up(0);
+}       /* ice_point_propagate_secondorder */
+
 static  void ice_point_propagate(
         Front *front,
         POINTER wave,

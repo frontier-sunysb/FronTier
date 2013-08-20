@@ -1999,6 +1999,102 @@ void CARTESIAN::vtk_plot_temperature3d(
         fclose(outfile);
 }       /* end vtk_plot_temperature3d */
 
+void CARTESIAN::pointExplicitCimSolver(
+	int *icoords,
+	COMPONENT sub_comp)
+{
+	int l,m,ic,icn;
+	int gmin[MAXD],ipn[MAXD],ipn2[MAXD];
+	double coords[MAXD],crx_coords[MAXD];
+	double temperature,temperature_nb[2],dgrad[MAXD],grad_plus[MAXD],
+	       grad_minus[MAXD];
+	double coef;
+	COMPONENT comp;
+	boolean fr_crx_grid_seg;
+	const GRID_DIRECTION dir[3][2] = 
+		{{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
+	double *Temp = field->temperature;
+	double **vel = field->vel;
+	double v[MAXD],v_plus[MAXD],v_minus[MAXD];
+	STATE *state;
+	HYPER_SURF *hs;
+
+	coef = eqn_params->D*m_dt;
+        ic = d_index(icoords,top_gmax,dim);
+        comp = top_comp[ic];
+        if (comp != sub_comp) return;
+        array[ic] = temperature = Temp[ic];
+	for (l = 0; l < dim; ++l) gmin[l] = 0;
+
+	for (l = 0; l < dim; ++l)
+	{
+	    v[l] = 0.0;
+	    v_plus[l] = 0.0;
+	    v_minus[l] = 0.0;
+	}
+	if (sub_comp == LIQUID_COMP && vel != NULL)
+	{
+	    for (l = 0; l < dim; ++l)
+	    {
+		v[l] = vel[l][ic];
+		v_plus[l] = std::max(0.0,v[l]);
+		v_minus[l] = std::min(0.0,v[l]);
+	    }
+	}	
+        for (l = 0; l < dim; ++l)
+        {
+	    dgrad[l] = 0.0;
+	    grad_plus[l] = 0.0;
+	    grad_minus[l] = 0.0;
+            for (m = 0; m < 2; ++m)
+            {
+		fr_crx_grid_seg = FT_StateStructAtGridCrossing(front,
+				front->grid_intfc,icoords,dir[l][m],comp,
+				(POINTER*)&state,&hs,crx_coords);
+                if (!fr_crx_grid_seg)
+                {
+                    next_ip_in_dir(icoords,dir[l][m],ipn,gmin,top_gmax);
+                    icn = d_index(ipn,top_gmax,dim);
+		    temperature_nb[m] = Temp[icn];
+                }
+		else
+		    temperature_nb[m] = getStateTemperature((POINTER)state);
+
+		if (!fr_crx_grid_seg) 
+		{
+                    dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
+		} 
+		else if (wave_type(hs) == NEUMANN_BOUNDARY)
+		{
+		    ;
+		}
+		else if (wave_type(hs) == DIRICHLET_BOUNDARY)
+		{
+                    dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
+		}
+		else
+		{
+		    double a, v1, v2, P[MAXD];
+		    getRectangleCenter(ic, P);
+		    a = fabs(crx_coords[l] - P[l])/top_h[l];
+                    next_ip_in_dir(icoords,dir[l][1-m],ipn,gmin,top_gmax);
+                    icn = d_index(ipn,top_gmax,dim);
+		    v1 = Temp[icn]-temperature_nb[m];
+                    next_ip_in_dir(ipn,dir[l][1-m],ipn2,gmin,top_gmax);
+                    icn = d_index(ipn2,top_gmax,dim);
+		    v2 = Temp[icn]-temperature_nb[m];
+		    dgrad[l] += ((1-a)*v2+2*(a*a+a-1)/(1+a)*v1-(1+a)*
+				(temperature-temperature_nb[m]))/top_h[l] - 
+				(v1-temperature)/top_h[l];
+		}
+            }
+	    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
+	    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
+            array[ic] += coef*dgrad[l]/top_h[l]-m_dt*(v_plus[l]*
+				grad_minus[l]+v_minus[l]*grad_plus[l]);
+        }
+}	/* end pointExplicitCimSolver */
+
 void CARTESIAN::computeAdvectionExplicitCim(COMPONENT sub_comp)
 {
 	int i,j,k,l,m,ic,icn,icoords[MAXD],nc;
@@ -2028,71 +2124,7 @@ void CARTESIAN::computeAdvectionExplicitCim(COMPONENT sub_comp)
             for (i = imin; i <= imax; ++i)
             {
                 icoords[0] = i;
-                ic = d_index1d(i,top_gmax);
-                comp = top_comp[ic];
-                if (comp != sub_comp)
-                     continue;
-                array[ic] = temperature = Temp[ic];
-		for (l = 0; l < dim; ++l)
-		{
-		    v[l] = 0.0;
-		    v_plus[l] = 0.0;
-		    v_minus[l] = 0.0;
-		}
-		if (sub_comp == LIQUID_COMP && vel != NULL)
-		{
-		    for (l = 0; l < dim; ++l)
-		    {
-			v[l] = vel[l][ic];
-			v_plus[l] = std::max(0.0,v[l]);
-			v_minus[l] = std::min(0.0,v[l]);
-		    }
-		}	
-                for (l = 0; l < dim; ++l)
-                {
-                    dgrad[l] = 0.0;
-		    grad_plus[l] = 0.0;
-		    grad_minus[l] = 0.0;
-                    for (m = 0; m < 2; ++m)
-                    {
-                        fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateTemperature,
-                                &temperature_nb[m],crx_coords);
-                        if (!fr_crx_grid_seg)
-                        {
-                             next_ip_in_dir(icoords,dir[l][m],ipn,gmin,
-							top_gmax);
-                             icn = d_index1d(ipn[0],top_gmax);
-			     temperature_nb[m] = Temp[icn];
-                        }
-			if (!fr_crx_grid_seg) 
-			{
-                             dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
-			} 
-			else if(i != imin && i != imax)
-			{
-			     double a, v1, v2, P[MAXD];
-			     getRectangleCenter(ic, P);
-			     a = fabs(crx_coords[l] - P[l])/top_h[l];
-			     printf("alpha:%f, %f->%f\n",a, crx_coords[l], P[l]);
-                             next_ip_in_dir(icoords,dir[l][1-m],ipn,gmin,
-							top_gmax);
-                             icn = d_index1d(ipn[0],top_gmax);
-			     v1 = Temp[icn]-temperature_nb[m];
-                             next_ip_in_dir(ipn,dir[l][1-m],ipn2,gmin,
-							top_gmax);
-                             icn = d_index1d(ipn2[0],top_gmax);
-			     v2 = Temp[icn]-temperature_nb[m];
-			     dgrad[l] += ((1-a)*v2+2*(a*a+a-1)/(1+a)*v1-(1+a)*
-				(temperature-temperature_nb[m]))/top_h[l] - 
-				(v1-temperature)/top_h[l];
-			}
-                    }
-		    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
-		    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
-                    array[ic] += coef*dgrad[l]/top_h[l]-m_dt*(v_plus[l]*
-				grad_minus[l]+v_minus[l]*grad_plus[l]);
-                }
+		pointExplicitCimSolver(icoords,sub_comp);
             }
             break;
 	case 2:
@@ -2101,50 +2133,7 @@ void CARTESIAN::computeAdvectionExplicitCim(COMPONENT sub_comp)
 	    {
 	    	icoords[0] = i;
 	    	icoords[1] = j;
-	    	ic = d_index2d(i,j,top_gmax);
-	    	comp = top_comp[ic];
-	    	if (comp != sub_comp) 
-	    	    continue;
-                array[ic] = temperature = Temp[ic];
-		for (l = 0; l < dim; ++l)
-                {
-                    v[l] = 0.0;
-                    v_plus[l] = 0.0;
-                    v_minus[l] = 0.0;
-                }
-                if (sub_comp == LIQUID_COMP && vel != NULL)
-                {
-                    for (l = 0; l < dim; ++l)
-                    {
-                        v[l] = vel[l][ic];
-                        v_plus[l] = std::max(0.0,v[l]);
-                        v_minus[l] = std::min(0.0,v[l]);
-                    }
-                } 
-		for (l = 0; l < dim; ++l)
-		{
-	            dgrad[l] = 0.0;
-		    grad_plus[l] = 0.0;
-                    grad_minus[l] = 0.0;
-
-                    for (m = 0; m < 2; ++m)
-                    {
-                        fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateTemperature,
-                                &temperature_nb[m],crx_coords);
-                        if (!fr_crx_grid_seg)
-                        {
-                            next_ip_in_dir(icoords,dir[l][m],ipn,gmin,top_gmax);
-                            icn = d_index2d(ipn[0],ipn[1],top_gmax);
-			    temperature_nb[m] = Temp[icn];
-                        }
-                        dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
-                    }
-		    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
-		    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
-		    array[ic] += coef*dgrad[l]/top_h[l] - 
-			m_dt*(v_plus[l]*grad_minus[l]+ v_minus[l]*grad_plus[l]);
-		}
+		pointExplicitCimSolver(icoords,sub_comp);
 	    }
 	    break;
 	case 3:
@@ -2155,50 +2144,7 @@ void CARTESIAN::computeAdvectionExplicitCim(COMPONENT sub_comp)
 	    	icoords[0] = i;
 	    	icoords[1] = j;
 	    	icoords[2] = k;
-	    	ic = d_index3d(i,j,k,top_gmax);
-	    	comp = top_comp[ic];
-	    	if (comp != sub_comp) 
-	    	    continue;
-                array[ic] = temperature = Temp[ic];
-		for (l = 0; l < dim; ++l)
-                {
-                    v[l] = 0.0;
-                    v_plus[l] = 0.0;
-                    v_minus[l] = 0.0;
-                }
-                if (sub_comp == LIQUID_COMP && vel != NULL)
-                {
-                    for (l = 0; l < dim; ++l)
-                    {
-                        v[l] = vel[l][ic];
-                        v_plus[l] = std::max(0.0,v[l]);
-                        v_minus[l] = std::min(0.0,v[l]);
-                    }
-                }
-		for (l = 0; l < dim; ++l)
-		{
-	            dgrad[l] = 0.0;
-		    grad_plus[l] = 0.0;
-                    grad_minus[l] = 0.0;
-
-                    for (m = 0; m < 2; ++m)
-                    {
-                        fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateTemperature,
-                                &temperature_nb[m],crx_coords);
-                        if (!fr_crx_grid_seg)
-                        {
-                            next_ip_in_dir(icoords,dir[l][m],ipn,gmin,top_gmax);
-                            icn = d_index3d(ipn[0],ipn[1],ipn[2],top_gmax);
-                	    temperature_nb[m] = Temp[icn];
-                        }
-                        dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
-                    }
-		    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
-		    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
-		    array[ic] += coef*dgrad[l]/top_h[l] - 
-			m_dt*(v_plus[l]*grad_minus[l]+ v_minus[l]*grad_plus[l]);
-		}
+		pointExplicitCimSolver(icoords,sub_comp);
 	    }
 	    break;
 	}
