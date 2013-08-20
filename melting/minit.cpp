@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -20,8 +21,8 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+****************************************************************/
 
-******************************************************************************/
 #include <iFluid.h>
 #include "melting.h"
 
@@ -132,14 +133,17 @@ extern void readPhaseParams(
 	    if ((scheme[0] == 'E' || scheme[0] == 'e') &&
 	    	(scheme[1] == 'X' || scheme[1] == 'x')) 
 	    	eqn_params->num_scheme = UNSPLIT_EXPLICIT;
+	    else if ((scheme[0] == 'E' || scheme[0] == 'e') &&
+	    	(scheme[1] == 'C' || scheme[1] == 'c')) 
+	    	eqn_params->num_scheme = UNSPLIT_EXPLICIT_CIM;
 	    else if ((scheme[0] == 'I' || scheme[0] == 'i') &&
 	    	(scheme[1] == 'M' || scheme[1] == 'm')) 
 	    	eqn_params->num_scheme = UNSPLIT_IMPLICIT;
 	    else if ((scheme[0] == 'C' || scheme[0] == 'c') &&
 	    	(scheme[1] == 'N' || scheme[1] == 'n')) 
 	    	eqn_params->num_scheme = CRANK_NICOLSON;
-	    else if ((scheme[0] == 'C' || scheme[0] == 'c') &&
-	    	(scheme[1] == 'I' || scheme[1] == 'i')) 
+	    else if ((scheme[0] == 'I' || scheme[0] == 'i') &&
+	    	(scheme[1] == 'C' || scheme[1] == 'c')) 
 	    	eqn_params->num_scheme = UNSPLIT_IMPLICIT_CIM;
 	}
 	

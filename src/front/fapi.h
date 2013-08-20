@@ -1501,6 +1501,54 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 
    IMPORT  int FT_BoundaryType(int dir,int side);
 
+/*! \fn double *FT_GridIntfcTopL(Front*)
+ *  \ingroup GRIDINTFC
+    \brief This function return lower bounds of grid domain.
+    \param front @b in Pointer to front.
+ */
+
+   IMPORT  double *FT_GridIntfcTopL(Front*);
+
+/*! \fn double *FT_GridIntfcTopU(Front*)
+ *  \ingroup GRIDINTFC
+    \brief This function return upper bounds of grid domain.
+    \param front @b in Pointer to front.
+ */
+
+   IMPORT  double *FT_GridIntfcTopU(Front*);
+
+/*! \fn double *FT_GridIntfcToph(Front*)
+ *  \ingroup GRIDINTFC
+    \brief This function return grid spacing of grid domain.
+    \param front @b in Pointer to front.
+ */
+
+   IMPORT  double *FT_GridIntfcToph(Front*);
+
+/*! \fn COMPONENT *FT_GridIntfcTopComp(Front*)
+ *  \ingroup GRIDINTFC
+    \brief This function return components of grid domain.
+    \param front @b in Pointer to front.
+ */
+
+   IMPORT  COMPONENT *FT_GridIntfcTopComp(Front*);
+
+/*! \fn int *FT_GridIntfcTopGmax(Front*)
+ *  \ingroup GRIDINTFC
+    \brief This function return mesh sizes of grid domain.
+    \param front @b in Pointer to front.
+ */
+
+   IMPORT  COMPONENT *FT_GridIntfcTopGmax(Front*);
+
+/*! \fn RECT_GRID *FT_GridIntfcTopGrid(Front*)
+ *  \ingroup GRIDINTFC
+    \brief This function return grid structure of grid domain.
+    \param front @b in Pointer to front.
+ */
+
+   IMPORT  RECT_GRID *FT_GridIntfcTopGrid(Front*);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif

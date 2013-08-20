@@ -35,14 +35,20 @@ Enter thermal conductivity of phase 2: 0.01
 
 Choose numerical scheme
 	UNSPLIT_EXPLICIT (EX)
+	UNSPLIT_EXPLICIT_CIM (EC)
 	UNSPLIT_IMPLICIT (IM)
+	UNSPLIT_IMPLICIT_CIM (IC)
 	CRANK_NICOLSON (CN)
-Enter scheme: CIM
+Enter scheme: EC
 Enter position of interface 1: 0.3
 
 ************Movie option********************
 
-Type y to make movie of solute: y
+Type y to make movie of temperature: y
+Type y to make movie of pressure: y
+Type y to make movie of vorticity: y
+Type y to make movie of velocity: n
+Type y to make vector velocity field movie: y
 
 ************Debugging options*****************
 

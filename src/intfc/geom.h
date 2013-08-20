@@ -676,6 +676,7 @@ IMPORT	boolean	rect_in_which(const double*,int*,const RECT_GRID*);
 IMPORT	double	grid_tolerance(const RECT_GRID*);
 IMPORT	double	ident_Area(const double*,const RECT_GRID*);
 IMPORT	int	set_grid_lines(RECT_GRID*);
+IMPORT	void	coords_of_grid_point(const int*,double*,const RECT_GRID*);
 IMPORT	void	set_rotational_symmetry(boolean);
 IMPORT	void	copy_rect_grid(RECT_GRID*,const RECT_GRID*);
 IMPORT	void	fprint_rectangular_grid(FILE*,const RECT_GRID*);

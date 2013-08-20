@@ -20,6 +20,7 @@
 
 enum _NUM_SCHEME {
 	UNSPLIT_EXPLICIT = 1,
+	UNSPLIT_EXPLICIT_CIM,
 	UNSPLIT_IMPLICIT,
 	UNSPLIT_IMPLICIT_CIM,
 	CRANK_NICOLSON
@@ -175,6 +176,7 @@ public:
 
 	void computeAdvection();
 
+	void computeAdvectionExplicitCim(COMPONENT);
 	void computeAdvectionExplicit(COMPONENT);
 	void computeAdvectionImplicit(COMPONENT);
 	void computeAdvectionCN(COMPONENT);

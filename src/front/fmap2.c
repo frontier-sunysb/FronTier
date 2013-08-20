@@ -1136,3 +1136,71 @@ EXPORT int FT_BoundaryType(
 	INTERFACE *intfc = current_interface();
 	return rect_boundary_type(intfc,dir,side);
 }	/* end FT_BoundaryType */
+
+EXPORT	double *FT_GridIntfcTopL(
+	Front *front)
+{
+	if (front->grid_intfc == NULL)
+	{
+	    (void) printf("In FT_GridIntfcTopL() grid_intfc is NULL!\n");
+	    clean_up(ERROR);
+	}
+	return topological_grid(front->grid_intfc).L;
+}	/* end FT_GridIntfcTopL */
+
+EXPORT	double *FT_GridIntfcTopU(
+	Front *front)
+{
+	if (front->grid_intfc == NULL)
+	{
+	    (void) printf("In FT_GridIntfcTopU() grid_intfc is NULL!\n");
+	    clean_up(ERROR);
+	}
+	return topological_grid(front->grid_intfc).U;
+}	/* end FT_GridIntfcTopU */
+
+EXPORT	double *FT_GridIntfcToph(
+	Front *front)
+{
+	if (front->grid_intfc == NULL)
+	{
+	    (void) printf("In FT_GridIntfcToph() grid_intfc is NULL!\n");
+	    clean_up(ERROR);
+	}
+	return topological_grid(front->grid_intfc).h;
+}	/* end FT_GridIntfcToph */
+
+EXPORT	COMPONENT *FT_GridIntfcTopComp(
+	Front *front)
+{
+	Table *T;	
+	if (front->grid_intfc == NULL)
+	{
+	    (void) printf("In FT_GridIntfcTopComp() grid_intfc is NULL!\n");
+	    clean_up(ERROR);
+	}
+	T = table_of_interface(front->grid_intfc);
+	return T->components;
+}	/* end FT_GridIntfcTopComp */
+
+EXPORT	int *FT_GridIntfcTopGmax(
+	Front *front)
+{
+	if (front->grid_intfc == NULL)
+	{
+	    (void) printf("In FT_GridIntfcTopGmax() grid_intfc is NULL!\n");
+	    clean_up(ERROR);
+	}
+	return topological_grid(front->grid_intfc).gmax;
+}	/* end FT_GridIntfcTopGmax */
+
+EXPORT	RECT_GRID *FT_GridIntfcTopGrid(
+	Front *front)
+{
+	if (front->grid_intfc == NULL)
+	{
+	    (void) printf("In FT_GridIntfcTopGmax() grid_intfc is NULL!\n");
+	    clean_up(ERROR);
+	}
+	return &topological_grid(front->grid_intfc);
+}	/* end FT_GridIntfcTopGrid */

@@ -1220,6 +1220,16 @@ EXPORT boolean rect_in_which(
 	return status;
 }		/*end rect_in_which*/
 
+EXPORT void coords_of_grid_point(
+	const int	 *icoords,
+	double     *coords,
+	const RECT_GRID	*grid)
+{
+	int	    j, dim = grid->dim;
+
+	for (j = 0; j < dim; ++j)
+	    coords[j] = grid->L[j] + icoords[j]*grid->h[j];
+}	/* end coords_of_grid_point */
 /*	
 *			point_in_buffer():
 *
