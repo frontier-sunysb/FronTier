@@ -615,6 +615,63 @@ void G_CARTESIAN::addFluxInDirection2d(
 	    }
 	    break;
 	}
+	if (debugging("bdry_flux"))
+	{
+	    double dens_flux[2],engy_flux[2],momn_flux[MAXD][2];
+	    for (i = 0; i < 2; ++i)
+	    {
+		dens_flux[i] = engy_flux[i] = 0.0;
+		momn_flux[0][i] = momn_flux[1][i] = 0.0;
+	    }
+	    switch (dir)
+	    {
+	    case 0:
+		for (i = imin[1]; i <= imax[1]; ++i)
+		{
+		    j = imin[0];
+		    index = d_index2d(i,j,top_gmax);
+		    dens_flux[0] += m_flux->dens_flux[index];
+		    engy_flux[0] += m_flux->engy_flux[index];
+		    momn_flux[0][0] += m_flux->momn_flux[0][index];
+		    momn_flux[1][0] += m_flux->momn_flux[1][index];
+		    j = imax[0];
+		    index = d_index2d(i,j,top_gmax);
+		    dens_flux[1] += m_flux->dens_flux[index];
+		    engy_flux[1] += m_flux->engy_flux[index];
+		    momn_flux[0][1] += m_flux->momn_flux[0][index];
+		    momn_flux[1][1] += m_flux->momn_flux[1][index];
+		}
+		break;
+	    case 1:
+		for (i = imin[0]; i <= imax[0]; ++i)
+		{
+		    j = imin[1];
+		    index = d_index2d(i,j,top_gmax);
+		    dens_flux[0] += m_flux->dens_flux[index];
+		    engy_flux[0] += m_flux->engy_flux[index];
+		    momn_flux[0][0] += m_flux->momn_flux[0][index];
+		    momn_flux[1][0] += m_flux->momn_flux[1][index];
+		    j = imax[1];
+		    index = d_index2d(i,j,top_gmax);
+		    dens_flux[1] += m_flux->dens_flux[index];
+		    engy_flux[1] += m_flux->engy_flux[index];
+		    momn_flux[0][1] += m_flux->momn_flux[0][index];
+		    momn_flux[1][1] += m_flux->momn_flux[1][index];
+		}
+		break;
+	    }
+	    (void) printf("In direction %d\n",dir);
+	    (void) printf("Lower side boundary flux:\n");
+	    (void) printf("dens_flux = %20.14f\n",dens_flux[0]);
+	    (void) printf("engy_flux = %20.14f\n",engy_flux[0]);
+	    (void) printf("momn_flux = %20.14f %20.14f\n",momn_flux[0][0],
+				momn_flux[1][0]);
+	    (void) printf("Upper side boundary flux:\n");
+	    (void) printf("dens_flux = %20.14f\n",dens_flux[1]);
+	    (void) printf("engy_flux = %20.14f\n",engy_flux[1]);
+	    (void) printf("momn_flux = %20.14f %20.14f\n",momn_flux[0][1],
+				momn_flux[1][1]);
+	}
 	stop_clock("addFluxInDirection2d");
 }	/* end addFluxInDirection2d */
 
