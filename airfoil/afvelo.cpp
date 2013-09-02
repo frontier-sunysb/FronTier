@@ -267,6 +267,12 @@ extern void setMotionParams(
             fscanf(infile,"%lf",&af_params->m_l);
             (void) printf("%f\n",af_params->m_l);
         }
+	af_params->num_smooth_layers = 1;
+	if (CursorAfterStringOpt(infile,"Enter number of smooth layers:"))
+	{
+            fscanf(infile,"%d",&af_params->num_smooth_layers);
+            (void) printf("%d\n",af_params->num_smooth_layers);
+	}
         if (af_params->use_total_mass)
             convert_to_point_mass(front,af_params);
 	fclose(infile);

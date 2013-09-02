@@ -42,6 +42,8 @@ static void compute_total_canopy_force2d(Front*,double*,double*);
 static void compute_total_canopy_force3d(Front*,double*,double*);
 static void compute_center_of_mass_velo(PARACHUTE_SET*);
 static void set_canopy_velocity(PARACHUTE_SET*,double**);
+static void reduce_high_freq_vel(Front*,SURFACE*);
+static void smooth_vel(double*,POINT*,TRI*,SURFACE*);
 static boolean curve_in_pointer_list(CURVE*,CURVE**);
 
 #define 	MAX_NUM_RING1		30
@@ -1488,6 +1490,43 @@ static void compute_center_of_mass_velo(
 	    (void) printf("Leaving compute_center_of_mass_velo()\n");
 }	/* end compute_center_of_mass_velo */
 
+static void smooth_vel(
+	double *vel,
+	POINT *p,
+	TRI *tri,
+	SURFACE *surf)
+{
+	TRI *tris[20];
+	HYPER_SURF_ELEMENT *hse = Hyper_surf_element(tri);
+        HYPER_SURF         *hs = Hyper_surf(surf);
+	int i,j,k,nt,np;
+	POINT *pt_list[20],*pt;
+	STATE *sl,*sr;
+	static double max_speed = 0.0;
+	
+	PointAndFirstRingTris(p,hse,hs,&nt,tris);
+	np = 0;
+	for (k = 0; k < 3; ++k)
+	    vel[k] = 0.0;
+	for (i = 0; i < nt; ++i)
+	{
+	    for (j = 0; j < 3; ++j)
+	    {
+		pt = Point_of_tri(tris[i])[j];
+		if (pointer_in_list((POINTER)pt,np,(POINTER*)pt_list))
+		    continue;
+		pt_list[np++] = pt;	
+		hse = Hyper_surf_element(tris[i]);
+		FT_GetStatesAtPoint(pt,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		for (k = 0; k < 3; ++k)
+	    	    vel[k] += sl->vel[k];
+		
+	    }
+	}
+	for (k = 0; k < 3; ++k)
+	    vel[k] /= (double)np;
+}	/* end smooth_vel */
+
 static void set_canopy_velocity(
 	PARACHUTE_SET *geom_set,
 	double **v)
@@ -1547,20 +1586,12 @@ static void set_canopy_velocity(
 		{
 		    sl->vel[j] = sl->impulse[j] + nor_speed*nor[j];
 		    sr->vel[j] = sr->impulse[j] + nor_speed*nor[j];
-	    	    FT_RecordMaxFrontSpeed(j,sl->vel[j],NULL,Coords(p),front);
-		}
-	    	FT_RecordMaxFrontSpeed(3,Mag3d(sl->vel),NULL,Coords(p),front);
-		if (max_speed < Mag3d(sl->vel)) 
-		{
-		    max_speed = Mag3d(sl->vel);
-		    gindex_max = Gindex(p);
-		    for (j = 0; j < 3; ++j)
-			crds_max[j] = Coords(p)[j];
 		}
 		sorted(p) = YES;
 		n++;
 	    }
 	}
+	reduce_high_freq_vel(front,canopy);
 
 	ng = geom_set->num_gore_nodes;
 	for (i = 0; i < ng; ++i)
@@ -1587,12 +1618,12 @@ static void set_canopy_velocity(
 			    crds_max[j] = Coords(p)[j];
 		    }
                     for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = sl->impulse[j] + nor_speed*nor[j];
+		    	sl->vel[j] = sr->vel[j] = 
+				sl->impulse[j] + nor_speed*nor[j];
 		}
             }
             for (c = node->in_curves; c && *c; ++c)
             {
-	    	//if (curve_in_pointer_list(*c,node->out_curves)) continue;
 		if (hsbdry_type(*c) != GORE_HSBDRY) continue;
                 b = (*c)->last;
                 p = b->end;
@@ -1653,7 +1684,6 @@ static void set_canopy_velocity(
             }
             for (c = node->in_curves; c && *c; ++c)
             {
-	    	//if (curve_in_pointer_list(*c,node->out_curves)) continue;
 		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
 		    hsbdry_type(*c) != GORE_HSBDRY) 
 		    continue;
@@ -1722,7 +1752,8 @@ static void set_canopy_velocity(
 		    vel = v[n];
 		    nor_speed = scalar_product(vel,nor,dim);
                     for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = sl->impulse[j] + nor_speed*nor[j];
+		    	sl->vel[j] = sr->vel[j] = 
+				sl->impulse[j] + nor_speed*nor[j];
             	}
             	n++;
             }
@@ -2670,3 +2701,113 @@ extern void propagate_curve(
             ++(*n);
         }
 }	/* end propagate_curve */
+
+static void reduce_high_freq_vel(
+	Front *front,
+	SURFACE *canopy)
+{
+	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
+	double **vv;
+	int ncan;
+	POINT *p;
+	TRI *tri;
+	HYPER_SURF *hs;
+	HYPER_SURF_ELEMENT *hse;
+	STATE *sl,*sr;
+	double max_speed;
+	double crds_max[MAXD];
+	int i,j,gindex_max;
+	int l,num_layers = af_params->num_smooth_layers;
+
+	hs = Hyper_surf(canopy);
+
+	ncan = 0;
+	unsort_surf_point(canopy);
+	for (tri = first_tri(canopy); !at_end_of_tri_list(tri,canopy); 
+			tri = tri->next)
+	{
+	    hse = Hyper_surf_element(tri);
+	    for (i = 0; i < 3; ++i)
+	    {
+		p = Point_of_tri(tri)[i];
+		if (sorted(p) || Boundary_point(p)) continue;
+		sorted(p) = YES;
+		ncan++;
+	    }
+	}
+
+	FT_MatrixMemoryAlloc((POINTER*)&vv,ncan,3,sizeof(double));
+
+	l = 0;
+	while (l < num_layers)
+	{
+	    ncan = 0;
+	    unsort_surf_point(canopy);
+	    for (tri = first_tri(canopy); !at_end_of_tri_list(tri,canopy); 
+			tri = tri->next)
+	    {
+	    	for (i = 0; i < 3; ++i)
+	    	{
+		    p = Point_of_tri(tri)[i];
+		    if (sorted(p) || Boundary_point(p)) continue;
+		    smooth_vel(vv[ncan],p,tri,canopy);
+		    ncan++;
+		    sorted(p) = YES;
+	    	}
+	    }
+
+	    ncan = 0;
+	    max_speed = 0.0;
+	    unsort_surf_point(canopy);
+	    for (tri = first_tri(canopy); !at_end_of_tri_list(tri,canopy); 
+			tri = tri->next)
+	    {
+	    	hse = Hyper_surf_element(tri);
+	    	for (i = 0; i < 3; ++i)
+	    	{
+		    p = Point_of_tri(tri)[i];
+		    if (sorted(p) || Boundary_point(p)) continue;
+		    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		    for (j = 0; j < 3; ++j)
+		    {
+		    	sl->vel[j] = vv[ncan][j];
+		    	sr->vel[j] = vv[ncan][j];
+		    }
+		    if (max_speed < Mag3d(sl->vel)) 
+		    	max_speed = Mag3d(sl->vel);
+		    ncan++;
+		    sorted(p) = YES;
+	    	}
+	    }
+	    if (debugging("smooth_canopy_vel"))
+		(void) printf("Max speed after smoothing round %d: %f\n",
+					l,max_speed);
+	    l++;
+	}
+
+	unsort_surf_point(canopy);
+	max_speed = 0.0;
+	for (tri = first_tri(canopy); !at_end_of_tri_list(tri,canopy); 
+			tri = tri->next)
+	{
+	    hse = Hyper_surf_element(tri);
+	    for (i = 0; i < 3; ++i)
+	    {
+		p = Point_of_tri(tri)[i];
+		if (sorted(p) || Boundary_point(p)) continue;
+		FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		for (j = 0; j < 3; ++j)
+	    	    FT_RecordMaxFrontSpeed(j,sl->vel[j],NULL,Coords(p),front);
+	    	FT_RecordMaxFrontSpeed(3,Mag3d(sl->vel),NULL,Coords(p),front);
+		if (max_speed < Mag3d(sl->vel)) 
+		{
+		    	max_speed = Mag3d(sl->vel);
+		    	gindex_max = Gindex(p);
+		    	for (j = 0; j < 3; ++j)
+			    crds_max[j] = Coords(p)[j];
+		}
+		sorted(p) = YES;
+	    }
+	}
+
+}	/* end reduce_high_freq_vel */

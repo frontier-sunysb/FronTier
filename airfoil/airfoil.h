@@ -100,6 +100,8 @@ typedef struct {
 	int    n_tan;			/* number of sub-steps for tan prop */
 	int    num_opt_round;		/* number of canopy optimizations 
 							rounds*/ 
+	int    num_smooth_layers;	/* number of layer to smooth high
+					   frequency velocity */
         IF_FIELD *field;
 } AF_PARAMS;
 
