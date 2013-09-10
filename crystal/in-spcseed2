@@ -84,8 +84,8 @@ Enter solute concentration: 2.0
 
 ************Debugging options*****************
 
-Enter yes for debugging: no
+Enter yes for debugging: yes
 Enter the debugging string: trace
 Enter the debugging string: CLOCK
 Enter the debugging string: step_size
-Enter the debugging string: sample_velocity
+Enter the debugging string: tsample_velocity

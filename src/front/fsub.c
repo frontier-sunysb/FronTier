@@ -47,10 +47,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 	/* LOCAL Function Declarations */
 LOCAL	Front*	f_copy_front(Front*);
-#if defined(USE_OVERTURE)
-LOCAL   Front*  f_deep_copy_front(Front*);
-LOCAL   void    f_deep_free_front(Front*);
-#endif /* if defined(USE_OVERTURE) */
 
 LOCAL	void	f_copy_MaxFrontSpeed(MAX_FRONT_SPEED*,MAX_FRONT_SPEED*,Front*);
 LOCAL	void	f_destroy_MaxFrontSpeed(Front*);
@@ -115,28 +111,6 @@ EXPORT	void	f_principal_tangent(
 }		/*end f_principal_tangent*/
 
 
-/*
-*                       f_deep_copy_front():
-*
-*       Basic default function for copying a front structure.
-*       Allocates storage for the new front and copies the
-*       argument into the new structure.
-*/
-#if defined(USE_OVERTURE)
-LOCAL   Front *f_deep_copy_front(
-        Front           *fr)
-{
-        Front           *newfr;
-
-        scalar(&newfr,sizeof(Front));
-        copy_into_front(newfr,fr);
-        scalar(&(newfr->rect_grid), sizeof(RECT_GRID));
-        *(newfr->rect_grid) = *(fr->rect_grid);
-        scalar(&(newfr->pd_flag),sizeof(Patch_bdry_flag));
-        return newfr;
-}               /*end f_deep_copy_front*/
-#endif /* if defined(USE_OVERTURE)  */
-
 
 /*
 *			f_copy_front():
@@ -187,28 +161,6 @@ LOCAL	void	f_free_front(
 	free(fr);
 }		/*end f_free_front*/
 
-
-/*
-*                       f_deep_free_front():
-*
-*       Basic front destructor.  Deletes fr->interf and then frees the
-*       corresponding front.  Should only be used on fronts that were
-*       created by f_copy_front.
-*/
-#if defined(USE_OVERTURE)
-LOCAL   void    f_deep_free_front(
-        Front           *fr)
-{
-        if (fr == NULL)
-            return;
-        if (fr->interf != NULL)
-            (void) delete_interface(fr->interf);
-        free(fr->rect_grid);
-        free(fr->pd_flag);
-        free(fr);
-}               /*end f_deep_free_front*/
-#endif /* if defined(USE_OVERTURE)  */
-
 /*
 *			f_set_default_front_parameters():
 *
@@ -245,11 +197,6 @@ EXPORT	void	f_set_default_front_parameters(
 	fr->_print_Front_structure =			f_print_Front_structure;
 	fr->_fprint_front =				f_fprint_front;
 	fr->_read_print_front =				f_read_print_front;
-
-#if defined(USE_OVERTURE)
-        fr->_deep_free_front =                          f_deep_free_front;
-        fr->_deep_copy_front =                          f_deep_copy_front;
-#endif /* if defined(USE_OVERTURE) */
 
 	/*	fr->sizest (assumed already set) */
 	fr->_state_interpolator = linear_state_interpolator;
@@ -543,11 +490,13 @@ EXPORT	double	f_max_front_time_step(
 	if (debugging("time_step") || debugging("step_size"))
 	{
 	    (void) printf("In f_max_front_time_step()\n");
-	    for (i = 0; i <= dim; ++i)
+	    for (i = 0; i < dim; ++i)
 	    {
 	        (void) printf("front: spfr[%d] %g dt[%d]  %g dx[%d] %g\n",
 	                      i,spfr[i],i,dt[i],i,h[i]);
 	    }
+	    (void) printf("front: spfr[%d] %g dt[%d]  %g dx[%d] %g\n",
+	                      dim,spfr[dim],dim,dt[dim],dim,hmin);
 	    (void) printf("front - max_dt = %g\n",max_dt);
 	    print_general_vector("coords = ",coords,dim,"\n");
 	}

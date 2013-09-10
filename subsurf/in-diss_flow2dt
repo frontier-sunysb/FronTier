@@ -8,6 +8,13 @@ Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
 
 *****Crystal Input data*************
+Available initial interface types are:
+        Seed (SE)
+        Slotted circle (SL)
+        Triangle (T)
+        Rectangle (R)
+        Circle with four slots (F)
+        ORNL Sample (O)
 Enter initial interface type: TRIANGLE 
 Enter three points for triangle:
 Enter the first point x0, and y0: 0.5 3.5

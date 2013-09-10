@@ -399,6 +399,10 @@ protected:
 	void copyMeshStates(void);
 	void computeAdvection(void);
 	void computeDiffusion(void);
+	void computeDiffusionCN(void);
+	void computeDiffusionExplicit(void);
+	void computeDiffusionImplicit(void);
+	void computeDiffusionParab(void);
 	void computeProjection(void);
 	void computeProjectionCim(void);
 	void computeProjectionSimple(void);
@@ -432,6 +436,10 @@ protected:
 	void copyMeshStates(void);
 	void computeAdvection(void);
 	void computeDiffusion(void);
+	void computeDiffusionCN(void);
+	void computeDiffusionExplicit(void);
+	void computeDiffusionImplicit(void);
+	void computeDiffusionParab(void);
 	void computeProjection(void);
 	void computeProjectionCim(void);
 	void computeProjectionSimple(void);

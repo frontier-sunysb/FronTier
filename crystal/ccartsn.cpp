@@ -660,6 +660,7 @@ void C_CARTESIAN::computeAdvectionImplicit(void)
 	parab_solver.findStateAtCrossing = find_state_at_crossing;
 	parab_solver.source = NULL;
 	parab_solver.D = cRparams->D;
+	parab_solver.nu = NULL;
 	parab_solver.order = cRparams->pde_order;
 	parab_solver.var_obst = cRparams->rho_s;
 	parab_solver.ilower = ilower;
@@ -1603,12 +1604,12 @@ void C_CARTESIAN::vtk_plot_concentration2d(
 	if (pp_numnodes() > 1)
 	    sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
 	if (create_directory(filename,YES) == FUNCTION_FAILED)
-	{
-	    screen("ERROR in vtk_plot_concentration2d() directory %s ",
-			   "doesn't exist ",
+        {
+            screen("ERROR in vtk_plot_concentration2d() directory %s ",
+                           "doesn't exist ",
                            "and can't be made\n",filename);
             clean_up(ERROR);
-	}
+        }
 
 	//cell-based liquid phase
 	ph_index.clear();

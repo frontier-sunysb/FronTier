@@ -139,7 +139,8 @@ public:
 	double *soln;		/* field variable of new step */
 	double *source;		/* source field */
 	double **a;		/* advection field */
-	double D;
+	double D;		/* Constant diffusion coefficient */
+	double *nu;		/* Variable diffusion coefficient */
 	double var_obst;	/* default solution in obst_comp */
 	double (*getStateVarFunc)(POINTER);
 	void set_solver_domain(void);
@@ -156,14 +157,16 @@ private:
         // Dimension
         int dim;
         COMPONENT *top_comp;
-	double *top_h;
-	double *top_L;
         int *top_gmax;
 	int imin,jmin,kmin;
 	int imax,jmax,kmax;
-        double *array;          // for scatter states;
 	int array_size;
-
+        double *array;          // for scatter states;
+	double *top_h;
+	double *top_L;
+	double var_min;
+	double var_max;
+	double checkSolver(int *icoords,boolean print_details,double *var_in);
 };
 
 class DUAL_ELLIPTIC_SOLVER{

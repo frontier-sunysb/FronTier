@@ -32,10 +32,10 @@ Choose point propagation scheme
         Middle point (MP)
 Enter scheme: MP
 Enter yes to add curvature effect: no
-Max time: 8.0
-Max step: 100000
-Print interval: 0.5
-Movie frame interval: 0.5
+Max time: 1.0
+Max step: 50000
+Print interval: 0.1
+Movie frame interval: 0.05
 CFL factor: 0.5
 Redistribution interval: 100
 

@@ -8,6 +8,7 @@ FT_G_OBJECTS = front_gpu.$(OBJEXT)
 
 FT_C_OBJECTS = fredist2d.$(OBJEXT) \
 fadv.$(OBJEXT) \
+fadv3d.$(OBJEXT) \
 fbdry1.$(OBJEXT) \
 fbdry2.$(OBJEXT) \
 fbdry3.$(OBJEXT) \
@@ -48,8 +49,6 @@ funtan2d.$(OBJEXT) \
 funtan3d.$(OBJEXT) \
 fuserintfc.$(OBJEXT) \
 fuserhooks.$(OBJEXT) \
-foverture_patch.$(OBJEXT) \
-foverture_adv.$(OBJEXT)   \
 fvelo.$(OBJEXT)   \
 fpatch3d.$(OBJEXT) \
 fmap.$(OBJEXT)   \

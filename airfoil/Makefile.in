@@ -30,6 +30,8 @@ iFcartsn3d.o : ../iFluid/iFluid.h ../solver/solver.h ../iFluid/iFcartsn3d.cpp
 	${CXX} -c ../iFluid/iFcartsn3d.cpp $(incsloc) $(incs) ${Petsc_Include}
 hyperb.o : ../iFluid/iFluid.h ../solver/solver.h ../solver/hyperb.cpp
 	${CXX} -c ../solver/hyperb.cpp $(incsloc) $(incs) ${Petsc_Include}
+parab.o : ../iFluid/iFluid.h ../solver/solver.h ../solver/parab.cpp
+	${CXX} -c ../solver/parab.cpp $(incsloc) $(incs) ${Petsc_Include}
 solver.o : ../solver/solver.h ../solver/solver.cpp
 	${CXX} -c ../solver/solver.cpp $(incsloc) $(incs) ${Petsc_Include}
 ellip.o : ../solver/solver.h ../solver/ellip.cpp
@@ -70,7 +72,7 @@ airfoil: ../iFluid/iFluid.h ../solver/solver.h airfoil.h airfoil.o afinit.o afin
 endif
 
 
-../lib/libiF.a: solver.o cim_ellip.o dual_ellip.o ellip.o hyperb.o iFbasic.o iFcartsn2d.o iFcartsn3d.o
+../lib/libiF.a: solver.o cim_ellip.o dual_ellip.o ellip.o hyperb.o parab.o iFbasic.o iFcartsn2d.o iFcartsn3d.o
 	$(AR) cru libiF.a $^
 	ranlib libiF.a; mv libiF.a ../lib/$(build_cpu)/libiF.a
 

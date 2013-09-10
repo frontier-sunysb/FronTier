@@ -120,6 +120,9 @@ EXPORT	int FrontAdvance(
             	front->dt = (*dt_frac)*start_dt;
 	    start_dt = front->dt;
 	    *front->max_scaled_propagation = 0.0;
+	    /* For 2D: advance_front2d()
+	       For 3D: advance_front3d_tracking_control()
+	    */
             status = advance_front(front->dt,dt_frac,front,newfront,wave);
             count++;
             if (count > 15) 

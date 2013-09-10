@@ -55,6 +55,7 @@ void ELLIPTIC_SOLVER::set_solver_domain(void)
 
 void ELLIPTIC_SOLVER::solve(double *soln)
 {
+	if (iupper - ilower == 0) return;
 	switch (dim)
 	{
 	case 1:

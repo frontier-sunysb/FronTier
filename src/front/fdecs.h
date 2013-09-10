@@ -249,6 +249,7 @@ enum _TRACKING_ALGORITHM {
 	NO_DYNAMIC_TRACKING,
 	SIMPLE_TRACKING,
 	STRUCTURE_TRACKING,
+	SPHERICAL_TRACKING,
 	GRID_FREE_TRACKING,
 	GRID_BASED_TRACKING,
 	THREE_COMP_GRID_BASED_TRACKING,
@@ -693,45 +694,8 @@ struct _Front {
 	INTERFACE *old_grid_intfc;      /* Grid Interface of previous step*/
 	boolean extrapolation_permitted;
 
-#if defined(USE_OVERTURE)
-
-        int     (*_normal_advance_front)(double,double*,struct _Front*,
-                                struct _Front**,POINTER);
-        int     (*_tangnt_advance_front)(double,double*,struct _Front*,
-                                struct _Front**,POINTER);
-        int     (*_redist_advance_front)(double,double*,struct _Front*,
-                                struct _Front**,POINTER);
-
-                /* deep Copy and freeing front, create rect_grid */
-        void    (*_deep_free_front)(struct _Front*);
-        struct _Front*  (*_deep_copy_front)(struct _Front*);
-
-        int                       use_overture_state;
-        POINTER                   cg_over;   /* pointer of CompositeGrid */
-        int                       patch_number;
-        int                       patch_level;
-        int                       NumberOfLevels;
-        int                       totalNumberOfPatches;
-/*         Neighbor                        *neighbor; */
-        Patch_bdry_flag           *pd_flag;
-        struct _Front             *newfront;
-#endif /* defined(USE_OVERTURE) */
 };
 typedef struct _Front Front;
-
-#if defined(USE_OVERTURE)
-struct _Wv_on_pc{
-        int    pc_id;   /* proc id */
-        int    pc_ic[MAXD]; /* proc icrds */
-        int    wv_id;   /* patch of wv id */
-        int    wv_level; /* for the reduce of communication */
-        int    base[MAXD];  /* grid location index on subdomain */
-        int    bound[MAXD]; /* grid location index on subdomain */
-        int    off_set[MAXD]; /* location of index[0,0] offset  */
-        Front  *front;
-};
-typedef struct _Wv_on_pc Wv_on_pc;
-#endif /* if defined(USE_OVERTURE) */
 
 #define	npt_tang_solver(ds,dt,sten,ansl,ansr,fr)			\
 	(*(fr)->_npt_tang_solver)(ds,dt,sten,ansl,ansr,fr)
@@ -903,11 +867,6 @@ typedef struct _ConstantFlowRegion ConstantFlowRegion;
 #define read_print_front(init,fr)	(*(fr)->_read_print_front)(init,fr)
 
 #define free_front(fr)	(*(fr)->_free_front)(fr)
-
-#if defined(USE_OVERTURE)
-#define deep_copy_front(fr)     (*(fr)->_deep_copy_front)(fr)
-#define deep_free_front(fr)     (*(fr)->_deep_free_front)(fr)
-#endif /* if defined(USE_OVERTURE) */
 
 #define	init_propagate(fr)						\
 	if ((fr)->_init_propagate != NULL)				\

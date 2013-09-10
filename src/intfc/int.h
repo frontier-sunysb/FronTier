@@ -995,20 +995,11 @@ enum {
 	MIXED_TYPE_BOUNDARY,
 	OPEN_BOUNDARY,
 	FIRST_USER_BOUNDARY_TYPE
-#if defined(USE_OVERTURE)
-        AMR_SUBDOMAIN_BOUNDARY = 100000
-#endif /* defined(USE_OVERTURE) */
 };
 
-#if defined(USE_OVERTURE)
-#define buffered_boundary_type(b_type)                                  \
-        (((b_type) == SUBDOMAIN_BOUNDARY) || ((b_type) == REFLECTION_BOUNDARY) \
-         || ((b_type) == AMR_SUBDOMAIN_BOUNDARY))
-#else /* if defined(USE_OVERTURE) */
 #define buffered_boundary_type(b_type)                                  \
         (((b_type) == SUBDOMAIN_BOUNDARY) || ((b_type) == REFLECTION_BOUNDARY) \
 	 || ((b_type) == OPEN_BOUNDARY))
-#endif /* if defined(USE_OVERTURE) */
 
 #define	is_pp_node(node)						\
 	(is_subdomain_node(node) || is_virtual_fixed_node(node))
@@ -1554,7 +1545,5 @@ typedef struct _SCALED_REDIST_PARAMS SCALED_REDIST_PARAMS;
 #include <intfc/table.h>
 #include <intfc/userint.h>
 #include <intfc/iprotos.h>
-
-#include <intfc/int_amr.h>
 
 #endif /* !defined(_INT_H) */

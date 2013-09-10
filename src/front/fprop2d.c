@@ -324,7 +324,8 @@ EXPORT void f_curve_propagate2d(
 	    {
 	    	n_pt_propagated(newb->end) = YES;
 		if (out_of_bound(oldb->end,L,U,dim) &&
-		    wave_type(oldc) != MOVABLE_BODY_BOUNDARY) 
+		    wave_type(oldc) != MOVABLE_BODY_BOUNDARY &&
+		    wave_type(oldc) != ICE_PARTICLE_BOUNDARY) 
 		{
 		    Locstate newsl,newsr;
 		    Locstate oldsl,oldsr;
@@ -348,7 +349,8 @@ EXPORT void f_curve_propagate2d(
 	    oldb = oldb->next;
 	    newb = newb->next;
 	}
-	if (wave_type(oldc) == MOVABLE_BODY_BOUNDARY)
+	if (wave_type(oldc) == MOVABLE_BODY_BOUNDARY ||
+	    wave_type(oldc) == ICE_PARTICLE_BOUNDARY)
         {
             /* Propagate center of mass */
             int i,dim;
@@ -360,6 +362,7 @@ EXPORT void f_curve_propagate2d(
                         dt*center_of_mass_velo(oldc)[i];
 	    }
 	    angular_velo(newc) = angular_velo(oldc);
+	    spherical_radius(newc) = spherical_radius(oldc);
         }
 	debug_print("f_curve_propagate","Leaving f_curve_propagate2d\n");
 }		/*end f_curve_propagate2d*/

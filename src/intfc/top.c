@@ -1879,12 +1879,7 @@ LIB_LOCAL	boolean i_is_subdomain_boundary(
 	    return NO;
 	intfc = hs->interface;
 	rect_bdry_side_for_hyper_surf(&i,&j,hs,&topological_grid(intfc));
-#if defined(USE_OVERTURE)
-        return (rect_boundary_type(intfc,i,j) == SUBDOMAIN_BOUNDARY ||
-                rect_boundary_type(intfc,i,j) == AMR_SUBDOMAIN_BOUNDARY) ? YES : NO;
-#else	
 	return (rect_boundary_type(intfc,i,j) == SUBDOMAIN_BOUNDARY) ? YES : NO;
-#endif /* if defined(USE_OVERTURE) */
 }		/*end i_is_subdomain_boundary*/
 
 LIB_LOCAL	boolean i_is_subdomain_node(

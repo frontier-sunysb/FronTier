@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -19,9 +20,8 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-******************************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+****************************************************************/
 
 
 /*
@@ -78,36 +78,24 @@ EXPORT int redistribute(
 	    long gs;
 
 	    gs = (status == BAD_REDISTRIBUTION) ? 1 : 0;
-#if defined(USE_OVERTURE)
-#else /* if defined(USE_OVERTURE) */
             pp_global_lmax(&gs,1L);
-#endif /* if defined(USE_OVERTURE) */
 
 	    if (gs == 1)
 		return BAD_REDISTRIBUTION;
 
 	    gs = (status == MODIFY_TIME_STEP_REDISTRIBUTE) ? 1 : 0;
-#if defined(USE_OVERTURE)
-#else /* if defined(USE_OVERTURE) */
             pp_global_lmax(&gs,1L);
-#endif /* if defined(USE_OVERTURE) */
 	    if (gs == 1)
 		return MODIFY_TIME_STEP_REDISTRIBUTE;
 		
 	    gs = (status == UNABLE_TO_UNTANGLE) ? 1 : 0;
-#if defined(USE_OVERTURE)
-#else /* if defined(USE_OVERTURE) */
             pp_global_lmax(&gs,1L);
-#endif /* if defined(USE_OVERTURE) */
 
 	    if (gs == 1)
 		return UNABLE_TO_UNTANGLE; 
 
 	    gs = (status == GOOD_REDISTRIBUTION) ? 0 : 1;
-#if defined(USE_OVERTURE)
-#else /* if defined(USE_OVERTURE) */
 	    pp_global_lmax(&gs,1L);
-#endif /* if defined(USE_OVERTURE) */
 
 	    if (gs == 1)
 		return BAD_REDISTRIBUTION; 
@@ -175,11 +163,7 @@ EXPORT	boolean interface_is_tangled(
 
 	status = (cross != NULL) ? YES : NO;
 
-#if defined(USE_OVERTURE)
-        return status;
-#else
 	return pp_max_status(status);
-#endif /* if defined(USE_OVERTURE) */
 }		/*end interface_is_tangled*/
 
 EXPORT	void	Clear_redistribution_parameters(

@@ -1,8 +1,8 @@
-
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -20,21 +20,14 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-******************************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+****************************************************************/
 
 
 /*
 *				crysub.c:
 *
-*		User initialization example for Front Package:
-*
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
-*
-*	This is example of three circles all moving the a normal velocity.
-*	Bifurcation occurs when they meet each other. FronTier solves
-*	the bifurcation automatically.
 *
 */
 
@@ -54,14 +47,6 @@ struct _SAMPLE_BDRY_PARAMS {
 };
 typedef struct _SAMPLE_BDRY_PARAMS SAMPLE_BDRY_PARAMS;
 
-/********************************************************************
- *	Level function parameters for the initial interface 	    *
- ********************************************************************/
-
-
-/********************************************************************
- *	Velocity function parameters for the front	 	    *
- ********************************************************************/
 #define		MAX_NUM_VERTEX_IN_CELL		20
 
 	/*  Local Application Function Declarations */
@@ -1132,6 +1117,13 @@ static void setInitialIntfc2d(
 	static SAMPLE_BDRY_PARAMS sb_params;
 	CRT_PARAMS *cRparams = (CRT_PARAMS*)front->extra2;
 
+	(void) printf("Available initial interface types are:\n");
+	(void) printf("\tSeed (SE)\n");
+	(void) printf("\tSlotted circle (SL)\n");
+	(void) printf("\tTriangle (T)\n");
+	(void) printf("\tRectangle (R)\n");
+	(void) printf("\tCircle with four slots (F)\n");
+	(void) printf("\tORNL Sample (O)\n");
 	CursorAfterString(infile,"Enter initial interface type: ");
 	fscanf(infile,"%s",string);
 	(void) printf("%s\n",string);
@@ -1149,13 +1141,15 @@ static void setInitialIntfc2d(
 	    }
 	    else if (string[1] == 'l' || string[1] == 'L')
 	    {
-		CursorAfterString(infile,"Enter center coordinates of the circle:");
+		CursorAfterString(infile,
+				"Enter center coordinates of the circle:");
 		fscanf(infile,"%lf %lf\n",&sc_params.x0,&sc_params.y0);
 		(void) printf("%f %f\n",sc_params.x0,sc_params.y0);
 		CursorAfterString(infile,"Enter the radius of the circle:");
 		fscanf(infile,"%lf\n",&sc_params.r);
 		(void) printf("%f\n",sc_params.r);
-		CursorAfterString(infile,"Enter the width and depth of the notch:");
+		CursorAfterString(infile,
+				"Enter the width and depth of the notch:");
 		fscanf(infile,"%lf %lf\n",&sc_params.w,&sc_params.h);
 		(void) printf("%f %f\n",sc_params.w,sc_params.h);
 		sc_params.add_pert = NO;     		//default
@@ -1348,7 +1342,8 @@ extern double perturbed_density(
 	double average,perturbed;
 
 	average = 5*sin(310*x*2.5+(1.0/6.0)*PI)*sin(207*y*2.5+(1.0/5.0)*PI)+8;
-	perturbed = 10*sin(100000*PI*x*2.5+(1.0/4.0)*PI)*sin(1000011*y*2.5+(3.0/10.0)*PI);
+	perturbed = 10*sin(100000*PI*x*2.5+(1.0/4.0)*PI)*
+			sin(1000011*y*2.5+(3.0/10.0)*PI);
 	if (perturbed < 0.0 && average + perturbed > 0.0)
 	{
 	    if (average + perturbed > 0.6 && average + perturbed < 9.5)

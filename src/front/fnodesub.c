@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -19,9 +20,8 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-******************************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+****************************************************************/
 
 
 /*
@@ -1421,10 +1421,6 @@ EXPORT	int	bdry_node_type(
 	case DIRICHLET_BOUNDARY:
 	    return DIRICHLET_NODE;
 	case SUBDOMAIN_BOUNDARY:
-#if defined(USE_OVERTURE)
-        case AMR_SUBDOMAIN_BOUNDARY:
-#endif /* if defined(USE_OVERTURE) */
-
 	    return SUBDOMAIN_NODE;
 	default:
 	    return UNKNOWN_NODE_TYPE;

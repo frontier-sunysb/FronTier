@@ -61,6 +61,11 @@ IMPORT  boolean    consistent_propagated_loop_orientations(double,double*,
 IMPORT  int     rp_modify_time_step(RPROBLEM*,Front*,int);
 IMPORT  double   limit_dt_frac(double,Front*);
 
+	/* fadv3d.c*/
+EXPORT  void    EnforceFlowSpecifedStates3d(Front*);
+EXPORT  int     advance_front3d_tracking_control(double,double*,Front*,
+                                                 Front**,POINTER);
+
 	/* fbdry1.c*/
 IMPORT	int	f_boundary_untangle(Front*,CROSS**,RPROBLEM*,NODE*,int);
 IMPORT	int	is_bdry_interior_cross(Front*,CROSS*,ORIENTATION*,
@@ -686,14 +691,6 @@ IMPORT	void	delete_subdomain_curves(INTERFACE*);
 IMPORT  boolean    merge_interface(Front*,int);
 IMPORT  void    clip_to_interior_region(INTERFACE*,int*,int*);
 IMPORT  void    copy_interface_into(INTERFACE*,INTERFACE*);
-#if defined(USE_OVERTURE)
-IMPORT  void    clip_interface_with_rect(INTERFACE*,double*,double*,boolean);
-IMPORT  void    set_cut_none_local_flag(int);
-IMPORT  int     get_cut_none_local_flag(void);
-IMPORT  void    set_min_sc_sep_val_flag(int);
-IMPORT  void    set_use_delete_short_bonds_flag(void);
-IMPORT  void    set_debug_cut_flag(int);  
-#endif /* if defined(USE_OVERTURE) */
 
 	/* fscat3d1.c*/
 IMPORT	CURVE	*matching_curve(CURVE*,P_LINK*,int);
@@ -900,35 +897,6 @@ IMPORT	void	tangent(POINT*,BOND*,CURVE*,double*,Front*);
 IMPORT	void	user_print_rp_node(RP_NODE*,RPROBLEM*);
 IMPORT	void	user_print_rproblem(RPROBLEM*);
 IMPORT	void	user_free_rp_node(RP_NODE*,RPROBLEM*);
-
-#if defined(USE_OVERTURE)
-        /* foverture_patch.c */
-IMPORT  void    newfront_to_distri_table(Front*,Front*,int,Wv_on_pc**,int);
-IMPORT  void    set_patch_front(Front*,Front*,RECT_GRID*,int);
-IMPORT  void    set_patch_topo_grid(RECT_GRID*,RECT_GRID*);
-IMPORT  boolean    clip_patch_front(Front*,int);
-IMPORT  void    remove_patch_all_boundary_curves(Front*);
-IMPORT  void    delete_patch_all_curves(Front*);
-IMPORT  boolean    f_form_patch_subintfc_via_cut2d(Front*);
-IMPORT  boolean    f_form_patch_subintfc_2d(Front*,COMPONENT);
-IMPORT  void    assembly_fine_patch_fronts_to_one2d(Front**,Front*);
-IMPORT  void    assembly_fine_patch_fronts_to_one2d_ver2(Front**,Front*);
-IMPORT  void    assembly_fine_patch_fronts_to_one(Front**,Front*);
-IMPORT  void    retrieve_boundary_curves_from_zero(Front*,INTERFACE*);
-IMPORT  int     assembly_distribute_patch_fronts(Front**,int,Wv_on_pc**,
-                    int,int);
-IMPORT  void    send_front_misc(Front*,COMPONENT*,int);
-IMPORT  void    recv_front_misc(Front*,COMPONENT*,int);
-IMPORT  void    send_mini_front_misc(Front*,COMPONENT*,int);
-IMPORT  void    recv_mini_front_misc(Front*,COMPONENT*,int);
-IMPORT  int     set_copy_proc_frs(Front***,int,Wv_on_pc**,int,int*);
-        /* foverture_adv.c */
-IMPORT  int     normal_advance_front2d(double,double*,Front*,Front**,POINTER);
-IMPORT  int     tangnt_advance_front2d(double,double*,Front*,Front**,POINTER);
-IMPORT  int     redist_advance_front2d(double,double*,Front*,Front**,POINTER);
-IMPORT  void    geomview_amr_fronts_plot2d(const char*,Front**,int,Wv_on_pc**,int);
-
-#endif /* if defined(USE_OVERTURE) */
 
         /*testfront.c*/
 IMPORT  void    test1d(Front*);

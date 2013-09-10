@@ -9,10 +9,13 @@ Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
 
 *****Crystal Input data*************
 Available initial interface types are:
-Seed (S)
-Triangle (T)
-Rectangle (R)
-Enter initial interface type: S 
+        Seed (SE)
+        Slotted circle (SL)
+        Triangle (T)
+        Rectangle (R)
+        Circle with four slots (F)
+        ORNL Sample (O)
+Enter initial interface type: SE
 Are there seeds grow from floor: N
 Are there seeds grow from ceiling: N
 Are there seeds grow from space: Y

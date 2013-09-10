@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -19,9 +20,8 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-******************************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+****************************************************************/
 
 
 /*
@@ -205,12 +205,6 @@ struct _F_USER_INTERFACE {
 						     HYPER_SURF_ELEMENT*,
 						     HYPER_SURF*,Locstate);
 	boolean	(*_form_subintfc_via_communication)(Front*);
-
-#if defined(USE_OVERTURE)
-        boolean    (*_form_patch_subintfc_via_cut)(Front*);
-        boolean    (*_form_patch_subintfc)(Front*,COMPONENT);
-        void    (*_assembly_fine_patch_fronts_to_one)(Front**,Front*);
-#endif /* if defined(USE_OVERTURE) */
 
 	void	(*_reflect_state)(Locstate,INTERFACE*,double*,double*,double*);
 	void	(*_fprint_intfc_state)(FILE*,Locstate,INTERFACE*);
@@ -399,6 +393,7 @@ struct _F_HYPER_SURF {
 	double	rotation_cen[MAXD];	/* Center of rotation */
         double  cm_velo[MAXD];		/* Center of mass velocity */
         double  angular_velo;		/* Angular velocity of rotation */
+	double	radius;			/* For sphereical body */
 	MOTION_TYPE motion_type;
 };
 typedef struct _F_HYPER_SURF F_HYPER_SURF;
@@ -422,6 +417,7 @@ typedef struct _F_HYPER_SURF F_HYPER_SURF;
 #define rotation_direction(hs)  (f_hyper_surf(hs)->rotation_dir)
 #define rotation_center(hs)  	(f_hyper_surf(hs)->rotation_cen)
 #define motion_type(hs)         (f_hyper_surf(hs)->motion_type)
+#define spherical_radius(hs)    (f_hyper_surf(hs)->radius)
 
 
 #define	perform_redistribution_function(hs)				\

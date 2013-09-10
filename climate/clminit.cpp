@@ -4,13 +4,14 @@
 static void prompt_for_rigid_body_params(int,char*,RG_PARAMS*);
 static void set_rgbody_params(RG_PARAMS,HYPER_SURF*);
 static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
+static void ambient_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void initRandomDrops(Front*,double**,double*,int*,int*,
 				double,double);
 
 extern void init_fluid_state_func(
 	Incompress_Solver_Smooth_Basis *cartesian)
 {
-	cartesian->getInitialState = zero_state;
+	cartesian->getInitialState = ambient_state;
 }	/* end init_fluid_state_func */
 
 static void zero_state(
@@ -25,6 +26,21 @@ static void zero_state(
         double **vel = field->vel;
         for (i = 0; i < dim; ++i)
             vel[i][index] = 0.0;
+}       /* end zero_state */
+
+static void ambient_state(
+        COMPONENT comp,
+        double *coords,
+        IF_FIELD *field,
+        int index,
+        int dim,
+        IF_PARAMS *iFparams)
+{
+        int i;
+        double **vel = field->vel;
+	double *U_ambient = iFparams->U_ambient;
+        for (i = 0; i < dim; ++i)
+            vel[i][index] = U_ambient[i];
 }       /* end zero_state */
 
 static	void prompt_for_rigid_body_params(
@@ -279,6 +295,7 @@ extern void initWaterDrops(
 		    center_of_mass_velo(surf)[l] = 0.0;
 		}
 		motion_type(Hyper_surf(surf)) = COM_MOTION;
+		spherical_radius(Hyper_surf(surf)) = radius[i];
 	        intfc_surface_loop(front->interf,s)
 		{
 		    if (*s == surf) continue;
@@ -325,11 +342,13 @@ static void initRandomDrops(
 	int dim = FT_Dimension();
 	double *L = front->rect_grid->L;
 	double *U = front->rect_grid->U;
+	double *h = front->rect_grid->h;
 	double T[MAXD];
 	boolean periodic_pair_passed;
 	int np;			// number of periodic image
 	int n0,num_d0;		// number of true drops (without periodics)
 	double **pcenter;	// centers of periodic image
+	double min_h;
 
 	xsubi[0] = 10;
 	xsubi[1] = 100;
@@ -342,11 +361,15 @@ static void initRandomDrops(
 	uniform_params.a = 0.0;
 	uniform_params.b = 1.0;
 
+	min_h = h[0];
 	for (i = 0; i < dim; ++i)
+	{
 	    T[i] = U[i] - L[i];
+	    if (min_h > h[i]) min_h = h[i];
+	}
 
 	n = n0 = 0;
-	for (i = 0; i < 3*num_d0; ++i)
+	for (i = 0; i < 10*num_d0; ++i)
 	{
 	    for (j = 0; j < dim; ++j)
 	    {
@@ -354,6 +377,7 @@ static void initRandomDrops(
 	    	center[n][j] = L[j] + x*(U[j] - L[j]);
 	    }
 	    R = radius[n] = gauss_center_limit((POINTER)&gauss_params,xsubi);
+	    if (R < 2*min_h) continue;
 	    for (j = 0; j < n; ++j)
 	    {
 		dist = distance_between_positions(center[j],center[n],dim);

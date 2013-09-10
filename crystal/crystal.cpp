@@ -1,5 +1,4 @@
-
-/************************************************************************
+/***************************************************************
 FronTier is a set of libraries that implements differnt types of 
 Front Traking algorithms. Front Tracking is a numerical method for 
 the solution of partial differential equations whose solutions have 
@@ -21,9 +20,8 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-************************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+****************************************************************/
 
 /*
 *				crystal.c:
@@ -306,7 +304,7 @@ static  void solute_main_driver(
 	    if (debugging("step_size"))
                 printf("Time step from c_cartesian.max_dt(): %f\n",front->dt);
 
-            (void) printf("\ntime = %f   step = %7d   dt = %f\n",
+            (void) printf("\ntime = %20.14f   step = %7d   dt = %20.14f\n",
                         front->time,front->step,front->dt);
             fflush(stdout);
 

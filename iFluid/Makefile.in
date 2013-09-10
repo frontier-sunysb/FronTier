@@ -35,6 +35,8 @@ dual_ellip.o : ../solver/solver.h ../solver/dual_ellip.cpp
 	${CXX} -c ../solver/dual_ellip.cpp $(incsloc) $(incs) ${Petsc_Include}
 hyperb.o : ../solver/solver.h ../solver/hyperb.cpp
 	${CXX} -c ../solver/hyperb.cpp $(incsloc) $(incs) ${Petsc_Include}
+parab.o : ../solver/solver.h ../solver/parab.cpp
+	${CXX} -c ../solver/parab.cpp $(incsloc) $(incs) ${Petsc_Include}
 iFsub.o : iFluid.h ifluid_basic.h iFsub.cpp
 	${CXX} -c iFsub.cpp $(incsloc) $(incs) ${Petsc_Include}
 iFinit.o : iFluid.h ifluid_basic.h iFinit.cpp
@@ -47,7 +49,7 @@ iFluid: iFluid.h ifluid_basic.h iFluid.cpp iFsub.o iFinit.o ../lib/libiF.a ../li
 	$(AR) cru libiF.a $^
 	ranlib libiF.a; mv libiF.a ../lib/$(build_cpu)/libiF.a
 
-../lib/libSolver.a: solver.o ellip.o dual_ellip.o cim_ellip.o hyperb.o
+../lib/libSolver.a: solver.o ellip.o dual_ellip.o cim_ellip.o hyperb.o parab.o
 	$(AR) cru libSolver.a $^
 	ranlib libSolver.a; mv libSolver.a ../lib/$(build_cpu)/libSolver.a
 

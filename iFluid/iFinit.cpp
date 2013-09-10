@@ -3,6 +3,7 @@
 
 static void kh_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
+static void ambient_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void initRayleiTaylorIntfc(Front*,LEVEL_FUNC_PACK*,char*);
 static void initKHIntfc(Front*,LEVEL_FUNC_PACK*,char*);
 static void initCirclePlaneIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
@@ -297,7 +298,7 @@ extern void init_fluid_state_func(
 	    l_cartesian->getInitialState = kh_state;
 	    break;
 	default:
-	    l_cartesian->getInitialState = zero_state;
+	    l_cartesian->getInitialState = ambient_state;
 	}
 }	/* end init_fluid_state_func */
 
@@ -334,6 +335,25 @@ static void zero_state(
 	    vel[i][index] = 0.0;
 }	/* end zero_state */
 
+static void ambient_state(
+	COMPONENT comp,
+	double *coords,
+	IF_FIELD *field,
+	int index,
+	int dim,
+	IF_PARAMS *iFparams)
+{
+	int i;
+	double *U_ambient = iFparams->U_ambient;
+	double **vel = field->vel;
+	for (i = 0; i < dim; ++i)
+	{
+	    if (ifluid_comp(comp))
+	    	vel[i][index] = U_ambient[i];
+	    else
+	    	vel[i][index] = 0.0;
+	}
+}	/* end ambient_state */
 
 extern void read_iF_prob_type(
 	char *inname,

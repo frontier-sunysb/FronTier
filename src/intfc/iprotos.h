@@ -955,12 +955,6 @@ IMPORT  void 	xgraph_tri(FILE*,TRI*,const COORDINATE_PLANE);
 IMPORT  void 	xgraph_tris_list(FILE*,TRI**,int,const COORDINATE_PLANE);
 IMPORT  boolean    point_within_range(POINT*,double*,double,int);
 
-#if defined(USE_OVERTURE)
-/*   intfc_amr.c  */
-
-IMPORT void set_amr_intfc_tol(INTERFACE*,double); 
-#endif /* if defined(USE_OVERTURE) */
-
 #ifdef IMESH
 /*   iMesh.c auxilary */
 IMPORT iBase_EntityHandle entityOfPoint(POINT *p);

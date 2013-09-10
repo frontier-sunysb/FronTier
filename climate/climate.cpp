@@ -136,6 +136,7 @@ static  void fluid_driver(
 
 	FT_ReadTimeControl(in_name,front);
 	CFL = Time_step_factor(front);
+	Tracking_algorithm(front) = SPHERICAL_TRACKING;
 
 	if (!RestartRun)
 	{
@@ -613,6 +614,7 @@ static void gview_particle_trajectory(
 	    pp_global_imax(&max_index,1);
 	    pp_global_imin(&min_index,1);
 	    num_particles = max_index - min_index + 1;
+	    if (num_particles < 0) num_particles = 1;
 	    tri_array(&com,MAX_TIME_STEPS,num_particles,MAXD,sizeof(double));
 	    uni_array(&pindex,num_particles,sizeof(int));
 	    num_steps = MAX_TIME_STEPS;

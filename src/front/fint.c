@@ -746,9 +746,6 @@ EXPORT	boolean f_nearest_intfc_state(
 	    {
 	    case SUBDOMAIN_BOUNDARY:
 	    case REFLECTION_BOUNDARY:
-#if defined(USE_OVERTURE)
-            case AMR_SUBDOMAIN_BOUNDARY:
-#endif /* if defined(USE_OVERTURE) */
 	        for (i = 0; i < dim; ++i)
 		    coords_in[i] = coords[i];
 	        break;
@@ -842,10 +839,6 @@ EXPORT	const char *f_wave_type_as_string(
 	    return "FIRST_VECTOR_PHYSICS_WAVE_TYPE";
 	case UNKNOWN_WAVE_TYPE:
 	    return "UNKNOWN_WAVE_TYPE";
-#if defined(USE_OVERTURE)
-        case AMR_SUBDOMAIN_BOUNDARY:
-            return "AMR_SUBDOMAIN_BOUNDARY";
-#endif /* if defined(USE_OVERTURE) */
 	default:
 	    type = i_boundary_type_as_string(w_type);
 	    if (strstr(type," -- ** UNKNOWN boundary type**") != NULL)
@@ -1161,6 +1154,7 @@ EXPORT	void	f_user_copy_hyper_surf(
             total_mass(new_hs) = total_mass(old_hs);
             angular_velo(new_hs) = angular_velo(old_hs);
             motion_type(new_hs) = motion_type(old_hs);
+            spherical_radius(new_hs) = spherical_radius(old_hs);
             for (i = 0; i < old_hs->interface->dim; ++i)
             {
                 center_of_mass(new_hs)[i] = center_of_mass(old_hs)[i];
@@ -1369,7 +1363,8 @@ EXPORT	boolean f_user_read_print_curve(
 	        set_normal_function(s,&hypersurface_normal_function(curve),
 		                    intfc);
 	    }
-	    if (wave_type(curve) == MOVABLE_BODY_BOUNDARY)
+	    if (wave_type(curve) == MOVABLE_BODY_BOUNDARY ||
+	    	wave_type(curve) == ICE_PARTICLE_BOUNDARY)
             {
                 fgetstring(file,"Body index = ");
             	(void) fscanf(file,"%d",&body_index(Hyper_surf(curve)));
@@ -1394,6 +1389,8 @@ EXPORT	boolean f_user_read_print_curve(
                 fgetstring(file,"Motion type = ");
                 /* FIXME: the size of enum is compiler dependent */
             	(void) fscanf(file,"%d",&motion_type(Hyper_surf(curve)));
+                spherical_radius(Hyper_surf(curve)) =
+                            read_print_float("Radius = ",1.0,io_type);
 	    }
 	    break;
 	case 3:
@@ -1592,7 +1589,8 @@ EXPORT	void f_user_fprint_curve(
 	        (void) fprintf(file,"%s\n",hypersurface_normal_name(curve));
 	    else
 	        (void) fprintf(file,"none\n");
-	    if (wave_type(curve) == MOVABLE_BODY_BOUNDARY)
+	    if (wave_type(curve) == MOVABLE_BODY_BOUNDARY ||
+		wave_type(curve) == ICE_PARTICLE_BOUNDARY)
             {
                 (void) fprintf(file,"\tBody index = ");
                 (void) fprintf(file,"%d\n",body_index(Hyper_surf(curve)));
@@ -1618,6 +1616,9 @@ EXPORT	void f_user_fprint_curve(
                                 angular_velo(Hyper_surf(curve)));
                 (void) fprintf(file,"\tMotion type = %d\n",
                                motion_type(Hyper_surf(curve)));
+                (void) fprintf(file,"\tRadius = ");
+		(void) fprintf(file,"%"FFMT"\n",
+                               spherical_radius(Hyper_surf(curve)));
 	    }
 	    break;
 	case 3:
@@ -2672,7 +2673,8 @@ EXPORT	void	f_user_fprint_surface(
 {
 	fprint_wave_type(file,"\n\tsurface->wave_type = ",
 		         wave_type(s),"\n",s->interface);
-	if (wave_type(s) == MOVABLE_BODY_BOUNDARY)
+	if (wave_type(s) == MOVABLE_BODY_BOUNDARY ||
+	    wave_type(s) == ICE_PARTICLE_BOUNDARY)
         {
             (void) fprintf(file,"\tBody index = ");
             (void) fprintf(file,"%d\n",body_index(Hyper_surf(s)));
@@ -2682,22 +2684,22 @@ EXPORT	void	f_user_fprint_surface(
             (void) fprintf(file,"%"FFMT"\n",
                                 mom_inertial(Hyper_surf(s)));
             (void) fprintf(file,"\tCenter of Mass = ");
-            (void) fprintf(file,"%"FFMT" %"FFMT"\n",
+            (void) fprintf(file,"%"FFMT" %"FFMT" %"FFMT"\n",
                                 center_of_mass(Hyper_surf(s))[0],
                                 center_of_mass(Hyper_surf(s))[1],
                                 center_of_mass(Hyper_surf(s))[2]);
             (void) fprintf(file,"\tCenter of mass velocity = ");
-            (void) fprintf(file,"%"FFMT" %"FFMT"\n",
+            (void) fprintf(file,"%"FFMT" %"FFMT" %"FFMT"\n",
                                 center_of_mass_velo(Hyper_surf(s))[0],
                                 center_of_mass_velo(Hyper_surf(s))[1],
                                 center_of_mass_velo(Hyper_surf(s))[2]);
             (void) fprintf(file,"\tRotation direction = ");
-            (void) fprintf(file,"%"FFMT" %"FFMT"\n",
+            (void) fprintf(file,"%"FFMT" %"FFMT" %"FFMT"\n",
                                 rotation_direction(Hyper_surf(s))[0],
                                 rotation_direction(Hyper_surf(s))[1],
                                 rotation_direction(Hyper_surf(s))[2]);
             (void) fprintf(file,"\tRotation center = ");
-            (void) fprintf(file,"%"FFMT" %"FFMT"\n",
+            (void) fprintf(file,"%"FFMT" %"FFMT" %"FFMT"\n",
                                 rotation_center(Hyper_surf(s))[0],
                                 rotation_center(Hyper_surf(s))[1],
                                 rotation_center(Hyper_surf(s))[2]);
@@ -2706,6 +2708,9 @@ EXPORT	void	f_user_fprint_surface(
                                 angular_velo(Hyper_surf(s)));
             (void) fprintf(file,"\tMotion type = %d\n",
                                motion_type(Hyper_surf(s)));
+            (void) fprintf(file,"\tRadius = ");
+	    (void) fprintf(file,"%"FFMT"\n",
+                               spherical_radius(Hyper_surf(s)));
 	}
 	(void) fprintf(file,"\tSpecialized surface normal function = ");
 	if (hypersurface_normal(s))
@@ -2737,7 +2742,8 @@ EXPORT	void f_user_read_print_surface(
 	(void) fgetstring(file,"surface->wave_type = ");
 	(void) fscanf(file,"%s",type);
 	wave_type(surf) = read_wave_type_from_string(type,surf->interface);
-	if (wave_type(surf) == MOVABLE_BODY_BOUNDARY)
+	if (wave_type(surf) == MOVABLE_BODY_BOUNDARY ||
+	    wave_type(surf) == ICE_PARTICLE_BOUNDARY)
         {
             fgetstring(file,"Body index = ");
             (void) fscanf(file,"%d",&body_index(Hyper_surf(surf)));
@@ -2762,12 +2768,13 @@ EXPORT	void f_user_read_print_surface(
 	    for (i = 0; i < 3; ++i)
             	rotation_center(Hyper_surf(surf))[i] =
                             fread_float(NULL,io_type);
-	    for (i = 0; i < 3; ++i)
             angular_velo(Hyper_surf(surf)) =
                         read_print_float("Angular velocity = ",1.0,io_type);
             fgetstring(file,"Motion type = ");
             /* FIXME: the size of enum is compiler dependent */
             (void) fscanf(file,"%d",&motion_type(Hyper_surf(surf)));
+            spherical_radius(Hyper_surf(surf)) =
+                        read_print_float("Radius = ",1.0,io_type);
 	}
 	if (fgetstring(file,"Specialized surface normal function = "))
 	{

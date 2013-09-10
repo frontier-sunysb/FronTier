@@ -6031,10 +6031,6 @@ EXPORT	const char *i_boundary_type_as_string(
 	    return "UNKNOWN_BOUNDARY_TYPE";
         case OPEN_BOUNDARY:
             return "OPEN_BOUNDARY";
-#if defined(USE_OVERTURE)
-        case AMR_SUBDOMAIN_BOUNDARY:
-            return "AMR_SUBDOMAIN_BOUNDARY";
-#endif /* if defined(USE_OVERTURE) */
 	default:
 	    (void) sprintf(s,"%d -- ** UNKNOWN boundary type**",b_type);
 	    return s;
