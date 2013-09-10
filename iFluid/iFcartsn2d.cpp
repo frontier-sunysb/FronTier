@@ -504,8 +504,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 	computeDiffusion(void)
 {
 	return computeDiffusionCN();
-	//return computeDiffusionImplicit();
-	//return computeDiffusionExplicit();
 }
 
 void Incompress_Solver_Smooth_2D_Cartesian::

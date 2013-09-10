@@ -137,7 +137,7 @@ void PARABOLIC_SOLVER::solve2d(
 	start_clock("petsc_solve");
 	solver.SetMaxIter(500);   
 	solver.SetTol(1e-10);   
-	solver.Solve_GMRES();
+	solver.Solve();
 
 	if (debugging("PETSc"))
 	{
@@ -331,7 +331,7 @@ void PARABOLIC_SOLVER::solve1d(
 	start_clock("petsc_solve");
 	solver.SetMaxIter(500);   
 	solver.SetTol(1e-10);   
-	solver.Solve_GMRES();
+	solver.Solve();
 
 	if (debugging("PETSc"))
 	{
@@ -492,7 +492,7 @@ void PARABOLIC_SOLVER::solve3d(
 	start_clock("petsc_solve");
 	solver.SetMaxIter(500);   
 	solver.SetTol(1e-10);   
-	solver.Solve_GMRES();
+	solver.Solve();
 
 	if (debugging("PETSc"))
 	{
