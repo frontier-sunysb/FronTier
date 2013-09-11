@@ -325,8 +325,8 @@ void Incompress_Solver_Smooth_3D_Cartesian::copyMeshStates()
 void Incompress_Solver_Smooth_3D_Cartesian::
 	computeDiffusion(void)
 {
-	return computeDiffusionCN();
-	//return computeDiffusionImplicit();
+	//return computeDiffusionCN();
+	return computeDiffusionImplicit();
 }	/* end computeDiffusion */
 
 void Incompress_Solver_Smooth_3D_Cartesian::
