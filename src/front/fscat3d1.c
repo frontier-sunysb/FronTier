@@ -4613,7 +4613,7 @@ EXPORT 	boolean surfaces_matched(
 	    if (wave_type(s) == ICE_PARTICLE_BOUNDARY ||
 		wave_type(as) == ICE_PARTICLE_BOUNDARY)
 	    {
-		return (Gindex(s) == Gindex(as)) ? YES : NO;
+		return (body_index(s) == body_index(as)) ? YES : NO;
 	    }
 	    else
 	    	return YES;
