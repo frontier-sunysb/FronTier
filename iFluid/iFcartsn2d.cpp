@@ -529,7 +529,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::
         INTERFACE *grid_intfc = front->grid_intfc;
 	int status;
         double vel_min = HUGE;
-        double vel_max = -HUGE;
 
         if (debugging("trace"))
             (void) printf("Entering Incompress_Solver_Smooth_3D_Cartesian::"
@@ -548,12 +547,9 @@ void Incompress_Solver_Smooth_2D_Cartesian::
         {
             index  = d_index2d(i,j,top_gmax);
             if (vel_min > vel[l][index]) vel_min = vel[l][index];
-            if (vel_max < vel[l][index]) vel_max = vel[l][index];
         }
-	if (vel_max - vel_min < 0.1)
-	    vel_min -= 0.01;
-	else
-            vel_min -= 0.1*(vel_max - vel_min);
+	if (vel_min < 0.0)
+	    vel_min *= 5.0;
 
 	for (l = 0; l < dim; ++l)
 	{
