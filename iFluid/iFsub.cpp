@@ -1065,6 +1065,21 @@ extern void read_iFparams(
 	    if (string[0] == 'y' || string[0] == 'Y')
 	    iFparams->total_div_cancellation = YES;
 	}
+        if (CursorAfterStringOpt(infile,
+		"Enter density and viscosity of the fluid:"))
+        {
+            fscanf(infile,"%lf %lf",&iFparams->rho2,&iFparams->mu2);
+            (void) printf("%f %f\n",iFparams->rho2,iFparams->mu2);
+	}
+        if (CursorAfterStringOpt(infile,"Enter gravity:"))
+        {
+            for (i = 0; i < dim; ++i)
+            {
+                fscanf(infile,"%lf ",&iFparams->gravity[i]);
+                (void) printf("%f ",iFparams->gravity[i]);
+            }
+            (void) printf("\n");
+        }
 
 	fclose(infile);
 }	/* end read_iFparams */

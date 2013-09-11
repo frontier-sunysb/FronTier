@@ -108,10 +108,18 @@ EXPORT	void CursorAfterString(
 	FILE		*file,
 	const char	*strng)
 {
+	long cur_pos;
+	cur_pos = ftell(file);
+
 	if (fgetstring(file,strng) == FUNCTION_FAILED)
 	{
-	    screen("Cannot find string %s in file!\n",strng);
-	    clean_up(ERROR);
+	    rewind(file);
+	    if (fgetstring(file,strng) == FUNCTION_FAILED)
+	    {
+	    	screen("Cannot find string %s in file!\n",strng);
+	    	clean_up(ERROR);
+	    }
+	    fseek(file,cur_pos,SEEK_SET);
 	}
 	(void) printf("%s ",strng);
 }	/* end CursorAfterString */
@@ -126,9 +134,15 @@ EXPORT	boolean CursorAfterStringOpt(
 	(void) printf("%s ",strng);
 	if (fgetstring(file,strng) == FUNCTION_FAILED)
 	{
-	    fseek(file,cur_pos,SEEK_SET);
-	    screen("\nCannot find the string, using default\n");
-	    return NO;
+	    rewind(file);
+	    if (fgetstring(file,strng) == FUNCTION_FAILED)
+	    {
+	    	screen("\nCannot find the string, using default\n");
+	    	fseek(file,cur_pos,SEEK_SET);
+	    	return NO;
+	    }
+	    else
+	    	fseek(file,cur_pos,SEEK_SET);
 	}
 	return YES;
 }	/* end CursorAfterStringOpt */
