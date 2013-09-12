@@ -109,6 +109,10 @@ public:
 	void Solve(void);
 	void Solve_GMRES(void);
 	void Solve_BCGSL(void);
+	void Solve_LU(void);
+#if defined(__HYPRE__)
+	void Solve_HYPRE(void);
+#endif
 	void Solve_withPureNeumann(void);
 	void Solve_withPureNeumann_GMRES(void);
 	void Solve_withPureNeumann_BCGSL(void);
@@ -139,8 +143,8 @@ public:
 	double *soln;		/* field variable of new step */
 	double *source;		/* source field */
 	double **a;		/* advection field */
-	double D;		/* Constant diffusion coefficient */
-	double *nu;		/* Variable diffusion coefficient */
+	double D;
+	double *nu;             /* Variable diffusion coefficient */
 	double var_obst;	/* default solution in obst_comp */
 	double (*getStateVarFunc)(POINTER);
 	void set_solver_domain(void);
@@ -165,8 +169,8 @@ private:
 	double *top_h;
 	double *top_L;
 	double var_min;
-	double var_max;
-	double checkSolver(int *icoords,boolean print_details,double *var_in);
+        double var_max;
+        double checkSolver(int *icoords,boolean print_details,double *var_in);
 };
 
 class DUAL_ELLIPTIC_SOLVER{

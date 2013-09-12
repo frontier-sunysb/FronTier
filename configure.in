@@ -41,7 +41,7 @@ AC_ARG_WITH(rotsym,[  --with-rotsym                 Compilation of the FronTier 
 
 AC_ARG_WITH(gd,[  --with-gd=PFX             Links with gd library for 1d post processing],[scriptotherlibsinc=" -L$withval/lib "${scriptotherlibs} scriptotherlibs="-lgd "${scriptotherlibs} gdincs=" -D__GD__ -I"${withval}"/include "],[gdincs=""])
 
-AC_ARG_WITH(gpu,[--with-gpu  Support GPU],[gpuincs="-D__GPU__" ],[gpuincs="" ])
+AC_ARG_WITH(gpu,[--with-gpu  Support GPU],[gpuincs=" -D__GPU__ " ],[gpuincs="" ])
 
 if test "$gpuincs" = ""; then
     echo "GPU not enabled"
@@ -49,6 +49,16 @@ if test "$gpuincs" = ""; then
 else
     echo "GPU enabled"
     AC_SUBST(USEGPU,${USEGPU})        
+fi
+
+AC_ARG_WITH(hypre,[--with-hypre  Support HYPRE],[hypreincs=" -D__HYPRE__ " ],[hypreincs="" ])
+
+if test "$hypreincs" = ""; then
+    echo "HYPRE not enabled"
+    AC_SUBST(USEHYPRE,${USEHYPRE})        
+else
+    echo "HYPRE enabled"
+    AC_SUBST(USEHYPRE,${USEHYPRE})        
 fi
 
 ############################ END BUILD GAS ###########################
@@ -350,77 +360,13 @@ cppflagss=" "
 # Done checking for C++
 ##########################################################
 
-########################################
-# Checking for Hypre support
-########################################
-hypreyesorno=" "
-snyesorno=" "
-testhypreprefix='no'
-testhypreprexif='no'
-#AC_ARG_WITH(hypre,[  --with-hypre             This makes frontier working with Hypre Library. This is nessacry for some features in FronTier such as 2D gravity support],[hypref=yes hypreyesorno='cd hypre-1.6.0/src && $(MAKE)' snyesorno='cd sn_ellip && $(MAKE)'],[ hypref=no hypreyesorno=' ' snyesorno=' '])
-AC_ARG_WITH(hypre,[  --with-hypre             This makes frontier working with Hypre Library. This is nessacry for some features in FronTier such as 2D gravity support],[hypref=yes hypreprefix=$withval hypreyesorno=' ' snyesorno='cd sn_ellip && $(MAKE)'],[ hypref=no hypreyesorno=' ' snyesorno=' '])
-#AC_ARG_WITH(hypre-prefix,[  --with-hypre-prefix=PFX   Prefix where  HYPRE is installed],[testhypreprefix="yes" hypreprefix=$withval],[testhypreprefix="no" hypreprexif=$withval])
-if test $hypref = 'yes';then
-#####if use hypre, then mpich and C++ should also be used
-#    echo "hypre need mpich and C++, so FronTier will autodect where mpich is"
-#    echo "if detect mpich dir fail, please specify mpich prefix"
-#    cppflagss=" "
-#     mpiCC_dir=`which mpiCC`
-#     mpichprefix=`cat $mpiCC_dir | grep 'prefix=/' | cut -d= -f2`
-#     echo "mpich prefix:" $mpichprefix
-#####end add mpich and C++ stuff
-#    if test $testhypreprefix = 'yes'; then
-        echo "user defined HYPRE DIR"
-        echo $hypreprefix
-        hypreyesorno=' '
-#    else
-#        if test -d /usr/local/hypre; then
-#            hypreprefix=/usr/local/hypre
-#            echo Hypre library is at $hypreprefix
-#            hypreyesorno=' '
-#        else    
-#            echo FronTier contained HYPRE DIR 
-#            hypreprefix=`pwd`"/src/pak/hypre-1.6.0/src/hypre"
-#            echo $hypreprefix
-#            cd src/pak/
-#            if test -d hypre-1.6.0; then
-#                echo "hypre-1.6.0 has existed, don't have to untar" 
-#            else
-#                echo "hypre-1.6.0 not exist, untaring......"
-#                tar xvzf hypre-1.6.0.tar.gz 
-#            fi
-#            cd hypre-1.6.0/src
-#            ./configure
-#            cd ../../../..
-#        fi
-#    fi
-    snprefix=`pwd`"/src/pak/sn_ellip"
-    hypreincs=" -I"${snprefix}" -I"${hypreprefix}"/include -DHYPRE"
-    scriptotherlibsinc=${scriptotherlibsinc}" -L"${hypreprefix}"/lib -L"${snprefix}
-    scriptotherlibs=${scriptotherlibs}" -lSN_ELLIP  -lHYPRE_IJ_mv -lHYPRE_utilities -lHYPRE_LSI -lHYPRE_blas -lmpich -lpthread"
-
-#    if test $mpichh = 'no';then
-#        mpichincs=" -I"${mpichprefix}"/include -D__MPI__ "
-#        scriptotherlibsinc=${scriptotherlibsinc}" -L"${mpichprefix}"/lib "
-#    fi
-else
-    echo "without hypre, there may be errors if using 2D gravity."
-fi
-
-
-########################################
-# Done checking for Hypre
-########################################
-
 ###################################################################
 # FT build instructions
 #############################################################3#
 
-
 ##############################################################
 # Done FT build instructions
 ##############################################################
-
 
 ######################################################
 ##### CHANGING VARIBLES BASED ON ABOVE TESTS AND INPUT
@@ -512,7 +458,7 @@ gasdebug=" -DCHECK_FOR_BAD_STATES -DDEBUG_GRIEMANN -DDEBUG_MUSCL -DDEBUG_POINT_P
 #                           intfc 
 #                           tri
 
-scriptftlibincs=" -I.. -I../util"${debug}${cppflagss}${amrincs}${hdfincs}${hdf5incs}${mpichincs}${overinc}${appinc}${ftlibdubug}${itapsd}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${ompincs}${gdincs}${gpuincs}${subgrid}
+scriptftlibincs=" -I.. -I../util"${debug}${cppflagss}${amrincs}${hdfincs}${hdf5incs}${mpichincs}${overinc}${appinc}${ftlibdubug}${itapsd}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${ompincs}${gdincs}${gpuincs}${hypreincs}${subgrid}
 
 
 #included in all code in: gas/gbifur 
@@ -526,16 +472,16 @@ scriptftlibincs=" -I.. -I../util"${debug}${cppflagss}${amrincs}${hdfincs}${hdf5i
 #                          gas/gprt 
 #                          gas/gstate/
 
-scriptgasincs=" -I. -I../../gas -I../.. -I../../util "${hypreincs}${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${overinc}${appinc}${gasdebug}${rotsym}${ftlibdubug}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${physincs}${ompincs}${gasincs}${gdincs}${gpuincs}${subgrid}
+scriptgasincs=" -I. -I../../gas -I../.. -I../../util "${hypreincs}${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${overinc}${appinc}${gasdebug}${rotsym}${ftlibdubug}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${physincs}${ompincs}${gasincs}${gdincs}${gpuincs}${hypreincs}${subgrid}
 
 #included in all code in: example and testfront 
-scriptexampleincs=${mpichincs}${amrincs}${hdfincs}${hdf5incs}${hdfinc}${systemincs}${ompincs}${gpuincs}${subgrid}
+scriptexampleincs=${mpichincs}${amrincs}${hdfincs}${hdf5incs}${hdfinc}${systemincs}${ompincs}${gpuincs}${hypreincs}${subgrid}
 
 #included in all code in: util/util
-scriptutilincs=" -I../.. -I../ "${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${fenv}${optimization}${firix}${noname}${hdfinc}${systemincs}${ompincs}${gpuincs}${subgrid}
+scriptutilincs=" -I../.. -I../ "${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${fenv}${optimization}${firix}${noname}${hdfinc}${systemincs}${ompincs}${gpuincs}${hypreincs}${subgrid}
 
 #include in all conde in: util/dutil
-scriptdutilincs=" -I../.. -I../ "${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${fenv}${optimization}${firix}${noname}${hdfinc}${systemincs}${ompincs}${gpuincs}${subgrid}
+scriptdutilincs=" -I../.. -I../ "${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${fenv}${optimization}${firix}${noname}${hdfinc}${systemincs}${ompincs}${gpuincs}${hypreincs}${subgrid}
 
 flagsss=$FFLAGS${optimization}${firix}${fsun}${debug}${cppflagss}
 
@@ -548,9 +494,7 @@ AC_SUBST(include_dirs, $include_dirs)
 
 # Substitute these changes in the makefile.ins
 AC_SUBST(gass,$gasyesorno)
-AC_SUBST(hypre,$hypreyesorno)
 AC_SUBST(sn_ellip,$snyesorno)
-AC_SUBST(hypreprefix,$hypreprefix)
 AC_SUBST(gasclean,$gascleann)
 AC_SUBST(debugg,$debug)
 AC_SUBST(tsttyesornoo,$tsttyesorno)

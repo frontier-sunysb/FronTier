@@ -238,7 +238,11 @@ void PETSc::Solve_GMRES(void)
 
 void PETSc::Solve(void)
 {
+#if defined __HYPRE__
+	Solve_HYPRE();
+#else // defined __HYPRE__
 	Solve_BCGSL();
+#endif // defined __HYPRE__
 }	/* end Solve */
 
 void PETSc::Solve_BCGSL(void)
@@ -387,3 +391,61 @@ extern void viewTopVariable(
 				hdf_movie_var.var_min,hdf_movie_var.var_max);
 	front->hdf_movie_var = hdf_movie_var_save;
 }	/* end viewTopVariable */
+
+#if defined __HYPRE__
+void PETSc::Solve_HYPRE(void)
+{
+        PC pc;
+        start_clock("Assemble matrix and vector");
+        ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
+        ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
+
+        ierr = VecAssemblyBegin(x);
+        ierr = VecAssemblyEnd(x);
+
+        ierr = VecAssemblyBegin(b);
+        ierr = VecAssemblyEnd(b);
+        stop_clock("Assembly matrix and vector");
+
+	KSPSetType(ksp,KSPBCGS);
+        KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN);
+        KSPGetPC(ksp,&pc);
+	PCSetType(pc,PCHYPRE);
+        PCHYPRESetType(pc,"boomeramg");
+	printf("HYPRE preconditioner is used\n");
+        KSPSetFromOptions(ksp);
+        KSPSetUp(ksp);
+
+        start_clock("KSPSolve");
+        KSPSolve(ksp,b,x);
+        stop_clock("KSPSolve");
+
+}
+#endif // defined __HYPRE__
+
+void PETSc::Solve_LU(void)
+{
+	PC pc;
+        start_clock("Assemble matrix and vector");
+        ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
+        ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
+
+        ierr = VecAssemblyBegin(x);
+        ierr = VecAssemblyEnd(x);
+
+        ierr = VecAssemblyBegin(b);
+        ierr = VecAssemblyEnd(b);
+        stop_clock("Assembly matrix and vector");
+
+
+        KSPSetType(ksp,KSPPREONLY);
+	KSPGetPC(ksp,&pc);
+	PCSetType(pc,PCLU);
+        KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
+        KSPSetFromOptions(ksp);
+        KSPSetUp(ksp);
+
+        start_clock("KSPSolve");
+        KSPSolve(ksp,b,x);
+        stop_clock("KSPSolve");
+} /*direct solver, usually give exact solution for comparison*/
