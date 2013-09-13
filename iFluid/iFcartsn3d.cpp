@@ -325,8 +325,8 @@ void Incompress_Solver_Smooth_3D_Cartesian::copyMeshStates()
 void Incompress_Solver_Smooth_3D_Cartesian::
 	computeDiffusion(void)
 {
-	//return computeDiffusionCN();
-	return computeDiffusionImplicit();
+	return computeDiffusionCN();
+	//return computeDiffusionImplicit();
 }	/* end computeDiffusion */
 
 void Incompress_Solver_Smooth_3D_Cartesian::
@@ -686,17 +686,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::
                     max_speed = speed;
 	    	}
             }
-	    printf("After solving direction %d\n",l);
-            for (k = kmin; k <= kmax; k++)
-	    {
-            	index = d_index3d(13,13,k,top_gmax);
-		printf("vel[%d][%d] = %20.14f\n",l,k,vel[l][index]);
-	    }
-	    index = d_index3d(13,14,8,top_gmax);
-	    printf("At 13,14,8: vel = %f %f %f\n",vel[0][index],
-				vel[1][index],vel[2][index]);
-	    printf("m_dt = %20.14f\n",m_dt);
-
 	    for (k = kmin; k <= kmax; k++)
             for (j = jmin; j <= jmax; j++)
             for (i = imin; i <= imax; i++)
@@ -937,13 +926,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::
                     max_speed = speed;
 	    	}
             }
-	    printf("After solving direction %d\n",l);
-            for (k = kmin; k <= kmax; k++)
-	    {
-            	index = d_index3d(13,13,k,top_gmax);
-		printf("vel[%d][%d] = %20.14f\n",l,k,vel[l][index]);
-	    }
-	    index = d_index3d(13,14,8,top_gmax);
 
 	    for (k = kmin; k <= kmax; k++)
             for (j = jmin; j <= jmax; j++)
