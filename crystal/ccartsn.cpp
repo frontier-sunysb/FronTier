@@ -958,132 +958,106 @@ void C_CARTESIAN::setGlobalIndex()
 
 void C_CARTESIAN::initMovieVariables()
 {
-	int n;
-	static HDF_MOVIE_VAR *hdf_movie_var;
-	static VTK_MOVIE_VAR *vtk_movie_var;
-	CRT_MOVIE_OPTION *movie_option = cRparams->movie_option;
+	char string[100];
+	boolean set_bound = NO;
+	double var_min,var_max;
+	FILE *infile = fopen(InName(front),"r");
 
-	if (hdf_movie_var == NULL)
+	if (CursorAfterStringOpt(infile,"Type y to set movie bounds:"))
+        {
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
+                set_bound = YES;
+        }
+	switch (dim)
 	{
-	    FT_ScalarMemoryAlloc((POINTER*)&hdf_movie_var,
-				sizeof(HDF_MOVIE_VAR));
-	    FT_ScalarMemoryAlloc((POINTER*)&vtk_movie_var,
-                                sizeof(VTK_MOVIE_VAR));
-	    switch (dim)
+	case 1:
+	    CursorAfterString(infile,"Type y to make movie of solute:");
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
 	    {
-	    case 1:
-		hdf_movie_var->num_var = 1;
-                FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,1,
-                                        100,sizeof(char));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,1,
-                                        sizeof(double*));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,1,
-                                        sizeof(COMPONENT));
-		FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,1,
-                                        sizeof(boolean));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,1,
-                                        sizeof(double));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,1,
-                                        sizeof(double));
-                if (movie_option->plot_solute)
-                {
-                    sprintf(hdf_movie_var->var_name[0],"solute");
-                    hdf_movie_var->get_state_var[0] = getStateSolute;
-                    hdf_movie_var->top_var[0] = cRparams->field->solute;
-                    hdf_movie_var->obstacle_comp[0] = CRYSTAL_COMP;
-                }
-		break;
-	    case 2:
-	    	hdf_movie_var->num_var = 1;
-		vtk_movie_var->num_vector_var = 0;
-		vtk_movie_var->num_scalar_var = 1;
-	    	FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,1,
-					100,sizeof(char));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,1,
-					sizeof(double*));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,1,
-					sizeof(COMPONENT));
-		FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,1,
-                                        sizeof(boolean));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,1,
-                                        sizeof(double));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,1,
-                                        sizeof(double));
-		FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->scalar_var,1,
-                                        sizeof(double*));
-                FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->scalar_var_name,
-					1,100,sizeof(char));
-		if (movie_option->plot_solute)
+		if (set_bound)
 		{
-	    	    sprintf(hdf_movie_var->var_name[0],"solute");
-	    	    hdf_movie_var->get_state_var[0] = getStateSolute;
-		    hdf_movie_var->top_var[0] = cRparams->field->solute;
-		    if (cRparams->crystal_dens_func != NULL)
-			hdf_movie_var->obstacle_comp[0] = ERROR_COMP;
-		    else
-		    	hdf_movie_var->obstacle_comp[0] = CRYSTAL_COMP;
-                    sprintf(vtk_movie_var->scalar_var_name[0],"solute");
-                    vtk_movie_var->scalar_var[0] = field->solute;
+		    CursorAfterString(infile,"Enter min and max solute:");
+                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    (void) printf("%f %f\n",var_min,var_max);
 		}
-		break;
-	    case 3:
-	    	hdf_movie_var->num_var = n = 0;
-		vtk_movie_var->num_vector_var = 0;
-		vtk_movie_var->num_scalar_var = 1;
-	    	FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,3,100,
-					sizeof(char));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,3,
-					sizeof(double*));
-		FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->idir,3,
-					sizeof(int));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,
-					3,sizeof(COMPONENT));
-		FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,3,
-                                        sizeof(boolean));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,3,
-                                        sizeof(double));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,3,
-                                        sizeof(double));
-		FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->scalar_var,1,
-                                        sizeof(double*));
-                FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->scalar_var_name,
-					1,100,sizeof(char));
-		if (movie_option->plot_solute)
-		{
-                    sprintf(vtk_movie_var->scalar_var_name[0],"solute");
-                    vtk_movie_var->scalar_var[0] = field->solute;
-		    if (movie_option->plot_cross_section[0])
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"solute-yz");
-	    	    	hdf_movie_var->get_state_var[n] = getStateSolute;
-		    	hdf_movie_var->top_var[n] = cRparams->field->solute;
-			hdf_movie_var->idir[n] = 0;
-		    	hdf_movie_var->obstacle_comp[n] = CRYSTAL_COMP;
-			hdf_movie_var->num_var = ++n;
-		    }
-		    if (movie_option->plot_cross_section[1])
-		    {
-			sprintf(hdf_movie_var->var_name[n],"solute-xz");
-			hdf_movie_var->get_state_var[n] = getStateSolute;
-		    	hdf_movie_var->top_var[n] = cRparams->field->solute;
-			hdf_movie_var->idir[n] = 1;
-		    	hdf_movie_var->obstacle_comp[n] = CRYSTAL_COMP;
-			hdf_movie_var->num_var = ++n;
-		    }
-		    if (movie_option->plot_cross_section[2])
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"solute-xy");
-	    	    	hdf_movie_var->get_state_var[n] = getStateSolute;
-		    	hdf_movie_var->top_var[n] = cRparams->field->solute;
-			hdf_movie_var->idir[n] = 2;
-		    	hdf_movie_var->obstacle_comp[n] = CRYSTAL_COMP;
-			hdf_movie_var->num_var = ++n;
-		    }
-		}
+		FT_AddHdfMovieVariable(front,set_bound,YES,CRYSTAL_COMP,
+                                "solute",0,field->solute,getStateSolute,
+                                var_max,var_min);
 	    }
-	    front->hdf_movie_var = hdf_movie_var;
-            front->vtk_movie_var = vtk_movie_var;
+	    break;
+	case 2:
+	    CursorAfterString(infile,"Type y to make movie of solute:");
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
+	    {
+		if (set_bound)
+		{
+		    CursorAfterString(infile,"Enter min and max solute:");
+                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    (void) printf("%f %f\n",var_min,var_max);
+		}
+		FT_AddHdfMovieVariable(front,set_bound,YES,CRYSTAL_COMP,
+                                "solute",0,field->solute,getStateSolute,
+                                var_max,var_min);
+		FT_AddVtkScalarMovieVariable(front,"solute",field->solute);
+	    }
+	    break;
+	case 3:
+	    CursorAfterString(infile,"Type y to make yz cross section movie:");
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
+	    {
+		if (set_bound)
+		{
+		    CursorAfterString(infile,"Enter min and max solute:");
+                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    (void) printf("%f %f\n",var_min,var_max);
+		}
+		FT_AddHdfMovieVariable(front,set_bound,YES,CRYSTAL_COMP,
+                                "solute-yz",0,field->solute,getStateSolute,
+                                var_max,var_min);
+		FT_AddVtkScalarMovieVariable(front,"solute",field->solute);
+	    }
+	    CursorAfterString(infile,"Type y to make xz cross section movie:");
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
+	    {
+		if (set_bound)
+		{
+		    CursorAfterString(infile,"Enter min and max solute:");
+                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    (void) printf("%f %f\n",var_min,var_max);
+		}
+		FT_AddHdfMovieVariable(front,set_bound,YES,CRYSTAL_COMP,
+                                "solute-xz",0,field->solute,getStateSolute,
+                                var_max,var_min);
+		FT_AddVtkScalarMovieVariable(front,"solute",field->solute);
+	    }
+	    CursorAfterString(infile,"Type y to make xy cross section movie:");
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
+	    {
+		if (set_bound)
+		{
+		    CursorAfterString(infile,"Enter min and max solute:");
+                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    (void) printf("%f %f\n",var_min,var_max);
+		}
+		FT_AddHdfMovieVariable(front,set_bound,YES,CRYSTAL_COMP,
+                                "solute-xy",0,field->solute,getStateSolute,
+                                var_max,var_min);
+		FT_AddVtkScalarMovieVariable(front,"solute",field->solute);
+	    }
 	}
+	fclose(infile);
 }	/* end initMovieVariables */
 
 void C_CARTESIAN::printFrontInteriorStates(char *out_name)
@@ -1771,50 +1745,6 @@ void C_CARTESIAN::vtk_plot_concentration2d(
 
 	fclose(outfile);
 }       /* end vtk_plot_concentration2d */   
-
-void read_crt_movie_options(
-        char *inname,
-        CRT_PARAMS *cRparams)
-{
-        static CRT_MOVIE_OPTION *movie_option;
-        FILE *infile = fopen(inname,"r");
-        char string[100];
-
-        FT_ScalarMemoryAlloc((POINTER*)&movie_option,sizeof(CRT_MOVIE_OPTION));
-        cRparams->movie_option = movie_option;
-
-        if (cRparams->dim == 1) 
-	{
-	    movie_option->plot_solute = YES;
-	    return;
-	}
-
-        CursorAfterString(infile,"Type y to make movie of solute:");
-        fscanf(infile,"%s",string);
-	(void) printf("%s\n",string);
-        if (string[0] == 'Y' || string[0] == 'y')
-            movie_option->plot_solute = YES;
-
-        if (cRparams->dim == 3)
-        {
-            CursorAfterString(infile,"Type y to make yz cross section movie:");
-            fscanf(infile,"%s",string);
-	    (void) printf("%s\n",string);
-            if (string[0] == 'Y' || string[0] == 'y')
-                movie_option->plot_cross_section[0] = YES;
-            CursorAfterString(infile,"Type y to make xz cross section movie:");
-            fscanf(infile,"%s",string);
-	    (void) printf("%s\n",string);
-            if (string[0] == 'Y' || string[0] == 'y')
-                movie_option->plot_cross_section[1] = YES;
-            CursorAfterString(infile,"Type y to make xy cross section movie:");
-            fscanf(infile,"%s",string);
-	    (void) printf("%s\n",string);
-            if (string[0] == 'Y' || string[0] == 'y')
-                movie_option->plot_cross_section[2] = YES;
-        }
-        fclose(infile);
-}       /* end read_crt_movie_options */
 
 static int find_state_at_crossing(
 	Front *front,

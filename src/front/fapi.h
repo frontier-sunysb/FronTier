@@ -1549,6 +1549,71 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 
    IMPORT  RECT_GRID *FT_GridIntfcTopGrid(Front*);
 
+/*! \fn void FT_AddHdfMovieVariable(
+ * 	Front *front,
+        boolean preset_bound,
+        boolean untracked,
+        COMPONENT obst_comp,
+        const char *var_name,
+        double *var_field,
+        double (*getStateFunc)(POINTER),
+        double max_var,
+        double min_var)
+ *  \ingroup INITIALIZATION
+    \brief Initialize a variable and information for hdf movie output.
+    \param front @b in	Pointer to the front  
+    \param preset_bound @b in Flag whether to set bounds of variable
+    \param untracked @b in Flag whether to untrack front  
+    \param obst_comp @b in The obstacle component
+    \param var_name @b in Names of the variable
+    \param idir @b in Normal direction of the plane of the variable (in 3D)
+    \param var_field @b in Field values of the variable
+    \param getStateFunc @b in Function to get variable from interface state
+    \param max_var @b in  Ceilling of the variable (if use preset_bound)
+    \param min_var @b in  Floor of the variable (if use preset_bound)
+ */
+   IMPORT  void FT_AddHdfMovieVariable(
+	Front *front,
+        boolean preset_bound,
+        boolean untracked,
+        COMPONENT obst_comp,
+        const char *var_name,
+	int idir,
+        double *var_field,
+        double (*getStateFunc)(POINTER),
+        double max_var,
+        double min_var);
+
+/*! \fn void FT_AddVtkVectorMovieVariable(
+ * 	Front *front,
+        const char *var_name,
+        double **var_field)
+ *  \ingroup INITIALIZATION
+    \brief Initialize a variable and information for vtk vector movie output.
+    \param front @b in	Pointer to the front  
+    \param var_name @b in Names of the variable
+    \param var_field @b in Field values of the variable
+ */
+   IMPORT  void FT_AddVtkVectorMovieVariable(
+	Front *front,
+        const char *var_name,
+        double **var_field);
+
+/*! \fn void FT_AddVtkScalarMovieVariable(
+ * 	Front *front,
+        const char *var_name,
+        double *var_field)
+ *  \ingroup INITIALIZATION
+    \brief Initialize a variable and information for vtk scalar movie output.
+    \param front @b in	Pointer to the front  
+    \param var_name @b in Names of the variable
+    \param var_field @b in Field values of the variable
+ */
+   IMPORT  void FT_AddVtkScalarMovieVariable(
+	Front *front,
+        const char *var_name,
+        double *var_field);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif

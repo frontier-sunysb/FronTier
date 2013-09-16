@@ -109,11 +109,14 @@ extern void read_cFluid_params(
 	}
 
 	eqn_params->use_base_soln = NO;
-	CursorAfterStringOpt(infile,"Enter yes for comparison with base data:");
-        fscanf(infile,"%s",string);
-        (void) printf("%s\n",string);
-        if (string[0] == 'y' || string[0] == 'Y')
-            eqn_params->use_base_soln = YES;
+	if (CursorAfterStringOpt(infile,
+		"Enter yes for comparison with base data:"))
+	{
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'y' || string[0] == 'Y')
+            	eqn_params->use_base_soln = YES;
+	}
 	if (eqn_params->use_base_soln == YES)
         {
 	    CursorAfterString(infile,"Enter base directory name:");
@@ -142,99 +145,3 @@ extern void read_cFluid_params(
 	if (eqn_params->use_base_soln == YES)
 	    FT_ReadComparisonDomain(inname,eqn_params->f_basic);
 }	/* end read_cFluid_params */
-
-extern void read_movie_options(
-	char *inname,
-	EQN_PARAMS *eqn_params)
-{
-	static MOVIE_OPTION *movie_option;
-	FILE *infile = fopen(inname,"r");
-	char string[100];
-
-	FT_ScalarMemoryAlloc((POINTER*)&movie_option,sizeof(MOVIE_OPTION));
-	eqn_params->movie_option = movie_option;
-	movie_option->set_bounds = NO;	// default
-	if (CursorAfterStringOpt(infile,"Type y to set movie bounds:"))
-	{
-	    fscanf(infile,"%s",string);
-	    (void) printf("%s\n",string);
-	    if (string[0] == 'Y' || string[0] == 'y')
-		movie_option->set_bounds = YES;
-	}
-
-	CursorAfterString(infile,"Type y to make movie of density:");
-	fscanf(infile,"%s",string);
-	(void) printf("%s\n",string);
-	if (string[0] == 'Y' || string[0] == 'y')
-	{
-	    movie_option->plot_dens = YES;
-	    if (movie_option->set_bounds)
-	    {
-		CursorAfterString(infile,"Enter min and max density:");
-		fscanf(infile,"%lf %lf",&movie_option->min_dens,
-				&movie_option->max_dens);
-		(void) printf("%f %f\n",movie_option->min_dens,
-				movie_option->max_dens);
-	    }
-	}
-	CursorAfterString(infile,"Type y to make movie of pressure:");
-	fscanf(infile,"%s",string);
-	(void) printf("%s\n",string);
-	if (string[0] == 'Y' || string[0] == 'y')
-	{
-	    movie_option->plot_pres = YES;
-	    if (movie_option->set_bounds)
-	    {
-		CursorAfterString(infile,"Enter min and max pressure:");
-		fscanf(infile,"%lf %lf",&movie_option->min_pres,
-				&movie_option->max_pres);
-		(void) printf("%f %f\n",movie_option->min_pres,
-				movie_option->max_pres);
-	    }
-	}
-	if (eqn_params->dim != 1)
-	{
-	    CursorAfterString(infile,"Type y to make movie of vorticity:");
-	    fscanf(infile,"%s",string);
-	    (void) printf("%s\n",string);
-	    if (string[0] == 'Y' || string[0] == 'y')
-	    {
-	    	movie_option->plot_vort = YES;
-	    }
-	}
-	CursorAfterString(infile,"Type y to make movie of velocity:");
-	fscanf(infile,"%s",string);
-	(void) printf("%s\n",string);
-	if (string[0] == 'Y' || string[0] == 'y')
-	{
-	    movie_option->plot_velo = YES;
-	    if (movie_option->set_bounds)
-	    {
-		CursorAfterString(infile,"Enter min and max velocity:");
-		fscanf(infile,"%lf %lf",&movie_option->min_velo,
-				&movie_option->max_velo);
-		(void) printf("%f %f\n",movie_option->min_velo,
-				movie_option->max_velo);
-	    }
-	}
-
-	if (eqn_params->dim == 3)
-	{
-	    CursorAfterString(infile,"Type y to make yz cross section movie:");
-	    fscanf(infile,"%s",string);
-	    (void) printf("%s\n",string);
-	    if (string[0] == 'Y' || string[0] == 'y')
-		movie_option->plot_cross_section[0] = YES;
-	    CursorAfterString(infile,"Type y to make xz cross section movie:");
-	    fscanf(infile,"%s",string);
-	    (void) printf("%s\n",string);
-	    if (string[0] == 'Y' || string[0] == 'y')
-		movie_option->plot_cross_section[1] = YES;
-	    CursorAfterString(infile,"Type y to make xy cross section movie:");
-	    fscanf(infile,"%s",string);
-	    (void) printf("%s\n",string);
-	    if (string[0] == 'Y' || string[0] == 'y')
-		movie_option->plot_cross_section[2] = YES;
-	}
-	fclose(infile);
-}	/* end read_movie_options */

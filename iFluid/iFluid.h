@@ -59,19 +59,6 @@ struct _IF_FIELD {
 };
 typedef struct _IF_FIELD IF_FIELD;
 
-struct _IF_MOVIE_OPTION {
-	/* HDF movie options */
-	boolean plot_bullet;		/* For gd movie */
-	boolean plot_comp;
-	boolean plot_pres;
-	boolean plot_vort;
-	boolean plot_velo;
-	boolean plot_cross_section[MAXD]; /* 3D 0: yz; 1: zx; 2: xy */
-	/* VTK movie options */
-	boolean plot_vel_vector;	  /* Plot velocity vector field */
-};
-typedef struct _IF_MOVIE_OPTION IF_MOVIE_OPTION;
-
 enum _PROJC_METHOD {
 	ERROR_PROJC_SCHEME		= -1,
         SIMPLE			=  1,
@@ -114,7 +101,6 @@ typedef struct _NS_SCHEME NS_SCHEME;
 typedef struct {
         int dim;
         POINTER level_func_params;
-	IF_MOVIE_OPTION *movie_option;
 	NS_SCHEME num_scheme;
         double rho1;
         double rho2;
@@ -215,7 +201,6 @@ public:
 	void readFrontInteriorStates(char *state_name);
 	void printFrontInteriorStates(char *state_name);
 	void initMovieVariables(void);
-	void augmentMovieVariables(void);
 	void getVelocity(double *p, double *U);
 	void initSampleVelocity(char *in_name);
 

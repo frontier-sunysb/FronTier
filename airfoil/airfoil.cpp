@@ -107,9 +107,6 @@ int main(int argc, char **argv)
         read_iFparams(in_name,&iFparams);
         if (debugging("trace")) 
 	    (void) printf("Passed read_iFparams()\n");
-        read_iF_movie_options(in_name,&iFparams);
-        if (debugging("trace")) 
-	    (void) printf("Passed read_iF_movie_options()\n");
 
 
 	setInitialIntfcAF(&front,&level_func_pack,in_name);
@@ -147,6 +144,7 @@ int main(int argc, char **argv)
 	l_cartesian->findStateAtCrossing = af_find_state_at_crossing;
 	l_cartesian->getInitialState = zero_state;
 	l_cartesian->initMesh();
+        l_cartesian->initMovieVariables();
 	if (debugging("sample_velocity"))
             l_cartesian->initSampleVelocity(in_name);
         if (debugging("trace"))
@@ -204,10 +202,6 @@ static  void airfoil_driver(
                 (void) printf("Calling printFrontInteriorStates()\n");
             l_cartesian->printFrontInteriorStates(out_name);
 	    printAfExtraDada(front,out_name);
-
-	    if (debugging("trace"))
-                (void) printf("Calling initMovieVariable()\n");
-            l_cartesian->initMovieVariables();
 
             if (debugging("trace"))
                 (void) printf("Calling FT_AddMovieFrame()\n");
@@ -298,11 +292,6 @@ static  void airfoil_driver(
                 (void) printf("After print output()\n");
             if (FT_IsMovieFrameTime(front))
 	    {
-		if (debugging("trace"))
-                    (void) printf("Calling initMovieVariable()\n");
-                l_cartesian->initMovieVariables();
-                if (debugging("trace"))
-                    (void) printf("Calling FT_AddMovieFrame()\n");
                 FT_AddMovieFrame(front,out_name,binary);
 	    }
 

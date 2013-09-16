@@ -33,20 +33,10 @@ struct _PHASE_FIELD {
 };
 typedef struct _PHASE_FIELD PHASE_FIELD;
 
-struct _MOVIE_OPTION {
-        boolean plot_pres;
-        boolean plot_vort;
-        boolean plot_velo;
-        boolean plot_temperature;
-        boolean plot_cross_section[MAXD];  /* 3D 0: yz; 1: zx; 2: xy */
-};
-typedef struct _MOVIE_OPTION MOVIE_OPTION;
-
 struct _PARAMS {
         int dim;
 	NUM_SCHEME num_scheme;
 	PHASE_FIELD *field;
-	MOVIE_OPTION *movie_option;
 	int pde_order;
 	int num_phases;
         double *Ti;    /* melting temperature at the interface */

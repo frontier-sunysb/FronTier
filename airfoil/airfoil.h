@@ -58,7 +58,6 @@ typedef struct _PERT_PARAMS PERT_PARAMS;
 typedef struct {
         int dim;
         POINTER level_func_params;
-        IF_MOVIE_OPTION *movie_option;
         NS_SCHEME num_scheme;
         SPRING_MODEL spring_model;
 	boolean no_fluid;

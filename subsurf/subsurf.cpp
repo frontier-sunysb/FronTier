@@ -19,7 +19,7 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 **************************************************************************/
 
@@ -114,8 +114,6 @@ int main(int argc, char **argv)
 
 	cRparams.dim = f_basic.dim;
 	iFparams.dim = f_basic.dim;
-	read_iF_movie_options(in_name,&iFparams);
-	read_crt_movie_options(in_name,&cRparams);
 	front.extra1 = (POINTER)&iFparams;
 	front.extra2 = (POINTER)&cRparams;
 
@@ -165,8 +163,10 @@ int main(int argc, char **argv)
 	if (debugging("trace")) printf("Before initMesh()\n");
         c_cartesian.initMesh();
 	if (debugging("trace")) printf("Passed Crystal initMesh()\n");
+        c_cartesian.initMovieVariables();
         l_cartesian->initMesh();
 	if (debugging("trace")) printf("Passed iFluid initMesh()\n");
+        l_cartesian->initMovieVariables();
 	l_cartesian->findStateAtCrossing = ifluid_find_state_at_crossing;
 	if (debugging("sample_velocity"))
             l_cartesian->initSampleVelocity(in_name);
@@ -237,8 +237,6 @@ static  void subsurf_main_driver(
 	cRparams = (CRT_PARAMS*)front->extra2;
 	s_params = (SEED_PARAMS*)cRparams->func_params;
 
-	front->hdf_movie_var = NULL;
-
 	if (dim == 1)
 	    c_cartesian.oneDimPlot(out_name);
 
@@ -276,10 +274,8 @@ static  void subsurf_main_driver(
             FT_Save(front,out_name);
             c_cartesian.printFrontInteriorStates(out_name);
             l_cartesian->printFrontInteriorStates(out_name);
-            c_cartesian.initMovieVariables();
-            l_cartesian->augmentMovieVariables();
             FT_AddMovieFrame(front,out_name,binary);
-            if (dim == 2 && cRparams->movie_option->plot_solute)
+            if (dim == 2 && front->vtk_movie_var)
                 c_cartesian.vtk_plot_concentration2d(out_name);
             if (dim == 2)
                 print_area_density(front,out_name);
@@ -365,15 +361,9 @@ static  void subsurf_main_driver(
 		if (dim != 1)
 		{
 		    if (debugging("trace"))
-                    	printf("Calling c_cartesian.initMovieVariable()\n");
-                    c_cartesian.initMovieVariables();
-		    if (debugging("trace"))
-                    	printf("Calling l_cartesian->augmentMovieVariable()\n");
-                    l_cartesian->augmentMovieVariables();
-		    if (debugging("trace"))
                     	printf("Calling FT_AddMovieFrame()\n");
                     FT_AddMovieFrame(front,out_name,binary);
-		    if (dim == 2 && cRparams->movie_option->plot_solute)
+		    if (dim == 2 && front->vtk_movie_var)
                         c_cartesian.vtk_plot_concentration2d(out_name);
 		}
 	    	else

@@ -100,7 +100,6 @@ int main(int argc, char **argv)
         front.extra1 = (POINTER)&iFparams;
         front.extra2 = (POINTER)&af_params;
         read_iFparams(in_name,&iFparams);
-        read_iF_movie_options(in_name,&iFparams);
 
 	level_func_pack.neg_component = LIQUID_COMP2;
 	if (!RestartRun)
@@ -134,6 +133,7 @@ int main(int argc, char **argv)
 	l_cartesian->findStateAtCrossing = af_find_state_at_crossing;
 	l_cartesian->getInitialState = zero_state;
 	l_cartesian->initMesh();
+        l_cartesian->initMovieVariables();
 	if (debugging("sample_velocity"))
             l_cartesian->initSampleVelocity(in_name);
 
@@ -180,8 +180,6 @@ static  void airfoil_driver(
 
             l_cartesian->printFrontInteriorStates(out_name);
 	    printAfExtraDada(front,out_name);
-
-            l_cartesian->initMovieVariables();
 
             FT_AddMovieFrame(front,out_name,binary);
 
@@ -260,7 +258,6 @@ static  void airfoil_driver(
 	    }
             if (FT_IsMovieFrameTime(front))
 	    {
-                l_cartesian->initMovieVariables();
                 FT_AddMovieFrame(front,out_name,binary);
 	    }
 

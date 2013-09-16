@@ -51,7 +51,6 @@ static double 	temperature_func(double*,COMPONENT,double);
 static double 	crystal_curve(POINTER,double*);
 static double 	sphere_surf(POINTER,double*);
 static boolean 	fractal_dimension(Front*,TEST_SPHERE_PARAMS,double*,double*);
-static void 	read_movie_options(char*,PARAMS*);
 static void	melt_flow_point_propagate(Front*,POINTER,POINT*,POINT*,
 			HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 
@@ -115,8 +114,6 @@ int main(int argc, char **argv)
 
 	eqn_params.dim = f_basic.dim;
 	iFparams.dim = f_basic.dim;
-	read_movie_options(in_name,&eqn_params);
-	read_iF_movie_options(in_name,&iFparams);
 	front.extra1 = (POINTER)&iFparams;
 	front.extra2 = (POINTER)&eqn_params;
 	readPhaseParams(&front);
@@ -149,10 +146,12 @@ int main(int argc, char **argv)
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
         cartesian.initMesh();
+        cartesian.initMovieVariables();
 	if (eqn_params.no_fluid == NO)
 	{
 	    l_cartesian->initMesh();
 	    l_cartesian->findStateAtCrossing = ifluid_find_state_at_crossing;
+            l_cartesian->initMovieVariables();
 	}
 	if (debugging("sample_velocity"))
 	    l_cartesian->initSampleVelocity(in_name);
@@ -231,8 +230,6 @@ static  void melting_flow_driver(
 	iFparams = (IF_PARAMS*)front->extra1;
 	eqn_params = (PARAMS*)front->extra2;
 
-	front->hdf_movie_var = NULL;
-
         if (!RestartRun)
         {
 	    FT_ResetTime(front);
@@ -274,16 +271,11 @@ static  void melting_flow_driver(
 	    	l_cartesian->setAdvectionDt();
 	    	front->dt = std::min(front->dt,CFL*l_cartesian->max_dt);
 	    }
-
-            cartesian.initMovieVariables();
-	    if (eqn_params->no_fluid == NO)
-            	l_cartesian->augmentMovieVariables();
 	    FT_AddMovieFrame(front,out_name,YES);
         }
         else
 	{
 	    FT_SetOutputCounter(front);
-            cartesian.initMovieVariables();
             FT_AddMovieFrame(front,out_name,YES);
 	}
 
@@ -335,7 +327,6 @@ static  void melting_flow_driver(
             if (FT_IsMovieFrameTime(front))
 	    {
 		// Front standard output
-        	cartesian.initMovieVariables();
                 FT_AddMovieFrame(front,out_name,YES);
 		if (dim == 1)
 	    	    cartesian.oneDimPlot(out_name);
@@ -366,7 +357,6 @@ static  void melting_flow_driver(
 	    {
 		if (dim == 1)
 		    plot_growth_data(out_name,growth_data,count);
-        	cartesian.initMovieVariables();
 	    	FT_AddMovieFrame(front,out_name,YES);
                 break;
 	    }
@@ -638,63 +628,6 @@ static void plot_growth_data(
 	    fprintf(ofile,"%f  %f\n",growth_data[i][0],growth_data[i][2]);
 	fclose(ofile);
 }	/* end plot_growth_data */
-
-static void read_movie_options(
-        char *inname,
-        PARAMS *params)
-{
-        static MOVIE_OPTION *movie_option;
-        FILE *infile = fopen(inname,"r");
-        char string[100];
-
-        FT_ScalarMemoryAlloc((POINTER*)&movie_option,sizeof(MOVIE_OPTION));
-        params->movie_option = movie_option;
-
-        if (params->dim == 1) 
-	{
-	    movie_option->plot_temperature = YES;
-	    return;
-	}
-
-        CursorAfterString(infile,"Type y to make movie of temperature:");
-        fscanf(infile,"%s",string);
-	(void) printf("%s\n",string);
-        if (string[0] == 'Y' || string[0] == 'y')
-            movie_option->plot_temperature = YES;
-
-	/* Default: not plot cross sectional variables */
-        movie_option->plot_cross_section[0] = NO;
-        movie_option->plot_cross_section[1] = NO;
-        movie_option->plot_cross_section[2] = NO;
-        if (params->dim == 3)
-        {
-            if (CursorAfterStringOpt(infile,
-		"Type y to make yz cross section movie:"))
-	    {
-            	fscanf(infile,"%s",string);
-	    	(void) printf("%s\n",string);
-            	if (string[0] == 'Y' || string[0] == 'y')
-                    movie_option->plot_cross_section[0] = YES;
-	    }
-            if (CursorAfterStringOpt(infile,
-		"Type y to make xz cross section movie:"))
-	    {
-            	fscanf(infile,"%s",string);
-	    	(void) printf("%s\n",string);
-            	if (string[0] == 'Y' || string[0] == 'y')
-                    movie_option->plot_cross_section[1] = YES;
-	    }
-            if (CursorAfterStringOpt(infile,
-		"Type y to make xy cross section movie:"))
-	    {
-            	fscanf(infile,"%s",string);
-	    	(void) printf("%s\n",string);
-            	if (string[0] == 'Y' || string[0] == 'y')
-                    movie_option->plot_cross_section[2] = YES;
-	    }
-        }
-        fclose(infile);
-}       /* end read_movie_options */
 
 extern  double getStateTemperature(
         POINTER state)

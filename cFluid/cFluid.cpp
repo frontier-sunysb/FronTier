@@ -1,4 +1,4 @@
-/***********************************************************************
+/***************************************************************
 FronTier is a set of libraries that implements differnt types of 
 Front Traking algorithms. Front Tracking is a numerical method for 
 the solution of partial differential equations whose solutions 
@@ -18,17 +18,14 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-************************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+****************************************************************/
 
 /*
 *				cFluid.c:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
 *	
-*	This example shows a circle in a double vortex field. It demonstrates
-*	the resolution of the front tracking method.
-*
 */
 
 #include "cFluid.h"
@@ -102,7 +99,6 @@ int main(int argc, char **argv)
                 eqn_params.f_basic->subdomains[i] = f_basic.subdomains[i];
 	}
 
-	read_movie_options(in_name,&eqn_params);
 	front.extra1 = (POINTER)&eqn_params;
 	if (debugging("trace")) printf("Passed read_cFluid_params()\n");
 
@@ -153,6 +149,7 @@ int main(int argc, char **argv)
 	    printf("Passed FT_InitVeloFunc()\n");
 
 	g_cartesian.initMesh();
+        g_cartesian.initMovieVariables();
 	if (RestartRun)
 	{
 	    readFrontStates(&front,restart_state_name);
@@ -199,7 +196,6 @@ static  void gas_driver(
                 g_cartesian.compareWithBaseData(out_name);
                 g_cartesian.freeBaseFront();
             }
-            g_cartesian.initMovieVariables();
             FT_AddMovieFrame(front,out_name,binary);
 
 	    FT_SetTimeStep(front);
@@ -267,7 +263,6 @@ static  void gas_driver(
 	    }
             if (FT_IsMovieFrameTime(front))
 	    {
-	        g_cartesian.initMovieVariables();
             	FT_AddMovieFrame(front,out_name,binary);
 	    }
 
@@ -280,7 +275,6 @@ static  void gas_driver(
 		}
 		if (!FT_IsMovieFrameTime(front))
 		{
-                    g_cartesian.initMovieVariables();
                     FT_AddMovieFrame(front,out_name,binary);
 		}
 		(void) printf("\ntime = %20.14f   step = %5d   ",

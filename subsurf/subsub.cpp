@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -19,9 +20,8 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-******************************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+****************************************************************/
 
 
 #include <iFluid.h>
@@ -861,58 +861,6 @@ extern void ifluid_point_propagate(
 					oldhs,dt,V);
 	}
 }       /* ifluid_point_propagate */
-
-extern void read_iF_movie_options(
-	char *inname,
-	IF_PARAMS *iFparams)
-{
-	static IF_MOVIE_OPTION *movie_option;
-	FILE *infile = fopen(inname,"r");
-	char string[100];
-
-	FT_ScalarMemoryAlloc((POINTER*)&movie_option,sizeof(IF_MOVIE_OPTION));
-	iFparams->movie_option = movie_option;
-	CursorAfterString(infile,"Type y to make movie of pressure:");
-	fscanf(infile,"%s",string);
-	(void) printf("%s\n",string);
-	if (string[0] == 'Y' || string[0] == 'y')
-	    movie_option->plot_pres = YES;
-	CursorAfterString(infile,"Type y to make movie of vorticity:");
-	fscanf(infile,"%s",string);
-	(void) printf("%s\n",string);
-	if (string[0] == 'Y' || string[0] == 'y')
-	    movie_option->plot_vort = YES;
-	CursorAfterString(infile,"Type y to make movie of velocity:");
-	fscanf(infile,"%s",string);
-	(void) printf("%s\n",string);
-	if (string[0] == 'Y' || string[0] == 'y')
-	    movie_option->plot_velo = YES;
-
-	if (iFparams->dim == 3)
-	{
-	    CursorAfterString(infile,"Type y to make yz cross section movie:");
-	    fscanf(infile,"%s",string);
-	    (void) printf("%s\n",string);
-	    if (string[0] == 'Y' || string[0] == 'y')
-		movie_option->plot_cross_section[0] = YES;
-	    CursorAfterString(infile,"Type y to make xz cross section movie:");
-	    fscanf(infile,"%s",string);
-	    (void) printf("%s\n",string);
-	    if (string[0] == 'Y' || string[0] == 'y')
-		movie_option->plot_cross_section[1] = YES;
-	    CursorAfterString(infile,"Type y to make xy cross section movie:");
-	    fscanf(infile,"%s",string);
-	    (void) printf("%s\n",string);
-	    if (string[0] == 'Y' || string[0] == 'y')
-		movie_option->plot_cross_section[2] = YES;
-	}
-	CursorAfterString(infile,"Type y to make vector velocity field movie:");
-	fscanf(infile,"%s",string);
-	(void) printf("%s\n",string);
-	if (string[0] == 'Y' || string[0] == 'y')
-	    movie_option->plot_vel_vector = YES;
-	fclose(infile);
-}	/* end read_iF_movie_options */
 
 extern boolean isDirichletPresetBdry(
         Front *front,

@@ -744,374 +744,159 @@ void Incompress_Solver_Smooth_Basis::setAdvectionDt()
 }	/* end setAdvectionDt */
 
 
-void Incompress_Solver_Smooth_Basis::augmentMovieVariables()
-{
-	int i;
-	static HDF_MOVIE_VAR *hdf_movie_var;
-	static VTK_MOVIE_VAR *vtk_movie_var;
-	int n,offset,num_var;
-	IF_MOVIE_OPTION *movie_option = iFparams->movie_option;
-
-	offset = front->hdf_movie_var->num_var;
-	num_var = (dim == 2) ? offset + 4 : offset + 12;
-
-	if (hdf_movie_var == NULL)
-	{
-	    /* Added for vtk movie of vector field */
-	    if (movie_option->plot_vel_vector)
-	    {
-		FT_ScalarMemoryAlloc((POINTER*)&vtk_movie_var,
-				sizeof(VTK_MOVIE_VAR));
-		vtk_movie_var->num_vector_var = 1;
-		FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->vector_var,1,
-					sizeof(double**));
-		FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->vector_var_name,
-					1,100,sizeof(char));
-	    	sprintf(vtk_movie_var->vector_var_name[0],"VELOCITY");
-		vtk_movie_var->vector_var[0] = field->vel;
-		front->vtk_movie_var = vtk_movie_var;
-	    }
-	    else
-		vtk_movie_var = NULL;
-
-	    /* Begin hdf movie */
-	    FT_ScalarMemoryAlloc((POINTER*)&hdf_movie_var,
-				sizeof(HDF_MOVIE_VAR));
-	    FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,num_var,
-					100,sizeof(char));
-	    FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,num_var,
-					sizeof(double*));
-	    FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->idir,num_var,
-					sizeof(int));
-	    FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,
-					num_var,sizeof(COMPONENT));
-	    FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,num_var,
-					sizeof(boolean));
-	    FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,num_var,
-					sizeof(double));
-	    FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,num_var,
-					sizeof(double));
-	    for (i = 0; i < front->hdf_movie_var->num_var; ++i)
-	    {
-		strcpy(hdf_movie_var->var_name[i],
-			front->hdf_movie_var->var_name[i]);
-		hdf_movie_var->get_state_var[i] =
-			front->hdf_movie_var->get_state_var[i];
-		hdf_movie_var->top_var[i] = 
-			front->hdf_movie_var->top_var[i];
-		hdf_movie_var->obstacle_comp[i] = 
-			front->hdf_movie_var->obstacle_comp[i];
-	    }
-	    
-	    switch (dim)
-	    {
-	    case 2:
-	        hdf_movie_var->plot_comp = YES;
-		hdf_movie_var->num_var = n = offset;
-		if (movie_option->plot_pres)
-		{
-	    	    sprintf(hdf_movie_var->var_name[n],"pres");
-	    	    hdf_movie_var->get_state_var[n] = getStatePres;
-	    	    hdf_movie_var->top_var[n] = field->pres;
-	    	    hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    hdf_movie_var->num_var = ++n;
-		}
-		if (movie_option->plot_vort)
-		{
-	    	    sprintf(hdf_movie_var->var_name[n],"vort");
-	    	    hdf_movie_var->get_state_var[n] = getStateVort;
-	    	    hdf_movie_var->top_var[n] = field->vort;
-	    	    hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    hdf_movie_var->num_var = ++n;
-		}
-		if (movie_option->plot_velo)
-		{
-	    	    sprintf(hdf_movie_var->var_name[n],"xvel");
-	    	    hdf_movie_var->get_state_var[n] = getStateXvel;
-	    	    hdf_movie_var->top_var[n] = field->vel[0];
-	    	    hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    hdf_movie_var->num_var = ++n;
-	    	    sprintf(hdf_movie_var->var_name[n],"yvel");
-	    	    hdf_movie_var->get_state_var[n] = getStateYvel;
-	    	    hdf_movie_var->top_var[n] = field->vel[1];
-	    	    hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    hdf_movie_var->num_var = ++n;
-		}
-		break;
-	    case 3:
-		if (!movie_option->plot_comp)
-	            hdf_movie_var->plot_comp = NO;
-		hdf_movie_var->num_var = n = offset;
-		if (movie_option->plot_cross_section[0])
-		{
-		    if (movie_option->plot_pres)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"pres-yz");
-	    	    	hdf_movie_var->get_state_var[n] = getStatePres;
-	    		hdf_movie_var->top_var[n] = field->pres;
-	    		hdf_movie_var->idir[n] = 0;
-	    	        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
-		    if (movie_option->plot_velo)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"velo-yz-y");
-	    	    	hdf_movie_var->get_state_var[n] = getStateYvel;
-	    		hdf_movie_var->top_var[n] = field->vel[1];
-	    		hdf_movie_var->idir[n] = 0;
-	    	        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-	    	    	sprintf(hdf_movie_var->var_name[n],"velo-yz-z");
-	    	    	hdf_movie_var->get_state_var[n] = getStateZvel;
-	    		hdf_movie_var->top_var[n] = field->vel[2];
-	    		hdf_movie_var->idir[n] = 0;
-	    	        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
-		}
-		if (movie_option->plot_cross_section[1])
-		{
-		    if (movie_option->plot_pres)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"pres-xz");
-	    	    	hdf_movie_var->get_state_var[n] = getStatePres;
-	    		hdf_movie_var->top_var[n] = field->pres;
-	    		hdf_movie_var->idir[n] = 1;
-	    	        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
-		    if (movie_option->plot_velo)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"velo-xz-x");
-	    	    	hdf_movie_var->get_state_var[n] = getStateXvel;
-	    		hdf_movie_var->top_var[n] = field->vel[0];
-	    		hdf_movie_var->idir[n] = 1;
-		    	hdf_movie_var->num_var = ++n;
-	    	    	sprintf(hdf_movie_var->var_name[n],"velo-xz-z");
-	    	    	hdf_movie_var->get_state_var[n] = getStateZvel;
-	    		hdf_movie_var->top_var[n] = field->vel[2];
-	    		hdf_movie_var->idir[n] = 1;
-	    	        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
-		}
-		if (movie_option->plot_cross_section[2])
-		{
-		    if (movie_option->plot_pres)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"pres-xy");
-	    	    	hdf_movie_var->get_state_var[n] = getStatePres;
-	    		hdf_movie_var->top_var[n] = field->pres;
-	    		hdf_movie_var->idir[n] = 2;
-	    	        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
-		    if (movie_option->plot_velo)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"velo-xy-x");
-	    	    	hdf_movie_var->get_state_var[n] = getStateXvel;
-	    		hdf_movie_var->top_var[n] = field->vel[0];
-	    		hdf_movie_var->idir[n] = 2;
-	    	        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-	    	    	sprintf(hdf_movie_var->var_name[n],"velo-xy-y");
-	    	    	hdf_movie_var->get_state_var[n] = getStateYvel;
-	    		hdf_movie_var->top_var[n] = field->vel[1];
-	    		hdf_movie_var->idir[n] = 2;
-	    	        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
-		}
-	    }
-	    FT_FreeThese(3,front->hdf_movie_var->var_name,
-			front->hdf_movie_var->top_var,
-			front->hdf_movie_var->obstacle_comp);
-	    FT_FreeThese(1,front->hdf_movie_var);
-	    front->hdf_movie_var = hdf_movie_var;
-	    front->vtk_movie_var = vtk_movie_var;
-	}
-
-}	/* end augmentMovieVariables */
-
 void Incompress_Solver_Smooth_Basis::initMovieVariables()
 {
-	static HDF_MOVIE_VAR *hdf_movie_var;
-	static VTK_MOVIE_VAR *vtk_movie_var;
-	int n;
-	IF_MOVIE_OPTION *movie_option = iFparams->movie_option;
+	boolean set_bound = NO;
+	FILE *infile = fopen(InName(front),"r");
+	char string[100];
+	double var_max,var_min;
 
-	if (hdf_movie_var == NULL)
-	{
-	    /* Added for vtk movie of vector field */
-	    if (movie_option->plot_vel_vector)
-	    {
-		FT_ScalarMemoryAlloc((POINTER*)&vtk_movie_var,
-				sizeof(VTK_MOVIE_VAR));
-		vtk_movie_var->num_vector_var = 1;
-		FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->vector_var,1,
-					sizeof(double**));
-		FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->vector_var_name,
-					1,100,sizeof(char));
-	    	sprintf(vtk_movie_var->vector_var_name[0],"VELOCITY");
-		vtk_movie_var->vector_var[0] = field->vel;
-		front->vtk_movie_var = vtk_movie_var;
-	    }
-	    else
-		front->vtk_movie_var = NULL;
+	if (CursorAfterStringOpt(infile,"Type y to set movie bounds:"))
+        {
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
+                set_bound = YES;
+        }
 
 	    /* Begin hdf movies */
-	    FT_ScalarMemoryAlloc((POINTER*)&hdf_movie_var,
-				sizeof(HDF_MOVIE_VAR));
-	    hdf_movie_var->plot_bullet = movie_option->plot_bullet;
-	    switch (dim)
+	switch (dim)
+	{
+	case 2:
+	    CursorAfterString(infile,"Type y to make movie of pressure:");
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
 	    {
-	    case 2:
-	    	hdf_movie_var->plot_comp = YES;
-		hdf_movie_var->num_var = n = 0;
-	    	FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,5,100,
-					sizeof(char));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,5,
-					sizeof(double*));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,5,
-					sizeof(COMPONENT));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,5,
-					sizeof(boolean));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,5,
-					sizeof(double));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,5,
-					sizeof(double));
-		if (movie_option->plot_pres)
+		if (set_bound)
 		{
-	    	    sprintf(hdf_movie_var->var_name[n],"pres");
-	    	    hdf_movie_var->get_state_var[n] = getStatePres;
-	    	    hdf_movie_var->top_var[n] = field->pres;
-	    	    hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    hdf_movie_var->num_var = ++n;
+		    CursorAfterString(infile,"Enter min and max pressure:");
+                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    (void) printf("%f %f\n",var_min,var_max);
 		}
-		if (movie_option->plot_vort)
+		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"pres",0,field->pres,getStatePres,
+				var_max,var_min);
+	    }
+	    CursorAfterString(infile,"Type y to make movie of vorticity:");
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
+	    {
+		if (set_bound)
 		{
-	    	    sprintf(hdf_movie_var->var_name[n],"vort");
-	    	    hdf_movie_var->get_state_var[n] = getStateVort;
-	    	    hdf_movie_var->top_var[n] = field->vort;
-	    	    hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    hdf_movie_var->num_var = ++n;
+		    CursorAfterString(infile,"Enter min and max vorticity:");
+                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    (void) printf("%f %f\n",var_min,var_max);
 		}
-		if (movie_option->plot_velo)
+		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"vort",0,field->vort,getStateVort,
+				var_max,var_min);
+	    }
+	    CursorAfterString(infile,"Type y to make movie of velocity:");
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
+	    {
+		if (set_bound)
 		{
-	    	    sprintf(hdf_movie_var->var_name[n],"xvel");
-	    	    hdf_movie_var->get_state_var[n] = getStateXvel;
-	    	    hdf_movie_var->top_var[n] = field->vel[0];
-	    	    hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    hdf_movie_var->num_var = ++n;
-	    	    sprintf(hdf_movie_var->var_name[n],"yvel");
-	    	    hdf_movie_var->get_state_var[n] = getStateYvel;
-	    	    hdf_movie_var->top_var[n] = field->vel[1];
-	    	    hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    hdf_movie_var->num_var = ++n;
+		    CursorAfterString(infile,"Enter min and max velocity:");
+                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    (void) printf("%f %f\n",var_min,var_max);
 		}
-		break;
-	    case 3:
-		hdf_movie_var->num_var = n = 0;
-	    	FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,
-					12,100,sizeof(char));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,
-					12,sizeof(double*));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->idir,
-					12,sizeof(int));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,
-					12,sizeof(COMPONENT));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,12,
-					sizeof(boolean));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,12,
-					sizeof(double));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,12,
-					sizeof(double));
-		if (!movie_option->plot_comp)
-		    hdf_movie_var->plot_comp = NO;
-		if (movie_option->plot_cross_section[0])
+		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"xvel",0,field->vel[0],getStateXvel,
+				var_max,var_min);
+		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"yvel",0,field->vel[1],getStateYvel,
+				var_max,var_min);
+	    }
+	    break;
+	case 3:
+	    CursorAfterString(infile,"Type y to make yz cross section movie:");
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
+	    {
+	    	CursorAfterString(infile,"Type y to make movie of pressure:");
+            	fscanf(infile,"%s",string);
+            	(void) printf("%s\n",string);
+            	if (string[0] == 'Y' || string[0] == 'y')
+		    FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"pres-yz",0,field->pres,getStatePres,
+				0.0,0.0);
+	    	CursorAfterString(infile,"Type y to make movie of velocity:");
+            	fscanf(infile,"%s",string);
+            	(void) printf("%s\n",string);
+            	if (string[0] == 'Y' || string[0] == 'y')
 		{
-		    if (movie_option->plot_pres)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"pres-yz");
-	    	    	hdf_movie_var->get_state_var[n] = getStatePres;
-	    		hdf_movie_var->top_var[n] = field->pres;
-	    		hdf_movie_var->idir[n] = 0;
-	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
-		    if (movie_option->plot_velo)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"velo-yz-y");
-	    	    	hdf_movie_var->get_state_var[n] = getStateYvel;
-	    		hdf_movie_var->top_var[n] = field->vel[1];
-	    		hdf_movie_var->idir[n] = 0;
-	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-	    	    	sprintf(hdf_movie_var->var_name[n],"velo-yz-z");
-	    	    	hdf_movie_var->get_state_var[n] = getStateZvel;
-	    		hdf_movie_var->top_var[n] = field->vel[2];
-	    		hdf_movie_var->idir[n] = 0;
-	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
-		}
-		if (movie_option->plot_cross_section[1])
-		{
-		    if (movie_option->plot_pres)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"pres-xz");
-	    	    	hdf_movie_var->get_state_var[n] = getStatePres;
-	    		hdf_movie_var->top_var[n] = field->pres;
-	    		hdf_movie_var->idir[n] = 1;
-	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
-		    if (movie_option->plot_velo)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"velo-xz-x");
-	    	    	hdf_movie_var->get_state_var[n] = getStateXvel;
-	    		hdf_movie_var->top_var[n] = field->vel[0];
-	    		hdf_movie_var->idir[n] = 1;
-	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-	    	    	sprintf(hdf_movie_var->var_name[n],"velo-xz-z");
-	    	    	hdf_movie_var->get_state_var[n] = getStateZvel;
-	    		hdf_movie_var->top_var[n] = field->vel[2];
-	    		hdf_movie_var->idir[n] = 1;
-	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
-		}
-		if (movie_option->plot_cross_section[2])
-		{
-		    if (movie_option->plot_pres)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"pres-xy");
-	    	    	hdf_movie_var->get_state_var[n] = getStatePres;
-	    		hdf_movie_var->top_var[n] = field->pres;
-	    		hdf_movie_var->idir[n] = 2;
-	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
-		    if (movie_option->plot_velo)
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"velo-xy-x");
-	    	    	hdf_movie_var->get_state_var[n] = getStateXvel;
-	    		hdf_movie_var->top_var[n] = field->vel[0];
-	    		hdf_movie_var->idir[n] = 2;
-	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-	    	    	sprintf(hdf_movie_var->var_name[n],"velo-xy-y");
-	    	    	hdf_movie_var->get_state_var[n] = getStateYvel;
-	    		hdf_movie_var->top_var[n] = field->vel[1];
-	    		hdf_movie_var->idir[n] = 2;
-	    	    	hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-		    	hdf_movie_var->num_var = ++n;
-		    }
+		    FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"velo-yz-y",0,field->vel[1],getStateYvel,
+				0.0,0.0);
+		    FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"velo-yz-z",0,field->vel[2],getStateZvel,
+				0.0,0.0);
 		}
 	    }
-	    front->hdf_movie_var = hdf_movie_var;
+	    CursorAfterString(infile,"Type y to make xz cross section movie:");
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
+	    {
+	    	CursorAfterString(infile,"Type y to make movie of pressure:");
+            	fscanf(infile,"%s",string);
+            	(void) printf("%s\n",string);
+            	if (string[0] == 'Y' || string[0] == 'y')
+		    FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"pres-xz",1,field->pres,getStatePres,
+				0.0,0.0);
+	    	CursorAfterString(infile,"Type y to make movie of velocity:");
+            	fscanf(infile,"%s",string);
+            	(void) printf("%s\n",string);
+            	if (string[0] == 'Y' || string[0] == 'y')
+		{
+		    FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"velo-xz-x",1,field->vel[0],getStateXvel,
+				0.0,0.0);
+		    FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"velo-xz-z",1,field->vel[2],getStateZvel,
+				0.0,0.0);
+		}
+	    }
+	    CursorAfterString(infile,"Type y to make xy cross section movie:");
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
+	    {
+	    	CursorAfterString(infile,"Type y to make movie of pressure:");
+            	fscanf(infile,"%s",string);
+            	(void) printf("%s\n",string);
+            	if (string[0] == 'Y' || string[0] == 'y')
+		    FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"pres-xy",2,field->pres,getStatePres,
+				0.0,0.0);
+	    	CursorAfterString(infile,"Type y to make movie of velocity:");
+            	fscanf(infile,"%s",string);
+            	(void) printf("%s\n",string);
+            	if (string[0] == 'Y' || string[0] == 'y')
+		{
+		    FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"velo-xy-x",2,field->vel[0],getStateXvel,
+				0.0,0.0);
+		    FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"velo-xy-y",2,field->vel[1],getStateYvel,
+				0.0,0.0);
+		}
+	    }
 	}
+	/* Added for vtk movie of vector field */
+	CursorAfterString(infile,"Type y to make vector velocity field movie:");
+        fscanf(infile,"%s",string);
+        (void) printf("%s\n",string);
+        if (string[0] == 'Y' || string[0] == 'y')
+	    FT_AddVtkVectorMovieVariable(front,"VELOCITY",field->vel);
+
+	fclose(infile);
 }	/* end initMovieVariables */
 
 

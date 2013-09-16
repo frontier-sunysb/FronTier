@@ -79,7 +79,6 @@ int main(int argc, char **argv)
 
 	read_rg_prob_type(in_name,&prob_type);
 	read_iFparams(in_name,&iFparams);
-	read_iF_movie_options(in_name,&iFparams);
 
 	if (!RestartRun)
 	{
@@ -114,6 +113,7 @@ int main(int argc, char **argv)
 	    printf("Passed FT_InitVeloFunc()\n");
 
 	cartesian->initMesh();
+	cartesian->initMovieVariables();
 	if (debugging("sample_velocity"))
             cartesian->initSampleVelocity(in_name);
 	init_fluid_state_func(cartesian,prob_type);
@@ -213,11 +213,6 @@ static  void fluid_driver(
 	    }
             if (FT_IsMovieFrameTime(front))
 	    {
-	    	if (debugging("trace")) 
-		    printf("Calling compMovieVariables()\n");
-	        cartesian->initMovieVariables();
-	    	if (debugging("trace")) 
-		    printf("Calling FT_AddMovieFrame()\n");
             	FT_AddMovieFrame(front,out_name,binary);
 	    }
 

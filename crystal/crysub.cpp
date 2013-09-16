@@ -786,14 +786,14 @@ extern void plot_growth_data(
 	FILE *ofile;
 	int i;
 
-	sprintf(fname,"%s-posn.xg",out_name);
+	sprintf(fname,"%s/posn.xg",out_name);
 	ofile = fopen(fname,"w");
 	fprintf(ofile,"\"Interface position vs. time\"\n");
 	for (i = 0; i < count; ++i)
 	    fprintf(ofile,"%f  %f\n",growth_data[i][0],growth_data[i][1]);
 	fclose(ofile);
 
-	sprintf(fname,"%s-solt.xg",out_name);
+	sprintf(fname,"%s/solt.xg",out_name);
 	ofile = fopen(fname,"w");
 	fprintf(ofile,"\"Interface solute vs. time\"\n");
 	for (i = 0; i < count; ++i)
@@ -1208,6 +1208,7 @@ static void setInitialIntfc2d(
 	case 't':
 	case 'T':
 	    CursorAfterString(infile,"Enter three points for triangle:");
+	    (void) printf("\n");
             CursorAfterString(infile,"Enter the first point x0, and y0: ");
             fscanf(infile,"%lf %lf\n",&t_params.x[0],&t_params.y[0]);
             (void) printf("%f %f\n",t_params.x[0],t_params.y[0]);

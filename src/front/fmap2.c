@@ -1204,3 +1204,139 @@ EXPORT	RECT_GRID *FT_GridIntfcTopGrid(
 	}
 	return &topological_grid(front->grid_intfc);
 }	/* end FT_GridIntfcTopGrid */
+
+
+#define		MAX_MOVIE_VARIABLES	20
+
+EXPORT void FT_AddHdfMovieVariable(
+	Front *front,
+	boolean preset_bound,
+	boolean untracked,
+	COMPONENT obst_comp,
+	const char *var_name,
+	int idir,
+	double *var_field,
+	double (*getStateFunc)(POINTER),
+	double max_var,
+	double min_var)
+{
+	static HDF_MOVIE_VAR *hdf_movie_var;
+	int i;
+
+        if (debugging("trace"))
+            (void) printf("Entering FT_AddHdfMovieVariable()\n");
+
+	if (hdf_movie_var == NULL)
+	{
+	    FT_ScalarMemoryAlloc((POINTER*)&hdf_movie_var,
+				sizeof(HDF_MOVIE_VAR));
+	    FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,
+				MAX_MOVIE_VARIABLES,100,sizeof(char));
+	    FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,
+				MAX_MOVIE_VARIABLES,sizeof(double*));
+	    FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,
+				MAX_MOVIE_VARIABLES,sizeof(COMPONENT));
+	    FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,
+				MAX_MOVIE_VARIABLES,sizeof(boolean));
+	    FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,
+				MAX_MOVIE_VARIABLES,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,
+				MAX_MOVIE_VARIABLES,sizeof(double));
+	    hdf_movie_var->num_var = 0;
+	    hdf_movie_var->plot_comp = YES;	/* default */
+	    hdf_movie_var->plot_bullet = YES;	/* default */
+	    front->hdf_movie_var = hdf_movie_var;
+	}
+	i = front->hdf_movie_var->num_var;
+	hdf_movie_var->untracked = untracked;
+	hdf_movie_var->get_state_var[i] = getStateFunc;
+	hdf_movie_var->top_var[i] = var_field;
+	sprintf(hdf_movie_var->var_name[i],var_name);
+	hdf_movie_var->preset_bound[i] = preset_bound;
+	hdf_movie_var->obstacle_comp[i] = obst_comp;
+	if (preset_bound == YES)
+	{
+	    hdf_movie_var->var_min[i] = min_var;
+	    hdf_movie_var->var_max[i] = max_var;
+	}
+	if (FT_Dimension() == 3)
+	    hdf_movie_var->idir[i] = idir;
+	front->hdf_movie_var->num_var += 1;
+
+        if (debugging("trace"))
+            (void) printf("Leaving FT_AddHdfMovieVariable()\n");
+}	/* end FT_AddHdfMovieVariable */
+
+EXPORT void FT_AddVtkVectorMovieVariable(
+	Front *front,
+	const char *var_name,
+	double **vector_var_field)
+{
+	static VTK_MOVIE_VAR *vtk_movie_var;
+	int i;
+
+        if (debugging("trace"))
+            (void) printf("Entering FT_AddVtkVectorMovieVariable()\n");
+
+	if (front->vtk_movie_var == NULL)
+	{
+	    FT_ScalarMemoryAlloc((POINTER*)&vtk_movie_var,
+				sizeof(VTK_MOVIE_VAR));
+	    FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->scalar_var,
+				MAX_MOVIE_VARIABLES,sizeof(double*));
+	    FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->vector_var,
+				MAX_MOVIE_VARIABLES,sizeof(double**));
+	    FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->scalar_var_name,
+                                MAX_MOVIE_VARIABLES,100,sizeof(char));
+	    FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->vector_var_name,
+                                MAX_MOVIE_VARIABLES,100,sizeof(char));
+	    vtk_movie_var->num_vector_var = 0;
+	    front->vtk_movie_var = vtk_movie_var;
+	}
+	else
+	    vtk_movie_var = front->vtk_movie_var;
+	i = front->vtk_movie_var->num_vector_var;
+	vtk_movie_var->vector_var[i] = vector_var_field;
+	sprintf(vtk_movie_var->vector_var_name[i],var_name);
+	front->vtk_movie_var->num_vector_var += 1;
+
+        if (debugging("trace"))
+            (void) printf("Leaving FT_AddVtkVectorMovieVariable()\n");
+}	/* end FT_AddVtkVectorMovieVariable */
+
+EXPORT void FT_AddVtkScalarMovieVariable(
+	Front *front,
+	const char *var_name,
+	double *scalar_var_field)
+{
+	static VTK_MOVIE_VAR *vtk_movie_var;
+	int i;
+
+        if (debugging("trace"))
+            (void) printf("Entering FT_AddVtkScalarMovieVariable()\n");
+
+	if (front->vtk_movie_var == NULL)
+	{
+	    FT_ScalarMemoryAlloc((POINTER*)&vtk_movie_var,
+				sizeof(VTK_MOVIE_VAR));
+	    FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->scalar_var,
+				MAX_MOVIE_VARIABLES,sizeof(double*));
+	    FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->vector_var,
+				MAX_MOVIE_VARIABLES,sizeof(double**));
+	    FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->scalar_var_name,
+                                MAX_MOVIE_VARIABLES,100,sizeof(char));
+	    FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->vector_var_name,
+                                MAX_MOVIE_VARIABLES,100,sizeof(char));
+	    vtk_movie_var->num_scalar_var = 0;
+	    front->vtk_movie_var = vtk_movie_var;
+	}
+	else
+	    vtk_movie_var = front->vtk_movie_var;
+	i = front->vtk_movie_var->num_scalar_var;
+	vtk_movie_var->scalar_var[i] = scalar_var_field;
+	sprintf(vtk_movie_var->scalar_var_name[i],var_name);
+	front->vtk_movie_var->num_scalar_var += 1;
+
+        if (debugging("trace"))
+            (void) printf("Leaving FT_AddVtkScalarMovieVariable()\n");
+}	/* end FT_AddVtkScalarMovieVariable */

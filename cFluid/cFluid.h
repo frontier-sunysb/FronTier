@@ -55,20 +55,6 @@ struct _STATE {
 };
 typedef struct _STATE STATE;
 
-struct _MOVIE_OPTION {
-        boolean plot_dens;
-        boolean plot_pres;
-        boolean plot_vort;
-        boolean plot_velo;
-        boolean plot_cross_section[MAXD];  /* 3D 0: yz; 1: zx; 2: xy */
-	boolean set_bounds;
-	double min_dens,max_dens;
-	double min_pres,max_pres;
-	double min_velo,max_velo;
-	double min_vort,max_vort;
-};
-typedef struct _MOVIE_OPTION MOVIE_OPTION;
-
 enum _NUM_SCHEME {
 	TVD_FIRST_ORDER		=	1,
         TVD_SECOND_ORDER,
@@ -98,7 +84,6 @@ typedef struct {
         int dim;
         PROB_TYPE prob_type;
         POINTER level_func_params;
-	MOVIE_OPTION *movie_option;
 	NUM_SCHEME num_scheme;
         POINT_PROP_SCHEME point_prop_scheme;
 	EOS_PARAMS      eos[MAX_COMP];
@@ -486,7 +471,6 @@ extern void cfluid_compute_force_and_torque(Front*,HYPER_SURF*,double,double*,
 			double*);
 extern void record_moving_body_data(char*,Front*);
 extern void read_cFluid_params(char*,EQN_PARAMS*);
-extern void read_movie_options(char*,EQN_PARAMS*);
 extern void readFrontStates(Front*,char*);
 extern void reflectVectorThroughPlane(double*,double*,double*,int);
 extern boolean reflectNeumannState(Front*,HYPER_SURF*,double*,COMPONENT,SWEEP*,

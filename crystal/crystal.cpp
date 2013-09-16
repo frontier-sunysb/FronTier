@@ -97,7 +97,6 @@ int main(int argc, char **argv)
 	FT_InitDebug(in_name);
 
 	cRparams.dim = f_basic.dim;
-	read_crt_movie_options(in_name,&cRparams);
 	front.extra2 = (POINTER)&cRparams;
 
 	if (!RestartRun)
@@ -142,6 +141,7 @@ int main(int argc, char **argv)
 	FT_InitVeloFunc(&front,&velo_func_pack);
 
         c_cartesian.initMesh();
+        c_cartesian.initMovieVariables();
 	if (debugging("sample_solute"))
             c_cartesian.initSampleSolute(in_name);
 
@@ -194,13 +194,8 @@ static  void solute_main_driver(
 	for (i = 1; i < dim; ++i)
 	    h_min = std::min(h_min,front->rect_grid->h[i]);
 
-	front->hdf_movie_var = NULL;
-        c_cartesian.initMovieVariables();
-	if (debugging("trace"))
-	    printf("Passed initMovieVariables()\n");
-
         FT_AddMovieFrame(front,out_name,binary);
-	if (dim == 2 && cRparams->movie_option->plot_solute)
+	if (dim == 2 && front->vtk_movie_var)
             c_cartesian.vtk_plot_concentration2d(out_name);
 	if (dim == 1)
             c_cartesian.oneDimPlot(out_name);
@@ -320,9 +315,8 @@ static  void solute_main_driver(
             if (FT_IsMovieFrameTime(front))
 	    {
 		// Front standard output
-		c_cartesian.initMovieVariables();
                 FT_AddMovieFrame(front,out_name,binary);
-		if (dim == 2 && cRparams->movie_option->plot_solute)
+		if (dim == 2 && front->vtk_movie_var)
                     c_cartesian.vtk_plot_concentration2d(out_name);
 		if (dim == 1)
 	    	    c_cartesian.oneDimPlot(out_name);

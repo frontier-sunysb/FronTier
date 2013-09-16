@@ -2488,116 +2488,76 @@ void CARTESIAN::setDomain()
 
 void CARTESIAN::initMovieVariables()
 {
-	int n;
-	static HDF_MOVIE_VAR *hdf_movie_var;
-	MOVIE_OPTION *movie_option = eqn_params->movie_option;
+
+	boolean set_bound = NO;
+        FILE *infile = fopen(InName(front),"r");
+        char string[100];
+        double var_max,var_min;
 
         if (debugging("trace"))
             printf("Entering initMovieVariables()\n");
-	if (hdf_movie_var == NULL)
-	{
-	    FT_ScalarMemoryAlloc((POINTER*)&hdf_movie_var,
-				sizeof(HDF_MOVIE_VAR));
-	    switch (dim)
+
+	if (CursorAfterStringOpt(infile,"Type y to set movie bounds:"))
+        {
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
 	    {
-	    case 1:
-		hdf_movie_var->num_var = 1;
-                FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,1,
-                                        100,sizeof(char));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,1,
-                                        sizeof(double*));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,1,
-                                        sizeof(COMPONENT));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,1,
-                                        sizeof(boolean));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,1,
-                                        sizeof(double));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,1,
-                                        sizeof(double));
-		if (movie_option->plot_temperature)
-                {
-                    sprintf(hdf_movie_var->var_name[0],"temperature");
-                    hdf_movie_var->get_state_var[0] = getStateTemperature;
-                    hdf_movie_var->top_var[0] = 
-				eqn_params->field->temperature;
-                    hdf_movie_var->obstacle_comp[0] = ERROR_COMP;
-                }
-		break;
-	    case 2:
-	    	hdf_movie_var->num_var = 1;
-	    	FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,1,
-					100,sizeof(char));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,1,
-					sizeof(double*));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,1,
-					sizeof(COMPONENT));
-		FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,1,
-                                        sizeof(boolean));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,1,
-                                        sizeof(double));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,1,
-                                        sizeof(double));
-		if (movie_option->plot_temperature)
-		{
-	    	    sprintf(hdf_movie_var->var_name[0],"temperature");
-	    	    hdf_movie_var->get_state_var[0] = getStateTemperature;
-		    hdf_movie_var->top_var[0] = 
-				eqn_params->field->temperature;
-		    hdf_movie_var->obstacle_comp[0] = ERROR_COMP;
-		}
-		break;
-	    case 3:
-	    	hdf_movie_var->num_var = n = 0;
-	    	FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,3,100,
-					sizeof(char));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,3,
-					sizeof(double*));
-		FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->idir,3,
-					sizeof(int));
-	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,
-					3,sizeof(COMPONENT));
-		FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,1,
-                                        sizeof(boolean));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,1,
-                                        sizeof(double));
-                FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,1,
-                                        sizeof(double));
-		if (movie_option->plot_temperature)
-		{
-		    if (movie_option->plot_cross_section[0])
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"temperature-yz");
-	    	    	hdf_movie_var->get_state_var[n] = getStateTemperature;
-		    	hdf_movie_var->top_var[n] = 
-				eqn_params->field->temperature;
-			hdf_movie_var->idir[n] = 0;
-		    	hdf_movie_var->obstacle_comp[n] = ERROR_COMP;
-			hdf_movie_var->num_var = ++n;
-		    }
-		    if (movie_option->plot_cross_section[1])
-		    {
-			sprintf(hdf_movie_var->var_name[n],"temperature-xz");
-			hdf_movie_var->get_state_var[n] = getStateTemperature;
-		    	hdf_movie_var->top_var[n] = 
-				eqn_params->field->temperature;
-			hdf_movie_var->idir[n] = 1;
-		    	hdf_movie_var->obstacle_comp[n] = ERROR_COMP;
-			hdf_movie_var->num_var = ++n;
-		    }
-		    if (movie_option->plot_cross_section[2])
-		    {
-	    	    	sprintf(hdf_movie_var->var_name[n],"temperature-xy");
-	    	    	hdf_movie_var->get_state_var[n] = getStateTemperature;
-		    	hdf_movie_var->top_var[n] = 
-				eqn_params->field->temperature;
-			hdf_movie_var->idir[n] = 2;
-		    	hdf_movie_var->obstacle_comp[n] = ERROR_COMP;
-			hdf_movie_var->num_var = ++n;
-		    }
-		}
+                set_bound = YES;
+                CursorAfterString(infile,"Enter min and max temperature:");
+                fscanf(infile,"%lf %lf",&var_min,&var_min);
+                (void) printf("%f %f\n",var_min,var_max);
 	    }
-	    front->hdf_movie_var = hdf_movie_var;
 	}
+	CursorAfterString(infile,"Type y to make movie of temperature:");
+        fscanf(infile,"%s",string);
+        (void) printf("%s\n",string);
+        if (string[0] != 'Y' && string[0] != 'y')
+	    return;
+        
+	
+	switch (dim)
+	{
+	case 1:
+	case 2:
+            FT_AddHdfMovieVariable(front,set_bound,YES,ERROR_COMP,
+                                "temperature",0,field->temperature,
+				getStateTemperature,var_max,var_min);
+	    break;
+	case 3:
+	    if (CursorAfterStringOpt(infile,
+                "Type y to make yz cross section movie:"))
+            {
+                fscanf(infile,"%s",string);
+                (void) printf("%s\n",string);
+                if (string[0] == 'Y' || string[0] == 'y')
+            	    FT_AddHdfMovieVariable(front,set_bound,YES,ERROR_COMP,
+                                	"temperature-yz",0,field->temperature,
+					getStateTemperature,var_max,var_min);
+            }
+	    if (CursorAfterStringOpt(infile,
+                "Type y to make xz cross section movie:"))
+            {
+                fscanf(infile,"%s",string);
+                (void) printf("%s\n",string);
+                if (string[0] == 'Y' || string[0] == 'y')
+            	    FT_AddHdfMovieVariable(front,set_bound,YES,ERROR_COMP,
+                                	"temperature-xz",0,field->temperature,
+					getStateTemperature,var_max,var_min);
+            }
+	    if (CursorAfterStringOpt(infile,
+                "Type y to make xy cross section movie:"))
+            {
+                fscanf(infile,"%s",string);
+                (void) printf("%s\n",string);
+                if (string[0] == 'Y' || string[0] == 'y')
+            	    FT_AddHdfMovieVariable(front,set_bound,YES,ERROR_COMP,
+                                	"temperature-xy",0,field->temperature,
+					getStateTemperature,var_max,var_min);
+            }
+	}
+	fclose(infile);
+
         if (debugging("trace"))
             printf("Leaving initMovieVariables()\n");
 }	/* end initMovieVariables */

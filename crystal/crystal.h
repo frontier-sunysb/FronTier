@@ -41,20 +41,10 @@ enum _REACTION_TYPE {
 };
 typedef enum _REACTION_TYPE REACTION_TYPE;
 
-struct _CRT_MOVIE_OPTION {
-        boolean plot_pres;
-        boolean plot_vort;
-        boolean plot_velo;
-        boolean plot_solute;
-        boolean plot_cross_section[MAXD];  /* 3D 0: yz; 1: zx; 2: xy */
-};
-typedef struct _CRT_MOVIE_OPTION CRT_MOVIE_OPTION;
-
 struct _CRT_PARAMS {
         int dim;
 	DF_SCHEME num_scheme;
 	POINT_PROP_SCHEME point_prop_scheme;
-	CRT_MOVIE_OPTION *movie_option;
 	boolean add_curvature;
 	REACTION_TYPE reaction_type;
 	CRT_FIELD *field;	// field of solute concentration
@@ -203,7 +193,6 @@ public:
 
 	// Extra movie functions
         void initMovieVariables(void);
-        void augmentMovieVariables(void);
 	void setInitialCondition(void);
 
 	//void checkStates();
@@ -244,7 +233,6 @@ public:
 extern double   getStateSolute(POINTER);
 extern void 	solute_print_front_states(FILE*,Front*);
 extern void 	solute_read_front_states(FILE*,Front*);
-extern void     read_crt_movie_options(char*,CRT_PARAMS*);
 extern void	read_crystal_params(char*,CRT_PARAMS*);
 extern void	crystal_point_propagate(Front*,POINTER,POINT*,POINT*,	
 			HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);

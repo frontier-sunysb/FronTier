@@ -60,7 +60,6 @@ int main(int argc, char **argv)
 	
 	//Initialize Petsc before the FT_StartUp
 	PetscInitialize(&argc,&argv,PETSC_NULL,PETSC_NULL);
-	//if (debugging("trace")) printf("Passed PetscInitialize()\n");
 
 	/*Construct Incompress Solver l_cartesian*/
 
@@ -98,7 +97,6 @@ int main(int argc, char **argv)
 	front.extra1 = (POINTER)&iFparams;
 	read_iF_prob_type(in_name,&prob_type);
 	read_iFparams(in_name,&iFparams);
-	read_iF_movie_options(in_name,&iFparams);
 	if (debugging("trace")) printf("Passed read_iFparams()\n");
 
 	/* Initialize interface through level function */
@@ -146,6 +144,7 @@ int main(int argc, char **argv)
 	    printf("Passed FT_InitVeloFunc()\n");
 
 	l_cartesian->initMesh();
+	l_cartesian->initMovieVariables();
 	l_cartesian->findStateAtCrossing = ifluid_find_state_at_crossing;
 	if (debugging("sample_velocity"))
 	    l_cartesian->initSampleVelocity(in_name);
@@ -258,15 +257,8 @@ static  void ifluid_driver(
             	FT_Save(front,out_name);
 		l_cartesian->printFrontInteriorStates(out_name);
 	    }
-	    if (debugging("trace"))
-                printf("After print output()\n");
             if (FT_IsMovieFrameTime(front))
 	    {
-	    	if (debugging("trace")) 
-		    (void) printf("Calling initMovieVariables()\n");
-	        l_cartesian->initMovieVariables();
-	    	if (debugging("trace")) 
-		    (void) printf("Calling FT_AddMovieFrame()\n");
             	FT_AddMovieFrame(front,out_name,binary);
 	    }
 	    //recordBdryEnergyFlux(front,out_name);

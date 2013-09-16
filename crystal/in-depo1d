@@ -39,6 +39,8 @@ Movie frame interval: 0.05
 CFL factor: 0.5
 Redistribution interval: 100
 
+Type y to make movie of solute: y
+
 ************Debugging options*****************
 
 Enter yes for debugging: yes
