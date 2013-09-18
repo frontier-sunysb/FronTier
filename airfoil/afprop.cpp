@@ -628,3 +628,17 @@ static void mono_curve_propagation(
 	}
 }	/* end mono_curve_propagation */
 
+extern double springCharTimeStep(
+	Front *fr)
+{
+	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
+	double dt_tol;
+	dt_tol = sqrt((af_params->m_s)/(af_params->ks));
+        if (af_params->m_l != 0.0 &&
+            dt_tol > sqrt((af_params->m_l)/(af_params->kl)))
+            dt_tol = sqrt((af_params->m_l)/(af_params->kl));
+        if (af_params->m_g != 0.0 &&
+            dt_tol > sqrt((af_params->m_g)/(af_params->kg)))
+            dt_tol = sqrt((af_params->m_g)/(af_params->kg));
+	return dt_tol;
+}	/* end springCharTimeStep */

@@ -370,8 +370,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::
             index  = d_index3d(i,j,k,top_gmax);
             if (vel_min > vel[l][index]) vel_min = vel[l][index];
         }
-	if (vel_min < 0.0)
-	    vel_min *= 5.0;
 
 	for (l = 0; l < dim; ++l)
 	{

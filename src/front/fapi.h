@@ -1614,6 +1614,25 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
         const char *var_name,
         double *var_field);
 
+/*! \fn void FT_ResetDomainAndGrid(Front *front, 
+   	Front *front,
+   	double *L,
+   	double *U,
+   	int *gmax)
+    \ingroup INITIALIZATION
+    \brief Reset computational grid of front to new domain defined by
+     input L,U, and gmax (mesh size). This function is used for modification
+     of restart run. Caution: parallelization has not been considered.
+    \param front @b inout	Pointer to Front.
+    \param L @b in New limit of lower boundary.
+    \param U @b in New limit of upper boundary.
+    \param gmax @b in New mesh size.
+ */
+   IMPORT  void FT_ResetDomainAndGrid(Front *front,
+	double *L,
+        double *U,
+        int *gmax);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif

@@ -448,10 +448,12 @@ extern void modifyInitialization(
 {
 	char *inname = InName(front);
 	FILE *infile = fopen(inname,"r");
-	char string[200];
+	char string[200],input_string[200];
 	double disp[MAXD],center[MAXD];
 	double phi,theta;
 	INTERFACE *intfc = front->interf;
+	double L[MAXD],U[MAXD];
+	int i,dim,gmax[MAXD];
 	
 	if (CursorAfterStringOpt(infile,
             "Entering yes to modify initialization:"))
@@ -461,6 +463,7 @@ extern void modifyInitialization(
             if (string[0] != 'y' && string[0] != 'Y')
 		return;
         }
+	dim = FT_Dimension();
 	CursorAfterString(infile,
 		"Enter yes for translation of interior interface:");
         fscanf(infile,"%s",string);
@@ -488,4 +491,27 @@ extern void modifyInitialization(
 	    phi *= PI/180.0;
 	    I_SphericalRotateInteriorIntfcPoints(intfc,center,phi,theta);
 	}
+	if (CursorAfterStringOpt(infile,
+            "Entering yes to modify computational grid:"))
+        {
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] != 'y' && string[0] != 'Y')
+		return;
+        }
+	for (i = 0; i < dim; ++i)
+        {
+            sprintf(input_string,"New domain limit in %d-th dimension:",i);
+            CursorAfterString(infile,input_string);
+            fscanf(infile,"%lf %lf",&L[i],&U[i]);
+            (void) printf("%f %f\n",L[i],U[i]);
+        }
+	CursorAfterString(infile,"New computational grid:");
+        for (i = 0; i < dim; ++i)
+        {
+            fscanf(infile,"%d",&gmax[i]);
+	    (void) printf("%d ",gmax[i]);
+        }
+        (void) printf("\n");
+	FT_ResetDomainAndGrid(front,L,U,gmax);
 }	/* end modifyInitialization */

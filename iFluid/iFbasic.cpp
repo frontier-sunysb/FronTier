@@ -51,6 +51,8 @@ void Incompress_Solver_Smooth_Basis::initMesh(void)
 	// init cell_center
 	L_RECTANGLE       rectangle;
 
+	if (debugging("trace"))
+            (void) printf("Entering initMesh()\n");
 	FT_MakeGridIntfc(front);
 	setDomain();
 
@@ -59,6 +61,7 @@ void Incompress_Solver_Smooth_Basis::initMesh(void)
 	{
 	    num_cells *= (top_gmax[i] + 1);
 	}
+	cell_center.clear();
 	cell_center.insert(cell_center.end(),num_cells,rectangle);
 	
 	// setup vertices
@@ -94,6 +97,8 @@ void Incompress_Solver_Smooth_Basis::initMesh(void)
 	}
 	setComponent();
 	FT_FreeGridIntfc(front);
+	if (debugging("trace"))
+            (void) printf("Leaving initMesh()\n");
 }
 
 void Incompress_Solver_Smooth_Basis::setComponent(void)
@@ -432,7 +437,7 @@ void Incompress_Solver_Smooth_Basis::save(char *filename)
 
 void Incompress_Solver_Smooth_Basis::setDomain()
 {
-	static boolean first = YES;
+	static int current_size = 0;
 	INTERFACE *grid_intfc;
 	Table *T;
 	int i,size;
@@ -462,8 +467,15 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 	switch (dim)
 	{
 	case 2:
-	    if (first)
+	    if (size > current_size)
 	    {
+		if (field != NULL)
+		{
+		    FT_FreeThese(15,field,array,source,diff_coeff,field->mu,
+				field->rho,field->pres,field->phi,field->q,
+				field->div_U,field->vort,field->vel,
+				field->grad_q,field->f_surf,domain_status);
+		}
 		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(IF_FIELD));
 		iFparams->field = field;
 	    	FT_VectorMemoryAlloc((POINTER*)&array,size,sizeof(double));
@@ -490,7 +502,7 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 	    	FT_MatrixMemoryAlloc((POINTER*)&field->f_surf,2,size,
 					sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&domain_status,size,INT);
-	    	first = NO;
+		current_size = size;
 	    }
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
 	    jmin = (lbuf[1] == 0) ? 1 : lbuf[1];
@@ -498,8 +510,15 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 	    jmax = (ubuf[1] == 0) ? top_gmax[1] - 1 : top_gmax[1] - ubuf[1];
 	    break;
 	case 3:
-	    if (first)
+	    if (size > current_size)
 	    {
+		if (field != NULL)
+		{
+		    FT_FreeThese(14,field,array,source,diff_coeff,field->mu,
+				field->rho,field->pres,field->phi,field->q,
+				field->div_U,field->vel,
+				field->grad_q,field->f_surf,domain_status);
+		}
 		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(IF_FIELD));
 		iFparams->field = field;
 	    	FT_VectorMemoryAlloc((POINTER*)&array,size,sizeof(double));
@@ -524,7 +543,7 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 	    	FT_MatrixMemoryAlloc((POINTER*)&field->f_surf,3,size,
 					sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&domain_status,size,INT);
-	    	first = NO;
+		current_size = size;
 	    }
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
 	    jmin = (lbuf[1] == 0) ? 1 : lbuf[1];

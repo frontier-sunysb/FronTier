@@ -424,8 +424,9 @@ EXPORT void scatter_top_grid_float_array(
 	RECT_GRID *comp_grid,*top_grid;
 	int lbuf[MAXD],ubuf[MAXD],*gmax;
 	static int max_buf = 0;
-	static int storage_size;
+	static int storage_size = 0;
 	static int min_gmax;
+	int size;
 
 	myid = pp_mynode();
 	G = pp_grid->gmax;
@@ -440,22 +441,25 @@ EXPORT void scatter_top_grid_float_array(
 	    ubuf[i] = comp_grid->ubuf[i];
 	}
 
-	if (storage == NULL)
+	min_gmax = gmax[0];
+	for (i = 0; i < dim; i++)
 	{
-	    min_gmax = gmax[0];
-	    for (i = 0; i < dim; i++)
-	    {
-	    	if (lbuf[i] > max_buf)
-		    max_buf = lbuf[i];
-	    	if (ubuf[i] > max_buf)
-		    max_buf = ubuf[i];
-		if (min_gmax > gmax[i])
-		    min_gmax = gmax[i];
-	    }
-	    storage_size = max_buf*FLOAT;
-	    for (i = 0; i < dim; i++)
-	    	storage_size *= (gmax[i] + 1);
-	    storage_size /= (min_gmax + 1);
+	    if (lbuf[i] > max_buf)
+		max_buf = lbuf[i];
+	    if (ubuf[i] > max_buf)
+		max_buf = ubuf[i];
+	    if (min_gmax > gmax[i])
+		min_gmax = gmax[i];
+	}
+	size = max_buf*FLOAT;
+	for (i = 0; i < dim; i++)
+	    size *= (gmax[i] + 1);
+	size /= (min_gmax + 1);
+	if (size > storage_size)
+	{
+	    if (storage != NULL)
+		free_these(1,storage);
+	    storage_size = size;
 	    uni_array(&storage,storage_size,sizeof(byte));
 	}
 

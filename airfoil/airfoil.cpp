@@ -124,7 +124,6 @@ int main(int argc, char **argv)
 	else
 	{
 	    read_iF_dirichlet_bdry_data(in_name,&front,f_basic);
-	    modifyInitialization(&front);
 	}
 
 	/* Time control */
@@ -144,18 +143,25 @@ int main(int argc, char **argv)
 	l_cartesian->findStateAtCrossing = af_find_state_at_crossing;
 	l_cartesian->getInitialState = zero_state;
 	l_cartesian->initMesh();
-        l_cartesian->initMovieVariables();
-	if (debugging("sample_velocity"))
-            l_cartesian->initSampleVelocity(in_name);
-        if (debugging("trace"))
-            (void) printf("Passed l_cartesian->initMesh()\n");
         if (RestartRun)
 	{
             l_cartesian->readFrontInteriorStates(restart_state_name);
 	    readAfExtraDada(&front,restart_state_name);
+	    if (ReSetTime) 
+	    {
+		/* forbidden if restart with inherited states */
+	    	modifyInitialization(&front);
+	    	read_iF_dirichlet_bdry_data(in_name,&front,f_basic);
+		l_cartesian->initMesh();
+            	l_cartesian->setInitialCondition();
+	    }
 	}
         else
             l_cartesian->setInitialCondition();
+
+	if (debugging("sample_velocity"))
+            l_cartesian->initSampleVelocity(in_name);
+        l_cartesian->initMovieVariables();
 
 	if (!RestartRun || ReSetTime)
 	    resetFrontVelocity(&front);
@@ -219,6 +225,7 @@ static  void airfoil_driver(
             FT_SetOutputCounter(front);
 	    FT_SetTimeStep(front);
 	    front->dt = std::min(front->dt,CFL*l_cartesian->max_dt);
+	    front->dt = std::min(front->dt,springCharTimeStep(front));
 	}
 	else
 	{

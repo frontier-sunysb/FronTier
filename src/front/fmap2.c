@@ -1340,3 +1340,62 @@ EXPORT void FT_AddVtkScalarMovieVariable(
         if (debugging("trace"))
             (void) printf("Leaving FT_AddVtkScalarMovieVariable()\n");
 }	/* end FT_AddVtkScalarMovieVariable */
+
+EXPORT void FT_ResetDomainAndGrid(
+	Front *front,
+	double *L,
+	double *U,
+	int *gmax)
+{
+	RECT_GRID *gr;
+	INTERFACE *intfc = front->interf;
+	SURFACE **s;
+	CURVE **c;
+	const double eps = 10.0*MACH_EPS;
+
+	/* Reset front->rect_grid */
+	gr = front->rect_grid;
+	set_rect_grid(L,U,L,U,gr->lbuf,gr->ubuf,gmax,gr->dim,&gr->Remap,gr);
+	/* Reset interface computational grid */
+	gr = computational_grid(front->interf);
+	set_rect_grid(L,U,L,U,gr->lbuf,gr->ubuf,gmax,gr->dim,&gr->Remap,gr);
+	/* Reset interface topological grid */
+	set_topological_grid(front->interf,gr);
+	if (Dimension(intfc) == 2)
+	{
+	    (void) printf("In FT_ResetDomainAndGrid(), code needed!\n");
+	    clean_up(ERROR);
+	}
+	for (s = intfc->surfaces; s && *s; ++s)
+	{
+	    if (!Boundary(*s))
+		continue;
+	    for (c = (*s)->pos_curves; c && *c; ++c)
+	    {
+		if ((*c)->start != (*c)->end)
+		{
+		    delete_node((*c)->start);
+		    delete_node((*c)->end);
+		}
+		else
+		    delete_node((*c)->start);
+		delete_curve(*c);
+	    }
+	    for (c = (*s)->neg_curves; c && *c; ++c)
+	    {
+		if ((*c)->start != (*c)->end)
+		{
+		    delete_node((*c)->start);
+		    delete_node((*c)->end);
+		}
+		else
+		    delete_node((*c)->start);
+		delete_curve(*c);
+	    }
+	    delete_surface(*s);
+	    s = intfc->surfaces;
+	}
+        (void) set_boundary(front->interf,front->rect_grid,
+                        front->interf->default_comp,eps);
+        scatter_front(front);
+}	/* end FT_ResetDomainAndGrid */
