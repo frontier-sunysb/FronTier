@@ -270,7 +270,7 @@ static  void ifluid_driver(
 	    {
 		char s[100];
 		sprintf(s,"Storage at end of time step %d",front->step);
-		print_storage(s,"storage");
+		print_storage(s,"trace");
 	    }
 	    FT_TimeControlFilter(front);
 	    if (debugging("step_size"))

@@ -272,7 +272,7 @@ static  void airfoil_driver(
 	    /* Time and step control section */
 
 	    FT_TimeControlFilter(front);
-	    print_storage("trace","after time loop");
+	    print_storage("after time loop","trace");
 
             (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
                         front->time,front->step,front->dt);

@@ -201,7 +201,7 @@ static  void gas_driver(
             /* Propagating interface for time step dt */
 
 	    start_clock("time_loop");
-	    print_storage("Storage at start of time step","step_storage");
+	    print_storage("Storage at start of time step","trace");
 	    if (debugging("trace")) printf("Begin a time step\n");
 	    FrontPreAdvance(front);
 	    FT_Propagate(front);
