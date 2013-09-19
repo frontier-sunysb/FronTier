@@ -2142,7 +2142,7 @@ LOCAL	Tan_stencil **FrontGetTanStencils3d(
 	if (nrad > current_nrad)
         {
 	    if (sten == NULL)
-		uni_array(&sten,1,sizeof(Tan_stencil*));
+		uni_array(&sten,dim-1,sizeof(Tan_stencil*));
 	    for (i = 0; i < dim-1; ++i)
 	    {
 	    	if (sten[i] != NULL) free_these(1,sten[i]);
@@ -2182,7 +2182,7 @@ LOCAL	Tan_stencil **FrontGetTanStencils2d(
 	if (nrad > current_nrad)
         {
 	    if (sten == NULL)
-		uni_array(&sten,1,sizeof(Tan_stencil*));
+		uni_array(&sten,dim-1,sizeof(Tan_stencil*));
 	    if (sten[0] != NULL) free_these(1,sten[0]);
             sten[0] = alloc_tan_stencil(fr,nrad);
 	    current_nrad = nrad;
