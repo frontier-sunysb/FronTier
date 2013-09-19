@@ -124,6 +124,7 @@ static SURFACE *canopy_of_string_node(NODE *n)
 		}
 	    }
 	}
+	FT_FreeThese(1,curves);
 	return (canopy_found == YES) ? canopy : NULL;
 }	/* end canopy_of_string_node */
 

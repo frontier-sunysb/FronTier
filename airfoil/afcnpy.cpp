@@ -2809,5 +2809,6 @@ static void reduce_high_freq_vel(
 		sorted(p) = YES;
 	    }
 	}
+	FT_FreeThese(1,vv);
 
 }	/* end reduce_high_freq_vel */
