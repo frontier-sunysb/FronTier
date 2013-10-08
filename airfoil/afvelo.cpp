@@ -166,7 +166,6 @@ extern void setMotionParams(
         {
             fscanf(infile,"%lf",&af_params->gravity[i]);
             (void) printf("%f ",af_params->gravity[i]);
-	    iFparams->gravity[i] = af_params->gravity[i];
         }
         (void) printf("\n");
 	CursorAfterString(infile,"Enter payload:");
@@ -191,6 +190,8 @@ extern void setMotionParams(
             CursorAfterString(infile,"Enter area density of canopy:");
             fscanf(infile,"%lf",&af_params->area_dens);
             (void) printf("%f\n",af_params->area_dens);
+            for (i = 0; i < dim; ++i)
+	    	iFparams->gravity[i] = af_params->gravity[i];
 	}
 	af_params->n_tan = 1;
 	CursorAfterString(infile,"Enter interior sub step number:");
