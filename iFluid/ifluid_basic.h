@@ -16,6 +16,7 @@ enum _IF_PROB_TYPE {
         ROTOR_ONE_FLUID,
         ROTOR_TWO_FLUID,
 	CHANNEL_FLOW,
+	RANDOM_FLOW,
         FLUID_CRYSTAL
 };
 typedef enum _IF_PROB_TYPE IF_PROB_TYPE;

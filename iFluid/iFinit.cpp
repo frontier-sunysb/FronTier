@@ -4,6 +4,7 @@
 static void kh_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void ambient_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
+static void random_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS *);
 static void initRayleiTaylorIntfc(Front*,LEVEL_FUNC_PACK*,char*);
 static void initKHIntfc(Front*,LEVEL_FUNC_PACK*,char*);
 static void initCirclePlaneIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
@@ -297,6 +298,9 @@ extern void init_fluid_state_func(
 	case TWO_FLUID_KH:
 	    l_cartesian->getInitialState = kh_state;
 	    break;
+	case RANDOM_FLOW:
+	    l_cartesian->getInitialState = random_state;
+	    break;
 	default:
 	    l_cartesian->getInitialState = ambient_state;
 	}
@@ -334,6 +338,23 @@ static void zero_state(
 	for (i = 0; i < dim; ++i)
 	    vel[i][index] = 0.0;
 }	/* end zero_state */
+
+static void random_state(
+        COMPONENT comp,
+        double *coords,
+        IF_FIELD *field,
+        int index,
+        int dim,
+        IF_PARAMS *iFparams)
+{
+        short unsigned int seed[3] = {2,72,7172};
+        int i;
+        double **vel = field->vel;
+        for (i = 0; i < dim; ++i)
+        {
+            vel[i][index] = (erand48(seed) - 0.5) * 10;
+        }
+}       /* end random_state */
 
 static void ambient_state(
 	COMPONENT comp,

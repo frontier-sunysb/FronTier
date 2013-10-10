@@ -26,6 +26,18 @@ iFcartsn2d.o : ../iFluid/iFluid.h ../solver/solver.h ../iFluid/iFcartsn2d.cpp
 iFcartsn3d.o : ../iFluid/iFluid.h ../solver/solver.h ../iFluid/iFcartsn3d.cpp
 	${CXX} -c ../iFluid/iFcartsn3d.cpp $(incsloc) $(incs) ${Petsc_Include}
 
+mcartsn.o : climate.h mcartsn.cpp
+	${CXX} -c mcartsn.cpp $(incsloc) $(incs) ${Petsc_Include}
+
+vcartsn.o : climate.h vcartsn.cpp
+	${CXX} -c vcartsn.cpp $(incsloc) $(incs) ${Petsc_Include}
+
+mprop.o : climate.h clmprop.cpp
+	${CXX} -c clmprop.cpp $(incsloc) $(incs) ${Petsc_Include}
+
+clmsub.o : climate.h ../iFluid/iFluid.h clmsub.cpp
+	${CXX} -c clmsub.cpp $(incsloc) $(incs) ${Petsc_Include}
+
 hyperb.o : ../iFluid/iFluid.h ../solver/solver.h ../solver/hyperb.cpp
 	${CXX} -c ../solver/hyperb.cpp $(incsloc) $(incs) ${Petsc_Include}
 
@@ -50,7 +62,7 @@ iFsub.o : ../iFluid/iFluid.h ../iFluid/iFsub.cpp
 clminit.o : climate.h ../iFluid/iFluid.h clminit.cpp
 	${CXX} -c clminit.cpp $(incsloc) $(incs) ${Petsc_Include}
 
-climate: ../iFluid/iFluid.h climate.h climate.cpp clminit.o iFsub.o ../lib/libiF.a
+climate: ../iFluid/iFluid.h climate.h climate.cpp clmsub.o clmprop.o mcartsn.o vcartsn.o clminit.o iFsub.o ../lib/libiF.a
 	${CXX} -c climate.cpp $(incsloc) $(incs) ${Petsc_Include}
 	$(CXX) -o climate climate.o clminit.o iFsub.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
 

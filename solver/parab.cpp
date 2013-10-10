@@ -178,20 +178,18 @@ void PARABOLIC_SOLVER::solve2d(
 
 void PARABOLIC_SOLVER::set_solver_domain(void)
 {
-	static boolean first = YES;
 	RECT_GRID *rgr = &topological_grid(front->grid_intfc);
         struct Table *T = table_of_interface(front->grid_intfc);
         int *lbuf = front->rect_grid->lbuf;
         int *ubuf = front->rect_grid->ubuf;
 	int i;
-
 	dim = Dimension(front->interf);
         top_comp = T->components;
         top_gmax = rgr->gmax;
 	top_h = rgr->h;
+
 	if (first)
 	{
-	    first = NO;
 	    switch(dim)
 	    {
 	    case 1:

@@ -1,5 +1,5 @@
 /*******************************************************************
- * 		CARTESIAN.c
+ * 		VCARTESIAN.c
  *******************************************************************/
 /*
       To-Do: Line 392, the values of ilower and iupper 
@@ -8,33 +8,15 @@
 
 #include <iFluid.h>
 #include "solver.h"
-#include "melting.h"
+#include "climate.h"
 
 static int find_state_at_crossing(Front*,int*,GRID_DIRECTION,int,
                                 POINTER*,HYPER_SURF**,double*);
 
-//----------------------------------------------------------------
-//		RECTANGLE
-//----------------------------------------------------------------
-
-//RECTANGLE::RECTANGLE()
-RECTANGLE::RECTANGLE(): index(-1), comp(-1)
-{
-}
-
-void RECTANGLE::setCoords(
-	double *crds,
-	int dim)
-{
-	int i;
-	for (i = 0; i < dim; ++i)
-	    coords[i] = crds[i];
-}
-//--------------------------------------------------------------------------
-// 		CARTESIAN
+// 		VCARTESIAN
 //--------------------------------------------------------------------------
 
-CARTESIAN::~CARTESIAN()
+VCARTESIAN::~VCARTESIAN()
 {
 }
 
@@ -44,9 +26,9 @@ CARTESIAN::~CARTESIAN()
 // 1) setup edges:		
 // 2) setup cell_center
 //---------------------------------------------------------------
-void CARTESIAN::initMesh(void)
+void VCARTESIAN::initMesh(void)
 {
-	int i,j,k, index;
+	int i,j,k,index;
 	double crds[MAXD];
 	int icoords[MAXD];
 	int num_cells;
@@ -88,6 +70,7 @@ void CARTESIAN::initMesh(void)
 	    	cell_center[index].icoords[0] = i;
 	    	cell_center[index].icoords[1] = j;
 	    }
+            printf("vcartesian: top_gmax[0]=%d\n",top_gmax[0]);
 	    break;
 	case 3:
 	    for (k = 0; k <= top_gmax[2]; k++)
@@ -104,12 +87,13 @@ void CARTESIAN::initMesh(void)
 	    	cell_center[index].icoords[2] = k;
 	    }
 	}
+
 	setComponent();
 	FT_FreeGridIntfc(front);
 	if (debugging("trace")) printf("Leaving initMesh()\n");
 }
 
-void CARTESIAN::setComponent(void)
+void VCARTESIAN::setComponent(void)
 {
 	int i;
 
@@ -143,7 +127,7 @@ void CARTESIAN::setComponent(void)
                                         cell_center[i].comp,top_comp[i]);
                         clean_up(ERROR);
                     }
-                    field->temperature[i] = state->temperature;
+                    field->vapor[i] = state->vapor;
                 }
 		else
                 {
@@ -159,7 +143,7 @@ void CARTESIAN::setComponent(void)
                         if (cell_center[index].comp != -1 &&
                             cell_center[index].comp == top_comp[index])
                         {
-                            temp_nb += field->temperature[index];
+                            temp_nb += field->vapor[index];
                             n++;
                         }
                         ic[ii] = (icoords[ii] == top_gmax[ii]) ? top_gmax[ii]
@@ -168,18 +152,18 @@ void CARTESIAN::setComponent(void)
                         if (cell_center[index].comp != -1 &&
                             cell_center[index].comp == top_comp[index])
                         {
-                            temp_nb += field->temperature[index];
+                            temp_nb += field->vapor[index];
                             n++;
                         }
                     }
-                    field->temperature[i] = temp_nb/n;
+                    field->vapor[i] = temp_nb/n;
                 }
 	    }
 	    cell_center[i].comp = top_comp[i];
         }
 }	/* end setComponent */
 
-void CARTESIAN::setInitialCondition(void)
+void VCARTESIAN::setInitialCondition(void)
 {
 	int i;
 	double coords[MAXD];
@@ -189,6 +173,8 @@ void CARTESIAN::setInitialCondition(void)
         HYPER_SURF_ELEMENT *hse;
 	STATE *sl,*sr;
 	int c;
+	
+	short unsigned int seed[3] = {2,72,7172};
 
 	FT_MakeGridIntfc(front);
         setDomain();
@@ -198,24 +184,28 @@ void CARTESIAN::setInitialCondition(void)
         while (next_point(intfc,&p,&hse,&hs))
         {
 	    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-            sl->temperature = sr->temperature =
-                        0.5*(eqn_params->T0[0] + eqn_params->T0[1]);
+            sl->vapor = sr->vapor = 0;
         }
 
 	// cell_center
 	for (i = 0; i < cell_center.size(); i++)
 	{
+	    field->vapor[i] = 0;
+	    field->supersat[i] = 0;
+	}
+	for (i = 0; i < cell_center.size(); i++)
+	{
 	    c = top_comp[i];
 	    if (c == LIQUID_COMP)
-	    	field->temperature[i] = eqn_params->T0[1];
+	    	field->vapor[i] = 3.2;
 	    else if (c == SOLID_COMP)
-	    	field->temperature[i] = eqn_params->T0[0];
+	    	field->vapor[i] = 0;
 	    else
-	    	field->temperature[i] = 0.0;
+	    	field->vapor[i] = 0;
 	}
 }	/* end setInitialCondition */
 
-void CARTESIAN::setIndexMap(COMPONENT sub_comp)
+void VCARTESIAN::setIndexMap(COMPONENT sub_comp)
 {
 	static boolean first = YES;
 	int i,j,k,ic,index;
@@ -311,7 +301,7 @@ void CARTESIAN::setIndexMap(COMPONENT sub_comp)
 
 }	/* end setIndexMap */
 
-void CARTESIAN::computeAdvection()
+void VCARTESIAN::computeAdvection()
 {
 	int i;
 	COMPONENT sub_comp[2];
@@ -324,21 +314,22 @@ void CARTESIAN::computeAdvection()
 
 	for (i = 0; i < 2; ++i)
 	{
-	    setGlobalIndex(sub_comp[i]);
-	    eqn_params->D = eqn_params->k[i]/eqn_params->rho[i]
-				/eqn_params->Cp[i];
-	    if (eqn_params->num_scheme == UNSPLIT_EXPLICIT)
-	    	computeAdvectionExplicit(sub_comp[i]);
-	    else if (eqn_params->num_scheme == UNSPLIT_EXPLICIT_CIM)
-	    	computeAdvectionExplicitCim(sub_comp[i]);
-	    else if (eqn_params->num_scheme == UNSPLIT_IMPLICIT)
-	    	computeAdvectionImplicit(sub_comp[i]);
-	    else if (eqn_params->num_scheme == CRANK_NICOLSON)
-	    	computeAdvectionCN(sub_comp[i]);
+		if(sub_comp[i] == SOLID_COMP)
+		    continue;
+	        setGlobalIndex(sub_comp[i]);
+	        if (eqn_params->num_scheme == UNSPLIT_EXPLICIT)
+	    	    computeAdvectionExplicit(sub_comp[i]);
+	        else if (eqn_params->num_scheme == UNSPLIT_EXPLICIT_CIM)
+	    	    computeAdvectionExplicitCim(sub_comp[i]);
+	        else if (eqn_params->num_scheme == UNSPLIT_IMPLICIT)
+	    	    computeAdvectionImplicit(sub_comp[i]);
+	        else if (eqn_params->num_scheme == CRANK_NICOLSON)
+	    	    computeAdvectionCN(sub_comp[i]);
 	}
+	printf("End solving advection\n\n");
 }
     
-void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
+void VCARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 {
 	int i,j,k,l,m,ic,icn,I,I_nb,icoords[MAXD];
 	int gmin[MAXD],ipn[MAXD];
@@ -352,7 +343,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
         boolean fr_crx_grid_seg;
         const GRID_DIRECTION dir[3][2] =
                 {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
-	double *Temp = field->temperature;
+	double *Temp = field->vapor;
 
 	start_clock("computeAdvectionCN");
 	if (debugging("trace")) printf("Entering computeAdvectionCN()\n");
@@ -398,7 +389,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 			I_nb = i_to_I[ipn[0]];
 			coeff_nb = -0.5*lambda;
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateTemperature,
+                                icoords,dir[l][m],comp,getStateVapor,
                                 &T_nb,crx_coords);
                         if (!fr_crx_grid_seg)
                         {
@@ -442,7 +433,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 			I_nb = ij_to_I[ipn[0]][ipn[1]];
 			coeff_nb = -0.5*lambda;
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateTemperature,
+                                icoords,dir[l][m],comp,getStateVapor,
                                 &T_nb,crx_coords);
                         if (!fr_crx_grid_seg)
                         {
@@ -488,7 +479,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 			I_nb = ijk_to_I[ipn[0]][ipn[1]][ipn[2]];
 			coeff_nb = -0.5*lambda;
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateTemperature,
+                                icoords,dir[l][m],comp,getStateVapor,
                                 &T_nb,crx_coords);
                         if (!fr_crx_grid_seg)
                         {
@@ -515,7 +506,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 
 	if (debugging("PETSc"))
 	{
-	    (void) printf("CARTESIAN::computeAdvectionCN: "
+	    (void) printf("VCARTESIAN::computeAdvectionCN: "
 	       		"num_iter = %d, rel_residual = %g \n", 
 			num_iter, rel_residual);
 	}
@@ -608,7 +599,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	stop_clock("computeAdvectionCN");
 }	/* end computeAdvectionCN */
 
-void CARTESIAN::computeAdvectionCim()
+void VCARTESIAN::computeAdvectionCim()
 {
 	//static CIM_PARAB_SOLVER parab_solver(*front);
 	static CIM_PARAB_SOLVER parab_solver(*front);
@@ -634,7 +625,7 @@ void CARTESIAN::computeAdvectionCim()
 	    for (i = imin; i <= imax; ++i)
 	    {
 		index = d_index1d(i,top_gmax);
-		source[index] = -field->temperature[index]/m_dt;
+		source[index] = -field->vapor[index]/m_dt;
 	    }
             break;
         case 2:
@@ -644,7 +635,7 @@ void CARTESIAN::computeAdvectionCim()
 	    for (j = jmin; j <= jmax; ++j)
 	    {
 		index = d_index2d(i,j,top_gmax);
-		source[index] = -field->temperature[index]/m_dt;
+		source[index] = -field->vapor[index]/m_dt;
 	    }
             break;
         case 3:
@@ -655,33 +646,31 @@ void CARTESIAN::computeAdvectionCim()
 	    for (k = kmin; k <= kmax; ++k)
 	    {
 		index = d_index3d(i,j,k,top_gmax);
-		source[index] = -field->temperature[index]/m_dt;
+		source[index] = -field->vapor[index]/m_dt;
 	    }
             break;
         }
 	printf("Assigning class variables\n");
-	parab_solver.w_type = GROWING_BODY_BOUNDARY;
+	parab_solver.w_type = ICE_PARTICLE_BOUNDARY;
 	parab_solver.neg_comp = SOLID_COMP;
         parab_solver.pos_comp = LIQUID_COMP;
         parab_solver.source = source;
 	parab_solver.solutionJump = jumpT;
 	parab_solver.gradJumpDotN = jumpEpsGradDotNorm;
         parab_solver.gradJumpDotT = jumpGradDotTan;
-        parab_solver.diff_coeff[0] = eqn_params->k[0]/eqn_params->rho[0]
-                                /eqn_params->Cp[0];
-        parab_solver.diff_coeff[1] = eqn_params->k[1]/eqn_params->rho[1]
-                                /eqn_params->Cp[1];
+        parab_solver.diff_coeff[0] = eqn_params->D;
+        parab_solver.diff_coeff[1] = eqn_params->D;
 	parab_solver.jparams = (POINTER)eqn_params;
 	parab_solver.findStateAtCrossing = find_state_at_crossing;
-	parab_solver.getStateVar = getStateTemperature;
+	parab_solver.getStateVar = getStateVapor;
         parab_solver.assignStateVar = assignStateTemperature;
 	parab_solver.ilower = ilower;
         parab_solver.iupper = iupper;
-        parab_solver.soln = field->temperature;
+        parab_solver.soln = field->vapor;
         parab_solver.size = iupper - ilower;
 	parab_solver.solve_front_state = YES;
         parab_solver.set_solver_domain();
-        parab_solver.solve(field->temperature);
+        parab_solver.solve(field->vapor);
 
 	stop_clock("computeAdvectionCim");
 	if (debugging("trace")) printf("Leaving computeAdvectionCim()\n");
@@ -689,13 +678,13 @@ void CARTESIAN::computeAdvectionCim()
 	return;
 }	/* end computeAdvectionImplicit */
 
-void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
+void VCARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
 {
 	static PARABOLIC_SOLVER parab_solver(*front);
 	static double *soln;
 	int i,j,k,index;
 	static boolean first = YES;
-
+        
 	if (soln == NULL)
             FT_VectorMemoryAlloc((POINTER*)&soln,comp_size,FLOAT);
 
@@ -703,10 +692,10 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
 	start_clock("computeAdvectionImplicit");
 	setIndexMap(sub_comp);
 	parab_solver.soln_comp = sub_comp;
-        parab_solver.obst_comp = ERROR_COMP;
-        parab_solver.var = field->temperature;
+        parab_solver.obst_comp = SOLID_COMP;
+        parab_solver.var = field->vapor;
         parab_solver.soln = soln;
-        parab_solver.getStateVarFunc = getStateTemperature;
+        parab_solver.getStateVarFunc = getStateVapor;
         parab_solver.findStateAtCrossing = find_state_at_crossing;
         parab_solver.source = NULL;
         parab_solver.D = eqn_params->D;
@@ -714,10 +703,10 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
         parab_solver.ilower = ilower;
         parab_solver.iupper = iupper;
         parab_solver.dt = m_dt;
-        parab_solver.first = first;
+	parab_solver.first = first;
         parab_solver.set_solver_domain();
 	first = NO;
-
+	
 	if (sub_comp == LIQUID_COMP)
 	    parab_solver.a = eqn_params->field->vel;
 	else
@@ -743,7 +732,7 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
 	    {
 	    	index = d_index1d(i,top_gmax);
 	    	if (top_comp[index] == sub_comp)
-		    field->temperature[index] = soln[index];
+		    field->vapor[index] = soln[index];
 	    }
             break;
         case 2:
@@ -752,7 +741,8 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
 	    {
 	    	index = d_index2d(i,j,top_gmax);
 	    	if (top_comp[index] == sub_comp)
-		    field->temperature[index] = soln[index];
+		    field->vapor[index] = soln[index];
+                /*for debugging*/
 	    }
             break;
         case 3:
@@ -762,7 +752,7 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
 	    {
 	    	index = d_index3d(i,j,k,top_gmax);
 	    	if (top_comp[index] == sub_comp)
-		    field->temperature[index] = soln[index];
+		    field->vapor[index] = soln[index];
 	    }
             break;
         }
@@ -771,14 +761,14 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
 	return;
 }	/* end computeAdvectionImplicit */
 
-
 // for initial condition: 
 // 		setInitialCondition();	
 // this function should be called before solve()
 // for the source term of the momentum equation: 	
 // 		computeSourceTerm();
-void CARTESIAN::solve(double dt)
+void VCARTESIAN::solve(double dt)
 {
+	printf("solving adv-diff equation\n");
 
 	if (debugging("trace")) printf("Entering solve()\n");
 	m_dt = dt;
@@ -787,19 +777,22 @@ void CARTESIAN::solve(double dt)
 	setDomain();
         if (debugging("trace")) printf("Passing setDomain()\n");
 
-	if (debugging("sample_temperature"))
+	if (debugging("sample_vapor"))
             sampleTemperature();
 
 	setComponent();
 	if (debugging("trace")) printf("Passing setComponent()\n");
 
-	if (debugging("sample_temperature"))
+	if (debugging("sample_vapor"))
             sampleTemperature();
 
 	computeAdvection();
 	if (debugging("trace")) printf("Passing liquid computeAdvection()\n");
 
-	if (debugging("sample_temperature"))
+	computeSupersat();
+	if (debugging("trace")) printf("Passing liquid computeSupersat()\n");
+
+	if (debugging("sample_vapor"))
             sampleTemperature();
 
 	setAdvectionDt();
@@ -812,8 +805,65 @@ void CARTESIAN::solve(double dt)
 	if (debugging("trace")) printf("Leaving solve()\n");
 }
 
+void VCARTESIAN::computeSupersat()
+{	
+	int i,j,k, index;
+	double *temp  = eqn_params->field->temperature;
+	double *vapor  = eqn_params->field->vapor;
+	double sat_vap_pre, sat_vap_rat;
+	double *super = eqn_params->field->supersat;
+	switch(dim)
+	{
+	    case 2:
+		for (i = 0; i <= top_gmax[0]; ++i)
+            	for (j = 0; j <= top_gmax[1]; ++j)
+		{
+		    index = d_index2d(i,j,top_gmax);
+		    sat_vap_pre = 611.2*exp(17.67*(temp[index]-273.15)
+					           /(temp[index]-29.65));
+		    sat_vap_rat = 621.97 * sat_vap_pre
+					/(eqn_params->field->pres[index]
+					  -sat_vap_pre);
+                    if(top_comp[index] == SOLID_COMP)
+                        super[index] = 0;
+                    else
+                        super[index] = vapor[index]/sat_vap_rat - 1;
+		    if(eqn_params->field->pres[index] == 0)
+			super[index] = 0;
+		    /*if(fabs(super[index])>200)
+                        printf("Large super=%f,pres=%f,temp=%f,s_pre=%f,s_rat=%f\n",
+				super[index],eqn_params->field->pres[index],
+				temp[index],sat_vap_pre,sat_vap_rat);*/
+		}	
+		break;
+	    case 3:
+                for (i = 0; i <= top_gmax[0]; ++i)
+                for (j = 0; j <= top_gmax[1]; ++j)
+		for (k = 0; k <= top_gmax[2]; ++k)
+                {
+                    index = d_index3d(i,j,k,top_gmax);
+                    sat_vap_pre = 611.2*exp(17.67*(temp[index]-273.15)
+						/(temp[index]-29.65));
+                    sat_vap_rat = 621.97 * sat_vap_pre
+					/(eqn_params->field->pres[index]);
+		    if(top_comp[index] == SOLID_COMP)
+			super[index] = 0;
+		    else
+                        super[index] = vapor[index]/sat_vap_rat - 1;
+		    if(eqn_params->field->pres[index] == 0)
+			super[index] = 0;
+		    if(fabs(super[index])>200)
+			printf("Large super=%f,pres=%f,temp=%f\n",super[index],
+				eqn_params->field->pres[index],temp[index],
+				temp[index],sat_vap_pre,sat_vap_rat);
+                } 
 
-void CARTESIAN::setAdvectionDt()
+		break;
+	}
+}
+
+
+void VCARTESIAN::setAdvectionDt()
 {
 	double D,Dl,Ds;
 	static double m_dt_expl,m_dt_impl;  // explicit and implicit time step
@@ -823,9 +873,7 @@ void CARTESIAN::setAdvectionDt()
 	{
 	    first = NO;
 	    eqn_params = (PARAMS*)front->extra2;
-	    Dl = eqn_params->k[1]/eqn_params->rho[1]/eqn_params->Cp[1];
-	    Ds = eqn_params->k[0]/eqn_params->rho[0]/eqn_params->Cp[0];
-	    D = std::max(Dl,Ds);
+	    D = eqn_params->D;
 	    m_dt_expl = 0.5*sqr(hmin)/D/(double)dim;
 	    m_dt_impl = 0.5*hmin/D/(double)dim;
 	    min_dt = 0.1*sqr(hmin)/D/(double)dim;
@@ -849,7 +897,7 @@ void CARTESIAN::setAdvectionDt()
 	}
 }	/* end setAdvectionDt */
 
-void CARTESIAN::getVelocity(double *p, double *U)
+void VCARTESIAN::getVelocity(double *p, double *U)
 {
 	// locate the point
 	int icoords[MAXD];
@@ -872,13 +920,13 @@ void CARTESIAN::getVelocity(double *p, double *U)
 	}
 }
 
-void CARTESIAN::getRectangleIndex(int index, int &i, int &j)
+void VCARTESIAN::getRectangleIndex(int index, int &i, int &j)
 {
 	i = cell_center[index].icoords[0];
 	j = cell_center[index].icoords[1];
 }
 
-void CARTESIAN::getRectangleIndex(int index, int &i, int &j, int &k)
+void VCARTESIAN::getRectangleIndex(int index, int &i, int &j, int &k)
 {
 	i = cell_center[index].icoords[0];
 	j = cell_center[index].icoords[1];
@@ -886,12 +934,12 @@ void CARTESIAN::getRectangleIndex(int index, int &i, int &j, int &k)
 }
 
 
-int CARTESIAN::getRectangleComponent(int index)
+int VCARTESIAN::getRectangleComponent(int index)
 {	
 	return getComponent(cell_center[index].icoords);
 }
 
-void CARTESIAN::getRectangleCenter(
+void VCARTESIAN::getRectangleCenter(
 	int index, 
 	double *coords)
 {
@@ -900,7 +948,7 @@ void CARTESIAN::getRectangleCenter(
 	    coords[i] = cell_center[index].coords[i];
 }
 
-void CARTESIAN::getRectangleCenter(
+void VCARTESIAN::getRectangleCenter(
 	int index0, 
 	int index1, 
 	double *coords)
@@ -913,13 +961,13 @@ void CARTESIAN::getRectangleCenter(
 	}
 }
 
-int CARTESIAN::getComponent(
+int VCARTESIAN::getComponent(
 	double *p)
 {
 	return component(p,front->interf);
 }
 
-int CARTESIAN::getComponent(
+int VCARTESIAN::getComponent(
 	int *icoords)
 {
 	int index;
@@ -937,7 +985,7 @@ int CARTESIAN::getComponent(
 	}
 }
 
-void CARTESIAN::save(char *filename)
+void VCARTESIAN::save(char *filename)
 {
 	
 	RECT_GRID *rect_grid = front->rect_grid;
@@ -980,16 +1028,16 @@ void CARTESIAN::save(char *filename)
 	fclose(hfile);
 }
 
-CARTESIAN::CARTESIAN(Front &front):front(&front)
+VCARTESIAN::VCARTESIAN(Front &front):front(&front)
 {
 }
 
-void CARTESIAN::makeGridIntfc()
+void VCARTESIAN::makeGridIntfc()
 {
 	static boolean first = YES;
 	INTERFACE *grid_intfc;
 	Table *T;
-	static double *temperature;
+	static double *vapor;
 	int i;
 
 	FT_MakeGridIntfc(front);
@@ -1017,33 +1065,33 @@ void CARTESIAN::makeGridIntfc()
             if (first)
             {
                 FT_VectorMemoryAlloc((POINTER*)&array,top_gmax[0]+1,FLOAT);
-                FT_VectorMemoryAlloc((POINTER*)&temperature,top_gmax[0]+1,FLOAT);
+                FT_VectorMemoryAlloc((POINTER*)&vapor,top_gmax[0]+1,FLOAT);
                 first = NO;
             }	
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
 	    imax = (ubuf[0] == 0) ? top_gmax[0] - 1 : top_gmax[0] - ubuf[0];
-	    eqn_params->field->temperature = temperature;
+	    eqn_params->field->vapor = vapor;
 	    eqn_params = (PARAMS*)front->extra2;
 	    break;
 	case 2:
 	    if (first)
 	    {
 	    	FT_VectorMemoryAlloc((POINTER*)&array,(top_gmax[0]+1)*(top_gmax[1]+1),FLOAT);
-	    	FT_VectorMemoryAlloc((POINTER*)&temperature,(top_gmax[0]+1)*(top_gmax[1]+1),FLOAT);
+	    	FT_VectorMemoryAlloc((POINTER*)&vapor,(top_gmax[0]+1)*(top_gmax[1]+1),FLOAT);
 	    	first = NO;
 	    }
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
 	    jmin = (lbuf[1] == 0) ? 1 : lbuf[1];
 	    imax = (ubuf[0] == 0) ? top_gmax[0] - 1 : top_gmax[0] - ubuf[0];
 	    jmax = (ubuf[1] == 0) ? top_gmax[1] - 1 : top_gmax[1] - ubuf[1];
-	    eqn_params->field->temperature = temperature;
+	    eqn_params->field->vapor = vapor;
 	    break;
 	case 3:
 	    if (first)
 	    {
 	    	FT_VectorMemoryAlloc((POINTER*)&array,
 			(top_gmax[0]+1)*(top_gmax[1]+1)*(top_gmax[2]+1),FLOAT);
-	    	FT_VectorMemoryAlloc((POINTER*)&temperature,
+	    	FT_VectorMemoryAlloc((POINTER*)&vapor,
 			(top_gmax[0]+1)*(top_gmax[1]+1)*(top_gmax[2]+1),FLOAT);
 	    	first = NO;
 	    }
@@ -1053,22 +1101,22 @@ void CARTESIAN::makeGridIntfc()
 	    imax = (ubuf[0] == 0) ? top_gmax[0] - 1 : top_gmax[0] - ubuf[0];
 	    jmax = (ubuf[1] == 0) ? top_gmax[1] - 1 : top_gmax[1] - ubuf[1];
 	    kmax = (ubuf[2] == 0) ? top_gmax[2] - 1 : top_gmax[2] - ubuf[2];
-	    eqn_params->field->temperature = temperature;
+	    eqn_params->field->vapor = vapor;
 	    break;
 	}
 }	/* end makeGridIntfc */
 
-void CARTESIAN::deleteGridIntfc()
+void VCARTESIAN::deleteGridIntfc()
 {
 	FT_FreeGridIntfc(front);
 }
 
-void CARTESIAN::scatMeshArray()
+void VCARTESIAN::scatMeshArray()
 {
 	FT_ParallelExchGridArrayBuffer(array,front);
 }
 
-void CARTESIAN::setGlobalIndex(COMPONENT sub_comp)
+void VCARTESIAN::setGlobalIndex(COMPONENT sub_comp)
 {
 	int i,j,k,ic;
 	int num_nodes = pp_numnodes();
@@ -1128,7 +1176,7 @@ void CARTESIAN::setGlobalIndex(COMPONENT sub_comp)
         }	
 }
 
-void CARTESIAN::printFrontInteriorState(char *out_name)
+void VCARTESIAN::printFrontInteriorState(char *out_name)
 {
 	int i,j,k,l,index;
 	char filename[100];
@@ -1138,9 +1186,9 @@ void CARTESIAN::printFrontInteriorState(char *out_name)
         POINT *p;
         HYPER_SURF *hs;
         HYPER_SURF_ELEMENT *hse;
-	double *Temp = field->temperature;
+	double *Temp = field->vapor;
 
-	sprintf(filename,"%s/state.ts%s",out_name,right_flush(front->step,7));
+	sprintf(filename,"%s/state.ts%s-vapor",out_name,right_flush(front->step,7));
 #if defined(__MPI__)
 	if (pp_numnodes() > 1)
             sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
@@ -1155,8 +1203,8 @@ void CARTESIAN::printFrontInteriorState(char *out_name)
         {
             count++;
             FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-            fprintf(outfile,"%24.18g %24.18g\n",sl->temperature,
-				sr->temperature);
+            fprintf(outfile,"%24.18g %24.18g\n",sl->vapor,
+				sr->vapor);
         }
 
 	fprintf(outfile,"\nInterior states:\n");
@@ -1190,7 +1238,7 @@ void CARTESIAN::printFrontInteriorState(char *out_name)
 	fclose(outfile);
 }
 
-void CARTESIAN::readFrontInteriorState(char *restart_name)
+void VCARTESIAN::readFrontInteriorState(char *restart_name)
 {
 	FILE *infile;
 	int i,j,k,l,index;
@@ -1200,10 +1248,12 @@ void CARTESIAN::readFrontInteriorState(char *restart_name)
         HYPER_SURF *hs;
         HYPER_SURF_ELEMENT *hse;
 	double x;
-	double *Temp = field->temperature;
+	double *Temp = field->vapor;
 
-	infile = fopen(restart_name,"r");
-
+        char fname[100];
+        sprintf(fname,"%s-vapor",restart_name);
+        infile = fopen(fname,"r");
+	
         /* Initialize states at the interface */
         next_output_line_containing_string(infile,"Interface states:");
         next_point(intfc,NULL,NULL,NULL);
@@ -1211,9 +1261,9 @@ void CARTESIAN::readFrontInteriorState(char *restart_name)
         {
             FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
             fscanf(infile,"%lf",&x);
-            sl->temperature = x;
+            sl->vapor = x;
             fscanf(infile,"%lf",&x);
-            sr->temperature = x;
+            sr->vapor = x;
         }
 
 	FT_MakeGridIntfc(front);
@@ -1253,11 +1303,11 @@ void CARTESIAN::readFrontInteriorState(char *restart_name)
 	fclose(infile);
 }
 
-void CARTESIAN::setBoundary()
+void VCARTESIAN::setBoundary()
 {
 	int i,j,k,index0,index1;
 	INTERFACE *intfc = front->interf;
-	double *Temp = field->temperature;
+	double *Temp = field->vapor;
 
 	switch (dim)
 	{
@@ -1378,17 +1428,17 @@ void CARTESIAN::setBoundary()
 	}
 }	/* end setBoundary */
 
-void CARTESIAN::oneDimPlot(char *outname)
+void VCARTESIAN::oneDimPlot(char *outname)
 {
 	xgraphOneDimPlot(outname);
-}	/* end temperaturePlot */
+}	/* end vaporPlot */
 
-void CARTESIAN::xgraphOneDimPlot(char *outname)
+void VCARTESIAN::xgraphOneDimPlot(char *outname)
 {
 	int i,index;
 	char filename[100];
 	FILE *outfile;
-	double *Temp = field->temperature;
+	double *Temp = field->vapor;
 
 	if (debugging("trace"))
 	    printf("Entering xgraphTemp1()\n");
@@ -1421,7 +1471,7 @@ void CARTESIAN::xgraphOneDimPlot(char *outname)
 	    printf("Leaving xgraphTemp1()\n");
 }	/* end xgraphOneDimPlot */
 
-void CARTESIAN::vtk_plot_temperature2d(
+void VCARTESIAN::vtk_plot_vapor2d(
 	char *outname)
 {
 	std::vector<int>ph_index;
@@ -1433,7 +1483,7 @@ void CARTESIAN::vtk_plot_temperature2d(
         int pointsx,pointsy,num_points,num_cells,num_cell_list;
         int icoords[2],p_gmax[2];
 
-        sprintf(filename, "%s/vtk.ts%s",outname,
+        sprintf(filename, "%s/vtk/vtk.ts%s",outname,
                 right_flush(front->step,7));
         if (pp_numnodes() > 1)
             sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
@@ -1448,7 +1498,7 @@ void CARTESIAN::vtk_plot_temperature2d(
         sprintf(filename,"%s/liquid.vtk",filename);
         outfile = fopen(filename,"w");
         fprintf(outfile,"# vtk DataFile Version 3.0\n");
-        fprintf(outfile,"liquid temperature\n");
+        fprintf(outfile,"liquid vapor\n");
         fprintf(outfile,"ASCII\n");
         fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
 
@@ -1534,18 +1584,18 @@ void CARTESIAN::vtk_plot_temperature2d(
             fprintf(outfile, "8\n");
 
         fprintf(outfile, "CELL_DATA %i\n", num_cells);
-        fprintf(outfile, "SCALARS temperature double\n");
+        fprintf(outfile, "SCALARS vapor double\n");
         fprintf(outfile, "LOOKUP_TABLE default\n");
         for (i = 0; i < num_cells; i++)
         {
             index = ph_index[i];
-            fprintf(outfile,"%f\n", eqn_params->field->temperature[index]);
+            fprintf(outfile,"%f\n", eqn_params->field->vapor[index]);
         }
 
         fclose(outfile);
 
 	//cell-based solid phase
-	sprintf(filename,"%s/vtk.ts%s",outname,
+	sprintf(filename,"%s/vtk/vtk.ts%s",outname,
                 right_flush(front->step,7));
         if (pp_numnodes() > 1)
             sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
@@ -1554,7 +1604,7 @@ void CARTESIAN::vtk_plot_temperature2d(
         sprintf(filename,"%s/solid.vtk",filename);
         outfile = fopen(filename,"w");
         fprintf(outfile,"# vtk DataFile Version 3.0\n");
-        fprintf(outfile,"solid temperature\n");
+        fprintf(outfile,"solid vapor\n");
         fprintf(outfile,"ASCII\n");
         fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
 
@@ -1640,19 +1690,19 @@ void CARTESIAN::vtk_plot_temperature2d(
             fprintf(outfile, "8\n");
 
         fprintf(outfile, "CELL_DATA %i\n", num_cells);
-        fprintf(outfile, "SCALARS temperature double\n");
+        fprintf(outfile, "SCALARS vapor double\n");
         fprintf(outfile, "LOOKUP_TABLE default\n");
         for (i = 0; i < num_cells; i++)
         {
             index = ph_index[i];
-            fprintf(outfile,"%f\n",eqn_params->field->temperature[index]);
+            fprintf(outfile,"%f\n",eqn_params->field->vapor[index]);
         }
 
         fclose(outfile);
-}       /* end vtk_plot_temperature2d */
+}       /* end vtk_plot_vapor2d */
 
-void CARTESIAN::vtk_plot_temperature3d(
-        char *outname)
+void VCARTESIAN::vtk_plot3d(
+        char *outname,const char *varname)
 {
 	std::vector<int> ph_index;
         int i,j,k,index;
@@ -1666,7 +1716,7 @@ void CARTESIAN::vtk_plot_temperature3d(
         int ii,jj,kk;
         double ih,jh,kh;
 
-        sprintf(filename, "%s/vtk.ts%s",outname,
+        sprintf(filename, "%s/vtk/vtk.ts%s",outname,
                 right_flush(front->step,7));
         if (pp_numnodes() > 1)
             sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
@@ -1678,10 +1728,10 @@ void CARTESIAN::vtk_plot_temperature3d(
             printf("Cannot create directory %s\n",filename);
             clean_up(ERROR);
         }
-        sprintf(filename,"%s/liquid.vtk",filename);
+        sprintf(filename,"%s/%s.vtk",filename,varname);
         outfile = fopen(filename,"w");
         fprintf(outfile,"# vtk DataFile Version 3.0\n");
-        fprintf(outfile,"liquid temperature\n");
+        fprintf(outfile,"%s\n",varname);
         fprintf(outfile,"ASCII\n");
         fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
 
@@ -1824,199 +1874,42 @@ void CARTESIAN::vtk_plot_temperature3d(
             fprintf(outfile,"11\n");
 
         fprintf(outfile, "CELL_DATA %i\n", num_cells);
-        fprintf(outfile, "SCALARS temperature double\n");
+        fprintf(outfile, "SCALARS %s double\n",varname);
         fprintf(outfile, "LOOKUP_TABLE default\n");
-        for (i = 0; i < num_cells; i++)
-        {
-            index = ph_index[i];
-            fprintf(outfile,"%f\n",eqn_params->field->temperature[index]);
-        }
+	if(strcmp(varname,"vapor") == 0)
+	{
+            for (i = 0; i < num_cells; i++)
+            {
+                index = ph_index[i];
+	        fprintf(outfile,"%f\n",eqn_params->field->vapor[index]);
+            }
+	}
+	else if(strcmp(varname,"supersat") == 0)
+	{
+	    for (i = 0; i < num_cells; i++)
+            {
+                index = ph_index[i];
+	        fprintf(outfile,"%f\n",eqn_params->field->supersat[index]);
+            }
+	}
         fclose(outfile);
+}       /* end vtk_plot_vapor3d */
 
-        //cell-based solid phase
-        sprintf(filename,"%s/vtk.ts%s",outname,
-                right_flush(front->step,7));
-        if (pp_numnodes() > 1)
-            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
-
-        ph_index.clear();
-        sprintf(filename,"%s/solid.vtk",filename);
-        outfile = fopen(filename,"w");
-        fprintf(outfile,"# vtk DataFile Version 3.0\n");
-        fprintf(outfile,"solid temperature\n");
-        fprintf(outfile,"ASCII\n");
-        fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
-
-        for (k = kmin; k <= kmax; k++)
-        for (j = jmin; j <= jmax; j++)
-        for (i = imin; i <= imax; i++)
-        {
-            index = d_index3d(i,j,k,top_gmax);
-            if (cell_center[index].comp == SOLID_COMP)
-                ph_index.push_back(index);
-        }
-
-
-        pointsx = top_gmax[0] + 2;
-        pointsy = top_gmax[1] + 2;
-        pointsz = top_gmax[2] + 2;
-        num_points = pointsx*pointsy*pointsz;
-
-        num_cells = (int)ph_index.size();
-        num_cell_list = 9*num_cells;
-
-        p_gmax[0] = pointsx - 1;
-        p_gmax[1] = pointsy - 1;
-        p_gmax[2] = pointsz - 1;
-
-        fprintf(outfile,"POINTS %d double\n", num_points);
-
-	for (k = 0; k <= top_gmax[2]; k++)
-        for (j = 0; j <= top_gmax[1]; j++)
-        for (i = 0; i <= top_gmax[0]; i++)
-        {
-            index = d_index3d(i,j,k,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        for (i = 0; i <= top_gmax[0]; i++)
-        for (j = 0; j <= top_gmax[1]; j++)
-        {
-            k = top_gmax[2];
-            index = d_index3d(i,j,k,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        for (i = 0; i <= top_gmax[0]; i++)
-        for (k = 0; k <= top_gmax[2]; k++)
-        {
-            j = top_gmax[1];
-            index = d_index3d(i,j,k,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        for (j = 0; j <= top_gmax[1]; j++)
-        for (k = 0; k <= top_gmax[2]; k++)
-        {
-            i = top_gmax[0];
-            index = d_index3d(i,j,k,top_gmax);
-            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-	for (i = 0; i <= top_gmax[0]; i++)
-        {
-            j = top_gmax[1];
-            k = top_gmax[2];
-            index = d_index3d(i,j,k,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-            coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        for (j = 0; j <= top_gmax[1]; j++)
-        {
-            i = top_gmax[0];
-            k = top_gmax[2];
-            index = d_index3d(i,j,k,top_gmax);
-            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        for (k = 0; k <= top_gmax[2]; k++)
-        {
-            i = top_gmax[0];
-            j = top_gmax[1];
-            index = d_index3d(i,j,k,top_gmax);
-            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-	i = top_gmax[0];
-        j = top_gmax[1];
-        k = top_gmax[2];
-        index = d_index3d(i,j,k,top_gmax);
-        coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-        coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-        coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
-        fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-
-        fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
-        for (i = 0; i < num_cells; i++)
-        {
-            int index0,index1,index2,index3,index4,index5,index6,index7;
-            index = ph_index[i];
-            icoords[0] = cell_center[index].icoords[0];
-            icoords[1] = cell_center[index].icoords[1];
-            icoords[2] = cell_center[index].icoords[2];
-
-            index0 = d_index3d(icoords[0],icoords[1],icoords[2],top_gmax);
-            index1 =
-                d_index3d(icoords[0]+1,icoords[1],icoords[2],top_gmax);
-            index2 =
-                d_index3d(icoords[0],icoords[1]+1,icoords[2],top_gmax);
-            index3 =
-                d_index3d(icoords[0]+1,icoords[1]+1,icoords[2],top_gmax);
-            index4 =
-                d_index3d(icoords[0],icoords[1],icoords[2]+1,top_gmax);
-            index5 =
-                d_index3d(icoords[0]+1,icoords[1],icoords[2]+1,top_gmax);
-            index6 =
-                d_index3d(icoords[0],icoords[1]+1,icoords[2]+1,top_gmax);
-            index7 =
-                d_index3d(icoords[0]+1,icoords[1]+1,icoords[2]+1,top_gmax);
-
-
-            fprintf(outfile,"8 %i %i %i %i %i %i %i %i\n",
-                index0,index1,index2,index3,index4,index5,index6,index7);
-        }
-
-	fprintf(outfile, "CELL_TYPES %i\n", num_cells);
-        for (i = 0; i < num_cells; i++)
-            fprintf(outfile,"11\n");
-
-        fprintf(outfile, "CELL_DATA %i\n", num_cells);
-        fprintf(outfile, "SCALARS temperature double\n");
-        fprintf(outfile, "LOOKUP_TABLE default\n");
-        for (i = 0; i < num_cells; i++)
-        {
-            index = ph_index[i];
-            fprintf(outfile,"%f\n",eqn_params->field->temperature[index]);
-        }
-        fclose(outfile);
-}       /* end vtk_plot_temperature3d */
-
-void CARTESIAN::pointExplicitCimSolver(
+void VCARTESIAN::pointExplicitCimSolver(
 	int *icoords,
 	COMPONENT sub_comp)
 {
 	int l,m,ic,icn;
 	int gmin[MAXD],ipn[MAXD],ipn2[MAXD];
 	double coords[MAXD],crx_coords[MAXD];
-	double temperature,temperature_nb[2],dgrad[MAXD],grad_plus[MAXD],
+	double vapor,vapor_nb[2],dgrad[MAXD],grad_plus[MAXD],
 	       grad_minus[MAXD];
 	double coef;
 	COMPONENT comp;
 	boolean fr_crx_grid_seg;
 	const GRID_DIRECTION dir[3][2] = 
 		{{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
-	double *Temp = field->temperature;
+	double *Temp = field->vapor;
 	double **vel = field->vel;
 	double v[MAXD],v_plus[MAXD],v_minus[MAXD];
 	STATE *state;
@@ -2026,7 +1919,7 @@ void CARTESIAN::pointExplicitCimSolver(
         ic = d_index(icoords,top_gmax,dim);
         comp = top_comp[ic];
         if (comp != sub_comp) return;
-        array[ic] = temperature = Temp[ic];
+        array[ic] = vapor = Temp[ic];
 	for (l = 0; l < dim; ++l) gmin[l] = 0;
 
 	for (l = 0; l < dim; ++l)
@@ -2058,14 +1951,14 @@ void CARTESIAN::pointExplicitCimSolver(
                 {
                     next_ip_in_dir(icoords,dir[l][m],ipn,gmin,top_gmax);
                     icn = d_index(ipn,top_gmax,dim);
-		    temperature_nb[m] = Temp[icn];
+		    vapor_nb[m] = Temp[icn];
                 }
 		else
-		    temperature_nb[m] = getStateTemperature((POINTER)state);
+		    vapor_nb[m] = getStateVapor((POINTER)state);
 
 		if (!fr_crx_grid_seg) 
 		{
-                    dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
+                    dgrad[l] += (vapor_nb[m] - vapor)/top_h[l];
 		} 
 		else if (wave_type(hs) == NEUMANN_BOUNDARY)
 		{
@@ -2073,7 +1966,7 @@ void CARTESIAN::pointExplicitCimSolver(
 		}
 		else if (wave_type(hs) == DIRICHLET_BOUNDARY)
 		{
-                    dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
+                    dgrad[l] += (vapor_nb[m] - vapor)/top_h[l];
 		}
 		else
 		{
@@ -2082,36 +1975,36 @@ void CARTESIAN::pointExplicitCimSolver(
 		    a = fabs(crx_coords[l] - P[l])/top_h[l];
                     next_ip_in_dir(icoords,dir[l][1-m],ipn,gmin,top_gmax);
                     icn = d_index(ipn,top_gmax,dim);
-		    v1 = Temp[icn]-temperature_nb[m];
+		    v1 = Temp[icn]-vapor_nb[m];
                     next_ip_in_dir(ipn,dir[l][1-m],ipn2,gmin,top_gmax);
                     icn = d_index(ipn2,top_gmax,dim);
-		    v2 = Temp[icn]-temperature_nb[m];
+		    v2 = Temp[icn]-vapor_nb[m];
 		    dgrad[l] += ((1-a)*v2+2*(a*a+a-1)/(1+a)*v1-(1+a)*
-				(temperature-temperature_nb[m]))/top_h[l] - 
-				(v1-temperature)/top_h[l];
+				(vapor-vapor_nb[m]))/top_h[l] - 
+				(v1-vapor)/top_h[l];
 		}
             }
-	    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
-	    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
+	    grad_plus[l] = (vapor_nb[1] - vapor)/top_h[l];
+	    grad_minus[l] = (vapor - vapor_nb[0])/top_h[l];
             array[ic] += coef*dgrad[l]/top_h[l]-m_dt*(v_plus[l]*
 				grad_minus[l]+v_minus[l]*grad_plus[l]);
         }
 }	/* end pointExplicitCimSolver */
 
-void CARTESIAN::computeAdvectionExplicitCim(COMPONENT sub_comp)
+void VCARTESIAN::computeAdvectionExplicitCim(COMPONENT sub_comp)
 {
 	int i,j,k,l,m,ic,icn,icoords[MAXD],nc;
 	int gmin[MAXD],ipn[MAXD],ipn2[MAXD];
 	int index0;
 	double coords[MAXD],crx_coords[MAXD];
-	double temperature,temperature_nb[2],dgrad[MAXD],grad_plus[MAXD],
+	double vapor,vapor_nb[2],dgrad[MAXD],grad_plus[MAXD],
 	       grad_minus[MAXD];
 	double coef;
 	COMPONENT comp;
 	boolean fr_crx_grid_seg;
 	const GRID_DIRECTION dir[3][2] = 
 		{{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
-	double *Temp = field->temperature;
+	double *Temp = field->vapor;
 	double v[MAXD],**vel,v_plus[MAXD],v_minus[MAXD];
 
 	start_clock("computeAdvectionExplicitCim");
@@ -2188,20 +2081,20 @@ void CARTESIAN::computeAdvectionExplicitCim(COMPONENT sub_comp)
 
 	stop_clock("computeAdvectionExplicitCim");
 }	/* computeAdvectionExplicit */
-void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
+void VCARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
 {
 	int i,j,k,l,m,ic,icn,icoords[MAXD],nc;
 	int gmin[MAXD],ipn[MAXD];
 	int index0;
 	double coords[MAXD],crx_coords[MAXD];
-	double temperature,temperature_nb[2],dgrad[MAXD],grad_plus[MAXD],
+	double vapor,vapor_nb[2],dgrad[MAXD],grad_plus[MAXD],
 	       grad_minus[MAXD];
 	double coef;
 	COMPONENT comp;
 	boolean fr_crx_grid_seg;
 	const GRID_DIRECTION dir[3][2] = 
 		{{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
-	double *Temp = field->temperature;
+	double *Temp = field->vapor;
 	double v[MAXD],**vel,v_plus[MAXD],v_minus[MAXD];
 
 	start_clock("computeAdvectionExplicit");
@@ -2221,7 +2114,7 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
                 comp = top_comp[ic];
                 if (comp != sub_comp)
                      continue;
-                array[ic] = temperature = Temp[ic];
+                array[ic] = vapor = Temp[ic];
 		for (l = 0; l < dim; ++l)
 		{
 		    v[l] = 0.0;
@@ -2245,19 +2138,19 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
                     for (m = 0; m < 2; ++m)
                     {
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateTemperature,
-                                &temperature_nb[m],crx_coords);
+                                icoords,dir[l][m],comp,getStateVapor,
+                                &vapor_nb[m],crx_coords);
                         if (!fr_crx_grid_seg)
                         {
                              next_ip_in_dir(icoords,dir[l][m],ipn,gmin,
 							top_gmax);
                              icn = d_index1d(ipn[0],top_gmax);
-			     temperature_nb[m] = Temp[icn];
+			     vapor_nb[m] = Temp[icn];
                         }
-                        dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
+                        dgrad[l] += (vapor_nb[m] - vapor)/top_h[l];
                     }
-		    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
-		    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
+		    grad_plus[l] = (vapor_nb[1] - vapor)/top_h[l];
+		    grad_minus[l] = (vapor - vapor_nb[0])/top_h[l];
                     array[ic] += coef*dgrad[l]/top_h[l]-m_dt*
 			(v_plus[l]*grad_minus[l]+ v_minus[l]*grad_plus[l]);
                 }
@@ -2273,7 +2166,7 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
 	    	comp = top_comp[ic];
 	    	if (comp != sub_comp) 
 	    	    continue;
-                array[ic] = temperature = Temp[ic];
+                array[ic] = vapor = Temp[ic];
 		for (l = 0; l < dim; ++l)
                 {
                     v[l] = 0.0;
@@ -2298,18 +2191,18 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
                     for (m = 0; m < 2; ++m)
                     {
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateTemperature,
-                                &temperature_nb[m],crx_coords);
+                                icoords,dir[l][m],comp,getStateVapor,
+                                &vapor_nb[m],crx_coords);
                         if (!fr_crx_grid_seg)
                         {
                             next_ip_in_dir(icoords,dir[l][m],ipn,gmin,top_gmax);
                             icn = d_index2d(ipn[0],ipn[1],top_gmax);
-			    temperature_nb[m] = Temp[icn];
+			    vapor_nb[m] = Temp[icn];
                         }
-                        dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
+                        dgrad[l] += (vapor_nb[m] - vapor)/top_h[l];
                     }
-		    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
-		    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
+		    grad_plus[l] = (vapor_nb[1] - vapor)/top_h[l];
+		    grad_minus[l] = (vapor - vapor_nb[0])/top_h[l];
 		    array[ic] += coef*dgrad[l]/top_h[l] - m_dt*
 			(v_plus[l]*grad_minus[l]+ v_minus[l]*grad_plus[l]);
 		}
@@ -2327,7 +2220,7 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
 	    	comp = top_comp[ic];
 	    	if (comp != sub_comp) 
 	    	    continue;
-                array[ic] = temperature = Temp[ic];
+                array[ic] = vapor = Temp[ic];
 		for (l = 0; l < dim; ++l)
                 {
                     v[l] = 0.0;
@@ -2352,18 +2245,18 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
                     for (m = 0; m < 2; ++m)
                     {
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateTemperature,
-                                &temperature_nb[m],crx_coords);
+                                icoords,dir[l][m],comp,getStateVapor,
+                                &vapor_nb[m],crx_coords);
                         if (!fr_crx_grid_seg)
                         {
                             next_ip_in_dir(icoords,dir[l][m],ipn,gmin,top_gmax);
                             icn = d_index3d(ipn[0],ipn[1],ipn[2],top_gmax);
-                	    temperature_nb[m] = Temp[icn];
+                	    vapor_nb[m] = Temp[icn];
                         }
-                        dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
+                        dgrad[l] += (vapor_nb[m] - vapor)/top_h[l];
                     }
-		    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
-		    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
+		    grad_plus[l] = (vapor_nb[1] - vapor)/top_h[l];
+		    grad_minus[l] = (vapor - vapor_nb[0])/top_h[l];
 		    array[ic] += coef*dgrad[l]/top_h[l] - m_dt*
 			(v_plus[l]*grad_minus[l]+ v_minus[l]*grad_plus[l]);
 		}
@@ -2408,7 +2301,284 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
 	stop_clock("computeAdvectionExplicit");
 }	/* computeAdvectionExplicit */
 
-void CARTESIAN::setDomain()
+void VCARTESIAN::checkOutput()
+{
+	printf("Enter checkOutput()\n");
+	int i,j;
+	HDF_MOVIE_VAR *hdf_movie_var = front->hdf_movie_var;
+	
+	for(i = 0; i < hdf_movie_var->num_var; ++i)
+	{
+	    printf("%dth var: %s\n",i,hdf_movie_var->var_name[i]);
+	    for(j = 0; j < 1000; j++)
+	    {
+	    	if(j%100 == 0)
+		    printf("%s[%d] = %f\n",
+			hdf_movie_var->var_name[i],j,
+			hdf_movie_var->top_var[i][j]);
+	    }
+	}
+}
+
+void VCARTESIAN::checkField()
+{
+	int i,j,k,index;
+	printf("Enter checkField()\n");
+
+	for(j = 0; j < 1000; j++)
+        {
+                if(j%100 == 0)
+                    printf("%s[%d] = %f\n",
+                        "temperature",j,
+                        field->temperature[j]);
+        }
+        for(j = 0; j < 1000; j++)
+        {
+                if(j%100 == 0)
+                    printf("%s[%d] = %f\n",
+                        "supersat",j,
+                        field->supersat[j]);
+        }
+        for(j = 0; j < 1000; j++)
+        {
+                if(j%100 == 0)
+                    printf("%s[%d] = %f\n",
+                        "vapor",j,
+                        field->vapor[j]);
+        }
+	
+	int s_count = 0, l_count = 0, o_count = 0;
+	if (dim == 2)
+	{
+	    for(j = jmin; j <= jmax; j++)
+            {
+                int i = (int)(imax/2);
+		index = d_index2d(i,j,top_gmax);
+                    printf("%s[%d][%d] = (%f,%f)\n",
+                        "velo",i,j,
+                        field->vel[0][index],field->vel[1][index]);
+            }
+            for(i = imin; i < imax; i++)
+            {
+		j = (int)(jmax/2);
+		index = d_index2d(i,j,top_gmax);
+                    printf("%s[%d][%d] = %f\n",
+                        "pres",i,j,
+                        field->pres[index]);
+            }
+	    index = d_index2d(imin,jmin,top_gmax);
+	    printf("pres[%d] = %f\n",index,field->pres[index]);
+
+            for (i = imin; i <= imax; ++i)
+            for (j = jmin; j <= jmax; ++j)
+            {
+                index = d_index2d(i,j,top_gmax);
+	        if(top_comp[index] == SOLID_COMP)
+	    	    s_count ++; 
+	        if(top_comp[index] == LIQUID_COMP)
+		    l_count ++;
+	        if(field->vapor[index] == 0)
+		    o_count ++;
+	    }
+	}
+	else if (dim == 3)
+	{
+	    for(k = kmin; k <= kmax; ++k)
+            {
+                i = (int)(imax/2);
+		j = (int)(jmax/2); 
+		index = d_index3d(i,j,k,top_gmax);
+                    printf("%s[%d][%d][%d] = (%f,%f,%f)\n",
+                        "velo",i,j,k,
+                        field->vel[0][index],field->vel[1][index],field->vel[2][index]);
+            }
+            for(i = imin; i < imax; i++)
+            {
+		j = (int)(jmax/2);
+		k = (int)(kmax/2);
+		index = d_index3d(i,j,k,top_gmax);
+                    printf("%s[%d][%d][%d] = %f\n",
+                        "pres",i,j,k,
+                        field->pres[index]);
+            }
+	    index = d_index3d(imin,jmin,kmin,top_gmax);
+	    printf("pres[%d] = %f\n",index,field->pres[index]);
+
+
+            for (i = imin; i <= imax; ++i)
+            for (j = jmin; j <= jmax; ++j)
+	    for (k = kmin; k <= kmax; ++k)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+                if(top_comp[index] == SOLID_COMP)
+                    s_count ++;
+                if(top_comp[index] == LIQUID_COMP)
+                    l_count ++;
+                if(field->vapor[index] == 0)
+                    o_count ++;
+            }
+	}
+	printf("s_num=%d, l_num=%d, 0_num=%d\n",s_count,l_count,o_count);
+
+	if (s_count == 0)
+	    clean_up(0);
+}
+
+void VCARTESIAN::recordField(char *outname, const char *varname)
+{
+	int i,j,k,index;
+	FILE *outfile;
+	char filename[256];
+        sprintf(filename, "%s/record-%s",outname,varname);
+        if (pp_numnodes() > 1)
+            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+
+        if (!create_directory(filename,NO))
+        {
+            printf("Cannot create directory %s\n",filename);
+            clean_up(ERROR);
+        }
+        sprintf(filename,"%s/%s-%s",filename,varname,right_flush(front->step,7));
+        outfile = fopen(filename,"w");
+	switch(dim)
+	{
+	    case 2:
+		for (i = imin; i <= imax; ++i)
+	        for (j = jmin; j <= jmax; ++j)
+        	{
+		    index = d_index2d(i,j,top_gmax);
+	            if(strcmp(varname,"temperature") == 0)
+        	        fprintf(outfile,"%f\n",field->temperature[index]);
+	            else if(strcmp(varname,"vapor") == 0)
+        	        fprintf(outfile,"%f\n",field->vapor[index]);
+	            else if(strcmp(varname,"supersat") == 0)
+        	        fprintf(outfile,"%f\n",field->supersat[index]);
+		    else
+			printf("Unknown fields\n");
+		}
+		break;
+	    case 3:
+                for (i = imin; i <= imax; ++i)
+                for (j = jmin; j <= jmax; ++j)
+		for (k = kmin; k <= kmax; ++k)
+		{
+		    index = d_index3d(i,j,k,top_gmax);
+	            if(strcmp(varname,"temperature") == 0)
+        	        fprintf(outfile,"%f\n",field->temperature[index]);
+	            else if(strcmp(varname,"vapor") == 0)
+        	        fprintf(outfile,"%f\n",field->vapor[index]);
+	            else if(strcmp(varname,"supersat") == 0)
+        	        fprintf(outfile,"%f\n",field->supersat[index]);
+		    else
+			printf("Unknown fields\n");
+		}
+		break;
+	    default:
+		printf("Unknown dim = %d\n");
+		clean_up(ERROR);
+	}
+	fclose(outfile);
+}
+
+void VCARTESIAN::recordMomentum()
+{
+	double **vel = field->vel;
+	int i,j,k,index;
+	static boolean first = YES;
+	static int step = 0;
+	if (first == YES)
+	{
+	    first = NO;
+	    for(i = 0; i < MAX_STEP; i++)
+	    for(j = 0; j < MAXD; j++)
+		total_vel[j][i] = 0;
+	}
+
+	if (dim == 2)
+        {
+	    for(i = imin; i <= imax; i++)
+            for(j = jmin; j <= jmax; j++)
+            {
+                index = d_index2d(i,j,top_gmax);
+		total_vel[0][step] += vel[0][index];
+		total_vel[1][step] += vel[1][index];
+            }
+	    if(step == MAX_STEP-1)
+	        plotMomentum(front->out_name);
+	}
+	else if (dim == 3)
+	{
+	    for(i = imin; i <= imax; i++)
+            for(j = jmin; j <= jmax; j++)
+            for(k = kmin; k <= kmax; k++)
+	    {
+		index = d_index3d(i,j,k,top_gmax);
+		total_vel[0][step] += vel[0][index];
+		total_vel[1][step] += vel[1][index];
+		total_vel[2][step] += vel[2][index];
+	    }
+	    if(step == MAX_STEP-1)
+	        plotMomentum(front->out_name);
+	}	
+        ++step;
+}
+
+void VCARTESIAN::plotMomentum(char *outname)
+{
+	int i, j, k, count;
+	char fnameX[100],fnameY[100],fnameZ[100];
+	FILE *fileX, *fileY, *fileZ;
+	switch(dim)
+	{
+	    case 2:
+	        sprintf(fnameX,"%s/xvel.xg",outname);
+	        sprintf(fnameY,"%s/yvel.xg",outname);
+
+		fileX = fopen(fnameX,"w");
+		fprintf(fileX,"\"total xvel vs. time\"\n");
+		fileY = fopen(fnameY,"w");
+		fprintf(fileY,"\"total yvel vs. time\"\n");
+		for(i = 0; i < MAX_STEP; i++)
+		{
+		    if(total_vel[0][i] != 0)
+		        fprintf(fileX,"%d %f\n",i,total_vel[0][i]);
+		    if(total_vel[1][i] != 0)
+		        fprintf(fileY,"%d %f\n",i,total_vel[1][i]);
+		}
+		fclose(fileX);
+		fclose(fileY);
+		break;
+	    case 3:
+		sprintf(fnameX,"%s/xvel.xg",outname);
+                sprintf(fnameY,"%s/yvel.xg",outname);
+                sprintf(fnameZ,"%s/zvel.xg",outname);
+		fileX = fopen(fnameX,"w");
+		fprintf(fileX,"\"total xvel vs. time\"\n");
+		fileY = fopen(fnameY,"w");
+		fprintf(fileY,"\"total yvel vs. time\"\n");
+		fileZ = fopen(fnameZ,"w");
+		fprintf(fileZ,"\"total zvel vs. time\"\n");
+		for(i = 0; i < MAX_STEP; i++)
+		{
+		    if(total_vel[0][i] != 0)
+		        fprintf(fileX,"%d %f\n",i,total_vel[0][i]);
+		    if(total_vel[1][i] != 0)
+		        fprintf(fileY,"%d %f\n",i,total_vel[1][i]);
+		    if(total_vel[2][i] != 0)
+		        fprintf(fileZ,"%d %f\n",i,total_vel[2][i]);
+		}
+		fclose(fileX);
+		fclose(fileY);
+		fclose(fileZ);
+		break;
+	    default:
+		printf("Unknown dim = %d\n",dim);
+		clean_up(ERROR);
+	}
+}
+
+
+void VCARTESIAN::setDomain()
 {
 	static boolean first = YES;
 	INTERFACE *grid_intfc;
@@ -2436,13 +2606,14 @@ void CARTESIAN::setDomain()
 	switch (dim)
 	{
 	case 1:
-            if (first)
+            if (first == YES)
             {
 		comp_size = top_gmax[0]+1;
-		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(PHASE_FIELD));
                 FT_VectorMemoryAlloc((POINTER*)&array,comp_size,FLOAT);
                 FT_VectorMemoryAlloc((POINTER*)&source,comp_size,FLOAT);
-                FT_VectorMemoryAlloc((POINTER*)&field->temperature,comp_size,
+                FT_VectorMemoryAlloc((POINTER*)&field->vapor,comp_size,
+			FLOAT);
+		FT_VectorMemoryAlloc((POINTER*)&field->supersat,comp_size,
 			FLOAT);
                 first = NO;
             }	
@@ -2451,14 +2622,15 @@ void CARTESIAN::setDomain()
 	    eqn_params->field = field;
 	    break;
 	case 2:
-	    if (first)
+	    if (first == YES)
 	    {
 		comp_size = (top_gmax[0]+1)*(top_gmax[1]+1);
-		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(PHASE_FIELD));
 	    	FT_VectorMemoryAlloc((POINTER*)&array,comp_size,FLOAT);
                 FT_VectorMemoryAlloc((POINTER*)&source,comp_size,FLOAT);
-	    	FT_VectorMemoryAlloc((POINTER*)&field->temperature,
+	    	FT_VectorMemoryAlloc((POINTER*)&field->vapor,
 			comp_size,FLOAT);
+                FT_VectorMemoryAlloc((POINTER*)&field->supersat,comp_size,
+                        FLOAT);
 	    	first = NO;
 	    }
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
@@ -2468,14 +2640,15 @@ void CARTESIAN::setDomain()
 	    eqn_params->field = field;
 	    break;
 	case 3:
-	    if (first)
+	    if (first == YES)
 	    {
 		comp_size = (top_gmax[0]+1)*(top_gmax[1]+1)*(top_gmax[2]+1);
-		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(PHASE_FIELD));
 	    	FT_VectorMemoryAlloc((POINTER*)&array,comp_size,FLOAT);
                 FT_VectorMemoryAlloc((POINTER*)&source,comp_size,FLOAT);
-	    	FT_VectorMemoryAlloc((POINTER*)&field->temperature,
+	    	FT_VectorMemoryAlloc((POINTER*)&field->vapor,
 			comp_size,FLOAT);
+                FT_VectorMemoryAlloc((POINTER*)&field->supersat,comp_size,
+                        FLOAT);
 	    	first = NO;
 	    }
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
@@ -2489,81 +2662,75 @@ void CARTESIAN::setDomain()
 	}
 }	/* end setDomain */
 
-void CARTESIAN::initMovieVariables()
+void VCARTESIAN::initMovieVariables()
 {
-
-	boolean set_bound = NO;
-        FILE *infile = fopen(InName(front),"r");
-        char string[100];
-        double var_max,var_min;
-
-        if (debugging("trace"))
-            printf("Entering initMovieVariables()\n");
-
-	if (CursorAfterStringOpt(infile,"Type y to set movie bounds:"))
-        {
-            fscanf(infile,"%s",string);
-            (void) printf("%s\n",string);
-            if (string[0] == 'Y' || string[0] == 'y')
-	    {
-                set_bound = YES;
-                CursorAfterString(infile,"Enter min and max temperature:");
-                fscanf(infile,"%lf %lf",&var_min,&var_min);
-                (void) printf("%f %f\n",var_min,var_max);
-	    }
+	if (dim == 2)
+	{	
+ 	    FT_AddHdfMovieVariable(front,NO,YES,SOLID_COMP,
+                                "vapor",0,field->vapor,
+				getStateVapor,0,0);
+	    FT_AddHdfMovieVariable(front,NO,YES,SOLID_COMP,
+                                "supersat",0,field->supersat,
+				getStateSuper,0,0);
 	}
-	CursorAfterString(infile,"Type y to make movie of temperature:");
-        fscanf(infile,"%s",string);
-        (void) printf("%s\n",string);
-        if (string[0] != 'Y' && string[0] != 'y')
-	    return;
-        
-	
-	switch (dim)
-	{
-	case 1:
-	case 2:
-            FT_AddHdfMovieVariable(front,set_bound,YES,ERROR_COMP,
-                                "temperature",0,field->temperature,
-				getStateTemperature,var_max,var_min);
-	    break;
-	case 3:
-	    if (CursorAfterStringOpt(infile,
-                "Type y to make yz cross section movie:"))
-            {
-                fscanf(infile,"%s",string);
-                (void) printf("%s\n",string);
-                if (string[0] == 'Y' || string[0] == 'y')
-            	    FT_AddHdfMovieVariable(front,set_bound,YES,ERROR_COMP,
-                                	"temperature-yz",0,field->temperature,
-					getStateTemperature,var_max,var_min);
-            }
-	    if (CursorAfterStringOpt(infile,
-                "Type y to make xz cross section movie:"))
-            {
-                fscanf(infile,"%s",string);
-                (void) printf("%s\n",string);
-                if (string[0] == 'Y' || string[0] == 'y')
-            	    FT_AddHdfMovieVariable(front,set_bound,YES,ERROR_COMP,
-                                	"temperature-xz",0,field->temperature,
-					getStateTemperature,var_max,var_min);
-            }
-	    if (CursorAfterStringOpt(infile,
-                "Type y to make xy cross section movie:"))
-            {
-                fscanf(infile,"%s",string);
-                (void) printf("%s\n",string);
-                if (string[0] == 'Y' || string[0] == 'y')
-            	    FT_AddHdfMovieVariable(front,set_bound,YES,ERROR_COMP,
-                                	"temperature-xy",0,field->temperature,
-					getStateTemperature,var_max,var_min);
-            }
-	}
-	fclose(infile);
-
         if (debugging("trace"))
             printf("Leaving initMovieVariables()\n");
 }	/* end initMovieVariables */
+
+void VCARTESIAN::augmentMovieVariables(const char* varname)
+{
+        int i;
+        static HDF_MOVIE_VAR *hdf_movie_var;
+        int n,offset,num_var;
+        MOVIE_OPTION *movie_option = eqn_params->movie_option;
+
+        offset = front->hdf_movie_var->num_var;
+        num_var = offset+1;
+	
+        FT_ScalarMemoryAlloc((POINTER*)&hdf_movie_var,
+                                sizeof(HDF_MOVIE_VAR));
+        FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,num_var,
+                                        100,sizeof(char));
+        FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,num_var,
+                                        sizeof(double*));
+        FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->idir,num_var,
+                                        sizeof(int));
+        FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,
+                                        num_var,sizeof(COMPONENT));
+        FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,num_var,
+                                        sizeof(boolean));
+        FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,num_var,
+                                        sizeof(double));
+        FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,num_var,
+                                        sizeof(double));
+        for (i = 0; i < front->hdf_movie_var->num_var; ++i)
+        {
+            strcpy(hdf_movie_var->var_name[i],
+                        front->hdf_movie_var->var_name[i]);
+            hdf_movie_var->get_state_var[i] =
+                        front->hdf_movie_var->get_state_var[i];
+            hdf_movie_var->top_var[i] =
+                        front->hdf_movie_var->top_var[i];
+            hdf_movie_var->obstacle_comp[i] =
+                        front->hdf_movie_var->obstacle_comp[i];
+        }
+        hdf_movie_var->num_var = n = offset;
+        sprintf(hdf_movie_var->var_name[n],varname);
+        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
+        if(strcmp(varname,"vapor") == 0)
+	{
+            hdf_movie_var->get_state_var[n] = getStateVapor;
+	    hdf_movie_var->top_var[n] = eqn_params->field->vapor;
+	}
+	if(strcmp(varname,"supersat") == 0)
+	{ 
+	    hdf_movie_var->get_state_var[n] = getStateSuper;
+	    hdf_movie_var->top_var[n] = eqn_params->field->supersat;
+	}
+
+        hdf_movie_var->num_var = ++n;	
+	front->hdf_movie_var = hdf_movie_var;
+}
 
 
 static int find_state_at_crossing(
@@ -2596,7 +2763,7 @@ static int find_state_at_crossing(
             return NEUMANN_PDE_BOUNDARY;
 }       /* find_state_at_crossing */
 
-void CARTESIAN::initSampleTemperature(char *in_name)
+void VCARTESIAN::initSampleTemperature(char *in_name)
 {
         FILE *infile;
 	static SAMPLE *sample;
@@ -2639,7 +2806,7 @@ void CARTESIAN::initSampleTemperature(char *in_name)
         fclose(infile);
 }       /* end initSampleTemperature */
 
-void CARTESIAN::sampleTemperature()
+void VCARTESIAN::sampleTemperature()
 {
         if (dim == 2)
             sampleTemperature2d();
@@ -2647,7 +2814,7 @@ void CARTESIAN::sampleTemperature()
             sampleTemperature3d();
 }       /* end sampleTemperature */
 
-void CARTESIAN::sampleTemperature2d()
+void VCARTESIAN::sampleTemperature2d()
 {
 	int i,j,index;
 	SAMPLE *sample = front->sample;
@@ -2726,9 +2893,9 @@ void CARTESIAN::sampleTemperature2d()
 	    for (j = jmin; j <= jmax; ++j)
 	    {
 		index = d_index2d(i,j,top_gmax);
-		var1 = field->temperature[index];
+		var1 = field->vapor[index];
 		index = d_index2d(i+1,j,top_gmax);
-		var2 = field->temperature[index];
+		var2 = field->vapor[index];
 		var = (var1 + lambda*var2) / (1.0 + lambda);
 		getRectangleCenter(index,coords);
 		fprintf(sfile,"%20.14f %20.14f\n",coords[1],var);
@@ -2763,9 +2930,9 @@ void CARTESIAN::sampleTemperature2d()
             for (i = imin; i <= imax; ++i)
             {
                 index = d_index2d(i,j,top_gmax);
-                var1 = field->temperature[index];
+                var1 = field->vapor[index];
                 index = d_index2d(i,j+1,top_gmax);
-                var2 = field->temperature[index];
+                var2 = field->vapor[index];
                 var = (var1 + lambda*var2) / (1.0 + lambda);
                 getRectangleCenter(index,coords);
                 fprintf(sfile,"%20.14f   %20.14f\n",coords[0],var);
@@ -2773,13 +2940,13 @@ void CARTESIAN::sampleTemperature2d()
             fclose(sfile);
             break;
 	default:
-            printf("Incorrect input for sample temperature!\n");
+            printf("Incorrect input for sample vapor!\n");
             break;
 	}
 	count++;
 }	/* end sampleTemperature2d */
 
-void CARTESIAN::sampleTemperature3d()
+void VCARTESIAN::sampleTemperature3d()
 {
         int i,j,k,index;
         SAMPLE *sample = front->sample;
@@ -2881,15 +3048,15 @@ void CARTESIAN::sampleTemperature3d()
                     for (k = kmin; k <= kmax; ++k)
                     {
                         index = d_index3d(i,j,k,top_gmax);
-                        var1 = field->temperature[index];
+                        var1 = field->vapor[index];
                         index = d_index3d(i+1,j,k,top_gmax);
-                        var2 = field->temperature[index];
+                        var2 = field->vapor[index];
                         var_tmp1 = (var1 + lambda1*var2)/(1.0 + lambda1);
 
                         index = d_index3d(i,j+1,k,top_gmax);
-                        var1 = field->temperature[index];
+                        var1 = field->vapor[index];
                         index = d_index3d(i+1,j+1,k,top_gmax);
-                        var2 = field->temperature[index];
+                        var2 = field->vapor[index];
                         var_tmp2 = (var1 + lambda1*var2)/(1.0 + lambda1);
 
                         var = (var_tmp1 + lambda2*var_tmp2)/(1.0 + lambda2);
@@ -2927,15 +3094,15 @@ void CARTESIAN::sampleTemperature3d()
                     for (j = jmin; j <= jmax; ++j)
                     {
                         index = d_index3d(i,j,k,top_gmax);
-                        var1 = field->temperature[index];
+                        var1 = field->vapor[index];
                         index = d_index3d(i+1,j,k,top_gmax);
-                        var2 = field->temperature[index];
+                        var2 = field->vapor[index];
                         var_tmp1 = (var1 + lambda1*var2)/(1.0 + lambda1);
 
                         index = d_index3d(i,j,k+1,top_gmax);
-                        var1 = field->temperature[index];
+                        var1 = field->vapor[index];
                         index = d_index3d(i+1,j,k+1,top_gmax);
-                        var2 = field->temperature[index];
+                        var2 = field->vapor[index];
                         var_tmp2 = (var1 + lambda1*var2)/(1.0 + lambda1);
 
                         var = (var_tmp1 + lambda2*var_tmp2)/(1.0 + lambda2);
@@ -2945,7 +3112,7 @@ void CARTESIAN::sampleTemperature3d()
                     fclose(sfile);
                     break;
                 default:
-                    printf("Incorrect input for sample temperature!\n");
+                    printf("Incorrect input for sample vapor!\n");
                     break;
 	    }
             break;
@@ -2999,15 +3166,15 @@ void CARTESIAN::sampleTemperature3d()
                     for (i = imin; i <= imax; ++i)
                     {
                         index = d_index3d(i,j,k,top_gmax);
-                        var1 = field->temperature[index];
+                        var1 = field->vapor[index];
                         index = d_index3d(i,j+1,k,top_gmax);
-                        var2 = field->temperature[index];
+                        var2 = field->vapor[index];
                         var_tmp1 = (var1 + lambda1*var2)/(1.0 + lambda1);
 
                         index = d_index3d(i,j,k+1,top_gmax);
-                        var1 = field->temperature[index];
+                        var1 = field->vapor[index];
                         index = d_index3d(i,j+1,k+1,top_gmax);
-                        var2 = field->temperature[index];
+                        var2 = field->vapor[index];
                         var_tmp2 = (var1 + lambda1*var2)/(1.0 + lambda1);
 
                         var = (var_tmp1 + lambda2*var_tmp2)/(1.0 + lambda2);
@@ -3017,12 +3184,57 @@ void CARTESIAN::sampleTemperature3d()
                     fclose(sfile);
                     break;
                 default:
-                    printf("Incorrect input for sample temperature!\n");
+                    printf("Incorrect input for sample vapor!\n");
                     break;
             }
         default:
-            printf("Incorrect input for sample temperature!\n");
+            printf("Incorrect input for sample vapor!\n");
             break;
         }
         count++;
 }       /* end sampleTemperature3d */
+
+void VCARTESIAN::recordRadius(char *out_name)
+{
+	INTERFACE *intfc = front->interf;
+	char fname[100];
+	FILE *file;
+	double radius;
+	CURVE **c;
+	SURFACE **s;
+	int index;
+	
+	sprintf(fname,"%s/radius-%4.3f.xg",out_name,front->time);
+	printf("save radius to %s\n",fname);
+	file = fopen(fname,"w");
+	switch(dim)
+	{
+	    case 2:
+		for (c = intfc->curves; c && *c; ++c)
+		{
+		    if(wave_type(*c) == ICE_PARTICLE_BOUNDARY)
+		    {
+			index = body_index(*c);
+			radius = spherical_radius(*c);
+			fprintf(file,"%d %16.15f\n",index,radius);
+		    }
+		}
+		fclose(file);
+		break;
+	    case 3:
+		for (s = intfc->surfaces; s && *s; ++s)
+		{
+		    if(wave_type(*s) == ICE_PARTICLE_BOUNDARY)
+		    {
+			index = body_index(*s);
+			radius = spherical_radius(*s);
+			fprintf(file,"%d %16.15f\n",index,radius);
+		    }
+		}
+		fclose(file);
+		break;
+	    default:
+		printf("Unknown dim = %d\n",dim);
+		clean_up(ERROR);
+	}
+}

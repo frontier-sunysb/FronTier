@@ -442,6 +442,9 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 	copyMeshStates();
 	stop_clock("copyMeshStates");
 
+        if(iFparams->if_ref_pres == YES)
+            setReferencePressure();
+
 	setAdvectionDt();
 	stop_clock("solve");
 }	/* end solve */
@@ -1258,6 +1261,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
         double **vel = field->vel;
         double **f_surf = field->f_surf;
         static double *nu;
+	static boolean first = YES;
 
         if (debugging("trace"))
             (void) printf("Entering Incompress_Solver_Smooth_3D_Cartesian::"
@@ -1286,7 +1290,9 @@ void Incompress_Solver_Smooth_2D_Cartesian::
         parab_solver.order = 2;
         parab_solver.a = NULL;
         parab_solver.findStateAtCrossing = parab_find_state_at_crossing;
+        parab_solver.first = first;
         parab_solver.set_solver_domain();
+	first = NO;
         switch(dim)
         {
         case 2:

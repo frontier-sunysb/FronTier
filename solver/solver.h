@@ -116,6 +116,7 @@ public:
 	void Solve_withPureNeumann(void);
 	void Solve_withPureNeumann_GMRES(void);
 	void Solve_withPureNeumann_BCGSL(void);
+	void Solve_withPureNeumann_SOR(void);
 	virtual void Print_A(const char *filename);
         virtual void Print_b(const char *filename);
 };
@@ -130,6 +131,7 @@ public:
 	double sub_dt;
 
         // On topological grid
+        boolean first;
 	int *i_to_I;
 	int **ij_to_I;
 	int ***ijk_to_I;

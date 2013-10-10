@@ -15,6 +15,7 @@
 #define         SOLID_COMP		1
 #define         LIQUID_COMP1		2
 #define         LIQUID_COMP2		3
+#define		LIQUID_COMP		3
 
 #define		ifluid_comp(comp)   (((comp) == LIQUID_COMP1 || 	\
 		comp == LIQUID_COMP2) ? YES : NO)
@@ -40,11 +41,14 @@ struct _STATE {
         double impulse[MAXD];            /* Accum impact from external force */
 	double solute;			/* For subsurface problem */
 	double temperature;             /* For melting with flow problem */
+	double vapor;                   /* For climate problem */
+        double supersat;		/* For climate problem */
 };
 typedef struct _STATE STATE;
 
 struct _IF_FIELD {
 	double **vel;			/* Velocities */
+	double *temperature;            /* Temperature */
 	double *phi;
 	double *q;
 	double *pres;			/* Pressure */
@@ -118,6 +122,9 @@ typedef struct {
 	IF_FIELD *field;
 	int adv_order;
 	boolean total_div_cancellation;
+	boolean buoyancy_flow;
+	boolean if_ref_pres;
+	double  ref_pres;
 } IF_PARAMS;
 
 struct _FLOW_THROUGH_PARAMS {
@@ -218,7 +225,7 @@ public:
 	//User interface
 	virtual void setInitialCondition(void) = 0;
 	virtual void solve(double dt) = 0; // main step function
-
+        virtual void vtk_plot_scalar(char*, const char*) = 0;
 
 protected:
 	Front *front;
@@ -296,6 +303,7 @@ protected:
 	void setDualIndexMap(void);
 	void paintAllGridPoint(int status);
 	void paintSolvedGridPoint();
+	void setReferencePressure();
 	boolean paintToSolveGridPoint();
 	boolean nextConnectedPoint(int*,GRID_DIRECTION,int*,int,int*,int*);
 
@@ -380,6 +388,7 @@ public:
 
 	void setInitialCondition(void);
 	void solve(double dt);
+        void vtk_plot_scalar(char*, const char*);
 protected:
 	void copyMeshStates(void);
 	void computeAdvection(void);
@@ -417,6 +426,7 @@ public:
 	void setInitialCondition(void);
 	void solve(double dt);
 	void solveTest(const char *msg);
+        void vtk_plot_scalar(char*, const char*);
 protected:
 	void copyMeshStates(void);
 	void computeAdvection(void);
@@ -457,7 +467,6 @@ extern double burger_flux(double,double,double);
 extern double linear_flux(double,double,double,double);
 extern void fluid_print_front_states(FILE*,Front*);
 extern void fluid_read_front_states(FILE*,Front*);
-extern void read_iF_movie_options(char*,IF_PARAMS*);
 extern void read_iF_dirichlet_bdry_data(char*,Front*,F_BASIC_DATA);
 extern boolean isDirichletPresetBdry(Front*,int*,GRID_DIRECTION,COMPONENT);
 extern int ifluid_find_state_at_crossing(Front*,int*,GRID_DIRECTION,

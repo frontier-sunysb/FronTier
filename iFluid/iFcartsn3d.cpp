@@ -291,6 +291,9 @@ void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
 	copyMeshStates();
 	stop_clock("copyMeshStates");
 
+        if(iFparams->if_ref_pres == YES)
+            setReferencePressure();
+
 	setAdvectionDt();
 	stop_clock("solve");
 }	/* end solve */
@@ -1469,6 +1472,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 	computeDiffusionParab(void)
 {
 	static PARABOLIC_SOLVER parab_solver(*front);
+	static boolean first = YES;
 
         COMPONENT comp;
         int index;
@@ -1506,7 +1510,9 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 	parab_solver.order = 2;
 	parab_solver.a = NULL;
 	parab_solver.findStateAtCrossing = parab_find_state_at_crossing;
+	parab_solver.first = first;
 	parab_solver.set_solver_domain();
+	first = NO;
 	switch(dim)
         {
         case 2:
@@ -1529,6 +1535,186 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 	    (void) printf("Leaving Incompress_Solver_Smooth_3D_Cartesian::"
 			"computeDiffusionParab()\n");
 }       /* end computeDiffusionParab */
+
+void Incompress_Solver_Smooth_3D_Cartesian::vtk_plot_scalar(
+        char *outname, const char* varname)
+{
+        std::vector<int> ph_index;
+        int i,j,k,index;
+        char dirname[256],filename[256];
+        FILE *outfile;
+        double coord_x,coord_y,coord_z,xmin,ymin,zmin;
+        COMPONENT comp;
+        int pointsx,pointsy,pointsz,num_points,num_cells,num_cell_list;
+        int icoords[3],p_gmax[3];
+
+        int ii,jj,kk;
+        double ih,jh,kh;
+
+        sprintf(filename, "%s/vtk/vtk.ts%s",outname,
+                right_flush(front->step,7));
+        if (pp_numnodes() > 1)
+            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+        //cell-based liquid phase
+        ph_index.clear();
+        if (!create_directory(filename,NO))
+        {
+            printf("Cannot create directory %s\n",filename);
+            clean_up(ERROR);
+        }
+        sprintf(filename,"%s/%s.vtk",filename,varname);
+        outfile = fopen(filename,"w");
+        fprintf(outfile,"# vtk DataFile Version 3.0\n");
+        fprintf(outfile,"%s\n",varname);
+        fprintf(outfile,"ASCII\n");
+        fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
+
+        for (k = kmin; k <= kmax; k++)
+        for (j = jmin; j <= jmax; j++)
+        for (i = imin; i <= imax; i++)
+        {
+            index = d_index3d(i,j,k,top_gmax);
+            if (cell_center[index].comp == LIQUID_COMP)
+                ph_index.push_back(index);
+        }
+
+        pointsx = top_gmax[0] + 2;
+        pointsy = top_gmax[1] + 2;
+        pointsz = top_gmax[2] + 2;
+        num_points = pointsx*pointsy*pointsz;
+
+        num_cells = (int)ph_index.size();
+        num_cell_list = 9*num_cells;
+        fprintf(outfile,"POINTS %d double\n", num_points);
+
+        for (k = 0; k <= top_gmax[2]; k++)
+        for (j = 0; j <= top_gmax[1]; j++)
+        for (i = 0; i <= top_gmax[0]; i++)
+        {
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].m_coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].m_coords[1] - top_h[1]/2.0;
+            coord_z = cell_center[index].m_coords[2] - top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+        for (i = 0; i <= top_gmax[0]; i++)
+        for (j = 0; j <= top_gmax[1]; j++)
+        {
+            k = top_gmax[2];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].m_coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].m_coords[1] - top_h[1]/2.0;
+            coord_z = cell_center[index].m_coords[2] + top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        for (i = 0; i <= top_gmax[0]; i++)
+        for (k = 0; k <= top_gmax[2]; k++)
+        {
+            j = top_gmax[1];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].m_coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].m_coords[1] + top_h[1]/2.0;
+            coord_z = cell_center[index].m_coords[2] - top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        for (j = 0; j <= top_gmax[1]; j++)
+        for (k = 0; k <= top_gmax[2]; k++)
+        {
+            i = top_gmax[0];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].m_coords[0] + top_h[0]/2.0;
+            coord_y = cell_center[index].m_coords[1] - top_h[1]/2.0;
+            coord_z = cell_center[index].m_coords[2] - top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        for (i = 0; i <= top_gmax[0]; i++)
+        {
+            j = top_gmax[1];
+            k = top_gmax[2];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].m_coords[0] - top_h[0]/2.0;
+            coord_y = cell_center[index].m_coords[1] + top_h[1]/2.0;
+            coord_z = cell_center[index].m_coords[2] + top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        for (j = 0; j <= top_gmax[1]; j++)
+        {
+            i = top_gmax[0];
+            k = top_gmax[2];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].m_coords[0] + top_h[0]/2.0;
+            coord_y = cell_center[index].m_coords[1] - top_h[1]/2.0;
+            coord_z = cell_center[index].m_coords[2] + top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+        for (k = 0; k <= top_gmax[2]; k++)
+        {
+            i = top_gmax[0];
+            j = top_gmax[1];
+            index = d_index3d(i,j,k,top_gmax);
+            coord_x = cell_center[index].m_coords[0] + top_h[0]/2.0;
+            coord_y = cell_center[index].m_coords[1] + top_h[1]/2.0;
+            coord_z = cell_center[index].m_coords[2] - top_h[2]/2.0;
+            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+        }
+
+        i = top_gmax[0];
+        j = top_gmax[1];
+        k = top_gmax[2];
+        index = d_index3d(i,j,k,top_gmax);
+        coord_x = cell_center[index].m_coords[0] + top_h[0]/2.0;
+        coord_y = cell_center[index].m_coords[1] + top_h[1]/2.0;
+        coord_z = cell_center[index].m_coords[2] + top_h[2]/2.0;
+        fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
+
+
+        fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
+        for (i = 0; i < num_cells; i++)
+        {
+            int index0,index1,index2,index3,index4,index5,index6,index7;
+            index = ph_index[i];
+            icoords[0] = cell_center[index].icoords[0];
+            icoords[1] = cell_center[index].icoords[1];
+            icoords[2] = cell_center[index].icoords[2];
+            index0 = d_index3d(icoords[0],icoords[1],icoords[2],top_gmax);
+            index1 =
+                d_index3d(icoords[0]+1,icoords[1],icoords[2],top_gmax);
+            index2 =
+                d_index3d(icoords[0],icoords[1]+1,icoords[2],top_gmax);
+            index3 =
+                d_index3d(icoords[0]+1,icoords[1]+1,icoords[2],top_gmax);
+            index4 =
+                d_index3d(icoords[0],icoords[1],icoords[2]+1,top_gmax);
+            index5 =
+                d_index3d(icoords[0]+1,icoords[1],icoords[2]+1,top_gmax);
+            index6 =
+                d_index3d(icoords[0],icoords[1]+1,icoords[2]+1,top_gmax);
+            index7 =
+                d_index3d(icoords[0]+1,icoords[1]+1,icoords[2]+1,top_gmax);
+
+            fprintf(outfile,"8 %i %i %i %i %i %i %i %i\n",
+                index0,index1,index2,index3,index4,index5,index6,index7);
+        }
+
+        fprintf(outfile, "CELL_TYPES %i\n", num_cells);
+        for (i = 0; i < num_cells; i++)
+            fprintf(outfile,"11\n");
+
+        fprintf(outfile, "CELL_DATA %i\n", num_cells);
+        fprintf(outfile, "SCALARS %s double\n",varname);
+        fprintf(outfile, "LOOKUP_TABLE default\n");
+        for (i = 0; i < num_cells; i++)
+        {
+            index = ph_index[i];
+            if(strcmp(varname,"pres") == 0)
+              fprintf(outfile,"%f\n",field->pres[index]);
+        }
+        fclose(outfile);
+}
 
 static int parab_find_state_at_crossing(
 	Front *front,

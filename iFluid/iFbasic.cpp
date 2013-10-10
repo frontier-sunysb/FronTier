@@ -2799,6 +2799,42 @@ void Incompress_Solver_Smooth_Basis::computeFieldPointGrad(
 	    grad_field[i] = 0.5*(p_edge[i][1] - p_edge[i][0])/top_h[i];
 }
 
+void Incompress_Solver_Smooth_Basis::setReferencePressure()
+{
+	int i,j,k,index;
+	double *pres = iFparams->field->pres;
+        double diff_pres;
+
+	switch(dim)
+        {
+	case 2:
+	    index = d_index2d(imin,jmin,top_gmax);
+            diff_pres = pres[index] - iFparams->ref_pres;
+	    for (j = 0; j <= top_gmax[1]; ++j)
+            for (i = 0; i <= top_gmax[0]; ++i)
+	    {
+		index = d_index2d(i,j,top_gmax);
+		if (!ifluid_comp(top_comp[index]))
+		    continue;
+		pres[index] -= diff_pres;
+	    }
+	    break;
+	case 3:
+            index = d_index3d(imin,jmin,kmin,top_gmax);
+            diff_pres = pres[index] - iFparams->ref_pres;
+	    for (k = 0; k <= top_gmax[2]; ++k)
+	    for (j = 0; j <= top_gmax[1]; ++j)
+            for (i = 0; i <= top_gmax[0]; ++i)
+	    {
+		index = d_index3d(i,j,k,top_gmax);
+		if (!ifluid_comp(top_comp[index]))
+		    continue;
+		pres[index] -= diff_pres;
+	    }
+	    break;
+	}
+}	/* end computeFieldPointGrad */
+
 extern int ifluid_find_state_at_crossing(
 	Front *front,
 	int *icoords,
@@ -2846,3 +2882,4 @@ extern boolean neumann_type_bdry(int w_type)
 	    return NO;
 	}
 }	/* end neumann_type_bdry */
+

@@ -644,6 +644,7 @@ void C_CARTESIAN::computeAdvectionCN(void)
 void C_CARTESIAN::computeAdvectionImplicit(void)
 {
 	static PARABOLIC_SOLVER parab_solver(*front);
+	static boolean first = YES;
 
         if (m_dt < 0.1*sqr(hmin)/cRparams->D/(double)dim)
             return computeAdvectionExplicit();
@@ -666,7 +667,9 @@ void C_CARTESIAN::computeAdvectionImplicit(void)
 	parab_solver.ilower = ilower;
 	parab_solver.iupper = iupper;
 	parab_solver.dt = m_dt;
+	parab_solver.first = first;
 	parab_solver.set_solver_domain();
+	first = NO;
 
 	switch(dim)
 	{

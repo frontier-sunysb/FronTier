@@ -8,7 +8,7 @@
 
 #include <iFluid.h>
 #include "solver.h"
-#include "melting.h"
+#include "climate.h"
 
 static int find_state_at_crossing(Front*,int*,GRID_DIRECTION,int,
                                 POINTER*,HYPER_SURF**,double*);
@@ -46,7 +46,7 @@ CARTESIAN::~CARTESIAN()
 //---------------------------------------------------------------
 void CARTESIAN::initMesh(void)
 {
-	int i,j,k, index;
+	int i,j,k,index;
 	double crds[MAXD];
 	int icoords[MAXD];
 	int num_cells;
@@ -104,6 +104,7 @@ void CARTESIAN::initMesh(void)
 	    	cell_center[index].icoords[2] = k;
 	    }
 	}
+
 	setComponent();
 	FT_FreeGridIntfc(front);
 	if (debugging("trace")) printf("Leaving initMesh()\n");
@@ -189,6 +190,10 @@ void CARTESIAN::setInitialCondition(void)
         HYPER_SURF_ELEMENT *hse;
 	STATE *sl,*sr;
 	int c;
+	short unsigned int seed[3] = {2,72,7172};
+	GAUSS_PARAMS gauss_params;
+	gauss_params.mu = eqn_params->T0[1];
+	gauss_params.sigma = 0.5;
 
 	FT_MakeGridIntfc(front);
         setDomain();
@@ -198,8 +203,7 @@ void CARTESIAN::setInitialCondition(void)
         while (next_point(intfc,&p,&hse,&hs))
         {
 	    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-            sl->temperature = sr->temperature =
-                        0.5*(eqn_params->T0[0] + eqn_params->T0[1]);
+            sl->temperature = sr->temperature = 0.5*(eqn_params->T0[0] + eqn_params->T0[1]);
         }
 
 	// cell_center
@@ -208,10 +212,11 @@ void CARTESIAN::setInitialCondition(void)
 	    c = top_comp[i];
 	    if (c == LIQUID_COMP)
 	    	field->temperature[i] = eqn_params->T0[1];
+	    	//field->temperature[i] = gauss_center_limit((POINTER)&gauss_params,seed);
 	    else if (c == SOLID_COMP)
 	    	field->temperature[i] = eqn_params->T0[0];
 	    else
-	    	field->temperature[i] = 0.0;
+	    	field->temperature[i] = eqn_params->T0[0];
 	}
 }	/* end setInitialCondition */
 
@@ -325,8 +330,7 @@ void CARTESIAN::computeAdvection()
 	for (i = 0; i < 2; ++i)
 	{
 	    setGlobalIndex(sub_comp[i]);
-	    eqn_params->D = eqn_params->k[i]/eqn_params->rho[i]
-				/eqn_params->Cp[i];
+	   /* diffusivity is set explicitly */
 	    if (eqn_params->num_scheme == UNSPLIT_EXPLICIT)
 	    	computeAdvectionExplicit(sub_comp[i]);
 	    else if (eqn_params->num_scheme == UNSPLIT_EXPLICIT_CIM)
@@ -336,6 +340,7 @@ void CARTESIAN::computeAdvection()
 	    else if (eqn_params->num_scheme == CRANK_NICOLSON)
 	    	computeAdvectionCN(sub_comp[i]);
 	}
+	printf("End solving advection\n");
 }
     
 void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
@@ -660,17 +665,15 @@ void CARTESIAN::computeAdvectionCim()
             break;
         }
 	printf("Assigning class variables\n");
-	parab_solver.w_type = GROWING_BODY_BOUNDARY;
+	parab_solver.w_type = ICE_PARTICLE_BOUNDARY;
 	parab_solver.neg_comp = SOLID_COMP;
         parab_solver.pos_comp = LIQUID_COMP;
         parab_solver.source = source;
 	parab_solver.solutionJump = jumpT;
 	parab_solver.gradJumpDotN = jumpEpsGradDotNorm;
         parab_solver.gradJumpDotT = jumpGradDotTan;
-        parab_solver.diff_coeff[0] = eqn_params->k[0]/eqn_params->rho[0]
-                                /eqn_params->Cp[0];
-        parab_solver.diff_coeff[1] = eqn_params->k[1]/eqn_params->rho[1]
-                                /eqn_params->Cp[1];
+        parab_solver.diff_coeff[0] = eqn_params->D;
+        parab_solver.diff_coeff[1] = eqn_params->D;
 	parab_solver.jparams = (POINTER)eqn_params;
 	parab_solver.findStateAtCrossing = find_state_at_crossing;
 	parab_solver.getStateVar = getStateTemperature;
@@ -695,6 +698,7 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
 	static double *soln;
 	int i,j,k,index;
 	static boolean first = YES;
+        
 
 	if (soln == NULL)
             FT_VectorMemoryAlloc((POINTER*)&soln,comp_size,FLOAT);
@@ -714,7 +718,7 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
         parab_solver.ilower = ilower;
         parab_solver.iupper = iupper;
         parab_solver.dt = m_dt;
-        parab_solver.first = first;
+	parab_solver.first = first;
         parab_solver.set_solver_domain();
 	first = NO;
 
@@ -735,6 +739,7 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
             parab_solver.ijk_to_I = ijk_to_I;
             break;
         }
+
         parab_solver.runge_kutta();
 	switch(dim)
         {
@@ -771,7 +776,6 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
 	return;
 }	/* end computeAdvectionImplicit */
 
-
 // for initial condition: 
 // 		setInitialCondition();	
 // this function should be called before solve()
@@ -779,6 +783,7 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
 // 		computeSourceTerm();
 void CARTESIAN::solve(double dt)
 {
+	printf("solving adv-diff equation\n");
 
 	if (debugging("trace")) printf("Entering solve()\n");
 	m_dt = dt;
@@ -823,8 +828,8 @@ void CARTESIAN::setAdvectionDt()
 	{
 	    first = NO;
 	    eqn_params = (PARAMS*)front->extra2;
-	    Dl = eqn_params->k[1]/eqn_params->rho[1]/eqn_params->Cp[1];
-	    Ds = eqn_params->k[0]/eqn_params->rho[0]/eqn_params->Cp[0];
+	    Dl = eqn_params->D;
+	    Ds = eqn_params->D;
 	    D = std::max(Dl,Ds);
 	    m_dt_expl = 0.5*sqr(hmin)/D/(double)dim;
 	    m_dt_impl = 0.5*hmin/D/(double)dim;
@@ -1140,7 +1145,7 @@ void CARTESIAN::printFrontInteriorState(char *out_name)
         HYPER_SURF_ELEMENT *hse;
 	double *Temp = field->temperature;
 
-	sprintf(filename,"%s/state.ts%s",out_name,right_flush(front->step,7));
+	sprintf(filename,"%s/state.ts%s-temp",out_name,right_flush(front->step,7));
 #if defined(__MPI__)
 	if (pp_numnodes() > 1)
             sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
@@ -1202,7 +1207,9 @@ void CARTESIAN::readFrontInteriorState(char *restart_name)
 	double x;
 	double *Temp = field->temperature;
 
-	infile = fopen(restart_name,"r");
+	char fname[100];
+	sprintf(fname,"%s-temp",restart_name);
+	infile = fopen(fname,"r");
 
         /* Initialize states at the interface */
         next_output_line_containing_string(infile,"Interface states:");
@@ -1433,7 +1440,7 @@ void CARTESIAN::vtk_plot_temperature2d(
         int pointsx,pointsy,num_points,num_cells,num_cell_list;
         int icoords[2],p_gmax[2];
 
-        sprintf(filename, "%s/vtk.ts%s",outname,
+        sprintf(filename, "%s/vtk/vtk.ts%s",outname,
                 right_flush(front->step,7));
         if (pp_numnodes() > 1)
             sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
@@ -1545,7 +1552,7 @@ void CARTESIAN::vtk_plot_temperature2d(
         fclose(outfile);
 
 	//cell-based solid phase
-	sprintf(filename,"%s/vtk.ts%s",outname,
+	sprintf(filename,"%s/vtk/vtk.ts%s",outname,
                 right_flush(front->step,7));
         if (pp_numnodes() > 1)
             sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
@@ -1651,8 +1658,8 @@ void CARTESIAN::vtk_plot_temperature2d(
         fclose(outfile);
 }       /* end vtk_plot_temperature2d */
 
-void CARTESIAN::vtk_plot_temperature3d(
-        char *outname)
+void CARTESIAN::vtk_plot3d(
+        char *outname,const char *varname)
 {
 	std::vector<int> ph_index;
         int i,j,k,index;
@@ -1666,7 +1673,7 @@ void CARTESIAN::vtk_plot_temperature3d(
         int ii,jj,kk;
         double ih,jh,kh;
 
-        sprintf(filename, "%s/vtk.ts%s",outname,
+        sprintf(filename, "%s/vtk/vtk.ts%s",outname,
                 right_flush(front->step,7));
         if (pp_numnodes() > 1)
             sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
@@ -1678,10 +1685,10 @@ void CARTESIAN::vtk_plot_temperature3d(
             printf("Cannot create directory %s\n",filename);
             clean_up(ERROR);
         }
-        sprintf(filename,"%s/liquid.vtk",filename);
+        sprintf(filename,"%s/%s.vtk",filename,varname);
         outfile = fopen(filename,"w");
         fprintf(outfile,"# vtk DataFile Version 3.0\n");
-        fprintf(outfile,"liquid temperature\n");
+        fprintf(outfile,"%s\n",varname);
         fprintf(outfile,"ASCII\n");
         fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
 
@@ -1824,180 +1831,12 @@ void CARTESIAN::vtk_plot_temperature3d(
             fprintf(outfile,"11\n");
 
         fprintf(outfile, "CELL_DATA %i\n", num_cells);
-        fprintf(outfile, "SCALARS temperature double\n");
+        fprintf(outfile, "SCALARS %s double\n",varname);
         fprintf(outfile, "LOOKUP_TABLE default\n");
         for (i = 0; i < num_cells; i++)
         {
             index = ph_index[i];
-            fprintf(outfile,"%f\n",eqn_params->field->temperature[index]);
-        }
-        fclose(outfile);
-
-        //cell-based solid phase
-        sprintf(filename,"%s/vtk.ts%s",outname,
-                right_flush(front->step,7));
-        if (pp_numnodes() > 1)
-            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
-
-        ph_index.clear();
-        sprintf(filename,"%s/solid.vtk",filename);
-        outfile = fopen(filename,"w");
-        fprintf(outfile,"# vtk DataFile Version 3.0\n");
-        fprintf(outfile,"solid temperature\n");
-        fprintf(outfile,"ASCII\n");
-        fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
-
-        for (k = kmin; k <= kmax; k++)
-        for (j = jmin; j <= jmax; j++)
-        for (i = imin; i <= imax; i++)
-        {
-            index = d_index3d(i,j,k,top_gmax);
-            if (cell_center[index].comp == SOLID_COMP)
-                ph_index.push_back(index);
-        }
-
-
-        pointsx = top_gmax[0] + 2;
-        pointsy = top_gmax[1] + 2;
-        pointsz = top_gmax[2] + 2;
-        num_points = pointsx*pointsy*pointsz;
-
-        num_cells = (int)ph_index.size();
-        num_cell_list = 9*num_cells;
-
-        p_gmax[0] = pointsx - 1;
-        p_gmax[1] = pointsy - 1;
-        p_gmax[2] = pointsz - 1;
-
-        fprintf(outfile,"POINTS %d double\n", num_points);
-
-	for (k = 0; k <= top_gmax[2]; k++)
-        for (j = 0; j <= top_gmax[1]; j++)
-        for (i = 0; i <= top_gmax[0]; i++)
-        {
-            index = d_index3d(i,j,k,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        for (i = 0; i <= top_gmax[0]; i++)
-        for (j = 0; j <= top_gmax[1]; j++)
-        {
-            k = top_gmax[2];
-            index = d_index3d(i,j,k,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        for (i = 0; i <= top_gmax[0]; i++)
-        for (k = 0; k <= top_gmax[2]; k++)
-        {
-            j = top_gmax[1];
-            index = d_index3d(i,j,k,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        for (j = 0; j <= top_gmax[1]; j++)
-        for (k = 0; k <= top_gmax[2]; k++)
-        {
-            i = top_gmax[0];
-            index = d_index3d(i,j,k,top_gmax);
-            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-	for (i = 0; i <= top_gmax[0]; i++)
-        {
-            j = top_gmax[1];
-            k = top_gmax[2];
-            index = d_index3d(i,j,k,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-            coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        for (j = 0; j <= top_gmax[1]; j++)
-        {
-            i = top_gmax[0];
-            k = top_gmax[2];
-            index = d_index3d(i,j,k,top_gmax);
-            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        for (k = 0; k <= top_gmax[2]; k++)
-        {
-            i = top_gmax[0];
-            j = top_gmax[1];
-            index = d_index3d(i,j,k,top_gmax);
-            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-            coord_z = cell_center[index].coords[2] - top_h[2]/2.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-	i = top_gmax[0];
-        j = top_gmax[1];
-        k = top_gmax[2];
-        index = d_index3d(i,j,k,top_gmax);
-        coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-        coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-        coord_z = cell_center[index].coords[2] + top_h[2]/2.0;
-        fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-
-        fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
-        for (i = 0; i < num_cells; i++)
-        {
-            int index0,index1,index2,index3,index4,index5,index6,index7;
-            index = ph_index[i];
-            icoords[0] = cell_center[index].icoords[0];
-            icoords[1] = cell_center[index].icoords[1];
-            icoords[2] = cell_center[index].icoords[2];
-
-            index0 = d_index3d(icoords[0],icoords[1],icoords[2],top_gmax);
-            index1 =
-                d_index3d(icoords[0]+1,icoords[1],icoords[2],top_gmax);
-            index2 =
-                d_index3d(icoords[0],icoords[1]+1,icoords[2],top_gmax);
-            index3 =
-                d_index3d(icoords[0]+1,icoords[1]+1,icoords[2],top_gmax);
-            index4 =
-                d_index3d(icoords[0],icoords[1],icoords[2]+1,top_gmax);
-            index5 =
-                d_index3d(icoords[0]+1,icoords[1],icoords[2]+1,top_gmax);
-            index6 =
-                d_index3d(icoords[0],icoords[1]+1,icoords[2]+1,top_gmax);
-            index7 =
-                d_index3d(icoords[0]+1,icoords[1]+1,icoords[2]+1,top_gmax);
-
-
-            fprintf(outfile,"8 %i %i %i %i %i %i %i %i\n",
-                index0,index1,index2,index3,index4,index5,index6,index7);
-        }
-
-	fprintf(outfile, "CELL_TYPES %i\n", num_cells);
-        for (i = 0; i < num_cells; i++)
-            fprintf(outfile,"11\n");
-
-        fprintf(outfile, "CELL_DATA %i\n", num_cells);
-        fprintf(outfile, "SCALARS temperature double\n");
-        fprintf(outfile, "LOOKUP_TABLE default\n");
-        for (i = 0; i < num_cells; i++)
-        {
-            index = ph_index[i];
-            fprintf(outfile,"%f\n",eqn_params->field->temperature[index]);
+	    fprintf(outfile,"%f\n",eqn_params->field->temperature[index]);
         }
         fclose(outfile);
 }       /* end vtk_plot_temperature3d */
@@ -2491,79 +2330,62 @@ void CARTESIAN::setDomain()
 
 void CARTESIAN::initMovieVariables()
 {
-
-	boolean set_bound = NO;
-        FILE *infile = fopen(InName(front),"r");
-        char string[100];
-        double var_max,var_min;
-
-        if (debugging("trace"))
-            printf("Entering initMovieVariables()\n");
-
-	if (CursorAfterStringOpt(infile,"Type y to set movie bounds:"))
-        {
-            fscanf(infile,"%s",string);
-            (void) printf("%s\n",string);
-            if (string[0] == 'Y' || string[0] == 'y')
-	    {
-                set_bound = YES;
-                CursorAfterString(infile,"Enter min and max temperature:");
-                fscanf(infile,"%lf %lf",&var_min,&var_min);
-                (void) printf("%f %f\n",var_min,var_max);
-	    }
-	}
-	CursorAfterString(infile,"Type y to make movie of temperature:");
-        fscanf(infile,"%s",string);
-        (void) printf("%s\n",string);
-        if (string[0] != 'Y' && string[0] != 'y')
-	    return;
-        
-	
-	switch (dim)
-	{
-	case 1:
-	case 2:
-            FT_AddHdfMovieVariable(front,set_bound,YES,ERROR_COMP,
+	if(dim == 2)
+	    FT_AddHdfMovieVariable(front,NO,YES,SOLID_COMP,
                                 "temperature",0,field->temperature,
-				getStateTemperature,var_max,var_min);
-	    break;
-	case 3:
-	    if (CursorAfterStringOpt(infile,
-                "Type y to make yz cross section movie:"))
-            {
-                fscanf(infile,"%s",string);
-                (void) printf("%s\n",string);
-                if (string[0] == 'Y' || string[0] == 'y')
-            	    FT_AddHdfMovieVariable(front,set_bound,YES,ERROR_COMP,
-                                	"temperature-yz",0,field->temperature,
-					getStateTemperature,var_max,var_min);
-            }
-	    if (CursorAfterStringOpt(infile,
-                "Type y to make xz cross section movie:"))
-            {
-                fscanf(infile,"%s",string);
-                (void) printf("%s\n",string);
-                if (string[0] == 'Y' || string[0] == 'y')
-            	    FT_AddHdfMovieVariable(front,set_bound,YES,ERROR_COMP,
-                                	"temperature-xz",0,field->temperature,
-					getStateTemperature,var_max,var_min);
-            }
-	    if (CursorAfterStringOpt(infile,
-                "Type y to make xy cross section movie:"))
-            {
-                fscanf(infile,"%s",string);
-                (void) printf("%s\n",string);
-                if (string[0] == 'Y' || string[0] == 'y')
-            	    FT_AddHdfMovieVariable(front,set_bound,YES,ERROR_COMP,
-                                	"temperature-xy",0,field->temperature,
-					getStateTemperature,var_max,var_min);
-            }
-	}
-	fclose(infile);
-
+				getStateTemperature,0,0);
         if (debugging("trace"))
             printf("Leaving initMovieVariables()\n");
 }	/* end initMovieVariables */
+
+void CARTESIAN::augmentMovieVariables(const char* varname)
+{
+        int i;
+        static HDF_MOVIE_VAR *hdf_movie_var;
+        int n,offset,num_var;
+        MOVIE_OPTION *movie_option = eqn_params->movie_option;
+
+        offset = front->hdf_movie_var->num_var;
+        num_var = offset + 1;
+	
+	printf("num_var = %d\n",num_var);       
+	if (hdf_movie_var == NULL)
+	{
+            FT_ScalarMemoryAlloc((POINTER*)&hdf_movie_var,
+                                sizeof(HDF_MOVIE_VAR));
+            FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,num_var,
+                                        100,sizeof(char));
+            FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,num_var,
+                                        sizeof(double*));
+            FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->idir,num_var,
+                                        sizeof(int));
+            FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,
+                                        num_var,sizeof(COMPONENT));
+            FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,num_var,
+                                        sizeof(boolean));
+            FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,num_var,
+                                        sizeof(double));
+            FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,num_var,
+                                        sizeof(double));
+	}
+            for (i = 0; i < front->hdf_movie_var->num_var; ++i)
+            {
+                strcpy(hdf_movie_var->var_name[i],
+                        front->hdf_movie_var->var_name[i]);
+                hdf_movie_var->get_state_var[i] =
+                        front->hdf_movie_var->get_state_var[i];
+                hdf_movie_var->top_var[i] =
+                        front->hdf_movie_var->top_var[i];
+                hdf_movie_var->obstacle_comp[i] =
+                        front->hdf_movie_var->obstacle_comp[i];
+            }
+            hdf_movie_var->num_var = n = offset;
+            sprintf(hdf_movie_var->var_name[n],varname);
+            hdf_movie_var->get_state_var[n] = getStateTemperature;
+            hdf_movie_var->top_var[n] = field->temperature;
+            hdf_movie_var->obstacle_comp[n] = ERROR_COMP;
+            hdf_movie_var->num_var = ++n;
+}
 
 
 static int find_state_at_crossing(
