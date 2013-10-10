@@ -1467,17 +1467,34 @@ EXPORT	boolean f_delete_start_of_bond(
 	CURVE		*c)
 {
 	boolean status;
+	Locstate rst[20],lst[20];
+	int i;
 
 	if (c->interface->dim == 3)
 	{
 	    BOND_TRI **bt, **bpt;
+	    i = 0;
 	    for (bt = Btris(b), bpt = Btris(b->prev); bt && *bt; ++bt, ++bpt)
 	    {
+		lst[i] = left_end_btri_state(*bpt);
+		rst[i] = right_end_btri_state(*bpt);
 	    	left_end_btri_state(*bpt) = left_end_btri_state(*bt);
 	    	right_end_btri_state(*bpt) = right_end_btri_state(*bt);
+		i++;
 	    }
 	}
 	status = i_delete_start_of_bond(b,c);
+	if (status == FUNCTION_FAILED && c->interface->dim == 3)
+	{
+	    BOND_TRI **bpt;
+	    i = 0;
+	    for (bpt = Btris(b->prev); bpt && *bpt; ++bpt)
+	    {
+		left_end_btri_state(*bpt) = lst[i];
+		right_end_btri_state(*bpt) = rst[i];
+		i++;
+	    }
+	}
 	return status;
 }		/*end f_delete_start_of_bond*/
 

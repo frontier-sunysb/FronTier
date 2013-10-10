@@ -1797,7 +1797,6 @@ extern void fourth_order_elastic_surf_propagate(
 	    set_curve_spring_vertex(&geom_set,newc[i],x_pos,v_pos,sv,&count);
 	for (i = 0; i < num_nodes; ++i)
 	{
-	    printf("count = %d\n",count);
 	    set_node_spring_vertex(&geom_set,newn[i],x_pos,v_pos,sv,&count);
 	}
 

@@ -976,8 +976,17 @@ EXPORT	TRI_STATUS tri_scaled_status(
 	s00 = (p1[0]-p0[0])/h0; s01 = (p1[1]-p0[1])/h1; s02 = (p1[2]-p0[2])/h2;
 	s10 = (p2[0]-p1[0])/h0; s11 = (p2[1]-p1[1])/h1; s12 = (p2[2]-p1[2])/h2;
 	s20 = (p0[0]-p2[0])/h0; s21 = (p0[1]-p2[1])/h1; s22 = (p0[2]-p2[2])/h2;
-	QCross3d(s0,s2,N);
+	len2[0] = QDot3d(s0,s0);
+	len2[1] = QDot3d(s1,s1);
+	len2[2] = QDot3d(s2,s2);
+	for (i = 0; i < 3; ++i)
+	{
+	    len[i] = sqrt(len2[i]);
+	    if (len[i] > scaled_redist_params.max_scaled_side_length)
+	    	return LARGE;
+	}
 
+	QCross3d(s0,s2,N);
 	tri_area = 0.5*sqrt(QDot3d(N,N));
 	if (tri_area < scaled_redist_params.min_scaled_tri_area)
 	{
@@ -987,16 +996,10 @@ EXPORT	TRI_STATUS tri_scaled_status(
 	{
 	    return LARGE;
 	}
-
 			/* Check aspect ratio	*/
-	len2[0] = QDot3d(s0,s0);
-	len2[1] = QDot3d(s1,s1);
-	len2[2] = QDot3d(s2,s2);
 	len_max = -HUGE;
 	len_min =  HUGE;
 	min_angle = HUGE;
-	for (i = 0; i < 3; ++i)
-	    len[i] = sqrt(len2[i]);
 	for (i = 0; i < 3; ++i)
 	{
 	    cos_angle[i] = (len2[i] + len2[(i+1)%3] - len2[(i+2)%3])
@@ -1006,7 +1009,6 @@ EXPORT	TRI_STATUS tri_scaled_status(
 	    if (len_max < len[i]) len_max = len[i];
 	    if (min_angle > angle[i]) min_angle = angle[i];
 	}
-
 	if (min_angle < PI/12.0)
 	{
 	    return BAD_ANGLE;
@@ -1016,14 +1018,6 @@ EXPORT	TRI_STATUS tri_scaled_status(
 	{
 	    return BAD_ANGLE;
 	}
-
-	if ((len[0] > scaled_redist_params.max_scaled_side_length) || 
-	    (len[1] > scaled_redist_params.max_scaled_side_length) ||
-	    (len[2] > scaled_redist_params.max_scaled_side_length))
-	{
-	    return LARGE;
-	}
-
 	return GOOD_ANGLE;
 }		/*end tri_status*/
 
@@ -1060,6 +1054,7 @@ LOCAL boolean delete_min_side_of_tri(
 	FILE	*file;
 	char	fname[100];
 	int pr_side,nx_side;
+	boolean status;
 
 	DEBUG_ENTER(delete_min_side_of_tri)
 	/*
@@ -1086,14 +1081,16 @@ LOCAL boolean delete_min_side_of_tri(
 		if (bp == b->next)
 		{
 		    dequeue_tris_around_bond_point(bp->start,bp,intfc,pq);
-		    delete_start_of_bond(bp,curve);
+		    status = delete_start_of_bond(bp,curve);
 		}
 		else if (b->prev != NULL)
 		{
 		    dequeue_tris_around_bond_point(b->start,b,intfc,pq);
-		    delete_start_of_bond(b,curve);
+		    status = delete_start_of_bond(b,curve);
 		}
-		return YES;
+		if (!status)
+		    *change_side = YES;
+		return status;
 	    }
 	    else if (is_side_bdry(tri,nx_side))
 	    {
@@ -1101,28 +1098,32 @@ LOCAL boolean delete_min_side_of_tri(
 		if (bn == b->next)
 		{
 		    dequeue_tris_around_bond_point(bn->start,bn,intfc,pq);
-		    delete_start_of_bond(bn,curve);
+		    status = delete_start_of_bond(bn,curve);
 		}
 		else if (b->prev != NULL)
 		{
 		    dequeue_tris_around_bond_point(b->start,b,intfc,pq);
-		    delete_start_of_bond(b,curve);
+		    status = delete_start_of_bond(b,curve);
 		}
-		return YES;
+		if (!status)
+		    *change_side = YES;
+		return status;
 	    }
 	    else
 	    {
 		if (b->prev != NULL)
 		{
 		    dequeue_tris_around_bond_point(b->start,b,intfc,pq);
-		    delete_start_of_bond(b,curve);
+		    status = delete_start_of_bond(b,curve);
 		}
 		else if (b->next != NULL)
 		{
 		    dequeue_tris_around_bond_point(b->end,b,intfc,pq);
-		    delete_start_of_bond(b->next,curve);
+		    status = delete_start_of_bond(b->next,curve);
 		}
-	    	return YES;
+		if (!status)
+		    *change_side = YES;
+	    	return status;
 	    }
 	}
 	if (new_tris == NULL)

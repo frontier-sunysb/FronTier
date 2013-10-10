@@ -3975,6 +3975,7 @@ EXPORT boolean i_delete_start_of_bond(
 	BOND		*b,
 	CURVE		*c)
 {
+	boolean save_modified;
 	if (b==NULL || c==NULL || b->prev==NULL)
 	    return FUNCTION_FAILED;
 
@@ -3996,7 +3997,9 @@ EXPORT boolean i_delete_start_of_bond(
 	    b->next->prev = b->prev;
 	--c->num_points;
 	--c->interface->num_points;
+	save_modified = c->interface->modified;
 	c->interface->modified = YES;
+
 	if ((c->interface->dim == 3) && (Btris(b) != NULL))
 	{
 	    BOND_TRI **bt;
@@ -4009,6 +4012,18 @@ EXPORT boolean i_delete_start_of_bond(
 		{
 	            (void) printf("WARNING in i_delete_start_of_bond(), "
 			          "can't reset tris\n");
+		    /* Restore the topology */
+		    b->prev->end = b->start;
+		    b->prev->next = b;
+		    set_bond_length(b->prev,c->interface->dim);
+
+		    if (b->next==NULL) /* End of Curve */
+		        c->last = b;
+		    else
+		        b->next->prev = b;
+		    ++c->num_points;
+		    ++c->interface->num_points;
+		    c->interface->modified = save_modified;
 		    return FUNCTION_FAILED;
 		}
 	    }
