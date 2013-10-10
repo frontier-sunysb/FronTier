@@ -1451,3 +1451,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 	    (void) printf("Leaving Incompress_Solver_Smooth_2D_Cartesian::"
 			"computeDiffusionExplicit()\n");
 }       /* end computeDiffusionExplicit */
+
+void Incompress_Solver_Smooth_2D_Cartesian::vtk_plot_scalar(
+        char *outname, const char* varname)
+{
+}	/* end vtk_plot_scalar */

@@ -32,7 +32,7 @@ mcartsn.o : climate.h mcartsn.cpp
 vcartsn.o : climate.h vcartsn.cpp
 	${CXX} -c vcartsn.cpp $(incsloc) $(incs) ${Petsc_Include}
 
-mprop.o : climate.h clmprop.cpp
+clmprop.o : climate.h clmprop.cpp
 	${CXX} -c clmprop.cpp $(incsloc) $(incs) ${Petsc_Include}
 
 clmsub.o : climate.h ../iFluid/iFluid.h clmsub.cpp
@@ -53,6 +53,9 @@ ellip.o : ../solver/solver.h ../solver/ellip.cpp
 cim_ellip.o : ../solver/solver.h ../solver/cim_ellip.cpp
 	${CXX} -c ../solver/cim_ellip.cpp $(incsloc) $(incs) ${Petsc_Include}
 
+cim_parab.o : ../solver/solver.h ../solver/cim_parab.cpp
+	${CXX} -c ../solver/cim_parab.cpp $(incsloc) $(incs) ${Petsc_Include}
+
 dual_ellip.o : ../solver/solver.h ../solver/dual_ellip.cpp
 	${CXX} -c ../solver/dual_ellip.cpp $(incsloc) $(incs) ${Petsc_Include}
 
@@ -62,11 +65,11 @@ iFsub.o : ../iFluid/iFluid.h ../iFluid/iFsub.cpp
 clminit.o : climate.h ../iFluid/iFluid.h clminit.cpp
 	${CXX} -c clminit.cpp $(incsloc) $(incs) ${Petsc_Include}
 
-climate: ../iFluid/iFluid.h climate.h climate.cpp clmsub.o clmprop.o mcartsn.o vcartsn.o clminit.o iFsub.o ../lib/libiF.a
+climate: ../iFluid/iFluid.h climate.h climate.cpp iFsub.o clmsub.o clminit.o mcartsn.o clmprop.o vcartsn.o ../lib/libiF.a
 	${CXX} -c climate.cpp $(incsloc) $(incs) ${Petsc_Include}
-	$(CXX) -o climate climate.o clminit.o iFsub.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
+	$(CXX) -o climate climate.o clmsub.o iFsub.o mcartsn.o vcartsn.o clmprop.o clminit.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
 
-../lib/libiF.a: solver.o cim_ellip.o dual_ellip.o ellip.o hyperb.o parab.o iFbasic.o iFcartsn2d.o iFcartsn3d.o
+../lib/libiF.a: solver.o hyperb.o parab.o cim_parab.o ellip.o cim_ellip.o dual_ellip.o iFbasic.o iFcartsn2d.o iFcartsn3d.o
 	$(AR) cru libiF.a $^
 	ranlib libiF.a; mv libiF.a ../lib/$(build_cpu)/libiF.a
 
