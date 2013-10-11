@@ -304,7 +304,9 @@ void PETSc::Solve_withPureNeumann_GMRES(void)
 
 void PETSc::Solve_withPureNeumann(void)
 {
-	Solve_withPureNeumann_SOR();
+	// Waiting for resolution!
+	//Solve_withPureNeumann_SOR();
+	Solve_withPureNeumann_BCGSL();
 }	/* end Solve_withPureNeumann */
 
 void PETSc::Solve_withPureNeumann_SOR(void)
