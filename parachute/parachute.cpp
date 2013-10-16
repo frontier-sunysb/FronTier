@@ -101,7 +101,7 @@ int main(int argc, char **argv)
         front.extra2 = (POINTER)&af_params;
         read_iFparams(in_name,&iFparams);
 
-	level_func_pack.neg_component = LIQUID_COMP2;
+	level_func_pack.pos_component = LIQUID_COMP2;
 	if (!RestartRun)
 	{
 	    FT_InitIntfc(&front,&level_func_pack);

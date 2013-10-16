@@ -9,8 +9,8 @@ Upper boundary in 1-th dimension: PERIODIC_BOUNDARY
 Lower boundary in 2-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 2-th dimension: DIRICHLET_BOUNDARY
 
-Max time: 20.0
-Max step: 1000
+Max time: 2.0
+Max step: 2000
 Print interval: 0.05
 Movie frame interval: 0.1
 CFL factor: 0.5
@@ -39,7 +39,7 @@ Enter yes to attach strings to canopy: yes
 Available string chord configurations are
 	Parallel (P)
 	Angular (A)
-Enter string configurationtype: P
+Enter string configuration type: P
 Enter number of paris in x-direction: 5
 Enter start and end x-coordinates: 5.5 8.5
 Enter y position of lower and upper sides: 2.5 11.5
@@ -65,14 +65,11 @@ Enter porosity of canopy: 0.0
 Enter area density of canopy: 10.0
 Enter interior sub step number: 10
 
-Enter fabric spring constant: 4000
-Enter fabric friction constant: 0.01 
-Enter fabric point mass: 0.01
-Enter gore spring constant: 8000
-Enter gore friction constant: 0.01
-Enter gore point mass: 0.01
-Enter string spring constant: 5000
-Enter string friction constant: 0.01 
+Enter fabric spring constant: 5000
+Enter fabric friction constant: 0.02 
+Enter fabric point mass: 0.001
+Enter string spring constant: 50000
+Enter string friction constant: 0.001 
 Enter string point mass: 0.01
 
 For lower boundary in 2-th dimension
@@ -94,9 +91,9 @@ Type y to make vector velocity field movie: y
 ************Debugging options*****************
 
 Enter yes for debugging: yes
-Enter the debugging string: set_module
+Enter the debugging string: tset_module
 Enter the debugging string: trigid_canopy
-Enter the debugging string: optimize_intfc
+Enter the debugging string: toptimize_intfc
 Enter the debugging string: tno_optimize
 Enter the debugging string: tredist_curve
 Enter the debugging string: tretriang
