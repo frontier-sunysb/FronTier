@@ -39,10 +39,6 @@ static void initNodePropagation(Front*);
 static void spring_surface_propagate(Front*,POINTER,SURFACE*,SURFACE*,double);
 static void spring_curve_propagate(Front*,POINTER,CURVE*,CURVE*,double);
 static void spring_node_propagate(Front*,POINTER,NODE*,NODE*,double);
-static void gviewSurfaceStrain(Front*);
-static void gviewSurfaceStress(Front*);
-static void naturalStressOfTri(TRI*,double);
-static void vtkPlotSurfaceStress(Front*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -56,7 +52,7 @@ int main(int argc, char **argv)
 	static Front front;
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
-	AF_PARAMS 	af_params;
+	static AF_PARAMS af_params;
 
 	FT_Init(argc,argv,&f_basic);
 	f_basic.size_of_intfc_state = sizeof(STATE);
@@ -145,10 +141,12 @@ static  void spring_driver(
 
 	    // Always output the initial interface.
 	    FT_Save(front,out_name);
+	    gviewSurfaceStress(front);
 
 	    printAfExtraDada(front,out_name);
 
             FT_AddMovieFrame(front,out_name,binary);
+	    vtkPlotSurfaceStress(front);
 
 	    FT_Propagate(front);
 	    print_airfoil_stat(front,out_name);
@@ -196,12 +194,12 @@ static  void spring_driver(
 	    {
 		FT_Save(front,out_name);
 	    	printAfExtraDada(front,out_name);
-		gviewSurfaceStrain(front);
 		gviewSurfaceStress(front);
 	    }
             if (FT_IsMovieFrameTime(front))
 	    {
                 FT_AddMovieFrame(front,out_name,binary);
+		vtkPlotSurfaceStress(front);
 	    }
 
             if (FT_TimeLimitReached(front))
@@ -511,188 +509,3 @@ static void spring_node_propagate(
 	s = mag_vector(vel,dim);
         set_max_front_speed(dim,s,NULL,Coords(newn->posn),front);
 }	/* end spring_node_propagate */
-
-static void gviewSurfaceStrain(
-	Front *front)
-{
-}	/* end gviewSurfaceStrain */
-
-static void gviewSurfaceStress(
-	Front *front)
-{
-	char *outname = OutName(front);
-	INTERFACE *intfc = front->interf;
-	SURFACE **s;
-	TRI *tri;
-	POINT *p;
-	double f[MAXD];
-	char dirname[200];
-	int i,j;
-	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
-	double ks = af_params->ks;
-	double max_color = -HUGE;
-	double min_color = HUGE;
-	int n,N;
-	double *color;
-	
-	n = 0;
-	intfc_surface_loop(intfc,s)
-	{
-	    if (Boundary(*s)) continue;
-	    surf_tri_loop(*s,tri)
-	    {
-		n++;
-		naturalStressOfTri(tri,ks);
-		if (max_color < tri->color)
-		    max_color = tri->color;
-		if (min_color > tri->color)
-		    min_color = tri->color;
-	    }
-	}
-	FT_VectorMemoryAlloc((POINTER*)&color,n,sizeof(double));
-	printf("min_color = %f  max_color = %f\n",min_color,max_color);
-	n = 0;
-	intfc_surface_loop(intfc,s)
-	{
-	    if (Boundary(*s)) continue;
-	    surf_tri_loop(*s,tri)
-		tri->color = log(tri->color-min_color+1);
-	}
-	/* Smoothing loop */
-	intfc_surface_loop(intfc,s)
-	{
-	    if (Boundary(*s)) continue;
-	    I_SmoothSurfColor(*s,3);
-	}
-	sprintf(dirname,"%s/%s-ts%s",outname,"gv.stress",
-			right_flush(front->step,7));
-	gview_plot_color_scaled_interface(dirname,intfc);
-	vtkPlotSurfaceStress(front);
-}	/* end gviewSurfaceStress */
-
-static void naturalStressOfTri(
-	TRI *tri,
-	double ks)
-{
-	double tau[3];
-	double sigma[3];
-	int i,j;
-	double len,len0;
-	double vec[3];
-	double s[3],c[3];
-	double b1,b2,arg,sigma1,sigma2;
-
-	for (i = 0; i < 3; ++i)
-	{
-	    len0 = tri->side_length0[i];
-	    for (j = 0; j < 3; ++j)
-	    {
-		vec[j] = Coords(Point_of_tri(tri)[(i+1)%3])[j] -
-			Coords(Point_of_tri(tri)[i])[j];
-	    }
-	    len = Mag3d(vec);
-	    tau[i] = ks*(len - len0);
-	    c[i] = vec[0]/len;
-	    s[i] = vec[1]/len;
-	}
-	// Convert to Cartesian tensor
-	for (i = 0; i < 3; ++i)
-	{
-	    sigma[i] = sqr(c[i])*tau[0] + sqr(s[i])*tau[1] + s[i]*c[i]*tau[2];
-	}
-	// Diagonalize the stress tensor for principal directions
-	b1 = -(sigma[0] + sigma[1]);
-	b2 = sigma[0]*sigma[1] - 0.25*sqr(sigma[2]);
-	arg = sqr(b1) - 4.0*b2;
-	sigma1 = 0.5*(-b1 + sqrt(arg));
-	sigma2 = 0.5*(-b1 - sqrt(arg));
-	// Use von Mises stress as a measure
-	tri->color = sqrt(sqr(sigma1) + sqr(sigma2) - sigma1*sigma2);
-}	/* end naturalStressOfTri */
-
-static void vtkPlotSurfaceStress(
-	Front *front)
-{
-	char *outname = OutName(front);
-	INTERFACE *intfc = front->interf;
-	SURFACE **s;
-	TRI *tri;
-	POINT *p;
-	char dirname[200],fname[200];
-	int i,j;
-	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
-	int n,N;
-	double *color;
-	FILE *vfile;
-	int num_tri;
-	
-	n = 0;
-	sprintf(dirname,"%s/%s%s",outname,"vtk.ts",
-			right_flush(front->step,7));
-	if (!create_directory(dirname,NO))
-        {
-            printf("Cannot create directory %s\n",dirname);
-            clean_up(ERROR);
-        }
-	sprintf(fname,"%s/%s",dirname,"stress.vtk");
-	vfile = fopen(fname,"w");
-	fprintf(vfile,"# vtk DataFile Version 3.0\n");
-        fprintf(vfile,"Surface stress\n");
-        fprintf(vfile,"ASCII\n");
-        fprintf(vfile,"DATASET UNSTRUCTURED_GRID\n");
-
-	num_tri = 0;
-
-	intfc_surface_loop(intfc,s)
-	{
-	    if (Boundary(*s)) continue;
-	    num_tri += (*s)->num_tri;
-	}
-	fprintf(vfile,"POINTS %d double\n", 3*num_tri);
-	intfc_surface_loop(intfc,s)
-	{
-	    if (Boundary(*s)) continue;
-	    surf_tri_loop(*s,tri)
-	    {
-		for (i = 0; i < 3; ++i)
-		{
-		    p = Point_of_tri(tri)[i];
-		    fprintf(vfile,"%f %f %f\n",Coords(p)[0],Coords(p)[1],
-						Coords(p)[2]);
-		}
-	    }
-	}
-	fprintf(vfile,"CELLS %i %i\n",num_tri,4*num_tri);
-	n = 0;
-	intfc_surface_loop(intfc,s)
-	{
-	    if (Boundary(*s)) continue;
-	    surf_tri_loop(*s,tri)
-	    {
-		fprintf(vfile,"3 %i %i %i\n",3*n,3*n+1,3*n+2);
-		n++;
-	    }
-	}
-	fprintf(vfile, "CELL_TYPES %i\n",num_tri);
-        intfc_surface_loop(intfc,s)
-	{
-            if (Boundary(*s)) continue;
-            surf_tri_loop(*s,tri)
-            {
-                fprintf(vfile,"5\n");
-            }
-        }
-
-	fprintf(vfile, "CELL_DATA %i\n", num_tri);
-        fprintf(vfile, "SCALARS von_Mises_stress double\n");
-        fprintf(vfile, "LOOKUP_TABLE default\n");
-	intfc_surface_loop(intfc,s)
-	{
-	    if (Boundary(*s)) continue;
-	    surf_tri_loop(*s,tri)
-	    {
-		fprintf(vfile,"%f\n",tri->color);
-	    }
-	}
-}	/* end vtkSurfaceStress */
-

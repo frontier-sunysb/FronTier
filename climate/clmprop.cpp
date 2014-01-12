@@ -43,7 +43,8 @@ extern  void melting_point_propagate(
         double              dt,
         double              *V)
 {
-	PARAMS *eqn_params = (PARAMS*)front->extra2;
+	PARAMS* eqn_params = (PARAMS*)front->extra2;
+	CL_PROB_TYPE prob_type = eqn_params->prob_type;
 	switch(wave_type(oldhs))
         {
         case SUBDOMAIN_BOUNDARY:
@@ -57,7 +58,7 @@ extern  void melting_point_propagate(
                                         oldhs,dt,V);
             return;
 	case ICE_PARTICLE_BOUNDARY:
-	    condensation_point_propagate(front,wave,oldp,newp,oldhse,
+	        condensation_point_propagate(front,wave,oldp,newp,oldhse,
                                         oldhs,dt,V);
 	    return;
         }
@@ -102,13 +103,13 @@ static  void condensation_point_propagate(
 	COMPONENT comp;
 
 	FT_GetStatesAtPoint(oldp,oldhse,oldhs,&sl,&sr);
-	if (negative_component(oldhs) == LIQUID_COMP)
+	if (negative_component(oldhs) == LIQUID_COMP2)
         {
             comp = negative_component(oldhs);
             oldst = (STATE*)sl;
             newst = (STATE*)left_state(newp);
         }
-        else if (positive_component(oldhs) == LIQUID_COMP)
+        else if (positive_component(oldhs) == LIQUID_COMP2)
         {
             comp = positive_component(oldhs);
             oldst = (STATE*)sr;

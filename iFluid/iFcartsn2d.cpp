@@ -356,9 +356,23 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeSourceTerm(
 	double *coords, 
 	double *source) 
 {
-	int i;
-	for (i = 0; i < dim; ++i)
-	    source[i] = iFparams->gravity[i];
+        int i;
+	if(iFparams->if_buoyancy)
+	{
+	    double T0   = iFparams->ref_temp;
+	    double* T = field->temperature;
+	    int ic[MAXD],index;
+
+	    rect_in_which(coords,ic,top_grid);
+	    index = d_index(ic,top_gmax,dim);
+	    for (i = 0; i < dim; ++i)
+                source[i] = iFparams->gravity[i]*(T[index] - T0)/T0;
+	}
+	else
+	{
+            for (i = 0; i < dim; ++i)
+                source[i] = iFparams->gravity[i];
+	}
 }	/* end computeSourceTerm */
 
 void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)

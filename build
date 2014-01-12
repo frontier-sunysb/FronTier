@@ -186,12 +186,46 @@ function config_vogon {
 }
 
 #################
-function config_alpha_omega {
+function config_alpha {
     export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
     export F77="mpif77 ${OPTS}"
     export CC="mpicc ${OPTS} ${COPTS_GCC}"
 
     export scriptotherlibs="${scriptotherlibs} /lib64/libblas.so /lib64/libgfortran.so.3"
+
+    export PETSC_DIR=/usr/local/pkg/petsc
+    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -lm -L/usr/X11R6/lib -lX11"
+
+    if [[ -n "$WITHHYPRE" ]]; then
+        CONF="$CONF --with-hypre"
+	export USEHYPRE="yes"
+    else
+	export USEHYPRE="no"
+    fi
+
+    if [[ -n "$WITHGPU" ]]; then
+        CONF="$CONF --with-gpu"
+	export USEGPU="yes"
+    else
+	export USEGPU="no"
+    fi
+
+    if [[ -n "$WITHHDF" ]]; then
+        CONF="$CONF --with-hdf=/usr/local/pkg/hdf"
+    fi
+
+    export CONF="--with-mpich=/usr/local/pkg/mpich2 --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/usr"
+    PMAKE="-j2"
+}
+
+#################
+function config_omega {
+    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
+    export F77="mpif77 ${OPTS}"
+    export CC="mpicc ${OPTS} ${COPTS_GCC}"
+
+    export scriptotherlibs="${scriptotherlibs} /usr/lib/libblas.so /usr/lib/x86_64-linux-gnu/libgfortran.so.3" 
 
     export PETSC_DIR=/usr/local/pkg/petsc
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
@@ -504,10 +538,10 @@ elif [[ "${HOST}" == "sirius" ]]; then
     config_galaxy
 elif [[ "${HOST}" == "alpha" ]]; then
     echo "Computer is recognized as alpha."
-    config_alpha_omega
+    config_alpha
 elif [[ "${HOST}" == "omega" ]]; then
     echo "Computer is recognized as omega."
-    config_alpha_omega
+    config_omega
 elif [[ "${HOST}" == "linli-pc" ]]; then
     echo "Computer is recognized as linli-pc."
     config_alpha_omega

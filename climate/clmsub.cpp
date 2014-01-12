@@ -34,8 +34,6 @@ static void dirichlet_point_propagate(Front*,POINTER,POINT*,POINT*,
                         HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 static void contact_point_propagate(Front*,POINTER,POINT*,POINT*,
                         HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
-static void rgbody_point_propagate(Front*,POINTER,POINT*,POINT*,
-                        HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void rand_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static  void compute_ice_particle_force2d_velo(Front*,HYPER_SURF*,double,double*,double*);
@@ -540,7 +538,11 @@ void init_fluid_state_func(
 	Front *front,
         Incompress_Solver_Smooth_Basis *l_cartesian)
 {
-	l_cartesian->getInitialState = rand_state;
+	PARAMS *eqn_params = (PARAMS*)front->extra2;
+	if(eqn_params->if_rand_vel)
+	    l_cartesian->getInitialState = rand_state;
+	else
+	    l_cartesian->getInitialState = zero_state;
 }	/* end init_fluid_state_func */
 
 static void rand_state(
@@ -579,125 +581,6 @@ static void zero_state(
         field->pres[index] = 0.0;
 }       /* end zero_state */
 
-extern void read_fluid_params(
-	Front *front)
-{
-	char string[100];
-	PARAMS *eqn_params = (PARAMS*)front->extra2;
-	char *inname = InName(front);
-	FILE *infile = fopen(inname,"r");
-	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
-	int i;
-	int dim = iFparams->dim;
-
-	if (eqn_params->no_fluid == YES) return;
-	/* defaults numerical schemes */
-        iFparams->num_scheme.projc_method = SIMPLE;
-        iFparams->num_scheme.advec_method = WENO;
-        iFparams->num_scheme.ellip_method = SIMPLE_ELLIP;
-
-        
-	CursorAfterString(infile,"Enter density and viscosity of the fluid:");
-	fscanf(infile,"%lf %lf",&iFparams->rho2,&iFparams->mu2);
-	(void) printf("%f %f\n",iFparams->rho2,iFparams->mu2);
-	iFparams->m_comp1 = SOLID_COMP;
-	iFparams->m_comp2 = LIQUID_COMP;
-	
-	CursorAfterString(infile,"Enter gravity:");
-        for (i = 0; i < dim; ++i)
-        {
-            fscanf(infile,"%lf",&iFparams->gravity[i]);
-            (void) printf("%f ",iFparams->gravity[i]);
-        }
-        (void) printf("\n");
-
-
-        CursorAfterString(infile,"Enter surface tension:");
-        fscanf(infile,"%lf",&iFparams->surf_tension);
-	(void) printf("%f\n",iFparams->surf_tension);
-        CursorAfterString(infile,"Enter factor of smoothing radius:");
-        fscanf(infile,"%lf",&iFparams->smoothing_radius);
-	(void) printf("%f\n",iFparams->smoothing_radius);
-	iFparams->num_scheme.projc_method = ERROR_PROJC_SCHEME;
-        CursorAfterString(infile,"Enter projection type:");
-        fscanf(infile,"%s",string);
-	(void) printf("%s\n",string);
-        switch (string[0])
-        {
-        case 'S':
-        case 's':
-            iFparams->num_scheme.projc_method = SIMPLE;
-            break;
-        case 'B':
-        case 'b':
-            iFparams->num_scheme.projc_method = BELL_COLELLA;
-            break;
-        case 'K':
-        case 'k':
-            iFparams->num_scheme.projc_method = KIM_MOIN;
-            break;
-        case 'P':
-        case 'p':
-            iFparams->num_scheme.projc_method = PEROT_BOTELLA;
-        }
-	assert(iFparams->num_scheme.projc_method != ERROR_PROJC_SCHEME);
-	(void) printf("The default advection order is WENO-Runge-Kutta 4\n");
-        iFparams->adv_order = 4;
-        if (CursorAfterStringOpt(infile,"Enter advection order:"))
-        {
-            fscanf(infile,"%d",&iFparams->adv_order);
-            (void) printf("%d\n",iFparams->adv_order);
-        }
-	if (CursorAfterStringOpt(infile,"Enter elliptic method:"))
-        {
-            fscanf(infile,"%s",string);
-            (void) printf("%s\n",string);
-            switch (string[0])
-            {
-            case 'S':
-            case 's':
-                iFparams->num_scheme.ellip_method = SIMPLE_ELLIP;
-                break;
-            case 'c':
-            case 'C':
-                iFparams->num_scheme.ellip_method = CIM_ELLIP;
-                break;
-            }
-        }
-        iFparams->ub_speed = HUGE;
-        if (CursorAfterStringOpt(infile,"Enter upper bound for speed:"))
-        {
-            fscanf(infile,"%lf ",&iFparams->ub_speed);
-            (void) printf("%f\n",iFparams->ub_speed);
-        }
-
-        iFparams->buoyancy_flow = NO;
-        if (CursorAfterStringOpt(infile,"Enter yes to turn on buoyancy driven flow:"))
-        {
-            fscanf(infile,"%s",string);
-            (void) printf("%s\n",string);
-            if (string[0] == 'y' || string[0] == 'Y')
-                iFparams->buoyancy_flow = YES;
-        }
-	iFparams->if_ref_pres = NO;
-        if (CursorAfterStringOpt(infile,"Enter yes to turn on reference pressure:"))
-        {
-            fscanf(infile,"%s",string);
-            (void) printf("%s\n",string);
-            if (string[0] == 'y' || string[0] == 'Y')
-                iFparams->if_ref_pres = YES;
-        }
-	if (iFparams->if_ref_pres == YES)
-	{
-	    CursorAfterStringOpt(infile,"Enter reference pressure(Pa):");
-	    fscanf(infile,"%lf",&iFparams->ref_pres);
-            (void) printf("%f\n",iFparams->ref_pres);
-	}
-
-
-	fclose(infile);
-}	/* end read_fluid_params */
-
 extern double jumpEpsGradDotNorm(
         POINTER params,
         int D,
@@ -725,12 +608,6 @@ extern double jumpGradDotTan(
 {
         return 0.0;
 }       /* end jumpGradDotTan */
-
-
-extern double computeVaporSource(double* coords, double source)
-{
-	return 0;
-}
 
 extern  void compute_ice_particle_force(
         Front *fr,
@@ -1155,7 +1032,6 @@ static boolean force_on_hse2d(
 	    area[0] *= -1;
 	if(crds2[0] < crds1[0])
 	    area[1] *= -1;
-	printf("crds1=(%f, %f), crds2=(%f, %f)\n",crds1[0],crds1[1],crds2[0],crds2[2]); 
         *pres = 0.5*(p1 + p2);
         posn[0] = 0.5*(crds1[0] + crds2[0]);
         posn[1] = 0.5*(crds1[1] + crds2[1]);
@@ -1213,6 +1089,102 @@ static double intrp_between(
         return y;
 }
 
+extern void ParticlePropagate(Front *fr)
+{
+        RECT_GRID *gr = FT_GridIntfcTopGrid(fr);
+        IF_PARAMS *iFparams = (IF_PARAMS*)fr->extra1;
+	PARAMS *eqn_params = (PARAMS*)fr->extra2;
+	PARTICLE* particle_array = eqn_params->particle_array;
+	double **vel = iFparams->field->vel;
+	double *supersat = eqn_params->field->supersat;
+	double *gravity = iFparams->gravity;
+        int *gmax = FT_GridIntfcTopGmax(fr);
+	int i, j, index, dim = gr->dim;
+	double T;
+	int ic[MAXD];
+	double *center;
+	double s; /*restore local supersaturation*/
+	double *cvel; /*center velocity for droplets*/
+	double a;  /*acceleration*/
+	double dt = fr->dt;
+
+        /*computing finite respone time*/
+        double rho_0    = iFparams->rho2;/*fluid density*/
+        double mu       = iFparams->mu2;/*viscosity*/
+	double R, rho, tau_p, cond_spd;
+	double R_max = 0;
+	double R_min = HUGE;
+
+	for (i = 0; i < eqn_params->num_drops; i++)
+	{
+            /*computing finite respone time*/
+            R        = particle_array[i].radius;/*droplet radius*/
+            rho      = particle_array[i].rho;/*water droplet density*/
+            tau_p    = 2 * rho*R*R/(9*rho_0*mu);/*response time*/
+
+	    if (R == 0)
+	    {
+		R_min = 0;
+	        continue;
+	    }
+	    /*find velocity in coords*/
+	    center = particle_array[i].center;
+	    rect_in_which(center,ic,gr);
+	    index = d_index(ic,gmax,dim);
+	    cvel = particle_array[i].vel;
+	    /*compute velocity for particle[i] with implicit method*/
+	    for(j = 0; j < dim; ++j)
+            {
+		/*compute velocity*/
+		cvel[j] += vel[j][index]/tau_p + gravity[j];
+		cvel[j] /= (1+1/tau_p); 
+	  	/*compute center of particle[i]*/
+		center[j] += cvel[j]*dt;
+
+		/*handle periodic drops*/
+		T = gr->U[j]-gr->L[j];	
+		if (center[j] > gr->U[j])
+		    center[j] = gr->L[j]+fmod(center[j],T);
+		if (center[j] < gr->L[j])
+		    center[j] = gr->U[j]+fmod(center[j],T);
+		if(isnan(center[j]))
+		{
+		    printf("center[%d]=nan, T = %f, domain=[%f,%f]\n",
+				j,T,gr->L[j],gr->U[j]);
+		    clean_up(ERROR);
+		}
+	    }
+	    /*compute radius for particle[i]*/
+	    s = supersat[index];
+	    cond_spd = eqn_params->K*s/R;
+	    R += cond_spd*dt;
+
+	    if (R < 0)
+		R = 0;
+	    particle_array[i].radius = R;
+	    /*save max and min radius*/
+	    if(R > R_max)
+		R_max = R;
+	    if(R < R_min)
+		R_min = R;
+	    if (debugging("particles"))
+	    {
+	        printf("\nDrop[%d]:\n",i);
+	        printf("Supersat: %f\n",s);
+	        printf("Condensation rate: %20.19f\n",eqn_params->K);
+	        printf("Cond speed = %f\n",cond_spd);
+	        printf("dt = %f\n",dt);
+	        printf("Radius:%15.14f\n",R);
+	        printf("center:[%f,%f,%f]\n", center[0],center[1],center[2]);
+	        printf("Flow_vel[%f,%f,%f]\nc_vel[%f,%f,%f]\n",
+		    vel[0][index],vel[1][index],vel[2][index],
+		    cvel[0],cvel[1],cvel[2]);
+	        printf("Response time = %f\n",tau_p);
+	    }
+	}
+	printf("max radius = %20.14f, min radius = %20.14f\n",R_max,R_min);
+}
+
 extern void CondensationPreAdvance(Front *fr)
 {
         INTERFACE *intfc = fr->interf;
@@ -1238,8 +1210,6 @@ extern void CondensationPreAdvance(Front *fr)
 		    total_mass(*c) = eqn_params->rho_l*PI*4.0/3.0*
 				spherical_radius(*c)*spherical_radius(*c)*
 				spherical_radius(*c);
-		    printf("Radius=%19.18f, average supersat=%f, condensation speed=%f\n",
-			    spherical_radius(*c),avg_supersat,cond_speed);
 		}
             }
 	    break;
@@ -1278,7 +1248,7 @@ static double compute_supersat_3d(Front *fr,SURFACE *surf)
         int count,i,dim = gr->dim;
         PARAMS *eqn_params = (PARAMS*)fr->extra2;
 
-        if(negative_component(surf) == LIQUID_COMP)
+        if(negative_component(surf) == LIQUID_COMP2)
             pos_side = NO;
         else
             pos_side = YES;
@@ -1311,7 +1281,7 @@ static double compute_supersat_2d(Front *fr,CURVE *curve)
         int count,i,dim = gr->dim;
         PARAMS *eqn_params = (PARAMS*)fr->extra2;
 
-        if(negative_component(curve) == LIQUID_COMP)
+        if(negative_component(curve) == LIQUID_COMP2)
             pos_side = NO;
         else
             pos_side = YES;
@@ -1415,3 +1385,149 @@ static boolean supersat_on_hse2d(
         return YES;
 }       /*end supersat_on_hse2d*/
 
+extern void printDropletsStates(Front* front, char* outname)
+{
+        char filename[100];
+        FILE *outfile;
+	PARAMS* eqn_params = (PARAMS*)front->extra2;
+	int dim = Dimension(front->interf);
+        PARTICLE* particle_array = eqn_params->particle_array;
+	int i,j,num_drops = eqn_params->num_drops;
+            
+        sprintf(filename,"%s/state.ts%s",outname,
+                        right_flush(front->step,7));
+#if defined(__MPI__)
+        if (pp_numnodes() > 1)
+            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));          
+#endif /* defined(__MPI__) */
+        sprintf(filename,"%s-drops",filename);
+        outfile = fopen(filename,"w");
+	for (i = 0; i < num_drops; i++)
+	{
+	    fprintf(outfile,"%24.18g\n",particle_array[i].radius);
+	    for (j = 0; j < dim; j++)
+		fprintf(outfile,"%24.18g ",particle_array[i].center[j]);
+	    fprintf(outfile,"\n");
+	    for (j = 0; j < dim; j++)
+		fprintf(outfile,"%24.18g ",particle_array[i].vel[j]);
+	    fprintf(outfile,"\n");
+	}
+	fclose(outfile);
+}
+
+extern void gv_plot_scatter(Front* front)
+{
+	PARAMS* eqn_params = (PARAMS*)front->extra2;
+	PARTICLE* particle_array = eqn_params->particle_array;
+	int dim = front->rect_grid->dim;
+	int i, j, n = eqn_params->num_drops;
+	double *coords;
+	char *outname = OutName(front);
+	char fname[256];
+	FILE* file;
+	
+	sprintf(fname,"%s/particle.off",outname);	
+	file = fopen(fname,"w");
+	fprintf(file,"appearance {linewidth 3}\n");
+	fprintf(file,"VECT\n");
+	fprintf(file,"%d %d %d\n\n",n,n,n);
+	/*num of polyline, num of point, num of colors*/
+
+        for (i = 0; i < n; i++)
+        {
+            fprintf(file,"1 ");/*num of points for each polyline*/
+        }
+	fprintf(file,"\n\n");
+
+        for (i = 0; i < n; i++)
+        {
+            fprintf(file,"1 ");/*num of colors for each polyline*/
+        }
+        fprintf(file,"\n\n");
+	
+	for (i = 0; i < n; i++)
+	{
+	    coords = particle_array[i].center;
+	    if (dim == 2)
+	    {
+	            fprintf(file,"%f %f 0\n",coords[0],coords[1]);/*coord for each points*/
+	    }
+	    else if (dim == 3)
+	    {
+		fprintf(file,"%f %f %f\n",coords[0],coords[1],coords[2]);
+	    }
+	}
+	fprintf(file,"\n");
+	for (i = 0; i < n; i++)
+	    fprintf(file,"0 0 1 1\n");/*color for each point*/
+	fclose(file);
+}
+
+extern void vtk_plot_scatter(Front* front)
+{
+        PARAMS* eqn_params = (PARAMS*)front->extra2;
+        PARTICLE* particle_array = eqn_params->particle_array;
+        int dim = front->rect_grid->dim;
+        int i, j, count, n;
+        double *coords;
+        char *outname = OutName(front);
+        char fname[256];
+        FILE* file;
+
+	count =0;
+	for (i = 0; i < eqn_params->num_drops; i++)
+	{
+	    if (particle_array[i].radius != 0)
+		count ++;
+	}
+	n = count; /*number of droplets with positive radius*/
+
+        sprintf(fname,"%s/vtk/vtk.ts%s/",outname,
+				right_flush(front->step,7));
+	if (!create_directory(fname,NO))
+        {
+            printf("Cannot create directory %s\n",fname);
+            clean_up(ERROR);
+        }
+	sprintf(fname,"%s/particle.vtk",fname);
+        file = fopen(fname,"w");
+        fprintf(file,"# vtk DataFile Version 3.0\n");
+        fprintf(file,"%s\n","particles");
+        fprintf(file,"ASCII\n");
+
+	fprintf(file,"DATASET UNSTRUCTURED_GRID\n");
+	fprintf(file,"POINTS %d double\n",n);
+
+        for (i = 0; i < eqn_params->num_drops; i++)
+        {
+	    if (particle_array[i].radius != 0)
+	    {
+                coords = particle_array[i].center;
+                if (dim == 2)
+                    fprintf(file,"%f %f 0\n",coords[0],coords[1]);
+                else if (dim == 3)
+                    fprintf(file,"%f %f %f\n",coords[0],coords[1],coords[2]);
+	    }
+        }
+	fprintf(file,"CELLS %d %d\n",n,3*n);
+        for (i = 0; i < eqn_params->num_drops; i++)
+        {
+	    if (particle_array[i].radius != 0)
+	        fprintf(file,"1 %d\n",i);
+        }
+	fprintf(file,"CELL_TYPES %d\n",n);
+        for (i = 0; i < eqn_params->num_drops; i++)
+        {
+	    if (particle_array[i].radius != 0)
+                fprintf(file,"1\n");
+        }
+
+	fprintf(file, "CELL_DATA %d\n",n);
+	for (i = 0; i < eqn_params->num_drops; i++)
+        {
+	    if (particle_array[i].radius != 0)
+                fprintf(file,"%20.14f\n",particle_array[i].radius);
+        }
+	printf("%d number of droplets contained\n",n);
+	fclose(file);
+}

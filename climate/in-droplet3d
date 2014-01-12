@@ -17,18 +17,19 @@ CFL factor: 0.75
 Redistribution interval: 5
 Type yes to turn off auto-redistribution: y
 
+Enter problem type: CLIMATE
 ******************Initial phase conditions***********
-phase 1: droplet
-phase 2: vapor
+phase 1: vapor
+phase 2: droplet
 ****************************************************
 Enter number of phases: 2
 
-Enter ambient temperature of phase 1: 293
+Enter ambient temperature of phase 1: 273
 Enter diffusivity of phase 1: 0.0000214
 
-Enter melting temperature of interface 1: 293
+Enter melting temperature of interface 1: 273
 
-Enter ambient temperature of phase 2: 260
+Enter ambient temperature of phase 2: 273
 Enter diffusivity of phase 2: 0.0000214
 
 ********************Numerical scheme**************
@@ -37,14 +38,8 @@ Choose numerical scheme
         UNSPLIT_IMPLICIT (IM)
         CRANK_NICOLSON (CN)
 Enter scheme: IM
-Enter surface tension: 0
-Enter factor of smoothing radius: 0
-Enter projection type: SIMPLE
-Enter advection order: 4
-Enter elliptic method: S
-
-Enter yes to turn on fluid solver: yes
-Enter yes to turn on droplets: yes
+Enter reference pressure(Pa): 56000
+Enter reference temperature(K): 293 
 
 ********************Droplets**********************
 Enter phase state can be
@@ -53,7 +48,7 @@ Enter phase state can be
 Enter phase state of water drop: I
 Enter number of water drops: 1
 Enter density of water drops: 1000
-Enter coefficient for condensation: 0.0000001
+Enter coefficient for condensation: 0.00000001
 Two methods for initialization:
         Prompt initialization (P)
         Random initialization (R)
@@ -62,21 +57,11 @@ Enter center of water drop 1: 0.0001 0.0001 0.00005
 Enter radius of water drop 1: 0.000008
 
 *****************Fluid Parameters*****************
+Enter projection type: SIMPLE
+Enter advection order: 4
+Enter elliptic method: S
 Enter density and viscosity of the fluid: 1 0.000015
 Enter gravity: 0 0 -9.8
-Enter projection type: SIMPLE
-Enter yes to turn on buoyancy driven flow: yes
-Enter yes to turn on reference pressure: yes
-Enter reference pressure(Pa): 56000
-
-********************Boundary Condition************
-For lower boundary in 1-th dimension
-Enter type of Dirichlet boundary: FLOW_THROUGH
-For upper boundary in 1-th dimension
-Enter type of Dirichlet boundary: CONSTANT_STATE
-Enter velocity: 0 0 0
-Enter pressure: 50
-Enter fluid temperature: 273
 
 *******************Movie option*****************
 Type y to make movie of pressure: y

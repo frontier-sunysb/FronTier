@@ -4,9 +4,7 @@ Front Traking algorithms. Front Tracking is a numerical method for
 the solution of partial differential equations whose solutions have 
 discontinuities.  
 
-
 Copyright (C) 1999 by The University at Stony Brook. 
- 
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -22,7 +20,6 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 *****************************************************************/
-
 
 /*
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
@@ -53,8 +50,8 @@ int main(int argc, char **argv)
 	static Front front;
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
-	IF_PARAMS 	iFparams;
-	AF_PARAMS 	af_params;
+	static IF_PARAMS iFparams;
+	static AF_PARAMS af_params;
 
 	FT_Init(argc,argv,&f_basic);
 	f_basic.size_of_intfc_state = sizeof(STATE);
@@ -121,10 +118,12 @@ int main(int argc, char **argv)
 
 	if (!RestartRun)
 	{
-	    optimizeElasticMesh(&front);
 	    set_equilibrium_mesh(&front);
 	}
 	FT_SetGlobalIndex(&front);
+	FT_Save(&front,out_name);
+	/* TMP termination */
+	//clean_up(0);
 	    
 	/* Initialize velocity field function */
 
@@ -177,11 +176,13 @@ static  void airfoil_driver(
 	    }
 
 	    FT_Save(front,out_name);
+	    gviewSurfaceStress(front);
 
             l_cartesian->printFrontInteriorStates(out_name);
 	    printAfExtraDada(front,out_name);
 
             FT_AddMovieFrame(front,out_name,binary);
+	    vtkPlotSurfaceStress(front);
 
 	    FT_Propagate(front);
 	    if (!af_params->no_fluid)
@@ -253,12 +254,14 @@ static  void airfoil_driver(
             if (FT_IsSaveTime(front))
 	    {
 		FT_Save(front,out_name);
+		gviewSurfaceStress(front);
                 l_cartesian->printFrontInteriorStates(out_name);
 	    	printAfExtraDada(front,out_name);
 	    }
             if (FT_IsMovieFrameTime(front))
 	    {
                 FT_AddMovieFrame(front,out_name,binary);
+		vtkPlotSurfaceStress(front);
 	    }
 
             if (FT_TimeLimitReached(front))

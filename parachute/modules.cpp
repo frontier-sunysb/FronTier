@@ -5,6 +5,7 @@ static void initParachuteDefault(Front*);
 
 static void initSingleModule(FILE*,Front*);
 
+static void initCanopySurface_vtk(char*,Front*,SURFACE*);
 static void initCanopySurface(FILE*,Front*,SURFACE**);
 static void initEllipticSurface(FILE*,Front*,SURFACE**);
 static void initParabolicSurface(FILE*,Front*,SURFACE**);
@@ -51,18 +52,32 @@ static void initSingleModule(
 	Front *front)
 {
 	SURFACE *surf;
-	initCanopySurface(infile,front,&surf);
-	if (debugging("set_module"))
-	    gview_plot_interface("module-step-2",front->interf);
+	char cgal_bool[10];
 
-	cutToCanopyType(infile,surf);
-	if (debugging("set_module"))
-	    gview_plot_interface("module-step-3",front->interf);
+	CursorAfterStringOpt(infile,"Enter yes to use CGAL to generate mesh:");
+	fscanf(infile,"%s",cgal_bool);
+	(void) printf("%s\n",cgal_bool);
+	if (cgal_bool[0] == 'y' || cgal_bool[0] == 'Y')
+	{
+	    CgalCanopySurface(infile,front,&surf);
+	}
+	else
+	{
+	    initCanopySurface(infile,front,&surf);
+	    if (debugging("set_module"))
+	        gview_plot_interface("module-step-2",front->interf);
 
-	installStringChord(infile,front,surf);
-	if (debugging("set_module"))
-	    gview_plot_interface("module-step-4",front->interf);
-	
+	    cutToCanopyType(infile,surf);
+	    if (debugging("set_module"))
+	        gview_plot_interface("module-step-3",front->interf);
+
+	    installStringChord(infile,front,surf);
+	    if (debugging("set_module"))
+	        gview_plot_interface("module-step-4",front->interf);
+	    optimizeElasticMesh(front);
+	    if (debugging("set_module"))
+	        gview_plot_interface("module-step-5",front->interf);
+	}
 }	/* end initSingleModule */
 
 static void initCanopySurface(

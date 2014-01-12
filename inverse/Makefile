@@ -2,9 +2,9 @@ CXX=mpicxx -g -pedantic -Wno-long-long
 F77=mpif77 -g
 F77_LIBS=
 libext = 
-incs =   -I.. -I../util -g   -I/usr/local/pkg/hdf/include -DUSE_HDF  -I/usr/local/pkg/mpich2/include -D__MPI__   -DHAS_FENV    -D__GD__ -I/usr/include  
-libincs =  -L/usr/lib  /lib64/libblas.so /lib64/libgfortran.so.3 -L/usr/local/pkg/hdf/lib  -L/usr/local/pkg/mpich2/lib 
-libs = -lgd  /lib64/libblas.so /lib64/libgfortran.so.3  -lmfhdf -ldf -ljpeg -lz  -lmpich -lpthread
+incs =   -I.. -I../util -g   -I/usr/local/pkg/hdf/include -DUSE_HDF  -I/usr/local/pkg/mpich2/include -D__MPI__   -DHAS_FENV    -D__GD__ -I/usr/include  -D__HYPRE__  
+libincs =  -L/usr/lib  /usr/lib/libblas.so /usr/lib/x86_64-linux-gnu/libgfortran.so.3 -L/usr/local/pkg/hdf/lib  -L/usr/local/pkg/mpich2/lib 
+libs = -lgd  /usr/lib/libblas.so /usr/lib/x86_64-linux-gnu/libgfortran.so.3  -lmfhdf -ldf -ljpeg -lz  -lmpich -lpthread
 build_cpu = x86_64
 incsloc = -I. -I../include -I../solver
 

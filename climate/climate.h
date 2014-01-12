@@ -13,10 +13,19 @@
 #include <petscksp.h>
 #include <assert.h>
 
-#define         LIQUID_COMP            3
+#define         LIQUID_COMP2           3
 #define         SOLID_COMP             1
 #define		alternate_comp(comp) 					\
-		(comp) == LIQUID_COMP ? SOLID_COMP : LIQUID_COMP
+		(comp) == LIQUID_COMP2 ? SOLID_COMP : LIQUID_COMP2
+
+enum _CL_PROB_TYPE {
+	BUOYANCY_TEST,
+	CLIMATE,
+	CHANNEL_TEST,
+	RANDOM_FIELD,
+	PARTICLE_TRACKING
+};
+typedef enum _CL_PROB_TYPE CL_PROB_TYPE;
 
 enum _NUM_SCHEME {
 	UNSPLIT_EXPLICIT = 1,
@@ -46,6 +55,15 @@ struct _MOVIE_OPTION {
 };
 typedef struct _MOVIE_OPTION MOVIE_OPTION;
 
+struct _PARTICLE {
+	double radius;
+	double center[MAXD];
+	double vel[MAXD];
+	double rho;
+	int    Gindex;
+};
+typedef struct _PARTICLE PARTICLE;
+
 struct _PARAMS {
         int dim;
 	NUM_SCHEME num_scheme;
@@ -53,6 +71,7 @@ struct _PARAMS {
 	MOVIE_OPTION *movie_option;
 	int pde_order;
 	int num_phases;
+	int num_drops;
         double *Ti;    /* melting temperature at the interface */
 	double *T0;	/* Ambient temperature of the phase */
 	double D;    /*molecular diffusivities of the temperature*/
@@ -60,8 +79,11 @@ struct _PARAMS {
 	double max_temperature;
 	double rho_l; /*density of water droplet*/
 	double K; /*coefficient for condensation*/
-	boolean no_fluid;
 	boolean no_droplets;
+	boolean droplets_fixed;
+	boolean if_rand_vel;
+	CL_PROB_TYPE prob_type;
+	PARTICLE *particle_array;
 };
 typedef struct _PARAMS PARAMS;
 
@@ -185,8 +207,8 @@ public:
 	void computeAdvectionCN(COMPONENT);
 	void computeAdvectionCim();
 
-	void (*computeSource) (double *coords,double source);
 	void pointExplicitCimSolver(int*,COMPONENT);
+	void computeSource();
 
 	// interface functions
 	void makeGridIntfc();
@@ -318,9 +340,10 @@ public:
 	void computeAdvectionCN(COMPONENT);
 	void computeAdvectionCim();
 	void computeSupersat();
+	void computeCondensation();
 
-	void (*computeSource) (double *coords,double source);
 	void pointExplicitCimSolver(int*,COMPONENT);
+	void computeSource();
 
 	// interface functions
 	void makeGridIntfc();
@@ -410,3 +433,9 @@ extern double jumpGradDotTan(POINTER,int,int,double*,double*);
 extern void initWaterDrops(Front*);
 extern void compute_ice_particle_force(Front*,HYPER_SURF*,double, double*, double*);
 extern void CondensationPreAdvance(Front*);
+extern void ParticlePropagate(Front*);
+extern void read_CL_prob_type(Front*);
+extern void readWaterDropsParams(Front*,char*);
+extern void printDropletsStates(Front*,char*);
+extern void gv_plot_scatter(Front*);
+extern void vtk_plot_scatter(Front*);

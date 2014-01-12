@@ -123,6 +123,8 @@ typedef struct {
 	int adv_order;
 	boolean total_div_cancellation;
 	boolean buoyancy_flow;
+	boolean if_buoyancy;
+	double  ref_temp;
 	boolean if_ref_pres;
 	double  ref_pres;
 } IF_PARAMS;

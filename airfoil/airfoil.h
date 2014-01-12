@@ -341,9 +341,16 @@ extern void readAfExtraDada(Front*,char*);
 extern void printHyperSurfQuality(Front*);
 extern void optimizeElasticMesh(Front*);
 extern void modifyInitialization(Front*);
+extern void gviewSurfaceStress(Front*);
+extern void vtkPlotSurfaceStress(Front*);
+extern void poisson_ratio(Front*);
 
 // afprops.cpp
 
 // sprModel/modules.cpp
 extern void initSpringModel(Front*);
+
+// sprModel/cgal.cpp
+extern void CgalCanopySurface(FILE*,Front*,SURFACE**);
+
 #endif

@@ -54,8 +54,8 @@ int main(int argc, char **argv)
 	static Front front;
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
-	IF_PARAMS 	iFparams;
-	AF_PARAMS 	af_params;
+	static IF_PARAMS iFparams;
+	static AF_PARAMS af_params;
 
 	FT_Init(argc,argv,&f_basic);
 	f_basic.size_of_intfc_state = sizeof(STATE);
@@ -203,6 +203,7 @@ static  void airfoil_driver(
 	    if (debugging("trace"))
                 (void) printf("Calling FT_Save()\n");
 	    FT_Save(front,out_name);
+	    gviewSurfaceStress(front);
 
             if (debugging("trace"))
                 (void) printf("Calling printFrontInteriorStates()\n");
@@ -212,6 +213,7 @@ static  void airfoil_driver(
             if (debugging("trace"))
                 (void) printf("Calling FT_AddMovieFrame()\n");
             FT_AddMovieFrame(front,out_name,binary);
+	    vtkPlotSurfaceStress(front);
 
 	    FT_Propagate(front);
 	    if (!af_params->no_fluid)
@@ -292,6 +294,7 @@ static  void airfoil_driver(
             if (FT_IsSaveTime(front))
 	    {
 		FT_Save(front,out_name);
+	    	gviewSurfaceStress(front);
                 l_cartesian->printFrontInteriorStates(out_name);
 	    	printAfExtraDada(front,out_name);
 	    }
@@ -300,6 +303,7 @@ static  void airfoil_driver(
             if (FT_IsMovieFrameTime(front))
 	    {
                 FT_AddMovieFrame(front,out_name,binary);
+		vtkPlotSurfaceStress(front);
 	    }
 
             if (FT_TimeLimitReached(front))

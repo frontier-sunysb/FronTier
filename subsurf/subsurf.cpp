@@ -55,8 +55,8 @@ int main(int argc, char **argv)
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-	IF_PARAMS iFparams;
-	CRT_PARAMS cRparams;
+	static IF_PARAMS iFparams;
+	static CRT_PARAMS cRparams;
 
 	FT_Init(argc,argv,&f_basic);
 	f_basic.size_of_intfc_state = sizeof(STATE);

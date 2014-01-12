@@ -66,9 +66,9 @@ int main(int argc, char **argv)
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
 	TEST_SPHERE_PARAMS s_params;
-	PARAMS eqn_params;
-	IF_PARAMS iFparams;
-	SEED_PARAMS seed_params;
+	static PARAMS eqn_params;
+	static IF_PARAMS iFparams;
+	static SEED_PARAMS seed_params;
 	int dim;
 
 	FT_Init(argc,argv,&f_basic);

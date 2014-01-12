@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-	IF_PARAMS iFparams;
+	static IF_PARAMS iFparams;
 	RG_PROB_TYPE prob_type;
 
 	/* Initialize basic computational data */

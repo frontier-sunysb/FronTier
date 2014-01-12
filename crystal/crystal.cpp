@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-	CRT_PARAMS cRparams;
+	static CRT_PARAMS cRparams;
 
 	C_CARTESIAN       c_cartesian(front);
 

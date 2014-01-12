@@ -726,7 +726,7 @@ LOCAL   int is_curve(
             return i;
         }
         screen("ERROR in is_curve, No curve matched\n");
-	printf("#c  = %p\n", c);
+	(void) printf("#c  = %p\n", (void*)c);
         clean_up(ERROR);
 }	/* end is_curve */
 

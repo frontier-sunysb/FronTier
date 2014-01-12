@@ -41,6 +41,8 @@ Water phase state can be
         Liquid Water Drop (W)
 Enter phase state of water drop: I
 Enter number of water drops: 10
+Enter density of water drops: 1000 
+Enter coefficient for condensation: 0.000000005 
 Two methods for initialization:
 	Prompt initialization (P)
 	Random initialization (R)

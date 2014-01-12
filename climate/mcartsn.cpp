@@ -191,9 +191,9 @@ void CARTESIAN::setInitialCondition(void)
 	STATE *sl,*sr;
 	int c;
 	short unsigned int seed[3] = {2,72,7172};
-	GAUSS_PARAMS gauss_params;
-	gauss_params.mu = eqn_params->T0[1];
-	gauss_params.sigma = 0.5;
+	/*GAUSS_PARAMS gauss_params;
+	gauss_params.mu = eqn_params->T0[0];
+	gauss_params.sigma = 0.5;*/
 
 	FT_MakeGridIntfc(front);
         setDomain();
@@ -210,11 +210,10 @@ void CARTESIAN::setInitialCondition(void)
 	for (i = 0; i < cell_center.size(); i++)
 	{
 	    c = top_comp[i];
-	    if (c == LIQUID_COMP)
-	    	field->temperature[i] = eqn_params->T0[1];
-	    	//field->temperature[i] = gauss_center_limit((POINTER)&gauss_params,seed);
-	    else if (c == SOLID_COMP)
+	    if (c == LIQUID_COMP2)
 	    	field->temperature[i] = eqn_params->T0[0];
+	    else if (c == SOLID_COMP)
+	    	field->temperature[i] = eqn_params->T0[1];
 	    else
 	    	field->temperature[i] = eqn_params->T0[0];
 	}
@@ -325,10 +324,13 @@ void CARTESIAN::computeAdvection()
 	    return computeAdvectionCim();
 
 	sub_comp[0] = SOLID_COMP;
-	sub_comp[1] = LIQUID_COMP;
+	sub_comp[1] = LIQUID_COMP2;
+	
 
 	for (i = 0; i < 2; ++i)
 	{
+            if(sub_comp[i] == SOLID_COMP)
+                    continue;
 	    setGlobalIndex(sub_comp[i]);
 	   /* diffusivity is set explicitly */
 	    if (eqn_params->num_scheme == UNSPLIT_EXPLICIT)
@@ -667,7 +669,7 @@ void CARTESIAN::computeAdvectionCim()
 	printf("Assigning class variables\n");
 	parab_solver.w_type = ICE_PARTICLE_BOUNDARY;
 	parab_solver.neg_comp = SOLID_COMP;
-        parab_solver.pos_comp = LIQUID_COMP;
+        parab_solver.pos_comp = LIQUID_COMP2;
         parab_solver.source = source;
 	parab_solver.solutionJump = jumpT;
 	parab_solver.gradJumpDotN = jumpEpsGradDotNorm;
@@ -712,7 +714,7 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
         parab_solver.soln = soln;
         parab_solver.getStateVarFunc = getStateTemperature;
         parab_solver.findStateAtCrossing = find_state_at_crossing;
-        parab_solver.source = NULL;
+        parab_solver.source = source;
         parab_solver.D = eqn_params->D;
         parab_solver.order = eqn_params->pde_order;
         parab_solver.ilower = ilower;
@@ -722,7 +724,7 @@ void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
         parab_solver.set_solver_domain();
 	first = NO;
 
-	if (sub_comp == LIQUID_COMP)
+	if (sub_comp == LIQUID_COMP2)
 	    parab_solver.a = eqn_params->field->vel;
 	else
 	    parab_solver.a = NULL;
@@ -803,6 +805,12 @@ void CARTESIAN::solve(double dt)
 
 	computeAdvection();
 	if (debugging("trace")) printf("Passing liquid computeAdvection()\n");
+
+        if(eqn_params->prob_type == PARTICLE_TRACKING)
+            computeSource();
+        else
+            source = NULL;
+        if (debugging("trace")) printf("Passing computeSource()\n");
 
 	if (debugging("sample_temperature"))
             sampleTemperature();
@@ -1418,7 +1426,7 @@ void CARTESIAN::xgraphOneDimPlot(char *outname)
 	for (i = 0; i <= top_gmax[0]; ++i)
 	{
 	    index = d_index1d(i,top_gmax);
-	    if (cell_center[index].comp == LIQUID_COMP)
+	    if (cell_center[index].comp == LIQUID_COMP2)
 	    	fprintf(outfile,"%24.18g  %24.18g\n",
 	    		cell_center[index].coords[0],
 	    		Temp[index]);
@@ -1463,7 +1471,7 @@ void CARTESIAN::vtk_plot_temperature2d(
         for (i = imin; i <= imax; i++)
         {
             index = d_index2d(i,j,top_gmax);
-            if (cell_center[index].comp == LIQUID_COMP)
+            if (cell_center[index].comp == LIQUID_COMP2)
                 ph_index.push_back(index);
         }
 
@@ -1697,7 +1705,7 @@ void CARTESIAN::vtk_plot3d(
         for (i = imin; i <= imax; i++)
         {
             index = d_index3d(i,j,k,top_gmax);
-            if (cell_center[index].comp == LIQUID_COMP)
+            if (cell_center[index].comp == LIQUID_COMP2)
                 ph_index.push_back(index);
         }
 
@@ -1874,7 +1882,7 @@ void CARTESIAN::pointExplicitCimSolver(
 	    v_plus[l] = 0.0;
 	    v_minus[l] = 0.0;
 	}
-	if (sub_comp == LIQUID_COMP && vel != NULL)
+	if (sub_comp == LIQUID_COMP2 && vel != NULL)
 	{
 	    for (l = 0; l < dim; ++l)
 	    {
@@ -2067,7 +2075,7 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
 		    v_plus[l] = 0.0;
 		    v_minus[l] = 0.0;
 		}
-		if (sub_comp == LIQUID_COMP && vel != NULL)
+		if (sub_comp == LIQUID_COMP2 && vel != NULL)
 		{
 		    for (l = 0; l < dim; ++l)
 		    {
@@ -2119,7 +2127,7 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
                     v_plus[l] = 0.0;
                     v_minus[l] = 0.0;
                 }
-                if (sub_comp == LIQUID_COMP && vel != NULL)
+                if (sub_comp == LIQUID_COMP2 && vel != NULL)
                 {
                     for (l = 0; l < dim; ++l)
                     {
@@ -2173,7 +2181,7 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
                     v_plus[l] = 0.0;
                     v_minus[l] = 0.0;
                 }
-                if (sub_comp == LIQUID_COMP && vel != NULL)
+                if (sub_comp == LIQUID_COMP2 && vel != NULL)
                 {
                     for (l = 0; l < dim; ++l)
                     {
@@ -2848,3 +2856,42 @@ void CARTESIAN::sampleTemperature3d()
         }
         count++;
 }       /* end sampleTemperature3d */
+
+void CARTESIAN::computeSource()
+{
+        /*compute condensation rate*/
+        /*this is a source term for vapor mixing ratio equation*/
+        int i, index, size, num_drops;
+        int ic[MAXD];
+        PARAMS* eqn_params = (PARAMS*)front->extra2;
+        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+        PARTICLE* particle_array = eqn_params->particle_array;
+        num_drops = eqn_params->num_drops;
+        double *supersat = eqn_params->field->supersat;
+        static boolean first = YES;
+        double *coords;
+        /*for computing the coefficient*/
+        double rho_0 = iFparams->rho2;
+        double a3 = 1;
+        double coeff;
+	double L = 2500000;
+	double cp = 1005;
+
+        for(i = 0; i < dim; i++)
+            a3 *= top_h[i];
+
+        for (i = 0; i < comp_size; i++)
+            source[i] = 0;
+
+        for (i = 0; i < num_drops; i++)
+        {
+            coords = particle_array[i].center;
+            rect_in_which(coords,ic,top_grid);
+            index = d_index(ic,top_gmax,dim);
+            coeff = 4*PI*particle_array[i].rho * eqn_params->K
+                                               / (rho_0 * a3);
+            source[index] += L/cp * coeff * supersat[index]
+                                  * particle_array[i].radius;
+        }
+}
+                                    

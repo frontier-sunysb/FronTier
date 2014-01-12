@@ -194,9 +194,23 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 void Incompress_Solver_Smooth_3D_Cartesian::
 	computeSourceTerm(double *coords, double *source) 
 {
-	int i;
-	for (i = 0; i < dim; ++i)
-	    source[i] = iFparams->gravity[i];
+        int i;
+        if(iFparams->if_buoyancy)
+        {
+            double T0   = iFparams->ref_temp;
+            double* T = field->temperature;
+            int ic[MAXD],index;
+
+            rect_in_which(coords,ic,top_grid);
+            index = d_index(ic,top_gmax,dim);
+            for (i = 0; i < dim; ++i)
+                source[i] = iFparams->gravity[i]*(T[index] - T0)/T0;
+        }
+        else
+        {
+            for (i = 0; i < dim; ++i)
+                source[i] = iFparams->gravity[i];
+        }
 } 	/* computeSourceTerm */
 
 void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
@@ -1574,7 +1588,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::vtk_plot_scalar(
         for (i = imin; i <= imax; i++)
         {
             index = d_index3d(i,j,k,top_gmax);
-            if (cell_center[index].comp == LIQUID_COMP)
+            if (ifluid_comp(cell_center[index].comp))
                 ph_index.push_back(index);
         }
 
