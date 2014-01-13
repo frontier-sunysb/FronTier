@@ -240,7 +240,7 @@ void PETSc::Solve(void)
 {
 #if defined __HYPRE__
 	Solve_HYPRE();
-#else // defined __HYPRE__
+#else // defined __HYPRE__*/
 	Solve_BCGSL();
 #endif // defined __HYPRE__
 }	/* end Solve */
@@ -304,15 +304,14 @@ void PETSc::Solve_withPureNeumann_GMRES(void)
 
 void PETSc::Solve_withPureNeumann(void)
 {
-	// Waiting for resolution!
-	//Solve_withPureNeumann_SOR();
-	Solve_withPureNeumann_BCGSL();
+	Solve_withPureNeumann_HYPRE();
+	//Solve_withPureNeumann_BCGSL();
 }	/* end Solve_withPureNeumann */
 
-void PETSc::Solve_withPureNeumann_SOR(void)
+void PETSc::Solve_withPureNeumann_HYPRE(void)
 {
         PC pc;
-        printf("Entering Solve_withPureNeumann_SOR()\n");
+        printf("Entering Solve_withPureNeumann_HYPRE()\n");
         ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
         ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
 
@@ -327,21 +326,19 @@ void PETSc::Solve_withPureNeumann_SOR(void)
         KSPSetNullSpace(ksp,nullsp);
         MatNullSpaceRemove(nullsp,b,PETSC_NULL);
 
+        KSPSetType(ksp,KSPBCGS);
         KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN);
         KSPGetPC(ksp,&pc);
-        PCSetType(pc,PCSOR);
-
-        KSPSetType(ksp,KSPPREONLY);
-
+        PCSetType(pc,PCHYPRE);
+        PCHYPRESetType(pc,"boomeramg");
         KSPSetFromOptions(ksp);
         KSPSetUp(ksp);
         start_clock("Petsc Solve in pure neumann solver");
         KSPSolve(ksp,b,x);
         stop_clock("Petsc Solve in pure neumann solver");
-	printf("Leaving Solve_withPureNeumann_SOR()\n");
+	printf("Leaving Solve_withPureNeumann_HYPRE()\n");
 
 }
-
 
 void PETSc::Solve_withPureNeumann_BCGSL(void)
 {

@@ -116,7 +116,7 @@ public:
 	void Solve_withPureNeumann(void);
 	void Solve_withPureNeumann_GMRES(void);
 	void Solve_withPureNeumann_BCGSL(void);
-	void Solve_withPureNeumann_SOR(void);
+	void Solve_withPureNeumann_HYPRE(void);
 	virtual void Print_A(const char *filename);
         virtual void Print_b(const char *filename);
 };

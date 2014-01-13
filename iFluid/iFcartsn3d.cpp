@@ -367,7 +367,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 	double **vel = field->vel;
 	double **f_surf = field->f_surf;
 	INTERFACE *grid_intfc = front->grid_intfc;
-	double vel_min = HUGE;
 
 	if (debugging("trace"))
 	    (void) printf("Entering Incompress_Solver_Smooth_3D_Cartesian::"
@@ -385,7 +384,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::
         for (i = imin; i <= imax; i++)
         {
             index  = d_index3d(i,j,k,top_gmax);
-            if (vel_min > vel[l][index]) vel_min = vel[l][index];
         }
 
 	for (l = 0; l < dim; ++l)
@@ -437,9 +435,9 @@ void Incompress_Solver_Smooth_3D_Cartesian::
                     	    boundary_state_function(hs) &&
                     	    strcmp(boundary_state_function_name(hs),
                     	    "flowThroughBoundaryState") == 0)
-                    	    U_nb[nb] = vel[l][index] - vel_min;
+                    	    U_nb[nb] = vel[l][index];
 			else
-			    U_nb[nb] = getStateVel[l](intfc_state) - vel_min;
+			    U_nb[nb] = getStateVel[l](intfc_state);
 			if (wave_type(hs) == DIRICHLET_BOUNDARY || 
 			    neumann_type_bdry(wave_type(hs)))
 			    mu[nb] = mu0;
@@ -448,7 +446,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 		    }
                     else
 		    {
-                    	U_nb[nb] = vel[l][index_nb[nb]] - vel_min;
+                    	U_nb[nb] = vel[l][index_nb[nb]];
 			mu[nb] = 1.0/2*(mu0 + field->mu[index_nb[nb]]);
 		    }
             	}
@@ -465,7 +463,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 
 		aII = 1+coeff[0]+coeff[1]+coeff[2]+coeff[3]+coeff[4]+coeff[5];
 		rhs = (1-coeff[0]-coeff[1]-coeff[2]-coeff[3]-coeff[4]-coeff[5])*
-		      		(vel[l][index] - vel_min);
+		      		(vel[l][index]);
 
 		for(nb = 0; nb < 6; nb++)
 		{
@@ -522,7 +520,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
                 I = ijk_to_I[i][j][k];
                 index = d_index3d(i,j,k,top_gmax);
                 if (I >= 0)
-                    array[index] = x[I-ilower] + vel_min;
+                    array[index] = x[I-ilower];
                 else
                     array[index] = 0.0;
             }
@@ -769,8 +767,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 	double **vel = field->vel;
 	double **f_surf = field->f_surf;
 	INTERFACE *grid_intfc = front->grid_intfc;
-	double vel_min = HUGE;
-	double vel_max = -HUGE;
 
 	if (debugging("trace"))
 	    (void) printf("Entering Incompress_Solver_Smooth_3D_Cartesian::"
@@ -788,13 +784,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
         for (i = imin; i <= imax; i++)
 	{
             index  = d_index3d(i,j,k,top_gmax);
-	    if (vel_min > vel[l][index]) vel_min = vel[l][index];
-	    if (vel_max < vel[l][index]) vel_max = vel[l][index];
 	}
-	if (vel_max - vel_min < 0.1)
-	    vel_min -= 0.01;
-	else
-            vel_min -= 0.1*(vel_max - vel_min);
 
 	for (l = 0; l < dim; ++l)
 	{
@@ -846,11 +836,11 @@ void Incompress_Solver_Smooth_3D_Cartesian::
                     	    strcmp(boundary_state_function_name(hs),
                     	    "flowThroughBoundaryState") == 0)
 			{
-                    	    U_nb[nb] = vel[l][index] - vel_min;
+                    	    U_nb[nb] = vel[l][index];
 			}
 			else
 			{
-			    U_nb[nb] = getStateVel[l](intfc_state) - vel_min;
+			    U_nb[nb] = getStateVel[l](intfc_state);
 			}
 			if (wave_type(hs) == DIRICHLET_BOUNDARY || 
 			    neumann_type_bdry(wave_type(hs)))
@@ -860,7 +850,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 		    }
                     else
 		    {
-                    	U_nb[nb] = vel[l][index_nb[nb]] - vel_min;
+                    	U_nb[nb] = vel[l][index_nb[nb]];
 			mu[nb] = 1.0/2*(mu0 + field->mu[index_nb[nb]]);
 		    }
             	}
@@ -876,7 +866,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
             	computeSourceTerm(coords, source);
 
 		aII = 1+coeff[0]+coeff[1]+coeff[2]+coeff[3]+coeff[4]+coeff[5];
-		rhs = vel[l][index] - vel_min;
+		rhs = vel[l][index];
 
 		for(nb = 0; nb < 6; nb++)
 		{
@@ -928,7 +918,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
                 I = ijk_to_I[i][j][k];
                 index = d_index3d(i,j,k,top_gmax);
                 if (I >= 0)
-                    vel[l][index] = x[I-ilower] + vel_min;
+                    vel[l][index] = x[I-ilower];
                 else
                     vel[l][index] = 0.0;
             	speed = fabs(vel[0][index]) + fabs(vel[1][index]) +
