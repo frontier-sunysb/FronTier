@@ -3778,8 +3778,9 @@ EXPORT	boolean	check_degenerated_loop(
 	    {
 		if (debugging("null_loop"))
 		{
-	    	    printf("side:  %d %d\n",Point_of_tri(next_tri)[side],
-				Point_of_tri(next_tri)[Next_m3(side)]);
+	    	    printf("side:  %d\n",side);
+		    print_point(Point_of_tri(next_tri)[side]);
+		    print_point(Point_of_tri(next_tri)[Next_m3(side)]);
 		}
 		pts[*num_sides] = p = Point_of_tri(next_tri)[Next_m3(side)];
 		if (*num_sides > 300) 
@@ -3805,8 +3806,9 @@ EXPORT	boolean	check_degenerated_loop(
 	    {
 		if (debugging("null_loop"))
 		{
-	    	    printf("side:  %d %d\n",Point_of_tri(next_tri)[
-		    		Next_m3(side)],Point_of_tri(next_tri)[side]);
+	    	    printf("side:  %d\n",side);
+		    print_point(Point_of_tri(next_tri)[Next_m3(side)]);
+		    print_point(Point_of_tri(next_tri)[side]);
 		}
 		pts[*num_sides] = p = Point_of_tri(next_tri)[side];
 		if (p == pts[0]) break;

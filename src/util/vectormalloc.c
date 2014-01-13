@@ -314,7 +314,7 @@ EXPORT POINTER array_T(
 	if (vmalloc_debug_on > 1)
 	{
 	    (void) printf("array_T(%s,%llu,order=%d,dim=(",
-	    	          name_A,ptr2ull(pA),order);
+	    	          name_A,(long long unsigned int)ptr2ull(pA),order);
 	    if (order > 0)
 	    	(void) printf("%d",dim[0]);
  	    for(i = 1; i < order; ++i)
@@ -351,7 +351,7 @@ EXPORT POINTER array_T(
 	    screen("ERROR in array_T(), "
 	           "array_T unable to get enough space: %s\n",strerror(errno));
 	    (void) printf("array_T(%s,%llu,order=%d,dim=(",
-	    	          name_A,ptr2ull(pA),order);
+	    	          name_A,(long long unsigned int)ptr2ull(pA),order);
 	    if (order > 0)
 	    	(void) printf("%d",dim[0]);
 	    for(i = 1; i < order; ++i)
@@ -441,7 +441,7 @@ LOCAL void set_pointers(
 	    (void) printf(
 	       "set_pointers(ord=%d dim=(%d,%d) num_po=%d po=%p lo=%p so=%d\n",
 	        	  order,dim[0],order<2?0:dim[1],num_ptrs,
-	        	  pointers,location,size_object);
+	        	  *pointers,location,size_object);
 	}
 	if (order < 2)
 	    return;
@@ -458,7 +458,8 @@ LOCAL void set_pointers(
 	        {
 	    	    (void) printf("lo adjusted %llu bytes to %llu "
 	    	                  "to guarantee data alignment\n",
-	    			  offset,ptr2ull(location));
+	    			  (long long unsigned int)offset,
+				  (long long unsigned int)ptr2ull(location));
 	        }
 	    }
 	}
@@ -471,7 +472,7 @@ LOCAL void set_pointers(
 	    (void) printf("Set %d pointers to:",num_ptrs);
 	    for(i = 0; i < num_ptrs; ++i) 
 	    	(void) printf("%c%10llu",i%7?' ':'\n',
-	        	      ptr2ull(pointers[i]));
+	        	      (long long unsigned int)ptr2ull(pointers[i]));
 	    (void) printf("\n");
 	}
 
@@ -497,7 +498,7 @@ EXPORT	void f_ree(
 	    if (vmalloc_debug_on > 1)
 	    {
 	        (void) printf("Request to free %llu (0x%p) (%s)\n",
-			      ptr2ull(p),p,name);
+			      (long long unsigned int)ptr2ull(p),p,name);
 		print_call_stack(" FROM f_ree");
 	    }
 	    test_vmalloc_integrity();
@@ -508,7 +509,7 @@ EXPORT	void f_ree(
 	    {
 		screen("ERROR in f_ree(), attempt to free unallocated "
 		       "storage\n");
-		(void) printf("p = %llu (0x%p) (%s)\n",ptr2ull(p),p,name);
+		(void) printf("p = %llu (0x%p) (%s)\n",(long long unsigned int)ptr2ull(p),p,name);
 		print_call_stack(" FROM f_ree");
 		print_alloc_header(h);
 	    	long_alloc_view(stdout);
@@ -613,8 +614,8 @@ EXPORT void alloc_view(
 	    }
 	    p = (byte*) h->block;
 	    (void) fprintf(file,"%12llu (0x%12p) %12llu (0x%12p) %12lu %s\n",
-			   ptr2ull(p),p,
-	        	   (ptr2ull(p+(h->space-HEADER_OFFSET)))-1,
+			   (long long unsigned int)ptr2ull(p),p,
+	        	   (long long unsigned int)(ptr2ull(p+(h->space-HEADER_OFFSET)))-1,
 	        	   (p+(h->space-HEADER_OFFSET))-1,
 	        	   h->space-HEADER_OFFSET,h->name);
 	}
@@ -656,10 +657,10 @@ EXPORT void long_alloc_view(
 	    p = (byte*) h->block;
 	    (void) fprintf(file,"%12llu (0x%12p) %12llu (0x%12p) "
 				"%12llu (0x%12p) %12lu %5u ",
-	    	          ptr2ull(h),h,
-			  ptr2ull(p),p,
-	    	          (ptr2ull(p+(h->space-HEADER_OFFSET)))-1,
-	    	          (p+(h->space-HEADER_OFFSET))-1,
+	    	          (long long unsigned int)ptr2ull(h),(void*)h,
+			  (long long unsigned int)ptr2ull(p),p,
+	    	          (long long unsigned int)(ptr2ull(p+(h->space-HEADER_OFFSET)))-1,
+	    	          ((p+(h->space-HEADER_OFFSET))-1),
 	    	          h->space-HEADER_OFFSET,h->order);
 	    (void) fprintf(file,"(");
 	    for (i = 0; i < h->order; ++i)
@@ -703,16 +704,16 @@ LOCAL	void	test_vmalloc_integrity(void)
 LOCAL	void	print_alloc_header(
 	ALLOC_HEADER *h)
 {
-	(void) printf("ALLOC_HEADER %llu (0x%p), ",ptr2ull(h),h);
+	(void) printf("ALLOC_HEADER %llu (0x%p), ",(long long unsigned int)ptr2ull(h),(void*)h);
 	if (h != NULL)
 	{
 	    char name[1001];
 	    int i, M;
-	    (void) printf("prev = 0x%p, next = 0x%p\n",h->prev,h->next);
+	    (void) printf("prev = 0x%p, next = 0x%p\n",(void*)h->prev,(void*)h->next);
 	    (void) printf("block = %llu (0x%p)\n",
-			  ptr2ull(h->block),h->block);
+			  (long long unsigned int)ptr2ull(h->block),(void*)h->block);
 	    (void) printf("EndOfBlock = %llu (0x%p)\n",
-			  ptr2ull(h->EndOfBlock),h->EndOfBlock);
+			  (long long unsigned int)ptr2ull(h->EndOfBlock),(void*)h->EndOfBlock);
 	    (void) strncpy(name,h->name,1000);
 	    name[1000] = '\0';
 	    (void) printf("name = %s\n",name);
@@ -724,7 +725,7 @@ LOCAL	void	print_alloc_header(
 	    for (i = 0; i < M; ++i)
 		(void) printf(" %d",h->dim[i]);
 	    (void) printf("\n");
-	    (void) printf("End ALLOC_HEADER 0x%p\n",h);
+	    (void) printf("End ALLOC_HEADER 0x%p\n",(void*)h);
 	}
 	else
 	    (void) printf("\nNULL ALLOC_HEADER\n");

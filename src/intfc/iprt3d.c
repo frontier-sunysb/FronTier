@@ -103,17 +103,17 @@ EXPORT	void	print_c_curve(
 {
 	C_BOND *cb;
 	int    i;
-	(void) printf("C_CURVE structure 0x%p\n",c_curve);
-	(void) printf("interface = %llu\n",interface_number(c_curve->interface));
+	(void) printf("C_CURVE structure 0x%p\n",(void*)c_curve);
+	(void) printf("interface = %llu\n",(long long unsigned int)interface_number(c_curve->interface));
 	(void) printf("start node - "); print_node(c_curve->start);
 	(void) printf("end node - "); print_node(c_curve->end);
 	(void) printf("s[0] = %llu, s[1] = %llu\n",
-		      surface_number(c_curve->s[0]),
-		      surface_number(c_curve->s[1]));
-	(void) printf("curve = %llu\n",curve_number(c_curve->curve));
+		      (long long unsigned int)surface_number(c_curve->s[0]),
+		      (long long unsigned int)surface_number(c_curve->s[1]));
+	(void) printf("curve = %llu\n",(long long unsigned int)curve_number(c_curve->curve));
 	(void) printf("num_points = %d\n",c_curve->num_points);
 	(void) printf("C_BOND's first = 0x%p last = 0x%p\n",
-		      c_curve->first,c_curve->last);
+		      (void*)c_curve->first,(void*)c_curve->last);
 	for (i = 0, cb = c_curve->first; cb != NULL; ++i, cb = cb->next);
 	(void) printf("%d C_BOND's on C_CURVE\n",i);
 	(void) printf("\nPoint list\n");
@@ -122,9 +122,9 @@ EXPORT	void	print_c_curve(
 	    POINT *ps = cb->start, *pe = cb->end;
 	    double *cs = Coords(ps), *ce = Coords(pe);
 	    (void) printf("prev 0x%p next 0x%p, (%llu) %g %g %g -> "
-	                  "(%llu) %g %g %g\n",cb->prev,cb->next,
-			  point_number(ps),cs[0],cs[1],cs[2],
-			  point_number(pe),ce[0],ce[1],ce[2]);
+	                  "(%llu) %g %g %g\n",(void*)cb->prev,(void*)cb->next,
+			  (long long unsigned int)point_number(ps),cs[0],cs[1],cs[2],
+			  (long long unsigned int)point_number(pe),ce[0],ce[1],ce[2]);
 	}
 	(void) printf("\n");
 	for (cb = c_curve->first; cb != NULL; cb = cb->next)
@@ -132,20 +132,20 @@ EXPORT	void	print_c_curve(
 	    (void) printf("\n");
 	    print_c_bond(cb,intfc);
 	}
-	(void) printf("End C_CURVE structure 0x%p\n",c_curve);
+	(void) printf("End C_CURVE structure 0x%p\n",(void*)c_curve);
 }		/*end print_c_curve*/
 
 EXPORT	void print_c_bond(
 	C_BOND    *cb,
 	INTERFACE *intfc)
 {
-	(void) printf("C_BOND structure 0x%p\n",cb);
-	(void) printf("prev = 0x%p, next = 0x%p\n",cb->prev,cb->next);
-	(void) printf("start %llu %g %g %g\n",point_number(cb->start),
+	(void) printf("C_BOND structure 0x%p\n",(void*)cb);
+	(void) printf("prev = 0x%p, next = 0x%p\n",(void*)cb->prev,(void*)cb->next);
+	(void) printf("start %llu %g %g %g\n",(long long unsigned int)point_number(cb->start),
 					     Coords(cb->start)[0],
 					     Coords(cb->start)[1],
 					     Coords(cb->start)[2]);
-	(void) printf("end %llu %g %g %g\n",point_number(cb->end),
+	(void) printf("end %llu %g %g %g\n",(long long unsigned int)point_number(cb->end),
 					     Coords(cb->end)[0],
 					     Coords(cb->end)[1],
 					     Coords(cb->end)[2]);
@@ -155,24 +155,25 @@ EXPORT	void print_c_bond(
 	print_c_surf(cb->s,intfc);
 	(void) printf("s[1] - ");
 	print_c_surf(cb->s+1,intfc);
-	(void) printf("c_curve = 0x%p\n",cb->c_curve);
-	(void) printf("End C_BOND structure 0x%p\n",cb);
+	(void) printf("c_curve = 0x%p\n",(void*)cb->c_curve);
+	(void) printf("End C_BOND structure 0x%p\n",(void*)cb);
 }		/*end print_c_bond*/
 
 EXPORT	void print_c_surf(
 	C_SURF    *cs,
 	INTERFACE *intfc)
 {
-	(void) printf("C_SURF structure 0x%p\n",cs);
+	(void) printf("C_SURF structure 0x%p\n",(void*)cs);
 	(void) printf("t - ");
 	print_tri(cs->t,intfc);
 	(void) printf("prev_t = %llu, next_t = %llu\n",
-		tri_number(cs->prev_t,intfc),tri_number(cs->next_t,intfc));
+		(long long unsigned int)tri_number(cs->prev_t,intfc),
+		(long long unsigned int)tri_number(cs->next_t,intfc));
 	(void) printf("start flag - ");
 	print_c_surf_flag(&cs_flag_start(*cs));
 	(void) printf("end flag - ");
 	print_c_surf_flag(&cs_flag_end(*cs));
-	(void) printf("End C_SURF structure 0x%p\n",cs);
+	(void) printf("End C_SURF structure 0x%p\n",(void*)cs);
 }		/*end print_c_surf*/
 
 EXPORT	void	print_c_surf_flag(

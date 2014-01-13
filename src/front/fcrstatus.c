@@ -221,7 +221,7 @@ EXPORT int find_cross_status(
 	    {
 		(void) printf("c1 short: interact_node %llu "
 		              "pans %g %g dt_frac %g\n",
-			      node_number(*interact_node1),
+			      (long long unsigned int)node_number(*interact_node1),
 			      Coords(pans)[0],Coords(pans)[1],*dt_frac);
 	    }
 	}
@@ -286,7 +286,7 @@ EXPORT int find_cross_status(
 	    {
 		(void) printf("c2 short: interact_node %llu "
 		              "pans %g %g dt_frac %g\n",
-			      node_number(*interact_node2),
+			      (long long unsigned int)node_number(*interact_node2),
 			      Coords(pans)[0],Coords(pans)[1],*dt_frac);
 	    }
 	}
@@ -300,7 +300,7 @@ EXPORT int find_cross_status(
 	    	(void) printf("dt_tmp *dt_frac = %g %g\n",dt_tmp,*dt_frac);
 		(void) printf("sc1 sc2 = %d %d\n",sc1,sc2);
 		(void) printf("b1virtual = %llu %g %g -> %g %g\n",
-			      bond_number(b1virtual,fr->interf),
+			      (long long unsigned int)bond_number(b1virtual,fr->interf),
 			      Coords(b1virtual->start)[0],
 			      Coords(b1virtual->start)[1],
 			      Coords(b1virtual->end)[0],
@@ -309,7 +309,7 @@ EXPORT int find_cross_status(
 		print_o_curve(oldc1);
 		print_o_curve(newc1);
 		(void) printf("b2virtual = %llu %g %g -> %g %g\n",
-			      bond_number(b2virtual,fr->interf),
+			      (long long unsigned int)bond_number(b2virtual,fr->interf),
 			      Coords(b2virtual->start)[0],
 			      Coords(b2virtual->start)[1],
 			      Coords(b2virtual->end)[0],
@@ -706,13 +706,13 @@ EXPORT int find_cross_or_extend_to_cross_status(
 	    		      (sc1) ? "YES" : "NO",(sc2) ? "YES" : "NO",
 	    		      (curves_close) ? "YES" : "NO");
 	    	(void) printf("b1virtual = %llu %g %g -> %g %g\n",
-	    		      bond_number(b1virtual,fr->interf),
+	    		      (long long unsigned int)bond_number(b1virtual,fr->interf),
 	    		      Coords(b1virtual->start)[0],
 	    		      Coords(b1virtual->start)[1],
 	    		      Coords(b1virtual->end)[0],
 	    		      Coords(b1virtual->end)[1]);
 	    	(void) printf("newb1dir = %llu %g %g -> %g %g\n",
-	    		      bond_number(newb1dir,fr->interf),
+	    		      (long long unsigned int)bond_number(newb1dir,fr->interf),
 	    		      Coords(newb1dir->start)[0],
 	    		      Coords(newb1dir->start)[1],
 	    		      Coords(newb1dir->end)[0],

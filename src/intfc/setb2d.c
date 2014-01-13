@@ -689,7 +689,7 @@ LOCAL void show_bpoints(
 	{
 	    (void) printf("%3d %15.12g %15.12g %15.12g %9llu %2d %2d %10s\n",i,
 	                  Coords(bpoints->posn)[0],Coords(bpoints->posn)[1],
-	                  bpoints->dist,node_number(bpoints->node),
+	                  bpoints->dist,(long long unsigned int)node_number(bpoints->node),
 	                  bpoints->comp1,bpoints->comp2,
 			  bdry_side_as_string(bpoints->side));
 	}
@@ -702,10 +702,10 @@ LOCAL	void	print_bpoint(
 	BPOINT *bpoint)
 {
 	(void) printf("BPOINT 0x%p, prev 0x%p next 0x%p\n",
-		      bpoint,bpoint->prev,bpoint->next);
-	(void) printf("node %llu\n",node_number(bpoint->node));
+		      (void*)bpoint,(void*)bpoint->prev,(void*)bpoint->next);
+	(void) printf("node %llu\n",(long long unsigned int)node_number(bpoint->node));
 	print_node(bpoint->node);
-	(void) printf("posn 0x%p, at (%15.12g, %15.12g)\n",bpoint->posn,
+	(void) printf("posn 0x%p, at (%15.12g, %15.12g)\n",(void*)bpoint->posn,
 		      Coords(bpoint->posn)[0],Coords(bpoint->posn)[1]);
 	(void) printf("comp1 = %d, comp2 = %d\n",bpoint->comp1,
 		      bpoint->comp2);

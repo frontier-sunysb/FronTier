@@ -337,7 +337,7 @@ int	    i;
 	    }
 	}
 
-	printf("#across curve  %p  %d\n", n_t, *is);
+	printf("#across curve  %p  %d\n", (void*)n_t, *is);
 
 	return n_t;
 }
@@ -1399,7 +1399,8 @@ EXPORT	int check_wall_crx_orient(
 				}
 
 				ort = curve_surface_orientation(surf, curve);
-			        printf("%2d %p | %2d | %2d %2d | %2d %2d | %2d %2d |%10s\n",k, surf, is_wall_surface(surf),
+			        printf("%2d %p | %2d | %2d %2d | %2d %2d | %2d %2d |%10s\n",k, 
+					(void*)surf, is_wall_surface(surf),
 				      negative_component(surf),positive_component(surf),
 				      seg_crx[k]->lcomp, seg_crx[k]->ucomp, 
 				      orient, ort, orient == ort? " " : "o_error");

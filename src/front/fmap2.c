@@ -1251,7 +1251,7 @@ EXPORT void FT_AddHdfMovieVariable(
 	hdf_movie_var->untracked = untracked;
 	hdf_movie_var->get_state_var[i] = getStateFunc;
 	hdf_movie_var->top_var[i] = var_field;
-	sprintf(hdf_movie_var->var_name[i],var_name);
+	sprintf(hdf_movie_var->var_name[i],"%s",var_name);
 	hdf_movie_var->preset_bound[i] = preset_bound;
 	hdf_movie_var->obstacle_comp[i] = obst_comp;
 	if (preset_bound == YES)
@@ -1297,7 +1297,7 @@ EXPORT void FT_AddVtkVectorMovieVariable(
 	    vtk_movie_var = front->vtk_movie_var;
 	i = front->vtk_movie_var->num_vector_var;
 	vtk_movie_var->vector_var[i] = vector_var_field;
-	sprintf(vtk_movie_var->vector_var_name[i],var_name);
+	sprintf(vtk_movie_var->vector_var_name[i],"%s",var_name);
 	front->vtk_movie_var->num_vector_var += 1;
 
         if (debugging("trace"))
@@ -1334,7 +1334,7 @@ EXPORT void FT_AddVtkScalarMovieVariable(
 	    vtk_movie_var = front->vtk_movie_var;
 	i = front->vtk_movie_var->num_scalar_var;
 	vtk_movie_var->scalar_var[i] = scalar_var_field;
-	sprintf(vtk_movie_var->scalar_var_name[i],var_name);
+	sprintf(vtk_movie_var->scalar_var_name[i],"%s",var_name);
 	front->vtk_movie_var->num_scalar_var += 1;
 
         if (debugging("trace"))

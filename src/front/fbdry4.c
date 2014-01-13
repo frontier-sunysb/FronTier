@@ -596,7 +596,8 @@ EXPORT	void shift_c_states_to_bdry_curves(
 	        {
 	            (void) printf("WARNING in shift_c_states_to_bdry_curves(), "
 	    		      "next_boundary() failed  cp %llu cb_last %llu\n",
-	    		      curve_number(cp),curve_number(cb_last));
+	    		      (long long unsigned int)curve_number(cp),
+			      (long long unsigned int)curve_number(cb_last));
 	    	    print_interface(intfc);
 	    	    return;
 	        }

@@ -258,7 +258,8 @@ LIB_LOCAL void i_print_intersections2d(
 	    print_bond(cr->b1);
 	    print_bond(cr->b2);
 	    (void) printf("Crossing curves, cr->c1 = %llu, cr->c2 = %llu\n",
-	    	          curve_number(cr->c1),curve_number(cr->c2));
+	    	          (long long unsigned int)curve_number(cr->c1),
+			  (long long unsigned int)curve_number(cr->c2));
 	    if (cr->c1 == cr->c2)
 	    {
 	    	(void) printf("One Self-Intersecting Curve:\n\n");
@@ -291,19 +292,19 @@ LIB_LOCAL	void	i_print_crossing_elements2d(
 		(void) printf("Intersection %d, ",num);
 		print_general_vector("at position ",Coords(cr->p),dim,"\n");
 		(void) printf("Bond cr->b1 %llu on curve cr->c1 %llu\n",
-			      bond_number(cr->b1,cr->c1->interface),
-			      curve_number(cr->c1));
+			      (long long unsigned int)bond_number(cr->b1,cr->c1->interface),
+			      (long long unsigned int)curve_number(cr->c1));
 		print_bond(cr->b1);
 		(void) printf("cr->b1->start %llu, cr->b1->end %llu\n",
-			      point_number(cr->b1->start),
-			      point_number(cr->b1->end));
+			      (long long unsigned int)point_number(cr->b1->start),
+			      (long long unsigned int)point_number(cr->b1->end));
 		(void) printf("Bond cr->b2 %llu on curve cr->c2 %llu\n",
-			      bond_number(cr->b2,cr->c2->interface),
-			      curve_number(cr->c2));
+			      (long long unsigned int)bond_number(cr->b2,cr->c2->interface),
+			      (long long unsigned int)curve_number(cr->c2));
 		print_bond(cr->b2);
 		(void) printf("cr->b2->start %llu, cr->b2->end %llu\n",
-			      point_number(cr->b2->start),
-			      point_number(cr->b2->end));
+			      (long long unsigned int)point_number(cr->b2->start),
+			      (long long unsigned int)point_number(cr->b2->end));
 	}
 }	/* end print_crossing_elements2d */
 

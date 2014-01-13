@@ -831,7 +831,7 @@ LIB_LOCAL boolean nearest_interface_point3d(
 			if(debugging("line_tri"))
 			{
 			    printf("#nearest pt  %d   %p  %24.16e\n",
-			        tri_proj->side, tri_proj->tri, tri_proj->d2);
+			        tri_proj->side, (void*)tri_proj->tri, tri_proj->d2);
 			    print_tri_coords(tri_proj->tri);
 			}
 	        	if (new_tri_is_closer(tri_proj,closest) == YES)
@@ -1123,7 +1123,7 @@ LIB_LOCAL boolean nearest_interface_point_within_range3d(
 			if(debugging("line_tri"))
 			{
 			    printf("#nearest pt  %d   %p  %24.16e\n",
-			        tri_proj->side, tri_proj->tri, tri_proj->d2);
+			        tri_proj->side, (void*)tri_proj->tri, tri_proj->d2);
 			    print_tri_coords(tri_proj->tri);
 			}
 	        	if (new_tri_is_closer(tri_proj,closest) == YES)
@@ -3605,7 +3605,7 @@ LIB_LOCAL void show_COMP_3d(
 	izmax = topological_grid(intfc).gmax[2];
 	(void) fprintf(file,"\n\nCOMPONENTS by Grid Block for "
 	               "INTERFACE %llu = %p:\n",
-	               interface_number(intfc),intfc);
+	               (long long unsigned int)interface_number(intfc),(void*)intfc);
 	for (iz = 0; iz < izmax; ++iz)
 	{
 	    (void) fprintf(file, "\tPlane iz = %d\n\n", iz);
@@ -3654,7 +3654,7 @@ LOCAL void show_TRI_list(
 	izmax = topological_grid(intfc).gmax[2];
 
 	(void) printf("\n\nTri Numbers for INTERFACE %llu:\n",
-	              interface_number(intfc));
+	              (long long unsigned int)interface_number(intfc));
 	for (iz = 0; iz < izmax; ++iz)
 	{
 	    (void) printf("\tPlane iz = %d\n\n", iz);
@@ -3802,7 +3802,7 @@ EXPORT boolean tri_edge_crossing(
 		*iv = i;
 	    	if(debugging("tst_crx"))
 	    	{
-		    printf("iv = %d\n",iv);
+		    printf("iv = %d\n",*iv);
 		    print_general_vector("pt", pt, 3, "\n");
 		    print_general_vector("start ", crds_start, 3, "\n");
 		    print_general_vector("end   ", crds_end, 3, "\n");

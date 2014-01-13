@@ -2342,8 +2342,8 @@ LOCAL boolean flip_max_side_of_tri(
 	if (DEBUG)
 	{
 	    (void) printf("flipping common side of tri %llu and otri %llu\n",
-			  tri_number(tri,fr->interf),
-			  tri_number(otri,fr->interf));
+			  (long long unsigned int)tri_number(tri,fr->interf),
+			  (long long unsigned int)tri_number(otri,fr->interf));
 	    (void) printf("side = %d, oside = %d\n",side,oside);
 	    (void) printf("tri - ");
 	    print_tri(tri,fr->interf);
@@ -2831,7 +2831,7 @@ LOCAL 	void	print_tri_surf_queue(
 			  Coords(Point_of_tri(tri)[1])[2],
 			  Coords(Point_of_tri(tri)[2])[0],
 			  Coords(Point_of_tri(tri)[2])[1],
-			  Coords(Point_of_tri(tri)[2])[2],tri,t_surf->side);
+			  Coords(Point_of_tri(tri)[2])[2],(void*)tri,t_surf->side);
 	    q = q->next;
 	}
 }		/*end print_tri_surf_queue*/

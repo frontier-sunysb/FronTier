@@ -391,7 +391,7 @@ LOCAL	int found_crossing_of_two_propagated_curves(
 	if (debugging("crossing")) 
 	{
 	    (void) printf("pc (%llu): (%g, %g)  s1 = %g s2 = %g\n",
-			  point_number(pc),Coords(pc)[0],Coords(pc)[1],s1,s2);
+			  (long long unsigned int)point_number(pc),Coords(pc)[0],Coords(pc)[1],s1,s2);
 	    (void) printf("*newb1cr:\n");
 	    print_bond_and_states(*newb1cr,newc1->curve,fr);
 	    (void) printf("*newb2cr:\n");
@@ -691,7 +691,7 @@ LOCAL	int	found_crossing_of_a_propagated_curve_and_circle(
 	*newbcr = (newb == bvirtual) ? 	Bond_at_node_of_o_curve(newc) : newb;
 	if (debugging("circle_crossing")) 
 	{
-	    (void) printf("pc (%llu): %g %g  s = %g\n",point_number(pc),
+	    (void) printf("pc (%llu): %g %g  s = %g\n",(long long unsigned int)point_number(pc),
 		          Coords(pc)[0],Coords(pc)[1],s);
 	    (void) printf("*newbcr:\n");
 	    print_bond_and_states(*newbcr,newc->curve,fr);
@@ -1563,8 +1563,8 @@ EXPORT	int check_cross(
 	    (void) printf("Checking cross (%g, %g), s1 = %g, s2 = %g\n",
 			Coords(pc)[0],Coords(pc)[1],s1,s2);
 	    (void) printf("Between bonds b1 %llu and b2 %llu\n",
-		       bond_number(b1,current_interface()),
-		       bond_number(b2,current_interface()));
+		       (long long unsigned int)bond_number(b1,current_interface()),
+		       (long long unsigned int)bond_number(b2,current_interface()));
 	    print_bond(b1);		print_bond(b2);
 	    (void) printf("c1\n");	print_o_curve(c1);
 	    (void) printf("c2\n");	print_o_curve(c2);
@@ -1617,7 +1617,7 @@ LOCAL	void debug_print_improper_cross(
 	{
 		(void) printf("Cross found at end of curve or out of bounds\n");
 		(void) printf("pc (%llu): %g %g  s1 = %g s2 = %g\n",
-			point_number(pc),Coords(pc)[0],Coords(pc)[1],s1,s2);
+			(long long unsigned int)point_number(pc),Coords(pc)[0],Coords(pc)[1],s1,s2);
 		(void) printf("newb1cr:\n");
 		print_bond_and_states(newb1cr,newc1,fr);
 		(void) printf("newb2cr:\n");

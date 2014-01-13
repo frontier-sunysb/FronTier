@@ -320,7 +320,7 @@ LOCAL IOUTPUT *index_of_read_file(
 	debug_print("foutput","Entered index_of_read_file()\n");
 	if (debugging("foutput"))
 	{
-	    (void) printf("searching for file %p\n",file);
+	    (void) printf("searching for file %p\n",(void*)file);
 	    (void) printf("flag = %s\n",
 	                  (flag == DELETE) ? "DELETE" : "ADD");
 	}
@@ -332,7 +332,7 @@ LOCAL IOUTPUT *index_of_read_file(
 	if (debugging("foutput"))
 	{
 	    if (rlist != NULL)
-	        (void) printf("Entry IOUTPUT %p found\n",&rlist->Output);
+	        (void) printf("Entry IOUTPUT %p found\n",(void*)&rlist->Output);
 	}
 
 	if (flag == DELETE)
@@ -385,7 +385,7 @@ LOCAL IOUTPUT *index_of_read_file(
 	tail_of_read_list = rlist;
 	set_new_read_file(file,&rlist->Output);
 	if (debugging("foutput"))
-	    (void) printf("Entry IOUTPUT %p added\n",&rlist->Output);
+	    (void) printf("Entry IOUTPUT %p added\n",(void*)&rlist->Output);
 	debug_print("foutput","Left index_of_read_file()\n");
 	return &rlist->Output;
 }		/*end index_of_read_file*/
@@ -531,7 +531,7 @@ EXPORT boolean check_output(
 	static long	save,next,prev;
 	IMPORT boolean	fgetstring_debug;
 
-	debug_print("foutput","Entered check_output(), file = %p\n",file);
+	debug_print("foutput","Entered check_output(), file = %p\n",(void*)file);
 	if ((oput = index_of_read_file(file,ADD)) == NULL)
 	{
 	    if (debugging("foutput"))
@@ -543,7 +543,7 @@ EXPORT boolean check_output(
 	if (oput->check_for_blocked_output)
 	{
 	    if (debugging("foutput"))
-	        (void) printf("Testing file %p for blocked output\n",file);
+	        (void) printf("Testing file %p for blocked output\n",(void*)file);
 	    oput->output_blocked = NO;
 	    save = ftell(file);
 	    if (fseek(file,0L,SEEK_SET) < 0)
@@ -1110,19 +1110,19 @@ EXPORT	void	fprint_io_type(
 {
         if (mesg != NULL)
 	    (void) fprintf(file,"%s",mesg);
-	(void) fprintf(file,"IO_TYPE structure %p\n",io_type);
-	(void) fprintf(file,"\tfile = %p\n",io_type->file);
+	(void) fprintf(file,"IO_TYPE structure %p\n",(void*)io_type);
+	(void) fprintf(file,"\tfile = %p\n",(void*)io_type->file);
 	(void) fprintf(file,"\tread_float_size = %llu\n",
-	              size_t2uint64_t(io_type->read_float_size));
+	              (long long unsigned int)size_t2uint64_t(io_type->read_float_size));
 	(void) fprintf(file,"\tread_endian = %s\n",
 	              ft_endian_name(io_type->read_endian));
 	(void) fprintf(file,"\treverse_endian = %s\n",
 	              y_or_n(io_type->reverse_endian));
 	(void) fprintf(file,"\tcpu_float_size = %llu\n",
-	              size_t2uint64_t(io_type->cpu_float_size));
+	              (long long unsigned int)size_t2uint64_t(io_type->cpu_float_size));
 	(void) fprintf(file,"\tcpu_endian = %s\n",
 	              ft_endian_name(io_type->cpu_endian));
-	(void) fprintf(file,"End IO_TYPE structure %p\n",io_type);
+	(void) fprintf(file,"End IO_TYPE structure %p\n",(void*)io_type);
 }		/*end fprint_io_type*/
 
 EXPORT	uint64_t size_t2uint64_t(

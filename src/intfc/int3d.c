@@ -1144,14 +1144,14 @@ LIB_LOCAL void i_fprint_surface(
 	TRI    *tri;
 	POINT  *p;
 
-	(void) fprintf(file,"\tSurface %llu:\n",surface_number(s));
+	(void) fprintf(file,"\tSurface %llu:\n",(long long unsigned int)surface_number(s));
 	if (s == NULL)
 	{
 	    (void) fprintf(file,"\t\t NULL Surface\n\tEnd of Surface\n\n");
 	    return;
 	}
 	(void) fprintf(file,"\tHypersurface of surface = %llu\n",
-		       hypersurface_number(Hyper_surf(s)));
+		       (long long unsigned int)hypersurface_number(Hyper_surf(s)));
 	(void) fprintf(file,"\tHypersurface index = %d\n",
 		       Hyper_surf_index(s));
 	(void) fprintf(file,"\tPositive Component = %-4d   "
@@ -1168,12 +1168,12 @@ LIB_LOCAL void i_fprint_surface(
 	(void) fprintf(file,"\t%lu Positively Oriented Bounding Curves : ",
 		       num_pos_c);
 	while (num_pos_c--)
-		(void) fprintf(file,"%llu ",curve_number(*pos_cur++));
+		(void) fprintf(file,"%llu ",(long long unsigned int)curve_number(*pos_cur++));
 	(void) fprintf(file,"\n");
 	(void) fprintf(file,"\t%lu Negatively Oriented Bounding Curves : ",
 		       num_neg_c);
 	while (num_neg_c--)
-		(void) fprintf(file,"%llu ",curve_number(*neg_cur++));
+		(void) fprintf(file,"%llu ",(long long unsigned int)curve_number(*neg_cur++));
 	(void) fprintf(file,"\n\n");
 
 	for (tri = first_tri(s); !at_end_of_tri_list(tri,s); tri = tri->next)
@@ -1255,7 +1255,7 @@ LIB_LOCAL SURFACE *read_print_surface(
 		/* Read Components and Boundary Flag: */
 
 	(void) fgetstring(file,"Surface");
-	(void) fscanf(file,"%llu:",&old_surf);
+	(void) fscanf(file,"%llu:",(long long unsigned int *)(&old_surf));
 	iaddr->surfaces[s_index] = old_surf;
 	(void) fgetstring(file,"Hypersurface index =");
 	(void) fscanf(file,"%d:",&hs_index);
@@ -1271,7 +1271,7 @@ LIB_LOCAL SURFACE *read_print_surface(
 	uni_array(iaddr->pcurves+s_index,n_pos_curves,sizeof(uint64_t));
 	for (j = 0; j < n_pos_curves; ++j)
 	{
-	    (void) fscanf(file,"%llu",&old_curve);
+	    (void) fscanf(file,"%llu",(long long unsigned int *)(&old_curve));
 	    iaddr->pcurves[s_index][j] = old_curve;
 	    for (k = 0; k < ncurves; ++k)
 	    	if (old_curve == iaddr->curves[k])
@@ -1293,7 +1293,7 @@ LIB_LOCAL SURFACE *read_print_surface(
 	uni_array(iaddr->ncurves+s_index,n_neg_curves,sizeof(uint64_t));
 	for (j = 0; j < n_neg_curves; ++j)
 	{
-	    (void) fscanf(file,"%llu",&old_curve);
+	    (void) fscanf(file,"%llu",(long long unsigned int *)(&old_curve));
 	    iaddr->ncurves[s_index][j] = old_curve;
 	    for (k = 0; k < ncurves; ++k)
 	    	if (old_curve == iaddr->curves[k])
@@ -1668,7 +1668,7 @@ LIB_LOCAL void fprint_tri(
 	    (void) fprintf(file,"NULL Triangle\n"); 
 	    return;
 	}
-	(void) fprintf(file,"Tri = %llu\n",tri_number(tri,intfc));
+	(void) fprintf(file,"Tri = %llu\n",(long long unsigned int)tri_number(tri,intfc));
 	for (i = 0; i < 3; ++i)
 	{
 	    p[i] = Point_of_tri(tri)[i];
@@ -1678,7 +1678,7 @@ LIB_LOCAL void fprint_tri(
 	        (void) fprintf(file,"( %"FFMT" %"FFMT" %"FFMT" ) ",
 			   Coords(p[i])[0],Coords(p[i])[1],Coords(p[i])[2]);
 	        (void) fprintf(file,"%llu Boundary %d Boundary_point %d\n",
-			       point_number(p[i]),Boundary(p[i]),
+			       (long long unsigned int)point_number(p[i]),Boundary(p[i]),
 			       Boundary_point(p[i]));
 	    }
 	    else
@@ -1690,19 +1690,19 @@ LIB_LOCAL void fprint_tri(
 	    (void) fprintf(file,"Triangle is not connected to a surface\n");
 	else
 	    intfc = Surface_of_tri(tri)->interface;
-	(void) fprintf(file,"Tri = %llu ",tri_number(tri,intfc));
+	(void) fprintf(file,"Tri = %llu ",(long long unsigned int)tri_number(tri,intfc));
 	for (side = 0; side < 3; ++side)
 	{
 	    if (is_side_bdry(tri,side))             
 	        (void) fprintf(file,"Bond%2s = %llu",sideno[side],
-			       bond_number(Bond_on_side(tri,side),intfc));
+			       (long long unsigned int)bond_number(Bond_on_side(tri,side),intfc));
 
 	    else if (Tri_on_side(tri,side) == NULL) 
 	        (void) fprintf(file,"Tri%2s  =       NULL",sideno[side]);
 
 	    else                                        
 	        (void) fprintf(file,"Tri%2s  = %llu",sideno[side],
-			       tri_number(Tri_on_side(tri,side),intfc));
+			       (long long unsigned int)tri_number(Tri_on_side(tri,side),intfc));
 	    (void) fprintf(file,"%s",sep[side]);
 	}
 
@@ -1714,14 +1714,15 @@ LIB_LOCAL void fprint_tri(
 	(void) fprintf(file,"bdry31 = %3s\n",
 		       is_side20_a_bond(tri) ? "YES" : "NO");
 	(void) fprintf(file,"prev = %llu next = %llu ",
-		       tri_number(tri->prev,intfc),tri_number(tri->next,intfc));
+		       (long long unsigned int)tri_number(tri->prev,intfc),
+		       (long long unsigned int)tri_number(tri->next,intfc));
 	(void) fprintf(file,"index = %-10d ",Tri_index(tri));
 	(void) fprintf(file,"work space = %p\n",(POINTER)Tri_workspace(tri));
 	tnor = Tri_normal(tri);
 	(void) fprintf(file,"Normal = ( %"FFMT" %"FFMT" %"FFMT" ) "
 		      "Surface_of_tri = %llu\n\n",
 		      tnor[0],tnor[1],tnor[2],
-		      surface_number(Surface_of_tri(tri)));
+		      (long long unsigned int)surface_number(Surface_of_tri(tri)));
 
 	sv = side_vector(tri);
 	for (i = 0; i < 3; ++i)
@@ -1791,7 +1792,7 @@ LOCAL void fprint_triangle_numbers(
 		    (void) fprintf(file," Bond%s NULL",sideno[side]);
 		else
 	    	    (void) fprintf(file," Bond%s %llu",sideno[side],
-				    bond_number(bt->bond,intfc));
+				    (long long unsigned int)bond_number(bt->bond,intfc));
 	    }
 	    else if (Tri_on_side(tri,side) == NULL)
 		(void) fprintf(file," Tri%s NULL",sideno[side]);
@@ -1849,7 +1850,7 @@ LOCAL void fprint_tris_on_surface(
 	TRI	  *tri;
 
 	(void) fprintf(file,"\n\nPrint the triangles on surface (%llu)\n",
-		surface_number(surf));
+		(long long unsigned int)surface_number(surf));
 	(void) fprintf(file,"There are %d triangles on the surface\n\n",
 		       surf->num_tri);
 	for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf);
@@ -1892,7 +1893,7 @@ LIB_LOCAL void fprint_tris_on_curve(
 
 	for (b = curve->first; b; b = b->next)
 	{
-	    (void) fprintf(file,"%-10llu ",bond_number(b,curve->interface));
+	    (void) fprintf(file,"%-10llu ",(long long unsigned int)bond_number(b,curve->interface));
 	    for (btris = Btris(b); btris && *btris; ++btris)
 	    	(void) fprintf(file,"%-10d ",Tri_index((*btris)->tri));
 	    (void) fprintf(file,"\n");
@@ -1930,7 +1931,7 @@ LIB_LOCAL void read_print_tris_on_curve(
 	bonds = iaddr->bonds[c_index];
 	for (b = curve->first, i = 0; b != NULL; b = b->next, ++i)
 	{
-	    (void) fscanf(file,"%llu",bonds+i);
+	    (void) fscanf(file,"%llu",(long long unsigned int *)(bonds+i));
 	    uni_array(tris+i,iaddr->num_surfs[c_index],INT);
 	    for (k = 0; k < iaddr->num_surfs[c_index]; ++k)
 	    	(void) fscanf(file,"%d",tris[i]+k);
@@ -1968,7 +1969,7 @@ LIB_LOCAL void fprint_length0_on_curve(
 
 	for (b = curve->first; b; b = b->next)
 	{
-	    (void) fprintf(file,"%-10llu ",bond_number(b,curve->interface));
+	    (void) fprintf(file,"%-10llu ",(long long unsigned int)bond_number(b,curve->interface));
 	    (void) fprintf(file,"%- "FFMT" ",b->length0);
 	    (void) fprintf(file,"\n");
 	}
@@ -2674,9 +2675,9 @@ EXPORT	BOND_TRI *i_link_tri_to_bond(
 	    p = Point_of_tri(tri);
 	    
 	    print_tri_coords(tri);
-	    printf("%llu\n", point_number(p[0]));
-	    printf("%llu\n", point_number(p[1]));
-	    printf("%llu\n", point_number(p[2]));
+	    printf("%llu\n", (long long unsigned int)point_number(p[0]));
+	    printf("%llu\n", (long long unsigned int)point_number(p[1]));
+	    printf("%llu\n", (long long unsigned int)point_number(p[2]));
 	    print_bond(b);
 	    if (debugging("link_tri_to_bond"))
 	    {
@@ -2780,7 +2781,7 @@ EXPORT	SURFACE  *i_join_surfaces(
 	debug_print("join_surfaces","Entered i_join_surfaces()\n");
 	if (debugging("join_surfaces"))
 	{
-	    (void) printf("joining surfaces at curve %llu\n",curve_number(c));
+	    (void) printf("joining surfaces at curve %llu\n",(long long unsigned int)curve_number(c));
 	    print_curve(c);
 	}
 
@@ -2792,7 +2793,8 @@ EXPORT	SURFACE  *i_join_surfaces(
 	if (debugging("join_surfaces"))
 	{
 	    (void) printf("joining surfaces sp = %llu sn = %llu\n",
-			  surface_number(sp),surface_number(sn));
+			  (long long unsigned int)surface_number(sp),
+			  (long long unsigned int)surface_number(sn));
 	}
 	if (sp == sn)
 	    news = sp;

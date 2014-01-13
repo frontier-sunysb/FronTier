@@ -211,7 +211,7 @@ extern void readAfExtraDada(
 	    fgetstring(infile,"load_mass = ");
             fscanf(infile,"%lf",&c_params->load_mass);
 	    fgetstring(infile,"load_type = ");
-            fscanf(infile,"%d",&c_params->load_type);
+            fscanf(infile,"%d",(int*)&c_params->load_type);
 	    fgetstring(infile,"dir = ");
             fscanf(infile,"%d",&c_params->dir);
 	    (*c)->extra = (POINTER)c_params;
@@ -225,7 +225,7 @@ extern void readAfExtraDada(
 	    if (string[0] == 'n') continue;
 	    FT_ScalarMemoryAlloc((POINTER*)&n_params,sizeof(AF_NODE_EXTRA));
 	    fgetstring(infile,"af_node_type =");
-            fscanf(infile,"%d",&n_params->af_node_type);
+            fscanf(infile,"%d",(int*)&n_params->af_node_type);
 	    (*n)->extra = (POINTER)n_params;
 	}
 }	/* end readAfExtraDada */

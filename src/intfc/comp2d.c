@@ -348,7 +348,7 @@ LIB_LOCAL boolean nearest_interface_point2d(
 	                      "make_bond_comp_lists() failed\n");
 	        (void) printf("coords = (%g, %g), ",coords[0],coords[1]);
 	        (void) printf("comp = %d, bdry = %d, ",comp,bdry);
-	        (void) printf("hs = %llu\n",hypersurface_number(hs));
+	        (void) printf("hs = %llu\n",(long long unsigned int)hypersurface_number(hs));
 	        (void) printf("Topological grid of interface\n");
 	        print_rectangular_grid(&topological_grid(intfc));
 	        if (first == YES)
@@ -1280,7 +1280,7 @@ LIB_LOCAL boolean long_nearest_interface_point2d(
 	                  "b_closest == NULL\n"
 	                  "coords = (%g, %g), ",coords[0],coords[1]);
 	    (void) printf("comp = %d, bdry = %d, ",comp,bdry);
-	    (void) printf("hs = %llu\n",hypersurface_number(hs));
+	    (void) printf("hs = %llu\n",(long long unsigned int)hypersurface_number(hs));
 	    (void) printf("Topological grid of interface\n");
 	    print_rectangular_grid(&topological_grid(intfc));
 	    if (first == YES)
@@ -2232,7 +2232,8 @@ LOCAL boolean blocks_on_bond(
 	    	(void) printf("WARNING in blocks_on_bond(),  "
 	    	              "coords not on grid\n");
 	    	(void) printf("b %llu c %llu comp %p\n",
-	    	              bond_number(b,c->interface),curve_number(c),comp);
+	    	              (long long unsigned int)bond_number(b,c->interface),
+			      (long long unsigned int)curve_number(c),(void*)comp);
 	    	(void) printf("b->start <%g, %g> b->end <%g, %g>\n",
 	    		      coords1[0],coords1[1],x2,y2);
 	    	if (debugging("blocks_on_bond"))
@@ -2280,8 +2281,8 @@ LOCAL boolean blocks_on_bond(
 	    	(void) printf("WARNING in blocks_on_bond(),  "
 	    	              "coords not on grid\n");
 	    	(void) printf("b %llu c %llu comp %p x %g y %g\n",
-			       bond_number(b,c->interface),
-			       curve_number(c),comp,x,y);
+			       (long long unsigned int)bond_number(b,c->interface),
+			       (long long unsigned int)curve_number(c),(void*)comp,x,y);
 	    	(void) printf("x1 %g y1 %g x2 %g y2 %g\n",x1,y1,x2,y2);
 	    	if (debugging("blocks_on_bond"))
 	    	    print_interface(c->interface);
@@ -2598,7 +2599,7 @@ LIB_LOCAL void show_COMP_2d(
 	ixmax = topological_grid(intfc).gmax[0];
 	iymax = topological_grid(intfc).gmax[1];
 	(void) fprintf(file,"\n\nCOMPONENTS by Grid Block for INTERFACE %llu:\n",
-		       interface_number(intfc));
+		       (long long unsigned int)interface_number(intfc));
 	for (iy = iymax - 1; iy >= 0; --iy)
 	{
 	    for (ix = 0; ix < ixmax; ++ix)
@@ -2630,7 +2631,7 @@ LOCAL void show_BOND_list(
 	ixmax = topological_grid(intfc).gmax[0];
 	iymax = topological_grid(intfc).gmax[1];
 	(void) printf("\n\nBond Numbers for INTERFACE %llu:\n",
-	       interface_number(intfc));
+	       (long long unsigned int)interface_number(intfc));
 	for (iy = iymax - 1; iy >= 0; --iy)
 	{
 		for (ix = 0; ix < ixmax; ++ix)
@@ -2639,7 +2640,8 @@ LOCAL void show_BOND_list(
 	}
 	(void) printf("\n\n");
 
-	(void) printf("\n\nBondlists for INTERFACE %llu\n",interface_number(intfc));
+	(void) printf("\n\nBondlists for INTERFACE %llu\n",
+		(long long unsigned int)interface_number(intfc));
 	for (iy = iymax - 1; iy>=0;  --iy) 
 	{
 		for (ix = 0; ix < ixmax; ++ix)
@@ -2809,7 +2811,7 @@ LIB_LOCAL boolean nearest_interface_point_within_range2d(
 	                      "make_bond_comp_lists() failed\n");
 	        (void) printf("coords = (%g, %g), ",coords[0],coords[1]);
 	        (void) printf("comp = %d, bdry = %d, ",comp,bdry);
-	        (void) printf("hs = %llu\n",hypersurface_number(hs));
+	        (void) printf("hs = %llu\n",(long long unsigned int)hypersurface_number(hs));
 	        (void) printf("Topological grid of interface\n");
 	        print_rectangular_grid(&topological_grid(intfc));
 	        if (first == YES)

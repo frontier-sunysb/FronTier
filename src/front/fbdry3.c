@@ -234,20 +234,20 @@ LOCAL	boolean correct_exterior_curve(
 	if (debugging("c_ext_cur"))
 	{
 	    (void) printf("Correcting for exterior curve %llu\n",
-	    	          curve_number(c));
+	    	          (long long unsigned int)curve_number(c));
 	    print_curve(c);
 	}
 	find_bdry_curves_at_node(ns,&nsc1,&nsc1_or,&nsc2,&nsc2_or);
 	find_bdry_curves_at_node(ne,&nec1,&nec1_or,&nec2,&nec2_or);
 	if (debugging("c_ext_cur"))
 	{
-	    (void) printf("nsc1 = %llu, ",curve_number(nsc1));
+	    (void) printf("nsc1 = %llu, ",(long long unsigned int)curve_number(nsc1));
 	    print_orientation("nsc1_or = ",nsc1_or,"\n");
-	    (void) printf("nsc2 = %llu, ",curve_number(nsc2));
+	    (void) printf("nsc2 = %llu, ",(long long unsigned int)curve_number(nsc2));
 	    print_orientation("nsc2_or = ",nsc2_or,"\n");
-	    (void) printf("nec1 = %llu, ",curve_number(nec1));
+	    (void) printf("nec1 = %llu, ",(long long unsigned int)curve_number(nec1));
 	    print_orientation("nec1_or = ",nec1_or,"\n");
-	    (void) printf("nec2 = %llu, ",curve_number(nec2));
+	    (void) printf("nec2 = %llu, ",(long long unsigned int)curve_number(nec2));
 	    print_orientation("nec2_or = ",nec2_or,"\n");
 	}
 	bc = bc1 = bc2 = NULL;
@@ -292,7 +292,7 @@ LOCAL	boolean correct_exterior_curve(
 	{
 	    (void) printf("ERROR in correct_for_exterior_curves(), "
 	           "Unable to identify boundary curve bc or corner"
-	           "node nc at curve %llu\n",curve_number(c));
+	           "node nc at curve %llu\n",(long long unsigned int)curve_number(c));
 	    print_interface(intfc);
 	    debug_print("c_ext_cur","Left correct_exterior_curve()\n");
 	    return NO;
@@ -303,7 +303,7 @@ LOCAL	boolean correct_exterior_curve(
 	    if (bc)
 	    {
 	    	(void) printf("Boundary curve bc %llu at exterior curve\n",
-	    	          		curve_number(bc));
+	    	          		(long long unsigned int)curve_number(bc));
 	    	print_curve(bc);
 	    }
 	    else if (nc)
@@ -311,10 +311,10 @@ LOCAL	boolean correct_exterior_curve(
 		(void) printf("Corner node between start and end node:\n");
 		print_node(nc);
 	    	(void) printf("Boundary curve bc1 %llu at exterior curve\n",
-	    	          		curve_number(bc1));
+	    	          		(long long unsigned int)curve_number(bc1));
 	    	print_curve(bc1);
 	    	(void) printf("Boundary curve bc2 %llu at exterior curve\n",
-	    	          		curve_number(bc2));
+	    	          		(long long unsigned int)curve_number(bc2));
 	    	print_curve(bc2);
 	    }
 	}
@@ -367,7 +367,8 @@ EXPORT	void replace_cphys_by_cbdry(
 	if( debugging("rcbc") )
 	{
 	    (void) printf("Replacing curve cp %llu by curve cb %llu\n",
-	    	          curve_number(cp),curve_number(cb));
+	    	          (long long unsigned int)curve_number(cp),
+			  (long long unsigned int)curve_number(cb));
 	    (void) printf("Physical curve:\n");
 	    print_curve(cp);
 	    (void) printf("Boundary curve:\n");

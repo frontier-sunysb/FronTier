@@ -217,13 +217,13 @@ EXPORT	int construct_comp2_blk(
 	    if (crxs[i]->s != crxs[0]->s)
 	    {  
 		printf("surface_numbe of crxs[0]->s = %llu\n",
-				surface_number(crxs[0]->s));    
+			(long long unsigned int)surface_number(crxs[0]->s));    
 		printf("surface_numbe of crxs[i]->s = %llu\n",
-				surface_number(crxs[i]->s));
+			(long long unsigned int)surface_number(crxs[i]->s));
 	        screen("ERROR in construct_comp2_blk(), more than "
 	               "one surface in a block, code needed\n");
 		(void) printf("crx[%d]->hs = %p  crx[0] = %p\n",
-		              i,crxs[i]->s,crxs[0]->s);
+		              i,(void*)crxs[i]->s,(void*)crxs[0]->s);
                 (void) printf("i = %d,num_crx = %d\n",i,num_crx);
 		clean_up(ERROR);
 	    }

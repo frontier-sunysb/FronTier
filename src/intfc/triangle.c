@@ -7535,7 +7535,7 @@ EXPORT	void	print_triangulateio(
 {
 	int i;
 
-	(void) printf("triangulateio structure 0x%p\n",tio);
+	(void) printf("triangulateio structure 0x%p\n",(void*)tio);
         (void) printf("\tnumberofpoints = %d\n",tio->numberofpoints);
         for (i = 0; i < tio->numberofpoints; ++i)
         {
@@ -7566,6 +7566,6 @@ EXPORT	void	print_triangulateio(
 		              tio->neighborlist[3*i+2]);
             }
 	}
-	(void) printf("end triangulateio structure 0x%p\n",tio);
+	(void) printf("end triangulateio structure 0x%p\n",(void*)tio);
 }		/*end print_triangulateio*/
 

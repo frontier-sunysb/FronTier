@@ -211,7 +211,7 @@ EXPORT	int scalar_unravel(
 	if (DEBUG)
 	{
 	    (void) printf("In scalar_unravel(), intfc %llu cross %p\n",
-			  interface_number(intfc),(POINTER)cross);
+			  (long long unsigned int)interface_number(intfc),(POINTER)cross);
 	    for (c = intfc->curves; c && *c;  c++)
 		    print_bond_list(*c);
 
@@ -429,7 +429,7 @@ redundant_delete:
 	for (n = intfc->nodes; *n; n++)
 	{
 	    if (DEBUG)
-	       (void) printf("Check node %llu to eliminate\n",node_number(*n));
+	       (void) printf("Check node %llu to eliminate\n",(long long unsigned int)node_number(*n));
 	    if (node_type(*n) != CLOSED_NODE)
 		continue;
 	    if (delete_redundant_node(*n,NULL,NULL,fr))
@@ -588,8 +588,10 @@ LOCAL	void set_curve_info_in_new_node_list(
 		{
 		    (void) printf("Ordering the curves here ");
 		    (void) printf("c[i] = %llu %llu %llu %llu\n",
-			       curve_number(nl->nc[0]),curve_number(nl->nc[1]),
-			       curve_number(nl->nc[2]),curve_number(nl->nc[3]));
+			       	(long long unsigned int)curve_number(nl->nc[0]),
+			       	(long long unsigned int)curve_number(nl->nc[1]),
+			       	(long long unsigned int)curve_number(nl->nc[2]),
+				(long long unsigned int)curve_number(nl->nc[3]));
 		}
 
 		for (i = 0; i < 3; i++)
@@ -630,7 +632,7 @@ LOCAL	void set_curve_info_in_new_node_list(
 		    {
 		      (void) printf("Setting components for nl\n");
 		      (void) printf("i %d nc %llu comps: l %d r %d  comp[] %d\n",
-				    i,curve_number(nl->nc[i]),
+				    i,(long long unsigned int)curve_number(nl->nc[i]),
 				    negative_component(nl->nc[i]),
 				    positive_component(nl->nc[i]),nl->comp[i]);
 	            }
@@ -1054,7 +1056,7 @@ LOCAL	int total_number_curves_at_node(
 
 	if (DEBUG)
 	      (void) printf("Curve count %d for node %llu \n",
-			    count,node_number(node));
+			    count,(long long unsigned int)node_number(node));
 	return count;
 }		/*end total_number_curves_at_node*/
 
@@ -1283,13 +1285,13 @@ LOCAL	void print_NNLIST_struct(
 	(void) printf("NNLIST %p:  prev %p next %p\n",(POINTER)nl,
 		      (POINTER)nl->prev,(POINTER)nl->next);
 	(void) printf("\tnode m %llu  pos: %g %g\n\n",
-		      node_number(nl->m),
+		      (long long unsigned int)node_number(nl->m),
 		      Coords(nl->m->posn)[0],Coords(nl->m->posn)[1]);
 	for (i = 0; i < 4; i++)
 	{
 		(void) printf("\ti %d   nc %llu   nn %llu   comp %d\n",
-			      i,curve_number(nl->nc[i]),
-			      node_number(nl->nn[i]),nl->comp[i]);
+			      i,(long long unsigned int)curve_number(nl->nc[i]),
+			      (long long unsigned int)node_number(nl->nn[i]),nl->comp[i]);
 		(void) printf("\torient %s   ni %s\n",
 			      (nl->orient[i] == POSITIVE_ORIENTATION) ?
 			      "POSITIVE ORIENTATION" : "NEGATIVE ORIENTATION",
@@ -1328,7 +1330,7 @@ LOCAL 	double area_of_loop(
 
 	if (DEBUG)
 		(void) printf("Area %g  curve %llu\n",
-			      area,curve_number(nl->nc[i]));
+			      area,(long long unsigned int)curve_number(nl->nc[i]));
 
 	if (nl->nc[i] != nl->nc[j])
 	{
@@ -1339,7 +1341,7 @@ LOCAL 	double area_of_loop(
 
 		if (DEBUG)
 			(void) printf("A %g  curve %llu\n",
-				      a,curve_number(nl->nc[j]));
+				      a,(long long unsigned int)curve_number(nl->nc[j]));
 	}
 	area = area + a;
 
@@ -1364,11 +1366,11 @@ LOCAL 	double Pangle(
 	{
 		(void) printf("Entered Pangle\n");
 		(void) printf("p0 %llu  x %g  y %g\n",
-			      point_number(p0),Coords(p0)[0],Coords(p0)[1]);
+			      (long long unsigned int)point_number(p0),Coords(p0)[0],Coords(p0)[1]);
 		(void) printf("p1 %llu  x %g  y %g\n",
-			      point_number(p1),Coords(p1)[0],Coords(p1)[1]);
+			      (long long unsigned int)point_number(p1),Coords(p1)[0],Coords(p1)[1]);
 		(void) printf("p2 %llu  x %g  y %g\n",
-			      point_number(p2),Coords(p2)[0],Coords(p2)[1]);
+			      (long long unsigned int)point_number(p2),Coords(p2)[0],Coords(p2)[1]);
 	}
 
 	y = Dot_pro(p0,p1,p2);
@@ -1407,7 +1409,7 @@ restart_loop:
 		if (DEBUG)
 		{
 			(void) printf("Resolving node type at node %llu\n",
-				      node_number(*n));
+				      (long long unsigned int)node_number(*n));
 			print_node(*n);
 		}
 
@@ -1676,12 +1678,12 @@ LOCAL	void print_Snlist(
 		(void) printf("Snlist empty\n");
 		return;
 	}
-	(void) printf("Snlist at node %llu\n",node_number(snlist->sn));
+	(void) printf("Snlist at node %llu\n",(long long unsigned int)node_number(snlist->sn));
 	print_node(snlist->sn);
 	for (i = 0;  i < snlist->num_c;  i++)
 	{
 		if (snlist->nc_set)
-			(void) printf("curve %llu ",curve_number(snlist->nc[i]));
+			(void) printf("curve %llu ",(long long unsigned int)curve_number(snlist->nc[i]));
 		else
 			(void) printf("curve NULL ");
 		if (snlist->orient_set)
@@ -1850,11 +1852,11 @@ LOCAL	boolean check_phys_loops_on_snlist(
 	    if (DEBUG)
 	    {
 		(void) printf("k %d\n",k);
-		(void) printf("curve %llu ",curve_number(snl->nc[j]));
+		(void) printf("curve %llu ",(long long unsigned int)curve_number(snl->nc[j]));
 		(void) printf("negative component %d positive component %d\n",
 			      negative_component((snl->nc[j])),
 			      positive_component((snl->nc[j])));
-		(void) printf("curve %llu ",curve_number(snl->nc[k]));
+		(void) printf("curve %llu ",(long long unsigned int)curve_number(snl->nc[k]));
 		(void) printf("negative component %d positive component %d\n",
 			      negative_component((snl->nc[k])),
 			      positive_component((snl->nc[k])));
@@ -2016,7 +2018,7 @@ EXPORT NODE *opp_node_of_gen_curve(
 	if (DEBUG)
 	{
 		(void) printf("Entered opp_node_of_gen_curve()\n");
-		(void) printf("c %llu orient %d\n",curve_number(c),orient);
+		(void) printf("c %llu orient %d\n",(long long unsigned int)curve_number(c),orient);
 	}
 	if (!c) goto Exit;
 
@@ -2048,7 +2050,7 @@ EXPORT NODE *opp_node_of_gen_curve(
 Exit:
 	if (DEBUG)
 		(void) printf("Leaving opp_node_of_gen_curve() -  endn %llu\n",
-			      node_number(endn));
+			      (long long unsigned int)node_number(endn));
 	DEBUG_LEAVE(opp_node_of_gen_curve)
 	return endn;
 
@@ -2090,7 +2092,7 @@ EXPORT CURVE *next_curve_of_gen_curve(
 	*next_n = NULL;
 	if (DEBUG)
 		(void) printf("c %llu orient %d n_type %d\n",
-			      curve_number(c),orient,*n_type);
+			      (long long unsigned int)curve_number(c),orient,*n_type);
 	if (!c)
 	{
 		*n_type = UNKNOWN_NODE_TYPE;
@@ -2104,7 +2106,7 @@ EXPORT CURVE *next_curve_of_gen_curve(
 	nn_type = node_type(*next_n);
 	if (DEBUG)
 		(void) printf("next_n %llu nn_type %d\n",
-			      node_number(*next_n),nn_type);
+			      (long long unsigned int)node_number(*next_n),nn_type);
 	if (*n_type != UNKNOWN_NODE_TYPE && *n_type != nn_type)
 	{
 		DEBUG_LEAVE(next_curve_of_gen_curve)
@@ -2155,7 +2157,7 @@ EXPORT CURVE *next_curve_of_gen_curve(
 
 		if (DEBUG)
 			(void) printf("found curve %llu wave type %d\n",
-				      curve_number(*cp),nw_type);
+				      (long long unsigned int)curve_number(*cp),nw_type);
 		if (next_c)
 		{
 			DEBUG_LEAVE(next_curve_of_gen_curve)
@@ -2201,7 +2203,7 @@ EXPORT CURVE *next_curve_of_gen_curve(
 
 		if (DEBUG)
 			(void) printf("found extra curve %llu w_type %d\n",
-				      curve_number(*cp),nw_type);
+				      (long long unsigned int)curve_number(*cp),nw_type);
 		DEBUG_LEAVE(next_curve_of_gen_curve)
 		return NULL;
 	}
@@ -2210,7 +2212,8 @@ EXPORT CURVE *next_curve_of_gen_curve(
 	if (DEBUG)
 	{
 		(void) printf("next_n %llu *n_type %d next_c %llu\n",
-			     node_number(*next_n),*n_type,curve_number(next_c));
+			     	(long long unsigned int)node_number(*next_n),
+				*n_type,(long long unsigned int)curve_number(next_c));
 	}
 	DEBUG_LEAVE(next_curve_of_gen_curve)
 	return next_c;
@@ -2304,7 +2307,7 @@ EXPORT	int f_grid_based_untangle(
 	{
 	    (void) printf("Before untangle:\n");
 	    for (cr = *crx; cr; cr = cr->next)
-	    	(void) printf("cr = %p\n",cr);
+	    	(void) printf("cr = %p\n",(void*)cr);
 	}
 	status = FUNCTION_SUCCEEDED;
 	for (box = boxes; box; box = box->next)
@@ -2317,18 +2320,18 @@ EXPORT	int f_grid_based_untangle(
 				  		box->bmin[1]);
 	    	(void) printf("box->bmax = %d %d\n",box->bmax[0],
 				  		box->bmax[1]);
-		(void) printf("Before untangle box %p:\n",box);
+		(void) printf("Before untangle box %p:\n",(void*)box);
 		for (cr = *crx; cr; cr = cr->next)
-	    	    (void) printf("cr = %p\n",cr);
+	    	    (void) printf("cr = %p\n",(void*)cr);
 	    }
 	    status = box_untangle(fr,box,crx);
 	    if (status == FUNCTION_SUCCEEDED)
 	    {
 		if (debugging("lgb2d"))
 		{
-		    (void) printf("After untangle box %p:\n",box);
+		    (void) printf("After untangle box %p:\n",(void*)box);
 		    for (cr = *crx; cr; cr = cr->next)
-	    	        (void) printf("cr = %p\n",cr);
+	    	        (void) printf("cr = %p\n",(void*)cr);
 		}
 	    }
 	    else
@@ -2338,7 +2341,7 @@ EXPORT	int f_grid_based_untangle(
 	{
 	    (void) printf("After untangle:\n");
 	    for (cr = *crx; cr; cr = cr->next)
-	    	(void) printf("cr = %p\n",cr);
+	    	(void) printf("cr = %p\n",(void*)cr);
 	    (void) printf("Check consistency of interface:\n");
 	    if (consistent_interface(intfc))
 	    	(void) printf("Leaving f_grid_based_untangle(), "
@@ -2390,7 +2393,7 @@ LOCAL	void set_2d_boxes(
 	    box->cross[box->num_cross++] = cr;
 	    if (debugging("lgb2d"))
 	    {
-	    	(void) printf("cr = %p cr->p = %f %f\n",cr,Coords(cr->p)[0],
+	    	(void) printf("cr = %p cr->p = %f %f\n",(void*)cr,Coords(cr->p)[0],
 			      Coords(cr->p)[1]);
 	    	(void) printf("box->bmin = %d %d\n",box->bmin[0],box->bmin[1]);
 	    	(void) printf("box->bmax = %d %d\n",box->bmax[0],box->bmax[1]);
@@ -2416,10 +2419,10 @@ LOCAL	void set_2d_boxes(
 				      	nbox->bmax[1]);
 		    	for (j = 0; j < box->num_cross; ++j)
 			    (void) printf("box->cross[%d] = %p\n",
-					  j,box->cross[j]);
+					  j,(void*)box->cross[j]);
 		    	for (j = 0; j < nbox->num_cross; ++j)
 			    (void) printf("nbox->cross[%d] = %p\n",
-					  j,nbox->cross[j]);
+					  j,(void*)nbox->cross[j]);
 		    }
 		    for (i = 0; i < 2; ++i)
 		    {
@@ -2443,7 +2446,7 @@ LOCAL	void set_2d_boxes(
 				      	box->bmax[1]);
 		    	for (j = 0; j < box->num_cross; ++j)
 			    (void) printf("box->cross[%d] = %p\n",
-					  j,box->cross[j]);
+					  j,(void*)box->cross[j]);
 		    }
 		}
 	    }
@@ -3147,14 +3150,14 @@ LOCAL	boolean reconnect_box_bonds(
 	    (void) printf("num_out_bonds = %d\n",num_out_bonds);
 	    for (i = 0; i < num_in_bonds; ++i)
 	    	(void) printf("in_curves[%d] = %p\n",i,
-			      box_info->in_curves[i]);
+			      (void*)box_info->in_curves[i]);
 	    for (i = 0; i < num_out_bonds; ++i)
 	    	(void) printf("out_curves[%d] = %p\n",i,
-			      box_info->out_curves[i]);
+			      (void*)box_info->out_curves[i]);
 	    printf("Original curves:\n");
 	    for (i = 0; i < box_info->num_curves; ++i)
 	    {
-		printf("box_info->curves[%d] = %p\n",i,box_info->curves[i]);
+		printf("box_info->curves[%d] = %p\n",i,(void*)box_info->curves[i]);
 	    }
 	}
 
@@ -3197,14 +3200,14 @@ LOCAL	boolean reconnect_box_bonds(
 	    	if (b1 != c1->first && b1->prev == NULL) 
 		{
 		    (void) printf("out_bonds[%d]  prev  NULL  start  %p\n",
-		    		j,b1->start);
+		    		j,(void*)b1->start);
 		    (void) printf("%f  %f\n",Coords(b1->start)[0],
 		    			Coords(b1->start)[1]);
 		}
 		else if (b1 != c1->last && b1->next == NULL)
 		{
 		    (void) printf("out_bonds[%d]  next  NULL  end    %p\n",
-		    		j,b1->end);
+		    		j,(void*)b1->end);
 		    (void) printf("%f  %f\n",Coords(b1->end)[0],
 		    			Coords(b1->end)[1]);
 		}
@@ -3220,10 +3223,10 @@ LOCAL	boolean reconnect_box_bonds(
 	    	c1 = in_curves[i];
 	    	if (b1 != c1->first && b1->prev == NULL) 
 		    (void) printf("in_bonds[%d]  prev  NULL  start  %p\n",
-		    		i,b1->start);
+		    		i,(void*)b1->start);
 		else if (b1 != c1->last && b1->next == NULL)
 		    (void) printf("in_bonds[%d]  next  NULL  end    %p\n",
-		    		i,b1->end);
+		    		i,(void*)b1->end);
 	    }
 	}
 
@@ -3587,7 +3590,7 @@ LOCAL	boolean check_and_reorganize_curves(
 	    last_b[i] = curves[i]->last;
 	    ne[i] = curves[i]->end;
 	    if (debugging("lgb2d"))
-		(void) printf("curves[%d] = %p\n",i,curves[i]);
+		(void) printf("curves[%d] = %p\n",i,(void*)curves[i]);
 	    c = curves[i];
 	}
 

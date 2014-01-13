@@ -238,7 +238,7 @@ EXPORT	void	f_user_fprint_interface(
 
 	    (void) foutput(file);
 	    (void) fprintf(file,"Boundary state data for interface %llu\n",
-		                interface_number(intfc));
+		                (long long unsigned int)interface_number(intfc));
 	    (void) fprintf(file,"num_bstates = %d\n",num_bstates(intfc));
 	    for (i = 0; i < num_bstates(intfc); ++i)
 	    {
@@ -256,7 +256,7 @@ EXPORT	void	f_user_fprint_interface(
 	    }
 	    (void) foutput(file);
 	    (void) fprintf(file,"End Boundary state data for interface %llu\n",
-		    interface_number(intfc));
+		    (long long unsigned int)interface_number(intfc));
         }
 
 	(void) fprintf(file,"\n");
@@ -776,7 +776,7 @@ EXPORT	boolean f_nearest_intfc_state(
 		print_tri(tri, intfc);
 	        print_general_vector("t= ", t, 3, "\n");
 		printf("#nearest  %d | %p  %p | %d  %d\n", comp, 
-			Surface_of_hs(hs), tri->surf,
+			(void*)Surface_of_hs(hs), (void*)tri->surf,
 	            	negative_component(hs), positive_component(hs));
 	    }
     
@@ -787,7 +787,7 @@ EXPORT	boolean f_nearest_intfc_state(
 	    {
 		printf("#line_tri\n");
 	        for(s=intfc->surfaces; s && *s; s++)
-	            printf("#s %p    %d  %d\n", *s, positive_component(*s), 
+	            printf("#s %p    %d  %d\n", (void*)*s, positive_component(*s), 
 					negative_component(*s));
 	        print_general_vector("t= ", t, 3, "\n");
 	    }
@@ -1342,7 +1342,7 @@ EXPORT	boolean f_user_read_print_curve(
 	    (void) fgetstring(file,"Hs_flag(curve) = "); 
 
             /* FIXME. Implementation of boolean is compiler dependent. */
-            (void) fscanf(file,"%d",&Hs_flag(curve));
+            (void) fscanf(file,"%p", (void**)&Hs_flag(curve));
 	    if (fgetstring(file,"redistribution_direction = ") ==
 		FUNCTION_SUCCEEDED)
 	    {
@@ -1388,7 +1388,7 @@ EXPORT	boolean f_user_read_print_curve(
                             read_print_float("Angular velocity = ",1.0,io_type);
                 fgetstring(file,"Motion type = ");
                 /* FIXME: the size of enum is compiler dependent */
-            	(void) fscanf(file,"%d",&motion_type(Hyper_surf(curve)));
+            	(void) fscanf(file,"%d",(int*)&motion_type(Hyper_surf(curve)));
                 spherical_radius(Hyper_surf(curve)) =
                             read_print_float("Radius = ",1.0,io_type);
 	    }
@@ -1596,7 +1596,7 @@ EXPORT	void f_user_fprint_curve(
 	    fprint_wave_type(file,"\n\tcurve->wave_type = ",
 			     wave_type(curve),"\n",curve->interface);
             /* FIXME. Implementation of boolean is compiler dependent. */
-	    fprintf(file,"\tHs_flag(curve) = %d\n",Hs_flag(curve));
+	    fprintf(file,"\tHs_flag(curve) = %p\n",(void*)&Hs_flag(curve));
 	    fprint_redistribution_direction(file,
 					    "\n\tredistribution_direction = ",
 					    redistribution_direction(curve),
@@ -2551,7 +2551,7 @@ EXPORT	SURFACE	*f_join_surfaces(
 	debug_print("join_surfaces","Entered f_join_surfaces\n");
 
 	if (debugging("join_surfaces"))
-	    (void) printf("joining_surfaces at curve %llu\n",curve_number(c));
+	    (void) printf("joining_surfaces at curve %llu\n",(long long unsigned int)curve_number(c));
 	if (!find_surfaces_to_join_at_curve(c,&sn,&sp))
 	{
 	    debug_print("join_surfaces","Left f_join_surfaces\n");
@@ -2560,7 +2560,8 @@ EXPORT	SURFACE	*f_join_surfaces(
 	if (debugging("join_surfaces"))
 	{
 	    (void) printf("joining_surfaces sn = %llu, and sp = %llu\n",
-			  surface_number(sn),surface_number(sp));
+			  (long long unsigned int)surface_number(sn),
+			  (long long unsigned int)surface_number(sp));
 	}
 	if (wave_type(sn) != wave_type(sp))
 	{
@@ -2789,7 +2790,7 @@ EXPORT	void f_user_read_print_surface(
                         read_print_float("Angular velocity = ",1.0,io_type);
             fgetstring(file,"Motion type = ");
             /* FIXME: the size of enum is compiler dependent */
-            (void) fscanf(file,"%d",&motion_type(Hyper_surf(surf)));
+            (void) fscanf(file,"%d",(int*)&motion_type(Hyper_surf(surf)));
             spherical_radius(Hyper_surf(surf)) =
                         read_print_float("Radius = ",1.0,io_type);
 	}
@@ -2943,14 +2944,14 @@ EXPORT	BOND_TRI *f_link_tri_to_bond(
 	    {
 		if (*btris == btri) break;
 	    }
-	    printf("left_end_btri_state(bptri)  = %d\n",
+	    printf("left_end_btri_state(bptri)  = %p\n",
 			left_end_btri_state(*bptris));
-	    printf("left_start_btri_state(btri) = %d\n\n",
+	    printf("left_start_btri_state(btri) = %p\n\n",
 			left_start_btri_state(*btris));
 
-	    printf("left_start_btri_state(bntri)  = %d\n",
+	    printf("left_start_btri_state(bntri)  = %p\n",
 			left_start_btri_state(*bntris));
-	    printf("left_end_btri_state(btri)     = %d\n",
+	    printf("left_end_btri_state(btri)     = %p\n",
 			left_end_btri_state(*btris));
 	    printf("Leaving f_link_tri_to_bond()\n\n");
 	}
@@ -3247,7 +3248,7 @@ LOCAL	void f_fprint_Dirichlet_bdry_states(
 	(void) foutput(file);
 	(void) fprintf(file,
 	               "Hypersurface Dirichlet boundary state information ");
-	(void) fprintf(file,"for interface %llu\n",interface_number(intfc));
+	(void) fprintf(file,"for interface %llu\n",(long long unsigned int)interface_number(intfc));
 	for (i = 0, hs = intfc->hss; hs && *hs; ++i, ++hs)
 	{
 	    if (wave_type(*hs) != DIRICHLET_BOUNDARY)
@@ -3258,6 +3259,6 @@ LOCAL	void f_fprint_Dirichlet_bdry_states(
 	(void) foutput(file);
 	(void) fprintf(file,
 	             "End hypersurface Dirichlet boundary state information ");
-	(void) fprintf(file,"for interface %llu\n",interface_number(intfc));
+	(void) fprintf(file,"for interface %llu\n",(long long unsigned int)interface_number(intfc));
 	(void) fprintf(file,"\n\n");
 }		/*end f_fprint_Dirichlet_bdry_states*/

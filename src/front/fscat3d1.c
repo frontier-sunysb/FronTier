@@ -114,10 +114,10 @@ BOND    *b, *bn;
 	    {
 	        if(bn->start != b->end)
 	    	    printf("#test_curve_link, point error %p %p\n", 
-		        bn->start, b->end);
+		        (void*)bn->start, (void*)b->end);
 		if(bn->prev != b)
 	    	    printf("#test_curve_link, link error %p %p %p\n", 
-		        b, bn, bn->prev);
+		        (void*)b, (void*)bn, (void*)bn->prev);
 	    }
 	}
 }
@@ -1991,9 +1991,9 @@ EXPORT void install_subdomain_bdry_curves_org(
 		    		POSITIVE_ORIENTATION,intfc);
 		    
 		    if(debugging("subdo_cur"))
-		        printf("#sub %p | %p %p   %p %p\n", btri,
-			    left_start_btri_state(btri), right_start_btri_state(btri),
-			    left_end_btri_state(btri), right_end_btri_state(btri));
+		        printf("#sub %p | %p %p   %p %p\n", (void*)btri,
+			    (void*)left_start_btri_state(btri), (void*)right_start_btri_state(btri),
+			    (void*)left_end_btri_state(btri), (void*)right_end_btri_state(btri));
 		    
 		    btri = bte;
 		    (void) link_tri_to_bond(btri,tri_start,*s,b,curve);
@@ -2001,11 +2001,11 @@ EXPORT void install_subdomain_bdry_curves_org(
 		    copy_tri_state_to_btri(btri,b,POSITIVE_ORIENTATION,intfc);
 	
 		    if(debugging("subdo_cur"))
-		        printf("#btr %p | %p %p   %p %p\n",  btri,
-			    left_start_btri_state(btri), 
-			    right_start_btri_state(btri),
-			    left_end_btri_state(btri), 
-			    right_end_btri_state(btri));
+		        printf("#btr %p | %p %p   %p %p\n",  (void*)btri,
+			    (void*)left_start_btri_state(btri), 
+			    (void*)right_start_btri_state(btri),
+			    (void*)left_end_btri_state(btri), 
+			    (void*)right_end_btri_state(btri));
 
 		    if (ns->posn == ne->posn) /*Closed loop formed */
 		    {
@@ -2070,7 +2070,7 @@ EXPORT void install_subdomain_bdry_curves_org(
 		btri = Btris(b)[0];
 		slsr(p,Hyper_surf_element(btri->tri),Hyper_surf(btri->surface),
 			&sl,&sr);
-		printf("#slsr  %p    %p  %p  \n", p, sl, sr);
+		printf("#slsr  %p    %p  %p  \n", (void*)p, (void*)sl, (void*)sr);
 	    }
 	}
 
@@ -2155,7 +2155,7 @@ EXPORT	void	shift_interface(
 	    char dname[1024];
 	    static int ntimes[3];
 	    (void) printf("Shifting interface %llu by %g in direction %d\n",
-			  interface_number(intfc),T,dir);
+			  (long long unsigned int)interface_number(intfc),T,dir);
 	    print_interface(intfc);
 	    (void) sprintf(dname,"fscatter/shift_interface/Into%d.%d.%s%g",
 			   ntimes[dir],dir,(T>0.0) ? "+" : "",T);
@@ -2184,7 +2184,7 @@ EXPORT	void	shift_interface(
 	    char dname[1024];
 	    static int ntimes[3];
 	    (void) printf("Interface %llu after shift by %g in direction %d\n",
-			  interface_number(intfc),T,dir);
+			  (long long unsigned int)interface_number(intfc),T,dir);
 	    print_interface(intfc);
 	    (void) sprintf(dname,"fscatter/shift_interface/Outof%d.%d.%s%g",
 			   ntimes[dir],dir,(T>0.0)?"+":"",T);
@@ -3945,7 +3945,7 @@ EXPORT	void cut_out_curves_in_buffer(
 		if (!delete_curve(*c))
 		{
 		    screen("ERROR in cut_out_curves_in_buffer(), "
-		           "can't delete curve %llu\n",curve_number(*c));
+		           "can't delete curve %llu\n",(long long unsigned int)curve_number(*c));
 		    print_curve(*c);
 		    print_interface(intfc);
 		    clean_up(ERROR);
@@ -4171,7 +4171,8 @@ EXPORT void install_subdomain_bdry_curves_prev(
 	    	hsbdry_type(curve) = SUBDOMAIN_HSBDRY;
 	    	install_curve_in_surface_bdry(*s,curve,POSITIVE_ORIENTATION);
 	    	
-		printf("#c %llu | %p  %p | %p  %p\n", curve_number(curve), ns, ne, ns->posn, ne->posn);
+		printf("#c %llu | %p  %p | %p  %p\n", (long long unsigned int)curve_number(curve), 
+			(void*)ns, (void*)ne, (void*)ns->posn, (void*)ne->posn);
 
 		btri = link_tri_to_bond(NULL,tri_start,*s,curve->first,curve);
 	    	copy_tri_state_to_btri(btri,curve->first,POSITIVE_ORIENTATION,intfc);
@@ -4306,7 +4307,7 @@ EXPORT void install_subdomain_bdry_curves_prev(
 
 	for (n = intfc->nodes; n && *n; ++n)
 	{
-	    printf("#nd  %p %p\n", *n, (*n)->posn);
+	    printf("#nd  %p %p\n", (void*)*n, (void*)(*n)->posn);
 	}
 
 

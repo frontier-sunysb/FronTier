@@ -686,10 +686,10 @@ EXPORT	int join_propagated_curves(
 	    (void) printf("Joining propagated curve pair\n");
 	    (void) printf("add_new_node = %s\n",(add_new_node) ? "YES" : "NO");
 	    (void) printf("oc[0] = %p, oc[0]->curve = %llu, ",
-	    	          (POINTER)oc[0],curve_number(oc[0]->curve));
+	    	          (POINTER)oc[0],(long long unsigned int)curve_number(oc[0]->curve));
 	    print_orientation("oc[0]->orient = ",oc[0]->orient,"\n");
 	    (void) printf("oc[1] = %p, oc[1]->curve = %llu, ",
-	    	          (POINTER)oc[1],curve_number(oc[1]->curve));
+	    	          (POINTER)oc[1],(long long unsigned int)curve_number(oc[1]->curve));
 	    print_orientation("oc[1]->orient = ",oc[1]->orient,"\n");
 	    if (oc[0]->curve == oc[1]->curve)
 	    	(void) printf("New closed curve will be formed\n");

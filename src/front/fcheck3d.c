@@ -70,9 +70,9 @@ EXPORT	boolean	f_consistent_interface(
 		s = Surface_of_hs(hs);
 		tri = Tri_of_hse(hse);
 		(void) printf("%s left state at point is NULL\n",warn);
-		(void) printf("p %llu %g %g %g\n",point_number(p),
+		(void) printf("p %llu %g %g %g\n",(long long unsigned int)point_number(p),
 			      Coords(p)[0],Coords(p)[1],Coords(p)[2]);
-		(void) printf("surface = %llu\n",surface_number(s));
+		(void) printf("surface = %llu\n",(long long unsigned int)surface_number(s));
 		print_tri(tri,intfc);
 		status = NO;
 	    }
@@ -81,9 +81,9 @@ EXPORT	boolean	f_consistent_interface(
 		s = Surface_of_hs(hs);
 		tri = Tri_of_hse(hse);
 		(void) printf("%s right state at point is NULL\n",warn);
-		(void) printf("p %llu %g %g %g\n",point_number(p),
+		(void) printf("p %llu %g %g %g\n",(long long unsigned int)point_number(p),
 			      Coords(p)[0],Coords(p)[1],Coords(p)[2]);
-		(void) printf("surface = %llu\n",surface_number(s));
+		(void) printf("surface = %llu\n",(long long unsigned int)surface_number(s));
 		print_tri(tri,intfc);
 		status = NO;
 	    }
@@ -98,9 +98,9 @@ EXPORT	boolean	f_consistent_interface(
 	      if (left_start_btri_state(*bts) == left_end_btri_state(*bts))
 	      {
 	        (void) printf("%s left start and end btri states equal\n",warn);
-	        (void) printf("curve = %llu\n",curve_number(*c));
+	        (void) printf("curve = %llu\n",(long long unsigned int)curve_number(*c));
 	        (void) printf("surface = %llu\n",
-				surface_number((*bts)->surface));
+				(long long unsigned int)surface_number((*bts)->surface));
 	        (void) printf("orient = %s\n",orientation_name((*bts)->orient));
 	        print_bond(b);
 	        print_tri((*bts)->tri,intfc);
@@ -110,9 +110,9 @@ EXPORT	boolean	f_consistent_interface(
 	      {
 	        (void) printf("%s right start and end btri states equal\n",
 				warn);
-	        (void) printf("curve = %llu\n",curve_number(*c));
+	        (void) printf("curve = %llu\n",(long long unsigned int)curve_number(*c));
 	        (void) printf("surface = %llu\n",
-				surface_number((*bts)->surface));
+				(long long unsigned int)surface_number((*bts)->surface));
 	        (void) printf("orient = %s\n",orientation_name((*bts)->orient));
 	        print_bond(b);
 	        print_tri((*bts)->tri,intfc);
@@ -121,8 +121,8 @@ EXPORT	boolean	f_consistent_interface(
 	      if (left_start_btri_state(*bts) == NULL)
 	      {
 	        (void) printf("%s left start btri state is NULL\n",warn);
-	        (void) printf("curve = %llu\n",curve_number(*c));
-	        (void) printf("surface = %llu\n",surface_number((*bts)->surface));
+	        (void) printf("curve = %llu\n",(long long unsigned int)curve_number(*c));
+	        (void) printf("surface = %llu\n",(long long unsigned int)surface_number((*bts)->surface));
 	        (void) printf("orient = %s\n",orientation_name((*bts)->orient));
 	        print_bond(b);
 	        print_tri((*bts)->tri,intfc);
@@ -131,8 +131,8 @@ EXPORT	boolean	f_consistent_interface(
 	      if (right_start_btri_state(*bts) == NULL)
 	      {
 	        (void) printf("%s right start btri state is NULL\n",warn);
-	        (void) printf("curve = %llu\n",curve_number(*c));
-	        (void) printf("surface = %llu\n",surface_number((*bts)->surface));
+	        (void) printf("curve = %llu\n",(long long unsigned int)curve_number(*c));
+	        (void) printf("surface = %llu\n",(long long unsigned int)surface_number((*bts)->surface));
 	        (void) printf("orient = %s\n",orientation_name((*bts)->orient));
 	        print_bond(b);
 	        print_tri((*bts)->tri,intfc);
@@ -147,12 +147,12 @@ EXPORT	boolean	f_consistent_interface(
 	          {
 	            (void) printf("%s left states different at "
 	                          "b->start\n",warn);
-	            (void) printf("curve = %llu\n",curve_number(*c));
-	            (void) printf("surface = %llu\n",surface_number((*bts)->surface));
+	            (void) printf("curve = %llu\n",(long long unsigned int)curve_number(*c));
+	            (void) printf("surface = %llu\n",(long long unsigned int)surface_number((*bts)->surface));
 	            (void) printf("orient = %s\n",
 	                          orientation_name((*bts)->orient));
 	            (void) printf("prev surface = %llu\n",
-	                          surface_number(Btris(b->prev)[i]->surface));
+	                          (long long unsigned int)surface_number(Btris(b->prev)[i]->surface));
 	            (void) printf("prev orient = %s\n",
 	                          orientation_name(Btris(b->prev)[i]->orient));
 	            (void) printf("b - "); print_bond(b);
@@ -168,12 +168,13 @@ EXPORT	boolean	f_consistent_interface(
 	          {
 	            (void) printf("%s right states different at "
 	                          "b->start\n",warn);
-	            (void) printf("curve = %llu\n",curve_number(*c));
-	            (void) printf("surface = %llu\n",surface_number((*bts)->surface));
+	            (void) printf("curve = %llu\n",(long long unsigned int)curve_number(*c));
+	            (void) printf("surface = %llu\n",
+				(long long unsigned int)surface_number((*bts)->surface));
 	            (void) printf("orient = %s\n",
 	                          orientation_name((*bts)->orient));
 	            (void) printf("prev surface = %llu\n",
-	                          surface_number(Btris(b->prev)[i]->surface));
+	                          (long long unsigned int)surface_number(Btris(b->prev)[i]->surface));
 	            (void) printf("prev orient = %s\n",
 	                          orientation_name(Btris(b->prev)[i]->orient));
 	            (void) printf("b - "); print_bond(b);
@@ -193,8 +194,9 @@ EXPORT	boolean	f_consistent_interface(
 	                        "b->prev has %d bond tris\n",
 	                        (int)size_of_pointers(Btris(b)),
 	                        (int)size_of_pointers(Btris(b->prev)));
-	          (void) printf("curve = %llu\n",curve_number(*c));
-	          (void) printf("surface = %llu\n",surface_number((*bts)->surface));
+	          (void) printf("curve = %llu\n",(long long unsigned int)curve_number(*c));
+	          (void) printf("surface = %llu\n",
+				(long long unsigned int)surface_number((*bts)->surface));
 	          (void) printf("orient = %s\n",
 	                        orientation_name((*bts)->orient));
 	          (void) printf("b - "); print_bond(b);
@@ -212,13 +214,13 @@ EXPORT	boolean	f_consistent_interface(
 	          {
 	            (void) printf("%s left states different at "
 	                          "b->end\n",warn);
-	            (void) printf("curve = %llu\n",curve_number(*c));
+	            (void) printf("curve = %llu\n",(long long unsigned int)curve_number(*c));
 	            (void) printf("surface = %llu\n",
-		                  surface_number((*bts)->surface));
+		                  (long long unsigned int)surface_number((*bts)->surface));
 	            (void) printf("orient = %s\n",
 	                          orientation_name((*bts)->orient));
 	            (void) printf("next surface = %llu\n",
-	                          surface_number(Btris(b->next)[i]->surface));
+	                          (long long unsigned int)surface_number(Btris(b->next)[i]->surface));
 	            (void) printf("next orient = %s\n",
 	                          orientation_name(Btris(b->next)[i]->orient));
 	            (void) printf("b - "); print_bond(b);
@@ -234,13 +236,13 @@ EXPORT	boolean	f_consistent_interface(
 	          {
 	            (void) printf("%s right states different at "
 	                          "b->end\n",warn);
-	            (void) printf("curve = %llu\n",curve_number(*c));
+	            (void) printf("curve = %llu\n",(long long unsigned int)curve_number(*c));
 	            (void) printf("surface = %llu\n",
-		                  surface_number((*bts)->surface));
+		                  (long long unsigned int)surface_number((*bts)->surface));
 	            (void) printf("orient = %s\n",
 	                          orientation_name((*bts)->orient));
 	            (void) printf("next surface = %llu\n",
-	                          surface_number(Btris(b->next)[i]->surface));
+	                          (long long unsigned int)surface_number(Btris(b->next)[i]->surface));
 	            (void) printf("next orient = %s\n",
 	                          orientation_name(Btris(b->next)[i]->orient));
 	            (void) printf("b - "); print_bond(b);
@@ -260,9 +262,9 @@ EXPORT	boolean	f_consistent_interface(
 	                          "b->next has %d bond tris\n",
 	                          (int)size_of_pointers(Btris(b)),
 	                          (int)size_of_pointers(Btris(b->next)));
-	            (void) printf("curve = %llu\n",curve_number(*c));
+	            (void) printf("curve = %llu\n",(long long unsigned int)curve_number(*c));
 	            (void) printf("surface = %llu\n",
-		                  surface_number((*bts)->surface));
+		                  (long long unsigned int)surface_number((*bts)->surface));
 	            (void) printf("orient = %s\n",
 	                          orientation_name((*bts)->orient));
 	            (void) printf("b - "); print_bond(b);

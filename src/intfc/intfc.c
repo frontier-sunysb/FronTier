@@ -941,7 +941,7 @@ EXPORT INTERFACE *read_print_interface(
 	search_string = "Random number seeds"; 
 	if (next_output_line_containing_string(file,search_string) != NULL)
 	{
-	    int xsubi[3];
+	    unsigned int xsubi[3];
 	    (void) fgetstring(file,"random01_seed = ");
 	    (void) fscanf(file,"%x %x %x",xsubi,xsubi+1,xsubi+2);
 	    Random01_seed(infc)[0] = xsubi[0];
@@ -1130,7 +1130,7 @@ LOCAL	CURVE *read_print_curve(
 	                  "can't find curve header\n");
 	    return NULL;
 	}
-	if (fscanf(file,"%llu:",iaddr->curves + c_index) != 1)
+	if (fscanf(file,"%llu:",(long long unsigned int *)(iaddr->curves + c_index)) != 1)
 	{
 	    (void) printf("WARNING in read_print_curve(), "
 	                  "can't read curve address as printed\n");
@@ -1192,9 +1192,9 @@ LOCAL	CURVE *read_print_curve(
 	    (void) printf("WARNING in read_print_curve(), can't find "
 	                  "ns, num_nodes = %d, c_index = %d, "
 			  "ns[c_index] = %llu\n",
-			  iaddr->num_nodes,c_index,iaddr->ns[c_index]);
+			  iaddr->num_nodes,c_index,(long long unsigned int)iaddr->ns[c_index]);
 	    for (i = 0; i < iaddr->num_nodes; ++i)
-	        (void) printf("\tnodes[%d] = %llu\n",i,iaddr->nodes[i]);
+	        (void) printf("\tnodes[%d] = %llu\n",i,(long long unsigned int)iaddr->nodes[i]);
 	    return NULL;
 	}
 
@@ -1212,9 +1212,9 @@ LOCAL	CURVE *read_print_curve(
 	    (void) printf("WARNING in read_print_curve(), can't find "
 	                  "ne, num_nodes = %d, c_index = %d, "
 			  "ne[c_index] = %llu\n",
-			  iaddr->num_nodes,c_index,iaddr->ne[c_index]);
+			  iaddr->num_nodes,c_index,(long long unsigned int)iaddr->ne[c_index]);
 	    for (i = 0; i < iaddr->num_nodes; ++i)
-	        (void) printf("\tnodes[%d] = %llu\n",i,iaddr->nodes[i]);
+	        (void) printf("\tnodes[%d] = %llu\n",i,(long long unsigned int)iaddr->nodes[i]);
 	    return NULL;
 	}
 	curve = make_curve(left,right,ns,ne);
@@ -1256,7 +1256,8 @@ LOCAL	boolean read_print_curve_boundary(
 {
 	FILE *file = io_type->file;
 	if (fscanf(file,"%*s %*s %*s %llu %*s %*s %*s %llu",
-	           iaddr->ns+c_index,iaddr->ne+c_index) != 2)
+	           (long long unsigned int *)iaddr->ns+c_index,
+		   (long long unsigned int *)iaddr->ne+c_index) != 2)
 	{
 	    (void) printf("WARNING in read_print_curve_boundary(), "
 	                  "can't read start and end node addresses as "
@@ -1281,7 +1282,7 @@ LOCAL	boolean read_print_curve_boundary(
 	           iaddr->num_surfs[c_index],sizeof(uint64_t));
 	    	for (k = 0; k < iaddr->num_surfs[c_index]; ++k)
 	    	{
-	            if (fscanf(file,"%llu",iaddr->surfs[c_index]+k) != 1)
+	            if (fscanf(file,"%llu",(long long unsigned int *)iaddr->surfs[c_index]+k) != 1)
 		    {
 	            	(void) printf("WARNING in read_print_curve_boundary(), "
 	                          "can't read surfs[%d][%d]\n",c_index,k);
@@ -1303,7 +1304,7 @@ LOCAL	boolean read_print_curve_boundary(
 	           sizeof(uint64_t));
 	    	for (k = 0; k < iaddr->num_psurfs[c_index]; ++k)
 	    	{
-	            if (fscanf(file,"%llu",iaddr->psurfs[c_index]+k) != 1)
+	            if (fscanf(file,"%llu",(long long unsigned int *)iaddr->psurfs[c_index]+k) != 1)
 		    {
 	            	(void) printf("WARNING in read_print_curve_boundary(), "
 	                          "can't read psurfs[%d][%d]\n",c_index,k);
@@ -1325,7 +1326,7 @@ LOCAL	boolean read_print_curve_boundary(
 	           sizeof(uint64_t));
 	    	for (k = 0; k < iaddr->num_nsurfs[c_index]; ++k)
 	    	{
-	            if (fscanf(file,"%llu",iaddr->nsurfs[c_index]+k) != 1)
+	            if (fscanf(file,"%llu",(long long unsigned int *)iaddr->nsurfs[c_index]+k) != 1)
 		    {
 	            	(void) printf("WARNING in read_print_curve_boundary(), "
 	                          "can't read nsurfs[%d][%d]\n",c_index,k);
@@ -1447,7 +1448,7 @@ EXPORT void i_fprint_interface(
 	RECT_GRID         *gr = &topological_grid(infc);
 
 	(void) foutput(file);
-	(void) fprintf(file,"Interface %llu ",interface_number(infc));
+	(void) fprintf(file,"Interface %llu ",(long long unsigned int)interface_number(infc));
 	if (infc == NULL)
 	{
 	    (void) fprintf(file,"Dimension %d\n",-1);
@@ -1528,7 +1529,7 @@ EXPORT void i_fprint_interface(
 	(void) fprintf(file,"%d Points in Interface\n",infc->num_points);
 	(void) foutput(file);
 	(void) fprintf(file,"Rectangular Boundary Types for Interface %llu\n",
-	           interface_number(infc));
+	           (long long unsigned int)interface_number(infc));
 	(void) fprintf(file,"\n\t\tLOWER BOUNDARY\t\t\tUPPER BOUNDARY\n");
 	for (i = 0; i < infc->dim; ++i)
 	{
@@ -1541,7 +1542,7 @@ EXPORT void i_fprint_interface(
 	(void) fprintf(file,"\n");
 	(void) fprintf(file,
 		       "End Rectangular Boundary Types for Interface %llu\n",
-	               interface_number(infc));
+	               (long long unsigned int)interface_number(infc));
 
 	(void) fprintf(file,"\n");
 	(void) foutput(file);
@@ -1574,7 +1575,7 @@ EXPORT int i_delete_interface(
 	struct Table	*T;
 
 	if (DEBUG) (void) printf("Entered i_delete_interface(%llu)\n",
-	    		         interface_number(intfc));
+	    		         (long long unsigned int)interface_number(intfc));
 	if (intfc==NULL)
 	{
 	    return 0;
@@ -1815,7 +1816,7 @@ LIB_LOCAL void i_fprint_node(
 	CURVE		**cur;
 	int		dim;
 
-	(void) fprintf(file,"\tNode %llu:\n",node_number(node));
+	(void) fprintf(file,"\tNode %llu:\n",(long long unsigned int)node_number(node));
 	if (node == NULL)
 	{ 
 	    (void) fprintf(file,"\t\tNULL Node\n\t\tEnd Node\n");
@@ -1846,14 +1847,14 @@ LIB_LOCAL void i_fprint_node(
 	if ((cur = node->in_curves) == NULL) 
 	    (void) fprintf(file,"NULL");
 	else 
-	    while (*cur) (void) fprintf(file,"%llu ",curve_number(*cur++));
+	    while (*cur) (void) fprintf(file,"%llu ",(long long unsigned int)curve_number(*cur++));
 	(void) fprintf(file,"\n");
 
 	(void) fprintf(file,"\t\tOut_curves-> ");
 	if ((cur = node->out_curves) == NULL) 
 	    (void) fprintf(file,"NULL");
 	else
-	    while (*cur) (void) fprintf(file,"%llu ",curve_number(*cur++));
+	    while (*cur) (void) fprintf(file,"%llu ",(long long unsigned int)curve_number(*cur++));
 	(void) fprintf(file,"\n");
 
 	user_fprint_node(file,node);
@@ -1936,7 +1937,7 @@ LOCAL NODE *read_print_node(
 	int     i, c, dim;
 
 	(void) fgetstring(file,"Node");
-	(void) fscanf(file,"%llu:",node_p);
+	(void) fscanf(file,"%llu:",(long long unsigned int *)node_p);
 	(void) fscanf(file,"%s %*s",bdry);
 
 	dim = intfc->dim;
@@ -2044,7 +2045,8 @@ EXPORT CURVE *i_make_curve(
 	{
 	    if (DEBUG)
 	    (void) printf("start %llu end %llu make_curve returns NULL (1)\n",
-	              node_number(start),node_number(end));
+	              (long long unsigned int)node_number(start),
+		      (long long unsigned int)node_number(end));
 	    return NULL;
 	}
 	if ((intfc=start->interface)==NULL || intfc!=end->interface)
@@ -2052,8 +2054,8 @@ EXPORT CURVE *i_make_curve(
 	    if (DEBUG)
 	    {
 	        (void) printf("intfc: start %llu end %llu ",
-	        	  interface_number(intfc),
-	        	  interface_number(end->interface));
+	        	  (long long unsigned int)interface_number(intfc),
+	        	  (long long unsigned int)interface_number(end->interface));
 	        (void) printf("make_curve returns NULL (2)\n");
 	    }
 	    return NULL;
@@ -2063,8 +2065,8 @@ EXPORT CURVE *i_make_curve(
 	    if (DEBUG)
 	    {
 	        (void) printf("intfc %llu cur %llu ",
-	        	  interface_number(intfc),
-	        	  interface_number(cur_intfc));
+	        	  (long long unsigned int)interface_number(intfc),
+	        	  (long long unsigned int)interface_number(cur_intfc));
 	        (void) printf("make_curve returns NULL (3)\n");
 	    }
 	    return NULL;
@@ -2292,7 +2294,7 @@ EXPORT void fprint_hypersurface(
 	FILE		*file,
 	HYPER_SURF	*hs)
 {
-	(void) fprintf(file,"\tHypersurface %llu:\n",hypersurface_number(hs));
+	(void) fprintf(file,"\tHypersurface %llu:\n",(long long unsigned int)hypersurface_number(hs));
 	if (hs == NULL)
 	    (void) fprintf(file,"\t\tNULL Hypersurface\n");
 	else
@@ -2377,7 +2379,7 @@ LIB_LOCAL void i_fprint_curve(
 	const char	*endchar;
 	SURFACE		**surf;
 
-	(void) fprintf(file,"\tCurve %llu:\n",curve_number(curve));
+	(void) fprintf(file,"\tCurve %llu:\n",(long long unsigned int)curve_number(curve));
 	if (curve == NULL)
 	{
 	    (void) fprintf(file,"\t\tNULL Curve\n\tEnd of Curve\n\n");
@@ -2393,7 +2395,7 @@ LIB_LOCAL void i_fprint_curve(
 	{
 	case 2:
 	    (void) fprintf(file,"\tHypersurface of curve = %llu\n",
-	    	       hypersurface_number(Hyper_surf(curve)));
+	    	       (long long unsigned int)hypersurface_number(Hyper_surf(curve)));
 	    (void) fprintf(file,
 	    	"\tLeft Component = %-4d   Right Component = %-4d    ",
 	    negative_component(curve),positive_component(curve));
@@ -2405,7 +2407,8 @@ LIB_LOCAL void i_fprint_curve(
 	(void) fprintf(file,"%s\n",
 	           is_bdry(curve) ? "Boundary Curve" : "Interior Curve");
 	(void) fprintf(file,"\tStart Node = %-8llu   End Node = %-8llu\n",
-	           node_number(curve->start),node_number(curve->end));
+	           (long long unsigned int)node_number(curve->start),
+		   (long long unsigned int)node_number(curve->end));
 	if (dim == 3)
 	{
 	    (void) fprintf(file,"\t%d Surfaces at Curve-> ",
@@ -2418,7 +2421,7 @@ LIB_LOCAL void i_fprint_curve(
 
 	    	for (; btris && *btris; ++btris)
 	    	    (void) fprintf(file,"%llu ",
-	            surface_number(Surface_of_tri((*btris)->tri)));
+	            (long long unsigned int)surface_number(Surface_of_tri((*btris)->tri)));
 	    }
 	    (void) fprintf(file,"\n");
 	    (void) fprintf(file,"\t%d Pos_surfaces->  ",
@@ -2427,7 +2430,7 @@ LIB_LOCAL void i_fprint_curve(
 	    	(void) fprintf(file,"NULL");
 	    else 
 	    	while (*surf)
-	        (void) fprintf(file,"%llu ",surface_number(*surf++));
+	        (void) fprintf(file,"%llu ",(long long unsigned int)surface_number(*surf++));
 	    (void) fprintf(file,"\n");
 	    (void) fprintf(file,"\t%d Neg_surfaces->  ",
 	    	        (int)Num_neg_surfaces_of_curve(curve));
@@ -2435,7 +2438,7 @@ LIB_LOCAL void i_fprint_curve(
 	    (void) fprintf(file,"NULL");
 	    else 
 	    while (*surf)
-	        (void) fprintf(file,"%llu ",surface_number(*surf++));
+	        (void) fprintf(file,"%llu ",(long long unsigned int)surface_number(*surf++));
 	    (void) fprintf(file,"\n");
 	    (void) fprintf(file,"\tEnd Bounding Surface Data\n");
 	}
@@ -2628,7 +2631,7 @@ LOCAL  CURVE **split_curve2d(
 	int      	i;
 
 	if (DEBUG)
-	       (void) printf("Entered split_curve(%llu)\n",curve_number(curve));
+	       (void) printf("Entered split_curve(%llu)\n",(long long unsigned int)curve_number(curve));
 
 	if ((bond == NULL) || (curve == NULL) ||
 	    (curve->interface != cur_intfc))
@@ -2637,11 +2640,11 @@ LOCAL  CURVE **split_curve2d(
 	    {
 	    	(void) printf("split_curve returning NULL\n");
 	    	(void) printf("bond=%llu curve=%llu ",
-	    		      bond_number(bond,curve->interface),
-	    		      curve_number(curve));
+	    		      (long long unsigned int)bond_number(bond,curve->interface),
+	    		      (long long unsigned int)curve_number(curve));
 	    	(void) printf("curve->interface=%llu cur_intfc=%llu\n",
-	    		      interface_number(curve->interface),
-	    		      interface_number(cur_intfc));
+	    		      (long long unsigned int)interface_number(curve->interface),
+	    		      (long long unsigned int)interface_number(cur_intfc));
 	    }
 	    return NULL;
 	}
@@ -2764,8 +2767,8 @@ LOCAL  CURVE **split_curve2d(
 	    curves[0]->num_points + curves[1]->num_points - 4;
 
 	if (DEBUG) (void) printf("Left split_curve, returning %llu %llu\n\n",
-	    		 curve_number(curves[0]),
-	    		 curve_number(curves[1]));
+	    		 (long long unsigned int)curve_number(curves[0]),
+	    		 (long long unsigned int)curve_number(curves[1]));
 	return curves;
 }		/*end split_curve*/
 
@@ -2787,7 +2790,7 @@ LOCAL  CURVE **split_curve3d(
 	COMPONENT	neg_comp=NO_COMP, pos_comp=NO_COMP;
 
 	if (DEBUG)
-	       (void) printf("Entered split_curve(%llu)\n",curve_number(curve));
+	       (void) printf("Entered split_curve(%llu)\n",(long long unsigned int)curve_number(curve));
 
 	if ((bond == NULL) || (curve == NULL) ||
 	    (curve->interface != cur_intfc))
@@ -2796,11 +2799,11 @@ LOCAL  CURVE **split_curve3d(
 	    {
 	    	(void) printf("split_curve returning NULL\n");
 	    	(void) printf("bond=%llu curve=%llu ",
-	    		      bond_number(bond,curve->interface),
-	    		      curve_number(curve));
+	    		      (long long unsigned int)bond_number(bond,curve->interface),
+	    		      (long long unsigned int)curve_number(curve));
 	    	(void) printf("curve->interface=%llu cur_intfc=%llu\n",
-	    		      interface_number(curve->interface),
-	    		      interface_number(cur_intfc));
+	    		      (long long unsigned int)interface_number(curve->interface),
+	    		      (long long unsigned int)interface_number(cur_intfc));
 	    }
 	    return NULL;
 	}
@@ -2929,8 +2932,8 @@ LOCAL  CURVE **split_curve3d(
 	
 	if (DEBUG) 
 	      (void) printf("Left split_curve, returning %llu %llu\n\n",
-	    		 curve_number(curves[0]),
-	    		 curve_number(curves[1]));
+	    		 (long long unsigned int)curve_number(curves[0]),
+	    		 (long long unsigned int)curve_number(curves[1]));
 
 	return curves;
 }		/*end split_curve*/
@@ -2964,7 +2967,8 @@ EXPORT CURVE *join_curves(
 	CURVE		*curve;
 
 	debug_print("joinc","Entered join_curves(%llu,%llu)\n",
-	      curve_number(curve1),curve_number(curve2));
+	      (long long unsigned int)curve_number(curve1),
+	      (long long unsigned int)curve_number(curve2));
 	if (debugging("joinc"))
 	{
 	    (void) printf("curve1\n");
@@ -2983,14 +2987,14 @@ EXPORT CURVE *join_curves(
 	{
 	    if (debugging("joinc"))
 	    {
-	        (void) printf("c1 %llu ",curve_number(curve1));
+	        (void) printf("c1 %llu ",(long long unsigned int)curve_number(curve1));
 	        (void) printf("intfc %llu ",
-	    		  interface_number(curve1->interface));
-	        (void) printf("c2 %llu ",curve_number(curve2));
+	    		  (long long unsigned int)interface_number(curve1->interface));
+	        (void) printf("c2 %llu ",(long long unsigned int)curve_number(curve2));
 	        (void) printf("intfc %llu ",
-	    		  interface_number(curve2->interface));
+	    		  (long long unsigned int)interface_number(curve2->interface));
 	        (void) printf("cur_intfc %llu\n",
-	    		  interface_number(cur_intfc));
+	    		  (long long unsigned int)interface_number(cur_intfc));
 	        (void) printf("join_curves returning NULL\n");
 	    }
 	    debug_print("joinc","Left join_curves()\n\n");
@@ -3727,7 +3731,7 @@ LIB_LOCAL void i_fprint_point(
 	INTERFACE	*intfc = current_interface();
 	int		dim = intfc->dim;
  
-	(void) fprintf(file,"Point %llu:\n",point_number(point));
+	(void) fprintf(file,"Point %llu:\n",(long long unsigned int)point_number(point));
 	if (point == NULL)
 	{
 	    (void) fprintf(file,"\tNULL Point\n\t\tEnd Point\n");
@@ -3751,7 +3755,7 @@ LIB_LOCAL void i_fprint_point(
 	if (dim == 1)
 	{
 	    (void) fprintf(file,"\tHypersurface of point = %llu\n",
-	    	       hypersurface_number(Hyper_surf(point)));
+	    	       (long long unsigned int)hypersurface_number(Hyper_surf(point)));
 	    (void) fprintf(file,"\t\tLeft Component = %-4d   "
 	    		        "Right Component = %-4d    ",
 	    	                negative_component(point),
@@ -4366,7 +4370,7 @@ EXPORT	boolean	retriangulate_polygon(
 	    for (i = 0; i < nv; ++i)
 	    {
 		(void) printf("vertex[%d] %llu = %g %g %g\n",i,
-			      point_number(v[i]),
+			      (long long unsigned int)point_number(v[i]),
 			      Coords(v[i])[0],
 			      Coords(v[i])[1],
 			      Coords(v[i])[2]);
@@ -4613,12 +4617,12 @@ EXPORT	boolean	retriangulate_polygon(
 		    screen("ERROR in retriangulate_polygon(), "
 			   "can't find vertex index\n");
 		    (void) printf("pts[%d] %llu %g %g %g\n",v1,
-				  point_number(pts[v1]),
+				  (long long unsigned int)point_number(pts[v1]),
 				  Coords(pts[v1])[0],
 				  Coords(pts[v1])[1],
 				  Coords(pts[v1])[2]);
 		    (void) printf("pts[%d] %llu %g %g %g\n",v2,
-				  point_number(pts[v2]),
+				  (long long unsigned int)point_number(pts[v2]),
 				  Coords(pts[v2])[0],
 				  Coords(pts[v2])[1],
 				  Coords(pts[v2])[2]);
@@ -4732,7 +4736,7 @@ EXPORT	boolean	retriangulate_polygon(
 	    if (debugging("retriang"))
 	    {
 		(void) printf("Setting neighbors of newtri[%d] %llu\n",
-			      i,tri_number(newtris[i],s->interface));
+			      i,(long long unsigned int)tri_number(newtris[i],s->interface));
 	    }
 	    for (j = 0; j < 3; ++j)
 	    {
@@ -4790,12 +4794,12 @@ EXPORT	boolean	retriangulate_polygon(
 			    screen("ERROR in retriangulate_polygon(), "
 				   "can't find vertex index\n");
 			    (void) printf("pts[%d] %llu %g %g %g\n",v1,
-					  point_number(pts[v1]),
+					  (long long unsigned int)point_number(pts[v1]),
 					  Coords(pts[v1])[0],
 					  Coords(pts[v1])[1],
 					  Coords(pts[v1])[2]);
 			    (void) printf("pts[%d] %llu %g %g %g\n",v2,
-					  point_number(pts[v2]),
+					  (long long unsigned int)point_number(pts[v2]),
 					  Coords(pts[v2])[0],
 					  Coords(pts[v2])[1],
 					  Coords(pts[v2])[2]);
@@ -4813,14 +4817,14 @@ EXPORT	boolean	retriangulate_polygon(
 			{
 			    (void) printf("\tLinked side %d to "
 					  "nb_tri[%d] %llu\n",j,sd,
-					  tri_number(nbtri,s->interface));
+					  (long long unsigned int)tri_number(nbtri,s->interface));
 			    (void) printf("\tpts[%d] %llu %g %g %g\n",v1,
-					  point_number(pts[v1]),
+					  (long long unsigned int)point_number(pts[v1]),
 					  Coords(pts[v1])[0],
 					  Coords(pts[v1])[1],
 					  Coords(pts[v1])[2]);
 			    (void) printf("\tpts[%d] %llu %g %g %g\n",v2,
-					  point_number(pts[v2]),
+					  (long long unsigned int)point_number(pts[v2]),
 					  Coords(pts[v2])[0],
 					  Coords(pts[v2])[1],
 					  Coords(pts[v2])[2]);
@@ -4828,8 +4832,8 @@ EXPORT	boolean	retriangulate_polygon(
 					  "k2 = %d\n",k1,k2);
 			    (void) printf("\tLinked side %d of nb_tri[%d] %llu "
 					  "to newtris[%d] %llu\n",k,sd,
-					  tri_number(nbtri,s->interface),i,
-					  tri_number(newtris[i],s->interface));
+					  (long long unsigned int)tri_number(nbtri,s->interface),i,
+					  (long long unsigned int)tri_number(newtris[i],s->interface));
 			}
 		    }
 		}
@@ -5792,7 +5796,8 @@ LIB_LOCAL void print_table_list(void)
 
 	(void) printf("\n\nInterface Table List\n");
 	(void) printf("Current Table = %llu, Current Interface = %llu\n",
-	          table_number(cur_IT),interface_number(cur_intfc));
+	          (long long unsigned int)table_number(cur_IT),
+		  (long long unsigned int)interface_number(cur_intfc));
 	for (T = FirstIT; T != NULL; T = T->next)
 	    print_table(T);
 	(void) printf("\n\n");
@@ -5803,14 +5808,14 @@ LIB_LOCAL void print_table(struct Table *T)
 {
 	struct Chunk	*chunk;
 
-	(void) printf("\nTable %llu",table_number(T));
+	(void) printf("\nTable %llu",(long long unsigned int)table_number(T));
 	(void) printf("   Interface = %llu    Top = %p  Remainder = %lu\n",
-	    	      interface_number(T->interface),(POINTER)T->top,
+	    	      (long long unsigned int)interface_number(T->interface),(POINTER)T->top,
 	    	      T->remainder);
 	(void) printf("Blocks-> ");
 	for (chunk = T->first_chunk; chunk != NULL; chunk=chunk->next)
-	    (void) printf("  %p",chunk);
-	(void) printf("\nEnd of Table %llu",table_number(T));
+	    (void) printf("  %p",(void*)chunk);
+	(void) printf("\nEnd of Table %llu",(long long unsigned int)table_number(T));
 }		/*end print_table*/
 
 
@@ -6401,7 +6406,7 @@ BOND		*bs;
 
 	if(s != NULL && !delete_surface(s))
 	{
-	    printf("ERROR delete_scn, delete surface %p failed.\n", s);
+	    printf("ERROR delete_scn, delete surface %p failed.\n", (void*)s);
 	    clean_up(ERROR);
 	}
 	
@@ -6422,7 +6427,7 @@ BOND		*bs;
 	    if (!delete_curve(*c))
 	    {
 	        printf("ERROR in delete_scn, "
-		       "can't delete curve %llu\n",curve_number(*c));
+		       "can't delete curve %llu\n",(long long unsigned int)curve_number(*c));
 		clean_up(ERROR);
 	    }
 

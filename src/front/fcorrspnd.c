@@ -194,10 +194,11 @@ EXPORT HYPER_SURF *find_correspond_hyper_surface(
 	if (DEBUG)
 	{
 	    (void) printf("hs = %llu, intfc = %llu\n",
-	    	          hypersurface_number(hs),interface_number(intfc));
+	    	          (long long unsigned int)hypersurface_number(hs),
+			  (long long unsigned int)interface_number(intfc));
 	    (void) printf("*p_hsb = %llu, *n_hsb = %llu\n",
-	    	          hypersurface_boundary_number(*p_hsb),
-	    	          hypersurface_boundary_number(*n_hsb));
+	    	          (long long unsigned int)hypersurface_boundary_number(*p_hsb),
+	    	          (long long unsigned int)hypersurface_boundary_number(*n_hsb));
 	}
 	if (hs == NULL)
 	{
@@ -247,7 +248,7 @@ EXPORT HYPER_SURF *find_correspond_hyper_surface(
 	}
 	if (DEBUG)
 	    (void) printf("Index of hypersurface %llu in correspond %p = %d\n",
-			  hypersurface_number(hs),(POINTER)crspd,hsi);
+			  (long long unsigned int)hypersurface_number(hs),(POINTER)crspd,hsi);
 
 	/* Set up candidate list */
 
@@ -260,14 +261,14 @@ EXPORT HYPER_SURF *find_correspond_hyper_surface(
 	    {
 	    	if (DEBUG)
 	    	    (void) printf("Testing hypersurface %llu\n",
-				  hypersurface_number(*chs));
+				  (long long unsigned int)hypersurface_number(*chs));
 		entry = incmtrx[hsi][chsj];
 		if (!corr_possible(entry)) continue;
 		if (DEBUG)
 		{
 		    (void) printf("Possible correspondence\n");
 		    (void) printf("Adding %llu to hypersurface list\n",
-				  hypersurface_number(*chs));
+				  (long long unsigned int)hypersurface_number(*chs));
 		}
 		scalar(&hsl->next,sizeof(HS_LIST));
 		hsl->next->prev = hsl;
@@ -283,14 +284,14 @@ EXPORT HYPER_SURF *find_correspond_hyper_surface(
 	    {
 	    	if (DEBUG)
 	    	    (void) printf("Testing hypersurface %llu\n",
-	    	    	          hypersurface_number(*chs));
+	    	    	          (long long unsigned int)hypersurface_number(*chs));
 	    	entry = incmtrx[chsj][hsi];
 	    	if (!corr_possible(entry)) continue;
 	    	if (DEBUG)
 	    	{
 	    	    (void) printf("Possible correspondence\n");
 	    	    (void) printf("Adding %llu to hypersurface list\n",
-	    			  hypersurface_number(*chs));
+	    			  (long long unsigned int)hypersurface_number(*chs));
 	    	}
 	    	scalar(&hsl->next,sizeof(HS_LIST));
 	    	hsl->next->prev = hsl;
@@ -323,7 +324,7 @@ EXPORT HYPER_SURF *find_correspond_hyper_surface(
 	{
 	    if (DEBUG)
 	    	(void) printf("Testing hypersurface %llu\n",
-	    		      hypersurface_number(hsl->hs));
+	    		      (long long unsigned int)hypersurface_number(hsl->hs));
 	    or_p_hsb = (hsl->orients_match) ? p_hsb : n_hsb;
 	    or_n_hsb = (hsl->orients_match) ? n_hsb : p_hsb;
 	    if (!corresponding_boundaries_are_consistent(hsl->hs,or_p_hsb,
@@ -402,8 +403,8 @@ EXPORT boolean set_correspondence_between_interfaces(
 	if (DEBUG)
 	{
 	  (void) printf("Setting correspondence between oldintfc %llu and ",
-			interface_number(oldintfc));
-	  (void) printf("newintfc %llu\n",interface_number(newintfc));
+			(long long unsigned int)interface_number(oldintfc));
+	  (void) printf("newintfc %llu\n",(long long unsigned int)interface_number(newintfc));
 	}
 
 
@@ -499,7 +500,7 @@ EXPORT	void rst_cor_after_delete_interface(
 		    {
 			(void) printf("In rst_cor_after_delete_interface(),");
 			(void) printf("\n\tintfc = %llu,",
-				      interface_number(intfc));
+				      (long long unsigned int)interface_number(intfc));
 			(void) printf(" deleting correspond = %p\n",
 				      (POINTER)crspd);
 		    }
@@ -683,16 +684,16 @@ EXPORT void print_correspond_hyper_surf_list(
 
 	(void) printf("Correspond hypersurfaces\n");
 	(void) printf("for curves on interface %llu\n\n",
-		      interface_number(intfc));
+		      (long long unsigned int)interface_number(intfc));
 	(void) printf("%-15s%-15s\n","Hypersurface","Correspond hypersurface");
 	for (hs = hyper_surf_list(intfc); hs && *hs; ++hs)
 	{
-		(void) printf("%-15llu%-15llu\n",hypersurface_number(*hs),
-			      hypersurface_number(correspond_hyper_surf(*hs)));
+		(void) printf("%-15llu%-15llu\n",(long long unsigned int)hypersurface_number(*hs),
+			      (long long unsigned int)hypersurface_number(correspond_hyper_surf(*hs)));
 	}
 	(void) printf("\nEnd of printout of correspond hypersurfaces\n");
 	(void) printf("for hypersurfaces on interface %llu\n\n",
-		      interface_number(intfc));
+		      (long long unsigned int)interface_number(intfc));
 }		/*end print_correspond_hyper_surf_list*/
 
 
@@ -750,11 +751,11 @@ LOCAL	int copy_correspondence(
 			      (POINTER)crspd);
 		print_correspondence(crspd);
 		(void) printf("oldintfc = %llu, newintfc = %llu, num_hs = %d\n",
-			      interface_number(oldintfc),
-			      interface_number(newintfc),num_hs);
+			      (long long unsigned int)interface_number(oldintfc),
+			      (long long unsigned int)interface_number(newintfc),num_hs);
 		(void) printf("crsdp->oldintfc = %llu, crspd->newintfc = %llu\n",
-			      interface_number(crspd->oldintfc),
-			      interface_number(crspd->newintfc));
+			      (long long unsigned int)interface_number(crspd->oldintfc),
+			      (long long unsigned int)interface_number(crspd->newintfc));
 	}
 	if (crspd->oldintfc == oldintfc)
 	{
@@ -820,8 +821,8 @@ LOCAL	int init_correspondence_struct(
 	{
 		(void) printf("Initializing correspondence struct between\n");
 		(void) printf("old interface %llu and new interface %llu\n",
-			      interface_number(oldintfc),
-			      interface_number(newintfc));
+			      (long long unsigned int)interface_number(oldintfc),
+			      (long long unsigned int)interface_number(newintfc));
 		(void) printf("num_oldhs = %d, num_newhs = %d\n",
 			      num_oldhs,num_newhs);
 		print_interface(oldintfc);
@@ -1189,8 +1190,8 @@ LOCAL void print_correspondence(
 	(void) printf("prev = %p, next = %p\n",
 		      (POINTER)crspd->prev,(POINTER)crspd->next);
 	(void) printf("oldintfc = %llu, newintfc = %llu\n",
-		      interface_number(crspd->oldintfc),
-		      interface_number(crspd->newintfc));
+		      (long long unsigned int)interface_number(crspd->oldintfc),
+		      (long long unsigned int)interface_number(crspd->newintfc));
 	(void) printf("num_oldhs = %d, num_newhs = %d\n",crspd->num_oldhs,
 		      crspd->num_newhs);
 	(void) printf("oldhs_space = %d, newhs_space = %d\n",
@@ -1200,12 +1201,12 @@ LOCAL void print_correspondence(
 	(void) printf("\nOld hypersurfaces\n");
 	for (i = 0; i < crspd->num_oldhs; ++i)
 		(void) printf("oldhs[%d] = %llu\n",
-			      i,hypersurface_number(crspd->oldhs[i]));
+			      i,(long long unsigned int)hypersurface_number(crspd->oldhs[i]));
 	(void) printf("\n");
 	(void) printf("\nNew hypersurfaces\n");
 	for (i = 0; i < crspd->num_newhs; ++i)
 		(void) printf("newhs[%d] = %llu\n",i,
-			      hypersurface_number(crspd->newhs[i]));
+			      (long long unsigned int)hypersurface_number(crspd->newhs[i]));
 
 	(void) printf("\nIncidence bi_array: row = new, col = old\n");
 	(void) printf("   : ");
@@ -1263,7 +1264,7 @@ LOCAL	void error_in_find_correspond_hyper_surface(
 		break;
 	
 	}
-	(void) printf("Input hypersurface %llu\n",hypersurface_number(hs));
+	(void) printf("Input hypersurface %llu\n",(long long unsigned int)hypersurface_number(hs));
 	print_hypersurface(hs);
 	(void) printf("Positive hypersurface boundary list\n");
 	print_hypersurface_boundaries(p_hsb);
@@ -1273,7 +1274,7 @@ LOCAL	void error_in_find_correspond_hyper_surface(
 	print_interface(intfc);
 	if (hs == NULL) return;
 	(void) printf("Interface of input hypersurface %llu\n",
-		      hypersurface_number(hs));
+		      (long long unsigned int)hypersurface_number(hs));
 	print_interface(hs->interface);
 	print_correspondence(crspd);
 }		/*end error_in_find_correspond_hyper_surface*/
@@ -1347,13 +1348,13 @@ EXPORT	int rst_cor_after_join_hypersurfaces(
 	if (DEBUG)
 	{
 	    (void) printf("hs1:\n");
-	    (void) printf("hypersurf 1 = %llu\n",hypersurface_number(hs1));
+	    (void) printf("hypersurf 1 = %llu\n",(long long unsigned int)hypersurface_number(hs1));
 	    print_hypersurface(hs1);
 	    (void) printf("hs2:\n");
-	    (void) printf("hypersurf 2 = %llu\n",hypersurface_number(hs2));
+	    (void) printf("hypersurf 2 = %llu\n",(long long unsigned int)hypersurface_number(hs2));
 	    print_hypersurface(hs2);
 	    (void) printf("hs:\n");
-	    (void) printf("hypersurf = %llu\n",hypersurface_number(hs));
+	    (void) printf("hypersurf = %llu\n",(long long unsigned int)hypersurface_number(hs));
 	    print_hypersurface(hs);
 	}
 
@@ -1696,15 +1697,15 @@ EXPORT	boolean rst_cor_after_split_curve(
 	{
 	    (void) printf("curve:\n");
 	    (void) printf("hypersurf of curve = %llu\n",
-	    	          hypersurface_number(Hyper_surf(curve)));
+	    	          (long long unsigned int)hypersurface_number(Hyper_surf(curve)));
 	    print_curve(curve);
 	    (void) printf("curves[0]:\n");
 	    (void) printf("hypersurf of curves[0] = %llu\n",
-	    	          hypersurface_number(Hyper_surf(curves[0])));
+	    	          (long long unsigned int)hypersurface_number(Hyper_surf(curves[0])));
 	    print_curve(curves[0]);
 	    (void) printf("curves[1]:\n");
 	    (void) printf("hypersurf of curves[1] = %llu\n",
-	    	          hypersurface_number(Hyper_surf(curves[1])));
+	    	          (long long unsigned int)hypersurface_number(Hyper_surf(curves[1])));
 	    print_curve(curves[1]);
 	}
 

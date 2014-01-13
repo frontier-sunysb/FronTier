@@ -431,8 +431,8 @@ LOCAL	boolean split_surfaces_at_c_curves(
 	    for (n = 0; n < ncolors; ++n)
 		(void) printf("New surface %llu has color %d, "
 			      "old surface = %llu\n",
-			      surface_number(news[n]),colors[n],
-			      surface_number(olds[n]));
+			      (long long unsigned int)surface_number(news[n]),colors[n],
+			      (long long unsigned int)surface_number(olds[n]));
 	}
 
 	/* Delete old surfaces */
@@ -453,7 +453,7 @@ LOCAL	boolean split_surfaces_at_c_curves(
 		        (void) printf("WARNING in "
 				      "split_surfaces_at_c_curves(), "
 			              "can't delete old surface %llu\n",
-				      surface_number(olds[n]));
+				      (long long unsigned int)surface_number(olds[n]));
 	                DEBUG_LEAVE(split_surfaces_at_c_curves)
 		        return NO;
 		    }
@@ -1097,7 +1097,7 @@ LOCAL  boolean  cdt_retriangulate_surface_along_c_curves(
 	{	    
 	    if (DEBUG)
 	    	(void) printf("Setting up cdt's along c_curve %p of surface "
-			      "%llu\n",(POINTER)*pc,surface_number(surf));
+			      "%llu\n",(POINTER)*pc,(long long unsigned int)surface_number(surf));
 
 	    if (surf==(*pc)->s[0] && surf==(*pc)->s[1])
 	    {
@@ -1133,7 +1133,7 @@ LOCAL  boolean  cdt_retriangulate_surface_along_c_curves(
 		    if (DEBUG)
 		    {
 		        (void) printf("c_bond %p TRI %llu  c_bond count = %d\n",
-			              cb,tri_number(t,surf->interface),
+			              (void*)cb,(long long unsigned int)tri_number(t,surf->interface),
 			   (int)size_of_pointers((POINTER *)Tri_cross_list(t)));
 		    }
 
@@ -1894,7 +1894,7 @@ LOCAL	void print_vertex(
 	const char *indent,
 	Vertex     *v)
 {
-	(void) printf("%sVertex structure 0x%p\n",indent,v);
+	(void) printf("%sVertex structure 0x%p\n",indent,(void*)v);
 	(void) printf("%s\tpoint = %llu %g %g %g\n"
 	              "%s\tx, y = %g %g\n"
 	              "%s\tindex = %d\n"
@@ -1902,7 +1902,7 @@ LOCAL	void print_vertex(
 	              "%s\ttri_vertex_index = %d\n"
 	              "%s\ttri_side_index = %d\n"
 	              "%s\td2 = %g\n",
-		      indent,point_number(v->point),
+		      indent,(long long unsigned int)point_number(v->point),
 		             Coords(v->point)[0],
 		             Coords(v->point)[1],
 		             Coords(v->point)[2],
@@ -1914,7 +1914,7 @@ LOCAL	void print_vertex(
 		      indent,v->tri_vertex_index,
 		      indent,v->tri_side_index,
 		      indent,v->d2);
-	(void) printf("%sEnd Vertex structure 0x%p\n",indent,v);
+	(void) printf("%sEnd Vertex structure 0x%p\n",indent,(void*)v);
 }		/*end print_vertex*/
 
 LOCAL	void	print_cdt_side(
@@ -1922,7 +1922,7 @@ LOCAL	void	print_cdt_side(
 	INTERFACE *intfc)
 {
 	int i;
-	(void) printf("Cdt_Side structure 0x%p\n",cdt_side);
+	(void) printf("Cdt_Side structure 0x%p\n",(void*)cdt_side);
 	(void) printf("\tnum_verts = %d\n",cdt_side->num_verts);
 	for (i = 0; i < cdt_side->num_verts; ++i)
 	    print_vertex("\t",cdt_side->vertices[i]);
@@ -1934,7 +1934,7 @@ LOCAL	void	print_cdt_side(
 			  i,cdt_side->tri_facing_side[i]);
 	}
 	(void) printf("done_stiching = %s\n",y_or_n(cdt_side->done_stiching));
-	(void) printf("End Cdt_Side structure 0x%p\n",cdt_side);
+	(void) printf("End Cdt_Side structure 0x%p\n",(void*)cdt_side);
 }		/*end print_cdt_side*/
 
 LOCAL	void	print_cdt(
@@ -1944,12 +1944,12 @@ LOCAL	void	print_cdt(
 	C_BOND    **cb;
 	int       i;
 
-	(void) printf("Cdt structure 0x%p\n",cdt);
-	(void) printf("next = 0x%p\n",cdt->next);
+	(void) printf("Cdt structure 0x%p\n",(void*)cdt);
+	(void) printf("next = 0x%p\n",(void*)cdt->next);
 	(void) printf("tri - ");
 	print_tri(cdt->tri,cdt->surf->interface);
 	(void) printf("isurf = %d\n",cdt->isurf);
-	(void) printf("surf = %llu\n",surface_number(cdt->surf));
+	(void) printf("surf = %llu\n",(long long unsigned int)surface_number(cdt->surf));
 	(void) printf("Cdt_Sides's\n");
 	for (i = 0; i < 3; ++i)
 	{
@@ -1959,7 +1959,7 @@ LOCAL	void	print_cdt(
 	(void) printf("C_BOND's\n");
 	for (cb = cdt->c_bond_list; cb && *cb; ++cb)
 	    print_c_bond(*cb,intfc);
-	(void) printf("End Cdt structure 0x%p\n",cdt);
+	(void) printf("End Cdt structure 0x%p\n",(void*)cdt);
 }		/*end print_cdt*/
 
 LOCAL	void	print_nclist(
@@ -1969,7 +1969,7 @@ LOCAL	void	print_nclist(
 	int i;
 
 	(void) printf("NCLIST structure 0x%p, prev 0x%p, next 0x%p\n",
-		      ncl,ncl->prev,ncl->next);
+		      (void*)ncl,(void*)ncl->prev,(void*)ncl->next);
 	(void) printf("num_comps = %d\n",ncl->num_comps);
 	(void) printf("num_physical_regions = %d\n",ncl->num_physical_regions);
 	(void) printf("num_surfaces = %d\n",ncl->num_surfaces);
@@ -1990,17 +1990,17 @@ LOCAL	void	print_nclist(
 	    print_ncsurf(ncl->NS+i);
 	}
 
-	(void) printf("End NCLIST structure 0x%p\n",ncl);
+	(void) printf("End NCLIST structure 0x%p\n",(void*)ncl);
 }		/*end print_nclist*/
 
 LOCAL	void	print_ncsurf(
 	NCSURF *ncs)
 {
-	(void) printf("NCSURF structure 0x%p\n",ncs);
-	(void) printf("surface = %llu\n",surface_number(ncs->s));
+	(void) printf("NCSURF structure 0x%p\n",(void*)ncs);
+	(void) printf("surface = %llu\n",(long long unsigned int)surface_number(ncs->s));
 	(void) printf("orient = %s\n",orientation_name(ncs->orient));
 	(void) printf("physical = %s\n",y_or_n(ncs->physical));
 	(void) printf("area = %g\n",ncs->area);
 
-	(void) printf("End NCSURF structure 0x%p\n",ncs);
+	(void) printf("End NCSURF structure 0x%p\n",(void*)ncs);
 }		/*end print_ncsurf*/

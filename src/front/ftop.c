@@ -165,7 +165,7 @@ EXPORT	boolean	f_untrack_point(
 	if (debugging("untrack"))
 	{
 	   (void) printf("point %llu selected for untracking\n",
-			 point_number(p));
+			 (long long unsigned int)point_number(p));
 	   print_point(p);
 	}
 
@@ -688,7 +688,7 @@ redo_loop:
 		    {
 		    	if (debugging("fold_back"))
 		    		(void) printf("deleting curve %llu\n",
-		    			      curve_number(*c));
+		    			      (long long unsigned int)curve_number(*c));
 
 			ns = (*c)->start;	ne = (*c)->end;
 			(void) delete_curve(*c);
@@ -750,7 +750,7 @@ EXPORT	void f_delete_fold_back_bonds(
 	if (debugging("fold_back"))
 	{
 	    deb_fb = YES;
-	    (void) printf("Testing curve %llu for fold_backs\n",curve_number(c));
+	    (void) printf("Testing curve %llu for fold_backs\n",(long long unsigned int)curve_number(c));
 	    print_curve(c);
 	}
 
@@ -769,7 +769,7 @@ redo_curve:
 	    	if (deb_fb)
 	    	{
 	    	    (void) printf("found needle on curve %llu\n",
-	    		          curve_number(c));
+	    		          (long long unsigned int)curve_number(c));
 	    	    (void) printf("b1->prev - ");
 	    	    print_bond(b1->prev);
 	    	    (void) printf("b1 - ");
@@ -831,7 +831,8 @@ redo_curve:
 	    	{
 	    	    (void) printf("found needle ");
 	    	    (void) printf("at node %llu of curve %llu\n",
-	    	    	      node_number(c->start),curve_number(c));
+	    	    	      (long long unsigned int)node_number(c->start),
+			      (long long unsigned int)curve_number(c));
 	    	    print_bond(b1->prev);
 	    	    print_bond(b1);
 	    	    print_bond(b2);
@@ -905,7 +906,7 @@ LOCAL	void resolve_sink_node_fold_backs(
 	if (deb_rsnfb)
 	{
 		(void) printf("resolving fold_backs at sink node %llu\n",
-		       node_number(n));
+		       (long long unsigned int)node_number(n));
 		print_onode(on);
 		(void) printf("angle(hx,hy) %g angle(hy,hx) %g min_ang %g\n",
 					angle(hx,hy),angle(hy,hx),min_ang);
@@ -925,7 +926,7 @@ LOCAL	void resolve_sink_node_fold_backs(
 			cin = cout = on->nc[i];
 			if (deb_rsnfb)
 				(void) printf("fold back curve %llu is closed\n",
-					      curve_number(cin));
+					      (long long unsigned int)curve_number(cin));
 		}
 		else if (on->orient[i] == NEGATIVE_ORIENTATION)
 		{
@@ -1128,7 +1129,7 @@ label_2:
 	        (curve_length(*c) < perim_tol))
 	    {
 	    	if (debugging("small_loops"))
-	    	    (void) printf("Deleting small loop %llu\n",curve_number(*c));
+	    	    (void) printf("Deleting small loop %llu\n",(long long unsigned int)curve_number(*c));
 		(void) delete_curve(*c);
 		goto label_2;
 	    }
@@ -1136,7 +1137,7 @@ label_2:
 		    (curve_length(*c) < 4.0*perim_tol)) /*TOLERANCE*/
 	    {
 	    	if (debugging("small_loops"))
-	    	    (void) printf("Deleting small loop %llu\n",curve_number(*c));
+	    	    (void) printf("Deleting small loop %llu\n",(long long unsigned int)curve_number(*c));
 	    	m = (*c)->start;
 	    	(void) delete_curve(*c);
 	    	if (node_type(m) == CLOSED_NODE) (void) delete_node(m);
@@ -1376,7 +1377,8 @@ EXPORT	double f_area_of_loop(
 
 	if (dbg)
 	   (void) printf("Entered f_area_of_loop - curves %llu %llu orient1 %d\n",
-			 curve_number(c1),curve_number(c2),orient1);
+			 (long long unsigned int)curve_number(c1),
+			 (long long unsigned int)curve_number(c2),orient1);
 	area = -1.0;
 	if (! c1)
 	    goto Exit;
@@ -1408,7 +1410,8 @@ EXPORT	double f_area_of_loop(
 	area1 = 0.5*area1;
 	if (dbg)
 	   (void) printf("Area of loop subtended by curves %llu thru %llu = %g\n",
-			 curve_number(c1),curve_number(c),area1);
+			 (long long unsigned int)curve_number(c1),
+			 (long long unsigned int)curve_number(c),area1);
 
 		/* should c2 be ignored? */
 
@@ -1430,7 +1433,8 @@ EXPORT	double f_area_of_loop(
 	{
 	    (void) printf("WARNING in f_area_of_loop(), "
 			  "curves %llu %llu do not have common node ",
-	    	          curve_number(c1),curve_number(c2));
+	    	          (long long unsigned int)curve_number(c1),
+			  (long long unsigned int)curve_number(c2));
 	    (void) printf("in f_area_of_loop()\n");
 	    goto Exit;
 	}
@@ -1461,7 +1465,8 @@ EXPORT	double f_area_of_loop(
 	area2 = 0.5*area2;
 	if (dbg)
 	   (void) printf("Area of loop subtended by curves %llu thru %llu = %g\n",
-			 curve_number(c2),curve_number(c),area2);
+			 (long long unsigned int)curve_number(c2),
+			 (long long unsigned int)curve_number(c),area2);
 
 		/* check for closed polygon */
 	

@@ -152,7 +152,7 @@ EXPORT void f_impose_bc(
 	if (debugging("fibc"))
 	{
 	    print_general_vector("imposing bc on ",Coords(p),dim,"");
-	    (void) printf(" curve %llu\nbond - ",curve_number(c));
+	    (void) printf(" curve %llu\nbond - ",(long long unsigned int)curve_number(c));
 	    print_bond(b);
 	}
 	cbdry = NULL;
@@ -162,7 +162,7 @@ EXPORT void f_impose_bc(
 	    if (debugging("fibc"))
 	    {
 	    	(void) printf("nlblc id bc as %llu  t %g bbdry - ",
-			      curve_number(cbdry),t);
+			      (long long unsigned int)curve_number(cbdry),t);
 		print_bond(bbdry);
 	    }
 	}
@@ -172,7 +172,7 @@ EXPORT void f_impose_bc(
 	if (debugging("fibc"))
 	{
 	    (void) printf("id bc as %llu  t %g bbdry - ",
-			  curve_number(cbdry),t);
+			  (long long unsigned int)curve_number(cbdry),t);
 	    print_bond(bbdry);
 	}
 	if (cbdry == NULL)
@@ -818,13 +818,13 @@ EXPORT int split_curves_at_bdry_cross(
 	{
 	    (void) printf("Before split\n");
 
-	    (void) printf("Physical curve %llu\n",curve_number(cr->c1));
+	    (void) printf("Physical curve %llu\n",(long long unsigned int)curve_number(cr->c1));
 	    if (debugging("curve_states"))
 	    	show_curve_states(cr->c1);
 	    else
 	    	print_curve(cr->c1);
 
-	    (void) printf("Boundary curve %llu\n",curve_number(cr->c2));
+	    (void) printf("Boundary curve %llu\n",(long long unsigned int)curve_number(cr->c2));
 	    if (debugging("curve_states"))
 	    	show_curve_states(cr->c2);
 	    else
@@ -927,7 +927,8 @@ EXPORT int split_curves_at_bdry_cross(
 
 	if (deb_fbu)
 	    (void) printf("cext %llu  cint %llu\n",
-			  curve_number(*cexterior),curve_number(*cinterior));
+			  (long long unsigned int)curve_number(*cexterior),
+			  (long long unsigned int)curve_number(*cinterior));
 	debug_print("f_boundary_untangle","Left split_curves_at_bdry_cross()\n");
 	return YES;
 }		/*end split_curves_at_bdry_cross*/
@@ -1077,7 +1078,8 @@ LOCAL int assign_states_of_boundary_cross(
 	    print_side("cbdry_side = ",cbdry_side,"\n");
 	    print_orientation("cphys_orient = ",cphys_orient,"\n");
 	    (void) printf("cext %llu  cint %llu\n",
-			  curve_number(cexterior),curve_number(cinterior));
+			  (long long unsigned int)curve_number(cexterior),
+			  (long long unsigned int)curve_number(cinterior));
 	    (void) printf("s0:  ");	(*fr->print_state)(s0);
 	    (void) printf("s1:  ");	(*fr->print_state)(s1);
 	    (void) printf("\n");
@@ -1297,7 +1299,7 @@ EXPORT	void map_phys_cur_states_to_bdry_cur(
 
 	if (debugging("map_p_sts"))
 	{
-	    (void) printf("states on physical curve %llu\n",curve_number(cphys));
+	    (void) printf("states on physical curve %llu\n",(long long unsigned int)curve_number(cphys));
 	    show_curve_states(cphys);
 
 	    debug_show_boundary_curve_states("before mapping", 
@@ -1306,7 +1308,7 @@ EXPORT	void map_phys_cur_states_to_bdry_cur(
 	if (next_curve_of_gen_curve(cphys,cphys_orient,&n_type,&node) != NULL)
 	{
 	    screen("ERROR in map_phys_cur_states_to_bdry_cur(), "
-	           "cphys %llu is a generalized curve ",curve_number(cphys));
+	           "cphys %llu is a generalized curve ",(long long unsigned int)curve_number(cphys));
 	    clean_up(ERROR);
 	}
 
@@ -1438,7 +1440,7 @@ EXPORT	void	debug_show_boundary_curve_states(
 	int		bn_type = UNKNOWN_NODE_TYPE;
 
 	(void) printf("states on boundary curve %llu %s\n",
-		      curve_number(cbdry),msg);
+		      (long long unsigned int)curve_number(cbdry),msg);
 	nextbc = NULL;
 	bcur = cbdry;
 	while (nextbc != cbdry) 

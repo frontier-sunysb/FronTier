@@ -690,10 +690,10 @@ EXPORT void cut_curve(
 	min_sc_sep = MIN_SC_SEP(fr->interf);
 	if (debugging("cut_curve"))
 	{
-	    (void) printf("newp = %llu %g %g\n",point_number(newp),
+	    (void) printf("newp = %llu %g %g\n",(long long unsigned int)point_number(newp),
 	    	          Coords(newp)[0],Coords(newp)[1]);
 	    (void) printf("bcut = %llu %g %g -> %g %g\n",
-	    	          bond_number(bcut,fr->interf),
+	    	          (long long unsigned int)bond_number(bcut,fr->interf),
 	    	          Coords(bcut->start)[0],Coords(bcut->start)[1],
 	    	          Coords(bcut->end)[0],Coords(bcut->end)[1]);
 	    (void) printf("left_st: ");	(*fr->print_state)(left_st);
@@ -811,15 +811,16 @@ EXPORT void shift_node(
 	interpolate_intfc_states(intfc) = NO;
 	if (debugging("shift_node"))
 	{
-	    (void) printf("old_node %llu",node_number(n));
+	    (void) printf("old_node %llu",(long long unsigned int)node_number(n));
 	    print_node(n);
 
 	    (void) printf("\n\t\tTHIS IS CURVE1 BEFORE SHIFT_NODE\n");
 	    (void) printf("start node %llu posn %llu\n",
-	    	          node_number(c1->start),
-	    	          point_number(c1->start->posn));
+	    	          (long long unsigned int)node_number(c1->start),
+	    	          (long long unsigned int)point_number(c1->start->posn));
 	    (void) printf("end node %llu posn %llu\n",
-	    	          node_number(c1->end),point_number(c1->end->posn));
+	    	          (long long unsigned int)node_number(c1->end),
+			  (long long unsigned int)point_number(c1->end->posn));
 	    print_node(c1->start);
 	    print_node(c1->end);
 	    if (debugging("states"))
@@ -829,10 +830,11 @@ EXPORT void shift_node(
 
 	    (void) printf("\n\t\tTHIS IS CURVE2 BEFORE SHIFT_NODE\n");
 	    (void) printf("start node %llu posn %llu\n",
-	    	          node_number(c2->start),
-	    	          point_number(c2->start->posn));
+	    	          (long long unsigned int)node_number(c2->start),
+	    	          (long long unsigned int)point_number(c2->start->posn));
 	    (void) printf("end node %llu posn %llu\n",
-	    	          node_number(c2->end),point_number(c2->end->posn));
+	    	          (long long unsigned int)node_number(c2->end),
+			  (long long unsigned int)point_number(c2->end->posn));
 	    print_node(c2->start);
 	    print_node(c2->end);
 	    if (debugging("states"))
@@ -857,7 +859,7 @@ EXPORT void shift_node(
 
 	if (debugging("assign_interacting_states"))
 	{
-	    (void) printf("ft_assigning states for c2 %llu\n",curve_number(c2));
+	    (void) printf("ft_assigning states for c2 %llu\n",(long long unsigned int)curve_number(c2));
 	    (void) printf("left_state_at_node %g %g:\n",Coords(oldp)[0],
 							Coords(oldp)[1]);
 	    (*fr->print_state)(Left_state_at_node(c2,c2_orient));
@@ -1463,7 +1465,7 @@ EXPORT void assign_interacting_states(
 	if (debugging("assign_interacting_states"))
 	{
 		(void) printf("ft_assigning states for curve %llu\n",
-			      curve_number(c));
+			      (long long unsigned int)curve_number(c));
 		(void) printf("left_state_at_node:\n");
 		(*fr->print_state)(Left_state_at_node(c,orient));
 		(void) printf("right_state_at_node:\n");
@@ -1480,7 +1482,7 @@ EXPORT void assign_interacting_states(
 		if (debugging("assign_interacting_states"))
 		{
 		       (void) printf("ft_assigning state for point %llu at %g %g\n",
-				     point_number(bpoint),
+				     (long long unsigned int)point_number(bpoint),
 				     Coords(bpoint)[0],Coords(bpoint)[1]);
 			(void) printf("left state:\n");
 			(*fr->print_state)(left_state(bpoint));
@@ -1496,7 +1498,7 @@ EXPORT void assign_interacting_states(
 		if (debugging("assign_interacting_states"))
 		{
 			(void) printf("ft_assigning states for curve %llu\n",
-				      curve_number(c));
+				      (long long unsigned int)curve_number(c));
 			(void) printf("left_state_at_node:\n");
 			(*fr->print_state)(Left_state_at_node(
 				c,Opposite_orient(orient)));
@@ -1535,8 +1537,8 @@ EXPORT void insert_point_adjacent_to_node(
 	if (debugging("insert_point_adj"))
 	{
 	    (void) printf("inserting point %llu, %g %g in bond %llu, ",
-			  point_number(p),Coords(p)[0],Coords(p)[1],
-			  bond_number(b,c->interface));
+			  (long long unsigned int)point_number(p),Coords(p)[0],Coords(p)[1],
+			  (long long unsigned int)bond_number(b,c->interface));
 	    (void) printf("%g %g -> %g %g\n",
 			  Coords(b->start)[0],Coords(b->start)[1],
 			  Coords(b->end)[0],Coords(b->end)[1]);
@@ -1685,13 +1687,15 @@ EXPORT	boolean delete_redundant_node(
 	    print_curve(c1);
 	    print_curve(c2);
 	    (void) printf("before check_delete_redundant_node\n");
-	    (void) printf("c1->hs %llu ",hypersurface_number(Hyper_surf(c1)));
-	    (void) printf("c2->hs %llu ",hypersurface_number(Hyper_surf(c2)));
+	    (void) printf("c1->hs %llu ",(long long unsigned int)hypersurface_number(Hyper_surf(c1)));
+	    (void) printf("c2->hs %llu ",(long long unsigned int)hypersurface_number(Hyper_surf(c2)));
 	    print_wave_type("wave type c1 = ",wave_type(c1)," ",intfc);
 	    print_wave_type("wave type c2 = ",wave_type(c2)," ",intfc);
 	    (void) printf("front = %p",(POINTER)fr);
-	    (void) printf("check_delete_redundant_node %p\n",
-	    	          fr->_check_delete_redundant_node);
+	    /* fixme
+	    (void) printf("check_delete_redundant_node %d\n",
+	    	          (fr->_check_delete_redundant_node));
+	    */
 	}
 
 	if (!(check_delete_redundant_node(n,c1,c2,fr)))

@@ -132,8 +132,8 @@ EXPORT void rcl_after_split(
 	    	    (void) printf("later_cr - ");
 	    	    print_cross(later_cr);
 	    	    (void) printf("csplit[0] %llu  [1] %llu\n",
-	    			  curve_number(csplit[0]),
-	    			  curve_number(csplit[1]));
+	    			  (long long unsigned int)curve_number(csplit[0]),
+	    			  (long long unsigned int)curve_number(csplit[1]));
 	    	}
 	    	reset_cross(later_cr->p,&later_cr->b1,&later_cr->c1,
 	    		    p,b,c,csplit[0],csplit[1]);
@@ -149,8 +149,8 @@ EXPORT void rcl_after_split(
 	    	    (void) printf("later_cr - ");
 	    	    print_cross(later_cr);
 	    	    (void) printf("csplit[0] %llu  [1] %llu\n",
-	    			  curve_number(csplit[0]),
-	    			  curve_number(csplit[1]));
+	    			  (long long unsigned int)curve_number(csplit[0]),
+	    			  (long long unsigned int)curve_number(csplit[1]));
 	    	}
 	    	reset_cross(later_cr->p,&later_cr->b2,&later_cr->c2,
 	    		    p,b,c,csplit[0],csplit[1]);
@@ -190,8 +190,8 @@ EXPORT void rcl_after_split(
 	    	    (void) printf("prev_cr - ");	
 	    	    print_cross(prev_cr);
 	    	    (void) printf("csplit[0] %llu  [1] %llu\n",
-	    			  curve_number(csplit[0]),
-	    			  curve_number(csplit[1]));
+	    			  (long long unsigned int)curve_number(csplit[0]),
+	    			  (long long unsigned int)curve_number(csplit[1]));
 	    	}
 	    	reset_cross(prev_cr->p,&prev_cr->b1,&prev_cr->c1,
 	    		    p,b,c,csplit[0],csplit[1]);
@@ -207,8 +207,8 @@ EXPORT void rcl_after_split(
 	    	    (void) printf("prev_cr - ");	
 	    	    print_cross(prev_cr);
 	    	    (void) printf("csplit[0] %llu  [1] %llu\n",
-	    			  curve_number(csplit[0]),
-	    			  curve_number(csplit[1]));
+	    			  (long long unsigned int)curve_number(csplit[0]),
+	    			  (long long unsigned int)curve_number(csplit[1]));
 	    	}
 	    	reset_cross(prev_cr->p,&prev_cr->b2,&prev_cr->c2,
 	    		    p,b,c,csplit[0],csplit[1]);
@@ -485,7 +485,7 @@ EXPORT 	void print_cross(
 		      (POINTER)cr,(POINTER)cr->next,(POINTER)cr->prev);
 
 	bb = cr->b1;
-	(void) printf("\tc1 %llu\n\tb1 ",curve_number(cr->c1));
+	(void) printf("\tc1 %llu\n\tb1 ",(long long unsigned int)curve_number(cr->c1));
 	print_bond(cr->b1);
 
 	if (cr->c1 != NULL)
@@ -501,7 +501,7 @@ EXPORT 	void print_cross(
 
 
 	bb = cr->b2;
-	(void) printf("\tc2 %llu\n\tb2 ",curve_number(cr->c2));
+	(void) printf("\tc2 %llu\n\tb2 ",(long long unsigned int)curve_number(cr->c2));
 	print_bond(cr->b2);
 
 	if (cr->c2 != NULL)
@@ -518,7 +518,7 @@ EXPORT 	void print_cross(
 	if (cr->p == NULL)
 	    (void) printf("p NULL\n");
 	else
-	    (void) printf("p %llu (%g, %g)\n",point_number(cr->p),
+	    (void) printf("p %llu (%g, %g)\n",(long long unsigned int)point_number(cr->p),
 	    	          Coords(cr->p)[0],Coords(cr->p)[1]);
 
 	(void) printf("\n");

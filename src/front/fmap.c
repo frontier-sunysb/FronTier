@@ -2525,7 +2525,7 @@ LOCAL void FrontPreAdvance2d(
                     printf("angular_velo = %f\n",angular_velo(*c));
                     printf("center_of_mass = %f  %f\n",
                         center_of_mass(*c)[0],center_of_mass(*c)[1]);
-                    printf("center_of_mass_velo = %lf  %lf\n",
+                    printf("center_of_mass_velo = %f  %f\n",
                         center_of_mass_velo(*c)[0],center_of_mass_velo(*c)[1]);
                 }
             }

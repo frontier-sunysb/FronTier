@@ -952,11 +952,11 @@ LOCAL 	boolean append_adj_intfc_to_buffer2(
 		    if(debugging("append_buf"))
 		    {
 		        printf("surface %p [%d %d] of intfc (%p)\n",
-                             *s,negative_component(*s),positive_component(*s),
-			     intfc);
+                             (void*)*s,negative_component(*s),positive_component(*s),
+			     (void*)intfc);
 			printf("join buf surf %p [%d %d] of adj_intfc (%p)\n",
-                             *as,negative_component(*as),
-			     positive_component(*as),adj_intfc);
+                             (void*)*as,negative_component(*as),
+			     positive_component(*as),(void*)adj_intfc);
 		    }
 
 	            if (!append_buffer_surface2(*s,*as,grid,dual_gr,dir,nb,
@@ -2268,7 +2268,7 @@ LOCAL   boolean match_tris_in_block(
 		(void) printf("WARNING in match_tris_in_block(), "
 			      "unmatched tri found in match_tris_in_block\n");
 		(void) printf("Unmatched tri %llu\n",
-			      tri_number(ts,ss->interface));
+			      (long long unsigned int)tri_number(ts,ss->interface));
 		(void) printf("rot[%d][%d] = %d\n",i,jmin,rot[i][jmin]);
 		(void) printf("dist[%d][%d] = %g\n",i,jmin,dist[i][jmin]);
 		(void) printf("ltol = %g %g %g\n",ltol[0],ltol[1],ltol[2]);

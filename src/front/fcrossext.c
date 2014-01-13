@@ -811,7 +811,7 @@ LOCAL	int  found_D_extend_cross(
 	if (debugging("D_extend")) 
 	{
 	    (void) printf("pc (%llu): (%g, %g)  *sa = %g *s2 = %g\n",
-	    	          point_number(dout->pc),
+	    	          (long long unsigned int)point_number(dout->pc),
 	    	          Coords(dout->pc)[0],Coords(dout->pc)[1],
 	    	          *dout->sa,*dout->s2);
 	    (void) printf("*dout->newbacr:\n");
@@ -1383,7 +1383,7 @@ LOCAL	int	found_H_ext_cr_2_pc(
 	if (debugging("H_extend")) 
 	{
 	    (void) printf("pc (%llu): %g %g  s1 = %g s2 = %g\n",
-			  point_number(pc),Coords(pc)[0],Coords(pc)[1],s1,s2);
+			  (long long unsigned int)point_number(pc),Coords(pc)[0],Coords(pc)[1],s1,s2);
 	    (void) printf("*newb1cr:\n");
 	    print_bond_and_states(*newb1cr,newc1->curve,fr);
 	    (void) printf("*newb2cr:\n");
@@ -2097,7 +2097,7 @@ LOCAL	int	found_c_or_e_2_pc(
 	if (debugging("cross_or_extend")) 
 	{
 	    (void) printf("pc[0] (%llu): %g %g  s1 = %g s2 = %g\n",
-	    	          point_number(pc[0]),
+	    	          (long long unsigned int)point_number(pc[0]),
 			  Coords(pc[0])[0],Coords(pc[0])[1],s1,s2);
 	    (void) printf("*newb1cr:\n");
 	    print_bond_and_states(*newb1cr,newc1->curve,fr);

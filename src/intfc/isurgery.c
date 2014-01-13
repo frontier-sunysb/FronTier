@@ -113,7 +113,7 @@ EXPORT void identify_detached_surface_curve_pair(
 	    if (debugging("surgery"))
 	    {
 	        (void) printf("detached surf = %p  detached curve = %p  ",
-			      detached_surf,detached_curv);
+			      (void*)detached_surf,(void*)detached_curv);
 		print_orientation("orientation = ",orientation,"\n");
 	    }
 	    break;
@@ -298,10 +298,10 @@ EXPORT int next_null_sided_tri(
 	    {
 	    	screen("In next_null_sided_tri(), next_side is ERROR\n");
 		printf("new_tri vertices: %p %p %p\n",
-				Point_of_tri(new_tri)[0],
-				Point_of_tri(new_tri)[1],
-				Point_of_tri(new_tri)[2]);
-		printf("vertex = %p\n",vertex);
+				(void*)Point_of_tri(new_tri)[0],
+				(void*)Point_of_tri(new_tri)[1],
+				(void*)Point_of_tri(new_tri)[2]);
+		printf("vertex = %p\n",(void*)vertex);
 		clean_up(ERROR);
 	    }
 	    if (Neighbor_on_side(new_tri,next_side) == NULL)
@@ -342,10 +342,10 @@ EXPORT int prev_null_sided_tri(
 	    {
 	    	screen("In prev_null_sided_tri(), prev_side is ERROR\n");
 		printf("new_tri vertices: %p %p %p\n",
-				Point_of_tri(new_tri)[0],
-				Point_of_tri(new_tri)[1],
-				Point_of_tri(new_tri)[2]);
-		printf("vertex = %p\n",vertex);
+				(void*)Point_of_tri(new_tri)[0],
+				(void*)Point_of_tri(new_tri)[1],
+				(void*)Point_of_tri(new_tri)[2]);
+		printf("vertex = %p\n",(void*)vertex);
 		clean_up(ERROR);
 	    }
 	    if (Neighbor_on_side(new_tri,prev_side) == NULL)
@@ -517,10 +517,10 @@ LOCAL	void print_seam(
   	int i;
 	double *start,*end;
 
-	(void) printf("Start of SEAM %p\n",seam);
+	(void) printf("Start of SEAM %p\n",(void*)seam);
 	(void) printf("  surface = %p    "
 		      "number_of_stitches = %d\n",
-		      seam->surface,seam->number_of_stitches);
+		      (void*)seam->surface,seam->number_of_stitches);
 	(void) printf("  begin_pt = ( %g %g %g )  "
 		      "finish_pt = ( %g %g %g )\n",
 		      Coords(seam->begin_pt)[0],Coords(seam->begin_pt)[1],
@@ -550,7 +550,7 @@ LOCAL	void print_seam(
 	                      seam->stitch[i].detached_side, 
 	                      Next_m3(seam->stitch[i].detached_side)); 
 	}
-	(void) printf("End of SEAM %p.\n",seam);
+	(void) printf("End of SEAM %p.\n",(void*)seam);
 	(void) printf("\n");
 }		/*end print_seam*/
 
@@ -771,7 +771,7 @@ repeat:
 	    }
 	    if (cpts[i]->hse == NULL)
 	    {
-		(void) printf("cpts[%d] cannot find attached tri!\n");
+		(void) printf("cpts[%d] cannot find attached tri!\n",i);
 		clean_up(ERROR);
 	    }
 	}

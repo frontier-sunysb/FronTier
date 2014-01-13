@@ -63,9 +63,9 @@ LOCAL  	void 	summary_of_nodes(
 	for (i = 0, n = intfc->nodes; n && *n; n++, i++)
 	{
 	    (void) printf("%3d | %3d   %llu  %llu  %llu",
-			  i,Boundary(*n),node_number((*n)->obj),
-			  hypersurface_boundary_number(Hyper_surf_bdry(*n)),
-			  interface_number(intfc));
+			  i,Boundary(*n),(long long unsigned int)node_number((*n)->obj),
+			  (long long unsigned int)hypersurface_boundary_number(Hyper_surf_bdry(*n)),
+			  (long long unsigned int)interface_number(intfc));
 
 	    for (j = 0; j < intfc->dim; j++) 
 	        (void) printf("  %g",Coords((*n)->posn)[j]); 
@@ -103,11 +103,11 @@ LOCAL	void 	summary_of_curves(
 	for (i = 0, c = intfc->curves; c && *c; c++,i++)
 	{
 	    (void) printf("%3d | %3d  %llu  %llu  %llu",
-			  i,Boundary(*c),curve_number((*c)->obj),
-			  (dim==2) ?
+			  i,Boundary(*c),(long long unsigned int)curve_number((*c)->obj),
+			  (long long unsigned int)((dim==2) ?
 			     hypersurface_number(Hyper_surf(*c)) :
-			     hypersurface_boundary_number(Hyper_surf_bdry(*c)),
-			  interface_number(intfc));
+			     hypersurface_boundary_number(Hyper_surf_bdry(*c))),
+			  (long long unsigned int)interface_number(intfc));
 	    (void) printf(" %6d",(*c)->num_points);
 	    
 	    if (dim==2)
@@ -120,8 +120,8 @@ LOCAL	void 	summary_of_curves(
 					   (POINTER)(*c)->start),
 			  index_of_pointer((POINTER*)intfc->nodes,
 					   (POINTER)(*c)->end),
-			  bond_number((*c)->first,intfc),
-			  bond_number((*c)->last,intfc),
+			  (long long unsigned int)bond_number((*c)->first,intfc),
+			  (long long unsigned int)bond_number((*c)->last,intfc),
 			  (dim == 2) ? "" : "pos[");
 	    if (intfc->dim == 3)
             {
@@ -160,9 +160,9 @@ LOCAL 	void 	summary_of_surfaces(
 	{
 	    num_points = points_on_surface(*s);
 	    (void) printf("%3d | %3d   %llu  %llu  %llu",i,Boundary(*s),
-			  surface_number((*s)->obj),
-			  hypersurface_number(Hyper_surf(*s)),
-			  interface_number((*s)->interface));
+			  (long long unsigned int)surface_number((*s)->obj),
+			  (long long unsigned int)hypersurface_number(Hyper_surf(*s)),
+			  (long long unsigned int)interface_number((*s)->interface));
 	    (void) printf(" %6d %6d %4d  %3d %3d pos[",num_points,(*s)->num_tri,
 			  wave_type(*s),
 			  positive_component(*s),negative_component(*s));
@@ -195,7 +195,7 @@ EXPORT  void summary_of_interface(
 	(void) printf("\n");
 	(void) printf("INTERFACE %llu; %3lu nod; %3lu cur; %3lu sur; n-p = %d; "
 		      "dim = %d  rbt = ",
-		      interface_number(intfc),nnodes,ncurves,nsurfaces,
+		      (long long unsigned int)interface_number(intfc),nnodes,ncurves,nsurfaces,
 		      intfc->num_points,intfc->dim);
 	for (i = 0; i < 3; i++)
 	    for (j = 0; j < 2; j++)
@@ -224,7 +224,7 @@ EXPORT void summarize_interface(
 {
     	char gvname[256];
 	(void) printf("summarize_interface() called by %s(), %s  intfc = %p\n",
-		      function_name,msg,intfc);
+		      function_name,msg,(void*)intfc);
 	if (intfc == NULL)
 	    return;
 	summary_of_interface(intfc);
@@ -252,15 +252,15 @@ EXPORT  void detail_of_curve(
 
 	(void) printf("\n");
 	(void) printf("  start of detail_of_curve( %llu )\n",
-		      curve_number(c));
+		      (long long unsigned int)curve_number(c));
 	(void) printf("  _boundary = %d  obj = %llu  %s %llu  "
 		      "interface = %p, num_points = %d\n",
-		      Boundary(c),curve_number(c),
+		      Boundary(c),(long long unsigned int)curve_number(c),
 		      (dim==2) ? "hs = " : "hsb = ",
-		      (dim==2) ?
+		      (long long unsigned int)((dim==2) ?
 			  hypersurface_number(Hyper_surf(c)) :
-		          hypersurface_boundary_number(Hyper_surf_bdry(c)),
-		      c->interface,c->num_points);
+		          hypersurface_boundary_number(Hyper_surf_bdry(c))),
+		      (void*)c->interface,c->num_points);
 	(void) printf("  c->start = %g %g %g  "
 		      "c ->end = %g %g %g\n",
 		      Coords(c->start->posn)[0],Coords(c->start->posn)[1],
@@ -269,13 +269,13 @@ EXPORT  void detail_of_curve(
 		      Coords(c->end->posn)[2]); 
 	(void) printf("  positive surfaces: ");
 	for (s = c->pos_surfaces; s && *s; s++)
-	    (void) printf("  %p [ %d ]",*s,
+	    (void) printf("  %p [ %d ]",(void*)*s,
 			  index_of_pointer((POINTER*)(*s)->interface->surfaces,
 					   (POINTER)*s));
 	(void) printf("\n");
 	(void) printf("  negative surfaces: ");
 	for (s = c->neg_surfaces; s && *s; s++)
-	    (void) printf("  %p [ %d ]",*s,
+	    (void) printf("  %p [ %d ]",(void*)*s,
 			  index_of_pointer((POINTER*)(*s)->interface->surfaces,
 					   (POINTER)*s));
 	(void) printf("\n");
@@ -295,13 +295,13 @@ EXPORT  void detail_of_curve(
 	    }
 
 	    (void) printf("%4d %llu %llu %llu |",b_cnt,
-			  bond_number(b,intfc),
-			  bond_number(b->prev,intfc),
-			  bond_number(b->next,intfc));
+			  (long long unsigned int)bond_number(b,intfc),
+			  (long long unsigned int)bond_number(b->prev,intfc),
+			  (long long unsigned int)bond_number(b->next,intfc));
 
 	    for (btris = Btris(b); btris && *btris; btris++)
 	    {
-		(void) printf(" %llu [ %d ]",bond_tri_number(*btris,intfc),
+		(void) printf(" %llu [ %d ]",(long long unsigned int)bond_tri_number(*btris,intfc),
 			     index_of_pointer((POINTER*)intfc->surfaces,
 		             (POINTER)Surface_of_tri((*btris)->tri)));
 	    }
@@ -332,9 +332,9 @@ EXPORT  void detail_of_curve(
 
 	    (void) printf("%4d %llu %llu %llu | %g %g %g "
 			  "| %g %g %g | %g\n",b_cnt,
-			  bond_number(b,intfc),
-			  bond_number(b->prev,intfc),
-			  bond_number(b->next,intfc),
+			  (long long unsigned int)bond_number(b,intfc),
+			  (long long unsigned int)bond_number(b->prev,intfc),
+			  (long long unsigned int)bond_number(b->next,intfc),
 			  Coords(b->start)[0],Coords(b->start)[1],
 			  Coords(b->start)[2],
 			  Coords(b->end)[0],Coords(b->end)[1],

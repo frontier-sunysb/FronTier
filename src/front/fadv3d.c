@@ -1010,10 +1010,10 @@ LOCAL	void unfold_interface_section(
 	    if (debugging("unfold"))
 	    {
 	      (void) printf("deleting tri_tmp(%llu) side %d\n",
-			    tri_number(tri_tmp,intfc_tmp),imin);
+			    (long long unsigned int)tri_number(tri_tmp,intfc_tmp),imin);
 	      print_tri(tri_tmp,intfc_tmp);
 	      (void) printf("deleting tri_new(%llu) side %d\n",
-			    tri_number(tri_new,intfc_new),imin);
+			    (long long unsigned int)tri_number(tri_new,intfc_new),imin);
 	      print_tri(tri_new,intfc_new);
 	    }
 	    if (!delete_side_of_tri(tris_new[imin],s_new,imin) ||
@@ -1040,9 +1040,11 @@ LOCAL	void unfold_interface_section(
 	    if (debugging("unfold"))
 	    {
 		(void) printf("deleting vertex tmpp(%llu) of tri_tmp(%llu)\n",
-			      point_number(tmpp),tri_number(tri_tmp,intfc_tmp));
+			      (long long unsigned int)point_number(tmpp),
+			      (long long unsigned int)tri_number(tri_tmp,intfc_tmp));
 		(void) printf("deleting vertex newp(%llu) of tri_new(%llu)\n",
-			      point_number(newp),tri_number(tri_new,intfc_tmp));
+			      (long long unsigned int)point_number(newp),
+			      (long long unsigned int)tri_number(tri_new,intfc_tmp));
 	    }
 	    if (!delete_vertex_of_tri(tmpp,tri_tmp,s_tmp) ||
 	        !delete_vertex_of_tri(newp,tri_new,s_new))
@@ -1202,18 +1204,18 @@ LOCAL	void detach_and_propagate_curves(
 	{
 	    printf("#old curves\n");
 	    for(c = front->interf->curves; c && *c; c++)
-	        printf("#%p  %d\n", *c, curve_type(*c));
+	        printf("#%p  %d\n", (void*)*c, curve_type(*c));
 	
 	    printf("#new curves\n");
 	    for(c = newfront->interf->curves; c && *c; c++)
-	        printf("#%p  %d\n", *c, curve_type(*c));
+	        printf("#%p  %d\n", (void*)*c, curve_type(*c));
 
 	    printf("#prop curves\n");
 	    for(i=0, c = front->interf->curves; c && *c; c++, i++)
 	    {
-	        printf("#c  %p  %3d   ", *c, curve_type(*c));
+	        printf("#c  %p  %3d   ", (void*)*c, curve_type(*c));
 	        for(cc = new_curves[i]; cc && *cc; cc++)
-		    printf("|cc %p %3d  ", *cc, curve_type(*cc));
+		    printf("|cc %p %3d  ", (void*)*cc, curve_type(*cc));
 		printf("|\n");
 	    }
 	}

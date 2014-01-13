@@ -297,7 +297,7 @@ LOCAL void show_Comp_list(
 	int		ix;
 
 	(void) printf("\n\n\tHere is the component list of interface %llu:\n\n",
-		      interface_number(intfc));
+		      (long long unsigned int)interface_number(intfc));
 	for (ix = 0; ix < xmax; ++ix)
 	    (void) printf("Comp[%d] = %d\n",ix,intfc->table->compon1d[ix]);
 }		/*end show_Comp_list*/
@@ -310,7 +310,7 @@ LOCAL void show_point_list(
 	int		ix,i;
 
 	(void) printf("\n\n\tHere is the point list of interface %llu\n\n",
-		      interface_number(intfc));
+		      (long long unsigned int)interface_number(intfc));
 	for (ix = 0; ix < xmax; ++ix)
 	{
 		if (T->num_of_points[ix] == 0) 
@@ -324,7 +324,8 @@ LOCAL void show_point_list(
 				  T->num_of_points[ix]);
 		    for(i = 0; i < T->num_of_points[ix]; ++i)
 			    (void) printf("  %llu",
-					  point_number(T->pts_in_zone[ix][i]));
+				(long long unsigned int)point_number(
+				T->pts_in_zone[ix][i]));
 		    (void) printf("\n");
 		}
 	}
@@ -373,7 +374,7 @@ LIB_LOCAL boolean nearest_interface_point1d(
 	        (void) printf("WARNING in nearest_interface_point1d(), "
 	                      "make_point_comp_lists() failed\n"
 	                      "coords = (%g), comp = %d, bdry = %d, hs = %p\n",
-			      coords[0],comp,bdry,hs);
+			      coords[0],comp,bdry,(void*)hs);
 	        (void) printf("Topological grid of interface\n");
 	        print_rectangular_grid(&topological_grid(intfc));
 	        if (first == YES)
@@ -531,7 +532,7 @@ LIB_LOCAL boolean long_nearest_interface_point1d(
 		(void) printf("WARNING in long_nearest_interface_point1d(), "
 		              "p_closest == NULL\n"
 		              "coords = (%g), comp = %d, bdry = %d, "
-		              "hs = %p\n",coords[0],comp,bdry,hs);
+		              "hs = %p\n",coords[0],comp,bdry,(void*)hs);
 		(void) printf("Topological grid of interface\n");
 		print_rectangular_grid(&topological_grid(intfc));
 		if (first == YES)
@@ -561,7 +562,7 @@ LIB_LOCAL void show_COMP_1d(
 
 	ixmax = topological_grid(intfc).gmax[0];
 	(void) fprintf(file,"\n\nCOMPONENTS by Grid Block for INTERFACE %llu:\n",
-		       interface_number(intfc));
+		       (long long unsigned int)interface_number(intfc));
 	for (ix = 0; ix < ixmax; ++ix)
 	{
 	    if (intfc->table->compon1d[ix] == ONFRONT)

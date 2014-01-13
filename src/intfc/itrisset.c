@@ -2252,7 +2252,7 @@ EXPORT	int	linking_tris_with_pairs_fix(
 		{
 		    tris[j] = tri;
 
-		    printf("tri found %d i=%d j=%d\n", tri, i, j);
+		    printf("tri found %p i=%d j=%d\n", (void*)tri, i, j);
 
 		    for(k=0; k<3; k++)
 			if(Tri_on_side(tri,k) == NULL)

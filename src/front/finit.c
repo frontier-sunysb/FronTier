@@ -1503,7 +1503,7 @@ LOCAL void init_2d_front_states(
 	{
 	    if (debugging("init"))
 	    	(void) printf("Initializing states on curve %llu\n",
-	   	              curve_number(c));
+	   	              (long long unsigned int)curve_number(c));
 
 	    (*front_initializer)(c->first->start,
 	   	                 Hyper_surf_element(c->first),Hyper_surf(c),

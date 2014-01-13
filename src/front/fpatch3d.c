@@ -823,7 +823,7 @@ void	bucket_init(
 	        continue;
 	      printf("%3d %3d %3d  %3d  | ", i, j, k, bpts->np[i][j][k]);
 	      for(n=0; n<bpts->np[i][j][k]; n++)
-	        printf("%d  ", bpts->pt[i][j][k][n]);
+	        printf("%p  ", (void*)bpts->pt[i][j][k][n]);
 	      printf("\n");
 	    }
 	}
@@ -895,7 +895,7 @@ boolean	bucket_match_pts(
 	{
 	  if(the_point(p))
 	  {
-	    printf("#pt fd %d %d\n", p, p1);
+	    printf("#pt fd %p %p\n", (void*)p, (void*)p1);
 	    print_general_vector("p=", Coords(p), 3, "\n");
 	    print_general_vector("p1=", Coords(p1), 3, "\n");
 	  }
@@ -1085,13 +1085,13 @@ void	merge_surface_points(
 	    p = pts[i];
 	    if(Coords(p)[0] > 2.45 && p != Cor_point(p))
 	    {
-	      printf("%d  %d  %2d   % 15.8e, % 15.8e, % 15.8e\n", 
-	           p, Cor_point(p), p->indx,
+	      printf("%p  %p  %2d   % 15.8e, % 15.8e, % 15.8e\n", 
+	           (void*)p, (void*)Cor_point(p), p->indx,
 	           Coords(p)[0], Coords(p)[1], Coords(p)[2]);
 	      
 	      p = (POINT*)Cor_point(p);
-	      printf("%d  %d  %2d   % 15.8e, % 15.8e, % 15.8e\n", 
-	           p, Cor_point(p), p->indx,
+	      printf("%p  %p  %2d   % 15.8e, % 15.8e, % 15.8e\n", 
+	           (void*)p, (void*)Cor_point(p), p->indx,
 	           Coords(p)[0], Coords(p)[1], Coords(p)[2]);
 	    }
 	  }
@@ -1167,8 +1167,8 @@ void	merge_surface_points_prev(
 	  for(i=0;i<num;i++)
 	  {
 	    p = pts[i];
-	    printf("%d  %d  %2d   % 15.8e, % 15.8e, % 15.8e\n", 
-	           p, Cor_point(p), p->indx,
+	    printf("%p  %p  %2d   % 15.8e, % 15.8e, % 15.8e\n", 
+	           (void*)p, (void*)Cor_point(p), p->indx,
 	           Coords(p)[0], Coords(p)[1], Coords(p)[2]);
 	  }
 	}
@@ -1502,8 +1502,8 @@ void	merge_null_edges(
 	      print_tri(tri, intfc);
 	    }
 	    
-	    printf("%d %2d  %d(%6d) %d(%6d)\n", tri, j, 
-	        p1, Index_of_point(p1), p2, Index_of_point(p2));
+	    printf("%p %2d  %p(%6d) %p(%6d)\n", (void*)tri, j, 
+	        (void*)p1, Index_of_point(p1), (void*)p2, Index_of_point(p2));
 	  }
 	}
 
@@ -2224,7 +2224,7 @@ boolean	rbox_communication_interface(
 
 	DEBUG_ENTER(rbox_communication_interface)
 
-	printf("\n#rbox comm intfc nbox = %d rbox=%d\n", nbox, rbox);
+	printf("\n#rbox comm intfc nbox = %d rbox=%p\n", nbox, (void*)rbox);
 	tol = 1.0e-4;
 
 	gr = fr->rect_grid;

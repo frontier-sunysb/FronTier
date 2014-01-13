@@ -3542,7 +3542,8 @@ EXPORT  void print_blk_crx(
 		      {
 		          (void) printf("blk_crx->crx[%d][%d][%d]->p ",k,i,j);
 			  (void) printf("on the surface[%llu]\n",
-				surface_number(blk_crx->crx[k][i][j]->s));  
+				(long long unsigned int)surface_number(
+					blk_crx->crx[k][i][j]->s));  
 		          print_general_vector("p",
 			  	Coords(blk_crx->crx[k][i][j]->p),3,"\n");	  
 		      }
@@ -3557,7 +3558,8 @@ EXPORT  void print_blk_crx(
 		     (void) printf("blk_crx->curve_crx[%d][%d]->p ",
 		     		i,j);
 		     (void) printf("on the curve[%llu]\n",
-			   	curve_number(blk_crx->curve_crx[i][j]->c));
+			   	(long long unsigned int)curve_number(
+					blk_crx->curve_crx[i][j]->c));
 		     print_general_vector("p",
 		     		Coords(blk_crx->curve_crx[i][j]->p),3,"\n");
 		 }

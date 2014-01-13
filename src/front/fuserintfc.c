@@ -1652,7 +1652,7 @@ LOCAL void slsr3d_error_info(
 {
 int i;
 
-        (void) printf("p(%llu) = ",point_number(p));
+        (void) printf("p(%llu) = ",(long long unsigned int)point_number(p));
         print_general_vector("",Coords(p),3,"\n");
         (void) printf("Boundary(p) = %d\n",Boundary(p));
         (void) printf("Boundary_point(p) = %d\n",Boundary_point(p));
@@ -1738,7 +1738,7 @@ LOCAL boolean  state_on_bdry_point(
 	    printf("ERROR in state_on_bdry_point, "
 	           "point on bond is inconsistent with point on tri.\n");
 	    print_bond(b);
-	    printf("p(%llu) = ",point_number(p));
+	    printf("p(%llu) = ",(long long unsigned int)point_number(p));
 	    print_tri(tri, hs->interface);
 	    clean_up(ERROR);
 	}

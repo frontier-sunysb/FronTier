@@ -166,14 +166,14 @@ static void CgalCircle(
 
 	CirR[1] = 0;
 	CursorAfterStringOpt(infile,"Enter yes to attach gores to canopy:");
-        fscanf(infile,"%s",&gore_bool);
+        fscanf(infile,"%s",gore_bool);
         (void) printf("%s\n",gore_bool);
         if (gore_bool[0]=='y'|| gore_bool[0]=='Y')
         {
 	    CirR[1] = 0.1 * CirR[0];
 	}
 	CursorAfterStringOpt(infile,"Enter yes to cut a vent on canopy:");
-	fscanf(infile,"%s",&vent_bool);
+	fscanf(infile,"%s",vent_bool);
 	(void) printf("%s\n",vent_bool);
 	if (vent_bool[0]=='y'|| vent_bool[0]=='Y')
         {
@@ -626,7 +626,7 @@ static void CgalEllipse(
         fscanf(infile,"%lf %lf",&xrange[0],&xrange[1]);
         (void) printf("%f %f\n",xrange[0],xrange[1]);
 	CursorAfterStringOpt(infile,"Enter yes to attach gores to canopy:");
-	fscanf(infile,"%s",&gore_bool);
+	fscanf(infile,"%s",gore_bool);
         (void) printf("%s\n",gore_bool);		
 	CursorAfterStringOpt(infile,"Enter number of vertical gores:");
 	fscanf(infile,"%d",&num_gore_oneside);
@@ -784,7 +784,7 @@ static void CgalCross(
         fscanf(infile,"%lf %lf",&U[1][0],&U[1][1]);
         (void) printf("%f %f\n",U[1][0],U[1][1]);
 	CursorAfterStringOpt(infile,"Enter yes to attach gores to canopy:");
-	fscanf(infile,"%s",&gore_bool);
+	fscanf(infile,"%s",gore_bool);
         (void) printf("%s\n",gore_bool);		
 	CursorAfterStringOpt(infile,"Enter number of chords on one side:");
         fscanf(infile,"%d",&num_gore_oneside);

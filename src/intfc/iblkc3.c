@@ -229,7 +229,8 @@ EXPORT	int construct_comp3_blk(
 			printf("0 case=%d, num_surfaces=%d, num_curves=%d\n", 
 			      i+1, blk_mem->num_surfaces, blk_mem->num_curves);
 			printf("ic=%d, curve=%p, bond=%p\n", 
-			      ic, blk_mem->curves[ic], blk_mem->bonds[ic]);
+			      ic, (void*)blk_mem->curves[ic], 
+			          (void*)blk_mem->bonds[ic]);
 			
 			if ((blk_mem->bonds[0] != NULL) && (i==30))
 		        {
@@ -284,12 +285,14 @@ EXPORT	int construct_comp3_blk(
 			    static int ib, ic;
 		            
 			    ic = blk_mem->ic[0];
-			    printf("1 case=%d, num_surfaces=%d, num_curves=%d\n", 
-			          i+1, blk_mem->num_surfaces, blk_mem->num_curves);
+			    printf("1 case=%d, num_surfaces=%d, num_curves=%d\n", i+1, 
+				  blk_mem->num_surfaces, 
+				  blk_mem->num_curves);
 			    printf("ic=%d, curve=%p, bond=%p\n", 
-			          ic, blk_mem->curves[ic], blk_mem->bonds[ic]);
+			          ic, (void*)blk_mem->curves[ic], 
+				      (void*)blk_mem->bonds[ic]);
 
-			    printf("case=%d, bond=%p \n", i+1, blk_mem->bonds[0]);
+			    printf("case=%d, bond=%p \n", i+1, (void*)blk_mem->bonds[0]);
 			    if ((blk_mem->bonds[0] != NULL) && (i == 30))
 		            {
 		                ib++;
@@ -411,7 +414,7 @@ LOCAL	BBI_POINT *crxing_in_between(
 	    {
 		printf("ip[1] = %d  ip[2] = %d\n",ip[1],ip[2]);
 		printf("blk_crx->crx[0][ip[1]][ip[2]] = %p\n",
-				blk_crx->crx[0][ip[1]][ip[2]]);
+				(void*)blk_crx->crx[0][ip[1]][ip[2]]);
 	    }
 	    if (blk_crx->crx[0][ip[1]][ip[2]]->p == NULL)
 	    {
@@ -1428,7 +1431,7 @@ LOCAL	int is_curve(
 	    return i;
 	}
 	screen("ERROR in is_curve, No curve matched\n");
-	printf("#c  = %p\n", c);
+	printf("#c  = %p\n", (void*)c);
 	clean_up(ERROR);
 }
 
@@ -3157,9 +3160,10 @@ LOCAL	void blk_case24_comp3(
         if(debugging("print_blk"))
         {
             int i;
-            printf("blk_case24_comp3, found curve %p\n", c);
+            printf("blk_case24_comp3, found curve %p\n", (void*)c);
             for (i = 0; i < blk_crx->blk_info->num_curves; ++i)
-                printf("blk_crx curve[%d] = %p\n", i, blk_crx->blk_info->curves[i]);
+                printf("blk_crx curve[%d] = %p\n", i, 
+			(void*)blk_crx->blk_info->curves[i]);
         }
 
 	ic = blk_mem->ic[0] = is_curve(blk_crx,c);

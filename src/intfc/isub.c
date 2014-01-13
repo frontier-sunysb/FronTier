@@ -636,7 +636,7 @@ LOCAL	void	debug_print_tri_list_around_point(
 				 0.1,0.0,0.0,0.9,0.0,0.0,0.5,BBL,BBU);
 	(void) sprintf(s,"%s-p",func);
 	gview_plot_vertices("",s,&p,1,BBL,BBU);
-	(void) printf("point %llu\n",point_number(p));
+	(void) printf("point %llu\n",(long long unsigned int)point_number(p));
 	print_general_vector("Coords(p) = ",Coords(p),3,"\n");
 	(void) printf("tri\n");
 	print_tri(tri,intfc);
@@ -3083,8 +3083,8 @@ EXPORT	void print_crxings(
 	    return;
 	}
 	(void) printf("\tCRXING %p crx_num %d ",(POINTER)cr,cr->crx_num);
-	(void) printf("hyper surface %llu\n",hypersurface_number(cr->hs));
-	(void) printf("\t\tpt %llu ",point_number(cr->pt));
+	(void) printf("hyper surface %llu\n",(long long unsigned int)hypersurface_number(cr->hs));
+	(void) printf("\t\tpt %llu ",(long long unsigned int)point_number(cr->pt));
 	if (cr->pt == NULL)
 	{
 	    (void) printf("\n");
@@ -3116,7 +3116,7 @@ EXPORT	void print_crxings(
 	    (void) printf("ds2 = %g %g %g\n",
 			  cr->ds2[0],cr->ds2[1],cr->ds2[2]);
 	    (void) printf("index = %d\n",cr->index);
-	    (void) printf("cr->tri = %llu\n",tri_number(cr->tri,intfc));
+	    (void) printf("cr->tri = %llu\n",(long long unsigned int)tri_number(cr->tri,intfc));
 	    print_tri(cr->tri,intfc);
 	    if (!is_side01_a_bond(cr->tri))
 	    {

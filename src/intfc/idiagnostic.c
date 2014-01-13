@@ -102,7 +102,7 @@ EXPORT 	void 	points_of_interface(
 	int i = 0;
 	if (intfc->dim != 3)
 	    return;
-	(void) printf("\nBEGIN points_of_interface() intfc = %p\n",intfc);
+	(void) printf("\nBEGIN points_of_interface() intfc = %p\n",(void*)intfc);
 
 	next_point(intfc,NULL,NULL,NULL);
 	while (next_point(intfc,&p,&hse,&hs))
@@ -122,7 +122,7 @@ EXPORT 	void 	points_of_interface(
 	    }
 	    data_of_point(p,i++);
 	}
-	(void) printf("END points_of_interface() intfc = %p\n",intfc);
+	(void) printf("END points_of_interface() intfc = %p\n",(void*)intfc);
 	(void) printf("\n");
 	return;
 }		/*end points_of_interface*/
@@ -132,7 +132,7 @@ LOCAL 	void 	data_of_point(
 	int			i)
 {
 	(void) printf("%6d %llu %3d %g %g %g %5d %5s    \n",
-		      i,point_number(p),Boundary(p),
+		      i,(long long unsigned int)point_number(p),Boundary(p),
 		      Coords(p)[0],Coords(p)[1],Coords(p)[2],
 		      Boundary_point(p),
 		      y_or_n(sorted(p)));
@@ -157,13 +157,13 @@ EXPORT 	void 	find_blk_tri(
 	        if(!the_tri(tri))
 		    continue;
 	        
-		printf("\n#blk_tri surface %d  %p   %d %d\n",j, s, 
+		printf("\n#blk_tri surface %d  %p   %d %d\n",j, (void*)s, 
 	            negative_component(s), positive_component(s));
-		(void) printf("find_blk_tri  blk_tri = %p\n",blk_tri);
+		(void) printf("find_blk_tri  blk_tri = %p\n",(void*)blk_tri);
 	        (void) printf("num_surfs = %d  num_tris = %p  num_null_sides = %p  "
 		      "first = %p\n",
-		      blk_tri->blk_info->num_surfs,blk_tri->num_tris, 
-		      blk_tri->num_null_sides,blk_tri->first);
+		      blk_tri->blk_info->num_surfs,(void*)blk_tri->num_tris, 
+		      (void*)blk_tri->num_null_sides,(void*)blk_tri->first);
 	        (void) printf("\n");
 	
 	        (void) printf("i = %3d\n",i);
@@ -180,18 +180,18 @@ EXPORT 	void 	print_blk_tri(
 	TRI      *tri;
 	SURFACE  *s;
 
-  	(void) printf("print_blk_tri()  blk_tri = %p\n",blk_tri);
+  	(void) printf("print_blk_tri()  blk_tri = %p\n",(void*)blk_tri);
 	(void) printf("num_surfs = %d  num_tris = %p  num_null_sides = %p  "
 		      "first = %p\n",
-		      blk_tri->blk_info->num_surfs,blk_tri->num_tris, 
-		      blk_tri->num_null_sides,blk_tri->first);
+		      blk_tri->blk_info->num_surfs,(void*)blk_tri->num_tris, 
+		      (void*)blk_tri->num_null_sides,(void*)blk_tri->first);
 	(void) printf("\n");
 	
 	for (j = 0; j < blk_tri->num_surfaces; j++)
         {
 	    ind = blk_tri->is[j];
 	    s = blk_tri->surfs[ind];
-	    printf("\n#blk_tri surface %d  %p   %d %d\n",j, s, 
+	    printf("\n#blk_tri surface %d  %p   %d %d\n",j, (void*)s, 
 	        negative_component(s), positive_component(s));
 	    
 	    for (i = 0, tri = blk_tri->first[ind]; 
@@ -313,7 +313,7 @@ EXPORT boolean the_side(TRI  *tri)
 
 EXPORT void print_tri_global_index(TRI* tri)
 {
-	printf("Global indices of tri vertices: %d %d %d\n",
+	printf("Global indices of tri vertices: %ld %ld %ld\n",
 			Gindex(Point_of_tri(tri)[0]),
 			Gindex(Point_of_tri(tri)[1]),
 			Gindex(Point_of_tri(tri)[2]));
@@ -359,12 +359,12 @@ EXPORT	boolean check_tri_and_neighbor(TRI *tri)
 			{
 			    printf("Inconsistency on tri side %d: "
 			    	"ps = %p  pe = %p\n",i,
-				Point_of_tri(tri)[i],
-				Point_of_tri(tri)[Next_m3(i)]);
+				(void*)Point_of_tri(tri)[i],
+				(void*)Point_of_tri(tri)[Next_m3(i)]);
 			    printf("Inconsistency on nbtri side %d: "
 			    	"ps = %p  pe = %p\n",j,
-				Point_of_tri(nbtri)[Next_m3(j)],
-				Point_of_tri(nbtri)[j]);
+				(void*)Point_of_tri(nbtri)[Next_m3(j)],
+				(void*)Point_of_tri(nbtri)[j]);
 			    status = NO;
 			}
 		    }
@@ -480,7 +480,7 @@ EXPORT boolean search_the_tri_in_intfc(INTERFACE *intfc)
         }
 	if (the_tri_found)
 	{
-	    (void) printf("The tri is in the interface %d\n",intfc);
+	    (void) printf("The tri is in the interface %p\n",(void*)intfc);
 	    return YES;
 	}
 	return NO;
@@ -495,7 +495,7 @@ EXPORT boolean search_the_tri_in_surf(SURFACE *s)
         {
             if (the_tri(tri))
             {
-                (void) printf("The tri found on surface %d\n",s);
+                (void) printf("The tri found on surface %p\n",(void*)s);
 		the_tri_found = YES;
             }
         }

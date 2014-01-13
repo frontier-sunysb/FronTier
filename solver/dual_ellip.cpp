@@ -300,8 +300,7 @@ void DUAL_ELLIPTIC_SOLVER::solve2d(double *soln)
 	    }
 	    (void) printf("In dual elliptic solver:\n");
 	    (void) printf("Max relative elliptic error: %20.14f\n",max_error);
-	    (void) printf("Occuring at %d %d: %20.14f\n",icrds_max[0],
-				icrds_max[1]);
+	    (void) printf("Occuring at (%d %d)\n",icrds_max[0],icrds_max[1]);
 	    error = checkSolver(icrds_max,YES);
 	}
 

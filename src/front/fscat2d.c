@@ -1409,7 +1409,7 @@ LOCAL	void	delete_curves_outside_of_cut_line(
 	    	if (DEBUG)
 	    	{
 	    	    (void) printf("adding curve %llu to delete list\n",
-	    			  curve_number(*cc));
+	    			  (long long unsigned int)curve_number(*cc));
 	    	    print_curve(*cc);
 	    	}
 	    }
@@ -2088,8 +2088,8 @@ LOCAL	boolean match_overlaps(
 		if (DEBUG)
 		{
 		    (void) printf("node %llu and node %llu, dist = %g\n",
-				  node_number(ol1->n1),
-				  node_number(ol2->n1),dist);
+				  (long long unsigned int)node_number(ol1->n1),
+				  (long long unsigned int)node_number(ol2->n1),dist);
 	        }
 		if (dist < ol1->dist)
 		{
@@ -2184,7 +2184,7 @@ LOCAL	boolean match_overlaps(
 		{
 	    	    printf("match_overlap step 11 num_points = %d\n",
 	    	    NumOfInteriorPoints(fr->interf));
-		    printf("ol1->c1 = %p\n",ol1->c1);
+		    printf("ol1->c1 = %p\n",(void*)ol1->c1);
 		    print_curve(ol1->c1);
 		}
 	        if (DEBUG)
@@ -3295,9 +3295,9 @@ LOCAL	boolean	merge_overlapping_bonds(
 	{
 	    screen("ERROR in merge_overlapping_bonds(), "
 	           "unrecognized configuration.\n");
-	    (void) printf("Node %llu boundary %d\n",node_number(ol->n1),
+	    (void) printf("Node %llu boundary %d\n",(long long unsigned int)node_number(ol->n1),
 	                  Boundary(ol->n1));
-	    (void) printf("Node %llu boundary %d\n",node_number(ol->n2),
+	    (void) printf("Node %llu boundary %d\n",(long long unsigned int)node_number(ol->n2),
 	                  Boundary(ol->n2));
 	    print_node(ol->n1);
 	    print_node(ol->n2);
@@ -3646,22 +3646,24 @@ LOCAL	void print_overlap(
 	(void) printf("OVERLAP %d, prev %p, next %p, match %d\n",
 		      ol->index,(POINTER)ol->prev,(POINTER)ol->next,
 		      (ol->match == NULL) ? -1 : ol->match->index);
-	(void) printf("\tBonds b1 %llu",bond_number(ol->b1,current_interface()));
+	(void) printf("\tBonds b1 %llu",(long long unsigned int)bond_number(ol->b1,current_interface()));
 	if (ol->b1 != NULL)
 	    (void) printf(" (%g %g) -> (%g %g)",
 	    	          Coords(ol->b1->start)[0],Coords(ol->b1->start)[1],
 			  Coords(ol->b1->end)[0],Coords(ol->b1->end)[1]);
 	(void) printf("\n");
-	(void) printf("\t      b2 %llu",bond_number(ol->b2,current_interface()));
+	(void) printf("\t      b2 %llu",(long long unsigned int)bond_number(ol->b2,current_interface()));
 	if (ol->b2 != NULL)
 	    (void) printf(" (%g %g) -> (%g %g)",
 			  Coords(ol->b2->start)[0],Coords(ol->b2->start)[1],
 			  Coords(ol->b2->end)[0],Coords(ol->b2->end)[1]);
 	(void) printf("\n");
 	(void) printf("\tCurves c1 %llu c2 %llu\n",
-		      curve_number(ol->c1),curve_number(ol->c2));
+		      (long long unsigned int)curve_number(ol->c1),
+		      (long long unsigned int)curve_number(ol->c2));
 	(void) printf("\tNodes  n1 %llu n2 %llu\n",
-		      node_number(ol->n1),node_number(ol->n2));
+		      (long long unsigned int)node_number(ol->n1),
+		      (long long unsigned int)node_number(ol->n2));
 	print_general_vector("\tcr1   ",Coords(ol->cr1),2,"\n");
 	if (ol->cr2 != NULL)
 	    print_general_vector("\tcr2   ",Coords(ol->cr2),2,"\n");
@@ -3678,7 +3680,7 @@ LOCAL	void print_overlap(
 LOCAL void print_node_flags(
 	NODE		*n)
 {
-	(void) printf("Node %3llu boundary %5d  ",node_number(n),Boundary(n));
+	(void) printf("Node %3llu boundary %5d  ",(long long unsigned int)node_number(n),Boundary(n));
 	if (is_bdry(n))
 	    (void) printf("BDRY ");
 	else
@@ -3792,7 +3794,7 @@ LOCAL   void    delete_curves_inside_rect(
                     printf("Inside rect L[%g,%g], U[%g,%g]\n",
                            L[0], L[1], U[0], U[1]);
                     (void) printf("adding curve %llu to delete list\n",
-                                  curve_number(*cc));
+                                  (long long unsigned int)curve_number(*cc));
                     print_curve(*cc);
                 }
             }

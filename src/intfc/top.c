@@ -185,11 +185,11 @@ LIB_LOCAL void fprint_bond(
 
 	intfc = current_interface();
 	dim = intfc->dim;
-	(void) fprintf(file,"bond %llu\n",bond_number(b,intfc));
+	(void) fprintf(file,"bond %llu\n",(long long unsigned int)bond_number(b,intfc));
 	fprint_general_vector(file,"start ",Coords(b->start),dim," ");
-	(void) fprintf(file,"%llu\n",point_number(b->start));
+	(void) fprintf(file,"%llu\n",(long long unsigned int)point_number(b->start));
 	fprint_general_vector(file,"end   ",Coords(b->end),dim," ");
-	(void) fprintf(file,"%llu\n",point_number(b->end));
+	(void) fprintf(file,"%llu\n",(long long unsigned int)point_number(b->end));
 	if (dim == 3)
 	{
 	    BOND_TRI **btris;
@@ -200,8 +200,8 @@ LIB_LOCAL void fprint_bond(
 	    (void) fprintf(file,"\n");
 	}
 	(void) fprintf(file,"len %g  prev %llu  next %llu\n",
-		            b->length,bond_number(b->prev,intfc),
-		            bond_number(b->next,intfc));
+		            b->length,(long long unsigned int)bond_number(b->prev,intfc),
+		            (long long unsigned int)bond_number(b->next,intfc));
 }		/*end fprint_bond*/
 
 /*
@@ -222,17 +222,17 @@ EXPORT	void print_bond_list(
 
 		/* output bond list */
 
-	(void) printf("\nBond list for curve %llu:\n",curve_number(c));
+	(void) printf("\nBond list for curve %llu:\n",(long long unsigned int)curve_number(c));
 
 	dim = c->interface->dim;
-	(void) printf(" %llu | ",bond_number(c->first->prev,c->interface));
+	(void) printf(" %llu | ",(long long unsigned int)bond_number(c->first->prev,c->interface));
 	for (i = 1,b = c->first; b != c->last; b = b->next,++i)
 	{
 		endchar = i%4 ? ' ' : '\n';
-		(void) printf(" -> %llu%c",bond_number(b,c->interface),endchar);
+		(void) printf(" -> %llu%c",(long long unsigned int)bond_number(b,c->interface),endchar);
 	}
-	(void) printf(" -> %llu ",bond_number(c->last,c->interface));
-	(void) printf(" -> | %llu ",bond_number(c->last->next,c->interface));
+	(void) printf(" -> %llu ",(long long unsigned int)bond_number(c->last,c->interface));
+	(void) printf(" -> | %llu ",(long long unsigned int)bond_number(c->last->next,c->interface));
 	(void) printf("\n\n");
 
 	print_general_vector(" ",Coords(c->first->start),dim,"");
@@ -944,9 +944,10 @@ EXPORT	CURVE *i_attach_curve_to_node(
 	if (debugging("top_unravel"))
 	{
 	    (void) printf("Attaching c %llu to n %llu at p (%g %g) of b %llu\n",
-			  curve_number(c1),node_number(n),
+			  (long long unsigned int)curve_number(c1),
+			  (long long unsigned int)node_number(n),
 			  Coords(p)[0],Coords(p)[1],
-			  bond_number(b,c1->interface));
+			  (long long unsigned int)bond_number(b,c1->interface));
 	    (void) printf("node -\n");	print_node(n);
 	    (void) printf("bond -\n");	print_bond(b);
 	    (void) printf("c1 -\n");	print_curve(c1);
@@ -1298,11 +1299,11 @@ EXPORT	void print_onode(
 	dim = on->node->interface->dim;
 	for (i = 0;  i < on->num_c;  ++i)
 	{
-	    (void) printf("curve on->nc[%d] %llu ",i,curve_number(on->nc[i]));
+	    (void) printf("curve on->nc[%d] %llu ",i,(long long unsigned int)curve_number(on->nc[i]));
 	    print_orientation("orient",on->orient[i],"\n");
 	    if (on->ang != NULL) print_angle("\tang",on->ang[i],"\n");
 	    p = (on->nopp[i])->posn;
-	    (void) printf("\topp_node %llu ",node_number(on->nopp[i]));
+	    (void) printf("\topp_node %llu ",(long long unsigned int)node_number(on->nopp[i]));
 	    print_general_vector("posn ",Coords(p),dim,"\n");
 	    p = on->pt[i];
 	    print_general_vector("\tpt ",Coords(p),dim,"\n");

@@ -601,8 +601,8 @@ double PARABOLIC_SOLVER::checkSolver(
 	    for (i = 0; i < dim; ++i)
 	    	(void) printf("%d ",icoords[i]);
 	    (void) printf("\n");
+	    (void) printf("nu = %p  D = %20.14f\n",(void*)nu,D);
 	}
-	printf("nu = %d  D = %20.14f\n",nu,D);
 
 	id0 = d_index(icoords,top_gmax,dim);
 	comp = top_comp[id0];

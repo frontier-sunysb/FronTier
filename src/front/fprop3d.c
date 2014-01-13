@@ -161,7 +161,7 @@ EXPORT	boolean set_up_tangent_params(
 	    {
 	    	(void) printf("WARNING in set_up_tangent_params(), "
 			  "didn't set tris, nt = %d\n",nt);
-	    	(void) printf("p = %llu\n",point_number(p));
+	    	(void) printf("p = %llu\n",(long long unsigned int)point_number(p));
 	    	(void) printf("Tri_of_hse(hse)\n");
 	    	print_tri(Tri_of_hse(hse),intfc);
 		clean_up(ERROR);
@@ -1182,7 +1182,7 @@ int	i;
 	}
 	print_tri_coords(tn->tri);
 	for(i=0; i<3; i++)
-	    printf(" %p  ", Point_of_tri(tn->tri)[i]);
+	    printf(" %p  ", (void*)Point_of_tri(tn->tri)[i]);
 	printf("\n");
 	print_general_vector("pc=", tn->pc, 3, "\n");
 	printf("#v  %d  %d  #side %d\n", tn->is_vertex, tn->iv, tn->side);
@@ -1195,9 +1195,9 @@ EXPORT  void   print_Tparams(
 	double	v[3];
 
 	printf("%s\n", msg);
-	printf("#hs %p (%d  %d) p %p  ds=%15.8e\n", tp->hs, 
+	printf("#hs %p (%d  %d) p %p  ds=%15.8e\n", (void*)tp->hs, 
 	    negative_component(tp->hs), positive_component(tp->hs),
-	    tp->p, tp->ds);
+	    (void*)tp->p, tp->ds);
 
 	printf("#tnl\n");
 	print_TN(&tp->tnl);
@@ -1328,7 +1328,7 @@ EXPORT	boolean set_up_wall_tangent_params(
 	if(p != b->start && p != b->end)
 	{
 	    printf("ERROR set_up_wall_tangent_params, the point is not on the bond\n");
-	    printf("%p  %p  %p\n", p, b->start, b->end);
+	    printf("%p  %p  %p\n", (void*)p, (void*)b->start, (void*)b->end);
 	    clean_up(ERROR);
 	}
 
@@ -1401,8 +1401,8 @@ EXPORT	boolean set_up_wall_tangent_params(
 	    
 	    print_general_vector("p=", Coords(p), 3, "\n");
 	    printf(" %p  %p  %p  %p\n", 
-	        tp[0].tnl.tri, tp[1].tnl.tri, 
-	        tp[0].tnr.tri, tp[1].tnr.tri);
+	        (void*)tp[0].tnl.tri, (void*)tp[1].tnl.tri, 
+	        (void*)tp[0].tnr.tri, (void*)tp[1].tnr.tri);
 	    
 	    /*tecplot_triad("triad", Coords(p), nor, t1, t2, tp[0].ds); */
 	    /*tecplot_tris("tris1", tris1, nt1); */
@@ -1419,8 +1419,8 @@ EXPORT	boolean set_up_wall_tangent_params(
 	    folded = set_wall_tangent_space(fr,&tp[1],t1,tris2,nt2);
 	    
 	    printf("plane_fit  %p  %p  %p  %p\n", 
-	        tp[0].tnl.tri, tp[1].tnl.tri, 
-	        tp[0].tnr.tri, tp[1].tnr.tri);
+	        (void*)tp[0].tnl.tri, (void*)tp[1].tnl.tri, 
+	        (void*)tp[0].tnr.tri, (void*)tp[1].tnr.tri);
 	}
 
 	return YES;
@@ -1545,9 +1545,9 @@ EXPORT	void find_position_along_wall(
 	    {
 	        print_general_vector("#pn", pn, 3, "\n");
 	        printf("#v  %d  %d  #side %d   %p  ", 
-		    tn->is_vertex, tn->iv, tn->side, tn->tri);
+		    tn->is_vertex, tn->iv, tn->side, (void*)tn->tri);
 	        if(!tn->is_vertex)
-		    printf("neighbor %p\n", Tri_on_side(tn->tri, tn->side));
+		    printf("neighbor %p\n", (void*)Tri_on_side(tn->tri, tn->side));
 	    }
 
 	    /*0. point in tri found */

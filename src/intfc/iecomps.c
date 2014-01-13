@@ -426,7 +426,7 @@ EXPORT void fprint_comp_equiv_lists(
 
 	(void) foutput(file);
 	(void) fprintf(file,"Equivalent Component list for interface %llu\n",
-		       interface_number(intfc));
+		       (long long unsigned int)interface_number(intfc));
 	for (n=0, e_comps=E_comps(intfc); e_comps != NULL;
  	     e_comps=e_comps->next, ++n);
 	(void) fprintf(file,"%d Equivalence classes\n",n);
@@ -444,5 +444,5 @@ EXPORT void fprint_comp_equiv_lists(
 	        (void) fprintf(file,"    0 equivalent components\n");
 	}
 	(void) fprintf(file,"End Equivalent Component list for interface %llu\n",
-		       interface_number(intfc));
+		       (long long unsigned int)interface_number(intfc));
 }		/*end print_comp_equiv_list*/

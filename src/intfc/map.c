@@ -112,9 +112,9 @@ LIB_LOCAL boolean is_interior_vertex(
 	    {
 	       (void) printf("ERROR in is_interior_vertex(), ");
 	       (void) printf("point (%llu) = (%g %g %g) is not on tri (%llu)\n",
-	    	             point_number(p),
+	    	             (long long unsigned int)point_number(p),
 	    	             Coords(p)[0], Coords(p)[1], Coords(p)[2],
-	    	             tri_number(tri,current_interface()));
+	    	             (long long unsigned int)tri_number(tri,current_interface()));
 	       print_tri(tri,intfc);
 	       clean_up(ERROR);
 	       return NO;
@@ -122,7 +122,7 @@ LIB_LOCAL boolean is_interior_vertex(
 	}
 	(void) printf("ERROR in is_interior_vertex()\n"
 	              "Probably infinite loop at vertex point ");
-	(void) printf("(%llu) = (%g %g %g)\n", point_number(p),
+	(void) printf("(%llu) = (%g %g %g)\n", (long long unsigned int)point_number(p),
 	       Coords(p)[0], Coords(p)[1], Coords(p)[2]);
 	clean_up(ERROR);
 	return NO;

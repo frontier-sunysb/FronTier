@@ -119,9 +119,9 @@ EXPORT	int fixed_node_propagate(
 	    	lst =  Left_state_at_node(oldc,oc_or);
 	    	rst = Right_state_at_node(oldc,oc_or);
 	    	if (wave_type(oldc) >= FIRST_PHYSICS_WAVE_TYPE)
-	    	    (void) printf("oldc %llu physical\n",curve_number(oldc));
+	    	    (void) printf("oldc %llu physical\n",(long long unsigned int)curve_number(oldc));
 	    	else
-	    	    (void) printf("oldc %llu\n",curve_number(oldc));
+	    	    (void) printf("oldc %llu\n",(long long unsigned int)curve_number(oldc));
 	    	(void) printf("\t left - ");	(*fr->print_state)(lst);
 	    	(void) printf("\tright - ");	(*fr->print_state)(rst);
 	    }
@@ -141,9 +141,9 @@ EXPORT	int fixed_node_propagate(
 	    if (debugging("fixed_node"))
 	    {
 	    	if (wave_type(newc) >= FIRST_PHYSICS_WAVE_TYPE)
-	    	    (void) printf("newc %llu physical\n",curve_number(newc));
+	    	    (void) printf("newc %llu physical\n",(long long unsigned int)curve_number(newc));
 	    	else
-	    	    (void) printf("newc %llu\n",curve_number(newc));
+	    	    (void) printf("newc %llu\n",(long long unsigned int)curve_number(newc));
 	    	(void) printf("\t left - ");	(*fr->print_state)(lst);
 	    	(void) printf("\tright - ");	(*fr->print_state)(rst);
 	    	(void) printf("\n");
@@ -988,7 +988,8 @@ EXPORT	int pp_node_propagate(
 	    	continue;
 	    if (debugging("pp_node"))
 	    	(void) printf("propagating pp_node, oldn %llu, newn %llu\n",
-			      node_number(on),node_number(nn));
+			      (long long unsigned int)node_number(on),
+			      (long long unsigned int)node_number(nn));
 	    old_on->next = make_onode(on);
 	    old_on->next->prev = old_on;
 	    old_on = old_on->next;

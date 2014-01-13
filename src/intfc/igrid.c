@@ -301,9 +301,9 @@ EXPORT	void init_topological_grid(
 	uni_array(&message,len,CHAR);
 	(void) sprintf(message,fmt1,dimname);
 	screen_print_long_string(message);
-	(void) sprintf(message,fmt2);
+	(void) sprintf(message,fmt2,dimname);
 	screen_print_long_string(message);
-	(void) sprintf(message,fmt3);
+	(void) sprintf(message,fmt3,dimname);
 	screen_print_long_string(message);
 	free(message);
 	message = NULL;

@@ -2135,8 +2135,9 @@ LIB_LOCAL	void	i_print_crossing_elements3d(
 	(void) printf("Number of points on crossing curve: %d\n",
 		      cc->num_points);
 	(void) printf("Crossing surfaces: s1 = %llu  s2 = %llu\n",
-		      surface_number(cc->s[0]),surface_number(cc->s[1]));
-	(void) printf("Crossing curve: curve = %llu\n",curve_number(cc->curve));
+		      (long long unsigned int)surface_number(cc->s[0]),
+		      (long long unsigned int)surface_number(cc->s[1]));
+	(void) printf("Crossing curve: curve = %llu\n",(long long unsigned int)curve_number(cc->curve));
 	print_curve(cc->curve);
 	for (cb = cc->first; cb != NULL; cb = cb->next)
 	{
@@ -2210,10 +2211,12 @@ LOCAL	void	show_crossing_tris(
 	}
 	if (caller != NULL)
 	    (void) sprintf(ss,"%s/isect_%llu-%llu",caller,
-			      tri_number(ct0,intfc),tri_number(ct1,intfc));
+			      (long long unsigned int)tri_number(ct0,intfc),
+			      (long long unsigned int)tri_number(ct1,intfc));
 	else
 	    (void) sprintf(ss,"isect_%llu-%llu",
-			      tri_number(ct0,intfc),tri_number(ct1,intfc));
+			      (long long unsigned int)tri_number(ct0,intfc),
+			      (long long unsigned int)tri_number(ct1,intfc));
 	if (cbond != NULL)
 	{
 	    pts[0] = Coords(cbond->start);

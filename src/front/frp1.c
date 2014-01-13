@@ -268,7 +268,7 @@ EXPORT	void find_curves_with_wave_type(
 
 	debug_print("rproblem","Entered find_curves_with_wave_type()\n");
 	if (debugging("rproblem"))
-	      (void) printf("\t\tnode %llu curve type %d\n",node_number(n),type);
+	      (void) printf("\t\tnode %llu curve type %d\n",(long long unsigned int)node_number(n),type);
 
 	for (i = 0, c_beg = n->in_curves,  c_or = NEGATIVE_ORIENTATION;
 	     i < 2;
@@ -297,12 +297,12 @@ EXPORT	void find_curves_with_wave_type(
 	{
 	    (void) printf("\t\t");
 	    if (*c1)
-	    	(void) printf("c1 %llu, ",curve_number(*c1));
+	    	(void) printf("c1 %llu, ",(long long unsigned int)curve_number(*c1));
 	    else
 	    	(void) printf("c1 NULL, ");
 
 	    if (*c2)
-	    	(void) printf("c2 %llu\n",curve_number(*c2));
+	    	(void) printf("c2 %llu\n",(long long unsigned int)curve_number(*c2));
 	    else
 	    	(void) printf("c2 NULL\n");
 	}
@@ -1508,7 +1508,7 @@ delete_in_curve:
 	    	    wave_type(*c) >= FIRST_PHYSICS_WAVE_TYPE) 
 	    	{
 	    	    if (debugging("2drp"))
-	    		(void) printf("Deleting curve %llu\n",curve_number(*c));
+	    		(void) printf("Deleting curve %llu\n",(long long unsigned int)curve_number(*c));
 	    	    (void) delete_curve(*c);
 	    	    goto delete_in_curve;
 	    	}
@@ -1520,7 +1520,7 @@ delete_out_curve:
 	    	    wave_type(*c) >= FIRST_PHYSICS_WAVE_TYPE) 
 	    	{
 	    	    if (debugging("2drp"))
-	    		(void) printf("Deleting curve %llu\n",curve_number(*c));
+	    		(void) printf("Deleting curve %llu\n",(long long unsigned int)curve_number(*c));
 	    	    (void) delete_curve(*c);
 	    	    goto delete_out_curve;
 	    	}
@@ -1606,7 +1606,7 @@ EXPORT void find_corr_cur_in_rp(
 	if (debugging("rp_correspond"))
 	{
 	    (void) printf("Looking for curve corresponding to curve %llu\n",
-		          curve_number(c->curve));
+		          (long long unsigned int)curve_number(c->curve));
 	    print_o_curve(c);
 	}
 	if (!rp_node_with_node(&rpn,rp,Node_of_o_curve(c)))
@@ -1633,9 +1633,9 @@ EXPORT void find_corr_cur_in_rp(
 	{
 	    screen("ERROR in find_corr_cur_in_rp(), "
 		   "Interface of curve not in rproblem\n");
-	    (void) printf("Input curve c = %llu, ",curve_number(c->curve));
+	    (void) printf("Input curve c = %llu, ",(long long unsigned int)curve_number(c->curve));
 	    (void) printf("c->curve->interface = %llu\n",
-			  interface_number(c->curve->interface));
+			  (long long unsigned int)interface_number(c->curve->interface));
 	    (void) printf("Interface of c\n");
 	    print_interface(c->curve->interface);
 	    print_rproblem(rp);
@@ -1657,7 +1657,7 @@ EXPORT void find_corr_cur_in_rp(
 	else if (debugging("rp_correspond"))
 	{
 	    (void) printf("Correspond curve %llu found\n",
-			  curve_number(corr_c->curve));
+			  (long long unsigned int)curve_number(corr_c->curve));
 	    print_o_curve(corr_c);
 	}
 	debug_print("rp_correspond","Left find_corr_cur_in_rp()\n");

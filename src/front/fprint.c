@@ -133,11 +133,13 @@ EXPORT	void	f_fprint_front(
 EXPORT	void f_print_Front_structure(
 	Front		*fr)
 {
-	(void) printf("\n\n\n\t\tFront %p structure\n",fr);
+	(void) printf("In f_print_Front_structure, please check this function\n");
+/*
+	(void) printf("\n\n\n\t\tFront %p structure\n",(void*)fr);
 	if (fr == NULL)
 	{
 	    (void) printf("\t\tstructure not yet allocated\n");
-	    (void) printf("\n\t\tEnd Front %p structure\n\n",fr);
+	    (void) printf("\n\t\tEnd Front %p structure\n\n",(void*)fr);
 	    return;
 	}
 
@@ -218,6 +220,7 @@ EXPORT	void f_print_Front_structure(
 
 	(void) printf("\n\t\tEnd Front %p structure\n\n",fr);
 
+*/
 }		/*end f_print_Front_structure*/
 
 
@@ -229,6 +232,8 @@ EXPORT	void print_AFLIN(
 {
 	int		i, j;
 
+	(void) printf("in print_AFLIN please check this function\n");
+/*
 	(void) fprintf(file,"\n\n\n\t\tAFLIN %p structure\n",aflin);
 	if (aflin == NULL)
 	{
@@ -247,6 +252,7 @@ EXPORT	void print_AFLIN(
 	    (void) fprintf(file,"b[%d] %g ",i,aflin->b[i]);
 	(void) fprintf(file,"det %g\n",aflin->det);
 	(void) fprintf(file,"\n\t\tEnd AFLIN %p structure\n\n",aflin);
+*/
 }		/*end print_AFLIN*/
 
 EXPORT	void	print_time_step_status(
@@ -464,10 +470,13 @@ EXPORT	void	f_fprint_FlowSpecifiedRegion_data(
 	FlowSpecifiedRegion	*fsr,
 	Front			*fr)
 {
+	(void) printf("In f_fprint_FlowSpecifiedRegion_data please check it!\n");
+/*
 	(void) fprintf(file,"\nData for FlowSpecifiedRegion structure %p\n",
 		       fsr);
 	(void) fprintf(file,"comp = %d\n",fsr->comp);
 	(void) fprintf(file,"type = %s\n",fsr->type);
+*/
 }		/*end f_fprint_FlowSpecifiedRegion_data*/
 
 
@@ -481,6 +490,8 @@ EXPORT	void	fprint_Tan_stencil(
 	int		nrad = sten->npts/2;
 	char		s[80];
 
+	(void) printf("In fprint_Tan_stencil please check it!\n");
+/*
 	(void) fprintf(file,"Data for Tan_stencil %p\n",sten);
 	(void) sprintf(s,"Tangent direction: ");
 	fprint_general_vector(file,s,sten->dir,dim,"\n");
@@ -505,6 +516,7 @@ EXPORT	void	fprint_Tan_stencil(
 	    fprint_state_data(file,sten->rightst[i],front->interf);
 	}
 	(void) fprintf(file,"End of stencil\n\n");
+*/
 }		/*end fprint_Tan_stencil*/
 
 EXPORT	void	fprint_Nor_stencil(
@@ -517,6 +529,8 @@ EXPORT	void	fprint_Nor_stencil(
 	int		nrad = sten->npts/2;
 	char		s[80];
 
+	(void) printf("In fprint_Nor_stencil please check it!\n");
+/*
 	(void) fprintf(file,"Data for Nor_stencil %p\n",sten);
 	(void) sprintf(s,"Nor direction: ");
 	fprint_general_vector(file,s,sten->nor,dim,"\n");
@@ -529,6 +543,7 @@ EXPORT	void	fprint_Nor_stencil(
 	    fprint_general_vector(file,s,sten->pts[i],dim,"\n");
 	}
 	(void) fprintf(file,"End of stencil\n\n");
+*/
 }		/*end fprint_Nor_stencil*/
 
 EXPORT	void	print_Tan_stencil(
@@ -553,7 +568,9 @@ EXPORT void f_print_rproblem(
 	RPROBLEM	*rp)
 {
 	RP_NODE		*rpn;
-
+	
+	(void) printf("In f_print_rproblem please check it\n");
+/*
 	(void) printf("\n\t\tRPROBLEM %p:\n",rp);
 	if (!rp)
 	{
@@ -566,6 +583,7 @@ EXPORT void f_print_rproblem(
 		      interface_number(rp->new_intfc),
 		      interface_number(rp->old_intfc));
 	(void) printf("dt %g  dt_frac %g\n\n",rp->dt,rp->dt_frac);
+*/
 
 	/* 
 	*	Even though these sets of interacting nodes are
@@ -623,7 +641,7 @@ EXPORT void f_print_rproblem(
 	(void) printf("\tEnd Statistical information\n\n");
 
 	user_print_rproblem(rp);
-	(void) printf("\tEND OF RPROBLEM %p:\n\n",rp);
+	(void) printf("\tEND OF RPROBLEM %p:\n\n",(void*)rp);
 }		/*end f_print_rproblem*/
 
 
@@ -636,6 +654,8 @@ EXPORT void f_print_rp_node(
 	RP_NODE		*rpn,
 	RPROBLEM	*rp)
 {
+	(void) printf("In f_print_rp_node please check it\n");
+/*
 	(void) printf("\t\tRp_node %p:\n",rpn);
 	if (!rpn)
 	{
@@ -661,6 +681,7 @@ EXPORT void f_print_rp_node(
 	
 	user_print_rp_node(rpn,rp);
 	(void) printf("\tEnd of Rp_node %p:\n\n",rpn);
+*/
 }		/*end f_print_rp_node*/
 
 
@@ -673,6 +694,8 @@ EXPORT	void	print_untangle_status(
 EXPORT	void print_propagation_status(
 	NODE		*node)
 {
+	(void) printf("In print_propagation_status please check it!\n");
+/*
 	(void) printf("Propagation status of node %llu = ",node_number(node));
 	if (node == NULL)
 	{
@@ -681,6 +704,7 @@ EXPORT	void print_propagation_status(
 	}
 	(void) printf("%s\n",
 		      propagation_status_as_string(propagation_status(node)));
+*/
 }		/*end print_propagation_status*/
 
 
@@ -785,7 +809,7 @@ EXPORT	void fshow_curve_states(
 
 	(void) fprintf(file,"\t\tSTATES ON CURVE\n\n");
 	(void) fprintf(file,"    %-10s %-10s %-10s %llu ",Dnm[0],Dnm[1],
-		       "STATES on CURVE_",curve_number(c));
+		       "STATES on CURVE_",(long long unsigned int)curve_number(c));
 	(void) fprintf(file,"%s\n",(is_bdry(c)) ? "Boundary curve" :
 						  "Interior curve");
 
@@ -905,7 +929,7 @@ EXPORT	void fshow_curve_states(
 	(void) fprintf(file,"\n");
 	(void) fprintf(file,"\n");
 	(void) fprintf(file,"\t\tEND OF STATES ON CURVE %llu\n\n",
-		       curve_number(c));
+		       (long long unsigned int)curve_number(c));
 }		/*end fshow_curve_states*/
 
 
@@ -920,11 +944,12 @@ EXPORT void print_bond_and_states(
 	    return;
 	}
 	(void) printf("bond (%llu):  %g %g -> %g %g\n",
-		      bond_number(b,fr->interf),
+		      (long long unsigned int)bond_number(b,fr->interf),
 		      Coords(b->start)[0],Coords(b->start)[1],
 		      Coords(b->end)[0],Coords(b->end)[1]);
-	(void) printf("prev = %llu next = %llu\n",bond_number(b->prev,fr->interf),
-		      bond_number(b->next,fr->interf));
+	(void) printf("prev = %llu next = %llu\n",
+			(long long unsigned int)bond_number(b->prev,fr->interf),
+		        (long long unsigned int)bond_number(b->next,fr->interf));
 	if (fr->sizest)
 	{
 	    (void) printf("left/right states at b->start:\n");
@@ -985,6 +1010,8 @@ EXPORT	void fshow_surface_states(
 	size_t		sizest;
 	int		i;
 
+	(void) printf("In fshow_surface_states please check it!\n");
+/*
 	if (s == NULL)
 	    return;
 	intfc = s->interface;
@@ -1021,7 +1048,7 @@ EXPORT	void fshow_surface_states(
 	}
 	(void) fprintf(file,"\n");
 	(void) fprintf(file,"\t\tEND OF STATES ON SURFACE\n\n");
-
+*/
 }		/*end fshow_surface_states*/
 
 
@@ -1962,18 +1989,18 @@ LOCAL	long	fill_hdf_values3d(
 	}
 	
 	printf("total number of pixels is %d.\n",p+q);
-	printf("number of interior pixels is %d = %lf percent of pixels.\n",
+	printf("number of interior pixels is %d = %f percent of pixels.\n",
 	       p,(double)p/(p+q));
-	printf("number of interface pixels is %d = %lf percent of pixels .\n",
+	printf("number of interface pixels is %d = %f percent of pixels .\n",
 	       q,(double)q/(p+q));
 	for (var = 0; var < nvars; var++)
 	{
 	    pp_global_sum(sum[0],var);
 	    pp_global_sum(sum[1],var);
-	    printf("Total var%d = %lf.\n", var, sum[0][var] + sum[1][var]);
-	    printf("Interior total for var%d = %lf, = %lf of total.\n",
+	    printf("Total var%d = %f.\n", var, sum[0][var] + sum[1][var]);
+	    printf("Interior total for var%d = %f, = %f of total.\n",
 		   var, sum[0][var], sum[0][var]/(sum[0][var] + sum[1][var]) );
-	    printf("Interface total for var%d = %lf, = %lf of total.\n\n",
+	    printf("Interface total for var%d = %f, = %f of total.\n\n",
 		   var, sum[1][var], sum[1][var]/(sum[0][var] + sum[1][var]) );
 	}
 	

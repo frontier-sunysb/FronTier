@@ -2090,7 +2090,7 @@ LOCAL int fill_missing_crx(
 	}
 	surf = find_surf_with_comp(intfc, lcomp, ucomp);
 	
-	printf("#fill_missing  %p  %d  %d \n", surf, lcomp, ucomp);
+	printf("#fill_missing  %p  %d  %d \n", (void*)surf, lcomp, ucomp);
 	if(surf == NULL || is_wall_surface(surf))
 	{
 	    printf("ERROR fill_missing_crx, surf is inconsistent.\n");
@@ -5224,7 +5224,7 @@ LOCAL	void print_comp_along_grid_line(
 	    crx = next_crossing(ip,gmax,dir,T,crx);
 	    if (crx != NULL)
 	    {
-		printf("crx = %d\n",crx);
+		printf("crx = %d\n",crx->crx_num);
 		printf("crx comp_of_this_side =    %d\n",
 				comp_of_this_side(crx,dir));
 		printf("crx comp_of_next_side =    %d\n",
@@ -5465,14 +5465,14 @@ LOCAL boolean remove_unphy_pair(
 	    (void) printf("Cannot find unphysical pair!\n");
 	    printf("ip = %d %d %d\n",ip[0],ip[1],ip[2]);
 	    printf("dir = %s\n",grid_direction_name(dir));
-	    printf("crx1 = %d  crx2 = %d\n",crx1,crx2);
+	    printf("crx1 = %d  crx2 = %d\n",crx1->crx_num,crx2->crx_num);
 	    print_comp_along_grid_line(ip1,ip2,dir,T,gmax,smin,smax);
 	    clean_up(ERROR);
 	}
 	if (debugging("seg_comp"))
 	{
-	    (void) printf("remove crx1 = %d\n",crx1);
-	    (void) printf("remove crx2 = %d\n",crx2);
+	    (void) printf("remove crx1 = %d\n",crx1->crx_num);
+	    (void) printf("remove crx2 = %d\n",crx2->crx_num);
 	}
 	remove_crossing(crx1,ip_crx1,dir,gmax,T);
 	for (i = 0; i < 3; ++i)

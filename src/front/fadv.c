@@ -108,7 +108,7 @@ EXPORT	int	return_advance_front(
         {
             int dim = front->rect_grid->dim;
             (void) printf("Maximum propagated scaled distance = %f\n",
-                        front->max_scaled_propagation);
+                        *(front->max_scaled_propagation));
             print_general_vector("Max propagated point: ",
                         front->max_prop_point,dim,"\n");
         }
@@ -572,7 +572,7 @@ begin_advance_front2d:
 	        {
 	    	    if (debugging("propagate"))
 	                (void) printf("\t\tpropagating curve %llu\n",
-		                      curve_number(oldc));
+		                      (long long unsigned int)curve_number(oldc));
 		    curve_propagate(front,wave,oldc,newc,dt);
 		    /*f_curve_propagate2d */
 		}
@@ -781,7 +781,7 @@ sync_prop_stat1:
 	{
 	    (void) printf("WARNING in advance_front2d(), "
 	                  "front->max_scaled_propagation = %f\n",
-			  front->max_scaled_propagation);
+			  *(front->max_scaled_propagation));
 	    *dt_frac = 0.4/(*front->max_scaled_propagation);
 	    status = MODIFY_TIME_STEP;
 	    goto sync_prop_stat2;
@@ -1402,7 +1402,7 @@ EXPORT	void print_linked_node_list(
 	    return;
 	}
 
-	(void) printf("\tnode list - intfc %llu\n",interface_number(intfc));
+	(void) printf("\tnode list - intfc %llu\n",(long long unsigned int)interface_number(intfc));
 	for (node_count = 0;  n && *n;  ++n, ++node_count)
 		;
 
@@ -1412,8 +1412,9 @@ EXPORT	void print_linked_node_list(
 	    if (m != NULL)
 	    {
 	    	(void) printf("prev %llu  m %llu  next %llu  ",
-	    		      node_number(prev_node(m)),node_number(m),
-	    		      node_number(next_node(m)));
+	    		      (long long unsigned int)node_number(prev_node(m)),
+			      (long long unsigned int)node_number(m),
+	    		      (long long unsigned int)node_number(next_node(m)));
 	    	print_propagation_status(m);
 	    }
 	    else
@@ -1489,7 +1490,7 @@ EXPORT	boolean consistent_propagated_loop_orientations(
 	    if (debugging("orient_consistency"))
 	    {
 	    	(void) printf("Loop %llu inverted after propagation\n",
-	    		      curve_number(oldc));
+	    		      (long long unsigned int)curve_number(oldc));
 	    	(void) printf("Old loop\n");
 	    	print_curve(oldc);
 	    	(void) printf("Propagated loop\n");

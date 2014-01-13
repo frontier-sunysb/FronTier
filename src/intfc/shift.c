@@ -69,7 +69,7 @@ EXPORT INTERFACE *remap_interface(
 
 	if (DEBUG)
 	    (void) printf("Entering remap_interface(%llu)\n",
-		          interface_number(intfc));
+		          (long long unsigned int)interface_number(intfc));
 	if (remap == NULL || remap_rect_grid == NULL)
 	    return NULL;
 	if (exists_interface(intfc) != YES)

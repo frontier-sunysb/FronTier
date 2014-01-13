@@ -68,8 +68,8 @@ EXPORT	void f_tan_curve_propagate(
 	debug_print("f_tan_prop","Entered f_tan_curve_propagate()\n");
 	if (debugging("f_tan_prop"))
 	{
-	    (void) printf("tempc %llu  newc %llu\n",curve_number(tempc),
-	    	          curve_number(newc));
+	    (void) printf("tempc %llu  newc %llu\n",(long long unsigned int)curve_number(tempc),
+	    	          (long long unsigned int)curve_number(newc));
 	    (void) printf("tempc\n");	print_curve(tempc);
 	    (void) printf("\nnewc\n");	print_curve(newc);
 	}
