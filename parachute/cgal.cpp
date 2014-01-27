@@ -152,6 +152,7 @@ static void CgalCircle(
 	char gore_bool[10],vent_bool[10];
 	std::list<Cgal_Point> list_of_seeds;
 	double cri_dx = computational_grid(front->interf)->h[0];
+	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 	int i;
 
         CursorAfterString(infile,"Enter the height of the plane:");
@@ -171,7 +172,10 @@ static void CgalCircle(
         if (gore_bool[0]=='y'|| gore_bool[0]=='Y')
         {
 	    CirR[1] = 0.1 * CirR[0];
+	    af_params->attach_gores = YES;
 	}
+	else
+	    af_params->attach_gores = NO;
 	CursorAfterStringOpt(infile,"Enter yes to cut a vent on canopy:");
 	fscanf(infile,"%s",vent_bool);
 	(void) printf("%s\n",vent_bool);
@@ -607,6 +611,7 @@ static void CgalEllipse(
         double *out_nodes_coords,*out_vtx_coords;
         CDT cdt;
         CDT::Finite_faces_iterator fit;
+	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 
 	Vertex_handle *v_out;
 	double cri_dx = computational_grid(front->interf)->h[0];
@@ -628,6 +633,10 @@ static void CgalEllipse(
 	CursorAfterStringOpt(infile,"Enter yes to attach gores to canopy:");
 	fscanf(infile,"%s",gore_bool);
         (void) printf("%s\n",gore_bool);		
+	if (gore_bool[0] == 'y' || gore_bool[0] == 'Y')
+	    af_params->attach_gores = YES;
+	else
+	    af_params->attach_gores = NO;
 	CursorAfterStringOpt(infile,"Enter number of vertical gores:");
 	fscanf(infile,"%d",&num_gore_oneside);
         (void) printf("%d\n",num_gore_oneside);		
@@ -761,6 +770,7 @@ static void CgalCross(
 	double *out_nodes_coords,*out_vtx_coords;
 	CDT cdt;
 	CDT::Finite_faces_iterator fit;
+	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 
 	Vertex_handle *v_out;
 	double width;
@@ -786,6 +796,10 @@ static void CgalCross(
 	CursorAfterStringOpt(infile,"Enter yes to attach gores to canopy:");
 	fscanf(infile,"%s",gore_bool);
         (void) printf("%s\n",gore_bool);		
+	if (gore_bool[0] == 'y' || gore_bool[0] == 'Y')
+	    af_params->attach_gores = YES;
+	else
+	    af_params->attach_gores = NO;
 	CursorAfterStringOpt(infile,"Enter number of chords on one side:");
         fscanf(infile,"%d",&num_gore_oneside);
         (void) printf("%d\n",num_gore_oneside);
