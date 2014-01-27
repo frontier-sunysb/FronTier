@@ -343,6 +343,7 @@ static void InstallInCurve(
         node->extra = (POINTER)extra;
 	vent_curve = make_curve(0,0,node,node);
 	install_curve_in_surface_bdry(surf,vent_curve,POSITIVE_ORIENTATION);
+	hsbdry_type(vent_curve) = GORE_HSBDRY;
 	bond = vent_curve->first;
 
 	p_end = p;
