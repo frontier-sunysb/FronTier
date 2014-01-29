@@ -195,6 +195,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 	computeSourceTerm(double *coords, double *source) 
 {
         int i;
+	
         if(iFparams->if_buoyancy)
         {
             double T0   = iFparams->ref_temp;
@@ -377,14 +378,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 
         size = iupper - ilower;
         FT_VectorMemoryAlloc((POINTER*)&x,size,sizeof(double));
-
-	for (l = 0; l < dim; ++l)
-        for (k = kmin; k <= kmax; k++)
-        for (j = jmin; j <= jmax; j++)
-        for (i = imin; i <= imax; i++)
-        {
-            index  = d_index3d(i,j,k,top_gmax);
-        }
 
 	for (l = 0; l < dim; ++l)
 	{
@@ -777,14 +770,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 
         size = iupper - ilower;
         FT_VectorMemoryAlloc((POINTER*)&x,size,sizeof(double));
-
-	for (l = 0; l < dim; ++l)
-        for (k = kmin; k <= kmax; k++)
-        for (j = jmin; j <= jmax; j++)
-        for (i = imin; i <= imax; i++)
-	{
-            index  = d_index3d(i,j,k,top_gmax);
-	}
 
 	for (l = 0; l < dim; ++l)
 	{
@@ -1252,10 +1237,57 @@ void Incompress_Solver_Smooth_3D_Cartesian::setInitialCondition()
                 phi[i] = getPhiFromPres(front,pres[i]);
 	    }
         }
+
 	computeGradientQ();
         copyMeshStates();
 	setAdvectionDt();
 }       /* end setInitialCondition */
+
+void Incompress_Solver_Smooth_3D_Cartesian::setInitialVelocity()
+{
+        FILE *infile;
+        int i,j,k,l,index;
+        char fname[100];
+        COMPONENT comp;
+        double coords[MAXD];
+        int size = (int)cell_center.size();
+
+        FT_MakeGridIntfc(front);
+        setDomain();
+
+        m_rho[0] = iFparams->rho1;
+        m_rho[1] = iFparams->rho2;
+        m_mu[0] = iFparams->mu1;
+        m_mu[1] = iFparams->mu2;
+        m_comp[0] = iFparams->m_comp1;
+        m_comp[1] = iFparams->m_comp2;
+        m_smoothing_radius = iFparams->smoothing_radius;
+        m_sigma = iFparams->surf_tension;
+        mu_min = rho_min = HUGE;
+        for (i = 0; i < 2; ++i)
+        {
+            if (ifluid_comp(m_comp[i]))
+            {
+                mu_min = std::min(mu_min,m_mu[i]);
+                rho_min = std::min(rho_min,m_rho[i]);
+            }
+        }
+        sprintf(fname,"./vel3d");
+        infile = fopen(fname,"r");
+        for (k = kmin; k <= kmax; ++k)
+        for (j = jmin; j <= jmax; ++j)
+        for (i = imin; i <= imax; ++i)
+        {
+            index = d_index3d(i,j,k,top_gmax);
+            fscanf(infile,"%lf %lf %lf",
+                   &field->vel[0][index],
+                   &field->vel[1][index],
+                   &field->vel[2][index]);
+        }
+        computeGradientQ();
+        copyMeshStates();
+        setAdvectionDt();
+}
 
 void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionCim(void)
 {

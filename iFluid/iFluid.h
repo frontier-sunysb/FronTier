@@ -127,6 +127,7 @@ typedef struct {
 	double  ref_temp;
 	boolean if_ref_pres;
 	double  ref_pres;
+	double  Amplitute; /*Amplitute of velocity*/
 } IF_PARAMS;
 
 struct _FLOW_THROUGH_PARAMS {
@@ -226,6 +227,7 @@ public:
 
 	//User interface
 	virtual void setInitialCondition(void) = 0;
+	virtual void setInitialVelocity(void) = 0;
 	virtual void solve(double dt) = 0; // main step function
         virtual void vtk_plot_scalar(char*, const char*) = 0;
 
@@ -389,6 +391,7 @@ public:
 	~Incompress_Solver_Smooth_2D_Cartesian() {};
 
 	void setInitialCondition(void);
+	void setInitialVelocity(void);
 	void solve(double dt);
         void vtk_plot_scalar(char*, const char*);
 protected:
@@ -426,6 +429,7 @@ public:
 	~Incompress_Solver_Smooth_3D_Cartesian() {};
 
 	void setInitialCondition(void);
+	void setInitialVelocity(void);
 	void solve(double dt);
 	void solveTest(const char *msg);
         void vtk_plot_scalar(char*, const char*);

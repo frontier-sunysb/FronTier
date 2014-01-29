@@ -455,7 +455,7 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 	dim = grid_intfc->dim;
 	T = table_of_interface(grid_intfc);
 	top_comp = T->components;
-	
+
 	hmin = top_h[0];
 	size = top_gmax[0]+1;
         for (i = 1; i < dim; ++i)
@@ -914,6 +914,7 @@ void Incompress_Solver_Smooth_Basis::initMovieVariables()
         (void) printf("%s\n",string);
         if (string[0] == 'Y' || string[0] == 'y')
 	    FT_AddVtkVectorMovieVariable(front,"VELOCITY",field->vel);
+	FT_AddVtkScalarMovieVariable(front,"PRESSURE",field->pres);
 
 	fclose(infile);
 }	/* end initMovieVariables */

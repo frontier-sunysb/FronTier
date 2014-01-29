@@ -36,6 +36,8 @@ static void contact_point_propagate(Front*,POINTER,POINT*,POINT*,
                         HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void rand_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
+static void Taylor_Green_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
+static void Fourier_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static  void compute_ice_particle_force2d_velo(Front*,HYPER_SURF*,double,double*,double*);
 static  void compute_ice_particle_force3d_velo(Front*,HYPER_SURF*,double,double*,double*);
 static  void compute_ice_particle_force2d_pres(Front*,HYPER_SURF*,double,double*,double*);
@@ -538,12 +540,52 @@ void init_fluid_state_func(
 	Front *front,
         Incompress_Solver_Smooth_Basis *l_cartesian)
 {
-	PARAMS *eqn_params = (PARAMS*)front->extra2;
-	if(eqn_params->if_rand_vel)
-	    l_cartesian->getInitialState = rand_state;
-	else
-	    l_cartesian->getInitialState = zero_state;
+        PARAMS *eqn_params = (PARAMS*)front->extra2;
+        switch(eqn_params->init_state)
+        {
+            case RAND_STATE:
+                l_cartesian->getInitialState = rand_state;
+                break;
+            case TAYLOR_STATE:
+                l_cartesian->getInitialState = Taylor_Green_state;
+                break;
+	    case ZERO_STATE:
+		l_cartesian->getInitialState = zero_state;
+	        break;
+            default:
+                l_cartesian->getInitialState = zero_state;
+        }
 }	/* end init_fluid_state_func */
+
+static void Taylor_Green_state(
+        COMPONENT comp,
+        double *coords,
+        IF_FIELD *field,
+        int index,
+        int dim,
+        IF_PARAMS *iFparams)
+{
+	int i;
+	double tcoords[MAXD];
+	double **vel = field->vel;
+	for (i = 0; i < dim; i++)
+	    tcoords[i] = 2*PI*coords[i] - PI;
+	switch (dim)
+	{
+	    case 2:
+	        vel[0][index] = sin(tcoords[0]) * cos(tcoords[1]);
+	        vel[1][index] = -cos(tcoords[0]) * sin(tcoords[1]);
+		break;
+	    case 3:
+		vel[0][index] = sin(tcoords[0])*cos(tcoords[1])*cos(tcoords[2]);
+		vel[1][index] = -cos(tcoords[0])*sin(tcoords[1])*cos(tcoords[2]);
+		vel[2][index] = 0;
+		break;
+	    default:
+		printf("Unknown dim = %d\n",dim);
+		clean_up(ERROR);
+	}
+}       /* end Taylor_Green_state */
 
 static void rand_state(
         COMPONENT comp,
@@ -559,12 +601,12 @@ static void rand_state(
 	//short unsigned int seed[3] = {index,index-10,index+10};
 	GAUSS_PARAMS gauss_params;
 	double r_bar = 0;
-	double sigma = 1;
+	double sigma = 0.5;
         int i;
 	gauss_params.mu = r_bar;
 	gauss_params.sigma = sigma;
         for (i = 0; i < dim; ++i)
-            field->vel[i][index] = 10*gauss_center_limit((POINTER)&gauss_params,seed);
+            field->vel[i][index] = gauss_center_limit((POINTER)&gauss_params,seed);
 }       /* end rand_state */
 
 static void zero_state(
@@ -1092,6 +1134,7 @@ static double intrp_between(
 extern void ParticlePropagate(Front *fr)
 {
         RECT_GRID *gr = FT_GridIntfcTopGrid(fr);
+        RECT_GRID *rect_grid = fr->rect_grid;
         IF_PARAMS *iFparams = (IF_PARAMS*)fr->extra1;
 	PARAMS *eqn_params = (PARAMS*)fr->extra2;
 	PARTICLE* particle_array = eqn_params->particle_array;
@@ -1111,7 +1154,7 @@ extern void ParticlePropagate(Front *fr)
         /*computing finite respone time*/
         double rho_0    = iFparams->rho2;/*fluid density*/
         double mu       = iFparams->mu2;/*viscosity*/
-	double R, rho, tau_p, cond_spd;
+	double R, rho, tau_p, delta_R;
 	double R_max = 0;
 	double R_min = HUGE;
 
@@ -1127,11 +1170,26 @@ extern void ParticlePropagate(Front *fr)
 		R_min = 0;
 	        continue;
 	    }
-	    /*find velocity in coords*/
+	    /*find index at coords*/
 	    center = particle_array[i].center;
 	    rect_in_which(center,ic,gr);
 	    index = d_index(ic,gmax,dim);
 	    cvel = particle_array[i].vel;
+	    /*compute radius for particle[i]*/
+	    s = supersat[index];
+	    delta_R = R*R+2*eqn_params->K*s*dt;
+	    if(delta_R < 0)
+		R = 0;
+	    else
+	        R = sqrt(delta_R);
+
+	    particle_array[i].radius = R;
+	    /*save max and min radius*/
+	    if(R > R_max)
+		R_max = R;
+	    if(R < R_min)
+		R_min = R;
+
 	    /*compute velocity for particle[i] with implicit method*/
 	    for(j = 0; j < dim; ++j)
             {
@@ -1142,37 +1200,25 @@ extern void ParticlePropagate(Front *fr)
 		center[j] += cvel[j]*dt;
 
 		/*handle periodic drops*/
-		T = gr->U[j]-gr->L[j];	
-		if (center[j] > gr->U[j])
-		    center[j] = gr->L[j]+fmod(center[j],T);
-		if (center[j] < gr->L[j])
-		    center[j] = gr->U[j]+fmod(center[j],T);
+		T = rect_grid->U[j]-rect_grid->L[j];	
+		if (center[j] > rect_grid->U[j])
+		    center[j] = rect_grid->L[j]+fmod(center[j],T);
+		if (center[j] < rect_grid->L[j])
+		    center[j] = rect_grid->U[j]+fmod(center[j],T);
 		if(isnan(center[j]))
 		{
 		    printf("center[%d]=nan, T = %f, domain=[%f,%f]\n",
-				j,T,gr->L[j],gr->U[j]);
+				j,T,rect_grid->L[j],rect_grid->U[j]);
 		    clean_up(ERROR);
 		}
 	    }
-	    /*compute radius for particle[i]*/
-	    s = supersat[index];
-	    cond_spd = eqn_params->K*s/R;
-	    R += cond_spd*dt;
 
-	    if (R < 0)
-		R = 0;
-	    particle_array[i].radius = R;
-	    /*save max and min radius*/
-	    if(R > R_max)
-		R_max = R;
-	    if(R < R_min)
-		R_min = R;
 	    if (debugging("particles"))
 	    {
 	        printf("\nDrop[%d]:\n",i);
 	        printf("Supersat: %f\n",s);
 	        printf("Condensation rate: %20.19f\n",eqn_params->K);
-	        printf("Cond speed = %f\n",cond_spd);
+	        printf("delta_R = %f\n",delta_R);
 	        printf("dt = %f\n",dt);
 	        printf("Radius:%15.14f\n",R);
 	        printf("center:[%f,%f,%f]\n", center[0],center[1],center[2]);
@@ -1396,10 +1442,6 @@ extern void printDropletsStates(Front* front, char* outname)
             
         sprintf(filename,"%s/state.ts%s",outname,
                         right_flush(front->step,7));
-#if defined(__MPI__)
-        if (pp_numnodes() > 1)
-            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));          
-#endif /* defined(__MPI__) */
         sprintf(filename,"%s-drops",filename);
         outfile = fopen(filename,"w");
 	for (i = 0; i < num_drops; i++)
@@ -1496,38 +1538,86 @@ extern void vtk_plot_scatter(Front* front)
         fprintf(file,"ASCII\n");
 
 	fprintf(file,"DATASET UNSTRUCTURED_GRID\n");
-	fprintf(file,"POINTS %d double\n",n);
+	fprintf(file,"POINTS %d FLOAT\n",n);
 
         for (i = 0; i < eqn_params->num_drops; i++)
         {
-	    if (particle_array[i].radius != 0)
-	    {
-                coords = particle_array[i].center;
-                if (dim == 2)
-                    fprintf(file,"%f %f 0\n",coords[0],coords[1]);
-                else if (dim == 3)
-                    fprintf(file,"%f %f %f\n",coords[0],coords[1],coords[2]);
-	    }
+	    if (particle_array[i].radius == 0)
+		continue;
+            coords = particle_array[i].center;
+            if (dim == 2)
+                fprintf(file,"%f %f 0\n",coords[0],coords[1]);
+            else if (dim == 3)
+                fprintf(file,"%f %f %f\n",coords[0],coords[1],coords[2]);
         }
-	fprintf(file,"CELLS %d %d\n",n,3*n);
-        for (i = 0; i < eqn_params->num_drops; i++)
-        {
-	    if (particle_array[i].radius != 0)
-	        fprintf(file,"1 %d\n",i);
-        }
-	fprintf(file,"CELL_TYPES %d\n",n);
-        for (i = 0; i < eqn_params->num_drops; i++)
-        {
-	    if (particle_array[i].radius != 0)
-                fprintf(file,"1\n");
-        }
-
-	fprintf(file, "CELL_DATA %d\n",n);
+	fprintf(file,"POINT_DATA %d\n",n);
+	fprintf(file,"SCALARS radius FLOAT\n");
+	fprintf(file,"LOOKUP_TABLE default\n");
 	for (i = 0; i < eqn_params->num_drops; i++)
         {
-	    if (particle_array[i].radius != 0)
-                fprintf(file,"%20.14f\n",particle_array[i].radius);
+            if (particle_array[i].radius == 0)
+                continue;
+            fprintf(file,"%20.14f\n",particle_array[i].radius);
         }
 	printf("%d number of droplets contained\n",n);
+	fclose(file);
+}
+
+extern void vtk_plot_sample_traj(Front* front)
+{
+        PARAMS* eqn_params = (PARAMS*)front->extra2;
+        int dim = front->rect_grid->dim;
+        int i, j;
+        double *coords;
+        char *outname = OutName(front);
+        char fname[256];
+        FILE* file;
+	/*static array for preserving trajectory*/
+	static double traj[MAXD][MAX_STEP];
+	static int step = 0;
+
+	for(i = 0; i < dim; i++)
+	{
+	    traj[i][step] = eqn_params->particle_array[0].center[i];
+	}
+	if(step == 0)
+	{  
+	    step++;
+	    return;
+	}
+        sprintf(fname,"%s/vtk/vtk.ts%s/",outname,
+				right_flush(front->step,7));
+	if (!create_directory(fname,NO))
+        {
+            printf("Cannot create directory %s\n",fname);
+            clean_up(ERROR);
+        }
+	sprintf(fname,"%s/sample_particle.vtk",fname);
+        file = fopen(fname,"w");
+        fprintf(file,"# vtk DataFile Version 3.0\n");
+        fprintf(file,"%s\n","sample_particles");
+        fprintf(file,"ASCII\n");
+
+	fprintf(file,"DATASET UNSTRUCTURED_GRID\n");
+	fprintf(file,"POINTS %d FLOAT\n",step+1);
+
+	for (i = 0; i < step+1; i++)
+	{
+            if (dim == 2)
+                fprintf(file,"%f %f 0\n",traj[0][i],traj[1][i]);
+            else if (dim == 3)
+                fprintf(file,"%f %f %f\n",traj[0][i],traj[1][i],traj[2][i]);
+	}
+	fprintf(file,"CELLS %d %d\n",step,3*step);
+	for (i = 0; i < step; i++)
+	{
+	    fprintf(file,"2 %d %d\n",i,i+1);
+	}
+	fprintf(file,"CELL_TYPES %d\n",step);
+	for (i = 0; i < step; i++)
+        {
+            fprintf(file,"3\n");
+        }
+	step ++;
 	fclose(file);
 }

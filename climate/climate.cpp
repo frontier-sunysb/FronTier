@@ -90,15 +90,6 @@ int main(int argc, char **argv)
 			right_flush(RestartStep,7));
 	sprintf(restart_name,"%s/intfc-ts%s",restart_name,
 			right_flush(RestartStep,7));
-#if defined(__MPI__)
-	if (pp_numnodes() > 1)
-	{
-        	sprintf(restart_name,"%s-nd%s",restart_name,
-				    right_flush(pp_mynode(),4));
-        	sprintf(restart_state_name,"%s-nd%s",restart_state_name,
-			            right_flush(pp_mynode(),4));
-	}
-#endif /* defined(__MPI__) */
         FT_ReadSpaceDomain(in_name,&f_basic);
 
 	FT_StartUp(&front,&f_basic);
@@ -173,21 +164,28 @@ int main(int argc, char **argv)
 	else
 	{
 	    t_cartesian->setInitialCondition();
-	    v_cartesian->setInitialCondition();
+	    if(eqn_params.init_state == PRESET_STATE || 
+		eqn_params.prob_type == BUOYANCY_TEST)
+	        v_cartesian->setInitialVapor();
+	    else	
+	        v_cartesian->setInitialCondition();
 	    if (debugging("trace")) 
                 printf("Passed cartesian setInitialCondition()\n");
 	    FT_FreeGridIntfc(&front);
 
             init_fluid_state_func(&front,l_cartesian);
-            l_cartesian->setInitialCondition();
+	    if(eqn_params.init_state == PRESET_STATE)
+            	l_cartesian->setInitialVelocity();
+	    else	
+                l_cartesian->setInitialCondition();
             if (debugging("trace"))
                 printf("Passed iFluid setInitialCondition()\n");
 	}
 
+	/*hook the fields for solvers*/
 	eqn_params.field->vel = iFparams.field->vel;
 	eqn_params.field->pres = iFparams.field->pres;
 	iFparams.field->temperature = eqn_params.field->temperature;
-	printf("After reading data:\n");
 	v_cartesian->checkField(); /*output variables to run-output*/
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
@@ -230,28 +228,26 @@ static  void melting_flow_driver(
 	    FT_ResetTime(front);
             FT_SetOutputCounter(front);
             /* Front standard output*/
-            FT_Save(front,out_name);
-	    if (dim == 1)
-	    	t_cartesian->oneDimPlot(out_name);
-	    else if (dim == 2)
-		t_cartesian->vtk_plot_temperature2d(out_name);
-	    else
+            //FT_Save(front,out_name);
+	    if(dim == 3)
 	    {
-		t_cartesian->vtk_plot3d(out_name,"temperature");
-		v_cartesian->vtk_plot3d(out_name,"vapor");
-		v_cartesian->vtk_plot3d(out_name,"supersat");
-		l_cartesian->vtk_plot_scalar(out_name,"pres");
+		v_cartesian->vtk_plot3d("vapor",eqn_params->field->vapor);
+		v_cartesian->vtk_plot3d("NumDensity",eqn_params->field->drops);
                 if (eqn_params->prob_type == PARTICLE_TRACKING)
-                    vtk_plot_scatter(front);
+		    vtk_plot_scatter(front);
 	    }
-
-
+	    if (eqn_params->prob_type == PARTICLE_TRACKING)
+	    {
+                v_cartesian->recordSampleRadius();
+	    }
+	    v_cartesian->recordWaterBalance();
 	    FT_ResetTime(front);
-	    FT_Save(front,out_name);
+	   /* FT_Save(front,out_name);
             t_cartesian->printFrontInteriorState(out_name);
             v_cartesian->printFrontInteriorState(out_name);
             l_cartesian->printFrontInteriorStates(out_name);
-	    printDropletsStates(front,out_name);
+	    if (eqn_params->prob_type == PARTICLE_TRACKING)
+	        printDropletsStates(front,out_name);*/
 
 	    if(eqn_params->droplets_fixed == NO)
 	    {
@@ -299,14 +295,13 @@ static  void melting_flow_driver(
 
         for (;;)
         {
-	    if(eqn_params->droplets_fixed == NO)
+	    if(eqn_params->prob_type != PARTICLE_TRACKING
+		&& eqn_params->droplets_fixed == NO)
 	    {
 	        CondensationPreAdvance(front);
 	        FrontPreAdvance(front);
 	    }
 	    FT_Propagate(front);
-            if(eqn_params->prob_type == PARTICLE_TRACKING)
-		ParticlePropagate(front);
 
 	    t_cartesian->solve(front->dt);
 	    v_cartesian->solve(front->dt);
@@ -315,6 +310,9 @@ static  void melting_flow_driver(
 	    l_cartesian->solve(front->dt);
 	    printf("Passed solving NS equations\n");
 	    
+            if(eqn_params->prob_type == PARTICLE_TRACKING)
+		ParticlePropagate(front);
+
 	    FT_AddTimeStepToCounter(front);
 	    FT_SetTimeStep(front);
 	    front->dt = FT_Min(front->dt,CFL*t_cartesian->m_dt);
@@ -327,21 +325,30 @@ static  void melting_flow_driver(
 
 	    /*For checking the result*/
 	    v_cartesian->checkField(); /*output variables to run-output*/
-	    v_cartesian->recordField(out_name,"supersat");
-	    v_cartesian->recordField(out_name,"vapor");
-	    v_cartesian->recordField(out_name,"temperature");
-	    v_cartesian->recordMomentum();
+	    v_cartesian->recordTKE();
+	    v_cartesian->recordWaterBalance();
+	    v_cartesian->recordMixingLine();
+	    if (eqn_params->prob_type == PARTICLE_TRACKING)
+	    {
+	        v_cartesian->recordSampleRadius();
+	    }
+	    
             if (FT_IsSaveTime(front))
 	    {
 		// Front standard output
-                FT_Save(front,out_name);
+                //FT_Save(front,out_name);
 
 		v_cartesian->recordRadius(out_name);
+	        v_cartesian->recordField(out_name,"supersat");
+	        v_cartesian->recordField(out_name,"vapor");
+	        v_cartesian->recordField(out_name,"temperature");
+	        v_cartesian->recordField(out_name,"velocity");
 		// Problem specific output
-		t_cartesian->printFrontInteriorState(out_name);
-		v_cartesian->printFrontInteriorState(out_name);
-		l_cartesian->printFrontInteriorStates(out_name);
-	        printDropletsStates(front,out_name);
+		/*t_cartesian->printFrontInteriorState(out_name);
+		  v_cartesian->printFrontInteriorState(out_name);
+		  l_cartesian->printFrontInteriorStates(out_name);
+		  if (eqn_params->prob_type == PARTICLE_TRACKING)
+	            printDropletsStates(front,out_name);*/
 	    }
             if (FT_IsMovieFrameTime(front))
 	    {
@@ -350,16 +357,10 @@ static  void melting_flow_driver(
 		    vtk_plot_scatter(front);
                 FT_AddMovieFrame(front,out_name,YES);
 
-		if (dim == 1)
-	    	    t_cartesian->oneDimPlot(out_name);
-		else if (dim == 2)
-		    t_cartesian->vtk_plot_temperature2d(out_name);
-		else
+		if(dim == 3)	
 		{
-		        t_cartesian->vtk_plot3d(out_name,"temperature");
-		        v_cartesian->vtk_plot3d(out_name,"vapor");
-		        v_cartesian->vtk_plot3d(out_name,"supersat");
-		        l_cartesian->vtk_plot_scalar(out_name,"pres");
+		        v_cartesian->vtk_plot3d("vapor",eqn_params->field->vapor);
+		        v_cartesian->vtk_plot3d("NumDensity",eqn_params->field->drops);
 		}
 	    }
 
@@ -368,8 +369,12 @@ static  void melting_flow_driver(
 		if(eqn_params->prob_type == PARTICLE_TRACKING)
                     vtk_plot_scatter(front);
 	    	FT_AddMovieFrame(front,out_name,YES);
-		v_cartesian->plotMomentum(out_name);
+	    	v_cartesian->recordWaterBalance();
 		v_cartesian->recordRadius(out_name);
+		v_cartesian->recordField(out_name,"supersat");
+	        v_cartesian->recordField(out_name,"vapor");
+	        v_cartesian->recordField(out_name,"temperature");
+		v_cartesian->recordField(out_name,"velocity");
                 break;
 	    }
 	    /* Output section, next dt may be modified */

@@ -174,6 +174,9 @@ void VCARTESIAN::setInitialCondition(void)
 	int c;
 	
 	short unsigned int seed[3] = {2,72,7172};
+        GAUSS_PARAMS gauss_params;
+        gauss_params.mu = 3.2;
+        gauss_params.sigma = 0.2;
 
 	FT_MakeGridIntfc(front);
         setDomain();
@@ -196,13 +199,78 @@ void VCARTESIAN::setInitialCondition(void)
 	{
 	    c = top_comp[i];
 	    if (c == LIQUID_COMP2)
-	    	field->vapor[i] = 3.2;
+	    	field->vapor[i] = gauss_center_limit((POINTER)&gauss_params,seed);
+		//field->vapor[i] = 3.2;
 	    else if (c == SOLID_COMP)
 	    	field->vapor[i] = 0;
 	    else
-	    	field->vapor[i] = 0;
+	    	field->vapor[i] = 3.2;
 	}
 }	/* end setInitialCondition */
+
+void VCARTESIAN::setInitialVapor(void)
+{
+	int i,j,k,index;
+	double coords[MAXD];
+	INTERFACE *intfc = front->interf;
+	POINT *p;
+        HYPER_SURF *hs;
+        HYPER_SURF_ELEMENT *hse;
+	STATE *sl,*sr;
+	int c;
+	char fname[100];
+	FILE *infile;
+	
+	short unsigned int seed[3] = {2,72,7172};
+        GAUSS_PARAMS gauss_params;
+        gauss_params.mu = 3.2;
+        gauss_params.sigma = 0.2;
+
+	FT_MakeGridIntfc(front);
+        setDomain();
+
+	/* Initialize states at the interface */
+        next_point(intfc,NULL,NULL,NULL);
+        while (next_point(intfc,&p,&hse,&hs))
+        {
+	    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+            sl->vapor = sr->vapor = 0;
+        }
+
+	// cell_center
+	for (i = 0; i < cell_center.size(); i++)
+	{
+	    field->vapor[i] = 0;
+	    field->supersat[i] = 0;
+	}
+	switch(dim)
+	{
+	    case 2: 
+        	sprintf(fname,"./vapor2d");
+        	infile = fopen(fname,"r");
+        	for (j = jmin; j <= jmax; ++j)
+        	for (i = imin; i <= imax; ++i)
+        	{
+            	    index = d_index2d(i,j,top_gmax);
+            	    fscanf(infile,"%lf",&field->vapor[index]);
+        	}
+		break;
+	    case 3: 
+		sprintf(fname,"./vapor3d");
+                infile = fopen(fname,"r");
+		for (k = kmin; k <= kmax; ++k)
+                for (j = jmin; j <= jmax; ++j)
+                for (i = imin; i <= imax; ++i)
+                {
+                    index = d_index3d(i,j,k,top_gmax);
+                    fscanf(infile,"%lf",&field->vapor[index]);
+                }
+                break;
+	    default:
+		printf("Unknown dim = %d\n",dim);
+		clean_up(ERROR);
+	}
+}	/* end setInitialVapor */
 
 void VCARTESIAN::setIndexMap(COMPONENT sub_comp)
 {
@@ -260,15 +328,15 @@ void VCARTESIAN::setIndexMap(COMPONENT sub_comp)
 	    FT_ParallelExchCellIndex(front,llbuf,uubuf,(POINTER)i_to_I);
 	    break;
 	case 2:
-	    for (i = imin; i <= imax; i++)
 	    for (j = jmin; j <= jmax; j++)
+	    for (i = imin; i <= imax; i++)
 	    {
 		ic = d_index2d(i,j,top_gmax);
 		if (sub_comp == NO_COMP || cell_center[ic].comp == sub_comp)
 		{
 	    	    ij_to_I[i][j] = index + ilower;
-		    I_to_ij[index + ilower][0] = i;
-                    I_to_ij[index + ilower][1] = j;
+		    I_to_ij[index][0] = i;
+                    I_to_ij[index][1] = j;
 	    	    index++;
 		}
 		else
@@ -277,17 +345,17 @@ void VCARTESIAN::setIndexMap(COMPONENT sub_comp)
 	    FT_ParallelExchCellIndex(front,llbuf,uubuf,(POINTER)ij_to_I);
 	    break;
 	case 3:
-	    for (i = imin; i <= imax; i++)
-	    for (j = jmin; j <= jmax; j++)
 	    for (k = kmin; k <= kmax; k++)
+	    for (j = jmin; j <= jmax; j++)
+	    for (i = imin; i <= imax; i++)
 	    {
 		ic = d_index3d(i,j,k,top_gmax);
 		if (sub_comp == NO_COMP || cell_center[ic].comp == sub_comp)
 		{
 	    	    ijk_to_I[i][j][k] = index + ilower;
-		    I_to_ijk[index + ilower][0] = i;
-                    I_to_ijk[index + ilower][1] = j;
-                    I_to_ijk[index + ilower][2] = k;
+		    I_to_ijk[index][0] = i;
+                    I_to_ijk[index][1] = j;
+                    I_to_ijk[index][2] = k;
 	    	    index++;
 		}
 		else
@@ -310,7 +378,7 @@ void VCARTESIAN::computeAdvection()
 
 	sub_comp[0] = SOLID_COMP;
 	sub_comp[1] = LIQUID_COMP2;
-
+	
 	for (i = 0; i < 2; ++i)
 	{
 		if(sub_comp[i] == SOLID_COMP)
@@ -327,7 +395,7 @@ void VCARTESIAN::computeAdvection()
 	}
 	printf("End solving advection\n\n");
 }
-    
+
 void VCARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 {
 	int i,j,k,l,m,ic,icn,I,I_nb,icoords[MAXD];
@@ -343,6 +411,8 @@ void VCARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
         const GRID_DIRECTION dir[3][2] =
                 {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
 	double *Temp = field->vapor;
+	double v[MAXD];
+	double eta;
 
 	start_clock("computeAdvectionCN");
 	if (debugging("trace")) printf("Entering computeAdvectionCN()\n");
@@ -408,8 +478,8 @@ void VCARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	    break;
 	case 2:
 	    solver.Create(ilower, iupper-1, 5, 5);
-	    for (i = imin; i <= imax; ++i)
 	    for (j = jmin; j <= jmax; ++j)
+	    for (i = imin; i <= imax; ++i)
 	    {
 	    	icoords[0] = i;
 	    	icoords[1] = j;
@@ -420,41 +490,55 @@ void VCARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	    	    continue;
                 T0 = Temp[ic];
 		rhs = T0;
+		if (source != NULL)
+		    rhs += m_dt*source[ic];
 		coeff = 1.0;
-		for (l = 0; l < dim; ++l)
-		{
-		    lambda = D*m_dt/sqr(top_h[l]);
+	 	for (l = 0; l < dim; ++l) v[l] = 0.0;
+                if (field->vel != NULL)
+                {
+                    for (l = 0; l < dim; ++l)
+                        v[l] = field->vel[l][ic];
+                }
+                for (l = 0; l < dim; ++l)
+                {
+                    lambda = D*m_dt/sqr(top_h[l]);
+                    eta = v[l]*m_dt/top_h[l];
 		    coeff += lambda;
+		    
                     for (m = 0; m < 2; ++m)
                     {
                         next_ip_in_dir(icoords,dir[l][m],ipn,gmin,top_gmax);
                         icn = d_index2d(ipn[0],ipn[1],top_gmax);
-			I_nb = ij_to_I[ipn[0]][ipn[1]];
-			coeff_nb = -0.5*lambda;
+                        I_nb = ij_to_I[ipn[0]][ipn[1]];
+                        coeff_nb = -0.5*lambda;
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
                                 icoords,dir[l][m],comp,getStateVapor,
                                 &T_nb,crx_coords);
                         if (!fr_crx_grid_seg)
                         {
-			    solver.Add_A(I,I_nb,coeff_nb);
-			    T_nb = Temp[icn];
-			    rhs -= coeff_nb*(T_nb - T0);
+                            solver.Add_A(I,I_nb,coeff_nb);
+                            T_nb = Temp[icn];
+                            rhs -= -0.5*lambda*(T_nb - T0);
+			    if(v[l] > 0 && m == 0)
+				rhs += eta * (T_nb - T0);
+			    if(v[l] < 0 && m == 1)
+				rhs += eta * (T0 - T_nb);
                         }
-			else
-			{
-			    rhs -= coeff_nb*(2.0*T_nb - T0);
-			}
+                        else
+                        {
+                            rhs -= -0.5*lambda*(2.0*T_nb - T0);
+                        }
                     }
-		}
-		solver.Add_A(I,I,coeff);
-		solver.Add_b(I,rhs);
+                }
+                solver.Add_A(I,I,coeff);
+                solver.Add_b(I,rhs);
 	    }
 	    break;
 	case 3:
 	    solver.Create(ilower, iupper-1, 7, 7);
-	    for (i = imin; i <= imax; ++i)
-	    for (j = jmin; j <= jmax; ++j)
 	    for (k = kmin; k <= kmax; ++k)
+	    for (j = jmin; j <= jmax; ++j)
+	    for (i = imin; i <= imax; ++i)
 	    {
 	    	icoords[0] = i;
 	    	icoords[1] = j;
@@ -466,9 +550,18 @@ void VCARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	    	    continue;
                 T0 = Temp[ic];
 		rhs = T0;
+                if (source != NULL)
+                    rhs += m_dt*source[ic];
 		coeff = 1.0;
+                for (l = 0; l < dim; ++l) v[l] = 0.0;
+                if (field->vel != NULL)
+                {
+                    for (l = 0; l < dim; ++l)
+                        v[l] = field->vel[l][ic];
+                }
 		for (l = 0; l < dim; ++l)
 		{
+                    eta = v[l]*m_dt/top_h[l];
 		    lambda = D*m_dt/sqr(top_h[l]);
 		    coeff += lambda;
                     for (m = 0; m < 2; ++m)
@@ -483,8 +576,12 @@ void VCARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
                         if (!fr_crx_grid_seg)
                         {
 			    solver.Add_A(I,I_nb,coeff_nb);
-			    T_nb = Temp[icn];
-			    rhs -= coeff_nb*(T_nb - T0);
+                            T_nb = Temp[icn];
+                            rhs -= -0.5*lambda*(T_nb - T0);
+                            if(v[l] > 0 && m == 0)
+                                rhs += eta * (T_nb - T0);
+                            if(v[l] < 0 && m == 1)
+                                rhs += eta * (T0 - T_nb);
                         }
 			else
 			{
@@ -530,8 +627,8 @@ void VCARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	    }
 	    break;
         case 2:
-            for (i = imin; i <= imax; i++)
             for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
             {
 	    	I = ij_to_I[i][j];
 	    	ic = d_index2d(i,j,top_gmax);
@@ -543,9 +640,9 @@ void VCARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	    }
 	    break;
         case 3:
-            for (i = imin; i <= imax; i++)
-            for (j = jmin; j <= jmax; j++)
             for (k = kmin; k <= kmax; k++)
+            for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
             {
 	    	I = ijk_to_I[i][j][k];
 	    	ic = d_index3d(i,j,k,top_gmax);
@@ -570,8 +667,8 @@ void VCARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	    }
 	    break;
         case 2:
-            for (i = 0; i <= top_gmax[0]; ++i)
             for (j = 0; j <= top_gmax[1]; ++j)
+            for (i = 0; i <= top_gmax[0]; ++i)
             {
 		ic = d_index2d(i,j,top_gmax);
 	    	comp = cell_center[ic].comp;
@@ -580,9 +677,9 @@ void VCARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	    }
 	    break;
         case 3:
-            for (i = 0; i <= top_gmax[0]; ++i)
-            for (j = 0; j <= top_gmax[1]; ++j)
             for (k = 0; k <= top_gmax[2]; ++k)
+            for (j = 0; j <= top_gmax[1]; ++j)
+            for (i = 0; i <= top_gmax[0]; ++i)
             {
 		ic = d_index3d(i,j,k,top_gmax);
 	    	comp = cell_center[ic].comp;
@@ -630,8 +727,8 @@ void VCARTESIAN::computeAdvectionCim()
         case 2:
             parab_solver.ij_to_I = ij_to_I;
             parab_solver.I_to_ij = I_to_ij;
-	    for (i = imin; i <= imax; ++i)
 	    for (j = jmin; j <= jmax; ++j)
+	    for (i = imin; i <= imax; ++i)
 	    {
 		index = d_index2d(i,j,top_gmax);
 		source[index] = -field->vapor[index]/m_dt;
@@ -640,9 +737,9 @@ void VCARTESIAN::computeAdvectionCim()
         case 3:
             parab_solver.ijk_to_I = ijk_to_I;
             parab_solver.I_to_ijk = I_to_ijk;
-	    for (i = imin; i <= imax; ++i)
-	    for (j = jmin; j <= jmax; ++j)
 	    for (k = kmin; k <= kmax; ++k)
+	    for (j = jmin; j <= jmax; ++j)
+	    for (i = imin; i <= imax; ++i)
 	    {
 		index = d_index3d(i,j,k,top_gmax);
 		source[index] = -field->vapor[index]/m_dt;
@@ -777,20 +874,8 @@ void VCARTESIAN::solve(double dt)
 	setDomain();
         if (debugging("trace")) printf("Passing setDomain()\n");
 
-	if (debugging("sample_vapor"))
-            sampleTemperature();
-
 	setComponent();
 	if (debugging("trace")) printf("Passing setComponent()\n");
-
-	if (debugging("sample_vapor"))
-            sampleTemperature();
-
-	computeAdvection();
-	if (debugging("trace")) printf("Passing computeAdvection()\n");
-	
-	computeSupersat();
-	if (debugging("trace")) printf("Passing computeSupersat()\n");
 
 	if(eqn_params->prob_type == PARTICLE_TRACKING)
 	    computeSource();
@@ -798,8 +883,11 @@ void VCARTESIAN::solve(double dt)
 	    source = NULL;
 	if (debugging("trace")) printf("Passing computeSource()\n");
 
-	if (debugging("sample_vapor"))
-            sampleTemperature();
+	computeAdvection();
+	if (debugging("trace")) printf("Passing computeAdvection()\n");
+	
+	computeSupersat();
+	if (debugging("trace")) printf("Passing computeSupersat()\n");
 
 	setAdvectionDt();
 	if (debugging("trace")) printf("Passing setAdvectionDt()\n");
@@ -1173,6 +1261,7 @@ void VCARTESIAN::setGlobalIndex(COMPONENT sub_comp)
         }	
 }
 
+
 void VCARTESIAN::printFrontInteriorState(char *out_name)
 {
         int i,j,k,l,index;
@@ -1192,6 +1281,7 @@ void VCARTESIAN::printFrontInteriorState(char *out_name)
         if (pp_numnodes() > 1)
             sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
 #endif /* defined(__MPI__) */
+
         outfile = fopen(filename,"w");
 
         /* Initialize states at the interface */
@@ -1438,283 +1528,11 @@ void VCARTESIAN::setBoundary()
 	}
 }	/* end setBoundary */
 
-void VCARTESIAN::oneDimPlot(char *outname)
-{
-	xgraphOneDimPlot(outname);
-}	/* end vaporPlot */
-
-void VCARTESIAN::xgraphOneDimPlot(char *outname)
-{
-	int i,index;
-	char filename[100];
-	FILE *outfile;
-	double *Temp = field->vapor;
-
-	if (debugging("trace"))
-	    printf("Entering xgraphTemp1()\n");
-        sprintf(filename,"%s/tmp-xg.ts%s",outname,right_flush(front->step,7));
-#if defined(__MPI__)
-        sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
-#endif /* defined(__MPI__) */
-        outfile = fopen(filename,"w");
-	fprintf(outfile,"\"Solid temp at %6.3f\"\n",front->time);
-	for (i = 0; i <= top_gmax[0]; ++i)
-	{
-	    index = d_index1d(i,top_gmax);
-	    if (cell_center[index].comp == SOLID_COMP)
-	    	fprintf(outfile,"%24.18g  %24.18g\n",
-	    		cell_center[index].coords[0],
-	    		Temp[index]);
-	}
-	fprintf(outfile,"\n\n");
-	fprintf(outfile,"\"Liquid temp at %6.3f\"\n",front->time);
-	for (i = 0; i <= top_gmax[0]; ++i)
-	{
-	    index = d_index1d(i,top_gmax);
-	    if (cell_center[index].comp == LIQUID_COMP2)
-	    	fprintf(outfile,"%24.18g  %24.18g\n",
-	    		cell_center[index].coords[0],
-	    		Temp[index]);
-	}
-	fclose(outfile);
-	if (debugging("trace"))
-	    printf("Leaving xgraphTemp1()\n");
-}	/* end xgraphOneDimPlot */
-
-void VCARTESIAN::vtk_plot_vapor2d(
-	char *outname)
-{
-	std::vector<int>ph_index;
-        int i,j,k,index;
-        char dirname[256],filename[256];
-        FILE *outfile;
-        double coord_x,coord_y,coord_z,xmin,ymin;
-        COMPONENT comp;
-        int pointsx,pointsy,num_points,num_cells,num_cell_list;
-        int icoords[2],p_gmax[2];
-
-        sprintf(filename, "%s/vtk/vtk.ts%s",outname,
-                right_flush(front->step,7));
-        if (pp_numnodes() > 1)
-            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
-
-        //cell-based liquid phase
-        ph_index.clear();
-        if (!create_directory(filename,NO))
-        {
-            printf("Cannot create directory %s\n",filename);
-            clean_up(ERROR);
-        }
-        sprintf(filename,"%s/liquid.vtk",filename);
-        outfile = fopen(filename,"w");
-        fprintf(outfile,"# vtk DataFile Version 3.0\n");
-        fprintf(outfile,"liquid vapor\n");
-        fprintf(outfile,"ASCII\n");
-        fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
-
-        for (j = jmin; j <= jmax; j++)
-        for (i = imin; i <= imax; i++)
-        {
-            index = d_index2d(i,j,top_gmax);
-            if (cell_center[index].comp == LIQUID_COMP2)
-                ph_index.push_back(index);
-        }
-
-        pointsx = top_gmax[0] + 2;
-        pointsy = top_gmax[1] + 2;
-
-        num_points = pointsx*pointsy;
-
-        num_cells = (int) ph_index.size();
-        num_cell_list = 5*num_cells;
-
-
-        index = d_index2d(imin,jmin,top_gmax);
-        xmin = cell_center[index].coords[0] - top_h[0]/2.0;
-        ymin = cell_center[index].coords[1] - top_h[1]/2.0;
-
-        fprintf(outfile,"POINTS %d double\n", num_points);
-        for (j = 0; j <= top_gmax[1]; j++)
-        for (i = 0; i <= top_gmax[0]; i++)
-        {
-            index = d_index2d(i,j,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = 0.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-	for (i = 0; i <= top_gmax[0]; i++)
-        {
-            j = top_gmax[1];
-            index = d_index2d(i,j,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-            coord_z = 0.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        for (j = 0; j <= top_gmax[1]; j++)
-        {
-            i = top_gmax[0];
-            index = d_index2d(i,j,top_gmax);
-            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = 0.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        i = top_gmax[0];
-        j = top_gmax[1];
-        index = d_index2d(i,j,top_gmax);
-        coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-        coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-        coord_z = 0.0;
-        fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-
-	fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
-        for (i = 0; i < num_cells; i++)
-        {
-            int index0,index1,index2,index3;
-            index = ph_index[i];
-            icoords[0] = cell_center[index].icoords[0];
-            icoords[1] = cell_center[index].icoords[1];
-
-            index0 = d_index2d(icoords[0],icoords[1],top_gmax);
-            index1 = d_index2d(icoords[0]+1,icoords[1],top_gmax);
-            index2 = d_index2d(icoords[0],icoords[1]+1,top_gmax);
-            index3 = d_index2d(icoords[0]+1,icoords[1]+1,top_gmax);
-
-            fprintf(outfile,"4 %i %i %i %i\n",
-                    index0,index1,index2,index3);
-        }
-
-        fprintf(outfile, "CELL_TYPES %i\n", num_cells);
-        for (i = 0; i < num_cells; i++)
-            fprintf(outfile, "8\n");
-
-        fprintf(outfile, "CELL_DATA %i\n", num_cells);
-        fprintf(outfile, "SCALARS vapor double\n");
-        fprintf(outfile, "LOOKUP_TABLE default\n");
-        for (i = 0; i < num_cells; i++)
-        {
-            index = ph_index[i];
-            fprintf(outfile,"%f\n", eqn_params->field->vapor[index]);
-        }
-
-        fclose(outfile);
-
-	//cell-based solid phase
-	sprintf(filename,"%s/vtk/vtk.ts%s",outname,
-                right_flush(front->step,7));
-        if (pp_numnodes() > 1)
-            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
-
-        ph_index.clear();
-        sprintf(filename,"%s/solid.vtk",filename);
-        outfile = fopen(filename,"w");
-        fprintf(outfile,"# vtk DataFile Version 3.0\n");
-        fprintf(outfile,"solid vapor\n");
-        fprintf(outfile,"ASCII\n");
-        fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
-
-        for (j = jmin; j <= jmax; j++)
-        for (i = imin; i <= imax; i++)
-        {
-            index = d_index2d(i,j,top_gmax);
-            if (cell_center[index].comp == SOLID_COMP)
-                ph_index.push_back(index);
-        }
-
-        pointsx = top_gmax[0] + 2;
-        pointsy = top_gmax[1] + 2;
-        num_points = pointsx*pointsy;
-
-        num_cells = (int) ph_index.size();
-        num_cell_list = 5*num_cells;
-
-        index = d_index2d(imin,jmin,top_gmax);
-        xmin = cell_center[index].coords[0] - top_h[0]/2.0;
-        ymin = cell_center[index].coords[1] - top_h[1]/2.0;
-
-        fprintf(outfile,"POINTS %d double\n", num_points);
-        for (j = 0; j <= top_gmax[1]; j++)
-        for (i = 0; i <= top_gmax[0]; i++)
-        {
-            index = d_index2d(i,j,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = 0.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-	for (i = 0; i <= top_gmax[0]; i++)
-        {
-            j = top_gmax[1];
-            index = d_index2d(i,j,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-            coord_z = 0.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        for (j = 0; j <= top_gmax[1]; j++)
-        {
-            i = top_gmax[0];
-            index = d_index2d(i,j,top_gmax);
-            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = 0.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        i = top_gmax[0];
-        j = top_gmax[1];
-        index = d_index2d(i,j,top_gmax);
-        coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-        coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-        coord_z = 0.0;
-        fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-
-
-
-        fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
-        for (i = 0; i < num_cells; i++)
-        {
-            int index0,index1,index2,index3;
-            index = ph_index[i];
-            icoords[0] = cell_center[index].icoords[0];
-            icoords[1] = cell_center[index].icoords[1];
-
-            index0 = d_index2d(icoords[0],icoords[1],top_gmax);
-            index1 = d_index2d(icoords[0]+1,icoords[1],top_gmax);
-            index2 = d_index2d(icoords[0],icoords[1]+1,top_gmax);
-            index3 = d_index2d(icoords[0]+1,icoords[1]+1,top_gmax);
-
-            fprintf(outfile,"4 %i %i %i %i\n",
-                    index0,index1,index2,index3);
-        }
-
-	fprintf(outfile, "CELL_TYPES %i\n", num_cells);
-        for (i = 0; i < num_cells; i++)
-            fprintf(outfile, "8\n");
-
-        fprintf(outfile, "CELL_DATA %i\n", num_cells);
-        fprintf(outfile, "SCALARS vapor double\n");
-        fprintf(outfile, "LOOKUP_TABLE default\n");
-        for (i = 0; i < num_cells; i++)
-        {
-            index = ph_index[i];
-            fprintf(outfile,"%f\n",eqn_params->field->vapor[index]);
-        }
-
-        fclose(outfile);
-}       /* end vtk_plot_vapor2d */
-
 void VCARTESIAN::vtk_plot3d(
-        char *outname,const char *varname)
+        const char *varname,double *var)
 {
 	std::vector<int> ph_index;
+	char *outname = front->out_name;
         int i,j,k,index;
         char dirname[256],filename[256];
         FILE *outfile;
@@ -1728,9 +1546,6 @@ void VCARTESIAN::vtk_plot3d(
 
         sprintf(filename, "%s/vtk/vtk.ts%s",outname,
                 right_flush(front->step,7));
-        if (pp_numnodes() > 1)
-            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
-
         //cell-based liquid phase
         ph_index.clear();
         if (!create_directory(filename,NO))
@@ -1738,6 +1553,11 @@ void VCARTESIAN::vtk_plot3d(
             printf("Cannot create directory %s\n",filename);
             clean_up(ERROR);
         }
+#if defined(__MPI__)
+        if (pp_numnodes() > 1)
+            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+#endif /* defined(__MPI__) */
+
         sprintf(filename,"%s/%s.vtk",filename,varname);
         outfile = fopen(filename,"w");
         fprintf(outfile,"# vtk DataFile Version 3.0\n");
@@ -1886,24 +1706,175 @@ void VCARTESIAN::vtk_plot3d(
         fprintf(outfile, "CELL_DATA %i\n", num_cells);
         fprintf(outfile, "SCALARS %s double\n",varname);
         fprintf(outfile, "LOOKUP_TABLE default\n");
-	if(strcmp(varname,"vapor") == 0)
-	{
-            for (i = 0; i < num_cells; i++)
-            {
-                index = ph_index[i];
-	        fprintf(outfile,"%f\n",eqn_params->field->vapor[index]);
-            }
-	}
-	else if(strcmp(varname,"supersat") == 0)
+	if(var != NULL)
 	{
 	    for (i = 0; i < num_cells; i++)
             {
                 index = ph_index[i];
-	        fprintf(outfile,"%f\n",eqn_params->field->supersat[index]);
+                fprintf(outfile,"%f\n",var[index]);
             }
+	}
+	else
+	{
+	 	printf("The var is NULL!\n");
+		clean_up(ERROR);
 	}
         fclose(outfile);
 }       /* end vtk_plot_vapor3d */
+
+void VCARTESIAN::recordMixingLine()
+{
+	PARAMS *eqn_params = (PARAMS*)front->extra2;
+	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+	PARTICLE *particle_array = eqn_params->particle_array;
+	int num_drops = eqn_params->num_drops;
+	static boolean first = YES;
+	static double prev_RN[2] = {0,0};
+	double mu = iFparams->mu2;
+	double **vel = field->vel;
+	double slope;
+	double t_evap, t_mix;
+	double DspRat,Omega,rv,r0; /*dissipation rate*/
+	double Vortex[3]; /*vortex field*/
+	double supersat;
+	int i, j, k, l, m, m1, m2, ic, I, icoords[MAXD],size, count, nzeros;
+	int gmin[MAXD], ipn[MAXD];
+	int I_nb[3][2];
+	const GRID_DIRECTION dir[3][2] =
+                {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
+	FILE *file;
+	char fname[100];
+	char *out_name = front->out_name;
+	double L = top_U[0] - top_L[0];
+
+	if (3 != dim)
+	    return;
+	double a3 = 1;
+	for (i = 0; i < dim; i++) 
+	{
+	    gmin[i] = 0;
+	    a3 *= top_h[i]; 
+	}
+	/*compute mean energy dissipation rate*/
+	DspRat = 0;
+	supersat = 0;
+	count = 0;
+	size = 0;
+        for (k = kmin; k < kmax; k++)
+        for (j = jmin; j < jmax; j++)
+        for (i = imin; i < imax; i++)
+        {
+	    size++;
+            ic = d_index3d(i,j,k,top_gmax);
+	    if (field->drops[ic] == 0)
+	    {
+   	        supersat += field->supersat[ic];
+		count ++;
+	    }
+            icoords[0] = i;
+            icoords[1] = j;
+            icoords[2] = k;
+            I = ijk_to_I[i][j][k];
+            for (m = 0; m < dim; ++m)
+	    for (l = 0; l < 2; ++l)
+            {
+		if(next_ip_in_dir(icoords,dir[m][l],ipn,gmin,top_gmax))
+                    I_nb[m][l] = ijk_to_I[ipn[0]][ipn[1]][ipn[2]];
+		else
+		{
+		    printf("In recordMixingLine(), cannot find next ip\n");
+	        printf("gmin=[%d %d %d]\n",gmin[0],gmin[1],gmin[2]);
+		printf("gmax=[%d %d %d]\n",top_gmax[0],top_gmax[1],top_gmax[2]);
+		printf("icoords=[%d %d %d]\n",icoords[0],icoords[1],icoords[2]);
+		    clean_up(ERROR);
+		}
+            }
+	    /*compute vortex: Nabla X U*/
+	    for (l = 0; l < dim; l++)
+	    {
+		m1 = (l+1)%dim;
+		m2 = (l+2)%dim;
+	        Vortex[l]  =  (vel[m2][I_nb[m1][1]]-vel[m2][I_nb[m1][0]])/(2*top_h[m1]);
+	        Vortex[l] -=  (vel[m1][I_nb[m2][1]]-vel[m1][I_nb[m2][0]])/(2*top_h[m2]);
+	    }
+	    Omega = 0; /*compute enstrophy: Omega=|Vortex|^2*/
+	    for (l = 0; l < dim; ++l)
+	    {
+		Omega += sqr(Vortex[l]);
+	    }
+	    /*compute dissipation rate using: 2*mu*Omega*/ 
+	    DspRat += 2*mu*Omega;
+	}
+	DspRat   /= size;
+	supersat /= count;
+
+	t_mix = pow(L*L/DspRat,1.0/3.0);
+	
+	rv = 0;
+	r0 = 0;
+	nzeros = 0;
+	for (i = 0; i < num_drops; i++)
+	{   
+	    if (particle_array[i].radius != 0)
+		nzeros ++;
+	    rv += pow(particle_array[i].radius,3.0);
+	    r0 += pow(particle_array[i].R0,3.0);
+	}
+	if (nzeros == 0)
+	{
+	   printf("No dropletes contained\n");
+	   clean_up(0);
+	}
+
+	rv /= nzeros;
+	r0 /= num_drops;
+
+	if (supersat < 0)
+	    t_evap = pow(rv,2.0/3.0)/(-eqn_params->K*supersat);
+	else
+	    t_evap = HUGE;
+
+	slope = (double(nzeros)/double(num_drops)-prev_RN[1])
+		/((rv/r0)-prev_RN[0]);
+	prev_RN[0] = rv/r0;
+	prev_RN[1] = double(nzeros)/double(num_drops);
+	if (first)
+	{
+	    sprintf(fname,"%s/mixing",out_name);
+	    file = fopen(fname,"w");
+	    fprintf(file,"%%Damkoehler number VS slope of R-N diagram\n");
+	    fprintf(file,"%%t_mix    t_evap    Damkoehler    slope\n");
+	    fclose(file);
+
+            sprintf(fname,"%s/RN",out_name);
+            file = fopen(fname,"w");
+            fprintf(file,"%%Rv    supersat    Rv^3/R0^3    N/N0\n");
+            fclose(file);
+
+            sprintf(fname,"%s/dissipation",out_name);
+            file = fopen(fname,"w");
+            fprintf(file,"%%Dissipation Rate\n");
+            fclose(file);
+
+	    first = NO;
+	    return;
+	}
+	sprintf(fname,"%s/mixing",out_name);
+	file = fopen(fname,"a");
+	fprintf(file,"%15.14f  %15.14f  %15.14f  %15.14f\n",
+		t_mix,t_evap,t_mix/t_evap,slope);
+	fclose(file);
+	/*plot mixing line: N/N0 VS. (Rv/Rv0)^3*/
+        sprintf(fname,"%s/RN",out_name);
+        file = fopen(fname,"a");
+	fprintf(file,"%15.14e  %15.14f  %15.14f  %15.14f\n", 
+		pow(rv,1.0/3.0),supersat,rv/r0, double(nzeros)/double(num_drops));
+	fclose(file);
+        sprintf(fname,"%s/dissipation",out_name);
+        file = fopen(fname,"a");
+	fprintf(file,"%20.19f\n",DspRat);
+	fclose(file);
+}
 
 void VCARTESIAN::pointExplicitCimSolver(
 	int *icoords,
@@ -2034,8 +2005,8 @@ void VCARTESIAN::computeAdvectionExplicitCim(COMPONENT sub_comp)
             }
             break;
 	case 2:
-	    for (i = imin; i <= imax; ++i)
 	    for (j = jmin; j <= jmax; ++j)
+	    for (i = imin; i <= imax; ++i)
 	    {
 	    	icoords[0] = i;
 	    	icoords[1] = j;
@@ -2043,9 +2014,9 @@ void VCARTESIAN::computeAdvectionExplicitCim(COMPONENT sub_comp)
 	    }
 	    break;
 	case 3:
-	    for (i = imin; i <= imax; ++i)
-	    for (j = jmin; j <= jmax; ++j)
 	    for (k = kmin; k <= kmax; ++k)
+	    for (j = jmin; j <= jmax; ++j)
+	    for (i = imin; i <= imax; ++i)
 	    {
 	    	icoords[0] = i;
 	    	icoords[1] = j;
@@ -2167,8 +2138,8 @@ void VCARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
             }
             break;
 	case 2:
-	    for (i = imin; i <= imax; ++i)
 	    for (j = jmin; j <= jmax; ++j)
+	    for (i = imin; i <= imax; ++i)
 	    {
 	    	icoords[0] = i;
 	    	icoords[1] = j;
@@ -2219,9 +2190,9 @@ void VCARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
 	    }
 	    break;
 	case 3:
-	    for (i = imin; i <= imax; ++i)
-	    for (j = jmin; j <= jmax; ++j)
 	    for (k = kmin; k <= kmax; ++k)
+	    for (j = jmin; j <= jmax; ++j)
+	    for (i = imin; i <= imax; ++i)
 	    {
 	    	icoords[0] = i;
 	    	icoords[1] = j;
@@ -2311,25 +2282,6 @@ void VCARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
 	stop_clock("computeAdvectionExplicit");
 }	/* computeAdvectionExplicit */
 
-void VCARTESIAN::checkOutput()
-{
-	printf("Enter checkOutput()\n");
-	int i,j;
-	HDF_MOVIE_VAR *hdf_movie_var = front->hdf_movie_var;
-	
-	for(i = 0; i < hdf_movie_var->num_var; ++i)
-	{
-	    printf("%dth var: %s\n",i,hdf_movie_var->var_name[i]);
-	    for(j = 0; j < 1000; j++)
-	    {
-	    	if(j%100 == 0)
-		    printf("%s[%d] = %f\n",
-			hdf_movie_var->var_name[i],j,
-			hdf_movie_var->top_var[i][j]);
-	    }
-	}
-}
-
 void VCARTESIAN::checkField()
 {
 	int i,j,k,index,count;
@@ -2372,14 +2324,17 @@ void VCARTESIAN::checkField()
                 }
         }
 
+	count = 0;
         for(j = 0; j < comp_size; j++)
         {
-		if(j%1000 == 0)
 		if(field->supersat[j] != prev)
-                    printf("%s[%d] = %20.14f\n",
+                {
+		    printf("%s[%d] = %20.14f\n",
                         "supersat",j,
                         field->supersat[j]);
-		prev = field->supersat[j];
+		    prev = field->supersat[j];
+		    count++;
+		}
 		if(count > 20)
                 {
                     printf("......\n");
@@ -2398,7 +2353,7 @@ void VCARTESIAN::checkField()
                         "velo",i,j,
                         field->vel[0][index],field->vel[1][index]);
             }
-            for(i = imin; i < imax; i++)
+            for(i = imin; i <= imax; i++)
             {
 		j = (int)(jmax/2);
 		index = d_index2d(i,j,top_gmax);
@@ -2409,8 +2364,8 @@ void VCARTESIAN::checkField()
 	    index = d_index2d(imin,jmin,top_gmax);
 	    printf("pres[%d][%d] = %f\n",imin,jmin,field->pres[index]);
 
-            for (i = imin; i <= imax; ++i)
             for (j = jmin; j <= jmax; ++j)
+            for (i = imin; i <= imax; ++i)
             {
                 index = d_index2d(i,j,top_gmax);
 	        if(top_comp[index] == SOLID_COMP)
@@ -2432,7 +2387,7 @@ void VCARTESIAN::checkField()
                         "velo",i,j,k,
                         field->vel[0][index],field->vel[1][index],field->vel[2][index]);
             }
-            for(i = imin; i < imax; i++)
+            for(i = imin; i <= imax; i++)
             {
 		j = (int)(jmax/2);
 		k = (int)(kmax/2);
@@ -2445,9 +2400,9 @@ void VCARTESIAN::checkField()
 	    printf("pres[%d][%d][%d] = %f\n",imin,jmin,kmin,field->pres[index]);
 
 
-            for (i = imin; i <= imax; ++i)
-            for (j = jmin; j <= jmax; ++j)
 	    for (k = kmin; k <= kmax; ++k)
+            for (j = jmin; j <= jmax; ++j)
+            for (i = imin; i <= imax; ++i)
             {
                 index = d_index3d(i,j,k,top_gmax);
                 if(top_comp[index] == SOLID_COMP)
@@ -2467,153 +2422,244 @@ void VCARTESIAN::recordField(char *outname, const char *varname)
 	FILE *outfile;
 	char filename[256];
         sprintf(filename, "%s/record-%s",outname,varname);
-        if (pp_numnodes() > 1)
-            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
 
         if (!create_directory(filename,NO))
         {
             printf("Cannot create directory %s\n",filename);
             clean_up(ERROR);
         }
-        sprintf(filename,"%s/%s-%s",filename,varname,right_flush(front->step,7));
+        sprintf(filename,"%s/%s-%4.2f",filename,varname,front->time);
+        if (pp_numnodes() > 1)
+           return;
         outfile = fopen(filename,"w");
 	switch(dim)
 	{
 	    case 2:
-		for (i = imin; i <= imax; ++i)
 	        for (j = jmin; j <= jmax; ++j)
+		for (i = imin; i <= imax; ++i)
         	{
 		    index = d_index2d(i,j,top_gmax);
 	            if(strcmp(varname,"temperature") == 0)
-        	        fprintf(outfile,"%f\n",field->temperature[index]);
+        	        fprintf(outfile,"%20.14f\n",field->temperature[index]);
 	            else if(strcmp(varname,"vapor") == 0)
         	        fprintf(outfile,"%f\n",field->vapor[index]);
 	            else if(strcmp(varname,"supersat") == 0)
         	        fprintf(outfile,"%f\n",field->supersat[index]);
-		    else
-			printf("Unknown fields\n");
+		}
+	        if(strcmp(varname,"velocity") == 0)
+	  	{
+	            for (j = jmin; j <= jmax; ++j)
+		    for (i = imin; i <= imax; ++i)
+		    {
+			index = d_index2d(i,j,top_gmax);
+			fprintf(outfile,"%f  %f\n",
+				field->vel[0][index],field->vel[1][index]);
+		    }
 		}
 		break;
 	    case 3:
-                for (i = imin; i <= imax; ++i)
-                for (j = jmin; j <= jmax; ++j)
 		for (k = kmin; k <= kmax; ++k)
+                for (j = jmin; j <= jmax; ++j)
+                for (i = imin; i <= imax; ++i)
 		{
 		    index = d_index3d(i,j,k,top_gmax);
 	            if(strcmp(varname,"temperature") == 0)
-        	        fprintf(outfile,"%f\n",field->temperature[index]);
+        	        fprintf(outfile,"%20.14f\n",field->temperature[index]);
 	            else if(strcmp(varname,"vapor") == 0)
         	        fprintf(outfile,"%f\n",field->vapor[index]);
 	            else if(strcmp(varname,"supersat") == 0)
         	        fprintf(outfile,"%f\n",field->supersat[index]);
-		    else
-			printf("Unknown fields\n");
 		}
-		break;
-	    default:
-		printf("Unknown dim = %d\n");
-		clean_up(ERROR);
-	}
-	fclose(outfile);
-}
-
-void VCARTESIAN::recordMomentum()
-{
-	double **vel = field->vel;
-	int i,j,k,index;
-	static boolean first = YES;
-	static int step = 0;
-	if (first == YES)
-	{
-	    first = NO;
-	    for(i = 0; i < MAX_STEP; i++)
-	    for(j = 0; j < MAXD; j++)
-		total_vel[j][i] = 0;
-	}
-
-	if (dim == 2)
-        {
-	    for(i = imin; i <= imax; i++)
-            for(j = jmin; j <= jmax; j++)
-            {
-                index = d_index2d(i,j,top_gmax);
-		total_vel[0][step] += vel[0][index];
-		total_vel[1][step] += vel[1][index];
-            }
-	    if(step == MAX_STEP-1)
-	        plotMomentum(front->out_name);
-	}
-	else if (dim == 3)
-	{
-	    for(i = imin; i <= imax; i++)
-            for(j = jmin; j <= jmax; j++)
-            for(k = kmin; k <= kmax; k++)
-	    {
-		index = d_index3d(i,j,k,top_gmax);
-		total_vel[0][step] += vel[0][index];
-		total_vel[1][step] += vel[1][index];
-		total_vel[2][step] += vel[2][index];
-	    }
-	    if(step == MAX_STEP-1)
-	        plotMomentum(front->out_name);
-	}	
-        ++step;
-}
-
-void VCARTESIAN::plotMomentum(char *outname)
-{
-	int i, j, k, count;
-	char fnameX[100],fnameY[100],fnameZ[100];
-	FILE *fileX, *fileY, *fileZ;
-	switch(dim)
-	{
-	    case 2:
-	        sprintf(fnameX,"%s/xvel.xg",outname);
-	        sprintf(fnameY,"%s/yvel.xg",outname);
-
-		fileX = fopen(fnameX,"w");
-		fprintf(fileX,"\"total xvel vs. time\"\n");
-		fileY = fopen(fnameY,"w");
-		fprintf(fileY,"\"total yvel vs. time\"\n");
-		for(i = 0; i < MAX_STEP; i++)
-		{
-		    if(total_vel[0][i] != 0)
-		        fprintf(fileX,"%d %f\n",i,total_vel[0][i]);
-		    if(total_vel[1][i] != 0)
-		        fprintf(fileY,"%d %f\n",i,total_vel[1][i]);
+	        if(strcmp(varname,"velocity") == 0)
+	  	{
+		    for (k = kmin; k <= kmax; ++k)
+                    for (j = jmin; j <= jmax; ++j)
+		    for (i = imin; i <= imax; ++i)
+		    {
+			index = d_index3d(i,j,k,top_gmax);
+			fprintf(outfile,"%f  %f  %f\n",
+				field->vel[0][index],field->vel[1][index],
+				field->vel[2][index]);
+		    }
 		}
-		fclose(fileX);
-		fclose(fileY);
-		break;
-	    case 3:
-		sprintf(fnameX,"%s/xvel.xg",outname);
-                sprintf(fnameY,"%s/yvel.xg",outname);
-                sprintf(fnameZ,"%s/zvel.xg",outname);
-		fileX = fopen(fnameX,"w");
-		fprintf(fileX,"\"total xvel vs. time\"\n");
-		fileY = fopen(fnameY,"w");
-		fprintf(fileY,"\"total yvel vs. time\"\n");
-		fileZ = fopen(fnameZ,"w");
-		fprintf(fileZ,"\"total zvel vs. time\"\n");
-		for(i = 0; i < MAX_STEP; i++)
-		{
-		    if(total_vel[0][i] != 0)
-		        fprintf(fileX,"%d %f\n",i,total_vel[0][i]);
-		    if(total_vel[1][i] != 0)
-		        fprintf(fileY,"%d %f\n",i,total_vel[1][i]);
-		    if(total_vel[2][i] != 0)
-		        fprintf(fileZ,"%d %f\n",i,total_vel[2][i]);
-		}
-		fclose(fileX);
-		fclose(fileY);
-		fclose(fileZ);
 		break;
 	    default:
 		printf("Unknown dim = %d\n",dim);
 		clean_up(ERROR);
 	}
+	fclose(outfile);
 }
 
+void VCARTESIAN::recordTKE()
+{
+        double **vel = field->vel;
+        int i,j,k,count,index;
+        static boolean first = YES;
+	double E;
+        char fname[256];
+        FILE *file;
+        sprintf(fname,"%s/TKE.m",front->out_name);
+        if (pp_mynode() != 0)
+           return;
+        file = fopen(fname,"a");
+	if (first)
+	{
+	    first = NO;
+            fprintf(file,"%%turbulence kinetic energy vs. time\n");
+            fprintf(file,"%%time  TKE\n");
+	}
+	
+	E = 0.0;
+	count = 0;
+	switch(dim)
+	{
+	    case 2:
+                for (j = jmin; j <= jmax; ++j)
+                for (i = imin; i <= imax; ++i)
+                {
+                    index = d_index2d(i,j,top_gmax);
+		    E += 0.5*vel[0][index]*vel[0][index];
+		    E += 0.5*vel[1][index]*vel[1][index];
+		    count++;	
+		}
+		E /= count;
+		break;
+	    case 3:
+                for (k = kmin; k <= kmax; ++k)
+                for (j = jmin; j <= jmax; ++j)
+		for (i = imin; i <= imax; ++i)
+                {
+                    index = d_index3d(i,j,k,top_gmax);
+		    E += 0.5*vel[0][index]*vel[0][index];
+                    E += 0.5*vel[1][index]*vel[1][index];
+		    E += 0.5*vel[2][index]*vel[2][index];
+		    count++;
+		}
+		E /= count;
+		break;
+	    default:
+		printf("Unknown dim = %d\n",dim);
+                clean_up(ERROR);
+	}
+	fprintf(file,"%f  %20.19f\n",front->time,E);
+	fclose(file);
+}
+
+
+void VCARTESIAN::recordWaterBalance()
+{
+        double *vapor = field->vapor;
+	double vapor_mass,liquid_mass;
+	double rho,r,a3 = 1;
+        int i,j,k,index;
+        static boolean first = YES;
+	double water_balance[4];
+	IF_PARAMS* iFparams = (IF_PARAMS*)front->extra1;
+        PARAMS* eqn_params = (PARAMS*)front->extra2;
+        PARTICLE* particle_array = eqn_params->particle_array;
+        int num_drops = eqn_params->num_drops;
+	double temp;
+        char fname[256];
+        FILE *file;
+
+        sprintf(fname,"%s/water_balance.m",front->out_name);
+        file = fopen(fname,"a");
+
+	for(i = 0; i < dim; i++)
+            a3 *= top_h[i];
+
+        if (first == YES)
+        {
+            first = NO;
+	    fprintf(file,"%%water balance vs. time\n");
+	    fprintf(file,"%%time  vapor  liquid  total\n");
+        }
+	/*compute water mass in vapor*/
+        if (dim == 2)
+        {
+	    vapor_mass = 0.0;
+	    for(j = jmin; j <= jmax; j++)
+	    for(i = imin; i <= imax; i++)
+	    {
+                index = d_index2d(i,j,top_gmax);
+		rho = iFparams->rho2;
+		vapor_mass += rho * a3 *vapor[index]; 
+	    }
+        }
+        else if (dim == 3)
+        {
+	    vapor_mass = 0.0;
+	    int count = 0;
+	    for(k = kmin; k <= kmax; k++)
+            for(j = jmin; j <= jmax; j++)
+            for(i = imin; i <= imax; i++)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+		rho = iFparams->rho2;
+                vapor_mass += rho * a3 *vapor[index];
+            }
+        }
+	water_balance[0] = front->time;
+        water_balance[1] = 0.001 * vapor_mass;
+	/*compute water mass in droplets*/
+	liquid_mass = 0.0;
+	if (eqn_params->prob_type == PARTICLE_TRACKING)
+	{
+            for (i = 0; i < num_drops; i++)
+            {
+	        r = particle_array[i].radius;
+	        liquid_mass += 4.0/3.0*PI*r*r*r*particle_array[i].rho;
+	    }
+	} 
+	water_balance[2] = liquid_mass;
+	water_balance[3] = liquid_mass + 0.001 * vapor_mass;
+
+#if defined(__MPI__)
+	double local_water[3];
+	for (i = 1; i < 4; i++)
+	    local_water[i-1] = water_balance[i];
+
+	if (pp_mynode() != 0)
+	{
+	    pp_send(1, (POINTER)local_water,sizeof(double)*4,0);
+	}
+	else
+	{
+	    for (i = 1; i < pp_numnodes(); i++)
+	    {
+		pp_recv(1, i, (POINTER)local_water,sizeof(double)*4);
+		for (i = 1; i < 4; i++)
+		    water_balance[i] += local_water[i-1];
+	    }
+	}
+#endif /* defined(__MPI__) */
+	for (i = 0 ; i < 4; i++)
+	    fprintf(file,"%20.19f  ",water_balance[i]);
+	fprintf(file,"\n");	
+	fclose(file);
+}
+
+void VCARTESIAN::recordSampleRadius()
+{
+	int i,j;
+        char fname[256];
+        FILE *file;
+	static boolean first = YES;
+
+        sprintf(fname,"%s/sample_radius.m",front->out_name);
+        file = fopen(fname,"a");
+	if (first)
+	{
+            fprintf(file,"%%sample_radius vs. time\n");
+            fprintf(file,"%%time radius\n");
+	    first = NO;
+	}
+	PARAMS* eqn_params = (PARAMS*)front->extra2;
+	PARTICLE* particle_array = eqn_params->particle_array;
+        fprintf(file,"%f  %20.19f\n",front->time,
+                         particle_array[0].radius);
+	fclose(file);
+}
 
 void VCARTESIAN::setDomain()
 {
@@ -2668,6 +2714,8 @@ void VCARTESIAN::setDomain()
 			comp_size,FLOAT);
                 FT_VectorMemoryAlloc((POINTER*)&field->supersat,comp_size,
                         FLOAT);
+                FT_VectorMemoryAlloc((POINTER*)&field->drops,comp_size,
+                        FLOAT);
 	    	first = NO;
 	    }
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
@@ -2685,6 +2733,8 @@ void VCARTESIAN::setDomain()
 	    	FT_VectorMemoryAlloc((POINTER*)&field->vapor,
 			comp_size,FLOAT);
                 FT_VectorMemoryAlloc((POINTER*)&field->supersat,comp_size,
+                        FLOAT);
+                FT_VectorMemoryAlloc((POINTER*)&field->drops,comp_size,
                         FLOAT);
 	    	first = NO;
 	    }
@@ -2752,7 +2802,7 @@ void VCARTESIAN::augmentMovieVariables(const char* varname)
                         front->hdf_movie_var->obstacle_comp[i];
         }
         hdf_movie_var->num_var = n = offset;
-        sprintf(hdf_movie_var->var_name[n],varname);
+        sprintf(hdf_movie_var->var_name[n],"%s",varname);
         hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
         if(strcmp(varname,"vapor") == 0)
 	{
@@ -2800,437 +2850,6 @@ static int find_state_at_crossing(
             return NEUMANN_PDE_BOUNDARY;
 }       /* find_state_at_crossing */
 
-void VCARTESIAN::initSampleTemperature(char *in_name)
-{
-        FILE *infile;
-	static SAMPLE *sample;
-	char *sample_type;
-	double *sample_line;
-
-	infile = fopen(in_name,"r");
-	FT_ScalarMemoryAlloc((POINTER*)&sample,sizeof(SAMPLE));
-	sample_type = sample->sample_type;
-	sample_line = sample->sample_coords;
-
-	if (dim == 2)
-	{
-	    CursorAfterString(infile,"Enter the sample line type:");
-	    fscanf(infile,"%s",sample_type);
-	    (void) printf(" %s\n",sample_type);
-	    CursorAfterString(infile,"Enter the sample line coordinate:");
-	    fscanf(infile,"%lf",sample_line);
-	    (void) printf(" %f\n",sample_line[0]);
-	}
-	else if (dim == 3)
-	{
-	    CursorAfterString(infile,"Enter the sample line type:");
-            fscanf(infile,"%s",sample_type);
-            (void) printf(" %s\n",sample_type);
-            CursorAfterString(infile,"Enter the sample line coordinate:");
-            fscanf(infile,"%lf %lf",sample_line,sample_line+1);
-            (void) printf(" %f %f\n",sample_line[0],sample_line[1]);
-	}        
-	CursorAfterString(infile,"Enter the start step for sample: ");
-        fscanf(infile,"%d",&sample->start_step);
-        (void) printf("%d\n",sample->start_step);
-        CursorAfterString(infile,"Enter the end step for sample: ");
-        fscanf(infile,"%d",&sample->end_step);
-        (void) printf("%d\n",sample->end_step);
-        CursorAfterString(infile,"Enter the step interval for sample: ");
-        fscanf(infile,"%d",&sample->step_interval);
-        (void) printf("%d\n",sample->step_interval);
-        front->sample = sample;
-        fclose(infile);
-}       /* end initSampleTemperature */
-
-void VCARTESIAN::sampleTemperature()
-{
-        if (dim == 2)
-            sampleTemperature2d();
-        else if (dim == 3)
-            sampleTemperature3d();
-}       /* end sampleTemperature */
-
-void VCARTESIAN::sampleTemperature2d()
-{
-	int i,j,index;
-	SAMPLE *sample = front->sample;
-	char *sample_type = sample->sample_type;
-	double *line = sample->sample_coords;
-	char *out_name = front->out_name;
-	double coords[MAXD];
-	double var1,var2,var;
-	FILE *sfile;
-	char sname[100];
-	static int count = 0;
-	static int step = 0;
-	static int l = -1;
-	static double lambda;
-	char dirname[256];
-	static char **sample_color;
-
-	if (sample_color == NULL)
-	{
-	    FT_MatrixMemoryAlloc((POINTER*)&sample_color,10,20,sizeof(char));
-	    sprintf(sample_color[0],"red");
-	    sprintf(sample_color[1],"blue");
-	    sprintf(sample_color[2],"green");
-	    sprintf(sample_color[3],"violet");
-            sprintf(sample_color[4],"orange");
-            sprintf(sample_color[5],"yellow");
-            sprintf(sample_color[6],"pink");
-            sprintf(sample_color[7],"cyan");
-            sprintf(sample_color[8],"light-gray");
-            sprintf(sample_color[9],"dark-gray");
-	}
-	if (pp_numnodes() > 1)
-	    return;
-	if (front->step < sample->start_step || front->step > sample->end_step)
-	    return;
-	if ((front->step - sample->start_step)%sample->step_interval)
-	    return;
-	if (step != front->step)
-	{
-	    step = front->step;
-	    count = 0;
-	}
-	sprintf(dirname, "%s/sample-%d", out_name,step);
-	if (!create_directory(dirname,NO))
-	{
-	    screen("Cannot create directory %s\n",dirname);
-	    clean_up(ERROR);
-	}
-	switch (sample_type[0])
-	{
-	case 'x':
-	    if (l == -1)
-	    {
-		double x1,x2;
-		do
-		{
-		    ++l;
-		    index = d_index2d(l,0,top_gmax);
-		    getRectangleCenter(index, coords); 
-		} while(line[0] >= coords[0]);
-		--l;
-		index = d_index2d(l,0,top_gmax);
-		getRectangleCenter(index,coords);
-		x1 = coords[0];
-		index = d_index2d(l+1,0,top_gmax);
-		getRectangleCenter(index,coords);
-		x2 = coords[0];
-		lambda = (line[0] - x1) / (x2 - line[0]);
-	    }
-	    i = l;
-	    sprintf(sname, "%s/t-%d.xg",dirname,count);
-	    sfile = fopen(sname,"w");
-	    fprintf(sfile,"Next\n");
-	    fprintf(sfile,"color=%s\n",sample_color[count]);
-	    fprintf(sfile,"thickness=1.5\n");
-	    for (j = jmin; j <= jmax; ++j)
-	    {
-		index = d_index2d(i,j,top_gmax);
-		var1 = field->vapor[index];
-		index = d_index2d(i+1,j,top_gmax);
-		var2 = field->vapor[index];
-		var = (var1 + lambda*var2) / (1.0 + lambda);
-		getRectangleCenter(index,coords);
-		fprintf(sfile,"%20.14f %20.14f\n",coords[1],var);
-	    }
-	    fclose(sfile);
-	    break;
-	case 'y':
-	    if (l == -1)
-	    {
-		double y1,y2;
-		do
-		{
-		    ++l;
-		    index = d_index2d(0,l,top_gmax);
-		    getRectangleCenter(index, coords);
-		} while (line[0] >= coords[1]);
-		--l;
-		index = d_index2d(0,l,top_gmax);
-                getRectangleCenter(index,coords);
-		y1 = coords[1];
-		index = d_index2d(0,l+1,top_gmax);
-		getRectangleCenter(index,coords);
-		y2 = coords[1];
-		lambda = (line[0] - y1) / (y2 - line[0]); 
-	    }
-	    j = l;
-	    sprintf(sname, "%s/t-%d.xg",dirname,count);
-            sfile = fopen(sname,"w");
-            fprintf(sfile,"Next\n");
-            fprintf(sfile,"color=%s\n",sample_color[count]);
-            fprintf(sfile,"thickness=1.5\n");
-            for (i = imin; i <= imax; ++i)
-            {
-                index = d_index2d(i,j,top_gmax);
-                var1 = field->vapor[index];
-                index = d_index2d(i,j+1,top_gmax);
-                var2 = field->vapor[index];
-                var = (var1 + lambda*var2) / (1.0 + lambda);
-                getRectangleCenter(index,coords);
-                fprintf(sfile,"%20.14f   %20.14f\n",coords[0],var);
-            }
-            fclose(sfile);
-            break;
-	default:
-            printf("Incorrect input for sample vapor!\n");
-            break;
-	}
-	count++;
-}	/* end sampleTemperature2d */
-
-void VCARTESIAN::sampleTemperature3d()
-{
-        int i,j,k,index;
-        SAMPLE *sample = front->sample;
-        char *sample_type = sample->sample_type;
-        double *sample_line = sample->sample_coords;
-        char *out_name = front->out_name;
-        double coords[MAXD];
-        double var1,var2,var_tmp1,var_tmp2,var;
-        FILE *sfile;
-        char sname[100];
-        static int count = 0;
-        static int step = 0;
-        static int l = -1, m = -1;
-        static double lambda1,lambda2;
-        char dirname[256];
-        static char **sample_color;
-
-        if (sample_color == NULL)
-        {
-            FT_MatrixMemoryAlloc((POINTER*)&sample_color,10,20,sizeof(char));
-            sprintf(sample_color[0],"red");
-            sprintf(sample_color[1],"blue");
-            sprintf(sample_color[2],"green");
-            sprintf(sample_color[3],"violet");
-            sprintf(sample_color[4],"orange");
-            sprintf(sample_color[5],"yellow");
-            sprintf(sample_color[6],"pink");
-            sprintf(sample_color[7],"cyan");
-            sprintf(sample_color[8],"light-gray");
-            sprintf(sample_color[9],"dark-gray");
-        }
-        if (pp_numnodes() > 1)
-            return;
-        if (front->step < sample->start_step || front->step > sample->end_step)
-            return;
-        if ((front->step - sample->start_step)%sample->step_interval)
-            return;
-        if (step != front->step)
-        {
-            step = front->step;
-            count = 0;
-        }
-	sprintf(dirname, "%s/sample-%d", out_name,step);
-        if (!create_directory(dirname,NO))
-        {
-            screen("Cannot create directory %s\n",dirname);
-            clean_up(ERROR);
-        }
-
-        switch (sample_type[0])
-        {
-        case 'x':
-            if (l == -1)
-            {
-                double x1,x2;
-                do
-                {
-                    ++l;
-                    index = d_index3d(l,0,0,top_gmax);
-                    getRectangleCenter(index,coords);
-                }while(sample_line[0]>=coords[0]);
-                --l;
-                index = d_index3d(l,0,0,top_gmax);
-                getRectangleCenter(index,coords);
-                x1 = coords[0];
-                index = d_index3d(l+1,0,0,top_gmax);
-                getRectangleCenter(index,coords);
-                x2 = coords[0];
-                lambda1 = (sample_line[0] - x1) / (x2 - sample_line[0]);
-            }
-	    switch (sample_type[1])
-            {
-                case 'y':
-                    if (m == -1)
-                    {
-                        double y1,y2;
-                        do
-                        {
-                            ++m;
-                            index = d_index3d(0,m,0,top_gmax);
-                            getRectangleCenter(index,coords);
-                        }while(sample_line[1]>=coords[1]);
-                        --m;
-                        index = d_index3d(0,m,0,top_gmax);
-                        getRectangleCenter(index,coords);
-                        y1 = coords[1];
-                        index = d_index3d(0,m+1,0,top_gmax);
-                        getRectangleCenter(index,coords);
-                        y2 = coords[1];
-                        lambda2 = (sample_line[1] - y1)/(y2 - sample_line[1]);
-                    }
-                    i = l;
-                    j = m;
-                    sprintf(sname, "%s/t-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-                    fprintf(sfile,"Next\n");
-                    fprintf(sfile,"color=%s\n",sample_color[count]);
-                    fprintf(sfile,"thickness=1.5\n");
-                    for (k = kmin; k <= kmax; ++k)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        var1 = field->vapor[index];
-                        index = d_index3d(i+1,j,k,top_gmax);
-                        var2 = field->vapor[index];
-                        var_tmp1 = (var1 + lambda1*var2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j+1,k,top_gmax);
-                        var1 = field->vapor[index];
-                        index = d_index3d(i+1,j+1,k,top_gmax);
-                        var2 = field->vapor[index];
-                        var_tmp2 = (var1 + lambda1*var2)/(1.0 + lambda1);
-
-                        var = (var_tmp1 + lambda2*var_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[2],var);
-                    }
-                    fclose(sfile);
-                    break;
-		case 'z':
-                    if (m == -1)
-                    {
-                        double z1,z2;
-                        do
-                        {
-                            ++m;
-                            index = d_index3d(0,0,m,top_gmax);
-                            getRectangleCenter(index,coords);
-                        }while(sample_line[1]>=coords[2]);
-                        --m;
-                        index = d_index3d(0,0,m,top_gmax);
-                        getRectangleCenter(index,coords);
-                        z1 = coords[2];
-                        index = d_index3d(0,0,m+1,top_gmax);
-                        getRectangleCenter(index,coords);
-                        z2 = coords[2];
-                        lambda2 = (sample_line[1] - z1)/(z2 - sample_line[1]);
-                    }
-                    i = l;
-                    k = m;
-                    sprintf(sname, "%s/t-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-                    fprintf(sfile,"Next\n");
-                    fprintf(sfile,"color=%s\n",sample_color[count]);
-                    fprintf(sfile,"thickness=1.5\n");
-                    for (j = jmin; j <= jmax; ++j)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        var1 = field->vapor[index];
-                        index = d_index3d(i+1,j,k,top_gmax);
-                        var2 = field->vapor[index];
-                        var_tmp1 = (var1 + lambda1*var2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j,k+1,top_gmax);
-                        var1 = field->vapor[index];
-                        index = d_index3d(i+1,j,k+1,top_gmax);
-                        var2 = field->vapor[index];
-                        var_tmp2 = (var1 + lambda1*var2)/(1.0 + lambda1);
-
-                        var = (var_tmp1 + lambda2*var_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[2],var);
-                    }
-                    fclose(sfile);
-                    break;
-                default:
-                    printf("Incorrect input for sample vapor!\n");
-                    break;
-	    }
-            break;
-	case 'y':
-            if (l == -1)
-            {
-                double y1,y2;
-                do
-                {
-                    ++l;
-                    index = d_index3d(0,l,0,top_gmax);
-                    getRectangleCenter(index, coords);
-                }while(sample_line[0]>=coords[1]);
-                --l;
-                index = d_index3d(0,l,0,top_gmax);
-                getRectangleCenter(index,coords);
-                y1 = coords[1];
-                index = d_index3d(0,l+1,0,top_gmax);
-                getRectangleCenter(index,coords);
-                y2 = coords[1];
-                lambda1 = (sample_line[0] - y1)/(y2 - sample_line[0]);
-            }
-            switch (sample_type[1])
-            {
-                case 'z':
-                    if (m == -1)
-                    {
-                        double z1,z2;
-                        do
-                        {
-                            ++m;
-                            index = d_index3d(0,0,m,top_gmax);
-                            getRectangleCenter(index,coords);
-                        }while(sample_line[1]>=coords[2]);
-                        --m;
-                        index = d_index3d(0,0,m,top_gmax);
-                        getRectangleCenter(index,coords);
-                        z1 = coords[2];
-                        index = d_index3d(0,0,m+1,top_gmax);
-                        getRectangleCenter(index,coords);
-                        z2 = coords[2];
-                        lambda2 = (sample_line[1] - z1)/(z2 - sample_line[1]);
-                    }
-		    j = l;
-                    k = m;
-                    sprintf(sname, "%s/t-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-                    fprintf(sfile,"Next\n");
-                    fprintf(sfile,"color=%s\n",sample_color[count]);
-                    fprintf(sfile,"thickness=1.5\n");
-                    for (i = imin; i <= imax; ++i)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        var1 = field->vapor[index];
-                        index = d_index3d(i,j+1,k,top_gmax);
-                        var2 = field->vapor[index];
-                        var_tmp1 = (var1 + lambda1*var2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j,k+1,top_gmax);
-                        var1 = field->vapor[index];
-                        index = d_index3d(i,j+1,k+1,top_gmax);
-                        var2 = field->vapor[index];
-                        var_tmp2 = (var1 + lambda1*var2)/(1.0 + lambda1);
-
-                        var = (var_tmp1 + lambda2*var_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[0],var);
-                    }
-                    fclose(sfile);
-                    break;
-                default:
-                    printf("Incorrect input for sample vapor!\n");
-                    break;
-            }
-        default:
-            printf("Incorrect input for sample vapor!\n");
-            break;
-        }
-        count++;
-}       /* end sampleTemperature3d */
-
 void VCARTESIAN::recordRadius(char *out_name)
 {
 	INTERFACE *intfc = front->interf;
@@ -3242,46 +2861,26 @@ void VCARTESIAN::recordRadius(char *out_name)
 	SURFACE **s;
 	int i,index;
 	
-	sprintf(fname,"%s/radius-%4.3f.m",out_name,front->time);
-	printf("save radius to %s\n",fname);
-	file = fopen(fname,"w");
+	sprintf(fname,"%s/record-radius",out_name);
+        if (!create_directory(fname,NO))
+        {
+            printf("Cannot create directory %s\n",fname);
+            clean_up(ERROR);
+        }
+        sprintf(fname,"%s/radius-%4.2f",fname,front->time);
+#if defined(__MPI__)
+        if (pp_numnodes() > 1)
+            sprintf(fname,"%s-nd%s",fname,right_flush(pp_mynode(),4));
+#endif /* defined(__MPI__) */
+	
+        file = fopen(fname,"w");
+
 	if (eqn_params->prob_type == PARTICLE_TRACKING)
 	{
 	    for (i = 0; i < eqn_params->num_drops; i++)
-		fprintf(file,"%16.15f\n",eqn_params->particle_array[i].radius);
-	    fclose(file);
-	    return;
+                fprintf(file,"%16.15f\n",eqn_params->particle_array[i].radius);
 	}
-	switch(dim)
-	{
-	    case 2:
-		for (c = intfc->curves; c && *c; ++c)
-		{
-		    if(wave_type(*c) == ICE_PARTICLE_BOUNDARY)
-		    {
-			index = body_index(*c);
-			radius = spherical_radius(*c);
-			fprintf(file,"%d %16.15f\n",index,radius);
-		    }
-		}
-		fclose(file);
-		break;
-	    case 3:
-		for (s = intfc->surfaces; s && *s; ++s)
-		{
-		    if(wave_type(*s) == ICE_PARTICLE_BOUNDARY)
-		    {
-			index = body_index(*s);
-			radius = spherical_radius(*s);
-			fprintf(file,"%d %16.15f\n",index,radius);
-		    }
-		}
-		fclose(file);
-		break;
-	    default:
-		printf("Unknown dim = %d\n",dim);
-		clean_up(ERROR);
-	}
+	fclose(file);
 }
 
 void VCARTESIAN::computeSource()
@@ -3294,29 +2893,33 @@ void VCARTESIAN::computeSource()
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
         PARTICLE* particle_array = eqn_params->particle_array;
         num_drops = eqn_params->num_drops;
-	double *supersat = field->supersat;
+	double *supersat = eqn_params->field->supersat;
         static boolean first = YES;
         double *coords;
 	/*for computing the coefficient*/
 	double rho_0 = iFparams->rho2;
-	double a3 = 1;
+	double a3 = 1.0;
 	double coeff;
 
 	for(i = 0; i < dim; i++)
 	    a3 *= top_h[i];
 
         for (i = 0; i < comp_size; i++)
-            source[i] = 0;
-
+        {
+	    source[i] = 0.0;
+	    field->drops[i] = 0;
+	}
+	
         for (i = 0; i < num_drops; i++)
         {
             coords = particle_array[i].center;
             rect_in_which(coords,ic,top_grid);
             index = d_index(ic,top_gmax,dim);
-	    coeff = 4*PI*particle_array[i].rho * eqn_params->K
+	    coeff = 4.0*PI*particle_array[i].rho * eqn_params->K
 					       / (rho_0 * a3);
-	    source[index] += -coeff * supersat[index]
-				    * particle_array[i].radius;
+	    source[index] += -1000.0 * coeff * supersat[index]
+				     * particle_array[i].radius;
+	    field->drops[index] += 1;
         }
 }
 

@@ -22,6 +22,7 @@ enum _CL_PROB_TYPE {
 	BUOYANCY_TEST,
 	CLIMATE,
 	CHANNEL_TEST,
+	ENTRAINMENT,
 	RANDOM_FIELD,
 	PARTICLE_TRACKING
 };
@@ -36,11 +37,20 @@ enum _NUM_SCHEME {
 };
 typedef enum _NUM_SCHEME NUM_SCHEME;
 
+enum _INIT_STATE{
+	ZERO_STATE = 1,
+	RAND_STATE,
+	TAYLOR_STATE,
+	PRESET_STATE
+};
+typedef enum _INIT_STATE INIT_STATE;
+
 struct _PHASE_FIELD {
         double *temperature;
 	double *vapor;
 	double *supersat;
 	double *pres;
+	double *drops;
         double **vel;
 };
 typedef struct _PHASE_FIELD PHASE_FIELD;
@@ -59,6 +69,7 @@ struct _PARTICLE {
 	double radius;
 	double center[MAXD];
 	double vel[MAXD];
+	double R0;
 	double rho;
 	int    Gindex;
 };
@@ -67,6 +78,7 @@ typedef struct _PARTICLE PARTICLE;
 struct _PARAMS {
         int dim;
 	NUM_SCHEME num_scheme;
+	INIT_STATE init_state;
 	PHASE_FIELD *field;
 	MOVIE_OPTION *movie_option;
 	int pde_order;
@@ -79,9 +91,10 @@ struct _PARAMS {
 	double max_temperature;
 	double rho_l; /*density of water droplet*/
 	double K; /*coefficient for condensation*/
+	double L[MAXD];
+	double U[MAXD]; /*subdomain for particles*/
 	boolean no_droplets;
 	boolean droplets_fixed;
-	boolean if_rand_vel;
 	CL_PROB_TYPE prob_type;
 	PARTICLE *particle_array;
 };
@@ -220,11 +233,7 @@ public:
 	void initMovieVariables();
 	void augmentMovieVariables(const char*);
 	void vtk_plot_temperature2d(char*);
-        void vtk_plot3d(char*,const char*);
-	void initSampleTemperature(char *in_name);
-        void sampleTemperature();
-	void sampleTemperature2d();
-	void sampleTemperature3d();
+        void vtk_plot3d(const char*);
 
 	// Extra movie functions
 	void temperatureMovie(char*);
@@ -278,7 +287,6 @@ class VCARTESIAN{
 public:
 	VCARTESIAN(Front &front);
 
-	double total_vel[MAXD][MAX_STEP];
 	// member data: RECT_GRID
 	int dim;
 
@@ -341,6 +349,7 @@ public:
 	void computeAdvectionCim();
 	void computeSupersat();
 	void computeCondensation();
+	void computeVelocityTensor();
 
 	void pointExplicitCimSolver(int*,COMPONENT);
 	void computeSource();
@@ -358,12 +367,8 @@ public:
 	void checkField();
 	void recordField(char *, const char *);
 	void recordRadius(char *);
-	void vtk_plot_vapor2d(char*);
-        void vtk_plot3d(char*,const char*);
-	void initSampleTemperature(char *in_name);
-        void sampleTemperature();
-	void sampleTemperature2d();
-	void sampleTemperature3d();
+	void recordMixingLine();
+        void vtk_plot3d(const char*,double*);
 
 	// Extra movie functions
 	void temperatureMovie(char*);
@@ -377,6 +382,7 @@ public:
 
 	// physics calculation
 	void setInitialCondition(void);
+	void setInitialVapor(void);
 
 	void setIndexMap(COMPONENT);
 		// for compProjWithSmoothProperty(), 
@@ -408,8 +414,9 @@ public:
 	int  getComponent(int *icoords);	
 	int  getComponent(double *coords);	
 	void save(char *filename);
-	void recordMomentum();
-	void plotMomentum(char*);
+	void recordWaterBalance();
+	void recordSampleRadius();
+	void recordTKE();
 };
 
 extern void readPhaseParams(Front*);
@@ -439,3 +446,4 @@ extern void readWaterDropsParams(Front*,char*);
 extern void printDropletsStates(Front*,char*);
 extern void gv_plot_scatter(Front*);
 extern void vtk_plot_scatter(Front*);
+extern void vtk_plot_sample_traj(Front*);

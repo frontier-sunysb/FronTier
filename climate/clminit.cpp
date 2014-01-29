@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 static void initRandomDrops(Front*,double**,double*,int*,int*,
                                 double,double);
-static void initRandomParticles(Front*,double**,double*,int*,int*,
+static void initRandomParticles(Front*,PARTICLE*,int*,
                                 double,double);
 
 extern void read_CL_prob_type(Front* front)
@@ -54,7 +54,7 @@ extern void read_CL_prob_type(Front* front)
         *prob_type = CLIMATE;
 	eqn_params->no_droplets = NO;
 	eqn_params->droplets_fixed = NO;	    
-        eqn_params->if_rand_vel = YES;
+        eqn_params->init_state = RAND_STATE;
         iFparams->if_buoyancy = NO; 
 	iFparams->if_ref_pres = YES;
 	/*End default option*/
@@ -67,16 +67,16 @@ extern void read_CL_prob_type(Front* front)
 	    *prob_type = PARTICLE_TRACKING;
 	    eqn_params->no_droplets = NO; 
             eqn_params->droplets_fixed = YES;
-            eqn_params->if_rand_vel = YES;
+            eqn_params->init_state = PRESET_STATE;
             iFparams->if_buoyancy = YES;
             iFparams->if_ref_pres = YES;
 	}
 	else if (string[0] == 'B' || string[0] == 'b')
 	{
 	    *prob_type = BUOYANCY_TEST;
-	    eqn_params->no_droplets = NO;
+	    eqn_params->no_droplets = YES;
             eqn_params->droplets_fixed = YES;
-            eqn_params->if_rand_vel = NO;
+            eqn_params->init_state = ZERO_STATE;
 	    iFparams->if_buoyancy = YES;
             iFparams->if_ref_pres = NO;
 	}
@@ -87,7 +87,7 @@ extern void read_CL_prob_type(Front* front)
 		*prob_type = CHANNEL_TEST;
                 eqn_params->no_droplets = NO;
                 eqn_params->droplets_fixed = YES;
-	        eqn_params->if_rand_vel = NO;
+                eqn_params->init_state = ZERO_STATE;
 		iFparams->if_ref_pres = NO;
 		iFparams->if_buoyancy = NO;
 	    }
@@ -96,8 +96,8 @@ extern void read_CL_prob_type(Front* front)
 		*prob_type = CLIMATE;
 		eqn_params->no_droplets = NO;
                 eqn_params->droplets_fixed = NO;
-                eqn_params->if_rand_vel = YES;
 		iFparams->if_ref_pres = YES;
+                eqn_params->init_state = RAND_STATE;
                 iFparams->if_buoyancy = NO;
 	    }
 	    
@@ -107,7 +107,7 @@ extern void read_CL_prob_type(Front* front)
 	    *prob_type = RANDOM_FIELD;
 	    eqn_params->no_droplets = YES;
             eqn_params->droplets_fixed = YES;
-            eqn_params->if_rand_vel = YES;
+            eqn_params->init_state = RAND_STATE;
 	    iFparams->if_buoyancy = YES;
 	    iFparams->if_ref_pres = YES;
 	}
@@ -120,6 +120,7 @@ extern void readPhaseParams(
 	FILE *infile;
 	char scheme[200];
 	int i,num_phases;
+	int dim = front->rect_grid->dim;
 	char string[200];
 	char *in_name = InName(front);
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
@@ -199,11 +200,32 @@ extern void readPhaseParams(
         }
         if(iFparams->if_buoyancy == YES)
         {
-            printf("Set to be buoyancy driven flow\n");
+            printf("Set to be buoyancy driven flow:\n");
             CursorAfterString(infile,"Enter reference temperature(K):");
             fscanf(infile,"%lf ",&iFparams->ref_temp);
             (void) printf("%f\n",iFparams->ref_temp);
         }
+	/*set default position limit for droplets*/
+	for (i = 0; i < dim; ++i)
+	{
+	    eqn_params->L[i] = front->rect_grid->L[i];
+	    eqn_params->U[i] = front->rect_grid->U[i];
+	}
+        CursorAfterStringOpt(infile,"Enter lower bound for droplets position:");
+	for (i = 0; i < dim; ++i)
+	{
+            fscanf(infile,"%lf ",&eqn_params->L[i]);
+            (void) printf("%f  ",eqn_params->L[i]);
+	}
+	printf("\n");
+        CursorAfterStringOpt(infile,"Enter upper bound for droplets position:");
+	for (i = 0; i < dim; ++i)
+	{
+            fscanf(infile,"%lf ",&eqn_params->U[i]);
+            (void) printf("%f  ",eqn_params->U[i]);
+	}
+	printf("\n");
+
 	fclose(infile);
 }
 
@@ -324,6 +346,7 @@ extern void initWaterDrops(
         CursorAfterString(infile,"Enter number of water drops:");
         fscanf(infile,"%d",&num_drops);
         (void) printf("%d\n",num_drops);
+	eqn_params->num_drops = num_drops;
 
         CursorAfterString(infile,"Enter density of water drops:");
         fscanf(infile,"%lf",&drop_dens);
@@ -334,9 +357,16 @@ extern void initWaterDrops(
         fscanf(infile,"%lf",&eqn_params->K);
         (void) printf("%20.19f\n",eqn_params->K);
 
-        FT_VectorMemoryAlloc((POINTER*)&gindex,8*num_drops,sizeof(int));
-        FT_VectorMemoryAlloc((POINTER*)&radius,8*num_drops,sizeof(double));
-        FT_MatrixMemoryAlloc((POINTER*)&center,8*num_drops,MAXD,sizeof(double));
+	if (eqn_params->prob_type == PARTICLE_TRACKING)
+	    FT_VectorMemoryAlloc((POINTER*)&particle_array,
+				      num_drops,sizeof(PARTICLE));
+	else
+	{
+	    FT_VectorMemoryAlloc((POINTER*)&gindex,num_drops,sizeof(int));
+            FT_VectorMemoryAlloc((POINTER*)&radius,num_drops,sizeof(double));
+            FT_MatrixMemoryAlloc((POINTER*)&center,
+					num_drops,MAXD,sizeof(double));
+	}
 
         (void) printf("Two methods for initialization:\n");
         (void) printf("\tPrompt initialization (P)\n");
@@ -375,32 +405,22 @@ extern void initWaterDrops(
             fscanf(infile,"%lf",&sigma);
             (void) printf("%f\n",sigma);
 	    if (eqn_params->prob_type == PARTICLE_TRACKING)
-		initRandomParticles(front,center,radius,gindex,&num_drops,r_bar,sigma);
+		initRandomParticles(front,particle_array,&num_drops,r_bar,sigma);
 	    else
                 initRandomDrops(front,center,radius,gindex,&num_drops,r_bar,sigma);
             break;
         default:
             (void) printf("Unknown option for initialization!\n");
             clean_up(ERROR);
-        }
-	
-	if (eqn_params->prob_type == PARTICLE_TRACKING)
-	{
-		FT_VectorMemoryAlloc((POINTER*)&particle_array,
-				      num_drops,sizeof(PARTICLE));
-		eqn_params->num_drops = num_drops;
-	}
+        }	
 
         for (i = 0; i < num_drops; ++i)
         {
 	    if (eqn_params->prob_type == PARTICLE_TRACKING)
 	    {
-		particle_array[i].radius = radius[i];
 		particle_array[i].rho = drop_dens;
-		particle_array[i].Gindex = gindex[i]+10;
 		for(l = 0; l < dim; ++l)
 		{
-		    particle_array[i].center[l] = center[i][l];
 		    particle_array[i].vel[l] = 0;
 		}
 		eqn_params->particle_array = particle_array;
@@ -451,7 +471,8 @@ extern void initWaterDrops(
                     }
             }
         }
-        FT_FreeThese(3,radius,gindex,center);
+	if (eqn_params->prob_type != PARTICLE_TRACKING)
+            FT_FreeThese(3,radius,gindex,center);
         if (debugging("init_intfc"))
         {
             if (dim == 2)
@@ -463,9 +484,7 @@ extern void initWaterDrops(
 
 static void initRandomParticles(
 	Front *front,
-	double **center,
-	double *radius,
-	int *gindex,
+	PARTICLE* particle_array,
 	int *num_drops,
 	double r_bar,
 	double sigma)
@@ -473,11 +492,12 @@ static void initRandomParticles(
         int i,j;
         GAUSS_PARAMS gauss_params;
         UNIFORM_PARAMS uniform_params;
+	PARAMS* eqn_params = (PARAMS*)front->extra2;
         unsigned short int xsubi[3];
         double x,dist,R;
         int dim = FT_Dimension();
-        double *L = front->rect_grid->L;
-        double *U = front->rect_grid->U;
+        double *L = eqn_params->L;
+        double *U = eqn_params->U;
 
         xsubi[0] = 10;
         xsubi[1] = 100;
@@ -493,10 +513,11 @@ static void initRandomParticles(
             for (j = 0; j < dim; ++j)
             {
                 x = dist_uniform((POINTER)&uniform_params,xsubi);
-                center[i][j] = L[j] + x*(U[j] - L[j]);
+                particle_array[i].center[j] = L[j] + x*(U[j] - L[j]);
             }
-            radius[i] = gauss_center_limit((POINTER)&gauss_params,xsubi);
-	    gindex[i] = i;
+            particle_array[i].radius = gauss_center_limit((POINTER)&gauss_params,xsubi);
+            particle_array[i].R0 = particle_array[i].radius;
+	    particle_array[i].Gindex = i;
 	}   	
 }
 

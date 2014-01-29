@@ -356,7 +356,15 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeSourceTerm(
 	double *coords, 
 	double *source) 
 {
-        int i;
+        int i,j,k,l;
+	double x,y,a,f,Force;
+	double t = front->time;
+	double phi[MAXD+1];
+	x = coords[0];
+	y = coords[1];
+	UNIFORM_PARAMS uniform_params;
+	short unsigned int xsubi[3]; 
+
 	if(iFparams->if_buoyancy)
 	{
 	    double T0   = iFparams->ref_temp;
@@ -406,6 +414,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 	// 1) solve for intermediate velocity
 	start_clock("computeAdvection");
 	computeAdvection();
+
 	stop_clock("computeAdvection");
 	if (debugging("step_size"))
 	    printf("max_speed after computeAdvection(): %20.14f\n",max_speed);
@@ -414,6 +423,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 	
 	start_clock("computeDiffusion");
 	computeDiffusion();
+
 	stop_clock("computeDiffusion");
 	if (debugging("sample_velocity"))
 	    sampleVelocity();
@@ -460,6 +470,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
             setReferencePressure();
 
 	setAdvectionDt();
+
 	stop_clock("solve");
 }	/* end solve */
 
@@ -556,13 +567,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 
         size = iupper - ilower;
         FT_VectorMemoryAlloc((POINTER*)&x,size,sizeof(double));
-
-	for (l = 0; l < dim; ++l)
-        for (j = jmin; j <= jmax; j++)
-        for (i = imin; i <= imax; i++)
-        {
-            index  = d_index2d(i,j,top_gmax);
-        }
 
 	for (l = 0; l < dim; ++l)
 	{
@@ -925,6 +929,50 @@ void Incompress_Solver_Smooth_2D_Cartesian::setInitialCondition()
 	setAdvectionDt();
 }       /* end setInitialCondition */
 
+void Incompress_Solver_Smooth_2D_Cartesian::setInitialVelocity()
+{
+        FILE *infile;
+        int i,j,k,l,index;
+        char fname[100];
+        COMPONENT comp;
+        double coords[MAXD];
+        int size = (int)cell_center.size();
+
+        FT_MakeGridIntfc(front);
+        setDomain();
+
+        m_rho[0] = iFparams->rho1;
+        m_rho[1] = iFparams->rho2;
+        m_mu[0] = iFparams->mu1;
+        m_mu[1] = iFparams->mu2;
+        m_comp[0] = iFparams->m_comp1;
+        m_comp[1] = iFparams->m_comp2;
+        m_smoothing_radius = iFparams->smoothing_radius;
+        m_sigma = iFparams->surf_tension;
+        mu_min = rho_min = HUGE;
+        for (i = 0; i < 2; ++i)
+        {
+            if (ifluid_comp(m_comp[i]))
+            {
+                mu_min = std::min(mu_min,m_mu[i]);
+                rho_min = std::min(rho_min,m_rho[i]);
+            }
+        }
+        sprintf(fname,"./vel2d");
+        infile = fopen(fname,"r");
+        for (j = jmin; j <= jmax; ++j)
+        for (i = imin; i <= imax; ++i)
+        {
+            index = d_index2d(i,j,top_gmax);
+            fscanf(infile,"%lf %lf",
+                   &field->vel[0][index],
+                   &field->vel[1][index]);
+	}
+        computeGradientQ();
+        copyMeshStates();
+        setAdvectionDt();
+}
+
 void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionDual(void)
 {
 	static DUAL_ELLIPTIC_SOLVER dual_elliptic_solver(*front);
@@ -1055,13 +1103,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::
 
         size = iupper - ilower;
         FT_VectorMemoryAlloc((POINTER*)&x,size,sizeof(double));
-
-        for (l = 0; l < dim; ++l)
-        for (j = jmin; j <= jmax; j++)
-        for (i = imin; i <= imax; i++)
-        {
-            index  = d_index2d(i,j,top_gmax);
-        }
 
         for (l = 0; l < dim; ++l)
         {

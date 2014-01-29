@@ -203,7 +203,7 @@ void CARTESIAN::setInitialCondition(void)
         while (next_point(intfc,&p,&hse,&hs))
         {
 	    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-            sl->temperature = sr->temperature = 0.5*(eqn_params->T0[0] + eqn_params->T0[1]);
+            sl->temperature = sr->temperature = eqn_params->T0[0];
         }
 
 	// cell_center
@@ -275,15 +275,15 @@ void CARTESIAN::setIndexMap(COMPONENT sub_comp)
 	    FT_ParallelExchCellIndex(front,llbuf,uubuf,(POINTER)i_to_I);
 	    break;
 	case 2:
-	    for (i = imin; i <= imax; i++)
 	    for (j = jmin; j <= jmax; j++)
+	    for (i = imin; i <= imax; i++)
 	    {
 		ic = d_index2d(i,j,top_gmax);
 		if (sub_comp == NO_COMP || cell_center[ic].comp == sub_comp)
 		{
 	    	    ij_to_I[i][j] = index + ilower;
-		    I_to_ij[index + ilower][0] = i;
-                    I_to_ij[index + ilower][1] = j;
+		    I_to_ij[index][0] = i;
+                    I_to_ij[index][1] = j;
 	    	    index++;
 		}
 		else
@@ -292,17 +292,17 @@ void CARTESIAN::setIndexMap(COMPONENT sub_comp)
 	    FT_ParallelExchCellIndex(front,llbuf,uubuf,(POINTER)ij_to_I);
 	    break;
 	case 3:
-	    for (i = imin; i <= imax; i++)
-	    for (j = jmin; j <= jmax; j++)
 	    for (k = kmin; k <= kmax; k++)
+	    for (j = jmin; j <= jmax; j++)
+	    for (i = imin; i <= imax; i++)
 	    {
 		ic = d_index3d(i,j,k,top_gmax);
 		if (sub_comp == NO_COMP || cell_center[ic].comp == sub_comp)
 		{
 	    	    ijk_to_I[i][j][k] = index + ilower;
-		    I_to_ijk[index + ilower][0] = i;
-                    I_to_ijk[index + ilower][1] = j;
-                    I_to_ijk[index + ilower][2] = k;
+		    I_to_ijk[index][0] = i;
+                    I_to_ijk[index][1] = j;
+                    I_to_ijk[index][2] = k;
 	    	    index++;
 		}
 		else
@@ -342,279 +342,307 @@ void CARTESIAN::computeAdvection()
 	    else if (eqn_params->num_scheme == CRANK_NICOLSON)
 	    	computeAdvectionCN(sub_comp[i]);
 	}
-	printf("End solving advection\n");
 }
-    
+
 void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 {
-	int i,j,k,l,m,ic,icn,I,I_nb,icoords[MAXD];
-	int gmin[MAXD],ipn[MAXD];
-	double crx_coords[MAXD];
-	double T0,T_nb,D,lambda,coeff,coeff_nb,rhs;
-	COMPONENT comp;
-	PETSc solver;
-	double *x;
+        int i,j,k,l,m,ic,icn,I,I_nb,icoords[MAXD];
+        int gmin[MAXD],ipn[MAXD];
+        double crx_coords[MAXD];
+        double T0,T_nb,D,lambda,coeff,coeff_nb,rhs;
+        COMPONENT comp;
+        PETSc solver;
+        double *x;
         int num_iter = 0;
         double rel_residual = 0;
         boolean fr_crx_grid_seg;
         const GRID_DIRECTION dir[3][2] =
                 {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
-	double *Temp = field->temperature;
+        double *Temp = field->temperature;
+        double v[MAXD];
+        double eta;
 
-	start_clock("computeAdvectionCN");
-	if (debugging("trace")) printf("Entering computeAdvectionCN()\n");
+        start_clock("computeAdvectionCN");
+        if (debugging("trace")) printf("Entering computeAdvectionCN()\n");
 
-	D = eqn_params->D;
-	
-	for (i = 0; i < dim; ++i) gmin[i] = 0;
+        D = eqn_params->D;
 
-	setIndexMap(sub_comp);
-	if (debugging("trace")) 
-	{
-	    int domain_size = 1;
-	    printf("ilower = %d  iupper = %d\n",ilower,iupper);
-	    for (i = 0; i < dim; ++i)
-		domain_size *= (imax-imin+1);
-	    printf("domain_size = %d\n",domain_size);
-	}
-        
-	start_clock("set_coefficients");
-	switch(dim)
-	{
-	case 1:
-	    solver.Create(ilower, iupper-1, 3, 3);
-	    for (i = imin; i <= imax; ++i)
-	    {
-	    	icoords[0] = i;
-	    	ic = d_index1d(i,top_gmax);
-	    	comp = top_comp[ic];
-	    	if (comp != sub_comp) 
-	    	    continue;
-		I = i_to_I[i];
+        for (i = 0; i < dim; ++i) gmin[i] = 0;
+
+        setIndexMap(sub_comp);
+        if (debugging("trace"))
+        {
+            int domain_size = 1;
+            printf("ilower = %d  iupper = %d\n",ilower,iupper);
+            for (i = 0; i < dim; ++i)
+                domain_size *= (imax-imin+1);
+            printf("domain_size = %d\n",domain_size);
+        }
+
+        start_clock("set_coefficients");
+        switch(dim)
+        {
+        case 1:
+            solver.Create(ilower, iupper-1, 3, 3);
+            for (i = imin; i <= imax; ++i)
+            {
+                icoords[0] = i;
+                ic = d_index1d(i,top_gmax);
+                comp = top_comp[ic];
+                if (comp != sub_comp)
+                    continue;
+                I = i_to_I[i];
                 T0 = Temp[ic];
-		rhs = T0;
-		coeff = 1.0;
-		for (l = 0; l < dim; ++l)
-		{
-		    lambda = D*m_dt/sqr(top_h[l]);
-		    coeff += lambda;
+                rhs = T0;
+                coeff = 1.0;
+                for (l = 0; l < dim; ++l)
+                {
+                    lambda = D*m_dt/sqr(top_h[l]);
+                    coeff += lambda;
                     for (m = 0; m < 2; ++m)
                     {
                         next_ip_in_dir(icoords,dir[l][m],ipn,gmin,top_gmax);
                         icn = d_index1d(ipn[0],top_gmax);
-			I_nb = i_to_I[ipn[0]];
-			coeff_nb = -0.5*lambda;
+                        I_nb = i_to_I[ipn[0]];
+                        coeff_nb = -0.5*lambda;
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateTemperature,
+                                icoords,dir[l][m],comp,getStateVapor,
                                 &T_nb,crx_coords);
                         if (!fr_crx_grid_seg)
                         {
-			    solver.Add_A(I,I_nb,coeff_nb);
-			    T_nb = Temp[icn];
-			    rhs -= coeff_nb*(T_nb - T0);
+                            solver.Add_A(I,I_nb,coeff_nb);
+                            T_nb = Temp[icn];
+                            rhs -= coeff_nb*(T_nb - T0);
                         }
-			else
-			{
-			    rhs -= coeff_nb*(2.0*T_nb - T0);
-			}
+                        else
+                        {
+                            rhs -= coeff_nb*(2.0*T_nb - T0);
+                        }
                     }
-		}
-		solver.Add_A(I,I,coeff);
-		solver.Add_b(I,rhs);
-	    }
-	    break;
-	case 2:
-	    solver.Create(ilower, iupper-1, 5, 5);
-	    for (i = imin; i <= imax; ++i)
-	    for (j = jmin; j <= jmax; ++j)
-	    {
-	    	icoords[0] = i;
-	    	icoords[1] = j;
-	    	ic = d_index2d(i,j,top_gmax);
-	    	comp = top_comp[ic];
-		I = ij_to_I[i][j];
-	    	if (comp != sub_comp) 
-	    	    continue;
+                }
+                solver.Add_A(I,I,coeff);
+                solver.Add_b(I,rhs);
+            }
+            break;
+        case 2:
+            solver.Create(ilower, iupper-1, 5, 5);
+            for (j = jmin; j <= jmax; ++j)
+            for (i = imin; i <= imax; ++i)
+            {
+                icoords[0] = i;
+                icoords[1] = j;
+                ic = d_index2d(i,j,top_gmax);
+                comp = top_comp[ic];
+                I = ij_to_I[i][j];
+                if (comp != sub_comp)
+                    continue;
                 T0 = Temp[ic];
-		rhs = T0;
-		coeff = 1.0;
-		for (l = 0; l < dim; ++l)
-		{
-		    lambda = D*m_dt/sqr(top_h[l]);
-		    coeff += lambda;
+                rhs = T0;
+                if (source != NULL)
+                    rhs += m_dt*source[ic];
+                coeff = 1.0;
+                for (l = 0; l < dim; ++l) v[l] = 0.0;
+                if (field->vel != NULL)
+                {
+                    for (l = 0; l < dim; ++l)
+                        v[l] = field->vel[l][ic];
+                }
+                for (l = 0; l < dim; ++l)
+                {
+                    lambda = D*m_dt/sqr(top_h[l]);
+                    eta = v[l]*m_dt/top_h[l];
+                    coeff += lambda;
+
                     for (m = 0; m < 2; ++m)
                     {
                         next_ip_in_dir(icoords,dir[l][m],ipn,gmin,top_gmax);
                         icn = d_index2d(ipn[0],ipn[1],top_gmax);
-			I_nb = ij_to_I[ipn[0]][ipn[1]];
-			coeff_nb = -0.5*lambda;
+                        I_nb = ij_to_I[ipn[0]][ipn[1]];
+                        coeff_nb = -0.5*lambda;
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateTemperature,
+                                icoords,dir[l][m],comp,getStateVapor,
                                 &T_nb,crx_coords);
                         if (!fr_crx_grid_seg)
                         {
-			    solver.Add_A(I,I_nb,coeff_nb);
-			    T_nb = Temp[icn];
-			    rhs -= coeff_nb*(T_nb - T0);
+                            solver.Add_A(I,I_nb,coeff_nb);
+                            T_nb = Temp[icn];
+                            rhs -= -0.5*lambda*(T_nb - T0);
+                            if(v[l] > 0 && m == 0)
+                                rhs += eta * (T_nb - T0);
+                            if(v[l] < 0 && m == 1)
+                                rhs += eta * (T0 - T_nb);
                         }
-			else
-			{
-			    rhs -= coeff_nb*(2.0*T_nb - T0);
-			}
+                        else
+                        {
+                            rhs -= -0.5*lambda*(2.0*T_nb - T0);
+                        }
                     }
-		}
-		solver.Add_A(I,I,coeff);
-		solver.Add_b(I,rhs);
-	    }
-	    break;
-	case 3:
-	    solver.Create(ilower, iupper-1, 7, 7);
-	    for (i = imin; i <= imax; ++i)
-	    for (j = jmin; j <= jmax; ++j)
-	    for (k = kmin; k <= kmax; ++k)
-	    {
-	    	icoords[0] = i;
-	    	icoords[1] = j;
-	    	icoords[2] = k;
-	    	ic = d_index3d(i,j,k,top_gmax);
-	    	comp = top_comp[ic];
-		I = ijk_to_I[i][j][k];
-	    	if (comp != sub_comp) 
-	    	    continue;
+                }
+                solver.Add_A(I,I,coeff);
+                solver.Add_b(I,rhs);
+            }
+            break;
+        case 3:
+            solver.Create(ilower, iupper-1, 7, 7);
+            for (k = kmin; k <= kmax; ++k)
+            for (j = jmin; j <= jmax; ++j)
+            for (i = imin; i <= imax; ++i)
+            {
+                icoords[0] = i;
+                icoords[1] = j;
+                icoords[2] = k;
+                ic = d_index3d(i,j,k,top_gmax);
+                comp = top_comp[ic];
+                I = ijk_to_I[i][j][k];
+                if (comp != sub_comp)
+                    continue;
                 T0 = Temp[ic];
-		rhs = T0;
-		coeff = 1.0;
-		for (l = 0; l < dim; ++l)
-		{
-		    lambda = D*m_dt/sqr(top_h[l]);
-		    coeff += lambda;
+                rhs = T0;
+                if (source != NULL)
+                    rhs += m_dt*source[ic];
+                coeff = 1.0;
+                for (l = 0; l < dim; ++l) v[l] = 0.0;
+                if (field->vel != NULL)
+                {
+                    for (l = 0; l < dim; ++l)
+                        v[l] = field->vel[l][ic];
+                }
+                for (l = 0; l < dim; ++l)
+                {
+                    eta = v[l]*m_dt/top_h[l];
+                    lambda = D*m_dt/sqr(top_h[l]);
+                    coeff += lambda;
                     for (m = 0; m < 2; ++m)
                     {
                         next_ip_in_dir(icoords,dir[l][m],ipn,gmin,top_gmax);
                         icn = d_index3d(ipn[0],ipn[1],ipn[2],top_gmax);
-			I_nb = ijk_to_I[ipn[0]][ipn[1]][ipn[2]];
-			coeff_nb = -0.5*lambda;
+                        I_nb = ijk_to_I[ipn[0]][ipn[1]][ipn[2]];
+                        coeff_nb = -0.5*lambda;
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateTemperature,
+                                icoords,dir[l][m],comp,getStateVapor,
                                 &T_nb,crx_coords);
                         if (!fr_crx_grid_seg)
                         {
-			    solver.Add_A(I,I_nb,coeff_nb);
-			    T_nb = Temp[icn];
-			    rhs -= coeff_nb*(T_nb - T0);
+                            solver.Add_A(I,I_nb,coeff_nb);
+                            T_nb = Temp[icn];
+                            rhs -= -0.5*lambda*(T_nb - T0);
+                            if(v[l] > 0 && m == 0)
+                                rhs += eta * (T_nb - T0);
+                            if(v[l] < 0 && m == 1)
+                                rhs += eta * (T0 - T_nb);
                         }
-			else
-			{
-			    rhs -= coeff_nb*(2.0*T_nb - T0);
-			}
+                        else
+                        {
+                            rhs -= coeff_nb*(2.0*T_nb - T0);
+                        }
                     }
-		}
-		solver.Add_A(I,I,coeff);
-		solver.Add_b(I,rhs);
-	    }
-	    break;
+                }
+                solver.Add_A(I,I,coeff);
+                solver.Add_b(I,rhs);
+            }
+            break;
 	}
-	stop_clock("set_coefficients");
-	start_clock("petsc_solve");
-	solver.SetMaxIter(500);   
-	solver.SetTol(1e-8);   
-	solver.Solve();
+        stop_clock("set_coefficients");
+        start_clock("petsc_solve");
+        solver.SetMaxIter(500);
+        solver.SetTol(1e-8);
+        solver.Solve();
 
-	if (debugging("PETSc"))
-	{
-	    (void) printf("CARTESIAN::computeAdvectionCN: "
-	       		"num_iter = %d, rel_residual = %g \n", 
-			num_iter, rel_residual);
-	}
+        if (debugging("PETSc"))
+        {
+            (void) printf("VCARTESIAN::computeAdvectionCN: "
+                        "num_iter = %d, rel_residual = %g \n",
+                        num_iter, rel_residual);
+        }
 
-	FT_VectorMemoryAlloc((POINTER*)&x,cell_center.size(),sizeof(double));
-	solver.Get_x(x);
-	stop_clock("petsc_solve");
+        FT_VectorMemoryAlloc((POINTER*)&x,cell_center.size(),sizeof(double));
+        solver.Get_x(x);
+        stop_clock("petsc_solve");
 
-	start_clock("scatter_data");
-	switch (dim)
-	{
+        start_clock("scatter_data");
+        switch (dim)
+        {
         case 1:
             for (i = imin; i <= imax; i++)
             {
-	    	I = i_to_I[i];
-	    	ic = d_index1d(i,top_gmax);
-	    	comp = cell_center[ic].comp;
-	    	if (comp == sub_comp)
-	    	    array[ic] = x[I-ilower];
-	    	else
-	    	    array[ic] = 0.0;
-	    }
-	    break;
+                I = i_to_I[i];
+                ic = d_index1d(i,top_gmax);
+                comp = cell_center[ic].comp;
+                if (comp == sub_comp)
+                    array[ic] = x[I-ilower];
+                else
+                    array[ic] = 0.0;
+            }
+            break;
         case 2:
-            for (i = imin; i <= imax; i++)
             for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
             {
-	    	I = ij_to_I[i][j];
-	    	ic = d_index2d(i,j,top_gmax);
-	    	comp = cell_center[ic].comp;
-	    	if (comp == sub_comp)
-	    	    array[ic] = x[I-ilower];
-	    	else
-	    	    array[ic] = 0.0;
-	    }
-	    break;
+                I = ij_to_I[i][j];
+                ic = d_index2d(i,j,top_gmax);
+                comp = cell_center[ic].comp;
+                if (comp == sub_comp)
+                    array[ic] = x[I-ilower];
+                else
+                    array[ic] = 0.0;
+            }
+            break;
         case 3:
-            for (i = imin; i <= imax; i++)
-            for (j = jmin; j <= jmax; j++)
             for (k = kmin; k <= kmax; k++)
+            for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
             {
-	    	I = ijk_to_I[i][j][k];
-	    	ic = d_index3d(i,j,k,top_gmax);
-	    	comp = cell_center[ic].comp;
-	    	if (comp == sub_comp)
-	    	    array[ic] = x[I-ilower];
-	    	else
-	    	    array[ic] = 0.0;
-	    }
-	    break;
-	}
-	scatMeshArray();
-	switch (dim)
-	{
+                I = ijk_to_I[i][j][k];
+                ic = d_index3d(i,j,k,top_gmax);
+                comp = cell_center[ic].comp;
+                if (comp == sub_comp)
+                    array[ic] = x[I-ilower];
+                else
+                    array[ic] = 0.0;
+            }
+            break;
+        }
+        scatMeshArray();
+        switch (dim)
+        {
         case 1:
             for (i = 0; i <= top_gmax[0]; ++i)
             {
-		ic = d_index1d(i,top_gmax);
-	    	comp = cell_center[ic].comp;
-	    	if (comp == sub_comp)
-		    Temp[ic] = array[ic];
-	    }
-	    break;
+                ic = d_index1d(i,top_gmax);
+                comp = cell_center[ic].comp;
+                if (comp == sub_comp)
+                    Temp[ic] = array[ic];
+            }
+            break;
         case 2:
-            for (i = 0; i <= top_gmax[0]; ++i)
             for (j = 0; j <= top_gmax[1]; ++j)
+            for (i = 0; i <= top_gmax[0]; ++i)
             {
-		ic = d_index2d(i,j,top_gmax);
-	    	comp = cell_center[ic].comp;
-	    	if (comp == sub_comp)
-		    Temp[ic] = array[ic];
-	    }
-	    break;
+                ic = d_index2d(i,j,top_gmax);
+                comp = cell_center[ic].comp;
+                if (comp == sub_comp)
+                    Temp[ic] = array[ic];
+            }
+            break;
         case 3:
-            for (i = 0; i <= top_gmax[0]; ++i)
-            for (j = 0; j <= top_gmax[1]; ++j)
             for (k = 0; k <= top_gmax[2]; ++k)
+            for (j = 0; j <= top_gmax[1]; ++j)
+            for (i = 0; i <= top_gmax[0]; ++i)
             {
-		ic = d_index3d(i,j,k,top_gmax);
-	    	comp = cell_center[ic].comp;
-	    	if (comp == sub_comp)
-		    Temp[ic] = array[ic];
-	    }
-	    break;
-	}
-	stop_clock("scatter_data");
-	FT_FreeThese(1,x);
+                ic = d_index3d(i,j,k,top_gmax);
+                comp = cell_center[ic].comp;
+                if (comp == sub_comp)
+                    Temp[ic] = array[ic];
+            }
+            break;
+        }
+        stop_clock("scatter_data");
+        FT_FreeThese(1,x);
 
-	if (debugging("trace")) printf("Leaving computeAdvectionCN()\n");
-	stop_clock("computeAdvectionCN");
-}	/* end computeAdvectionCN */
-
+        if (debugging("trace")) printf("Leaving computeAdvectionCN()\n");
+        stop_clock("computeAdvectionCN");
+}       /* end computeAdvectionCN */
+    
 void CARTESIAN::computeAdvectionCim()
 {
 	//static CIM_PARAB_SOLVER parab_solver(*front);
@@ -647,8 +675,8 @@ void CARTESIAN::computeAdvectionCim()
         case 2:
             parab_solver.ij_to_I = ij_to_I;
             parab_solver.I_to_ij = I_to_ij;
-	    for (i = imin; i <= imax; ++i)
 	    for (j = jmin; j <= jmax; ++j)
+	    for (i = imin; i <= imax; ++i)
 	    {
 		index = d_index2d(i,j,top_gmax);
 		source[index] = -field->temperature[index]/m_dt;
@@ -657,9 +685,9 @@ void CARTESIAN::computeAdvectionCim()
         case 3:
             parab_solver.ijk_to_I = ijk_to_I;
             parab_solver.I_to_ijk = I_to_ijk;
-	    for (i = imin; i <= imax; ++i)
-	    for (j = jmin; j <= jmax; ++j)
 	    for (k = kmin; k <= kmax; ++k)
+	    for (j = jmin; j <= jmax; ++j)
+	    for (i = imin; i <= imax; ++i)
 	    {
 		index = d_index3d(i,j,k,top_gmax);
 		source[index] = -field->temperature[index]/m_dt;
@@ -794,17 +822,8 @@ void CARTESIAN::solve(double dt)
 	setDomain();
         if (debugging("trace")) printf("Passing setDomain()\n");
 
-	if (debugging("sample_temperature"))
-            sampleTemperature();
-
 	setComponent();
 	if (debugging("trace")) printf("Passing setComponent()\n");
-
-	if (debugging("sample_temperature"))
-            sampleTemperature();
-
-	computeAdvection();
-	if (debugging("trace")) printf("Passing liquid computeAdvection()\n");
 
         if(eqn_params->prob_type == PARTICLE_TRACKING)
             computeSource();
@@ -812,8 +831,8 @@ void CARTESIAN::solve(double dt)
             source = NULL;
         if (debugging("trace")) printf("Passing computeSource()\n");
 
-	if (debugging("sample_temperature"))
-            sampleTemperature();
+	computeAdvection();
+	if (debugging("trace")) printf("Passing liquid computeAdvection()\n");
 
 	setAdvectionDt();
 	if (debugging("trace")) printf("Passing setAdvectionDt()\n");
@@ -960,7 +979,12 @@ void CARTESIAN::save(char *filename)
 	int xmax = rect_grid->gmax[0];
 	int ymax = rect_grid->gmax[1];
 	double x, y;
-	
+		
+#if defined(__MPI__)
+        if (pp_numnodes() > 1)
+            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+#endif /* defined(__MPI__) */
+
 	FILE *hfile = fopen(filename, "w");
 	if(hfile==NULL)
 	{
@@ -1154,8 +1178,9 @@ void CARTESIAN::printFrontInteriorState(char *out_name)
 	double *Temp = field->temperature;
 
 	sprintf(filename,"%s/state.ts%s-temp",out_name,right_flush(front->step,7));
+        
 #if defined(__MPI__)
-	if (pp_numnodes() > 1)
+        if (pp_numnodes() > 1)
             sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
 #endif /* defined(__MPI__) */
 	outfile = fopen(filename,"w");
@@ -1217,6 +1242,11 @@ void CARTESIAN::readFrontInteriorState(char *restart_name)
 
 	char fname[100];
 	sprintf(fname,"%s-temp",restart_name);
+#if defined(__MPI__)
+        if (pp_numnodes() > 1)
+            sprintf(fname,"%s-nd%s",fname,right_flush(pp_mynode(),4));
+#endif /* defined(__MPI__) */
+
 	infile = fopen(fname,"r");
 
         /* Initialize states at the interface */
@@ -1436,240 +1466,11 @@ void CARTESIAN::xgraphOneDimPlot(char *outname)
 	    printf("Leaving xgraphTemp1()\n");
 }	/* end xgraphOneDimPlot */
 
-void CARTESIAN::vtk_plot_temperature2d(
-	char *outname)
-{
-	std::vector<int>ph_index;
-        int i,j,k,index;
-        char dirname[256],filename[256];
-        FILE *outfile;
-        double coord_x,coord_y,coord_z,xmin,ymin;
-        COMPONENT comp;
-        int pointsx,pointsy,num_points,num_cells,num_cell_list;
-        int icoords[2],p_gmax[2];
-
-        sprintf(filename, "%s/vtk/vtk.ts%s",outname,
-                right_flush(front->step,7));
-        if (pp_numnodes() > 1)
-            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
-
-        //cell-based liquid phase
-        ph_index.clear();
-        if (!create_directory(filename,NO))
-        {
-            printf("Cannot create directory %s\n",filename);
-            clean_up(ERROR);
-        }
-        sprintf(filename,"%s/liquid.vtk",filename);
-        outfile = fopen(filename,"w");
-        fprintf(outfile,"# vtk DataFile Version 3.0\n");
-        fprintf(outfile,"liquid temperature\n");
-        fprintf(outfile,"ASCII\n");
-        fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
-
-        for (j = jmin; j <= jmax; j++)
-        for (i = imin; i <= imax; i++)
-        {
-            index = d_index2d(i,j,top_gmax);
-            if (cell_center[index].comp == LIQUID_COMP2)
-                ph_index.push_back(index);
-        }
-
-        pointsx = top_gmax[0] + 2;
-        pointsy = top_gmax[1] + 2;
-
-        num_points = pointsx*pointsy;
-
-        num_cells = (int) ph_index.size();
-        num_cell_list = 5*num_cells;
-
-
-        index = d_index2d(imin,jmin,top_gmax);
-        xmin = cell_center[index].coords[0] - top_h[0]/2.0;
-        ymin = cell_center[index].coords[1] - top_h[1]/2.0;
-
-        fprintf(outfile,"POINTS %d double\n", num_points);
-        for (j = 0; j <= top_gmax[1]; j++)
-        for (i = 0; i <= top_gmax[0]; i++)
-        {
-            index = d_index2d(i,j,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = 0.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-	for (i = 0; i <= top_gmax[0]; i++)
-        {
-            j = top_gmax[1];
-            index = d_index2d(i,j,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-            coord_z = 0.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        for (j = 0; j <= top_gmax[1]; j++)
-        {
-            i = top_gmax[0];
-            index = d_index2d(i,j,top_gmax);
-            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = 0.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        i = top_gmax[0];
-        j = top_gmax[1];
-        index = d_index2d(i,j,top_gmax);
-        coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-        coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-        coord_z = 0.0;
-        fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-
-	fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
-        for (i = 0; i < num_cells; i++)
-        {
-            int index0,index1,index2,index3;
-            index = ph_index[i];
-            icoords[0] = cell_center[index].icoords[0];
-            icoords[1] = cell_center[index].icoords[1];
-
-            index0 = d_index2d(icoords[0],icoords[1],top_gmax);
-            index1 = d_index2d(icoords[0]+1,icoords[1],top_gmax);
-            index2 = d_index2d(icoords[0],icoords[1]+1,top_gmax);
-            index3 = d_index2d(icoords[0]+1,icoords[1]+1,top_gmax);
-
-            fprintf(outfile,"4 %i %i %i %i\n",
-                    index0,index1,index2,index3);
-        }
-
-        fprintf(outfile, "CELL_TYPES %i\n", num_cells);
-        for (i = 0; i < num_cells; i++)
-            fprintf(outfile, "8\n");
-
-        fprintf(outfile, "CELL_DATA %i\n", num_cells);
-        fprintf(outfile, "SCALARS temperature double\n");
-        fprintf(outfile, "LOOKUP_TABLE default\n");
-        for (i = 0; i < num_cells; i++)
-        {
-            index = ph_index[i];
-            fprintf(outfile,"%f\n", eqn_params->field->temperature[index]);
-        }
-
-        fclose(outfile);
-
-	//cell-based solid phase
-	sprintf(filename,"%s/vtk/vtk.ts%s",outname,
-                right_flush(front->step,7));
-        if (pp_numnodes() > 1)
-            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
-
-        ph_index.clear();
-        sprintf(filename,"%s/solid.vtk",filename);
-        outfile = fopen(filename,"w");
-        fprintf(outfile,"# vtk DataFile Version 3.0\n");
-        fprintf(outfile,"solid temperature\n");
-        fprintf(outfile,"ASCII\n");
-        fprintf(outfile,"DATASET UNSTRUCTURED_GRID\n");
-
-        for (j = jmin; j <= jmax; j++)
-        for (i = imin; i <= imax; i++)
-        {
-            index = d_index2d(i,j,top_gmax);
-            if (cell_center[index].comp == SOLID_COMP)
-                ph_index.push_back(index);
-        }
-
-        pointsx = top_gmax[0] + 2;
-        pointsy = top_gmax[1] + 2;
-        num_points = pointsx*pointsy;
-
-        num_cells = (int) ph_index.size();
-        num_cell_list = 5*num_cells;
-
-        index = d_index2d(imin,jmin,top_gmax);
-        xmin = cell_center[index].coords[0] - top_h[0]/2.0;
-        ymin = cell_center[index].coords[1] - top_h[1]/2.0;
-
-        fprintf(outfile,"POINTS %d double\n", num_points);
-        for (j = 0; j <= top_gmax[1]; j++)
-        for (i = 0; i <= top_gmax[0]; i++)
-        {
-            index = d_index2d(i,j,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = 0.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-	for (i = 0; i <= top_gmax[0]; i++)
-        {
-            j = top_gmax[1];
-            index = d_index2d(i,j,top_gmax);
-            coord_x = cell_center[index].coords[0] - top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-            coord_z = 0.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        for (j = 0; j <= top_gmax[1]; j++)
-        {
-            i = top_gmax[0];
-            index = d_index2d(i,j,top_gmax);
-            coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-            coord_y = cell_center[index].coords[1] - top_h[1]/2.0;
-            coord_z = 0.0;
-            fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-        }
-
-        i = top_gmax[0];
-        j = top_gmax[1];
-        index = d_index2d(i,j,top_gmax);
-        coord_x = cell_center[index].coords[0] + top_h[0]/2.0;
-        coord_y = cell_center[index].coords[1] + top_h[1]/2.0;
-        coord_z = 0.0;
-        fprintf(outfile,"%f %f %f\n",coord_x,coord_y,coord_z);
-
-
-
-        fprintf(outfile,"CELLS %i %i\n", num_cells,num_cell_list);
-        for (i = 0; i < num_cells; i++)
-        {
-            int index0,index1,index2,index3;
-            index = ph_index[i];
-            icoords[0] = cell_center[index].icoords[0];
-            icoords[1] = cell_center[index].icoords[1];
-
-            index0 = d_index2d(icoords[0],icoords[1],top_gmax);
-            index1 = d_index2d(icoords[0]+1,icoords[1],top_gmax);
-            index2 = d_index2d(icoords[0],icoords[1]+1,top_gmax);
-            index3 = d_index2d(icoords[0]+1,icoords[1]+1,top_gmax);
-
-            fprintf(outfile,"4 %i %i %i %i\n",
-                    index0,index1,index2,index3);
-        }
-
-	fprintf(outfile, "CELL_TYPES %i\n", num_cells);
-        for (i = 0; i < num_cells; i++)
-            fprintf(outfile, "8\n");
-
-        fprintf(outfile, "CELL_DATA %i\n", num_cells);
-        fprintf(outfile, "SCALARS temperature double\n");
-        fprintf(outfile, "LOOKUP_TABLE default\n");
-        for (i = 0; i < num_cells; i++)
-        {
-            index = ph_index[i];
-            fprintf(outfile,"%f\n",eqn_params->field->temperature[index]);
-        }
-
-        fclose(outfile);
-}       /* end vtk_plot_temperature2d */
-
 void CARTESIAN::vtk_plot3d(
-        char *outname,const char *varname)
+        const char *varname)
 {
 	std::vector<int> ph_index;
+	char *outname = front->out_name;
         int i,j,k,index;
         char dirname[256],filename[256];
         FILE *outfile;
@@ -1683,8 +1484,6 @@ void CARTESIAN::vtk_plot3d(
 
         sprintf(filename, "%s/vtk/vtk.ts%s",outname,
                 right_flush(front->step,7));
-        if (pp_numnodes() > 1)
-            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
 
         //cell-based liquid phase
         ph_index.clear();
@@ -1693,6 +1492,11 @@ void CARTESIAN::vtk_plot3d(
             printf("Cannot create directory %s\n",filename);
             clean_up(ERROR);
         }
+#if defined(__MPI__)
+        if (pp_numnodes() > 1)
+            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+#endif /* defined(__MPI__) */
+
         sprintf(filename,"%s/%s.vtk",filename,varname);
         outfile = fopen(filename,"w");
         fprintf(outfile,"# vtk DataFile Version 3.0\n");
@@ -1978,8 +1782,8 @@ void CARTESIAN::computeAdvectionExplicitCim(COMPONENT sub_comp)
             }
             break;
 	case 2:
-	    for (i = imin; i <= imax; ++i)
 	    for (j = jmin; j <= jmax; ++j)
+	    for (i = imin; i <= imax; ++i)
 	    {
 	    	icoords[0] = i;
 	    	icoords[1] = j;
@@ -1987,9 +1791,9 @@ void CARTESIAN::computeAdvectionExplicitCim(COMPONENT sub_comp)
 	    }
 	    break;
 	case 3:
-	    for (i = imin; i <= imax; ++i)
-	    for (j = jmin; j <= jmax; ++j)
 	    for (k = kmin; k <= kmax; ++k)
+	    for (j = jmin; j <= jmax; ++j)
+	    for (i = imin; i <= imax; ++i)
 	    {
 	    	icoords[0] = i;
 	    	icoords[1] = j;
@@ -2111,8 +1915,8 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
             }
             break;
 	case 2:
-	    for (i = imin; i <= imax; ++i)
 	    for (j = jmin; j <= jmax; ++j)
+	    for (i = imin; i <= imax; ++i)
 	    {
 	    	icoords[0] = i;
 	    	icoords[1] = j;
@@ -2163,9 +1967,9 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
 	    }
 	    break;
 	case 3:
-	    for (i = imin; i <= imax; ++i)
-	    for (j = jmin; j <= jmax; ++j)
 	    for (k = kmin; k <= kmax; ++k)
+	    for (j = jmin; j <= jmax; ++j)
+	    for (i = imin; i <= imax; ++i)
 	    {
 	    	icoords[0] = i;
 	    	icoords[1] = j;
@@ -2388,7 +2192,7 @@ void CARTESIAN::augmentMovieVariables(const char* varname)
                         front->hdf_movie_var->obstacle_comp[i];
             }
             hdf_movie_var->num_var = n = offset;
-            sprintf(hdf_movie_var->var_name[n],varname);
+            sprintf(hdf_movie_var->var_name[n],"%s",varname);
             hdf_movie_var->get_state_var[n] = getStateTemperature;
             hdf_movie_var->top_var[n] = field->temperature;
             hdf_movie_var->obstacle_comp[n] = ERROR_COMP;
@@ -2426,437 +2230,6 @@ static int find_state_at_crossing(
             return NEUMANN_PDE_BOUNDARY;
 }       /* find_state_at_crossing */
 
-void CARTESIAN::initSampleTemperature(char *in_name)
-{
-        FILE *infile;
-	static SAMPLE *sample;
-	char *sample_type;
-	double *sample_line;
-
-	infile = fopen(in_name,"r");
-	FT_ScalarMemoryAlloc((POINTER*)&sample,sizeof(SAMPLE));
-	sample_type = sample->sample_type;
-	sample_line = sample->sample_coords;
-
-	if (dim == 2)
-	{
-	    CursorAfterString(infile,"Enter the sample line type:");
-	    fscanf(infile,"%s",sample_type);
-	    (void) printf(" %s\n",sample_type);
-	    CursorAfterString(infile,"Enter the sample line coordinate:");
-	    fscanf(infile,"%lf",sample_line);
-	    (void) printf(" %f\n",sample_line[0]);
-	}
-	else if (dim == 3)
-	{
-	    CursorAfterString(infile,"Enter the sample line type:");
-            fscanf(infile,"%s",sample_type);
-            (void) printf(" %s\n",sample_type);
-            CursorAfterString(infile,"Enter the sample line coordinate:");
-            fscanf(infile,"%lf %lf",sample_line,sample_line+1);
-            (void) printf(" %f %f\n",sample_line[0],sample_line[1]);
-	}        
-	CursorAfterString(infile,"Enter the start step for sample: ");
-        fscanf(infile,"%d",&sample->start_step);
-        (void) printf("%d\n",sample->start_step);
-        CursorAfterString(infile,"Enter the end step for sample: ");
-        fscanf(infile,"%d",&sample->end_step);
-        (void) printf("%d\n",sample->end_step);
-        CursorAfterString(infile,"Enter the step interval for sample: ");
-        fscanf(infile,"%d",&sample->step_interval);
-        (void) printf("%d\n",sample->step_interval);
-        front->sample = sample;
-        fclose(infile);
-}       /* end initSampleTemperature */
-
-void CARTESIAN::sampleTemperature()
-{
-        if (dim == 2)
-            sampleTemperature2d();
-        else if (dim == 3)
-            sampleTemperature3d();
-}       /* end sampleTemperature */
-
-void CARTESIAN::sampleTemperature2d()
-{
-	int i,j,index;
-	SAMPLE *sample = front->sample;
-	char *sample_type = sample->sample_type;
-	double *line = sample->sample_coords;
-	char *out_name = front->out_name;
-	double coords[MAXD];
-	double var1,var2,var;
-	FILE *sfile;
-	char sname[100];
-	static int count = 0;
-	static int step = 0;
-	static int l = -1;
-	static double lambda;
-	char dirname[256];
-	static char **sample_color;
-
-	if (sample_color == NULL)
-	{
-	    FT_MatrixMemoryAlloc((POINTER*)&sample_color,10,20,sizeof(char));
-	    sprintf(sample_color[0],"red");
-	    sprintf(sample_color[1],"blue");
-	    sprintf(sample_color[2],"green");
-	    sprintf(sample_color[3],"violet");
-            sprintf(sample_color[4],"orange");
-            sprintf(sample_color[5],"yellow");
-            sprintf(sample_color[6],"pink");
-            sprintf(sample_color[7],"cyan");
-            sprintf(sample_color[8],"light-gray");
-            sprintf(sample_color[9],"dark-gray");
-	}
-	if (pp_numnodes() > 1)
-	    return;
-	if (front->step < sample->start_step || front->step > sample->end_step)
-	    return;
-	if ((front->step - sample->start_step)%sample->step_interval)
-	    return;
-	if (step != front->step)
-	{
-	    step = front->step;
-	    count = 0;
-	}
-	sprintf(dirname, "%s/sample-%d", out_name,step);
-	if (!create_directory(dirname,NO))
-	{
-	    screen("Cannot create directory %s\n",dirname);
-	    clean_up(ERROR);
-	}
-	switch (sample_type[0])
-	{
-	case 'x':
-	    if (l == -1)
-	    {
-		double x1,x2;
-		do
-		{
-		    ++l;
-		    index = d_index2d(l,0,top_gmax);
-		    getRectangleCenter(index, coords); 
-		} while(line[0] >= coords[0]);
-		--l;
-		index = d_index2d(l,0,top_gmax);
-		getRectangleCenter(index,coords);
-		x1 = coords[0];
-		index = d_index2d(l+1,0,top_gmax);
-		getRectangleCenter(index,coords);
-		x2 = coords[0];
-		lambda = (line[0] - x1) / (x2 - line[0]);
-	    }
-	    i = l;
-	    sprintf(sname, "%s/t-%d.xg",dirname,count);
-	    sfile = fopen(sname,"w");
-	    fprintf(sfile,"Next\n");
-	    fprintf(sfile,"color=%s\n",sample_color[count]);
-	    fprintf(sfile,"thickness=1.5\n");
-	    for (j = jmin; j <= jmax; ++j)
-	    {
-		index = d_index2d(i,j,top_gmax);
-		var1 = field->temperature[index];
-		index = d_index2d(i+1,j,top_gmax);
-		var2 = field->temperature[index];
-		var = (var1 + lambda*var2) / (1.0 + lambda);
-		getRectangleCenter(index,coords);
-		fprintf(sfile,"%20.14f %20.14f\n",coords[1],var);
-	    }
-	    fclose(sfile);
-	    break;
-	case 'y':
-	    if (l == -1)
-	    {
-		double y1,y2;
-		do
-		{
-		    ++l;
-		    index = d_index2d(0,l,top_gmax);
-		    getRectangleCenter(index, coords);
-		} while (line[0] >= coords[1]);
-		--l;
-		index = d_index2d(0,l,top_gmax);
-                getRectangleCenter(index,coords);
-		y1 = coords[1];
-		index = d_index2d(0,l+1,top_gmax);
-		getRectangleCenter(index,coords);
-		y2 = coords[1];
-		lambda = (line[0] - y1) / (y2 - line[0]); 
-	    }
-	    j = l;
-	    sprintf(sname, "%s/t-%d.xg",dirname,count);
-            sfile = fopen(sname,"w");
-            fprintf(sfile,"Next\n");
-            fprintf(sfile,"color=%s\n",sample_color[count]);
-            fprintf(sfile,"thickness=1.5\n");
-            for (i = imin; i <= imax; ++i)
-            {
-                index = d_index2d(i,j,top_gmax);
-                var1 = field->temperature[index];
-                index = d_index2d(i,j+1,top_gmax);
-                var2 = field->temperature[index];
-                var = (var1 + lambda*var2) / (1.0 + lambda);
-                getRectangleCenter(index,coords);
-                fprintf(sfile,"%20.14f   %20.14f\n",coords[0],var);
-            }
-            fclose(sfile);
-            break;
-	default:
-            printf("Incorrect input for sample temperature!\n");
-            break;
-	}
-	count++;
-}	/* end sampleTemperature2d */
-
-void CARTESIAN::sampleTemperature3d()
-{
-        int i,j,k,index;
-        SAMPLE *sample = front->sample;
-        char *sample_type = sample->sample_type;
-        double *sample_line = sample->sample_coords;
-        char *out_name = front->out_name;
-        double coords[MAXD];
-        double var1,var2,var_tmp1,var_tmp2,var;
-        FILE *sfile;
-        char sname[100];
-        static int count = 0;
-        static int step = 0;
-        static int l = -1, m = -1;
-        static double lambda1,lambda2;
-        char dirname[256];
-        static char **sample_color;
-
-        if (sample_color == NULL)
-        {
-            FT_MatrixMemoryAlloc((POINTER*)&sample_color,10,20,sizeof(char));
-            sprintf(sample_color[0],"red");
-            sprintf(sample_color[1],"blue");
-            sprintf(sample_color[2],"green");
-            sprintf(sample_color[3],"violet");
-            sprintf(sample_color[4],"orange");
-            sprintf(sample_color[5],"yellow");
-            sprintf(sample_color[6],"pink");
-            sprintf(sample_color[7],"cyan");
-            sprintf(sample_color[8],"light-gray");
-            sprintf(sample_color[9],"dark-gray");
-        }
-        if (pp_numnodes() > 1)
-            return;
-        if (front->step < sample->start_step || front->step > sample->end_step)
-            return;
-        if ((front->step - sample->start_step)%sample->step_interval)
-            return;
-        if (step != front->step)
-        {
-            step = front->step;
-            count = 0;
-        }
-	sprintf(dirname, "%s/sample-%d", out_name,step);
-        if (!create_directory(dirname,NO))
-        {
-            screen("Cannot create directory %s\n",dirname);
-            clean_up(ERROR);
-        }
-
-        switch (sample_type[0])
-        {
-        case 'x':
-            if (l == -1)
-            {
-                double x1,x2;
-                do
-                {
-                    ++l;
-                    index = d_index3d(l,0,0,top_gmax);
-                    getRectangleCenter(index,coords);
-                }while(sample_line[0]>=coords[0]);
-                --l;
-                index = d_index3d(l,0,0,top_gmax);
-                getRectangleCenter(index,coords);
-                x1 = coords[0];
-                index = d_index3d(l+1,0,0,top_gmax);
-                getRectangleCenter(index,coords);
-                x2 = coords[0];
-                lambda1 = (sample_line[0] - x1) / (x2 - sample_line[0]);
-            }
-	    switch (sample_type[1])
-            {
-                case 'y':
-                    if (m == -1)
-                    {
-                        double y1,y2;
-                        do
-                        {
-                            ++m;
-                            index = d_index3d(0,m,0,top_gmax);
-                            getRectangleCenter(index,coords);
-                        }while(sample_line[1]>=coords[1]);
-                        --m;
-                        index = d_index3d(0,m,0,top_gmax);
-                        getRectangleCenter(index,coords);
-                        y1 = coords[1];
-                        index = d_index3d(0,m+1,0,top_gmax);
-                        getRectangleCenter(index,coords);
-                        y2 = coords[1];
-                        lambda2 = (sample_line[1] - y1)/(y2 - sample_line[1]);
-                    }
-                    i = l;
-                    j = m;
-                    sprintf(sname, "%s/t-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-                    fprintf(sfile,"Next\n");
-                    fprintf(sfile,"color=%s\n",sample_color[count]);
-                    fprintf(sfile,"thickness=1.5\n");
-                    for (k = kmin; k <= kmax; ++k)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        var1 = field->temperature[index];
-                        index = d_index3d(i+1,j,k,top_gmax);
-                        var2 = field->temperature[index];
-                        var_tmp1 = (var1 + lambda1*var2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j+1,k,top_gmax);
-                        var1 = field->temperature[index];
-                        index = d_index3d(i+1,j+1,k,top_gmax);
-                        var2 = field->temperature[index];
-                        var_tmp2 = (var1 + lambda1*var2)/(1.0 + lambda1);
-
-                        var = (var_tmp1 + lambda2*var_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[2],var);
-                    }
-                    fclose(sfile);
-                    break;
-		case 'z':
-                    if (m == -1)
-                    {
-                        double z1,z2;
-                        do
-                        {
-                            ++m;
-                            index = d_index3d(0,0,m,top_gmax);
-                            getRectangleCenter(index,coords);
-                        }while(sample_line[1]>=coords[2]);
-                        --m;
-                        index = d_index3d(0,0,m,top_gmax);
-                        getRectangleCenter(index,coords);
-                        z1 = coords[2];
-                        index = d_index3d(0,0,m+1,top_gmax);
-                        getRectangleCenter(index,coords);
-                        z2 = coords[2];
-                        lambda2 = (sample_line[1] - z1)/(z2 - sample_line[1]);
-                    }
-                    i = l;
-                    k = m;
-                    sprintf(sname, "%s/t-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-                    fprintf(sfile,"Next\n");
-                    fprintf(sfile,"color=%s\n",sample_color[count]);
-                    fprintf(sfile,"thickness=1.5\n");
-                    for (j = jmin; j <= jmax; ++j)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        var1 = field->temperature[index];
-                        index = d_index3d(i+1,j,k,top_gmax);
-                        var2 = field->temperature[index];
-                        var_tmp1 = (var1 + lambda1*var2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j,k+1,top_gmax);
-                        var1 = field->temperature[index];
-                        index = d_index3d(i+1,j,k+1,top_gmax);
-                        var2 = field->temperature[index];
-                        var_tmp2 = (var1 + lambda1*var2)/(1.0 + lambda1);
-
-                        var = (var_tmp1 + lambda2*var_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[2],var);
-                    }
-                    fclose(sfile);
-                    break;
-                default:
-                    printf("Incorrect input for sample temperature!\n");
-                    break;
-	    }
-            break;
-	case 'y':
-            if (l == -1)
-            {
-                double y1,y2;
-                do
-                {
-                    ++l;
-                    index = d_index3d(0,l,0,top_gmax);
-                    getRectangleCenter(index, coords);
-                }while(sample_line[0]>=coords[1]);
-                --l;
-                index = d_index3d(0,l,0,top_gmax);
-                getRectangleCenter(index,coords);
-                y1 = coords[1];
-                index = d_index3d(0,l+1,0,top_gmax);
-                getRectangleCenter(index,coords);
-                y2 = coords[1];
-                lambda1 = (sample_line[0] - y1)/(y2 - sample_line[0]);
-            }
-            switch (sample_type[1])
-            {
-                case 'z':
-                    if (m == -1)
-                    {
-                        double z1,z2;
-                        do
-                        {
-                            ++m;
-                            index = d_index3d(0,0,m,top_gmax);
-                            getRectangleCenter(index,coords);
-                        }while(sample_line[1]>=coords[2]);
-                        --m;
-                        index = d_index3d(0,0,m,top_gmax);
-                        getRectangleCenter(index,coords);
-                        z1 = coords[2];
-                        index = d_index3d(0,0,m+1,top_gmax);
-                        getRectangleCenter(index,coords);
-                        z2 = coords[2];
-                        lambda2 = (sample_line[1] - z1)/(z2 - sample_line[1]);
-                    }
-		    j = l;
-                    k = m;
-                    sprintf(sname, "%s/t-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-                    fprintf(sfile,"Next\n");
-                    fprintf(sfile,"color=%s\n",sample_color[count]);
-                    fprintf(sfile,"thickness=1.5\n");
-                    for (i = imin; i <= imax; ++i)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        var1 = field->temperature[index];
-                        index = d_index3d(i,j+1,k,top_gmax);
-                        var2 = field->temperature[index];
-                        var_tmp1 = (var1 + lambda1*var2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j,k+1,top_gmax);
-                        var1 = field->temperature[index];
-                        index = d_index3d(i,j+1,k+1,top_gmax);
-                        var2 = field->temperature[index];
-                        var_tmp2 = (var1 + lambda1*var2)/(1.0 + lambda1);
-
-                        var = (var_tmp1 + lambda2*var_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[0],var);
-                    }
-                    fclose(sfile);
-                    break;
-                default:
-                    printf("Incorrect input for sample temperature!\n");
-                    break;
-            }
-        default:
-            printf("Incorrect input for sample temperature!\n");
-            break;
-        }
-        count++;
-}       /* end sampleTemperature3d */
-
 void CARTESIAN::computeSource()
 {
         /*compute condensation rate*/
@@ -2872,23 +2245,23 @@ void CARTESIAN::computeSource()
         double *coords;
         /*for computing the coefficient*/
         double rho_0 = iFparams->rho2;
-        double a3 = 1;
+        double a3 = 1.0;
         double coeff;
-	double L = 2500000;
-	double cp = 1005;
+	double L = 2500000.0;
+	double cp = 1005.0;
 
         for(i = 0; i < dim; i++)
             a3 *= top_h[i];
 
         for (i = 0; i < comp_size; i++)
-            source[i] = 0;
+            source[i] = 0.0;
 
         for (i = 0; i < num_drops; i++)
         {
             coords = particle_array[i].center;
             rect_in_which(coords,ic,top_grid);
             index = d_index(ic,top_gmax,dim);
-            coeff = 4*PI*particle_array[i].rho * eqn_params->K
+            coeff = 4.0*PI*particle_array[i].rho * eqn_params->K
                                                / (rho_0 * a3);
             source[index] += L/cp * coeff * supersat[index]
                                   * particle_array[i].radius;
