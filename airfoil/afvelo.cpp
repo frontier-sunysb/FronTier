@@ -36,6 +36,7 @@ static int marker_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
 static void init_fixarea_params(Front*,FILE*,FIXAREA_PARAMS*);
 static void init_fixpoint_params(Front*,FILE*,FIXAREA_PARAMS*);
 static void convert_to_point_mass(Front*, AF_PARAMS*);
+static void checkSetGoreNodes(INTERFACE*);
 
 
 extern void setMotionParams(
@@ -46,8 +47,14 @@ extern void setMotionParams(
 	char string[100];
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
+	INTERFACE *intfc = front->interf;
 
 	af_params->no_fluid = NO;
+	if (numOfGoreHsbdry(intfc) != 0)
+	{
+	    af_params->attach_gores = YES;
+	    checkSetGoreNodes(intfc);
+	}
         if (CursorAfterStringOpt(infile,
             "Entering yes to turn off fluid solver: "))
         {
@@ -959,3 +966,17 @@ extern void resetFrontVelocity(Front *front)
 	    }
 	}
 }	/* end resetFrontVelocity */
+
+static void checkSetGoreNodes(
+	INTERFACE *intfc)
+{
+	CURVE **c;
+	intfc_curve_loop(intfc,c)
+	{
+	    if (hsbdry_type(*c) == GORE_HSBDRY)
+	    {
+		set_gore_node((*c)->start);
+		set_gore_node((*c)->end);
+	    }
+	}
+}	/* end checkSetGoreNodes */

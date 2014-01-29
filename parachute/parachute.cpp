@@ -97,16 +97,14 @@ int main(int argc, char **argv)
         front.extra1 = (POINTER)&iFparams;
         front.extra2 = (POINTER)&af_params;
         read_iFparams(in_name,&iFparams);
+	initParachuteDefault(&front);
 
 	level_func_pack.pos_component = LIQUID_COMP2;
 	if (!RestartRun)
 	{
 	    FT_InitIntfc(&front,&level_func_pack);
 	    read_iF_dirichlet_bdry_data(in_name,&front,f_basic);
-	    if (f_basic.dim < 3)
-            	FT_ClipIntfcToSubdomain(&front);
-	    else
-		initParachuteModules(&front);
+	    initParachuteModules(&front);
 	}
 	else
 	{
@@ -121,9 +119,6 @@ int main(int argc, char **argv)
 	    set_equilibrium_mesh(&front);
 	}
 	FT_SetGlobalIndex(&front);
-	FT_Save(&front,out_name);
-	/* TMP termination */
-	//clean_up(0);
 	    
 	/* Initialize velocity field function */
 

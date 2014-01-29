@@ -1,8 +1,6 @@
 #include <iFluid.h>
 #include <airfoil.h>
 
-static void initParachuteDefault(Front*);
-
 static void initSingleModule(FILE*,Front*);
 
 static void initCanopySurface_vtk(char*,Front*,SURFACE*);
@@ -31,8 +29,6 @@ extern void initParachuteModules(Front *front)
 
 	if (debugging("set_module"))
 	    gview_plot_interface("module-step-1",front->interf);
-
-	initParachuteDefault(front);
 
 	CursorAfterString(infile,"Enter number of canopy surfaces:");
         fscanf(infile,"%d",&num_canopy);
@@ -522,7 +518,7 @@ static void installAngularString(
 {
 }	/* end installAngularString */
 
-static void initParachuteDefault(
+extern void initParachuteDefault(
 	Front *front)
 {
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;

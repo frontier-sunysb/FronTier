@@ -258,6 +258,7 @@ extern boolean is_gore_node(NODE*);
 extern boolean is_bdry_node(NODE*);
 extern boolean is_string_node(NODE*);
 extern double springCharTimeStep(Front*);	// spring characteristic time
+extern void set_gore_node(NODE*);
 
 // aftest.cpp
 extern void second_order_elastic_curve_propagate(Front*,Front*,INTERFACE*,
@@ -333,6 +334,7 @@ extern void setMotionParams(Front*);
 extern void resetFrontVelocity(Front*);
 
 // afmodule.cpp
+extern void initParachuteDefault(Front*);
 extern void initParachuteModules(Front*);
 
 // afdata.cpp
@@ -344,8 +346,6 @@ extern void modifyInitialization(Front*);
 extern void gviewSurfaceStress(Front*);
 extern void vtkPlotSurfaceStress(Front*);
 extern void poisson_ratio(Front*);
-
-// afprops.cpp
 
 // sprModel/modules.cpp
 extern void initSpringModel(Front*);

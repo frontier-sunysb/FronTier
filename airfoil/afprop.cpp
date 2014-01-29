@@ -431,7 +431,7 @@ extern int numOfMonoHsbdry(
 {
 	CURVE **c;
 	int nc = 0;
-	for (c = intfc->curves; c && *c; ++c)
+	intfc_curve_loop(intfc,c)
 	{
 	    if (hsbdry_type(*c) == MONO_COMP_HSBDRY) nc++;
 	} 
@@ -443,7 +443,7 @@ extern int numOfGoreHsbdry(
 {
 	CURVE **c;
 	int nc = 0;
-	for (c = intfc->curves; c && *c; ++c)
+	intfc_curve_loop(intfc,c)
 	{
 	    if (hsbdry_type(*c) == GORE_HSBDRY) nc++;
 	} 
@@ -456,7 +456,7 @@ static int arrayOfMonoHsbdry(
 {
 	CURVE **c;
 	int nc = 0;
-	for (c = intfc->curves; c && *c; ++c)
+	intfc_curve_loop(intfc,c)
 	{
 	    if (hsbdry_type(*c) == MONO_COMP_HSBDRY) 
 	    {
@@ -473,7 +473,7 @@ static int arrayOfGoreHsbdry(
 {
 	CURVE **c;
 	int nc = 0;
-	for (c = intfc->curves; c && *c; ++c)
+	intfc_curve_loop(intfc,c)
 	{
 	    if (hsbdry_type(*c) == GORE_HSBDRY) 
 	    {
@@ -493,7 +493,7 @@ extern int numOfGoreNodes(
 	AF_NODE_EXTRA *extra;
 	boolean is_string_node;
 
-	for (n = intfc->nodes; n && *n; ++n)
+	intfc_node_loop(intfc,n)
 	{
 	    if ((*n)->extra == NULL)
 		continue;
@@ -558,6 +558,35 @@ extern boolean is_gore_node(
 	    return NO;
 }	/* end is_gore_node */
 
+extern void set_gore_node(
+	NODE *n)
+{
+	static AF_NODE_EXTRA *extra;
+	boolean is_gore_node = NO;
+	CURVE **c;
+
+	for (c = n->in_curves; c && *c; ++c)
+	    if (hsbdry_type(*c) == STRING_HSBDRY)
+		return;
+	    else if (hsbdry_type(*c) == GORE_HSBDRY)
+		is_gore_node = YES;
+	for (c = n->out_curves; c && *c; ++c)
+	    if (hsbdry_type(*c) == STRING_HSBDRY)
+		return;
+	    else if (hsbdry_type(*c) == GORE_HSBDRY)
+		is_gore_node = YES;
+	if (!is_gore_node) return;
+	if (n->extra == NULL)
+	{
+	    if (extra ==  NULL)
+	    {
+	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+		extra->af_node_type = GORE_NODE;
+	    }
+	    n->extra = (POINTER)extra;
+	}
+}	/* end set_gore_node */
+
 extern boolean is_load_node(NODE *n)
 {
         AF_NODE_EXTRA *af_node_extra;
@@ -574,13 +603,26 @@ static int getGoreNodes(
 	NODE **n;
 	int num_nodes = 0;
 
-	for (n = intfc->nodes; n && *n; ++n)
+	intfc_node_loop(intfc,n)
 	{
 	    if (is_gore_node(*n))
 		gore_nodes[num_nodes++] = *n;
 	}
 	return num_nodes;
 }	/* getGoreNodes */
+
+extern boolean goreInIntfc(
+	INTERFACE *intfc)
+{
+	NODE **n;
+
+	for (n = intfc->nodes; n && *n; ++n)
+	{
+	    if (is_gore_node(*n))
+		return YES;
+	}
+	return NO;
+}	/* end goreInIntfc */
 
 static void mono_curve_propagation(
         Front *front,
