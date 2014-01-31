@@ -9,4 +9,4 @@ echo $DIR
 #run options
 echo input file $DIR/in-$1
 echo output directory $DIR/out-$1
-mpirun -np 1 $DIR/parachute -d 3 -p 1 1 1 -i $DIR/in-$1 -o $DIR/out-$1
+mpirun -np 1 $DIR/parachute -p 1 1 1 -i $DIR/in-$1 -o $DIR/out-$1

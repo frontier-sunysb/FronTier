@@ -54,6 +54,7 @@ int main(int argc, char **argv)
 	static AF_PARAMS af_params;
 
 	FT_Init(argc,argv,&f_basic);
+	f_basic.dim = 3;
 	f_basic.size_of_intfc_state = sizeof(STATE);
 
 	//Initialize Petsc before FrontStartUP
@@ -62,10 +63,7 @@ int main(int argc, char **argv)
 	/*Construct Incompress Solver l_cartesian*/
 
 	Incompress_Solver_Smooth_Basis *l_cartesian = NULL;
-	if(f_basic.dim == 2)
-	    l_cartesian = new Incompress_Solver_Smooth_2D_Cartesian(front);
-	else if(f_basic.dim == 3)
-	    l_cartesian = new Incompress_Solver_Smooth_3D_Cartesian(front);
+	l_cartesian = new Incompress_Solver_Smooth_3D_Cartesian(front);
 
 	/* Initialize basic computational data */
 
