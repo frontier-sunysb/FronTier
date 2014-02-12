@@ -258,7 +258,6 @@ extern boolean is_gore_node(NODE*);
 extern boolean is_bdry_node(NODE*);
 extern boolean is_string_node(NODE*);
 extern double springCharTimeStep(Front*);	// spring characteristic time
-extern void set_gore_node(NODE*);
 
 // aftest.cpp
 extern void second_order_elastic_curve_propagate(Front*,Front*,INTERFACE*,

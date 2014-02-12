@@ -558,35 +558,6 @@ extern boolean is_gore_node(
 	    return NO;
 }	/* end is_gore_node */
 
-extern void set_gore_node(
-	NODE *n)
-{
-	static AF_NODE_EXTRA *extra;
-	boolean is_gore_node = NO;
-	CURVE **c;
-
-	for (c = n->in_curves; c && *c; ++c)
-	    if (hsbdry_type(*c) == STRING_HSBDRY)
-		return;
-	    else if (hsbdry_type(*c) == GORE_HSBDRY)
-		is_gore_node = YES;
-	for (c = n->out_curves; c && *c; ++c)
-	    if (hsbdry_type(*c) == STRING_HSBDRY)
-		return;
-	    else if (hsbdry_type(*c) == GORE_HSBDRY)
-		is_gore_node = YES;
-	if (!is_gore_node) return;
-	if (n->extra == NULL)
-	{
-	    if (extra ==  NULL)
-	    {
-	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
-		extra->af_node_type = GORE_NODE;
-	    }
-	    n->extra = (POINTER)extra;
-	}
-}	/* end set_gore_node */
-
 extern boolean is_load_node(NODE *n)
 {
         AF_NODE_EXTRA *af_node_extra;

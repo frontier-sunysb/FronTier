@@ -37,6 +37,7 @@ static void init_fixarea_params(Front*,FILE*,FIXAREA_PARAMS*);
 static void init_fixpoint_params(Front*,FILE*,FIXAREA_PARAMS*);
 static void convert_to_point_mass(Front*, AF_PARAMS*);
 static void checkSetGoreNodes(INTERFACE*);
+static void set_gore_node(NODE*);
 
 
 extern void setMotionParams(
@@ -980,3 +981,33 @@ static void checkSetGoreNodes(
 	    }
 	}
 }	/* end checkSetGoreNodes */
+
+
+static void set_gore_node(
+	NODE *n)
+{
+	static AF_NODE_EXTRA *extra;
+	boolean is_gore_node = NO;
+	CURVE **c;
+
+	for (c = n->in_curves; c && *c; ++c)
+	    if (hsbdry_type(*c) == STRING_HSBDRY)
+		return;
+	    else if (hsbdry_type(*c) == GORE_HSBDRY)
+		is_gore_node = YES;
+	for (c = n->out_curves; c && *c; ++c)
+	    if (hsbdry_type(*c) == STRING_HSBDRY)
+		return;
+	    else if (hsbdry_type(*c) == GORE_HSBDRY)
+		is_gore_node = YES;
+	if (!is_gore_node) return;
+	if (n->extra == NULL)
+	{
+	    if (extra ==  NULL)
+	    {
+	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+		extra->af_node_type = GORE_NODE;
+	    }
+	    n->extra = (POINTER)extra;
+	}
+}	/* end set_gore_node */
