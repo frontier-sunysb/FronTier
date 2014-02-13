@@ -544,7 +544,7 @@ elif [[ "${HOST}" == "omega" ]]; then
     config_omega
 elif [[ "${HOST}" == "linli-pc" ]]; then
     echo "Computer is recognized as linli-pc."
-    config_alpha_omega
+    config_alpha
 elif [[ "${HOST}" == "newdelta" ]]; then
     echo "Computer is recognized as Delta."
     config_delta
