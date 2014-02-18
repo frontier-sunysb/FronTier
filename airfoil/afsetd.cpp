@@ -227,7 +227,10 @@ extern void set_node_spring_vertex(
 	    if (extra != NULL)
 	    {
 		if (extra->af_node_type == PRESET_NODE)
+		{
+                    mass = geom_set->m_s;
 		    is_fixed = YES;
+		}
 		else if (extra->af_node_type == LOAD_NODE)
 		{
 	    	    Front *front = geom_set->front;
@@ -365,7 +368,7 @@ extern void set_node_spring_vertex(
 	    {
 		sv[*n].lambda = 0.0;
 	    	for (i = 0; i < sv[*n].num_nb; ++i)
-		    sv[*n].k[nn] = 0.0;
+		    sv[*n].k[i] = 0.0;
 	    }
 	}
 	else
