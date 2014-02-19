@@ -53,6 +53,9 @@ Enter interior sub step number: 10
 Enter fabric spring constant: 5000
 Enter fabric friction constant: 0.01 
 Enter fabric point mass: 0.001
+Enter gore spring constant: 5000
+Enter gore friction constant: 0.01 
+Enter gore point mass: 0.001
 Enter string spring constant: 50000
 Enter string friction constant: 0.001
 Enter string point mass: 0.01
