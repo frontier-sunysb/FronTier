@@ -554,6 +554,7 @@ cim/Makefile
 inverse/Makefile
 solver/Makefile
 weno/Makefile
+proj/Makefile
 src/pak/linpak/Makefile
 src/pak/blas/Makefile
 devel-deps.inc
@@ -610,6 +611,7 @@ cim/Makefile
 inverse/Makefile
 solver/Makefile
 weno/Makefile
+proj/Makefile
 devel-deps.inc
 iMesh-Defs.inc'
 

@@ -206,6 +206,9 @@ $$ME/weno/*.cpp \
 $$ME/weno/*.h \
 $$ME/weno/Makefile.in \
 $$ME/weno/in-* \
+$$ME/proj/*.cpp \
+$$ME/proj/*.h \
+$$ME/proj/Makefile.in \
 $$ME/frgb/*.cpp \
 $$ME/frgb/*.h \
 $$ME/frgb/Makefile.in \
