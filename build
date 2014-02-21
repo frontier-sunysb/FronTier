@@ -21,6 +21,8 @@ function parse_arguments {
     
     OPTS="-O2"
     WITHHYPRE=1
+    WITHHDF=1
+    WITHGD=1
     for arg in $@ ; do
         if [[ "$arg" == "-d" ]]; then
 	    OPTS="-g"
@@ -36,10 +38,10 @@ function parse_arguments {
             WITHGPU=1
         elif [[ "$arg" == "--without-hypre" ]]; then
             WITHHYPRE=0
-        elif [[ "$arg" == "--with-hdf" ]]; then
-            WITHHDF=1
-        elif [[ "$arg" == "--with-gd" ]]; then
-            WITHGD=1
+        elif [[ "$arg" == "--without-hdf" ]]; then
+            WITHHDF=0
+        elif [[ "$arg" == "--without-gd" ]]; then
+            WITHGD=0
 	else
 	    CONF="$CONF ${arg}"
         fi
