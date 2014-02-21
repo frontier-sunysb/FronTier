@@ -10,7 +10,7 @@ function parse_arguments {
         echo "    -n          Just configure. Do not run make."
         echo "    -g          Enable compilation of Gas directory."
         echo "    --with-gpu  Enable compilation with GPU."
-        echo "    --with-hypre  Enable compilation with HYPRE."
+        echo "    --without-hypre  Not to enable compilation with HYPRE."
         echo "    --with-hdf  Enable compilation with HDF4."
         echo "    --with-gd   Enable compilation with graphics drawing for 1-D post processing."
         echo "    --enable-itaps  Enable compilation with ITAPS."
@@ -20,6 +20,7 @@ function parse_arguments {
     fi
     
     OPTS="-O2"
+    WITHHYPRE=1
     for arg in $@ ; do
         if [[ "$arg" == "-d" ]]; then
 	    OPTS="-g"
@@ -31,12 +32,10 @@ function parse_arguments {
 	    CONF="$CONF --enable-itaps"
         elif [[ "$arg" == "--enable-imesh" ]]; then
 	    CONF="$CONF --enable-imesh"
-        elif [[ "$arg" == "-g" ]]; then
-	    CONF="$CONF --with-gas"
         elif [[ "$arg" == "--with-gpu" ]]; then
             WITHGPU=1
-        elif [[ "$arg" == "--with-hypre" ]]; then
-            WITHHYPRE=1
+        elif [[ "$arg" == "--without-hypre" ]]; then
+            WITHHYPRE=0
         elif [[ "$arg" == "--with-hdf" ]]; then
             WITHHDF=1
         elif [[ "$arg" == "--with-gd" ]]; then
