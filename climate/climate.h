@@ -72,6 +72,7 @@ struct _PARTICLE {
 	double R0;
 	double rho;
 	int    Gindex;
+	boolean flag;
 };
 typedef struct _PARTICLE PARTICLE;
 
@@ -231,7 +232,6 @@ public:
 	void oneDimPlot(char*);
 	void xgraphOneDimPlot(char*);
 	void initMovieVariables();
-	void augmentMovieVariables(const char*);
 	void vtk_plot_temperature2d(char*);
         void vtk_plot3d(const char*);
 
@@ -349,7 +349,7 @@ public:
 	void computeAdvectionCim();
 	void computeSupersat();
 	void computeCondensation();
-	void computeVelocityTensor();
+	double computeReactTimeScale(double,double,int);
 
 	void pointExplicitCimSolver(int*,COMPONENT);
 	void computeSource();
@@ -362,7 +362,6 @@ public:
 	void oneDimPlot(char*);
 	void xgraphOneDimPlot(char*);
 	void initMovieVariables();
-	void augmentMovieVariables(const char*);
 	void checkOutput();
 	void checkField();
 	void recordField(char *, const char *);
@@ -383,6 +382,7 @@ public:
 	// physics calculation
 	void setInitialCondition(void);
 	void setInitialVapor(void);
+	void setParallelVapor(void);
 
 	void setIndexMap(COMPONENT);
 		// for compProjWithSmoothProperty(), 
@@ -444,6 +444,10 @@ extern void ParticlePropagate(Front*);
 extern void read_CL_prob_type(Front*);
 extern void readWaterDropsParams(Front*,char*);
 extern void printDropletsStates(Front*,char*);
+/*plot functions*/
 extern void gv_plot_scatter(Front*);
 extern void vtk_plot_scatter(Front*);
 extern void vtk_plot_sample_traj(Front*);
+/*Statistics functions*/
+extern void  Deviation(PARTICLE*,int,double&,double&);
+extern double* ComputePDF(double*,int,double,int&,double&,double&);

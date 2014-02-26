@@ -1484,6 +1484,10 @@ void CARTESIAN::vtk_plot3d(
 
         sprintf(filename, "%s/vtk/vtk.ts%s",outname,
                 right_flush(front->step,7));
+#if defined(__MPI__)
+        if (pp_numnodes() > 1)
+            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
+#endif /* defined(__MPI__) */
 
         //cell-based liquid phase
         ph_index.clear();
@@ -1492,10 +1496,6 @@ void CARTESIAN::vtk_plot3d(
             printf("Cannot create directory %s\n",filename);
             clean_up(ERROR);
         }
-#if defined(__MPI__)
-        if (pp_numnodes() > 1)
-            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
-#endif /* defined(__MPI__) */
 
         sprintf(filename,"%s/%s.vtk",filename,varname);
         outfile = fopen(filename,"w");
@@ -2149,56 +2149,6 @@ void CARTESIAN::initMovieVariables()
         if (debugging("trace"))
             printf("Leaving initMovieVariables()\n");
 }	/* end initMovieVariables */
-
-void CARTESIAN::augmentMovieVariables(const char* varname)
-{
-        int i;
-        static HDF_MOVIE_VAR *hdf_movie_var;
-        int n,offset,num_var;
-        MOVIE_OPTION *movie_option = eqn_params->movie_option;
-
-        offset = front->hdf_movie_var->num_var;
-        num_var = offset + 1;
-	
-	printf("num_var = %d\n",num_var);       
-	if (hdf_movie_var == NULL)
-	{
-            FT_ScalarMemoryAlloc((POINTER*)&hdf_movie_var,
-                                sizeof(HDF_MOVIE_VAR));
-            FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,num_var,
-                                        100,sizeof(char));
-            FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,num_var,
-                                        sizeof(double*));
-            FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->idir,num_var,
-                                        sizeof(int));
-            FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,
-                                        num_var,sizeof(COMPONENT));
-            FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,num_var,
-                                        sizeof(boolean));
-            FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,num_var,
-                                        sizeof(double));
-            FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,num_var,
-                                        sizeof(double));
-	}
-            for (i = 0; i < front->hdf_movie_var->num_var; ++i)
-            {
-                strcpy(hdf_movie_var->var_name[i],
-                        front->hdf_movie_var->var_name[i]);
-                hdf_movie_var->get_state_var[i] =
-                        front->hdf_movie_var->get_state_var[i];
-                hdf_movie_var->top_var[i] =
-                        front->hdf_movie_var->top_var[i];
-                hdf_movie_var->obstacle_comp[i] =
-                        front->hdf_movie_var->obstacle_comp[i];
-            }
-            hdf_movie_var->num_var = n = offset;
-            sprintf(hdf_movie_var->var_name[n],"%s",varname);
-            hdf_movie_var->get_state_var[n] = getStateTemperature;
-            hdf_movie_var->top_var[n] = field->temperature;
-            hdf_movie_var->obstacle_comp[n] = ERROR_COMP;
-            hdf_movie_var->num_var = ++n;
-}
-
 
 static int find_state_at_crossing(
 	Front *front,

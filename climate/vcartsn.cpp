@@ -208,6 +208,99 @@ void VCARTESIAN::setInitialCondition(void)
 	}
 }	/* end setInitialCondition */
 
+void VCARTESIAN::setParallelVapor(void)
+{
+        FILE *infile;
+        int i,j,k,l,index,G_index;
+        char fname[100];
+        COMPONENT comp;
+        double coords[MAXD];
+        int size = (int)cell_center.size();
+        int myid = pp_mynode();
+        int numprocs = pp_numnodes();
+
+        int G_icoords[MAXD],pp_icoords[MAXD],icoords[MAXD];
+	int local_gmax[MAXD], global_gmax[MAXD];
+        int G_size;
+        PP_GRID *pp_grid = front->pp_grid;
+        double *local_L = pp_grid->Zoom_grid.L;
+        double *local_U = pp_grid->Zoom_grid.U;
+        double *V_buff;
+
+        for (i = 0; i < dim; i++)
+        {
+            global_gmax[i] = pp_grid->Global_grid.gmax[i]-1;
+            local_gmax[i] = pp_grid->Zoom_grid.gmax[i]-1;
+        }
+
+        G_size = 1;
+        for (i = 0; i < dim; i++)
+        {
+            G_size = G_size * (global_gmax[i]+1);
+            pp_icoords[i] = floor(local_L[i]/(local_U[i]-local_L[i]));
+        }
+        uni_array(&V_buff,G_size,sizeof(double));
+
+        if (myid == 0)
+        {
+            sprintf(fname,"./vapor3d");
+            infile = fopen(fname,"r");
+
+            for (i = 0; i < G_size; i++)
+            {
+                fscanf(infile,"%lf",&V_buff[i]);
+            }
+            fclose(infile);
+            for (i = 1; i < numprocs; i++)
+            {
+                pp_send(1,(POINTER)V_buff,sizeof(double)*G_size,i);
+            }
+        }
+        else
+        {
+            pp_recv(1,0,(POINTER)V_buff,sizeof(double)*G_size);
+        }
+        FT_MakeGridIntfc(front);
+        setDomain();
+
+	switch(dim)
+	{
+	    case 2:
+        	for (j = jmin; j <= jmax; ++j)
+        	for (i = imin; i <= imax; ++i)
+        	{
+            	    icoords[0] = i;
+            	    icoords[1] = j;
+            	    G_icoords[0] = pp_icoords[0]*(local_gmax[0]+1)+icoords[0]-imin;
+            	    G_icoords[1] = pp_icoords[1]*(local_gmax[1]+1)+icoords[1]-jmin;
+            	    G_index = d_index(G_icoords,global_gmax,dim);
+            	    index = d_index(icoords,top_gmax,dim);
+            	    field->vapor[index] = V_buff[G_index];
+        	}
+		break;
+	    case 3:
+                for (k = kmin; k <= kmax; ++k)
+                for (j = jmin; j <= jmax; ++j)
+                for (i = imin; i <= imax; ++i)
+                {
+                    icoords[0] = i;
+                    icoords[1] = j;
+                    icoords[2] = k;
+                    G_icoords[0] = pp_icoords[0]*(local_gmax[0]+1)+icoords[0]-imin;
+                    G_icoords[1] = pp_icoords[1]*(local_gmax[1]+1)+icoords[1]-jmin;
+                    G_icoords[2] = pp_icoords[2]*(local_gmax[2]+1)+icoords[2]-kmin;
+                    G_index = d_index(G_icoords,global_gmax,dim);
+                    index = d_index(icoords,top_gmax,dim);
+                    field->vapor[index] = V_buff[G_index];
+                }
+                break;
+	    Default:
+		printf("Unknown dim = %d\n",dim);
+		clean_up(ERROR);
+	}
+        FT_FreeThese(1,V_buff);
+}
+
 void VCARTESIAN::setInitialVapor(void)
 {
 	int i,j,k,index;
@@ -422,15 +515,7 @@ void VCARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	for (i = 0; i < dim; ++i) gmin[i] = 0;
 
 	setIndexMap(sub_comp);
-	if (debugging("trace")) 
-	{
-	    int domain_size = 1;
-	    printf("ilower = %d  iupper = %d\n",ilower,iupper);
-	    for (i = 0; i < dim; ++i)
-		domain_size *= (imax-imin+1);
-	    printf("domain_size = %d\n",domain_size);
-	}
-        
+
 	start_clock("set_coefficients");
 	switch(dim)
 	{
@@ -1544,21 +1629,29 @@ void VCARTESIAN::vtk_plot3d(
         int ii,jj,kk;
         double ih,jh,kh;
 
-        sprintf(filename, "%s/vtk/vtk.ts%s",outname,
-                right_flush(front->step,7));
-        //cell-based liquid phase
-        ph_index.clear();
-        if (!create_directory(filename,NO))
+        sprintf(dirname,"%s/vtk",OutName(front));
+        if (pp_mynode() == 0)
         {
-            printf("Cannot create directory %s\n",filename);
+            if (!create_directory(dirname,YES))
+            {
+                screen("Cannot create directory %s\n",dirname);
+                clean_up(ERROR);
+            }
+        }
+        pp_gsync();
+        sprintf(dirname,"%s/vtk.ts%s",dirname,right_flush(front->step,7));
+        if (pp_numnodes() > 1)
+            sprintf(dirname,"%s-nd%s",dirname,right_flush(pp_mynode(),4));
+        if (!create_directory(dirname,YES))
+        {
+            screen("Cannot create directory %s\n",dirname);
             clean_up(ERROR);
         }
-#if defined(__MPI__)
-        if (pp_numnodes() > 1)
-            sprintf(filename,"%s-nd%s",filename,right_flush(pp_mynode(),4));
-#endif /* defined(__MPI__) */
 
-        sprintf(filename,"%s/%s.vtk",filename,varname);
+        //cell-based liquid phase
+        ph_index.clear();
+
+        sprintf(filename,"%s/%s.vtk",dirname,varname);
         outfile = fopen(filename,"w");
         fprintf(outfile,"# vtk DataFile Version 3.0\n");
         fprintf(outfile,"%s\n",varname);
@@ -1722,6 +1815,63 @@ void VCARTESIAN::vtk_plot3d(
         fclose(outfile);
 }       /* end vtk_plot_vapor3d */
 
+double VCARTESIAN::computeReactTimeScale(double R0, double S0, int N)
+{
+	PARAMS *eqn_params = (PARAMS*)front->extra2;
+        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+	
+	int i,j,k,size,index;
+	double R2, S, t, dt = 0.001;
+	double Lh, Rv, Rd, rhoL, K, es, D, Cp, ksi;
+	double T, p;  
+	double A, B;
+	Lh = 2500000.0;
+	Rv = 461.5;
+	Rd = 287.0;
+	rhoL = 1000.0;
+	K = 0.0238;
+	D = 0.0000216;
+	Cp = 1005.0;
+	ksi = Rd/Rv;
+
+	T = 0;
+	p = 0;
+	size = 0;
+        for (k = kmin; k < kmax; k++)
+        for (j = jmin; j < jmax; j++)
+        for (i = imin; i < imax; i++)
+        {
+	    size ++;
+	    index = d_index3d(i,j,k,top_gmax);
+	    T += field->temperature[index];
+	    p += field->pres[index];
+	}
+#if defined(__MPI)
+	pp_golbal_sum(T,1);
+	pp_global_sum(p,1);
+	pp_global_isum(size,1);
+#endif
+	T /= size;
+	p /= size;
+
+	es = 611.2*exp(17.67*(T-273.15)/(T-29.65));
+	A = 1/((Lh/(Rv*T)-1)*Lh*rhoL/(K*T)+rhoL*Rv*T/(D*es));
+	B = 4*PI*N*rhoL*(Rd*T/(ksi*es)+ksi*sqr(Lh)/(p*T*Cp))
+	    /((Lh/(Rv*T)-1)*Lh*rhoL/(K*T)+rhoL*Rv*T/(D*es));
+	t = 0;
+	R2 = sqr(R0);
+	S = S0;
+	printf("A = %e, B = %e\n",A,B);
+	while(R2 > 0 && S < -0.005)
+	{
+	    R2 += 2*A*S*dt;
+	    S  /= 1+B*dt*sqrt(R2);
+	    t  += dt;
+	}
+	return t;
+}
+
+
 void VCARTESIAN::recordMixingLine()
 {
 	PARAMS *eqn_params = (PARAMS*)front->extra2;
@@ -1730,13 +1880,16 @@ void VCARTESIAN::recordMixingLine()
 	int num_drops = eqn_params->num_drops;
 	static boolean first = YES;
 	static double prev_RN[2] = {0,0};
-	double mu = iFparams->mu2;
+	double mu = iFparams->mu2, eta;
 	double **vel = field->vel;
 	double slope;
-	double t_evap, t_mix;
-	double DspRat,Omega,rv,r0; /*dissipation rate*/
-	double Vortex[3]; /*vortex field*/
-	double supersat;
+	double t_evap, t_mix, t_react;
+	double Dev; /*Deviation of radius distribution*/
+	double alpha; /**/
+	double DspRat,rv,r0,rm; /*dissipation rate*/
+	double Sij[MAXD][MAXD];
+	double NL; /*transition scale number*/
+	double avg_supersat;  /*averaged supersaturation in clear air*/
 	int i, j, k, l, m, m1, m2, ic, I, icoords[MAXD],size, count, nzeros;
 	int gmin[MAXD], ipn[MAXD];
 	int I_nb[3][2];
@@ -1745,19 +1898,24 @@ void VCARTESIAN::recordMixingLine()
 	FILE *file;
 	char fname[100];
 	char *out_name = front->out_name;
-	double L = top_U[0] - top_L[0];
+	int  myid = pp_mynode();
+	double L = front->pp_grid->Global_grid.U[0] 
+		 - front->pp_grid->Global_grid.L[0];
+	double ReduceBuff[8];
 
+	if (debugging("trace"))
+	    printf("Entering record mixing line\n");
 	if (3 != dim)
 	    return;
-	double a3 = 1;
+	double a3 = 1.0;
 	for (i = 0; i < dim; i++) 
 	{
 	    gmin[i] = 0;
 	    a3 *= top_h[i]; 
 	}
 	/*compute mean energy dissipation rate*/
-	DspRat = 0;
-	supersat = 0;
+	DspRat = 0.0;
+	avg_supersat = 0.0;
 	count = 0;
 	size = 0;
         for (k = kmin; k < kmax; k++)
@@ -1768,7 +1926,7 @@ void VCARTESIAN::recordMixingLine()
             ic = d_index3d(i,j,k,top_gmax);
 	    if (field->drops[ic] == 0)
 	    {
-   	        supersat += field->supersat[ic];
+   	        avg_supersat += field->supersat[ic];
 		count ++;
 	    }
             icoords[0] = i;
@@ -1779,101 +1937,129 @@ void VCARTESIAN::recordMixingLine()
 	    for (l = 0; l < 2; ++l)
             {
 		if(next_ip_in_dir(icoords,dir[m][l],ipn,gmin,top_gmax))
-                    I_nb[m][l] = ijk_to_I[ipn[0]][ipn[1]][ipn[2]];
+                    I_nb[m][l] = d_index3d(ipn[0],ipn[1],ipn[2],top_gmax);
 		else
 		{
 		    printf("In recordMixingLine(), cannot find next ip\n");
-	        printf("gmin=[%d %d %d]\n",gmin[0],gmin[1],gmin[2]);
-		printf("gmax=[%d %d %d]\n",top_gmax[0],top_gmax[1],top_gmax[2]);
-		printf("icoords=[%d %d %d]\n",icoords[0],icoords[1],icoords[2]);
+	            printf("gmin=[%d %d %d]\n",gmin[0],gmin[1],gmin[2]);
+		    printf("gmax=[%d %d %d]\n",top_gmax[0],top_gmax[1],top_gmax[2]);
+		    printf("icoords=[%d %d %d]\n",icoords[0],icoords[1],icoords[2]);
 		    clean_up(ERROR);
 		}
             }
-	    /*compute vortex: Nabla X U*/
-	    for (l = 0; l < dim; l++)
+	    /*compute strain rate tensor Sij*/
+	    for(l = 0; l < dim; ++l)
+	    for(m = 0; m < dim; ++m)
 	    {
-		m1 = (l+1)%dim;
-		m2 = (l+2)%dim;
-	        Vortex[l]  =  (vel[m2][I_nb[m1][1]]-vel[m2][I_nb[m1][0]])/(2*top_h[m1]);
-	        Vortex[l] -=  (vel[m1][I_nb[m2][1]]-vel[m1][I_nb[m2][0]])/(2*top_h[m2]);
+		Sij[l][m]  = 0.5*(vel[l][I_nb[m][1]]-vel[l][I_nb[m][0]])/top_h[m];
+		Sij[l][m] += 0.5*(vel[m][I_nb[l][1]]-vel[m][I_nb[l][0]])/top_h[l];
 	    }
-	    Omega = 0; /*compute enstrophy: Omega=|Vortex|^2*/
-	    for (l = 0; l < dim; ++l)
+	    /*compute dissipation rate using: 2*mu*Sij^2*/ 
+            for(l = 0; l < dim; ++l)
+            for(m = 0; m < dim; ++m)
 	    {
-		Omega += sqr(Vortex[l]);
+		DspRat += 0.5*mu*sqr(Sij[l][m]);
 	    }
-	    /*compute dissipation rate using: 2*mu*Omega*/ 
-	    DspRat += 2*mu*Omega;
 	}
-	DspRat   /= size;
-	supersat /= count;
-
-	t_mix = pow(L*L/DspRat,1.0/3.0);
 	
+	/*compute Rv, t_evap*/
 	rv = 0;
 	r0 = 0;
 	nzeros = 0;
-	for (i = 0; i < num_drops; i++)
+	for (i = 0; i < eqn_params->num_drops; i++)
 	{   
 	    if (particle_array[i].radius != 0)
 		nzeros ++;
 	    rv += pow(particle_array[i].radius,3.0);
 	    r0 += pow(particle_array[i].R0,3.0);
 	}
-	if (nzeros == 0)
-	{
-	   printf("No dropletes contained\n");
-	   clean_up(0);
-	}
 
+#if defined(__MPI__)
+	ReduceBuff[0] = rv;
+	ReduceBuff[1] = r0;
+	ReduceBuff[2] = nzeros;
+	ReduceBuff[3] = num_drops;
+	ReduceBuff[4] = DspRat;
+	ReduceBuff[5] = avg_supersat;
+	ReduceBuff[6] = size;
+	ReduceBuff[7] = count;
+	pp_global_sum(ReduceBuff,8);
+	pp_gsync();
+	rv = ReduceBuff[0];
+	r0 = ReduceBuff[1];
+	nzeros    = (int)ReduceBuff[2];
+	num_drops = (int)ReduceBuff[3];
+	DspRat       = ReduceBuff[4];
+	avg_supersat = ReduceBuff[5];
+	size         = (int)ReduceBuff[6];
+	count        = (int)ReduceBuff[7];
+#endif 
 	rv /= nzeros;
 	r0 /= num_drops;
+	DspRat   /= size;
+	avg_supersat /= count;
+	/*compute t_mix*/
+	t_mix = pow(L*L/DspRat,1.0/3.0);
 
-	if (supersat < 0)
-	    t_evap = pow(rv,2.0/3.0)/(-eqn_params->K*supersat);
+	/*compute mean value and deviation of radius distribution*/
+	Deviation(particle_array,eqn_params->num_drops,rm,Dev);
+	if (avg_supersat < 0)
+	{
+	    t_evap  = sqr(rm)/(-eqn_params->K*avg_supersat);
+	    t_react = computeReactTimeScale(rm,avg_supersat,nzeros); 
+	}
 	else
+	{
 	    t_evap = HUGE;
-
+	    t_react = HUGE;
+	}
+	if (myid != 0) /*Post analysis is only done by the master processor*/
+	    return; /*return if processor id is slaver processor*/
 	slope = (double(nzeros)/double(num_drops)-prev_RN[1])
 		/((rv/r0)-prev_RN[0]);
 	prev_RN[0] = rv/r0;
 	prev_RN[1] = double(nzeros)/double(num_drops);
+
 	if (first)
 	{
 	    sprintf(fname,"%s/mixing",out_name);
 	    file = fopen(fname,"w");
 	    fprintf(file,"%%Damkoehler number VS slope of R-N diagram\n");
-	    fprintf(file,"%%t_mix    t_evap    Damkoehler    slope\n");
+	    fprintf(file,"%%t_mix    t_evap    supersat    Damkoehler    slope\n");
 	    fclose(file);
 
             sprintf(fname,"%s/RN",out_name);
             file = fopen(fname,"w");
-            fprintf(file,"%%Rv    supersat    Rv^3/R0^3    N/N0\n");
+            fprintf(file,"%%Rv    Rm    stdDev    Rv^3/R0^3    N/N0\n");
             fclose(file);
 
-            sprintf(fname,"%s/dissipation",out_name);
+            sprintf(fname,"%s/transition",out_name);
             file = fopen(fname,"w");
-            fprintf(file,"%%Dissipation Rate\n");
+            fprintf(file,"%%epsilon    eta    t_react    NL\n");
             fclose(file);
-
 	    first = NO;
 	    return;
 	}
 	sprintf(fname,"%s/mixing",out_name);
 	file = fopen(fname,"a");
-	fprintf(file,"%15.14f  %15.14f  %15.14f  %15.14f\n",
-		t_mix,t_evap,t_mix/t_evap,slope);
+	fprintf(file,"%15.14f  %15.14f  %15.14f  %15.14f  %15.14f\n",
+		t_mix,t_evap,avg_supersat,t_mix/t_evap,slope);
 	fclose(file);
 	/*plot mixing line: N/N0 VS. (Rv/Rv0)^3*/
         sprintf(fname,"%s/RN",out_name);
         file = fopen(fname,"a");
-	fprintf(file,"%15.14e  %15.14f  %15.14f  %15.14f\n", 
-		pow(rv,1.0/3.0),supersat,rv/r0, double(nzeros)/double(num_drops));
+	fprintf(file,"%15.14f  %15.14f  %15.14f  %15.14f  %15.14f\n", 
+		pow(rv,1.0/3.0),rm,sqrt(Dev),rv/r0, double(nzeros)/double(num_drops));
 	fclose(file);
-        sprintf(fname,"%s/dissipation",out_name);
+        sprintf(fname,"%s/transition",out_name);
         file = fopen(fname,"a");
-	fprintf(file,"%20.19f\n",DspRat);
+	eta = pow(pow(mu,3.0)/DspRat,0.25);
+	NL = pow(DspRat,0.5)*pow(t_react,1.5)/eta;
+	fprintf(file,"%15.14f  %15.14f  %15.14f  %15.14f\n",
+		DspRat,eta,t_react,NL);
 	fclose(file);
+	if (debugging("trace"))
+	    printf("Leaving record mixing line\n");
 }
 
 void VCARTESIAN::pointExplicitCimSolver(
@@ -2413,7 +2599,6 @@ void VCARTESIAN::checkField()
                     o_count ++;
             }
 	}
-	printf("s_num=%d, l_num=%d, 0_num=%d\n",s_count,l_count,o_count);
 }
 
 void VCARTESIAN::recordField(char *outname, const char *varname)
@@ -2421,73 +2606,84 @@ void VCARTESIAN::recordField(char *outname, const char *varname)
 	int i,j,k,index;
 	FILE *outfile;
 	char filename[256];
-        sprintf(filename, "%s/record-%s",outname,varname);
-
-        if (!create_directory(filename,NO))
-        {
-            printf("Cannot create directory %s\n",filename);
-            clean_up(ERROR);
-        }
-        sprintf(filename,"%s/%s-%4.2f",filename,varname,front->time);
-        if (pp_numnodes() > 1)
-           return;
-        outfile = fopen(filename,"w");
-	switch(dim)
+	double *PDF;
+	double bin_size,mid_bin;
+	double var_min,var_max;
+	int num_bins;
+	if (pp_mynode() == 0)
 	{
-	    case 2:
-	        for (j = jmin; j <= jmax; ++j)
-		for (i = imin; i <= imax; ++i)
-        	{
-		    index = d_index2d(i,j,top_gmax);
-	            if(strcmp(varname,"temperature") == 0)
-        	        fprintf(outfile,"%20.14f\n",field->temperature[index]);
-	            else if(strcmp(varname,"vapor") == 0)
-        	        fprintf(outfile,"%f\n",field->vapor[index]);
-	            else if(strcmp(varname,"supersat") == 0)
-        	        fprintf(outfile,"%f\n",field->supersat[index]);
-		}
-	        if(strcmp(varname,"velocity") == 0)
-	  	{
-	            for (j = jmin; j <= jmax; ++j)
-		    for (i = imin; i <= imax; ++i)
+            sprintf(filename, "%s/record-%s",outname,varname);
+
+            if (!create_directory(filename,NO))
+            {
+                printf("Cannot create directory %s\n",filename);
+                clean_up(ERROR);
+            }
+            sprintf(filename,"%s/%s-%4.2f",filename,varname,front->time);
+            outfile = fopen(filename,"w");
+	}
+        if(strcmp(varname,"temperature") == 0)
+	{
+	    bin_size = 1e-7;
+	    PDF = ComputePDF(field->temperature,comp_size,bin_size,num_bins,var_min,var_max);
+	}
+        else if(strcmp(varname,"vapor") == 0)
+	{
+	    bin_size = 0.005;
+	    PDF = ComputePDF(field->vapor,comp_size,bin_size,num_bins,var_min,var_max);
+	}
+        else if(strcmp(varname,"supersat") == 0)
+	{
+	    bin_size = 0.001;
+	    PDF = ComputePDF(field->supersat,comp_size,bin_size,num_bins,var_min,var_max);
+	}
+        else if(strcmp(varname,"velocity") == 0)
+	{
+	    switch(dim)
+	    {
+		case 2:
+            	    for (j = jmin; j <= jmax; j++)
+           	    for (i = imin; i <= imax; i++)
 		    {
 			index = d_index2d(i,j,top_gmax);
-			fprintf(outfile,"%f  %f\n",
-				field->vel[0][index],field->vel[1][index]);
-		    }
-		}
-		break;
-	    case 3:
-		for (k = kmin; k <= kmax; ++k)
-                for (j = jmin; j <= jmax; ++j)
-                for (i = imin; i <= imax; ++i)
-		{
-		    index = d_index3d(i,j,k,top_gmax);
-	            if(strcmp(varname,"temperature") == 0)
-        	        fprintf(outfile,"%20.14f\n",field->temperature[index]);
-	            else if(strcmp(varname,"vapor") == 0)
-        	        fprintf(outfile,"%f\n",field->vapor[index]);
-	            else if(strcmp(varname,"supersat") == 0)
-        	        fprintf(outfile,"%f\n",field->supersat[index]);
-		}
-	        if(strcmp(varname,"velocity") == 0)
-	  	{
-		    for (k = kmin; k <= kmax; ++k)
-                    for (j = jmin; j <= jmax; ++j)
-		    for (i = imin; i <= imax; ++i)
+			if (pp_mynode() == 0)
+			    fprintf(outfile,"%f  %f\n",
+			    field->vel[0][index],field->vel[1][index]);
+		    }	
+		    break;
+		case 3:
+          	    for (k = kmin; k <= kmax; k++)
+               	    for (j = jmin; j <= jmax; j++)
+              	    for (i = imin; i <= imax; i++) 
 		    {
 			index = d_index3d(i,j,k,top_gmax);
-			fprintf(outfile,"%f  %f  %f\n",
-				field->vel[0][index],field->vel[1][index],
-				field->vel[2][index]);
+			if (pp_mynode() == 0)
+                            fprintf(outfile,"%f  %f  %f\n",
+			    field->vel[0][index],field->vel[1][index],field->vel[2][index]);
 		    }
-		}
-		break;
-	    default:
-		printf("Unknown dim = %d\n",dim);
-		clean_up(ERROR);
+		    break;
+		default:
+		    printf("Unknown dim = %d\n",dim);
+		    clean_up(ERROR);
+	    }
+	    if (pp_mynode() == 0)
+               fclose(outfile);
+	    return;
 	}
-	fclose(outfile);
+	else
+	{
+	   printf("WARNING: Unknown field: %s\n",varname);
+	   return; 
+	}
+	if (pp_mynode() == 0)
+	{
+	    for (i = 0; i < num_bins;i++)
+	    {
+	        mid_bin = var_min + (0.5+i)*bin_size;
+	        fprintf(outfile,"%f  %f\n",mid_bin,PDF[i]);
+	    }
+	    fclose(outfile);
+	}
 }
 
 void VCARTESIAN::recordTKE()
@@ -2498,7 +2694,7 @@ void VCARTESIAN::recordTKE()
 	double E;
         char fname[256];
         FILE *file;
-        sprintf(fname,"%s/TKE.m",front->out_name);
+        sprintf(fname,"%s/TKE",front->out_name);
         if (pp_mynode() != 0)
            return;
         file = fopen(fname,"a");
@@ -2549,10 +2745,11 @@ void VCARTESIAN::recordTKE()
 void VCARTESIAN::recordWaterBalance()
 {
         double *vapor = field->vapor;
-	double vapor_mass,liquid_mass;
-	double rho,r,a3 = 1;
-        int i,j,k,index;
+	double vapor_mass,liquid_mass,alpha;
+	double rho,r,a3 = 1.0;
+        int i,j,k,index,nzeros;
         static boolean first = YES;
+	static double liquid_mass0 = 0.0;
 	double water_balance[4];
 	IF_PARAMS* iFparams = (IF_PARAMS*)front->extra1;
         PARAMS* eqn_params = (PARAMS*)front->extra2;
@@ -2561,18 +2758,22 @@ void VCARTESIAN::recordWaterBalance()
 	double temp;
         char fname[256];
         FILE *file;
+	double ReduceBuff[7];
 
-        sprintf(fname,"%s/water_balance.m",front->out_name);
-        file = fopen(fname,"a");
+	pp_gsync();
+	if (pp_mynode() == 0)
+	{
+            sprintf(fname,"%s/water_balance",front->out_name);
+            file = fopen(fname,"a");
+	}
 
 	for(i = 0; i < dim; i++)
             a3 *= top_h[i];
 
-        if (first == YES)
+        if (first == YES && pp_mynode() == 0)
         {
-            first = NO;
 	    fprintf(file,"%%water balance vs. time\n");
-	    fprintf(file,"%%time  vapor  liquid  total\n");
+	    fprintf(file,"%%time  vapor  liquid  total  alpha\n");
         }
 	/*compute water mass in vapor*/
         if (dim == 2)
@@ -2603,40 +2804,63 @@ void VCARTESIAN::recordWaterBalance()
         water_balance[1] = 0.001 * vapor_mass;
 	/*compute water mass in droplets*/
 	liquid_mass = 0.0;
+	nzeros = 0;
 	if (eqn_params->prob_type == PARTICLE_TRACKING)
 	{
             for (i = 0; i < num_drops; i++)
             {
 	        r = particle_array[i].radius;
+		if (0 != r)
+		    nzeros ++;
 	        liquid_mass += 4.0/3.0*PI*r*r*r*particle_array[i].rho;
+	    }
+	    if (first) 
+	    {
+		liquid_mass0 = liquid_mass;
+		first = NO; /*IMPORTANT: preserve initial LWC*/
+		if (pp_mynode() == 0)
+		    fclose(file);
+		return;
 	    }
 	} 
 	water_balance[2] = liquid_mass;
 	water_balance[3] = liquid_mass + 0.001 * vapor_mass;
 
 #if defined(__MPI__)
-	double local_water[3];
-	for (i = 1; i < 4; i++)
-	    local_water[i-1] = water_balance[i];
+	for (i = 0; i < 3; i++)	
+	    ReduceBuff[i] = water_balance[i+1];
+	ReduceBuff[3] = nzeros;
+	ReduceBuff[4] = num_drops;
+	ReduceBuff[5] = liquid_mass;
+	ReduceBuff[6] = liquid_mass0;
+	pp_global_sum(ReduceBuff,7);
+	printf("sync in water balance\n");
+	pp_gsync();
+	for (i = 0; i < 3; i++)
+	    water_balance[i+1] = ReduceBuff[i];
+	nzeros = (int)ReduceBuff[3];
+	num_drops = (int)ReduceBuff[4];
+	liquid_mass = ReduceBuff[5];
+	liquid_mass0 = ReduceBuff[6];
+#endif 
 
-	if (pp_mynode() != 0)
+	if(liquid_mass != liquid_mass0)
 	{
-	    pp_send(1, (POINTER)local_water,sizeof(double)*4,0);
+	    alpha = (log(double(nzeros)/double(num_drops)))
+		    /(log(liquid_mass/liquid_mass0));
 	}
 	else
 	{
-	    for (i = 1; i < pp_numnodes(); i++)
-	    {
-		pp_recv(1, i, (POINTER)local_water,sizeof(double)*4);
-		for (i = 1; i < 4; i++)
-		    water_balance[i] += local_water[i-1];
-	    }
+	    alpha = 0.0;
 	}
-#endif /* defined(__MPI__) */
-	for (i = 0 ; i < 4; i++)
-	    fprintf(file,"%20.19f  ",water_balance[i]);
-	fprintf(file,"\n");	
-	fclose(file);
+	if (pp_mynode() == 0)
+	{
+	    for (i = 0 ; i < 4; i++)
+	        fprintf(file,"%20.19f  ",water_balance[i]);
+	
+	    fprintf(file,"%20.19f\n",alpha);	
+	    fclose(file);
+	}
 }
 
 void VCARTESIAN::recordSampleRadius()
@@ -2646,6 +2870,8 @@ void VCARTESIAN::recordSampleRadius()
         FILE *file;
 	static boolean first = YES;
 
+	if (pp_mynode() != 0)
+	    return;
         sprintf(fname,"%s/sample_radius.m",front->out_name);
         file = fopen(fname,"a");
 	if (first)
@@ -2764,62 +2990,6 @@ void VCARTESIAN::initMovieVariables()
             printf("Leaving initMovieVariables()\n");
 }	/* end initMovieVariables */
 
-void VCARTESIAN::augmentMovieVariables(const char* varname)
-{
-        int i;
-        static HDF_MOVIE_VAR *hdf_movie_var;
-        int n,offset,num_var;
-        MOVIE_OPTION *movie_option = eqn_params->movie_option;
-
-        offset = front->hdf_movie_var->num_var;
-        num_var = offset+1;
-	
-        FT_ScalarMemoryAlloc((POINTER*)&hdf_movie_var,
-                                sizeof(HDF_MOVIE_VAR));
-        FT_MatrixMemoryAlloc((POINTER*)&hdf_movie_var->var_name,num_var,
-                                        100,sizeof(char));
-        FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->top_var,num_var,
-                                        sizeof(double*));
-        FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->idir,num_var,
-                                        sizeof(int));
-        FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->obstacle_comp,
-                                        num_var,sizeof(COMPONENT));
-        FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->preset_bound,num_var,
-                                        sizeof(boolean));
-        FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_min,num_var,
-                                        sizeof(double));
-        FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,num_var,
-                                        sizeof(double));
-        for (i = 0; i < front->hdf_movie_var->num_var; ++i)
-        {
-            strcpy(hdf_movie_var->var_name[i],
-                        front->hdf_movie_var->var_name[i]);
-            hdf_movie_var->get_state_var[i] =
-                        front->hdf_movie_var->get_state_var[i];
-            hdf_movie_var->top_var[i] =
-                        front->hdf_movie_var->top_var[i];
-            hdf_movie_var->obstacle_comp[i] =
-                        front->hdf_movie_var->obstacle_comp[i];
-        }
-        hdf_movie_var->num_var = n = offset;
-        sprintf(hdf_movie_var->var_name[n],"%s",varname);
-        hdf_movie_var->obstacle_comp[n] = SOLID_COMP;
-        if(strcmp(varname,"vapor") == 0)
-	{
-            hdf_movie_var->get_state_var[n] = getStateVapor;
-	    hdf_movie_var->top_var[n] = eqn_params->field->vapor;
-	}
-	if(strcmp(varname,"supersat") == 0)
-	{ 
-	    hdf_movie_var->get_state_var[n] = getStateSuper;
-	    hdf_movie_var->top_var[n] = eqn_params->field->supersat;
-	}
-
-        hdf_movie_var->num_var = ++n;	
-	front->hdf_movie_var = hdf_movie_var;
-}
-
-
 static int find_state_at_crossing(
 	Front *front,
 	int *icoords,
@@ -2856,31 +3026,49 @@ void VCARTESIAN::recordRadius(char *out_name)
 	PARAMS* eqn_params = (PARAMS*)front->extra2;
 	char fname[100];
 	FILE *file;
-	double radius;
-	CURVE **c;
-	SURFACE **s;
-	int i,index;
+	double *PDF;
+	double min_radius,max_radius;
+	double bin_size, bin_mid;
+	int i,bin_num;
+	static double *radius_array;
+	static int max_array_size = 0;
 	
-	sprintf(fname,"%s/record-radius",out_name);
-        if (!create_directory(fname,NO))
-        {
-            printf("Cannot create directory %s\n",fname);
-            clean_up(ERROR);
-        }
-        sprintf(fname,"%s/radius-%4.2f",fname,front->time);
-#if defined(__MPI__)
-        if (pp_numnodes() > 1)
-            sprintf(fname,"%s-nd%s",fname,right_flush(pp_mynode(),4));
-#endif /* defined(__MPI__) */
-	
-        file = fopen(fname,"w");
-
-	if (eqn_params->prob_type == PARTICLE_TRACKING)
+ 	if (debugging("trace"))	
+	    printf("Entering record radius\n");
+	if (pp_mynode() == 0)
 	{
-	    for (i = 0; i < eqn_params->num_drops; i++)
-                fprintf(file,"%16.15f\n",eqn_params->particle_array[i].radius);
+	    sprintf(fname,"%s/record-radius",out_name);
+            if (!create_directory(fname,NO))
+            {
+                printf("Cannot create directory %s\n",fname);
+                clean_up(ERROR);
+            }
+            sprintf(fname,"%s/radius-%4.2f",fname,front->time);
+            file = fopen(fname,"w");
 	}
-	fclose(file);
+	if (eqn_params->num_drops > max_array_size)
+	{
+	    max_array_size = eqn_params->num_drops;
+	    free_these(1,radius_array);
+	    FT_VectorMemoryAlloc((POINTER*)&radius_array,max_array_size,FLOAT);
+	}
+	for (i = 0; i < eqn_params->num_drops; i++)
+	    radius_array[i] = eqn_params->particle_array[i].radius;
+	bin_size = 1e-8;
+	PDF = ComputePDF(radius_array,eqn_params->num_drops,bin_size,bin_num,min_radius,max_radius);
+	printf("max_radius = %e, min_radius = %e, %d drops contained, %d bins used\n",
+		max_radius, min_radius, eqn_params->num_drops,bin_num);
+	if (pp_mynode() == 0)
+	{
+	    for (i = 0; i < bin_num; i ++)
+	    {
+	        bin_mid = min_radius+(0.5+i)*bin_size;
+	        fprintf(file,"%15.14f  %15.14f\n",bin_mid,PDF[i]);
+	    }
+	    fclose(file);
+	}
+	if (debugging("trace"))
+	    printf("Leaving record radius\n");
 }
 
 void VCARTESIAN::computeSource()

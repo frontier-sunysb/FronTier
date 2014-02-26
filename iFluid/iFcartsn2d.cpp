@@ -968,6 +968,103 @@ void Incompress_Solver_Smooth_2D_Cartesian::setInitialVelocity()
                    &field->vel[0][index],
                    &field->vel[1][index]);
 	}
+	fclose(infile);
+        computeGradientQ();
+        copyMeshStates();
+        setAdvectionDt();
+}
+
+void Incompress_Solver_Smooth_2D_Cartesian::setParallelVelocity()
+{
+        FILE *infile;
+        int i,j,k,l,index,G_index;
+        char fname[100];
+        COMPONENT comp;
+        double coords[MAXD];
+        int size = (int)cell_center.size();
+	int myid = pp_mynode();
+	int numprocs = pp_numnodes();
+
+        int G_icoords[MAXD],pp_icoords[MAXD],icoords[MAXD];
+        int local_gmax[MAXD], global_gmax[MAXD];
+        int G_size;
+	PP_GRID *pp_grid = front->pp_grid;
+	double *local_L = pp_grid->Zoom_grid.L;
+	double *local_U = pp_grid->Zoom_grid.U;
+	double *U_buff,*V_buff;
+
+        for (i = 0; i < dim; i++)
+        {
+            global_gmax[i] = pp_grid->Global_grid.gmax[i]-1;
+            local_gmax[i] = pp_grid->Zoom_grid.gmax[i]-1;
+        }
+
+        G_size = 1;
+	for (i = 0; i < dim; i++)
+	{
+	    G_size = G_size * (global_gmax[i]+1);
+	    pp_icoords[i] = floor(local_L[i]/(local_U[i]-local_L[i]));
+	}
+	uni_array(&U_buff,G_size,sizeof(double));
+	uni_array(&V_buff,G_size,sizeof(double));
+	if (myid == 0)
+	{
+            sprintf(fname,"./vel2d");
+            infile = fopen(fname,"r");
+
+	    for (i = 0; i < G_size; i++)
+	    {
+                fscanf(infile,"%lf %lf",
+                       &U_buff[i],
+                       &V_buff[i]);
+	    }
+	    fclose(infile);
+	    for (i = 1; i < numprocs; i++)
+	    {
+	        pp_send(1,(POINTER)U_buff,sizeof(double)*G_size,i);
+	        pp_send(2,(POINTER)V_buff,sizeof(double)*G_size,i);
+	    }
+	}
+	else
+	{
+	    pp_recv(1,0,(POINTER)U_buff,sizeof(double)*G_size);
+	    pp_recv(2,0,(POINTER)V_buff,sizeof(double)*G_size);
+	}
+
+        FT_MakeGridIntfc(front);
+        setDomain();
+
+        m_rho[0] = iFparams->rho1;
+        m_rho[1] = iFparams->rho2;
+        m_mu[0] = iFparams->mu1;
+        m_mu[1] = iFparams->mu2;
+        m_comp[0] = iFparams->m_comp1;
+        m_comp[1] = iFparams->m_comp2;
+        m_smoothing_radius = iFparams->smoothing_radius;
+        m_sigma = iFparams->surf_tension;
+        mu_min = rho_min = HUGE;
+        for (i = 0; i < 2; ++i)
+        {
+            if (ifluid_comp(m_comp[i]))
+            {
+                mu_min = std::min(mu_min,m_mu[i]);
+                rho_min = std::min(rho_min,m_rho[i]);
+            }
+        }
+        for (j = jmin; j <= jmax; ++j)
+        for (i = imin; i <= imax; ++i)
+        {
+	    icoords[0] = i;
+	    icoords[1] = j;
+	    G_icoords[0] = pp_icoords[0]*(local_gmax[0]+1)+icoords[0]-imin;
+	    G_icoords[1] = pp_icoords[1]*(local_gmax[1]+1)+icoords[1]-jmin;
+	    G_index = d_index(G_icoords,global_gmax,dim);
+	    index = d_index(icoords,top_gmax,dim);
+	    field->vel[0][index] = U_buff[G_index];
+	    field->vel[1][index] = V_buff[G_index];
+	}
+	FT_FreeThese(2,U_buff,V_buff);
+
         computeGradientQ();
         copyMeshStates();
         setAdvectionDt();

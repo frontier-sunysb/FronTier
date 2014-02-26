@@ -228,6 +228,7 @@ public:
 	//User interface
 	virtual void setInitialCondition(void) = 0;
 	virtual void setInitialVelocity(void) = 0;
+	virtual void setParallelVelocity(void) = 0;
 	virtual void solve(double dt) = 0; // main step function
         virtual void vtk_plot_scalar(char*, const char*) = 0;
 
@@ -392,6 +393,7 @@ public:
 
 	void setInitialCondition(void);
 	void setInitialVelocity(void);
+	void setParallelVelocity(void);
 	void solve(double dt);
         void vtk_plot_scalar(char*, const char*);
 protected:
@@ -430,6 +432,7 @@ public:
 
 	void setInitialCondition(void);
 	void setInitialVelocity(void);
+	void setParallelVelocity(void);
 	void solve(double dt);
 	void solveTest(const char *msg);
         void vtk_plot_scalar(char*, const char*);

@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 static void initRandomDrops(Front*,double**,double*,int*,int*,
                                 double,double);
-static void initRandomParticles(Front*,PARTICLE*,int*,
+static void initRandomParticles(Front*,PARTICLE*,int&,
                                 double,double);
 
 extern void read_CL_prob_type(Front* front)
@@ -107,7 +107,7 @@ extern void read_CL_prob_type(Front* front)
 	    *prob_type = RANDOM_FIELD;
 	    eqn_params->no_droplets = YES;
             eqn_params->droplets_fixed = YES;
-            eqn_params->init_state = RAND_STATE;
+            eqn_params->init_state = PRESET_STATE;
 	    iFparams->if_buoyancy = YES;
 	    iFparams->if_ref_pres = YES;
 	}
@@ -405,7 +405,7 @@ extern void initWaterDrops(
             fscanf(infile,"%lf",&sigma);
             (void) printf("%f\n",sigma);
 	    if (eqn_params->prob_type == PARTICLE_TRACKING)
-		initRandomParticles(front,particle_array,&num_drops,r_bar,sigma);
+		initRandomParticles(front,particle_array,num_drops,r_bar,sigma);
 	    else
                 initRandomDrops(front,center,radius,gindex,&num_drops,r_bar,sigma);
             break;
@@ -485,7 +485,7 @@ extern void initWaterDrops(
 static void initRandomParticles(
 	Front *front,
 	PARTICLE* particle_array,
-	int *num_drops,
+	int &num_drops,
 	double r_bar,
 	double sigma)
 {
@@ -496,9 +496,29 @@ static void initRandomParticles(
         unsigned short int xsubi[3];
         double x,dist,R;
         int dim = FT_Dimension();
-        double *L = eqn_params->L;
+	double *local_L = front->rect_grid->L;
+	double *local_U = front->rect_grid->U;
+        double *L = eqn_params->L; /*constrain for particles position*/
         double *U = eqn_params->U;
+	double nL[MAXD], nU[MAXD]; /*intersection between constrain and subdomain*/
+	double cArea, nArea; /*Area of constrain and Area of intersection*/
 
+	/*compute nL, nU*/
+	for(i = 0; i < dim; i++)
+	{
+	    nL[i] = (L[i] < local_L[i]) ? local_L[i] : L[i];
+	    nU[i] = (U[i] < local_U[i]) ? U[i] : local_U[i]; 
+	}
+
+	/*compute areas of two region*/
+	cArea = 1.0;  nArea = 1.0;
+	for(i = 0; i < dim; i++)
+	{
+	    cArea *= U[i] - L[i];
+	    nArea *= nU[i] - nL[i];
+	}
+	num_drops *= nArea/cArea;
+	num_drops  = (int)num_drops;
         xsubi[0] = 10;
         xsubi[1] = 100;
         xsubi[2] = 1000;
@@ -508,17 +528,27 @@ static void initRandomParticles(
         uniform_params.a = 0.0;
         uniform_params.b = 1.0;
 
-        for (i = 0; i < *num_drops; ++i)
+        for (i = 0; i < num_drops; ++i)
         {
             for (j = 0; j < dim; ++j)
             {
                 x = dist_uniform((POINTER)&uniform_params,xsubi);
-                particle_array[i].center[j] = L[j] + x*(U[j] - L[j]);
+                particle_array[i].center[j] = nL[j] + x*(nU[j] - nL[j]);
             }
             particle_array[i].radius = gauss_center_limit((POINTER)&gauss_params,xsubi);
             particle_array[i].R0 = particle_array[i].radius;
 	    particle_array[i].Gindex = i;
+	    particle_array[i].flag = YES;
 	}   	
+	eqn_params->num_drops = num_drops;
+	if (debugging("particles"))
+	{
+	    printf("In processor %d\n",pp_mynode());
+	    printf("CArea = %f, nArea = %f\n",cArea, nArea);
+	    printf("%d number of droplets are initialized\n",num_drops);
+	    printf("L = [%f %f]\n",L[0], L[1]);
+	    printf("U = [%f %f]\n",U[0], U[1]);
+	}
 }
 
 static void initRandomDrops(

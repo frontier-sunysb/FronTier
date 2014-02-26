@@ -1,15 +1,15 @@
 Domain limit in 0-th dimension: 0 1
 Domain limit in 1-th dimension: 0 1
-Computational grid: 256 256 
+Computational grid: 128 128 
 Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
 Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
 Lower boundary in 1-th dimension: PERIODIC_BOUNDARY
 Upper boundary in 1-th dimension: PERIODIC_BOUNDARY
 
-Max time: 2
-Max step: 10000
+Max time: 10
+Max step: 1 
 Print interval: 1.0
-Movie frame interval: 0.05
+Movie frame interval: 0.2
 CFL factor: 0.75
 Redistribution interval: 5
 Type yes to turn off auto-redistribution: y

@@ -1131,10 +1131,242 @@ static double intrp_between(
         return y;
 }
 
+LOCAL   void Print_particle_array(PARTICLE* particle_array,int num)
+{
+	int i;
+	for (i = 0; i < num; i++)
+	    printf("drop[%d]: center=[%f %f %f] flag = %d\n",
+		i,particle_array[i].center[0],particle_array[i].center[1],
+		particle_array[i].center[2],particle_array[i].flag);
+}
+
+LOCAL   PARTICLE* cut_buf_particle(
+	PARTICLE* particle_array,
+	Front *front,
+	int &buf_size,
+	int dir,
+	int side)
+{
+	int 	  i,j;
+        PARAMS*   eqn_params = (PARAMS*)front->extra2;
+        int       num_drops = eqn_params->num_drops;
+	double    *L,*U,*GL,*GU, T;
+	static    PARTICLE* buf_particle;
+	static    int max_size = 0;
+	RECT_GRID *gr = front->rect_grid;
+	RECT_GRID *G_gr = &(front->pp_grid->Global_grid);
+	L = gr->L;    U = gr->U;
+	GL = G_gr->L; GU = G_gr->U;
+	/*count number of particles in buffer*/
+	buf_size = 0;
+	for (i = 0; i < eqn_params->num_drops; i++)
+	{
+                if (side == 0 && particle_array[i].center[dir] < L[dir])
+                     buf_size++;     
+                if (side == 1 && particle_array[i].center[dir] > U[dir])
+                     buf_size++;
+	}
+	/*allocate memory for buf_particle*/
+	if (buf_size > max_size)
+	{
+		max_size = buf_size;
+		free_these(1,buf_particle);
+		FT_VectorMemoryAlloc((POINTER*)&buf_particle,max_size,sizeof(PARTICLE));
+	}
+
+	j = 0;
+	for (i = 0; i < eqn_params->num_drops; i++)
+	{
+		if ((side == 0 && particle_array[i].center[dir] < L[dir]) ||
+		    (side == 1 && particle_array[i].center[dir] > U[dir]))
+		{
+		    /*modify coords if position out of global domain*/
+		    if (side == 0 && particle_array[i].center[dir] < GL[dir])
+		        particle_array[i].center[dir] 
+			= GU[dir]+fmod(particle_array[i].center[dir]-GL[dir],
+			  GU[dir]-GL[dir]);
+		    if (side == 1 && particle_array[i].center[dir] > GU[dir])
+		        particle_array[i].center[dir] 
+			= GL[dir]+fmod(particle_array[i].center[dir]-GU[dir],
+			  GU[dir]-GL[dir]);
+
+		    buf_particle[j] = particle_array[i];
+		    particle_array[i].flag = NO;
+		    j++;
+	      }
+	}
+	/*IMPORTANT: please donot modify number of drops in domain*/
+	/*only set the flag to NO*/
+	return buf_particle;
+}
+
+LOCAL  void send_particle(PARTICLE* buf_particle,int buf_size,int dst_id)
+{
+	pp_send(chunk_id(dst_id),(POINTER)&buf_size,sizeof(int),dst_id);
+	if (debugging("particles"))
+	{
+	    printf("In send_particle(),buf_size = %d\n",buf_size);
+	    printf("From pp_id[%d] to pp_id[%d]\n",pp_mynode(),dst_id);
+	}
+	pp_send(array_id(dst_id),(POINTER)buf_particle,
+		sizeof(PARTICLE)*buf_size,dst_id);
+	return;
+}
+
+LOCAL  PARTICLE *receive_particle(int src_id,int &buf_size)
+{
+	int myid = pp_mynode(), i;
+	static int max_buf_size = 0;
+	static PARTICLE *adj_particle;
+
+	pp_recv(chunk_id(myid),src_id,(POINTER)&buf_size,sizeof(int));
+	if (debugging("particles"))
+	{
+	    printf("In receive_particle(),buf_size = %d\n",buf_size);
+	    printf("From pp_id[%d] to pp_id[%d]\n",src_id,myid);
+	}
+	if (buf_size > max_buf_size)
+	{
+	    max_buf_size = buf_size;
+	    free(adj_particle);
+            FT_VectorMemoryAlloc((POINTER*)&adj_particle,buf_size,sizeof(PARTICLE));	
+	}
+	pp_recv(array_id(myid),src_id,(POINTER)adj_particle,sizeof(PARTICLE)*buf_size);
+	if (debugging("particles"))
+	{
+	    for (i = 0; i < buf_size; i++)
+	        printf("drop[%d], cent = [%f,%f,%f], flag = %d\n",
+			i,adj_particle[i].center[0],
+			  adj_particle[i].center[1],
+			  adj_particle[i].center[2],
+			  adj_particle[i].flag);
+	}
+	return adj_particle;
+}
+
+LOCAL   void merge_particle(PARTICLE** particle_array,
+			   PARTICLE* adj_particle,
+			   int adj_size,
+			   PARAMS* params)
+{
+	static int max_size = 0;
+	int i,j,k,flag,new_size,count_flag;
+	int num_drops = params->num_drops;
+	static PARTICLE *temp_particle_array;
+	new_size = num_drops + adj_size;
+	flag = 0;
+	if (new_size > max_size)
+	{
+	    max_size = new_size;
+	    free_these(1,temp_particle_array);
+	    FT_VectorMemoryAlloc((POINTER*)&temp_particle_array,max_size,sizeof(PARTICLE));
+	}
+	i = 0;
+	count_flag = 0;
+	for (k = 0; k < num_drops; k++)	
+	{
+	    if ((*particle_array)[k].flag == NO)
+	    {
+		count_flag++;
+		continue;
+	    }
+	    temp_particle_array[i] = (*particle_array)[k];
+	    i++;
+	}
+	new_size -= count_flag;
+	for (j = 0; j < adj_size; ++j)
+	    temp_particle_array[i+j] = adj_particle[j];
+
+	if (params->num_drops < new_size)
+	{
+	    free(*particle_array);
+            FT_VectorMemoryAlloc((POINTER*)&(*particle_array),new_size,sizeof(PARTICLE));
+	}
+	for (j = 0; j < new_size; ++j)
+	    (*particle_array)[j] = temp_particle_array[j];
+	params->num_drops = new_size;
+	if (debugging("particles"))
+	    printf("After merging %d drops cut, %d drops merged, %d drops contained\n",
+		   count_flag,adj_size,new_size);
+	return;
+}
+
+LOCAL  void ParallelExchParticle(PARTICLE** particle_array,Front *front)
+{
+	INTERFACE	*intfc = front->interf;
+	PP_GRID		*pp_grid = front->pp_grid;
+	PARTICLE	*buf_particle, *adj_particle;
+	PARAMS		*eqn_params = (PARAMS*)front->extra2;
+	int 		*G;
+	int 		num_drops = eqn_params->num_drops;
+	int 		buf_size, adj_size;
+	int 		myid, dst_id;
+	int 		me[MAXD], him[MAXD];
+	int 		dim = intfc->dim;
+	int 		i,j,k;
+
+	myid = pp_mynode();
+	G = pp_grid->gmax;
+	find_Cartesian_coordinates(myid,pp_grid,me);
+	
+	
+	if (debugging("trace"))
+	    printf("Entering ParallelExchParticle()\n");
+	for (i = 0; i < dim; i++)
+	{
+	    for (j = 0; j < 2; j++)
+	    {
+	    if (debugging("particles"))
+	        printf("Exchange particles in direction %d side %d\n",i,j);
+		pp_gsync();
+		for (k = 0; k < dim; k++)
+		    him[k] = me[k];
+		
+		if (rect_boundary_type(intfc,i,j) == SUBDOMAIN_BOUNDARY)
+		{
+		    him[i] = me[i] + 2*j -1;
+		    him[i] = (him[i]+G[i])%G[i];
+		}
+		/*Send particles to adjacent domain if necessary*/
+		if (rect_boundary_type(intfc,i,j) == SUBDOMAIN_BOUNDARY)
+		{
+		    dst_id = domain_id(him,G,dim);
+		    buf_particle = cut_buf_particle(*particle_array,front,buf_size,i,j); 
+		    /*send buffer to corresponding neighbour*/
+		    if (me[i] == him[i])
+		    {
+			adj_particle = buf_particle;
+			adj_size = buf_size;
+		    }
+		    else
+		    {
+			send_particle(buf_particle,buf_size,dst_id);
+		    }
+		}
+		/*Receive adjacent buffer region if necessary*/
+		if (rect_boundary_type(intfc,i,(j+1)%2) == SUBDOMAIN_BOUNDARY)
+		{
+		    him[i] = me[i] - 2*j + 1;
+		    him[i] = (him[i]+G[i])%G[i];
+                    dst_id = domain_id(him,G,dim);
+                    if (me[i] != him[i])
+			adj_particle = receive_particle(dst_id,adj_size);
+		}
+	    	merge_particle(particle_array,adj_particle,adj_size,eqn_params);	
+	    }
+	}
+	if (debugging("trace"))
+            printf("Leaving ParallelExchParticle\n"); 
+	return;	
+}
+
 extern void ParticlePropagate(Front *fr)
 {
+	if (debugging("trace"))
+	    printf("Entering ParticlePropage()\n");
+	start_clock("ParticlePropagate");
         RECT_GRID *gr = FT_GridIntfcTopGrid(fr);
-        RECT_GRID *rect_grid = fr->rect_grid;
+        RECT_GRID *rect_grid = &(fr->pp_grid->Global_grid);
         IF_PARAMS *iFparams = (IF_PARAMS*)fr->extra1;
 	PARAMS *eqn_params = (PARAMS*)fr->extra2;
 	PARTICLE* particle_array = eqn_params->particle_array;
@@ -1157,6 +1389,7 @@ extern void ParticlePropagate(Front *fr)
 	double R, rho, tau_p, delta_R;
 	double R_max = 0;
 	double R_min = HUGE;
+	double w = 2*PI/5.0;
 
 	for (i = 0; i < eqn_params->num_drops; i++)
 	{
@@ -1196,15 +1429,19 @@ extern void ParticlePropagate(Front *fr)
 		/*compute velocity*/
 		cvel[j] += vel[j][index]/tau_p + gravity[j];
 		cvel[j] /= (1+1/tau_p); 
+
 	  	/*compute center of particle[i]*/
 		center[j] += cvel[j]*dt;
 
-		/*handle periodic drops*/
+		if(pp_numnodes() > 1)
+		    continue;
+		/*handle periodic drops for one processor*/
 		T = rect_grid->U[j]-rect_grid->L[j];	
 		if (center[j] > rect_grid->U[j])
 		    center[j] = rect_grid->L[j]+fmod(center[j],T);
 		if (center[j] < rect_grid->L[j])
 		    center[j] = rect_grid->U[j]+fmod(center[j],T);
+
 		if(isnan(center[j]))
 		{
 		    printf("center[%d]=nan, T = %f, domain=[%f,%f]\n",
@@ -1213,7 +1450,7 @@ extern void ParticlePropagate(Front *fr)
 		}
 	    }
 
-	    if (debugging("particles"))
+	    if (debugging("single_particle"))
 	    {
 	        printf("\nDrop[%d]:\n",i);
 	        printf("Supersat: %f\n",s);
@@ -1228,6 +1465,14 @@ extern void ParticlePropagate(Front *fr)
 	        printf("Response time = %f\n",tau_p);
 	    }
 	}
+	if(pp_numnodes() > 1)
+	{
+	    start_clock("ParallelExchangeParticle");
+	    ParallelExchParticle(&particle_array,fr);
+	    stop_clock("ParallelExchangeParticle");
+	    eqn_params->particle_array = particle_array;
+	}
+	stop_clock("ParticlePropagate");
 	printf("max radius = %20.14f, min radius = %20.14f\n",R_max,R_min);
 }
 
@@ -1456,7 +1701,7 @@ extern void printDropletsStates(Front* front, char* outname)
 	}
 	fclose(outfile);
 }
-
+/****************PLOT FUNCTIONS****************************************/
 extern void gv_plot_scatter(Front* front)
 {
 	PARAMS* eqn_params = (PARAMS*)front->extra2;
@@ -1512,8 +1757,7 @@ extern void vtk_plot_scatter(Front* front)
         int dim = front->rect_grid->dim;
         int i, j, count, n;
         double *coords;
-        char *outname = OutName(front);
-        char fname[256];
+        char fname[256],dname[256];
         FILE* file;
 
 	count =0;
@@ -1524,14 +1768,26 @@ extern void vtk_plot_scatter(Front* front)
 	}
 	n = count; /*number of droplets with positive radius*/
 
-        sprintf(fname,"%s/vtk/vtk.ts%s/",outname,
-				right_flush(front->step,7));
-	if (!create_directory(fname,NO))
+        sprintf(dname,"%s/vtk",OutName(front));
+        if (pp_mynode() == 0)
         {
-            printf("Cannot create directory %s\n",fname);
+            if (!create_directory(dname,YES))
+            {
+                screen("Cannot create directory %s\n",dirname);
+                clean_up(ERROR);
+            }
+        }
+        pp_gsync();
+        sprintf(dname,"%s/vtk.ts%s",dname,right_flush(front->step,7));
+        if (pp_numnodes() > 1)
+            sprintf(dname,"%s-nd%s",dname,right_flush(pp_mynode(),4));
+        if (!create_directory(dname,YES))
+        {
+            screen("Cannot create directory %s\n",dname);
             clean_up(ERROR);
         }
-	sprintf(fname,"%s/particle.vtk",fname);
+
+	sprintf(fname,"%s/particle.vtk",dname);
         file = fopen(fname,"w");
         fprintf(file,"# vtk DataFile Version 3.0\n");
         fprintf(file,"%s\n","particles");
@@ -1559,8 +1815,8 @@ extern void vtk_plot_scatter(Front* front)
                 continue;
             fprintf(file,"%20.14f\n",particle_array[i].radius);
         }
-	printf("%d number of droplets contained\n",n);
 	fclose(file);
+	printf("%d number of droplets contained\n",n);
 }
 
 extern void vtk_plot_sample_traj(Front* front)
@@ -1620,4 +1876,113 @@ extern void vtk_plot_sample_traj(Front* front)
         }
 	step ++;
 	fclose(file);
+}
+/*********************End Plot Function***********************************/
+
+/********************Statistics Functions*******************************/
+extern void Deviation(PARTICLE* particle_array,int num_drops,double &Rm,double &Dev)
+{
+        int i,nzeros;
+        nzeros = 0;
+        Rm = 0;
+        for (i = 0; i < num_drops; i++)
+        {
+            if(particle_array[i].radius != 0)
+            {
+                nzeros++;
+                Rm += particle_array[i].radius;
+            }
+        }
+#if defined(__MPI__)
+        pp_global_isum(&nzeros,1);
+        pp_global_sum(&Rm,1);
+#endif
+        Rm /= nzeros;
+
+        Dev = 0;
+        for (i = 0; i < num_drops; i++)
+        {
+            if(particle_array[i].radius != 0)
+            {
+                Dev += sqr(particle_array[i].radius-Rm);
+            }
+        }
+#if defined(__MPI__)
+        pp_global_sum(&Dev,1);
+#endif
+        Dev /= nzeros;
+        return;
+}
+
+extern double* ComputePDF(
+	double *array, 
+	int size, 
+	double bin_size,
+	int &num_bins,
+	double &var_min,
+	double &var_max)
+{
+	int i, j, total_num;
+	int myid = pp_mynode();
+	static double *PDF = NULL;
+	static int max_bin_num = 0;
+
+	var_min =  HUGE;
+	var_max = -HUGE;
+	
+	if (debugging("trace"))
+	    printf("Entering computePDF\n");
+	pp_gsync();
+	for (i = 0; i < size; i++)
+	{
+	    if (array[i] < var_min)	    
+		var_min = array[i];
+	    if (array[i] > var_max)
+		var_max = array[i];
+	}
+
+	pp_global_max(&var_max,1);	
+	pp_global_min(&var_min,1);	
+
+	num_bins = ceil((var_max - var_min)/bin_size);
+	if (num_bins > max_bin_num)
+	{
+	    max_bin_num = num_bins;
+	    if (PDF != NULL)
+	       free_these(1,PDF);
+	    FT_VectorMemoryAlloc((POINTER*)&PDF,num_bins,FLOAT);
+	}
+	else if(num_bins == 0)
+	{
+	    if (PDF == NULL)
+	        FT_VectorMemoryAlloc((POINTER*)&PDF,1,FLOAT);
+	    PDF[0] = 1.0;
+	    num_bins = 1;
+	    return PDF;
+	}
+	for (j = 0; j < num_bins; j++)
+		PDF[j] = 0.0;
+
+	for (i = 0; i < size; i++)
+	for (j = 0; j < num_bins; j++)
+	{
+	    if (array[i] >= var_min+j*bin_size && array[i] < var_min+(j+1)*bin_size)
+	    {
+		PDF[j] += 1.0;
+		break;
+	    }
+	}
+	
+	pp_global_sum(PDF,num_bins);
+ 
+	total_num = 0;
+	/*normalize PDF*/
+	for (j = 0; j < num_bins; j++)
+	    total_num += PDF[j];
+
+	for (j = 0; j < num_bins; j++)
+	    PDF[j] = double(PDF[j])/double(total_num);
+	if (debugging("trace"))
+	    printf("Leaving computePDF\n");
+	return PDF;
 }
