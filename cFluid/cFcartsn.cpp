@@ -1829,7 +1829,7 @@ void G_CARTESIAN::initMovieVariables()
 	    /* Begin hdf movies */
 	switch (dim)
 	{
-	case 2:
+	case 1:
 	    CursorAfterString(infile,"Type y to make movie of density:");
             fscanf(infile,"%s",string);
             (void) printf("%s\n",string);
@@ -1838,7 +1838,7 @@ void G_CARTESIAN::initMovieVariables()
 		if (set_bound)
 		{
 		    CursorAfterString(infile,"Enter min and max density:");
-                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
                     (void) printf("%f %f\n",var_min,var_max);
 		}
 		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
@@ -1853,7 +1853,54 @@ void G_CARTESIAN::initMovieVariables()
 		if (set_bound)
 		{
 		    CursorAfterString(infile,"Enter min and max pressure:");
-                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
+                    (void) printf("%f %f\n",var_min,var_max);
+		}
+		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"pres",0,eqn_params->pres,getStatePres,
+				var_max,var_min);
+	    }
+	    CursorAfterString(infile,"Type y to make movie of velocity:");
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
+	    {
+		if (set_bound)
+		{
+		    CursorAfterString(infile,"Enter min and max velocity:");
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
+                    (void) printf("%f %f\n",var_min,var_max);
+		}
+		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"velo",0,eqn_params->vel[0],getStateXvel,
+				var_max,var_min);
+	    }
+	    break;
+	case 2:
+	    CursorAfterString(infile,"Type y to make movie of density:");
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
+	    {
+		if (set_bound)
+		{
+		    CursorAfterString(infile,"Enter min and max density:");
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
+                    (void) printf("%f %f\n",var_min,var_max);
+		}
+		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"dens",0,eqn_params->dens,getStateDens,
+				var_max,var_min);
+	    }
+	    CursorAfterString(infile,"Type y to make movie of pressure:");
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
+	    {
+		if (set_bound)
+		{
+		    CursorAfterString(infile,"Enter min and max pressure:");
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
                     (void) printf("%f %f\n",var_min,var_max);
 		}
 		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
@@ -1868,7 +1915,7 @@ void G_CARTESIAN::initMovieVariables()
 		if (set_bound)
 		{
 		    CursorAfterString(infile,"Enter min and max vorticity:");
-                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
                     (void) printf("%f %f\n",var_min,var_max);
 		}
 		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
@@ -1883,7 +1930,7 @@ void G_CARTESIAN::initMovieVariables()
 		if (set_bound)
 		{
 		    CursorAfterString(infile,"Enter min and max velocity:");
-                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
                     (void) printf("%f %f\n",var_min,var_max);
 		}
 		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
@@ -1979,13 +2026,16 @@ void G_CARTESIAN::initMovieVariables()
 	    }
 	}
 	/* Added for vtk movie of vector field */
-	if (CursorAfterStringOpt(infile,
-		"Type y to make vector velocity field movie:"))
+	if (dim != 1)
 	{
-            fscanf(infile,"%s",string);
-            (void) printf("%s\n",string);
-            if (string[0] == 'Y' || string[0] == 'y')
-	    	FT_AddVtkVectorMovieVariable(front,"VELOCITY",field.vel);
+	    if (CursorAfterStringOpt(infile,
+		"Type y to make vector velocity field movie:"))
+	    {
+            	fscanf(infile,"%s",string);
+            	(void) printf("%s\n",string);
+            	if (string[0] == 'Y' || string[0] == 'y')
+	    	    FT_AddVtkVectorMovieVariable(front,"VELOCITY",field.vel);
+	    }
 	}
 
 	fclose(infile);
