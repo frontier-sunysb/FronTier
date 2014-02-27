@@ -2508,7 +2508,7 @@ void CARTESIAN::initMovieVariables()
 	    {
                 set_bound = YES;
                 CursorAfterString(infile,"Enter min and max temperature:");
-                fscanf(infile,"%lf %lf",&var_min,&var_min);
+                fscanf(infile,"%lf %lf",&var_min,&var_max);
                 (void) printf("%f %f\n",var_min,var_max);
 	    }
 	}
@@ -2525,7 +2525,7 @@ void CARTESIAN::initMovieVariables()
 	case 2:
             FT_AddHdfMovieVariable(front,set_bound,YES,ERROR_COMP,
                                 "temperature",0,field->temperature,
-				getStateTemperature,var_max,var_min);
+				getStateTemperature,var_max,var_max);
 	    break;
 	case 3:
 	    if (CursorAfterStringOpt(infile,

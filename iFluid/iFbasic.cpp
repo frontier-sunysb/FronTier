@@ -790,7 +790,7 @@ void Incompress_Solver_Smooth_Basis::initMovieVariables()
 		if (set_bound)
 		{
 		    CursorAfterString(infile,"Enter min and max pressure:");
-                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
                     (void) printf("%f %f\n",var_min,var_max);
 		}
 		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
@@ -805,7 +805,7 @@ void Incompress_Solver_Smooth_Basis::initMovieVariables()
 		if (set_bound)
 		{
 		    CursorAfterString(infile,"Enter min and max vorticity:");
-                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
                     (void) printf("%f %f\n",var_min,var_max);
 		}
 		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
@@ -820,7 +820,7 @@ void Incompress_Solver_Smooth_Basis::initMovieVariables()
 		if (set_bound)
 		{
 		    CursorAfterString(infile,"Enter min and max velocity:");
-                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
                     (void) printf("%f %f\n",var_min,var_max);
 		}
 		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,

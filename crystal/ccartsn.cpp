@@ -984,7 +984,7 @@ void C_CARTESIAN::initMovieVariables()
 		if (set_bound)
 		{
 		    CursorAfterString(infile,"Enter min and max solute:");
-                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
                     (void) printf("%f %f\n",var_min,var_max);
 		}
 		FT_AddHdfMovieVariable(front,set_bound,YES,CRYSTAL_COMP,
@@ -1001,7 +1001,7 @@ void C_CARTESIAN::initMovieVariables()
 		if (set_bound)
 		{
 		    CursorAfterString(infile,"Enter min and max solute:");
-                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
                     (void) printf("%f %f\n",var_min,var_max);
 		}
 		FT_AddHdfMovieVariable(front,set_bound,YES,CRYSTAL_COMP,
@@ -1019,7 +1019,7 @@ void C_CARTESIAN::initMovieVariables()
 		if (set_bound)
 		{
 		    CursorAfterString(infile,"Enter min and max solute:");
-                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
                     (void) printf("%f %f\n",var_min,var_max);
 		}
 		FT_AddHdfMovieVariable(front,set_bound,YES,CRYSTAL_COMP,
@@ -1035,7 +1035,7 @@ void C_CARTESIAN::initMovieVariables()
 		if (set_bound)
 		{
 		    CursorAfterString(infile,"Enter min and max solute:");
-                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
                     (void) printf("%f %f\n",var_min,var_max);
 		}
 		FT_AddHdfMovieVariable(front,set_bound,YES,CRYSTAL_COMP,
@@ -1051,7 +1051,7 @@ void C_CARTESIAN::initMovieVariables()
 		if (set_bound)
 		{
 		    CursorAfterString(infile,"Enter min and max solute:");
-                    fscanf(infile,"%lf %lf",&var_min,&var_min);
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
                     (void) printf("%f %f\n",var_min,var_max);
 		}
 		FT_AddHdfMovieVariable(front,set_bound,YES,CRYSTAL_COMP,
