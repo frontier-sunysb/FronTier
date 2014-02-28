@@ -35,25 +35,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 char *in_name,*out_name;
 boolean binary = NO;
 
-typedef struct{
-        double *vals;
-        int m; // Number of elements
-} Vector;
-
-static void rand_vector(Vector, unsigned short int*);
+static void rand_vector(double*,int,unsigned short int*);
 static void xprint_vector(const char*,const char*,double*,double*,int);
-static void solve_for_p3(Vector,double*,double);
-static void solve_for_p5(Vector,double*,double);
+static void solve_for_dual(double*,int,double*,double);
+static void divergence(double*,double*,double,int);
 
 static void rand_vector(
-	Vector vec, 
+	double *u,
+	int N,
 	unsigned short int *seed)
 {
         int i;
 
-        for(i = 0; i < vec.m; i++)
+        for(i = 0; i < N; i++)
         {
-            vec.vals[i] = 2.0*erand48(seed) - 1.0;
+            u[i] = 2.0*erand48(seed) - 1.0;
         }
 }	/* end rand_vector */
 
@@ -83,7 +79,7 @@ int main(int argc, char **argv)
 	static Front front;
 	static F_BASIC_DATA f_basic;
 	unsigned short int seed[3];
-        Vector u;
+        double *u;
 	double *x;
 
 	/* Initialize basic computational data */
@@ -104,261 +100,107 @@ int main(int argc, char **argv)
         double h = 1.0/(MAXDIM-1);
         int i,j;
 
-	u.m = MAXDIM;
-	FT_VectorMemoryAlloc((POINTER*)&u.vals,MAXDIM,sizeof(double));
+	FT_VectorMemoryAlloc((POINTER*)&u,MAXDIM,sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&x,MAXDIM,sizeof(double));
 	
 	// u will be a random vector
 	seed[0] = 12;
 	seed[1] = 36;
 	seed[2] = 64;
-        rand_vector(u,seed);
-	u.vals[0] = u.vals[1];
+        rand_vector(u,MAXDIM,seed);
+
 	for (i = 0; i < MAXDIM; ++i)
 	    x[i] = i*h;
 
-        xprint_vector("blue","u0.xg",x,u.vals,u.m);
+        xprint_vector("blue","u.xg",x,u,MAXDIM);
 
-	solve_for_p3(u,x,h);
-	solve_for_p5(u,x,h);
+	solve_for_dual(u,MAXDIM,x,h);
 
 	PetscFinalize();
 	clean_up(0);
 }
 
-static void solve_for_p3(
-        Vector u,
+static void solve_for_dual(
+        double *u,
+	int N,
 	double *x,
 	double h)
 {
-	int N = u.m;
-        int ilower = 0;
-        int iupper = N-2;
         PETSc solver;
         PetscInt num_iter = 0;
         double rel_residual = 0.0;
 	int i;
 	static double *soln,*b;
-	static int *i_to_I,I;
 	static double *p,*du,*w;
 
 	if (soln == NULL)
 	{
-	    FT_VectorMemoryAlloc((POINTER*)&du,N,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&du,N+1,sizeof(double));
 	    FT_VectorMemoryAlloc((POINTER*)&w,N,sizeof(double));
-	    FT_VectorMemoryAlloc((POINTER*)&p,N,sizeof(double));
-	    FT_VectorMemoryAlloc((POINTER*)&soln,iupper,sizeof(double));
-	    FT_VectorMemoryAlloc((POINTER*)&b,N,sizeof(double));
-	    FT_VectorMemoryAlloc((POINTER*)&i_to_I,N,sizeof(int));
+	    FT_VectorMemoryAlloc((POINTER*)&p,N+1,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&soln,N-1,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&b,N-1,sizeof(double));
 	}
 
-	for (i = 2; i < N-1; ++i)
-	{
-	    du[i] = (u.vals[i+1] - u.vals[i-1])/(2.0*h);
-	}
-	du[1] = (u.vals[2] - u.vals[1])/(2.0*h);
-	du[0] = du[1];
-	du[N-1] = du[N-2];
+	divergence(u,du,h,N);
+        xprint_vector("red","du-dual.xg",x,du,N-1);
 
-        xprint_vector("red","du-3.xg",x,du,N);
-
-	// I have added here.
-	solver.Create(ilower, iupper-1, 3, 3);
+	solver.Create(0, N-2, 3, 3);
         solver.Reset_A();
         solver.Reset_b();
         solver.Reset_x();
 
-	i_to_I[0] = i_to_I[N-1] = -1;
-	for (i = 1; i < N-1; ++i)
+	for (i = 0; i < N-1; ++i)
+	    b[i] = sqr(h)*du[i+1];
+	b[0] += -1.0;
+	for (i = 0; i < N-1; ++i)
 	{
-	    b[i] = sqr(h)*du[i];
-	    i_to_I[i] = i - 1;
+	    solver.Set_b(i,b[i]);
+	    solver.Set_A(i,i,-2.0);
+	    if (i!=0)
+		solver.Set_A(i,i-1,1.0);
+	    if (i!=N-2)
+		solver.Set_A(i,i+1,1.0);
 	}
-	b[1] += -1.0;
-
-        for(i = 1; i < N-1; i++)
-        {
-	    I = i_to_I[i];
-	    if (i != 1)
-            	solver.Set_A(I,I-1,1.0);
-	    if (i != N-2)
-	    {
-                solver.Set_A(I,I,-2.0);
-            	solver.Set_A(I,I+1,1.0);
-	    }
-	    else
-            	solver.Set_A(I,I,-1.0);
-            solver.Set_b(I,b[i]);
+	solver.Set_A(N-2,N-2,-1.0);
 	    
-	}
         solver.SetMaxIter(40000);
         solver.SetTol(1e-10);
-
         solver.Solve();
 	solver.GetNumIterations(&num_iter);
 	solver.GetFinalRelativeResidualNorm(&rel_residual);
 	solver.Get_x(soln);
 
-        for(i = 1; i < N-1; i++)
-	{
-	    I = i_to_I[i];
-	    p[i] = soln[I];
-	}
+        for(i = 1; i < N; i++)
+	    p[i] = soln[i-1];
 	p[0] = 1.0;
-	p[N-1] = p[N-2];
-        for(i = 1; i < N-1; i++)
+	p[N] = p[N-1];
+        for(i = 1; i < N; i++)
 	{
 	    printf("LHS = %f  RHS = %f  error = %g\n",p[i+1]-2.0*p[i]+p[i-1],
-			sqr(h)*du[i],p[i+1]-2.0*p[i]+p[i-1]-sqr(h)*du[i]);
+			sqr(h)*du[i-1],p[i+1]-2.0*p[i]+p[i-1]-sqr(h)*du[i-1]);
 	}
-
-        xprint_vector("green","p-3.xg",x,p,N);
+        xprint_vector("green","pr-dual.xg",x,p,N);
  
-	w[0] = u.vals[0];
-        for(i = 1; i < N-2; i++)
-	{
-	    w[i] = u.vals[i] - (p[i+1] - p[i-1])/(2.0*h);
-	}
-	w[N-2] = u.vals[N-2] - 
-			(p[N-2] - p[N-3])/(2.0*h);
-	w[N-1] = u.vals[N-1];
+        for(i = 1; i < N-1; i++)
+	    w[i] = u[i] - (p[i+1] - p[i])/h;
 	w[0] = w[1];
+	w[N-1] = w[N-2];
+        xprint_vector("orange","w.xg",x,w,N);
 
-        xprint_vector("orange","w-3.xg",x,w,N);
-	du[1] = (w[2] - w[1])/(2.0*h);
-	for (i = 2; i < N-1; ++i)
-	{
-	    du[i] = (w[i+1] - w[i-1])/(2.0*h);
-	}
-	du[0] = du[1];
-	du[N-1] = du[N-2];
-        xprint_vector("orange","du1-3.xg",x,du,N);
+	divergence(w,du,h,N);
+        xprint_vector("orange","dw-dual.xg",x,du,N-1);
 
-}	/* end solve_for_p3 */
+}	/* end solve_for_dual */
 
-static void solve_for_p5(
-        Vector u,
-	double *x,
-	double h)
+static void divergence(
+	double *u,
+	double *du,
+	double h,
+	int N)
 {
-	int N = u.m;
-        int ilower = 0;
-        int iupper = N-2;
-        PETSc solver;
-        PetscInt num_iter = 0;
-        double rel_residual = 0.0;
 	int i;
-	static double *soln,*b;
-	static int *i_to_I,I;
-	static double *p,*du,*w;
-
-	if (soln == NULL)
-	{
-	    FT_VectorMemoryAlloc((POINTER*)&du,N,sizeof(double));
-	    FT_VectorMemoryAlloc((POINTER*)&w,N,sizeof(double));
-	    FT_VectorMemoryAlloc((POINTER*)&p,N,sizeof(double));
-	    FT_VectorMemoryAlloc((POINTER*)&soln,iupper,sizeof(double));
-	    FT_VectorMemoryAlloc((POINTER*)&b,N,sizeof(double));
-	    FT_VectorMemoryAlloc((POINTER*)&i_to_I,N,sizeof(int));
-	}
-
-	for (i = 2; i < N-1; ++i)
-	{
-	    du[i] = (u.vals[i+1] - u.vals[i-1])/(2.0*h);
-	}
-	du[1] = (u.vals[2] - u.vals[1])/(2.0*h);
-	du[0] = du[1];
+	for (i = 1; i < N; ++i)
+	    du[i] = (u[i] - u[i-1])/h;	
 	du[N-1] = du[N-2];
-
-        xprint_vector("red","du-3.xg",x,du,N);
-
-	// I have added here.
-	solver.Create(ilower, iupper-1, 5, 5);
-        solver.Reset_A();
-        solver.Reset_b();
-        solver.Reset_x();
-
-	i_to_I[0] = i_to_I[N-1] = -1;
-	for (i = 1; i < N-1; ++i)
-	    i_to_I[i] = i - 1;
-
-	for (i = 1; i < N-1; ++i)
-	{
-	    b[i] = 4.0*sqr(h)*du[i];
-	}
-
-	b[1] += -1.0;
-	I = i_to_I[1];
-        solver.Set_A(I,I,-1.0);
-        solver.Set_A(I,I+1,-1.0);
-        solver.Set_A(I,I+2,1.0);
-
-	b[2] += -1.0;
-	I = i_to_I[2];
-        solver.Set_A(I,I,-2.0);
-        solver.Set_A(I,I+2,1.0);
-
-        for(i = 3; i < N-3; i++)
-        {
-	    I = i_to_I[i];
-            solver.Set_A(I,I,-2.0);
-            solver.Set_A(I,I-2,1.0);
-            solver.Set_A(I,I+2,1.0);
-	}
-	I = i_to_I[N-3];
-        solver.Set_A(I,I+1,1.0);
-        solver.Set_A(I,I,-2.0);
-        solver.Set_A(I,I-2,1.0);
-	I = i_to_I[N-2];
-        solver.Set_A(I,I,-1.0);
-        solver.Set_A(I,I-2,1.0);
-
-        solver.SetMaxIter(40000);
-        solver.SetTol(1e-10);
-        for(i = 1; i < N-1; i++)
-	{
-	    I = i_to_I[i];
-            solver.Set_b(I,b[i]);
-	}
-
-        solver.Solve();
-	solver.GetNumIterations(&num_iter);
-	solver.GetFinalRelativeResidualNorm(&rel_residual);
-	solver.Get_x(soln);
-
-        for(i = 1; i < N-1; i++)
-	{
-	    I = i_to_I[i];
-	    p[i] = soln[I];
-	}
-	p[0] = 1.0;
-	p[N-1] = p[N-2];
-        for(i = 3; i < N-3; i++)
-	{
-	    printf("LHS = %f  RHS = %f  error = %g\n",p[i+2]-2.0*p[i]+p[i-2],
-			4*sqr(h)*du[i],p[i+2]-2.0*p[i]+p[i-2]-4*sqr(h)*du[i]);
-	}
-
-        xprint_vector("green","p-5.xg",x,p,N);
- 
-	w[0] = u.vals[0];
-        for(i = 1; i < N-2; i++)
-	{
-	    w[i] = u.vals[i] - (p[i+1] - p[i-1])/(2.0*h);
-	}
-	w[N-2] = u.vals[N-2] - 
-			(p[N-2] - p[N-3])/(2.0*h);
-	w[N-1] = u.vals[N-1];
-	w[0] = w[1];
-
-        xprint_vector("orange","w-5.xg",x,w,N);
-	du[1] = (w[2] - w[1])/(2.0*h);
-	for (i = 2; i < N-1; ++i)
-	{
-	    du[i] = (w[i+1] - w[i-1])/(2.0*h);
-	}
-	du[0] = du[1];
-	du[N-1] = du[N-2];
-        xprint_vector("orange","du1-5.xg",x,du,N);
-
-}	/* end solve_for_p5 */
+}	/* end divergence */
