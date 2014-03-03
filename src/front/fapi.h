@@ -1070,6 +1070,22 @@ extern "C" {
 				int *ubuf,
 				POINTER ijk_to_I);
 
+/*! \fn void FT_ParallelExchCompGridCellIndex(Front *front, int *lbuf, int *ubuf, POINTER ijk_to_I)
+ *  \ingroup PARALLEL
+    \brief This is a parallel communication function for the dual cell index
+     on the expanded comp grid of the comp_grid_intfc in front. The cell index
+     translate the nD (n=2,3) icoordinates to a one dimensional index
+     sequence. The indices are parallely globalized.
+    \param front @b in	Pointer to Front.
+    \param lbuf @b in size of buffer on the lower side.
+    \param ubuf @b in size of buffer on the upper side.
+    \param ijk_to_I @b inout Pointer to array of indices on the expanded dual grid (ij_to_I for 2D).
+ */
+   IMPORT  void FT_ParallelExchCompGridCellIndex(Front* front ,
+				int *lbuf,
+				int *ubuf,
+				POINTER ijk_to_I);
+
 /*! \fn void FT_GetStatesAtPoint(POINT *p,  HYPER_SURF_ELEMENT *hse, HYPER_SURF *hs,  POINTER *sl, POINTER *sr)
  *  \ingroup FIELD
     \brief This function retrieves the left and right states at a point.

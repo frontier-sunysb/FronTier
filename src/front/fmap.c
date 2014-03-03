@@ -570,14 +570,14 @@ EXPORT	void FT_ParallelExchGridArrayBuffer(
 	double *grid_array,
 	Front *front)
 {
-	scatter_top_grid_float_array(grid_array,front);
+	scatter_top_grid_float_array(DUAL_GRID,grid_array,front);
 }	/* end FT_ParallelExchGridArrayBuffer */
 
 EXPORT  void FT_ParallelExchCompGridArrayBuffer(
         double *grid_array,
         Front *front)
 {
-        scatter_comp_grid_float_array(grid_array,front);
+	scatter_top_grid_float_array(COMP_GRID,grid_array,front);
 }       /* end FT_ParallelExchCompGridArrayBuffer */
 
 EXPORT	HYPER_SURF *FT_HyperSurfAtGridCrossing(
@@ -2931,7 +2931,16 @@ EXPORT void FT_ParallelExchCellIndex(
 	int *ubuf,
 	POINTER ijk_to_I)
 {
-	scatter_cell_index(front,lbuf,ubuf,ijk_to_I);
+	scatter_cell_index(front,lbuf,ubuf,DUAL_GRID,ijk_to_I);
+}	/* end FT_ParallelExchCellIndex */
+
+EXPORT void FT_ParallelExchCompGridCellIndex(
+	Front *front,
+	int *lbuf,
+	int *ubuf,
+	POINTER ijk_to_I)
+{
+	scatter_cell_index(front,lbuf,ubuf,COMP_GRID,ijk_to_I);
 }	/* end FT_ParallelExchCellIndex */
 
 EXPORT	void FT_GetStatesAtPoint(

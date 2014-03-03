@@ -1,7 +1,8 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -19,10 +20,8 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-******************************************************************************/
-
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+****************************************************************/
 
 /*
 *				fscatter.c:
@@ -410,12 +409,13 @@ EXPORT	void set_front_pp_grid(
 
 
 EXPORT void scatter_top_grid_float_array(
+	GRID_TYPE grid_type,
 	double *solute,
 	Front *front)
 {
-	INTERFACE *intfc = front->grid_intfc;
+	INTERFACE *intfc;
 	PP_GRID	*pp_grid = front->pp_grid;
-	int dim = Dimension(intfc);
+	int dim = FT_Dimension();
 	static byte *storage;
 	int i,j,k,dir,side,len;
 	int bmin[3],bmax[3];
@@ -432,6 +432,24 @@ EXPORT void scatter_top_grid_float_array(
 	G = pp_grid->gmax;
 	find_Cartesian_coordinates(myid,pp_grid,me);
 
+	switch (grid_type)
+	{
+	case DUAL_GRID:
+	    intfc = front->grid_intfc;
+	    break;
+	case COMP_GRID:
+	    intfc = front->comp_grid_intfc;
+	    break;
+	default:
+	    intfc = NULL;
+	}
+	if (intfc == NULL)
+	{
+	    (void) printf("In scatter_top_grid_float_array():\n");
+	    (void) printf("Unknown grid_type or no grid_intfc\n");
+	    clean_up(ERROR);
+	}
+
 	comp_grid = computational_grid(intfc);
 	top_grid = &topological_grid(intfc);
 	gmax = top_grid->gmax;
@@ -439,6 +457,9 @@ EXPORT void scatter_top_grid_float_array(
 	{
 	    lbuf[i] = comp_grid->lbuf[i];
 	    ubuf[i] = comp_grid->ubuf[i];
+	    if (rect_boundary_type(intfc,i,0) == SUBDOMAIN_BOUNDARY &&
+		grid_type == COMP_GRID)
+	    	lbuf[i] += 1;
 	}
 
 	min_gmax = gmax[0];
@@ -678,11 +699,11 @@ LOCAL	int set_send_buffer_limits(
 	if (side == 0)
 	{
 	    bmin[dir] = lbuf[dir];
-	    bmax[dir] = 2*lbuf[dir];
+	    bmax[dir] = lbuf[dir] + ubuf[dir];
 	}
 	else
 	{
-	    bmin[dir] = gmax[dir] - 2*ubuf[dir] + 1;
+	    bmin[dir] = gmax[dir] - lbuf[dir] - ubuf[dir] + 1;
 	    bmax[dir] = gmax[dir] - ubuf[dir] + 1;
 	}
 	len = 1;
@@ -1339,22 +1360,23 @@ LOCAL   void reflect_array_buffer(
         }
 }       /* end reflect_array_buffer */
 
-LOCAL void pack_index_in_dir(Front*,POINTER,int*,int*,int*,int,int);
-LOCAL void unpack_index_in_dir(Front*,POINTER,int*,int*,int*,int,int);
-LOCAL void reflect_index_in_dir(Front*,POINTER,int*,int*,int,int);
+LOCAL void pack_index_in_dir(Front*,POINTER,int*,int*,int*,int*,int,int);
+LOCAL void unpack_index_in_dir(Front*,POINTER,int*,int*,int*,int*,int,int);
+LOCAL void reflect_index_in_dir(Front*,POINTER,int*,int*,int*,int,int);
 
-LOCAL void pack_index_in_dir2d(Front*,int**,int*,int*,int*,int,int);
-LOCAL void unpack_index_in_dir2d(Front*,int**,int*,int*,int*,int,int);
-LOCAL void reflect_index_in_dir2d(Front*,int**,int*,int*,int,int);
+LOCAL void pack_index_in_dir2d(Front*,int**,int*,int*,int*,int*,int,int);
+LOCAL void unpack_index_in_dir2d(Front*,int**,int*,int*,int*,int*,int,int);
+LOCAL void reflect_index_in_dir2d(Front*,int**,int*,int*,int*,int,int);
 
-LOCAL void pack_index_in_dir3d(Front*,int***,int*,int*,int*,int,int);
-LOCAL void unpack_index_in_dir3d(Front*,int***,int*,int*,int*,int,int);
-LOCAL void reflect_index_in_dir3d(Front*,int***,int*,int*,int,int);
+LOCAL void pack_index_in_dir3d(Front*,int***,int*,int*,int*,int*,int,int);
+LOCAL void unpack_index_in_dir3d(Front*,int***,int*,int*,int*,int*,int,int);
+LOCAL void reflect_index_in_dir3d(Front*,int***,int*,int*,int*,int,int);
 
 EXPORT 	void scatter_cell_index(
 	Front *fr,
 	int *lbuf,
 	int *ubuf,
+	GRID_TYPE grid_type,
 	POINTER ijk_to_I)
 {
 	INTERFACE *intfc = fr->interf;
@@ -1365,11 +1387,21 @@ EXPORT 	void scatter_cell_index(
 	int       *G = pp_grid->gmax;
 	int       i, j, k;
         int       dim = gr->dim;
-	int       *gmax = gr->gmax;
+	int 	  gmax[MAXD];
 	int       *bfs,*bfr;
 	int	  size,max_size,max_buf;
 	int	  index_tag = 8;
 
+	for (i = 0; i < dim; ++i) 
+	{
+	    gmax[i] = gr->gmax[i];
+	    if (grid_type == COMP_GRID)
+	    {
+	    	if (rect_boundary_type(intfc,i,0) != SUBDOMAIN_BOUNDARY &&
+		    rect_boundary_type(intfc,i,1) != SUBDOMAIN_BOUNDARY)
+			gmax[i] -= 1;
+	    }
+	}
 	max_size = max_buf = 0;
 	for (i = 0; i < dim; ++i) 
 	{
@@ -1396,18 +1428,18 @@ EXPORT 	void scatter_cell_index(
 		for (k = 1; k < dim; ++k)
 		    size *= (gmax[(i+k)%dim] + lbuf[(i+k)%dim] + 
 				ubuf[(i+k)%dim]);
-		size = (j == 0) ? size*lbuf[i] : size*ubuf[i];
+		size = (j == 0) ? size*ubuf[i] : size*lbuf[i];
 
 	    	if (rect_boundary_type(intfc,i,j) == SUBDOMAIN_BOUNDARY)
 		{
 		    him[i] = (me[i] + 2*j - 1 + G[i])%G[i];
 		    dst_id = domain_id(him,G,dim);
-		    pack_index_in_dir(fr,ijk_to_I,lbuf,ubuf,bfs,i,j);
+		    pack_index_in_dir(fr,ijk_to_I,gmax,lbuf,ubuf,bfs,i,j);
 		    pp_send(index_tag,bfs,size*INT,dst_id);
 		}
 		else if (rect_boundary_type(intfc,i,j) == REFLECTION_BOUNDARY)
 		{
-		    reflect_index_in_dir(fr,ijk_to_I,lbuf,ubuf,i,j);
+		    reflect_index_in_dir(fr,ijk_to_I,gmax,lbuf,ubuf,i,j);
 		}
 	    }
 	    pp_gsync();
@@ -1427,7 +1459,8 @@ EXPORT 	void scatter_cell_index(
 		    him[i] = (me[i] - 2*j + 1 + G[i])%G[i];
 		    dst_id = domain_id(him,G,dim);
 		    pp_recv(index_tag,dst_id,bfr,size*INT);
-		    unpack_index_in_dir(fr,ijk_to_I,lbuf,ubuf,bfr,i,(j+1)%2);
+		    unpack_index_in_dir(fr,ijk_to_I,gmax,lbuf,ubuf,bfr,i,
+					(j+1)%2);
 		}
 	    }
 	}
@@ -1437,6 +1470,7 @@ EXPORT 	void scatter_cell_index(
 LOCAL 	void pack_index_in_dir(
 	Front *fr,
 	POINTER IJK_to_I,
+	int *gmax,
 	int *lbuf,
 	int *ubuf,
 	int *bfs,
@@ -1447,10 +1481,10 @@ LOCAL 	void pack_index_in_dir(
 	switch(dim)
 	{
 	case 2:
-	    pack_index_in_dir2d(fr,(int**)IJK_to_I,lbuf,ubuf,bfs,dir,nb);
+	    pack_index_in_dir2d(fr,(int**)IJK_to_I,gmax,lbuf,ubuf,bfs,dir,nb);
 	    return;
 	case 3:
-	    pack_index_in_dir3d(fr,(int***)IJK_to_I,lbuf,ubuf,bfs,dir,nb);
+	    pack_index_in_dir3d(fr,(int***)IJK_to_I,gmax,lbuf,ubuf,bfs,dir,nb);
 	    return;
 	}
 }	/* end pack_index_in_dir */
@@ -1458,6 +1492,7 @@ LOCAL 	void pack_index_in_dir(
 LOCAL 	void unpack_index_in_dir(
 	Front *fr,
 	POINTER IJK_to_I,
+	int *gmax,
 	int *lbuf,
 	int *ubuf,
 	int *bfr,
@@ -1468,10 +1503,11 @@ LOCAL 	void unpack_index_in_dir(
 	switch(dim)
 	{
 	case 2:
-	    unpack_index_in_dir2d(fr,(int**)IJK_to_I,lbuf,ubuf,bfr,dir,nb);
+	    unpack_index_in_dir2d(fr,(int**)IJK_to_I,gmax,lbuf,ubuf,bfr,dir,nb);
 	    return;
 	case 3:
-	    unpack_index_in_dir3d(fr,(int***)IJK_to_I,lbuf,ubuf,bfr,dir,nb);
+	    unpack_index_in_dir3d(fr,(int***)IJK_to_I,gmax,lbuf,ubuf,bfr,dir,
+				nb);
 	    return;
 	}
 }	/* end unpack_index_in_dir */
@@ -1479,6 +1515,7 @@ LOCAL 	void unpack_index_in_dir(
 LOCAL 	void reflect_index_in_dir(
 	Front *fr,
 	POINTER IJK_to_I,
+	int *gmax,
 	int *lbuf,
 	int *ubuf,
 	int dir,
@@ -1488,10 +1525,10 @@ LOCAL 	void reflect_index_in_dir(
 	switch(dim)
 	{
 	case 2:
-	    reflect_index_in_dir2d(fr,(int**)IJK_to_I,lbuf,ubuf,dir,nb);
+	    reflect_index_in_dir2d(fr,(int**)IJK_to_I,gmax,lbuf,ubuf,dir,nb);
 	    return;
 	case 3:
-	    reflect_index_in_dir3d(fr,(int***)IJK_to_I,lbuf,ubuf,dir,nb);
+	    reflect_index_in_dir3d(fr,(int***)IJK_to_I,gmax,lbuf,ubuf,dir,nb);
 	    return;
 	}
 }	/* end reflect_index_in_dir */
@@ -1499,6 +1536,7 @@ LOCAL 	void reflect_index_in_dir(
 LOCAL 	void pack_index_in_dir3d(
 	Front *fr,
 	int ***IJK_to_I,
+	int *gmax,
 	int *lbuf,
 	int *ubuf,
 	int *bfs,
@@ -1507,12 +1545,11 @@ LOCAL 	void pack_index_in_dir3d(
 {
 	int index = 0;
 	int i,j,k,m,imax,jmax,kmax;
-	int *gmax = fr->rect_grid->gmax;
 
 	imax = gmax[0] + lbuf[0] + ubuf[0];
 	jmax = gmax[1] + lbuf[1] + ubuf[1];
 	kmax = gmax[2] + lbuf[2] + ubuf[2];
-	m = (nb == 0) ? lbuf[dir] : ubuf[dir];
+	m = (nb == 0) ? ubuf[dir] : lbuf[dir];
 
 	switch (dir)
 	{
@@ -1532,7 +1569,7 @@ LOCAL 	void pack_index_in_dir3d(
 		for (k = 0; k < kmax; ++k)
 		for (i = 0; i < m; ++i)
 		{
-		    bfs[index++] = IJK_to_I[gmax[0]+lbuf[0]-ubuf[0]+i][j][k];
+		    bfs[index++] = IJK_to_I[gmax[0]+lbuf[0]-lbuf[0]+i][j][k];
 		}
 	    }
 	    break;
@@ -1552,7 +1589,7 @@ LOCAL 	void pack_index_in_dir3d(
 		for (k = 0; k < kmax; ++k)
 		for (j = 0; j < m; ++j)
 		{
-		    bfs[index++] = IJK_to_I[i][gmax[1]+lbuf[1]-ubuf[1]+j][k];
+		    bfs[index++] = IJK_to_I[i][gmax[1]+lbuf[1]-lbuf[1]+j][k];
 		}
 	    }
 	    break;
@@ -1572,7 +1609,7 @@ LOCAL 	void pack_index_in_dir3d(
 		for (j = 0; j < jmax; ++j)
 		for (k = 0; k < m; ++k)
 		{
-		    bfs[index++] = IJK_to_I[i][j][gmax[2]+lbuf[2]-ubuf[2]+k];
+		    bfs[index++] = IJK_to_I[i][j][gmax[2]+lbuf[2]-lbuf[2]+k];
 		}
 	    }
 	}
@@ -1581,6 +1618,7 @@ LOCAL 	void pack_index_in_dir3d(
 LOCAL 	void unpack_index_in_dir3d(
 	Front *fr,
 	int ***IJK_to_I,
+	int *gmax,
 	int *lbuf,
 	int *ubuf,
 	int *bfs,
@@ -1589,7 +1627,6 @@ LOCAL 	void unpack_index_in_dir3d(
 {
 	int index = 0;
 	int i,j,k,m,imax,jmax,kmax;
-	int *gmax = fr->rect_grid->gmax;
 
 	imax = gmax[0] + lbuf[0] + ubuf[0];
 	jmax = gmax[1] + lbuf[1] + ubuf[1];
@@ -1663,6 +1700,7 @@ LOCAL 	void unpack_index_in_dir3d(
 LOCAL 	void reflect_index_in_dir3d(
 	Front *fr,
 	int ***IJK_to_I,
+	int *gmax,
 	int *lbuf,
 	int *ubuf,
 	int dir,
@@ -1670,7 +1708,6 @@ LOCAL 	void reflect_index_in_dir3d(
 {
 	int index = 0;
 	int i,j,k,m,imax,jmax,kmax;
-	int *gmax = fr->rect_grid->gmax;
 
 	imax = gmax[0] + lbuf[0] + ubuf[0];
 	jmax = gmax[1] + lbuf[1] + ubuf[1];
@@ -1745,6 +1782,7 @@ LOCAL 	void reflect_index_in_dir3d(
 LOCAL 	void pack_index_in_dir2d(
 	Front *fr,
 	int **IJK_to_I,
+	int *gmax,
 	int *lbuf,
 	int *ubuf,
 	int *bfs,
@@ -1752,7 +1790,6 @@ LOCAL 	void pack_index_in_dir2d(
 	int nb)
 {
 	int i,j,m,imax;
-	int *gmax = fr->rect_grid->gmax;
 
 	if (dir == 0)
 	{
@@ -1760,19 +1797,21 @@ LOCAL 	void pack_index_in_dir2d(
 	    switch(nb)
 	    {
 	    case 0:
-		m = lbuf[0];
-	    	for (i = 0; i < imax; ++i)
-		{
-		    for (j = 0; j < m; ++j)
-		    	bfs[m*i+j] = IJK_to_I[lbuf[0]+j][i];
-		}
-		break;
-	    case 1:
 		m = ubuf[0];
 	    	for (i = 0; i < imax; ++i)
 		{
 		    for (j = 0; j < m; ++j)
-		    	bfs[m*i+j] = IJK_to_I[gmax[0]+lbuf[0]-ubuf[0]+j][i];
+		    {
+		    	bfs[m*i+j] = IJK_to_I[lbuf[0]+j][i];
+		    }
+		}
+		break;
+	    case 1:
+		m = lbuf[0];
+	    	for (i = 0; i < imax; ++i)
+		{
+		    for (j = 0; j < m; ++j)
+		    	bfs[m*i+j] = IJK_to_I[gmax[0]+lbuf[0]-lbuf[0]+j][i];
 		}
 	    }
 	}
@@ -1782,7 +1821,7 @@ LOCAL 	void pack_index_in_dir2d(
 	    switch(nb)
 	    {
 	    case 0:
-		m = lbuf[1];
+		m = ubuf[1];
 	    	for (i = 0; i < imax; ++i)
 		{
 		    for (j = 0; j < m; ++j)
@@ -1790,11 +1829,11 @@ LOCAL 	void pack_index_in_dir2d(
 		}
 		break;
 	    case 1:
-		m = ubuf[1];
+		m = lbuf[1];
 	    	for (i = 0; i < imax; ++i)
 		{
 		    for (j = 0; j < m; ++j)
-		    	bfs[m*i+j] = IJK_to_I[i][gmax[1]+lbuf[1]-ubuf[1]+j];
+		    	bfs[m*i+j] = IJK_to_I[i][gmax[1]+lbuf[1]-lbuf[1]+j];
 		}
 	    }
 	}
@@ -1803,6 +1842,7 @@ LOCAL 	void pack_index_in_dir2d(
 LOCAL 	void unpack_index_in_dir2d(
 	Front *fr,
 	int **IJK_to_I,
+	int *gmax,
 	int *lbuf,
 	int *ubuf,
 	int *bfr,
@@ -1810,7 +1850,6 @@ LOCAL 	void unpack_index_in_dir2d(
 	int nb)
 {
 	int i,j,m,imax;
-	int *gmax = fr->rect_grid->gmax;
 
 	if (dir == 0)
 	{
@@ -1861,13 +1900,13 @@ LOCAL 	void unpack_index_in_dir2d(
 LOCAL 	void reflect_index_in_dir2d(
 	Front *fr,
 	int **IJK_to_I,
+	int *gmax,
 	int *lbuf,
 	int *ubuf,
 	int dir,
 	int nb)
 {
 	int i,j,m,imax;
-	int *gmax = fr->rect_grid->gmax;
 
 	if (dir == 0)
 	{
