@@ -201,16 +201,13 @@ private:
         // Dimension
         int dim;
         COMPONENT *top_comp,*ctop_comp;
+	int *top_gmax;
 	double *top_h;
-	double *top_L;
-        int *top_gmax;
-	int imin,jmin,kmin;
-	int imax,jmax,kmax;
 	double *ctop_L;
         int *ctop_gmax;
 	int cimin,cjmin,ckmin;
 	int cimax,cjmax,ckmax;
-	int ishift,jshift,kshift;
+	int offset[MAXD];
         double *array;          // for scatter states;
 	int array_size;
 	double max_soln;

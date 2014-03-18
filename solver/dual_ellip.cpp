@@ -9,18 +9,16 @@ void DUAL_ELLIPTIC_SOLVER::set_solver_domain(void)
 	static boolean first = YES;
 	RECT_GRID *rgr = &topological_grid(front->grid_intfc);
 	RECT_GRID *crgr = &topological_grid(front->comp_grid_intfc);
-        struct Table *T = table_of_interface(front->grid_intfc);
+	struct Table *T = table_of_interface(front->grid_intfc);
         struct Table *cT = table_of_interface(front->comp_grid_intfc);
         int *lbuf = front->rect_grid->lbuf;
         int *ubuf = front->rect_grid->ubuf;
 	int i;
 
 	dim = Dimension(front->interf);
-        top_comp = T->components;
-        top_gmax = rgr->gmax;
-	top_h = rgr->h;
-	top_L = rgr->L;
-
+	top_comp = T->components;
+	top_gmax = rgr->gmax;
+        top_h = rgr->h;
         ctop_comp = cT->components;
         ctop_gmax = crgr->gmax;
 	ctop_L = crgr->L;
@@ -28,56 +26,19 @@ void DUAL_ELLIPTIC_SOLVER::set_solver_domain(void)
 	if (first)
 	{
 	    first = NO;
-	    switch(dim)
-	    {
-	    case 1:
-		imin = (lbuf[0] == 0) ? 1 : lbuf[0];
-		imax = (ubuf[0] == 0) ? top_gmax[0] - 1 : top_gmax[0] - ubuf[0];
-		cimin = (lbuf[0] == 0) ? 1 : lbuf[0];
-		cimax = (ubuf[0] == 0) ? ctop_gmax[0] - 1 : 
-				ctop_gmax[0] - ubuf[0] - 1;
-		FT_VectorMemoryAlloc((POINTER*)&array,top_gmax[0]+1,FLOAT);
-		break;
-	    case 2:
-		imin = (lbuf[0] == 0) ? 1 : lbuf[0];
-	    	jmin = (lbuf[1] == 0) ? 1 : lbuf[1];
-		cimin = (lbuf[0] == 0) ? 1 : lbuf[0];
-	    	cjmin = (lbuf[1] == 0) ? 1 : lbuf[1];
-		cimax = (ubuf[0] == 0) ? ctop_gmax[0] - 1 : 
-				ctop_gmax[0] - ubuf[0] - 1;
-	    	cjmax = (ubuf[1] == 0) ? ctop_gmax[1] - 1 : 
-				ctop_gmax[1] - ubuf[1] - 1;
-		ishift = (lbuf[0] == 0) ? 0 : -1;
-        	jshift = (lbuf[1] == 0) ? 0 : -1;
-		FT_VectorMemoryAlloc((POINTER*)&array,
-                                (top_gmax[0]+1)*(top_gmax[1]+1),FLOAT);
-		break;
-	    case 3:
-		imin = (lbuf[0] == 0) ? 1 : lbuf[0];
-	    	jmin = (lbuf[1] == 0) ? 1 : lbuf[1];
-		kmin = (lbuf[2] == 0) ? 1 : lbuf[2];
-		imax = (ubuf[0] == 0) ? top_gmax[0] - 1 : top_gmax[0] - ubuf[0];
-	    	jmax = (ubuf[1] == 0) ? top_gmax[1] - 1 : top_gmax[1] - ubuf[1];
-		kmax = (ubuf[2] == 0) ? top_gmax[2] - 1 : top_gmax[2] - ubuf[2];
-		cimin = (lbuf[0] == 0) ? 1 : lbuf[0];
-	    	cjmin = (lbuf[1] == 0) ? 1 : lbuf[1];
-		ckmin = (lbuf[2] == 0) ? 1 : lbuf[2];
-		cimax = (ubuf[0] == 0) ? ctop_gmax[0] - 1 : 
-				ctop_gmax[0] - ubuf[0] - 1;
-	    	cjmax = (ubuf[1] == 0) ? ctop_gmax[1] - 1 : 
-				ctop_gmax[1] - ubuf[1] - 1;
-		ckmax = (ubuf[2] == 0) ? ctop_gmax[2] - 1 : 
-				ctop_gmax[2] - ubuf[2] - 1;
-		ishift = (lbuf[0] == 0) ? 0 : -1;
-        	jshift = (lbuf[1] == 0) ? 0 : -1;
-        	kshift = (lbuf[2] == 0) ? 0 : -1;
-		FT_VectorMemoryAlloc((POINTER*)&array,
-                        (top_gmax[0]+1)*(top_gmax[1]+1)*(top_gmax[2]+1),FLOAT);
-		break;
-	    }
+	    cimin = (lbuf[0] == 0) ? 1 : lbuf[0] + 1;
+	    cjmin = (lbuf[1] == 0) ? 1 : lbuf[1] + 1;
+	    ckmin = (lbuf[2] == 0) ? 1 : lbuf[2] + 1;
+	    cimax = (ubuf[0] == 0) ? ctop_gmax[0] - 1 : ctop_gmax[0] - ubuf[0];
+            cjmax = (ubuf[1] == 0) ? ctop_gmax[1] - 1 : ctop_gmax[1] - ubuf[1];
+            ckmax = (ubuf[2] == 0) ? ctop_gmax[2] - 1 : ctop_gmax[2] - ubuf[2];
 	    array_size = 1;
 	    for (i = 0; i < dim; ++i)
-	    	array_size *= (top_gmax[i] + 1);
+	    {
+		array_size *= (ctop_gmax[i] + 1);
+		offset[i] = (lbuf[i] == 0) ? 1 : 0;
+	    }
+	    FT_VectorMemoryAlloc((POINTER*)&array,array_size,FLOAT);
 	}
 }	/* end set_solver_domain */
 
@@ -269,6 +230,7 @@ void DUAL_ELLIPTIC_SOLVER::solve2d(double *soln)
 	    }
 	}
 	FT_ParallelExchCompGridArrayBuffer(soln,front);
+
 	pp_global_max(&max_soln,1);
 	pp_global_min(&min_soln,1);
 
@@ -281,6 +243,7 @@ void DUAL_ELLIPTIC_SOLVER::solve2d(double *soln)
 			min_soln,icrds_min[0],icrds_min[1]);
 	    checkSolver(icrds_min,YES);
 	}
+
 	if (debugging("elliptic_error"))
 	{
 	    double error,max_error = 0.0;
@@ -303,7 +266,6 @@ void DUAL_ELLIPTIC_SOLVER::solve2d(double *soln)
 	    (void) printf("Occuring at (%d %d)\n",icrds_max[0],icrds_max[1]);
 	    error = checkSolver(icrds_max,YES);
 	}
-
 	FT_FreeThese(1,x);
 }	/* end solve2d */
 
@@ -347,8 +309,8 @@ void DUAL_ELLIPTIC_SOLVER::get_dual_D(
 	    for (ii = 0; ii < 2; ++ii)
 	    for (jj = 0; jj < 2; ++jj)
 	    {
-	    	ic_dual2d[ii][jj][0] = icoords[0]+ii+ishift;
-	    	ic_dual2d[ii][jj][1] = icoords[1]+jj+jshift;
+	    	ic_dual2d[ii][jj][0] = icoords[0]+ii+offset[0]-1;
+	    	ic_dual2d[ii][jj][1] = icoords[1]+jj+offset[1]-1;
 		index_dual2d[ii][jj] = d_index(ic_dual2d[ii][jj],top_gmax,dim);
 		comp_dual2d[ii][jj] = top_comp[index_dual2d[ii][jj]];
 	    }
@@ -371,9 +333,9 @@ void DUAL_ELLIPTIC_SOLVER::get_dual_D(
 	    for (jj = 0; jj < 2; ++jj)
 	    for (kk = 0; kk < 2; ++kk)
 	    {
-	    	ic_dual3d[ii][jj][kk][0] = icoords[0]+ii+ishift;
-	    	ic_dual3d[ii][jj][kk][1] = icoords[1]+jj+jshift;
-	    	ic_dual3d[ii][jj][kk][2] = icoords[2]+kk+kshift;
+	    	ic_dual3d[ii][jj][kk][0] = icoords[0]+ii+offset[0]-1;
+	    	ic_dual3d[ii][jj][kk][1] = icoords[1]+jj+offset[1]-1;
+	    	ic_dual3d[ii][jj][kk][2] = icoords[2]+kk+offset[2]-1;
 		index_dual3d[ii][jj][kk] = d_index(ic_dual3d[ii][jj][kk],
 					top_gmax,dim);
 		comp_dual3d[ii][jj][kk] = top_comp[index_dual3d[ii][jj][kk]];
@@ -505,6 +467,7 @@ double DUAL_ELLIPTIC_SOLVER::checkSolver(
 		icnb[l] = (m == 0) ? icoords[l] - 1 : icoords[l] + 1;
 		index_nb = d_index(icnb,ctop_gmax,dim);
 		coefs[m] = D_nb[l*2+m];
+
 		switch(status)
 		{
 		case NO_PDE_BOUNDARY:

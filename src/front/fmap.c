@@ -70,10 +70,17 @@ EXPORT	void FT_Propagate(
 	}
 	FrontAdvance(front->dt,&dt_frac,front,&newfront,
                                 (POINTER)NULL);
-	if (front->grid_intfc != NULL)
-	    FT_FreeGridIntfc(front);
         assign_interface_and_free_front(front,newfront);
-	FT_MakeGridIntfc(front);
+	if (front->grid_intfc != NULL)
+	{
+	    FT_FreeGridIntfc(front);
+	    FT_MakeGridIntfc(front);
+	}
+	if (front->comp_grid_intfc != NULL)
+	{
+	    FT_FreeCompGridIntfc(front);
+	    FT_MakeCompGridIntfc(front);
+	}
 	if (debugging("trace"))
 	    (void) printf("Leaving FT_Propagate()\n");
 }	/* end FT_Propagate */
@@ -864,6 +871,77 @@ EXPORT	boolean FT_IntrpStateVarAtCoords(
 	    return YES;
 	}
 }	/* end FT_IntrpStateVarAtCoords */
+
+EXPORT	boolean FT_CompGridIntrpStateVarAtCoords(
+	Front *front,
+	COMPONENT comp,
+	double *coords,
+	double *grid_array,
+	double (*get_state)(Locstate),
+	double *ans,
+	double *default_ans)
+{
+	int icoords[MAXD];
+	INTERFACE *grid_intfc = front->comp_grid_intfc;
+	static INTRP_CELL *blk_cell;
+	RECT_GRID *gr = &topological_grid(grid_intfc);
+	int i,dim = gr->dim;
+	extrapolation_permitted = front->extrapolation_permitted;
+
+	if (blk_cell == NULL)
+	{
+	    scalar(&blk_cell,sizeof(INTRP_CELL));
+	    uni_array(&blk_cell->var,MAX_NUM_VERTEX_IN_CELL,sizeof(double));
+	    uni_array(&blk_cell->dist,MAX_NUM_VERTEX_IN_CELL,sizeof(double));
+	    bi_array(&blk_cell->coords,MAX_NUM_VERTEX_IN_CELL,MAXD,
+						sizeof(double));
+	    bi_array(&blk_cell->p_lin,MAXD+1,MAXD,sizeof(double));
+	    uni_array(&blk_cell->var_lin,MAXD+1,sizeof(double));
+	    lin_cell_tol = 1.0;
+	    for (i = 0; i < dim; ++i)
+	    	lin_cell_tol *= 0.00001*gr->h[i];
+	}
+
+	if (!rect_in_which(coords,icoords,gr))
+	{
+	    *ans = 0.0;
+	    return NO;
+	}
+	collect_cell_ptst(blk_cell,icoords,coords,comp,front,grid_array,
+				get_state);
+	if (blk_cell->is_bilinear)
+	{
+	    if (debugging("the_pt"))
+		printf("Bilinear cell interpolate\n");
+	    *ans = FrontBilinIntrp(coords,blk_cell,NO);
+	    return YES;
+	}
+	else if (build_linear_element(blk_cell,coords))
+	{
+	    if (debugging("the_pt"))
+		printf("Linear cell interpolate\n");
+	    *ans = FrontLinIntrp(coords,blk_cell,NO);
+	    return YES;
+	}
+	else if (default_ans != NULL)
+	{
+	    if (debugging("the_pt"))
+		printf("Using default interpolate\n");
+	    *ans = *default_ans;
+	}
+	else
+	{
+	    static Locstate state;
+	    if (debugging("the_pt"))
+		printf("Using nearest_intfc_state()\n");
+	    if (state == NULL)
+		scalar(&state,front->sizest);
+	    nearest_intfc_state(coords,comp,front->comp_grid_intfc,state,
+				NULL,NULL);
+	    *ans = get_state(state);
+	    return YES;
+	}
+}	/* end FT_CompGridIntrpStateVarAtCoords */
 
 EXPORT boolean FrontNearestIntfcState(
 	Front *front,

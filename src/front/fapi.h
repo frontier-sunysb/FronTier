@@ -549,6 +549,31 @@ extern "C" {
 				double *ans,
 				double *default_ans);
 
+/*! \fn boolean FT_CompGridIntrpStateVarAtCoords(Front *front, int comp, double *coords, double *var_array, double (*state_func)(POINTER), double *ans, double *default_ans)
+ *  \ingroup GRIDINTFC
+    \brief Interpolate a state variable at a space point with coords 
+     on computational grid. If 
+     comp == NO_COMP, it interpolates with no regard of interface. Otherwise
+     it will interpolate in the subdomain of comp. The state_func() is needed
+     to tell the function how to retrieve the variable from the interface
+     state. The interpolated variable is assigned in ans. Return YES if
+     the interpolation is successful.
+    \param front @b in	Pointer to Front.
+    \param comp @b in	Component in which the state should be interpolated.
+    \param var_array @b in	Array of the variable on the expanded dual grid.
+    \param state_func() @b in	Function to retrieve the variable from the interface state pointer.
+    \param ans @b out	Address of the interpolated variable.
+    \param default_ans @b in	Address of default solution, if NULL, the function will look for solution at nearest interface point.
+ */
+
+   IMPORT  boolean FT_CompGridIntrpStateVarAtCoords(Front *front ,
+   				int comp , 
+				double *coords , 
+				double *var_array , 
+				double (*state_func)(POINTER) , 
+				double *ans,
+				double *default_ans);
+
 /*! \fn boolean FT_NearestRectGridVarInRange(Front *front, int comp, double *coords, double *var_array, int range, double *ans)
  *  \ingroup GRIDINTFC
     \brief Find the state variable on rectangular grid point which

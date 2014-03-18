@@ -680,6 +680,7 @@ IMPORT	void 	set_front_pp_grid(INIT_DATA*,Front*);
 IMPORT  void    scatter_top_grid_float_array(GRID_TYPE,double*,Front*);
 IMPORT  void    scatter_comp_grid_float_array(double*,Front*);
 IMPORT  void    scatter_cell_index(Front*,int*,int*,GRID_TYPE,POINTER);
+IMPORT  void    scatter_comp_grid_cell_index(Front*,POINTER);
 IMPORT	boolean	cpu_adapt_front(Front*,double,int*,int*);
 IMPORT	boolean	f_intfc_communication1d(Front*);
 IMPORT  void    pp_clip_rect_grids(Front*,int[3][2]);

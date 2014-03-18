@@ -1043,9 +1043,12 @@ enum {
 };
 #define	Ncorners(dim)		(1<<dim)	/* no. corners of hyper cube */
 
+#define Dot2d(A,B)							\
+	((A)[0]*(B)[0] + (A)[1]*(B)[1])
 #define Dot3d(A,B)							\
 	((A)[0]*(B)[0] + (A)[1]*(B)[1] + (A)[2]*(B)[2])
 
+#define	Mag2d(A) sqrt(Dot2d(A,A))
 #define	Mag3d(A) sqrt(Dot3d(A,A))
 
 #define QDot3d(A,B)							\

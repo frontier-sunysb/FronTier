@@ -6,6 +6,7 @@ ELLIPTIC_SOLVER::ELLIPTIC_SOLVER(Front &front):front(&front)
 
 void ELLIPTIC_SOLVER::set_solver_domain(void)
 {
+
 	static boolean first = YES;
 	RECT_GRID *rgr = &topological_grid(front->grid_intfc);
         struct Table *T = table_of_interface(front->grid_intfc);

@@ -1,8 +1,7 @@
-/***************************************************************
-FronTier is a set of libraries that implements differnt types of 
-Front Traking algorithms. Front Tracking is a numerical method for 
-the solution of partial differential equations whose solutions have 
-discontinuities.  
+/************************************************************************************
+FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
+Front Tracking is a numerical method for the solution of partial differential equations 
+whose solutions have discontinuities.  
 
 
 Copyright (C) 1999 by The University at Stony Brook. 
@@ -20,8 +19,10 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-****************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+******************************************************************************/
+
 
 /*
 *				fscatter.c:
@@ -447,7 +448,6 @@ EXPORT void scatter_top_grid_float_array(
 	{
 	    (void) printf("In scatter_top_grid_float_array():\n");
 	    (void) printf("Unknown grid_type or no grid_intfc\n");
-	    clean_up(ERROR);
 	}
 
 	comp_grid = computational_grid(intfc);
@@ -1459,8 +1459,7 @@ EXPORT 	void scatter_cell_index(
 		    him[i] = (me[i] - 2*j + 1 + G[i])%G[i];
 		    dst_id = domain_id(him,G,dim);
 		    pp_recv(index_tag,dst_id,bfr,size*INT);
-		    unpack_index_in_dir(fr,ijk_to_I,gmax,lbuf,ubuf,bfr,i,
-					(j+1)%2);
+		    unpack_index_in_dir(fr,ijk_to_I,gmax,lbuf,ubuf,bfr,i,(j+1)%2);
 		}
 	    }
 	}
@@ -1506,8 +1505,7 @@ LOCAL 	void unpack_index_in_dir(
 	    unpack_index_in_dir2d(fr,(int**)IJK_to_I,gmax,lbuf,ubuf,bfr,dir,nb);
 	    return;
 	case 3:
-	    unpack_index_in_dir3d(fr,(int***)IJK_to_I,gmax,lbuf,ubuf,bfr,dir,
-				nb);
+	    unpack_index_in_dir3d(fr,(int***)IJK_to_I,gmax,lbuf,ubuf,bfr,dir,nb);
 	    return;
 	}
 }	/* end unpack_index_in_dir */
