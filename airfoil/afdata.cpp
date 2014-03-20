@@ -457,7 +457,7 @@ extern void modifyInitialization(
 	double L[MAXD],U[MAXD];
 	int i,dim,gmax[MAXD];
 	
-	if (CursorAfterStringOpt(infile,
+	if (!CursorAfterStringOpt(infile,
             "Entering yes to modify initialization:"))
         {
             fscanf(infile,"%s",string);
