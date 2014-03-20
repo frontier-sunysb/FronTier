@@ -459,6 +459,8 @@ extern void modifyInitialization(
 	
 	if (!CursorAfterStringOpt(infile,
             "Entering yes to modify initialization:"))
+	    return;
+	else
         {
             fscanf(infile,"%s",string);
             (void) printf("%s\n",string);
