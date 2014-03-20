@@ -34,6 +34,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #if !defined(_CDECS_H)
 #define _CDECS_H
 
+#define LOC() printf("Location: at %s:%d/%s()!\n", __FILE__, __LINE__, __func__);
+
 #if defined(USE_OVERTURE) 
 #else 
 #if defined(linux)
