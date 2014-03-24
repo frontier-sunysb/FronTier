@@ -256,6 +256,42 @@ function config_omega {
 
 #################
 
+function config_lambda {
+    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
+    export F77="mpif77 ${OPTS}"
+    export CC="mpicc ${OPTS} ${COPTS_GCC}"
+
+    export scriptotherlibs="${scriptotherlibs} /usr/local/pkg/petsc/lib/libfblas.a /usr/lib/x86_64-linux-gnu/libgfortran.so.3"
+
+    export PETSC_DIR=/usr/local/pkg/petsc
+    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -lm -L/usr/X11R6/lib -lX11"
+
+    if [[ -n "$WITHHYPRE" ]]; then
+        CONF="$CONF --with-hypre"
+        export USEHYPRE="yes"
+    else
+        export USEHYPRE="no"
+    fi
+
+    if [[ -n "$WITHGPU" ]]; then
+        CONF="$CONF --with-gpu"
+        export USEGPU="yes"
+    else
+        export USEGPU="no"
+    fi
+
+    if [[ -n "$WITHHDF" ]]; then
+        CONF="$CONF --with-hdf=/usr/local/pkg/hdf"
+    fi
+
+    export CONF="--with-mpich=/usr/local/pkg/mpich2 --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/usr"
+    PMAKE="-j2"
+}
+
+#################
+
+
 #################
 function config_delta {
     export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
@@ -264,7 +300,21 @@ function config_delta {
 
     export PETSC_DIR=/usr/local/pkg/petsc
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -llapack -lblas -ldl -lm -L/usr/X11R6/lib -lX11"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -lm -L/usr/X11R6/lib -lX11"
+
+    if [[ -n "$WITHHYPRE" ]]; then
+        CONF="$CONF --with-hypre"
+	export USEHYPRE="yes"
+    else
+	export USEHYPRE="no"
+    fi
+
+    if [[ -n "$WITHGPU" ]]; then
+        CONF="$CONF --with-gpu"
+	export USEGPU="yes"
+    else
+	export USEGPU="no"
+    fi
 
     if [[ -n "$WITHHDF" ]]; then
         CONF="$CONF --with-hdf=/usr/local/pkg/hdf"
@@ -543,6 +593,9 @@ elif [[ "${HOST}" == "alpha" ]]; then
 elif [[ "${HOST}" == "omega" ]]; then
     echo "Computer is recognized as omega."
     config_omega
+elif [[ "${HOST}" == "lambda" ]]; then
+    echo "Computer is recognized as omega."
+    config_lambda
 elif [[ "${HOST}" == "linli-pc" ]]; then
     echo "Computer is recognized as linli-pc."
     config_alpha
