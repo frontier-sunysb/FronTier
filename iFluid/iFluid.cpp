@@ -5,7 +5,7 @@ the solution of partial differential equations whose solutions have
 discontinuities.  
 
 Copyright (C) 1999 by The University at Stony Brook. 
-
+ 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
 License as published by the Free Software Foundation; either
@@ -20,13 +20,6 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ****************************************************************/
-
-
-/*
-*
-*	Copyright 1999 by The University at Stony Brook, All rights reserved.
-*
-*/
 
 #include "iFluid.h"
 #include "ifluid_basic.h"
@@ -144,6 +137,9 @@ int main(int argc, char **argv)
 	l_cartesian->initMesh();
 	l_cartesian->initMovieVariables();
 	l_cartesian->findStateAtCrossing = ifluid_find_state_at_crossing;
+	if (iFparams.num_scheme.ellip_method == DUAL_ELLIP)
+	    l_cartesian->findStateAtCGCrossing = 
+			ifluid_find_state_at_cg_crossing;
 	if (debugging("sample_velocity"))
 	    l_cartesian->initSampleVelocity(in_name);
 

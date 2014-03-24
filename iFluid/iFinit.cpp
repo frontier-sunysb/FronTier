@@ -31,6 +31,8 @@ static void random_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS *);
 static void initRayleiTaylorIntfc(Front*,LEVEL_FUNC_PACK*,char*);
 static void initKHIntfc(Front*,LEVEL_FUNC_PACK*,char*);
 static void initCirclePlaneIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
+static void initRectPlaneIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
+static void initTrianglePlaneIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
 static void initChannelFlow(Front*,LEVEL_FUNC_PACK*,char*);
 
 extern void setInitialIntfc(
@@ -51,6 +53,14 @@ extern void setInitialIntfc(
         case FLUID_SOLID_CIRCLE:
 	    iFparams->m_comp1 = SOLID_COMP;
             initCirclePlaneIntfc(front,level_func_pack,inname,prob_type);
+            break;
+        case FLUID_SOLID_RECT:
+	    iFparams->m_comp1 = SOLID_COMP;
+            initRectPlaneIntfc(front,level_func_pack,inname,prob_type);
+            break;
+        case FLUID_SOLID_TRIANGLE:
+	    iFparams->m_comp1 = SOLID_COMP;
+            initTrianglePlaneIntfc(front,level_func_pack,inname,prob_type);
             break;
         case TWO_FLUID_RT:
             initRayleiTaylorIntfc(front,level_func_pack,inname);
@@ -422,7 +432,14 @@ extern void read_iF_prob_type(
 	else if (string[0] == 'F' || string[0] == 'f')
 	{
             if (string[6] == 'S' || string[6] == 's')
-                *prob_type = FLUID_SOLID_CIRCLE;
+	    {
+		if (string[12] == 'C' || string[12] == 'c')
+                    *prob_type = FLUID_SOLID_CIRCLE;
+		else if (string[12] == 'R' || string[12] == 'r')
+                    *prob_type = FLUID_SOLID_RECT;
+		else if (string[12] == 'T' || string[12] == 't')
+                    *prob_type = FLUID_SOLID_TRIANGLE;
+	    }
             else if (string[6] == 'R' || string[6] == 'r')
                 *prob_type = FLUID_RIGID_BODY;
 	}
@@ -470,4 +487,120 @@ static void initChannelFlow(
 	
 	fclose(infile);	
 }	/* end initChannelFlow */
+
+static void initRectPlaneIntfc(
+	Front *front,
+	LEVEL_FUNC_PACK *level_func_pack,
+	char *inname,
+	IF_PROB_TYPE prob_type)
+{
+        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+	FILE *infile = fopen(inname,"r");
+	static RECT_BOX_PARAMS *rect_params;
+	int i,dim;
+
+	iFparams = (IF_PARAMS*)front->extra1;
+	FT_ScalarMemoryAlloc((POINTER*)&rect_params,sizeof(RECT_BOX_PARAMS));
+        rect_params->dim = dim = front->rect_grid->dim;
+        CursorAfterString(infile,"Enter the center of the rectangle:");
+        for (i = 0; i < dim; ++i)
+	{
+            fscanf(infile,"%lf",&rect_params->center[i]);
+            (void) printf("%f ",rect_params->center[i]);
+	}
+	(void) printf("\n");
+        CursorAfterString(infile,"Enter lengths of the rectangle:");
+        for (i = 0; i < dim; ++i)
+	{
+            fscanf(infile,"%lf",&rect_params->length[i]);
+            (void) printf("%f\n",rect_params->length[i]);
+	}
+	(void) printf("\n");
+
+	level_func_pack->func_params = (POINTER)rect_params;
+
+	switch (prob_type)
+	{
+        case FLUID_SOLID_RECT:
+	    iFparams->m_comp1 = SOLID_COMP;
+            level_func_pack->neg_component = SOLID_COMP;
+            level_func_pack->pos_component = LIQUID_COMP2;
+            level_func_pack->func = rect_box_func;
+            level_func_pack->wave_type = NEUMANN_BOUNDARY;
+            CursorAfterString(infile,
+			"Enter density and viscosity of the fluid:");
+            fscanf(infile,"%lf %lf",&iFparams->rho2,&iFparams->mu2);
+            (void) printf("%f %f\n",iFparams->rho2,iFparams->mu2);
+            break;
+	default:
+	    (void) printf("ERROR: entering wrong initialization function\n");
+	    clean_up(ERROR);
+	}
+	CursorAfterString(infile,"Enter gravity:");
+        for (i = 0; i < dim; ++i)
+            fscanf(infile,"%lf\n",&iFparams->gravity[i]);
+	CursorAfterString(infile,"Enter surface tension:");
+        fscanf(infile,"%lf",&iFparams->surf_tension);
+        (void) printf("%f\n",iFparams->surf_tension);
+	CursorAfterString(infile,"Enter factor of smoothing radius:");
+        fscanf(infile,"%lf",&iFparams->smoothing_radius);
+        (void) printf("%f\n",iFparams->smoothing_radius);
+	fclose(infile);	
+}	/* end initRectPlaneIntfc */
+
+static void initTrianglePlaneIntfc(
+	Front *front,
+	LEVEL_FUNC_PACK *level_func_pack,
+	char *inname,
+	IF_PROB_TYPE prob_type)
+{
+        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+	FILE *infile = fopen(inname,"r");
+	static TRIANGLE_PARAMS *tri_params;
+	int i,dim;
+	char msg[100];
+
+	iFparams = (IF_PARAMS*)front->extra1;
+	FT_ScalarMemoryAlloc((POINTER*)&tri_params,sizeof(TRIANGLE_PARAMS));
+
+        CursorAfterString(infile,"Triangle is specified by three vertices");
+	(void) printf("\n");
+        for (i = 0; i < 3; ++i)
+	{
+	    sprintf(msg,"Enter coordinates of point %d:",i+1);
+            CursorAfterString(infile,msg);
+            fscanf(infile,"%lf %lf",&tri_params->x[i],&tri_params->y[i]);
+            (void) printf("%f %f\n",tri_params->x[i],tri_params->y[i]);
+	}
+
+	level_func_pack->func_params = (POINTER)tri_params;
+
+	switch (prob_type)
+	{
+        case FLUID_SOLID_TRIANGLE:
+	    iFparams->m_comp1 = SOLID_COMP;
+            level_func_pack->neg_component = SOLID_COMP;
+            level_func_pack->pos_component = LIQUID_COMP2;
+            level_func_pack->func = triangle_func;
+            level_func_pack->wave_type = NEUMANN_BOUNDARY;
+            CursorAfterString(infile,
+			"Enter density and viscosity of the fluid:");
+            fscanf(infile,"%lf %lf",&iFparams->rho2,&iFparams->mu2);
+            (void) printf("%f %f\n",iFparams->rho2,iFparams->mu2);
+            break;
+	default:
+	    (void) printf("ERROR: entering wrong initialization function\n");
+	    clean_up(ERROR);
+	}
+	CursorAfterString(infile,"Enter gravity:");
+        for (i = 0; i < dim; ++i)
+            fscanf(infile,"%lf\n",&iFparams->gravity[i]);
+	CursorAfterString(infile,"Enter surface tension:");
+        fscanf(infile,"%lf",&iFparams->surf_tension);
+        (void) printf("%f\n",iFparams->surf_tension);
+	CursorAfterString(infile,"Enter factor of smoothing radius:");
+        fscanf(infile,"%lf",&iFparams->smoothing_radius);
+        (void) printf("%f\n",iFparams->smoothing_radius);
+	fclose(infile);	
+}	/* end initTrianglePlaneIntfc */
 

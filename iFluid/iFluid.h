@@ -55,11 +55,11 @@ struct _IF_FIELD {
 	double *vort;			/* Vorticity in 2D */
 	double *mu;
 	double *rho;
-	double *div_U;
 	double **grad_q;
 	double **f_surf;		// Surface force (such as tension)
+
+	double *div_U;
 	double *d_phi;			/* Dual grid phi */
-	double *d_pres;			/* Dual grid pressure */
 };
 typedef struct _IF_FIELD IF_FIELD;
 
@@ -219,6 +219,8 @@ public:
 				IF_PARAMS*);
 	int (*findStateAtCrossing)(Front*,int*,GRID_DIRECTION,int,
 				POINTER*,HYPER_SURF**,double*);
+	int (*findStateAtCGCrossing)(Front*,int*,GRID_DIRECTION,int,
+				POINTER*,HYPER_SURF**,double*);
 	void applicationSetComponent();
 	void applicationSetStates();
 
@@ -227,7 +229,6 @@ public:
 
 	//User interface
 	virtual void setInitialCondition(void) = 0;
-	virtual void setInitialVelocity(void) = 0;
 	virtual void setParallelVelocity(void) = 0;
 	virtual void solve(double dt) = 0; // main step function
         virtual void vtk_plot_scalar(char*, const char*) = 0;
@@ -256,6 +257,8 @@ protected:
 	// for parallel partition
 	int NLblocks, ilower, iupper;
 	int *n_dist;
+	// for dual/comp overlapping
+	int offset[MAXD];
 
 	// On comp topological grid
 	RECT_GRID *ctop_grid;
@@ -332,9 +335,11 @@ protected:
 	void   save(char *filename);
 	double computeFieldPointDiv(int*, double**);
 	double computeDualFieldPointDiv(int*, double**);
+	double computeDualMu(int*, double*);
 	void   computeFieldPointGrad(int*, double*, double*);
+	void   computeDualFieldPointGrad(int*, double*, double*);
 	void   checkVelocityDiv(const char*,double*,double*);
-
+	void   computeDualFieldPointrho(int*);
 /************* TMP Functions which are not implemented or used ***********/
 
 	void computeSubgridModel(void);    // subgrid model by Hyunkyung Lim
@@ -392,7 +397,6 @@ public:
 	~Incompress_Solver_Smooth_2D_Cartesian() {};
 
 	void setInitialCondition(void);
-	void setInitialVelocity(void);
 	void setParallelVelocity(void);
 	void solve(double dt);
         void vtk_plot_scalar(char*, const char*);
@@ -415,6 +419,8 @@ protected:
 	void computePressurePmIII(void);
 	void computeGradientQ(void);
 	void computeNewVelocity(void);
+	void computeNewVelocityDual(void);
+	void extractFlowThroughVelocity(void);
 	void computeSourceTerm(double *coords, double *source);
 	void surfaceTension(double*, HYPER_SURF_ELEMENT*, HYPER_SURF*, 
 				double*, double);
@@ -431,7 +437,6 @@ public:
 	~Incompress_Solver_Smooth_3D_Cartesian() {};
 
 	void setInitialCondition(void);
-	void setInitialVelocity(void);
 	void setParallelVelocity(void);
 	void solve(double dt);
 	void solveTest(const char *msg);
@@ -455,6 +460,8 @@ protected:
 	void computePressurePmIII(void);
 	void computeGradientQ(void);
 	void computeNewVelocity(void);
+	void computeNewVelocityDual(void);
+	void extractFlowThroughVelocity(void);
 	void computeSourceTerm(double *coords, double *source);
 	void surfaceTension(double*, HYPER_SURF_ELEMENT*, HYPER_SURF*, 
 				double*, double);
@@ -479,6 +486,8 @@ extern void fluid_read_front_states(FILE*,Front*);
 extern void read_iF_dirichlet_bdry_data(char*,Front*,F_BASIC_DATA);
 extern boolean isDirichletPresetBdry(Front*,int*,GRID_DIRECTION,COMPONENT);
 extern int ifluid_find_state_at_crossing(Front*,int*,GRID_DIRECTION,
+			int,POINTER*,HYPER_SURF**,double*);
+extern int ifluid_find_state_at_cg_crossing(Front*,int*,GRID_DIRECTION,
 			int,POINTER*,HYPER_SURF**,double*);
 extern int ifluid_find_state_at_dual_crossing(Front*,int*,GRID_DIRECTION,
 			int,POINTER*,HYPER_SURF**,double*);

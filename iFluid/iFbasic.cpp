@@ -76,7 +76,10 @@ void Incompress_Solver_Smooth_Basis::initMesh(void)
 
 	if (debugging("trace"))
             (void) printf("Entering initMesh()\n");
+	iFparams = (IF_PARAMS*)front->extra1;
 	FT_MakeGridIntfc(front);
+	if (iFparams->num_scheme.ellip_method == DUAL_ELLIP)
+	    FT_MakeCompGridIntfc(front);
 	setDomain();
 
 	num_cells = 1;
@@ -120,6 +123,8 @@ void Incompress_Solver_Smooth_Basis::initMesh(void)
 	}
 	setComponent();
 	FT_FreeGridIntfc(front);
+	if (iFparams->num_scheme.ellip_method == DUAL_ELLIP)
+	    FT_FreeCompGridIntfc(front);
 	if (debugging("trace"))
             (void) printf("Leaving initMesh()\n");
 }
@@ -465,8 +470,6 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 	Table *T;
 	int i,size;
 
-	iFparams = (IF_PARAMS*)front->extra1;
-
 	grid_intfc = front->grid_intfc;
 	top_grid = &topological_grid(grid_intfc);
 	lbuf = front->rect_grid->lbuf;
@@ -502,19 +505,17 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(IF_FIELD));
 		iFparams->field = field;
 	    	FT_VectorMemoryAlloc((POINTER*)&array,size,sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&field->phi,size,sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&field->q,size,sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&source,size,sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&diff_coeff,size,sizeof(double));
-	    	FT_VectorMemoryAlloc((POINTER*)&field->mu,size,
-					sizeof(double));
-	    	FT_VectorMemoryAlloc((POINTER*)&field->rho,size,
+	    	FT_VectorMemoryAlloc((POINTER*)&field->div_U,size,
 					sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&field->pres,size,
 					sizeof(double));
-	    	FT_VectorMemoryAlloc((POINTER*)&field->phi,size,
+	    	FT_VectorMemoryAlloc((POINTER*)&field->mu,size,
 					sizeof(double));
-	    	FT_VectorMemoryAlloc((POINTER*)&field->q,size,
-					sizeof(double));
-	    	FT_VectorMemoryAlloc((POINTER*)&field->div_U,size,
+	    	FT_VectorMemoryAlloc((POINTER*)&field->rho,size,
 					sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&field->vort,size,
 					sizeof(double));
@@ -576,6 +577,8 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 	    kmax = (ubuf[2] == 0) ? top_gmax[2] - 1 : top_gmax[2] - ubuf[2];
 	    break;
 	}
+	if (iFparams->num_scheme.ellip_method == DUAL_ELLIP)
+	    setDualDomain();
 }
 
 void Incompress_Solver_Smooth_Basis::scatMeshArray()
@@ -726,6 +729,8 @@ void Incompress_Solver_Smooth_Basis::readFrontInteriorStates(char *restart_name)
 	fluid_read_front_states(infile,front);
 
 	FT_MakeGridIntfc(front);
+	if (iFparams->num_scheme.ellip_method == DUAL_ELLIP)
+	    FT_MakeCompGridIntfc(front);
 	setDomain();
 
 	next_output_line_containing_string(infile,"Interior ifluid states:");
@@ -2517,6 +2522,8 @@ void Incompress_Solver_Smooth_Basis::checkVelocityDiv(
 		icoords[0] = i;
                 icoords[1] = j;
 		index = d_index2d(i,j,top_gmax);
+		if (!ifluid_comp(top_comp[index]))
+		    continue;
 		div_tmp = computeFieldPointDiv(icoords,vel);
 		if (div_max < div_tmp) div_max = div_tmp;
                 if (div_min > div_tmp) div_min = div_tmp;
@@ -2531,6 +2538,8 @@ void Incompress_Solver_Smooth_Basis::checkVelocityDiv(
                 icoords[1] = j;
                 icoords[2] = k;
 		index = d_index3d(i,j,k,top_gmax);
+		if (!ifluid_comp(top_comp[index]))
+		    continue;
 		div_tmp = computeFieldPointDiv(icoords,vel);
 		if (div_max < div_tmp) div_max = div_tmp;
                 if (div_min > div_tmp) div_min = div_tmp;
@@ -2541,9 +2550,9 @@ void Incompress_Solver_Smooth_Basis::checkVelocityDiv(
 	for (l = 0; l < dim; ++l)
 	    denom += fabs((vmax - vmin)/(top_U[l] - top_L[l]));
 	(void) printf("Check divergence at %s\n",mesg);
-	(void) printf("Absolute divergence: max = %20.14f  div_min = %20.14f\n",
+	(void) printf("Absolute: div_max = %20.14f  div_min = %20.14f\n",
 			div_max,div_min);
-	(void) printf("Relative divergence: max = %20.14f  div_min = %20.14f\n",
+	(void) printf("Relative: div_max = %20.14f  div_min = %20.14f\n",
 			div_max/denom,div_min/denom);
 }	/* end checkVelocityDiv */
 
@@ -2552,7 +2561,7 @@ void Incompress_Solver_Smooth_Basis::setDualDomain()
 	static boolean first = YES;
 	INTERFACE *comp_grid_intfc;
 	Table *T;
-	int i,size;
+	int i,size,comp_size;
 
 	comp_grid_intfc = front->comp_grid_intfc;
 	ctop_grid = &topological_grid(comp_grid_intfc);
@@ -2561,51 +2570,40 @@ void Incompress_Solver_Smooth_Basis::setDualDomain()
 	ctop_U = ctop_grid->U;
 	T = table_of_interface(comp_grid_intfc);
 	ctop_comp = T->components;
-	cimin = (lbuf[0] == 0) ? 1 : lbuf[0];
-	cjmin = (lbuf[1] == 0) ? 1 : lbuf[1];
-	ckmin = (lbuf[2] == 0) ? 1 : lbuf[2];
-	cimax = (ubuf[0] == 0) ? ctop_gmax[0] - 1 : ctop_gmax[0] - ubuf[0] - 1;
-	cjmax = (ubuf[1] == 0) ? ctop_gmax[1] - 1 : ctop_gmax[1] - ubuf[1] - 1;
-	ckmax = (ubuf[2] == 0) ? ctop_gmax[2] - 1 : ctop_gmax[2] - ubuf[2] - 1;
+	cimin = (lbuf[0] == 0) ? 1 : lbuf[0] + 1;
+	cjmin = (lbuf[1] == 0) ? 1 : lbuf[1] + 1;
+	ckmin = (lbuf[2] == 0) ? 1 : lbuf[2] + 1;
+	cimax = (ubuf[0] == 0) ? ctop_gmax[0] - 1 : ctop_gmax[0] - ubuf[0];
+	cjmax = (ubuf[1] == 0) ? ctop_gmax[1] - 1 : ctop_gmax[1] - ubuf[1];
+	ckmax = (ubuf[2] == 0) ? ctop_gmax[2] - 1 : ctop_gmax[2] - ubuf[2];
+	for (i = 0; i < dim; ++i)
+	    offset[i] = (lbuf[i] == 0) ? 1 : 0;
 
-	printf("In setDualDomain()\n");
-	printf("Lower bound: cimin = %d  BL = %f\n",cimin,
-			ctop_L[0]+cimin*top_h[0]);
-	printf("Upper bound: cimax = %d  BL = %f\n",cimax,
-			ctop_L[0]+cimax*top_h[0]);
-	printf("Lower bound: cjmin = %d  BL = %f\n",cjmin,
-			ctop_L[1]+cjmin*top_h[1]);
-	printf("Upper bound: cjmax = %d  BL = %f\n",cjmax,
-			ctop_L[1]+cjmax*top_h[1]);
-
-	size = ctop_gmax[0]+1;
+	comp_size = ctop_gmax[0]+1;
         for (i = 1; i < dim; ++i)
-	    size *= (ctop_gmax[i]+1);
-	printf("size = %d\n",size);
-	switch (dim)
+            comp_size *= (ctop_gmax[i]+1);
+	size = top_gmax[0]+1;
+        for (i = 1; i < dim; ++i)
+            size *= (top_gmax[i]+1);
+
+	if (first)
 	{
-	case 2:
-	    if (first)
+	    iFparams->field = field;
+	    FT_VectorMemoryAlloc((POINTER*)&field->d_phi,comp_size,
+					sizeof(double));
+	    if (size < comp_size)
 	    {
-		iFparams->field = field;
-	    	FT_VectorMemoryAlloc((POINTER*)&field->d_pres,size,
+		FT_FreeThese(4,source,diff_coeff,field->div_U,array);
+            	FT_VectorMemoryAlloc((POINTER*)&source,comp_size,
 					sizeof(double));
-	    	FT_VectorMemoryAlloc((POINTER*)&field->d_phi,size,
+            	FT_VectorMemoryAlloc((POINTER*)&diff_coeff,comp_size,
 					sizeof(double));
-	    	first = NO;
+            	FT_VectorMemoryAlloc((POINTER*)&field->div_U,comp_size,
+                        		sizeof(double));
+            	FT_VectorMemoryAlloc((POINTER*)&array,comp_size,
+					sizeof(double));
 	    }
-	    break;
-	case 3:
-	    if (first)
-	    {
-		iFparams->field = field;
-	    	FT_VectorMemoryAlloc((POINTER*)&field->d_pres,size,
-					sizeof(double));
-	    	FT_VectorMemoryAlloc((POINTER*)&field->d_phi,size,
-					sizeof(double));
-	    	FT_VectorMemoryAlloc((POINTER*)&domain_status,size,INT);
-	    	first = NO;
-	    }
+	    first = NO;
 	}
 }	/* end setDualDomain */
 
@@ -2648,7 +2646,7 @@ void Incompress_Solver_Smooth_Basis::setDualGlobalIndex()
 	    {
 		ic = d_index3d(i,j,k,ctop_gmax);
 		if (ctop_comp[ic] == SOLID_COMP) continue;
-		if (domain_status[ic] != TO_SOLVE) continue;
+		//if (domain_status[ic] != TO_SOLVE) continue;
 		cNLblocks++;
 	    }
 	    break;
@@ -2695,7 +2693,7 @@ void Incompress_Solver_Smooth_Basis::setDualIndexMap(void)
 	index = 0;
 	for (i = 0; i < dim; ++i)
 	{
-	    llbuf[i] = lbuf[i] != 0 ? lbuf[i] : 1;
+	    llbuf[i] = lbuf[i] != 0 ? lbuf[i] + 1: 1;
 	    uubuf[i] = ubuf[i] != 0 ? ubuf[i] : 1;
 	}
 	switch (dim)
@@ -2714,7 +2712,8 @@ void Incompress_Solver_Smooth_Basis::setDualIndexMap(void)
                     index++;
                 }
 	    }
-	    FT_ParallelExchCellIndex(front,llbuf,uubuf,(POINTER)cij_to_I);
+	    FT_ParallelExchCompGridCellIndex(front,llbuf,uubuf,
+				(POINTER)cij_to_I);
 	    break;
 	case 3:
 	    for (k = 0; k <= ctop_gmax[2]; k++)
@@ -2726,15 +2725,18 @@ void Incompress_Solver_Smooth_Basis::setDualIndexMap(void)
 	    for (i = cimin; i <= cimax; i++)
 	    {
 		ic = d_index3d(i,j,k,ctop_gmax);
+		/*
 		if (domain_status[ic] != TO_SOLVE)
 		    continue;
+		*/
                 if (ctop_comp[ic] != SOLID_COMP)
 		{
                     cijk_to_I[i][j][k] = index + cilower;
                     index++;
                 }
 	    }
-	    FT_ParallelExchCellIndex(front,llbuf,uubuf,(POINTER)cijk_to_I);
+	    FT_ParallelExchCompGridCellIndex(front,llbuf,uubuf,
+				(POINTER)cijk_to_I);
 	    break;
 	}
 }	/* end setDualIndexMap */
@@ -2765,14 +2767,7 @@ double Incompress_Solver_Smooth_Basis::computeFieldPointDiv(
 	    {
 	    	icnb[idir] = (nb == 0) ? icoords[idir] - 1 : icoords[idir] + 1;
 	    	index_nb = d_index(icnb,top_gmax,dim);
-	    	status = (*findStateAtCrossing)(front,icoords,dir[idir][nb],
-			comp,&intfc_state,&hs,crx_coords);
-	    	if (status == NO_PDE_BOUNDARY)
-	    	    u_edge[idir][nb] = field[idir][index_nb];
-	    	else if (status == CONST_V_PDE_BOUNDARY)
-	    	    u_edge[idir][nb] = getStateVel[idir](intfc_state);
-	    	else if (status == CONST_P_PDE_BOUNDARY)
-	    	    u_edge[idir][nb] = field[idir][index];
+	    	u_edge[idir][nb] = field[idir][index_nb];
 	    }
 	}
 
@@ -2822,6 +2817,176 @@ void Incompress_Solver_Smooth_Basis::computeFieldPointGrad(
 	for (i = 0; i < dim; ++i)
 	    grad_field[i] = 0.5*(p_edge[i][1] - p_edge[i][0])/top_h[i];
 }
+
+void Incompress_Solver_Smooth_Basis::computeDualFieldPointGrad(
+        int *icoords,
+        double *field,
+        double *grad_field)
+{
+	int i,j,k,index,index_l,index_u;
+	int dual_icl[MAXD],dual_icu[MAXD];
+	double pu,pl;
+	COMPONENT comp,dual_compl,dual_compu;
+        double crx_coords[MAXD];
+        POINTER intfc_state;
+        HYPER_SURF *hs;
+        GRID_DIRECTION dir[3][2] = {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
+	int status;
+	double denom;
+
+	index = d_index(icoords,top_gmax,dim);
+	comp = top_comp[index];
+	switch (dim)
+	{
+	case 2:
+	    for (i = 0; i < dim; ++i)
+	    {
+		denom = 0.0;
+	    	pu = pl = 0.0;
+	    	dual_icu[i] = icoords[i] - offset[i] + 1;
+	    	dual_icl[i] = icoords[i] - offset[i];
+	    	for (j = 0; j <= 1; ++j)
+	    	{
+		    dual_icu[(i+1)%dim] = icoords[(i+1)%dim] - 
+				offset[(i+1)%dim] + j;
+		    dual_icl[(i+1)%dim] = icoords[(i+1)%dim] - 
+				offset[(i+1)%dim] + j;
+		    index_u = d_index(dual_icu,ctop_gmax,dim);
+		    index_l = d_index(dual_icl,ctop_gmax,dim);
+		    dual_compu = ctop_comp[index_u];
+		    dual_compl = ctop_comp[index_l];
+		    if (dual_compu != comp && dual_compl != comp)
+			continue;
+		    else if (dual_compl != comp)
+		    {
+			status = (*findStateAtCGCrossing)(front,dual_icu,
+				dir[i][0],comp,&intfc_state,&hs,crx_coords);
+			if (status == NO_PDE_BOUNDARY)
+                    	{
+		    	    pu += field[index_u];
+		    	    pl += field[index_l];
+		    	    denom += 1.0;
+			}
+			else if (status == CONST_P_PDE_BOUNDARY)
+                    	{
+		    	    pu += field[index_u];
+			    pl += getStatePhi(intfc_state);
+		    	    denom += 1.0;
+			}
+			else if (status == CONST_V_PDE_BOUNDARY)
+                    	{
+			    continue;		// Do nothing
+			}
+		    }
+		    else if (dual_compu != comp)
+		    {
+			status = (*findStateAtCGCrossing)(front,dual_icl,
+				dir[i][1],comp,&intfc_state,&hs,crx_coords);
+			if (status == NO_PDE_BOUNDARY)
+                    	{
+		    	    pu += field[index_u];
+		    	    pl += field[index_l];
+		    	    denom += 1.0;
+			}
+			else if (status == CONST_P_PDE_BOUNDARY)
+                    	{
+			    pu += getStatePhi(intfc_state);
+		    	    pl += field[index_l];
+		    	    denom += 1.0;
+			}
+			else if (status == CONST_V_PDE_BOUNDARY)
+                    	{
+			    continue;		// Do nothing
+			}
+		    }
+		    else
+		    {
+		    	pu += field[index_u];
+		    	pl += field[index_l];
+		    	denom += 1.0;
+		    }
+	    	}
+		grad_field[i] = (denom == 0.0) ? 0.0 : (pu - pl)/top_h[i]/denom;
+	    }
+	    break;
+	case 3:
+	    for (i = 0; i < dim; ++i)
+	    {
+		denom = 0.0;
+	    	pu = pl = 0.0;
+	    	dual_icu[i] = icoords[i] - offset[i] + 1;
+	    	dual_icl[i] = icoords[i] - offset[i];
+	    	for (j = 0; j <= 1; ++j)
+	    	for (k = 0; k <= 1; ++k)
+	    	{
+		    dual_icu[(i+1)%dim] = icoords[(i+1)%dim] - 
+				offset[(i+1)%dim] + j;
+		    dual_icu[(i+2)%dim] = icoords[(i+2)%dim] - 
+				offset[(i+2)%dim] + k;
+		    dual_icl[(i+1)%dim] = icoords[(i+1)%dim] - 
+				offset[(i+1)%dim] + j;
+		    dual_icl[(i+2)%dim] = icoords[(i+2)%dim] - 
+				offset[(i+2)%dim] + k;
+		    index_u = d_index(dual_icu,ctop_gmax,dim);
+		    index_l = d_index(dual_icl,ctop_gmax,dim);
+		    dual_compu = ctop_comp[index_u];
+                    dual_compl = ctop_comp[index_l];
+                    if (dual_compu != comp && dual_compl != comp)
+                        continue;
+                    else if (dual_compl != comp)
+                    {
+                        status = (*findStateAtCGCrossing)(front,dual_icu,
+                                dir[i][0],comp,&intfc_state,&hs,crx_coords);
+                        if (status == NO_PDE_BOUNDARY)
+                        {
+                            pu += field[index_u];
+                            pl += field[index_l];  
+                            denom += 1.0;
+                        }
+                        else if (status == CONST_P_PDE_BOUNDARY)
+                        {
+                            pu += field[index_u];
+                            pl += getStatePhi(intfc_state);
+                            denom += 1.0;
+                        }
+                        else if (status == CONST_V_PDE_BOUNDARY)
+                        {
+                            continue;           // Do nothing
+                        }
+		    }
+		    else if (dual_compu != comp)
+                    {
+                        status = (*findStateAtCGCrossing)(front,dual_icl,
+                                dir[i][1],comp,&intfc_state,&hs,crx_coords);
+                        if (status == NO_PDE_BOUNDARY)
+                        {
+                            pu += field[index_u];
+                            pl += field[index_l];
+                            denom += 1.0;
+                        }
+                        else if (status == CONST_P_PDE_BOUNDARY)
+                        {
+                            pu += getStatePhi(intfc_state);
+                            pl += field[index_l];
+                            denom += 1.0;
+                        }
+                        else if (status == CONST_V_PDE_BOUNDARY)
+                        {
+                            continue;           // Do nothing
+                        }
+                    }
+                    else
+                    {
+                        pu += field[index_u];
+                        pl += field[index_l];
+                        denom += 1.0;
+                    }
+	    	}
+		grad_field[i] = (denom == 0.0) ? 0.0 : (pu - pl)/top_h[i]/denom;
+	    }
+	    break;
+	}
+}	/* end computeDualFieldPointGrad */
 
 void Incompress_Solver_Smooth_Basis::setReferencePressure()
 {
@@ -2893,6 +3058,40 @@ extern int ifluid_find_state_at_crossing(
 	}
 }	/* ifluid_find_state_at_crossing */
 
+extern int ifluid_find_state_at_cg_crossing(
+	Front *front,
+	int *icoords,
+	GRID_DIRECTION dir,
+	int comp,
+	POINTER *state,
+	HYPER_SURF **hs,
+	double *crx_coords)
+{
+	boolean status;
+	INTERFACE *grid_intfc = front->comp_grid_intfc;
+	status = FT_StateStructAtGridCrossing(front,grid_intfc,icoords,dir,
+				comp,state,hs,crx_coords);
+	if (status == NO) 
+	    return NO_PDE_BOUNDARY;
+	if (wave_type(*hs) == FIRST_PHYSICS_WAVE_TYPE) 
+	    return NO_PDE_BOUNDARY;
+	if (wave_type(*hs) == NEUMANN_BOUNDARY) 
+	    return CONST_V_PDE_BOUNDARY;
+	if (wave_type(*hs) == GROWING_BODY_BOUNDARY) 
+	    return CONST_V_PDE_BOUNDARY;
+	if (wave_type(*hs) == MOVABLE_BODY_BOUNDARY) 
+	    return CONST_V_PDE_BOUNDARY;
+	if (wave_type(*hs) == ICE_PARTICLE_BOUNDARY) 
+	    return CONST_V_PDE_BOUNDARY;
+	if (wave_type(*hs) == DIRICHLET_BOUNDARY) 
+	{
+	    if (boundary_state(*hs))
+	    	return CONST_V_PDE_BOUNDARY;
+	    else
+	    	return CONST_P_PDE_BOUNDARY;
+	}
+}	/* ifluid_find_state_at_crossing */
+
 extern boolean neumann_type_bdry(int w_type)
 {
 	switch (w_type)
@@ -2907,3 +3106,112 @@ extern boolean neumann_type_bdry(int w_type)
 	}
 }	/* end neumann_type_bdry */
 
+double Incompress_Solver_Smooth_Basis::computeDualMu(
+        int *icoords,
+        double *mu)
+{
+	int icl[MAXD],icu[MAXD],ic[MAXD];
+	int i,j,k,n;
+	int index,dual_index;
+	double ave_mu = 0.0;
+
+	dual_index = d_index(icoords,ctop_gmax,dim);
+	for (i = 0; i < dim; ++i)
+	{
+	    icl[i] = icoords[i] - 1 + offset[i];
+	    icu[i] = icoords[i] + offset[i];
+	}
+	n = 0;
+	switch (dim)
+	{
+	case 2:
+	    for (ic[0] = icl[0]; ic[0] <= icu[0]; (ic[0])++)
+	    for (ic[1] = icl[1]; ic[1] <= icu[1]; (ic[1])++)
+	    {
+		index = d_index(ic,top_gmax,dim);
+		if (top_comp[index] != ctop_comp[dual_index])
+		    continue;
+		ave_mu += mu[index];
+		n++;
+	    }
+	    break;
+	case 3:
+	    for (ic[0] = icl[0]; ic[0] <= icu[0]; (ic[0])++)
+	    for (ic[1] = icl[1]; ic[1] <= icu[1]; (ic[1])++)
+	    for (ic[2] = icl[2]; ic[2] <= icu[2]; (ic[2])++)
+	    {
+		index = d_index(ic,top_gmax,dim);
+		if (top_comp[index] != ctop_comp[dual_index])
+		    continue;
+		ave_mu += mu[index];
+		n++;
+	    }
+	    break;
+	}
+	ave_mu /= (double)n;
+	return ave_mu;
+}	/* end computeDualMu */
+
+double Incompress_Solver_Smooth_Basis::computeDualFieldPointDiv(
+        int *icoords,
+        double **field)
+{
+        int i,j,k,index,index_u,index_l;
+        COMPONENT comp_l,comp_u;
+	double div;
+        double crx_coords[MAXD];
+        POINTER intfc_state;
+        HYPER_SURF *hs;
+	int status;
+        GRID_DIRECTION dir[3][2] = {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
+	int idir,nb;
+	int ic[MAXD],icu[MAXD],icl[MAXD];
+	double du;
+	static int count = 0;
+
+	for (i = 0; i < dim; ++i)
+	{
+	    ic[i] = icoords[i] - 1 + offset[i];
+	}
+
+	div = 0.0;
+	for (i = 0; i < dim; ++i)
+        {
+	    du = 0.0;
+            icl[i] = ic[i];
+            icu[i] = ic[i] + 1;
+            for (j = 0; j <= 1; ++j)
+	    {
+		icl[(i+1)%dim] = ic[(i+1)%dim] + j;
+		icu[(i+1)%dim] = ic[(i+1)%dim] + j;
+		if (dim == 3)
+		{
+		    for (k = 0; k <= 1; ++k)
+		    {
+			icl[(i+2)%dim] = ic[(i+2)%dim] + k;
+                	icu[(i+2)%dim] = ic[(i+2)%dim] + k;
+                	index_l = d_index(icl,top_gmax,dim);
+                	index_u = d_index(icu,top_gmax,dim);
+		    	comp_l = ctop_comp[index_l];
+		    	comp_u = ctop_comp[index_l];
+		    	if (comp_l != comp_u)
+			    printf("Component not equal!\n");
+			du += (field[i][index_u] - field[i][index_l]);
+		    }
+		}
+		else
+		{
+		    index_l = d_index(icl,top_gmax,dim);
+		    index_u = d_index(icu,top_gmax,dim);
+		    comp_l = ctop_comp[index_l];
+		    comp_u = ctop_comp[index_l];
+		    if (comp_l != comp_u)
+			printf("Component not equal!\n");
+		    du += (field[i][index_u] - field[i][index_l]);
+		}
+	    }
+            du /= pow(2,dim-1);
+	    div += du/top_h[i];
+        }
+        return div;
+}       /* end computeDualFieldPointDiv */
