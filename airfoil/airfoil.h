@@ -3,6 +3,7 @@
 
 #include <FronTier.h>
 #include "airfoil_sv.h"
+#include "airfoil_gpu.cuh"
 
 typedef struct {
         double N[MAXD];         /* normal of the plane */

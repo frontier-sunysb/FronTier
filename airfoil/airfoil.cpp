@@ -224,8 +224,11 @@ static  void airfoil_driver(
 
             FT_SetOutputCounter(front);
 	    FT_SetTimeStep(front);
-	    front->dt = std::min(front->dt,CFL*l_cartesian->max_dt);
-	    front->dt = std::min(front->dt,springCharTimeStep(front));
+	    if (!af_params->no_fluid)
+	    {
+	    	front->dt = std::min(front->dt,CFL*l_cartesian->max_dt);
+	    	front->dt = std::min(front->dt,springCharTimeStep(front));
+	    }
 	}
 	else
 	{
@@ -239,6 +242,7 @@ static  void airfoil_driver(
         {
 	    /* Propagating interface for time step dt */
 
+	    start_clock("time_step");
 	    if (debugging("trace"))
                 (void) printf("Before FT_Propagate()\n");
 
@@ -280,7 +284,8 @@ static  void airfoil_driver(
             if (debugging("step_size"))
                 (void) printf("Time step from FrontHypTimeStep(): %f\n",
 					front->dt);
-            front->dt = std::min(front->dt,CFL*l_cartesian->max_dt);
+	    if (!af_params->no_fluid)
+            	front->dt = std::min(front->dt,CFL*l_cartesian->max_dt);
             if (debugging("step_size"))
                 (void) printf("Time step from l_cartesian->max_dt(): %f\n",
 					front->dt);
@@ -309,6 +314,7 @@ static  void airfoil_driver(
             	(void) printf("\ntime = %20.14f   step = %5d   ",
 				front->time,front->step);
 		(void) printf("next dt = %20.14f\n",front->dt);
+	    	stop_clock("time_step");
                 break;
 	    }
 
@@ -320,6 +326,7 @@ static  void airfoil_driver(
             (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
                         front->time,front->step,front->dt);
             fflush(stdout);
+	    stop_clock("time_step");
         }
         (void) delete_interface(front->interf);
 }       /* end airfoil_driver */

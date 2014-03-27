@@ -5,7 +5,7 @@
 __global__ void preset_kernel_spring(SPRING_VERTEX*,
 			double**,double*,double*,int*,int);
 __global__ void set_kernel_spring(SPRING_VERTEX*,
-			double*,double*,double**,double**,
+			double*,double*,double*,double**,double**,
 			double*,double*,double**,double**,
 			double*,double*,double**,double**,
 			double*,double**,int,int);
@@ -24,7 +24,9 @@ __global__ void RK_3(double**,double**,
 __global__ void RK_4(double**,double**,
 			double**,double**,double**,double**,
 			double**,double,int,int);
-__device__ void dev_comp_spring_accel(SPRING_VERTEX,double*,int);
+__global__ void Update_x_new(SPRING_VERTEX*,double**,double,int,int);
+__global__ void Set_impul(SPRING_VERTEX*,double*,int);
+__device__ void dev_comp_spring_accel(SPRING_VERTEX*,double*,int);
 
 extern void gpu_spring_solver(
 	SPRING_VERTEX *sv,
@@ -37,6 +39,7 @@ extern void gpu_spring_solver(
 {
 	static SPRING_VERTEX *dev_sv;
 	static double *dev_x_store,*dev_v_store;
+	static double *dev_f_store,*dev_impul_store;
 	static double *dev_x_old_store,*dev_v_old_store;
 	static double *dev_x_new_store,*dev_v_new_store;
 	static double *dev_accel_store;
@@ -64,6 +67,8 @@ extern void gpu_spring_solver(
 	    cudaMalloc((void**)&dev_sv,size*sizeof(SPRING_VERTEX));
 	    cudaMalloc((void**)&dev_x_store,dim*size*sizeof(double));
 	    cudaMalloc((void**)&dev_v_store,dim*size*sizeof(double));
+	    cudaMalloc((void**)&dev_f_store,dim*size*sizeof(double));
+	    cudaMalloc((void**)&dev_impul_store,3*size*sizeof(double));
 	    cudaMalloc((void**)&dev_x_pos,size*sizeof(double*));
 	    cudaMalloc((void**)&dev_v_pos,size*sizeof(double*));
 	    /* The folllowing are for internally used data */
@@ -125,7 +130,7 @@ extern void gpu_spring_solver(
 			dev_x_nb_store,dev_k,dev_len0,dev_ix,size);
 
 	    set_kernel_spring<<<NB,TPB>>>(dev_sv,
-			dev_x_store,dev_v_store,
+			dev_x_store,dev_v_store,dev_f_store,
                         dev_x_pos,dev_v_pos,
                         dev_x_old_store,dev_v_old_store,
 			dev_x_old,dev_v_old,
@@ -176,6 +181,9 @@ extern void gpu_spring_solver(
 	    RK_4<<<NB,TPB>>>(
 			dev_x_new,dev_v_new,dev_x_pos,dev_v_pos,
 			dev_x_old,dev_v_old,dev_accel,dt,size,dim);
+	    Update_x_new<<<NB,TPB>>>(dev_sv,dev_x_new,dt,size,dim);
+	    pos_to_old<<<NB,TPB>>>(dev_x_pos,dev_x_new,
+			dev_v_pos,dev_v_new,size,dim);
 	    if (n != n_tan-1)
             {
 		comp_spring_accel<<<NB,TPB>>>(dev_sv,dev_accel,size,dim);
@@ -184,7 +192,21 @@ extern void gpu_spring_solver(
 			dev_x_pos,dev_v_old,dev_v_pos,size,dim);
             } 
 	}
-
+	Set_impul<<<NB,TPB>>>(dev_sv,dev_impul_store,size);
+	cudaMemcpy(x_data,dev_impul_store,dim*size*sizeof(double),
+				cudaMemcpyDeviceToHost);
+        for (i = 0; i < size; i++)
+        for (j = 0; j < 3; j++)
+        {
+            sv[i].ext_impul[j] = x_data[i*3+j];
+        }
+	cudaMemcpy(x_data,dev_f_store,dim*size*sizeof(double),
+				cudaMemcpyDeviceToHost);
+        for (i = 0; i < size; i++)
+        for (j = 0; j < dim; j++)
+        {
+            sv[i].f[j] = x_data[i*dim+j];
+        }
 	cudaMemcpy(x_data,dev_x_store,dim*size*sizeof(double),
 				cudaMemcpyDeviceToHost);
         for (i = 0; i < size; i++)
@@ -226,6 +248,7 @@ __global__ void set_kernel_spring(
 	SPRING_VERTEX *sv,
 	double *dev_x_store,
 	double *dev_v_store,
+	double *dev_f_store,
 	double **dev_x_pos,
 	double **dev_v_pos,
 	double *dev_x_old_store,
@@ -247,6 +270,7 @@ __global__ void set_kernel_spring(
 	{
 	    sv[i].x = dev_x_store + i*dim; 
 	    sv[i].v = dev_v_store + i*dim; 
+	    sv[i].f = dev_f_store + i*dim; 
 	    dev_x_pos[i] = dev_x_store + i*dim; 
 	    dev_v_pos[i] = dev_v_store + i*dim; 
 	    dev_x_old[i] = dev_x_old_store + i*dim; 
@@ -289,12 +313,12 @@ __global__ void comp_spring_accel(
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i < size)
         {
-	    dev_comp_spring_accel(sv[i],dev_accel[i],dim);
+	    dev_comp_spring_accel(&(sv[i]),dev_accel[i],dim);
 	}
 }
 
 __device__ void dev_comp_spring_accel(
-	SPRING_VERTEX sv,
+	SPRING_VERTEX *sv,
 	double *accel,
 	int dim)
 {
@@ -302,24 +326,28 @@ __device__ void dev_comp_spring_accel(
 	double len,vec[3];
 	for (k = 0; k < dim; ++k) 
             accel[k] = 0.0;
-        for (i = 0; i < sv.num_nb; ++i)
+        for (i = 0; i < sv->num_nb; ++i)
         {
             len = 0.0;
             for (k = 0; k < dim; ++k)
             {
-                vec[k] = sv.x_nb[i][k] - sv.x[k];
+                vec[k] = sv->x_nb[i][k] - sv->x[k];
                 len += vec[k]*vec[k];
             }
             len = sqrt(len);
             for (k = 0; k < dim; ++k)
             {
                 vec[k] /= len;
-                accel[k] += sv.k[i]*((len - sv.len0[i])*vec[k])/sv.m;
+                accel[k] += sv->k[i]*((len - sv->len0[i])*vec[k])/sv->m;
             }
         }
         for (k = 0; k < dim; ++k)
         {
-            accel[k] += -sv.lambda*sv.v[k]/sv.m + sv.ext_accel[k];
+            sv->f[k] += accel[k]*sv->m;
+        }
+        for (k = 0; k < dim; ++k)
+        {
+            accel[k] += -sv->lambda*sv->v[k]/sv->m;
         }
 }	/* end dev_compute_spring_accel */
 
@@ -421,8 +449,42 @@ __global__ void	RK_4(
             {
 		dev_x_new[i][j] += dt*dev_v_pos[i][j]/6.0;
 		dev_v_new[i][j] += dt*dev_accel[i][j]/6.0;
-		dev_x_pos[i][j] = dev_x_new[i][j];
-		dev_v_pos[i][j] = dev_v_new[i][j];
             }
 	}
 }
+
+__global__ void Update_x_new(
+	SPRING_VERTEX *sv,
+	double **dev_x_new,
+	double dt,
+	int size,
+	int dim)
+{
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j;
+	if (i < size)
+        {
+	    for (j = 0; j < dim; ++j)
+	    {
+		dev_x_new[i][j] += (sv[i].ext_impul[j]
+			+ 0.5*sv[i].ext_accel[j]*dt)*dt;
+		sv[i].ext_impul[j] += sv[i].ext_accel[j]*dt;
+	    } 
+	}
+}	/* end Update_x_new */
+
+__global__ void Set_impul(
+	SPRING_VERTEX *sv,
+	double *dev_impul_store,
+	int size)
+{
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+        int j;
+        if (i < size)
+        {
+            for (j = 0; j < 3; ++j)
+            {
+		dev_impul_store[3*i+j] = sv[i].ext_impul[j];
+	    }
+	}
+}	/* end Set_impul */
