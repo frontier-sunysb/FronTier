@@ -1817,6 +1817,19 @@ extern void fourth_order_elastic_surf_propagate(
 #endif
 	    generic_spring_solver(sv,x_pos,v_pos,dim,size,n_tan,dt);
 
+	count = 0;
+	set_surf_impulse(&geom_set,news,sv,&count);
+	for (i = 0; i < num_curves; ++i)
+	{
+	    countc[i] = count;
+	    set_curve_impulse(&geom_set,newc[i],sv,&count);
+	}
+	for (i = 0; i < num_nodes; ++i)
+	{
+	    countn[i] = count;
+	    set_node_impulse(&geom_set,newn[i],sv,&count);
+	}
+
 	stop_clock("spring_model");
 
 	if (debugging("trace"))

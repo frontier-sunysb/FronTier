@@ -327,6 +327,9 @@ extern void set_spring_vertex_memory(SPRING_VERTEX*,int);
 extern void compute_spring_accel1(SPRING_VERTEX,double*,int);
 extern void generic_spring_solver(SPRING_VERTEX*,double**,double**,int,int,int,
 				double);
+extern void set_surf_impulse(PARACHUTE_SET*,SURFACE*,SPRING_VERTEX*,int*);
+extern void set_curve_impulse(PARACHUTE_SET*,CURVE*,SPRING_VERTEX*,int*);
+extern void set_node_impulse(PARACHUTE_SET*,NODE*,SPRING_VERTEX*,int*);
 
 // afvelo.cpp
 extern void setMotionParams(Front*);

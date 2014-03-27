@@ -1242,6 +1242,9 @@ EXPORT void FT_AddHdfMovieVariable(
 				MAX_MOVIE_VARIABLES,sizeof(double));
 	    FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->var_max,
 				MAX_MOVIE_VARIABLES,sizeof(double));
+	    if (FT_Dimension() == 3)
+	    	FT_VectorMemoryAlloc((POINTER*)&hdf_movie_var->idir,
+				MAX_MOVIE_VARIABLES,sizeof(int));
 	    hdf_movie_var->num_var = 0;
 	    hdf_movie_var->plot_comp = YES;	/* default */
 	    hdf_movie_var->plot_bullet = YES;	/* default */

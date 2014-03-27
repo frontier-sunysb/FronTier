@@ -208,7 +208,8 @@ extern void set_node_spring_vertex(
 	CURVE **c;
 	BOND *b;
 	POINT *p,*p_nb;
-	INTERFACE *intfc = geom_set->front->interf;
+	Front *front = geom_set->front;
+	INTERFACE *intfc = front->interf;
 	int i,j,nn,dim = Dimension(intfc);
 	double ks = geom_set->ks;
 	double kl = geom_set->kl;
@@ -218,6 +219,9 @@ extern void set_node_spring_vertex(
 	double lambda_l = geom_set->lambda_l;
 	double lambda_g = geom_set->lambda_g;
 	boolean is_fixed = NO;
+	STATE *sl,*sr;
+	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+	double *g = iFparams->gravity;
 
 	if (dim == 3)
 	{
@@ -373,6 +377,14 @@ extern void set_node_spring_vertex(
 	{
 	    sv[*n].lambda = lambda_l;
 	}
+	sl = (STATE*)left_state(node->posn);
+        for (i = 0; i < dim; ++i)
+        {
+	    sv[*n].ext_accel[i] = g[i];
+	    sv[*n].ext_impul[i] = sl->impulse[i];
+	}
+	if (is_fixed) 
+	    sv[*n].ext_accel[i] = 0;
 	(*n)++;
 }	/* end set_node_spring_vertex */
 
@@ -384,10 +396,14 @@ extern void set_curve_spring_vertex(
 	SPRING_VERTEX *sv,
 	int *n)
 {
+	Front *front = geom_set->front;
 	int i,j,nn;
 	BOND *b;
-	int dim = Dimension(curve->interface);
 	double kl,m_l,lambda_l;
+	int dim = front->rect_grid->dim;
+        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+        double *g = iFparams->gravity;
+	STATE *sl;
 
 	if (dim == 3)
 	{
@@ -439,6 +455,17 @@ extern void set_curve_spring_vertex(
 	    sv[i].m = m_l;
 	    sv[i].num_nb = 2;
 	    sv[i].lambda = lambda_l;
+	    sl = (STATE*)left_state(b->end);
+            for (j = 0; j < dim; ++j)
+            {
+	    	sv[i].ext_accel[j] = g[j];
+	    	sv[i].ext_impul[j] = sl->impulse[j];
+	    }
+	    if (hsbdry_type(curve) == FIXED_HSBDRY)
+            for (j = 0; j < dim; ++j)
+            {
+	    	sv[i].ext_accel[j] = 0;
+	    }
 	    ++i;
 	}
 
@@ -496,6 +523,7 @@ extern void set_surf_spring_vertex(
 	SPRING_VERTEX *sv,
 	int *n)
 {
+	Front *front = geom_set->front;
 	int i,j,k,l,nt;
 	TRI *tri;
 	TRI *tris[MAX_NUM_RING1];
@@ -504,12 +532,19 @@ extern void set_surf_spring_vertex(
 	double m_s = geom_set->m_s;
 	double lambda_s = geom_set->lambda_s;
 	boolean is_stationary_point;
+	int dim = front->rect_grid->dim;
+        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+        double *g = iFparams->gravity;
+	STATE *sl,*sr;
+	HYPER_SURF_ELEMENT *hse;
+        HYPER_SURF         *hs = Hyper_surf(surf);
 
 	unsort_surf_point(surf);
 	i = *n;
 	for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
 			tri = tri->next)
 	{
+	    hse = Hyper_surf_element(tri);
 	    for (j = 0; j < 3; ++j)
 	    {
 		p = Point_of_tri(tri)[j];
@@ -519,6 +554,14 @@ extern void set_surf_spring_vertex(
 		sv[i].lambda = lambda_s;
 		if (is_stationary_point == YES)
 		    sv[i].lambda = 0.0;
+		FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+            	for (k = 0; k < dim; ++k)
+            	{
+	    	    sv[i].ext_accel[k] = g[k];
+	    	    sv[i].ext_impul[k] = sl->impulse[k];
+		    if (is_stationary_point == YES)
+	    	    	sv[i].ext_accel[k] = 0.0;
+	    	}
 		x[i] = sv[i].x = Coords(p);
 		v[i] = sv[i].v = p->vel;
 		sv[i].f = p->force;
@@ -574,7 +617,7 @@ extern void compute_spring_accel1(
 	    sv.f[k] = f[k]*sv.m;
 	for (k = 0; k < dim; ++k)
 	{
-	    f[k] += -sv.lambda*sv.v[k]/sv.m + sv.ext_accel[k];
+	    f[k] += -sv.lambda*sv.v[k]/sv.m;
 	}
 }	/* end compute_spring_accel */
 
@@ -717,19 +760,18 @@ extern void generic_spring_solver(
             FT_MatrixMemoryAlloc((POINTER*)&accel,size,3,sizeof(double));
 	}
 
-	for (n = 0; n < n_loop; ++n)
+	for (i = 0; i < size; ++i)
 	{
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
+		compute_spring_accel1(sv[i],accel[i],dim);
+	}
+	for (i = 0; i < size; ++i)
+	for (j = 0; j < dim; ++j)
+	{
 		x_old[i][j] = x_pos[i][j];
 		v_old[i][j] = v_pos[i][j];
-	    }
-
-	    for (i = 0; i < size; ++i)
-	    {
-		compute_spring_accel1(sv[i],accel[i],dim);
-	    }
+	}
+	for (n = 0; n < n_loop; ++n)
+	{
 	    for (i = 0; i < size; ++i)
 	    for (j = 0; j < dim; ++j)
 	    {
@@ -770,6 +812,13 @@ extern void generic_spring_solver(
                 v_new[i][j] += dt*accel[i][j]/6.0;
 	    }
 	    for (i = 0; i < size; ++i)
+            for (j = 0; j < 3; ++j)
+            {
+                x_new[i][j] += (sv[i].ext_impul[j]
+                                + 0.5*sv[i].ext_accel[j]*dt)*dt;
+                sv[i].ext_impul[j] += sv[i].ext_accel[j]*dt;
+            }
+	    for (i = 0; i < size; ++i)
 	    for (j = 0; j < dim; ++j)
 	    {
 		x_pos[i][j] = x_new[i][j];
@@ -778,6 +827,12 @@ extern void generic_spring_solver(
 
 	    if (n != n_loop-1)
 	    {
+		for (i = 0; i < size; ++i)
+                for (j = 0; j < 3; ++j)
+                {
+                    x_old[i][j] = x_pos[i][j];
+                    v_old[i][j] = v_pos[i][j];
+                }
 	    	for (i = 0; i < size; ++i)
 		    compute_spring_accel1(sv[i],accel[i],dim);
 	    }
@@ -785,3 +840,83 @@ extern void generic_spring_solver(
 	if (debugging("trace"))
 	    (void) printf("Leaving generic_spring_solver()\n");
 }	/* end generic_spring_solver */
+
+extern void set_node_impulse(
+	PARACHUTE_SET *geom_set,
+	NODE *node,
+	SPRING_VERTEX *sv,
+	int *n)
+{
+	int i,dim;
+	STATE *sl,*sr;
+
+	dim = FT_Dimension();
+	sl = (STATE*)left_state(node->posn);
+	sr = (STATE*)right_state(node->posn);
+	for (i = 0; i < dim; ++i)
+	    sl->impulse[i] = sr->impulse[i] = sv[*n].ext_impul[i];
+	(*n)++;
+}	/* end set_node_impulse */
+
+extern void set_curve_impulse(
+	PARACHUTE_SET *geom_set,
+	CURVE *curve,
+	SPRING_VERTEX *sv,
+	int *n)
+{
+	int i,j,dim;
+	STATE *sl,*sr;
+	BOND *b;
+
+	dim = FT_Dimension();
+
+	i = *n;
+	for (b = curve->first; b != curve->last; b = b->next)
+	{
+	    sl = (STATE*)left_state(b->end);
+	    sr = (STATE*)right_state(b->end);
+            for (j = 0; j < dim; ++j)
+            {
+	    	sl->impulse[j] = sr->impulse[j] = sv[i].ext_impul[j];
+	    }
+	    ++i;
+	}
+	*n = i;
+}	/* end set_curve_impulse */
+
+extern void set_surf_impulse(
+	PARACHUTE_SET *geom_set,
+	SURFACE *surf,
+	SPRING_VERTEX *sv,
+	int *n)
+{
+	int i,j,k;
+	TRI *tri;
+	POINT *p;
+	HYPER_SURF *hs;
+	HYPER_SURF_ELEMENT *hse;
+	STATE *sl,*sr;
+
+	unsort_surf_point(surf);
+	hs = Hyper_surf(surf);
+	i = *n;
+	for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
+			tri = tri->next)
+	{
+	    hse = Hyper_surf_element(tri);
+	    for (j = 0; j < 3; ++j)
+	    {
+		p = Point_of_tri(tri)[j];
+		if (sorted(p) || Boundary_point(p)) continue;
+		sorted(p) = YES;
+		FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+            	for (k = 0; k < 3; ++k)
+            	{
+	    	    sl->impulse[k] = sr->impulse[k] = sv[i].ext_impul[k];
+	    	}
+	    	++i;
+	    }
+	}
+	*n = i;
+}	/* end set_surf_impulse */
+

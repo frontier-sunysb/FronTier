@@ -50,13 +50,13 @@ afprop.o : airfoil.h ../iFluid/iFluid.h afprop.cpp
 	${CXX} -c afprop.cpp $(incsloc) $(incs) ${Petsc_Include}
 afvelo.o : airfoil.h ../iFluid/iFluid.h afvelo.cpp
 	${CXX} -c afvelo.cpp $(incsloc) $(incs) ${Petsc_Include}
-aftest.o : airfoil.h ../iFluid/iFluid.h aftest.cpp
+aftest.o : airfoil.h airfoil_sv.h ../iFluid/iFluid.h aftest.cpp
 	${CXX} -c aftest.cpp $(incsloc) $(incs) ${Petsc_Include}
 afdata.o : airfoil.h ../iFluid/iFluid.h afdata.cpp
 	${CXX} -c afdata.cpp $(incsloc) $(incs) ${Petsc_Include}
-afsetd.o : airfoil.h ../iFluid/iFluid.h afsetd.cpp
+afsetd.o : airfoil.h airfoil_sv.h ../iFluid/iFluid.h afsetd.cpp
 	${CXX} -c afsetd.cpp $(incsloc) $(incs) ${Petsc_Include}
-afcnpy.o : airfoil.h ../iFluid/iFluid.h afcnpy.cpp
+afcnpy.o : airfoil.h airfoil_sv.h ../iFluid/iFluid.h afcnpy.cpp
 	${CXX} -c afcnpy.cpp $(incsloc) $(incs) ${Petsc_Include}
 airfoil.o: airfoil.h airfoil.cpp
 	${CXX} -c airfoil.cpp $(incsloc) $(incs) ${Petsc_Include}

@@ -13,6 +13,7 @@ struct _SPRING_VERTEX {
         double *k;
         double *len0;
         double ext_accel[3];
+        double ext_impul[3];
 };
 typedef struct _SPRING_VERTEX SPRING_VERTEX;
 
