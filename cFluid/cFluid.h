@@ -351,9 +351,7 @@ private:
 	/* Directional flux solver */
 	void resetFlux(FSWEEP*);
 	void addFluxInDirection(int,SWEEP*,FSWEEP*,double);
-	void addFluxInDirection1d(int,SWEEP*,FSWEEP*,double);
-	void addFluxInDirection2d(int,SWEEP*,FSWEEP*,double);
-	void addFluxInDirection3d(int,SWEEP*,FSWEEP*,double);
+	void addFluxAlongGridLine(int,int*,double,SWEEP*,FSWEEP*);
 	void augmentOneDimBuffer(int,int);
 	void numericalFlux(POINTER,SWEEP*,FSWEEP*,int);
 	void appendStencilBuffer2d(SWEEP*,SWEEP*,int,int);

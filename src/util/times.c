@@ -195,7 +195,7 @@ EXPORT void cpu_time(
 	(void) printf("TIME: %7.2f  at %s\n", cpu_seconds(), s);
 }		/*end cpu_time*/
 
-EXPORT void startClock(char* name) 
+EXPORT void startClock(const char* name) 
 {
         struct clock *cp = clocks;
 
@@ -216,7 +216,7 @@ EXPORT void startClock(char* name)
         return;
 }
 
-EXPORT void stopClock(char* name) 
+EXPORT void stopClock(const char* name) 
 {
         struct clock *cp = clocks;
         while (cp && strcmp(cp->name,name)) {

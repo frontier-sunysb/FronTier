@@ -700,7 +700,7 @@ void Incompress_Solver_Smooth_Basis::readFrontInteriorStates(char *restart_name)
 {
 	FILE *infile;
 	int i,j,k,l,index;
-	char fname[100];
+	char fname[400];
 	double **vel = field->vel;
 
 

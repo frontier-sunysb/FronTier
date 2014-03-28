@@ -456,576 +456,30 @@ void G_CARTESIAN::addFluxInDirection(
 	FSWEEP *m_flux,
 	double delta_t)
 {
+	int i,j,icoords[MAXD];
 	switch (dim)
 	{
 	case 1:
-	    return addFluxInDirection1d(dir,m_vst,m_flux,delta_t);
+	    addFluxAlongGridLine(dir,icoords,delta_t,m_vst,m_flux);
+	    break;
 	case 2:
-	    return addFluxInDirection2d(dir,m_vst,m_flux,delta_t);
+	    for (i = imin[(dir+1)%dim]; i <= imax[(dir+1)%dim]; ++i)
+	    {
+	    	icoords[(dir+1)%dim] = i;
+	    	addFluxAlongGridLine(dir,icoords,delta_t,m_vst,m_flux);
+	    }
+	    break;
 	case 3:
-	    return addFluxInDirection3d(dir,m_vst,m_flux,delta_t);
+	    for (i = imin[(dir+1)%dim]; i <= imax[(dir+1)%dim]; ++i)
+	    for (j = imin[(dir+2)%dim]; j <= imax[(dir+2)%dim]; ++j)
+	    {
+	    	icoords[(dir+1)%dim] = i;
+	    	icoords[(dir+2)%dim] = j;
+	    	addFluxAlongGridLine(dir,icoords,delta_t,m_vst,m_flux);
+	    }
+	    break;
 	}
 }	/* end addFluxInDirection */
-
-void G_CARTESIAN::addFluxInDirection1d(
-	int dir,
-	SWEEP *m_vst,
-	FSWEEP *m_flux,
-	double delta_t)
-{
-	int i,n,index;
-	SCHEME_PARAMS scheme_params;
-	EOS_PARAMS	*eos;
-	static SWEEP vst;
-	static FSWEEP vflux;
-	static boolean first = YES;
-	COMPONENT comp;
-	int seg_min,seg_max;
-	static int icoords[MAXD];
-	
-	start_clock("addFluxInDirection1d");
-	if (first)
-	{
-	    first = NO;
-	    allocDirVstFlux(&vst,&vflux);
-	}
-
-	scheme_params.lambda = delta_t/top_h[dir];
-	scheme_params.beta = 0.0;
-
-	seg_min = imin[0];
-	while (seg_min <= imax[0])
-	{
-	    for (; seg_min <= imax[0]; ++seg_min)
-	    {
-		i = seg_min;
-	    	index = d_index1d(i,top_gmax);
-	    	comp = top_comp[index];
-	    	if (gas_comp(comp)) break;
-	    }
-	    if (seg_min > imax[0]) break;
-	    for (i = 0; i <= top_gmax[0]; ++i)
-	    {
-	    	vst.dens[i] = 0.0; 
-	    	vst.pres[i] = 0.0; 
-	    	vst.engy[i] = 0.0; 
-	    	vst.momn[0][i] = vst.momn[1][i] = vst.momn[2][i] = 0.0;
-	    }
-	    i = seg_min;
-	    index = d_index1d(i,top_gmax);
-	    comp = top_comp[index];
-	    n = 0;
-	    vst.dens[n+nrad] = m_vst->dens[index];
-                   vst.engy[n+nrad] = m_vst->engy[index];
-                   vst.pres[n+nrad] = m_vst->pres[index];
-                   vst.momn[0][n+nrad] = m_vst->momn[0][index];
-                   vst.momn[1][n+nrad] = 0.0;
-                   vst.momn[2][n+nrad] = 0.0;
-	    seg_max = i;
-	    n++;
-	    for (i = seg_min+1; i <= imax[0]; i++)
-	    {
-		index = d_index1d(i,top_gmax);
-		if (needBufferFromIntfc(comp,top_comp[index]))
-		    break;
-		else
-		{
-	    	    vst.dens[n+nrad] = m_vst->dens[index];
-	    	    vst.engy[n+nrad] = m_vst->engy[index];
-	    	    vst.pres[n+nrad] = m_vst->pres[index];
-	    	    vst.momn[0][n+nrad] = m_vst->momn[0][index];
-	    	    vst.momn[1][n+nrad] = 0.0;
-	    	    vst.momn[2][n+nrad] = 0.0;
-		    n++;
-		}
-		seg_max = i;
-	    }
-	    icoords[0] = seg_min;
-	    appendGhostBuffer(&vst,m_vst,n,icoords,0,0);
-	    icoords[0] = seg_max;
-	    appendGhostBuffer(&vst,m_vst,n,icoords,0,1);
-	    
-	    eos = &(eqn_params->eos[comp]);
-	    EosSetTVDParams(&scheme_params, eos);
-	    numericalFlux((POINTER)&scheme_params,&vst,&vflux,n);
-	    
-	    n = 0;
-	    for (i = seg_min; i <= seg_max; ++i)
-	    {
-	    	index = d_index1d(i,top_gmax);
-	    	m_flux->dens_flux[index] += vflux.dens_flux[n+nrad];
-	    	m_flux->engy_flux[index] += vflux.engy_flux[n+nrad];
-	    	m_flux->momn_flux[0][index] += 
-				vflux.momn_flux[0][n+nrad];
-	    	m_flux->momn_flux[1][index] = 0.0;
-	    	m_flux->momn_flux[2][index] = 0.0;
-		n++;
-	    }
-	    seg_min = seg_max + 1;
-	}
-	stop_clock("addFluxInDirection1d");
-}	/* end addFluxInDirection1d */
-
-void G_CARTESIAN::addFluxInDirection2d(
-	int dir,
-	SWEEP *m_vst,
-	FSWEEP *m_flux,
-	double delta_t)
-{
-	int i,j,n,index;
-	SCHEME_PARAMS scheme_params;
-	EOS_PARAMS	*eos;
-	static SWEEP vst;
-	static FSWEEP vflux;
-	static boolean first = YES;
-	COMPONENT comp;
-	int seg_min,seg_max;
-	static int icoords[MAXD];
-	
-	start_clock("addFluxInDirection2d");
-	if (first)
-	{
-	    first = NO;
-	    allocDirVstFlux(&vst,&vflux);
-	}
-
-	scheme_params.lambda = delta_t/top_h[dir];
-	scheme_params.beta = 0.0;
-	switch (dir)
-	{
-	case 0:
-	    for (j = imin[1]; j <= imax[1]; j++)
-	    {
-		seg_min = imin[0];
-		while (seg_min <= imax[0])
-		{
-		    for (; seg_min <= imax[0]; ++seg_min)
-		    {
-			i = seg_min;
-		    	index = d_index2d(i,j,top_gmax);
-		    	comp = top_comp[index];
-		    	if (gas_comp(comp)) break;
-		    }
-		    if (seg_min > imax[0]) break;
-		    for (i = 0; i <= top_gmax[0]; ++i)
-		    {
-		    	vst.dens[i] = 0.0; 
-		    	vst.pres[i] = 0.0; 
-		    	vst.engy[i] = 0.0; 
-		    	vst.momn[0][i] = vst.momn[1][i] = vst.momn[2][i] = 0.0;
-		    }
-		    i = seg_min;
-		    index = d_index2d(i,j,top_gmax);
-		    comp = top_comp[index];
-		    n = 0;
-		    vst.dens[n+nrad] = m_vst->dens[index];
-                    vst.engy[n+nrad] = m_vst->engy[index];
-                    vst.pres[n+nrad] = m_vst->pres[index];
-                    vst.momn[0][n+nrad] = m_vst->momn[0][index];
-                    vst.momn[1][n+nrad] = m_vst->momn[1][index];
-                    vst.momn[2][n+nrad] = 0.0;
-		    seg_max = i;
-		    n++;
-		    for (i = seg_min+1; i <= imax[0]; i++)
-		    {
-			index = d_index2d(i,j,top_gmax);
-			if (needBufferFromIntfc(comp,top_comp[index]))
-			    break;
-			else
-			{
-		    	    vst.dens[n+nrad] = m_vst->dens[index];
-		    	    vst.engy[n+nrad] = m_vst->engy[index];
-		    	    vst.pres[n+nrad] = m_vst->pres[index];
-		    	    vst.momn[0][n+nrad] = m_vst->momn[0][index];
-		    	    vst.momn[1][n+nrad] = m_vst->momn[1][index];
-		    	    vst.momn[2][n+nrad] = 0.0;
-			    n++;
-			}
-			seg_max = i;
-		    }
-		    icoords[1] = j;
-		    icoords[0] = seg_min;
-		    appendGhostBuffer(&vst,m_vst,n,icoords,0,0);
-		    icoords[0] = seg_max;
-		    appendGhostBuffer(&vst,m_vst,n,icoords,0,1);
-		    
-		    eos = &(eqn_params->eos[comp]);
-		    EosSetTVDParams(&scheme_params, eos);
-		    numericalFlux((POINTER)&scheme_params,&vst,&vflux,n);
-		    
-		    n = 0;
-		    for (i = seg_min; i <= seg_max; ++i)
-		    {
-		    	index = d_index2d(i,j,top_gmax);
-		    	m_flux->dens_flux[index] += vflux.dens_flux[n+nrad];
-		    	m_flux->engy_flux[index] += vflux.engy_flux[n+nrad];
-		    	m_flux->momn_flux[0][index] += 
-					vflux.momn_flux[0][n+nrad];
-		    	m_flux->momn_flux[1][index] += 
-					vflux.momn_flux[1][n+nrad];
-		    	m_flux->momn_flux[2][index] = 0.0;
-			n++;
-		    }
-		    seg_min = seg_max + 1;
-		}
-	    }
-	    break;
-	case 1:
-	    for (i = imin[0]; i <= imax[0]; i++)
-	    {
-		seg_min = imin[1];
-		while (seg_min <= imax[1])
-		{
-		    for (; seg_min <= imax[1]; ++seg_min)
-		    {
-			j = seg_min;
-		    	index = d_index2d(i,j,top_gmax);
-		    	comp = top_comp[index];
-		    	if (gas_comp(comp)) break;
-		    }
-		    if (seg_min > imax[1]) break;
-		    for (j = 0; j <= top_gmax[1]; ++j)
-		    {
-		    	vst.dens[j] = 0.0; 
-		    	vst.pres[j] = 0.0; 
-		    	vst.engy[j] = 0.0; 
-		    	vst.momn[0][j] = vst.momn[1][j] = vst.momn[2][j] = 0.0;
-		    }
-		    j = seg_min;
-		    index = d_index2d(i,j,top_gmax);
-		    comp = top_comp[index];
-		    n = 0;
-		    vst.dens[n+nrad] = m_vst->dens[index];
-                    vst.engy[n+nrad] = m_vst->engy[index];
-                    vst.pres[n+nrad] = m_vst->pres[index];
-                    vst.momn[0][n+nrad] = m_vst->momn[1][index];
-                    vst.momn[1][n+nrad] = m_vst->momn[0][index];
-                    vst.momn[2][n+nrad] = 0.0;
-		    seg_max = j;
-		    n++;
-		    for (j = seg_min+1; j <= imax[1]; j++)
-		    {
-			index = d_index2d(i,j,top_gmax);
-			if (needBufferFromIntfc(comp,top_comp[index]))
-			    break;
-			else
-			{
-		    	    vst.dens[n+nrad] = m_vst->dens[index];
-		    	    vst.engy[n+nrad] = m_vst->engy[index];
-		    	    vst.pres[n+nrad] = m_vst->pres[index];
-		    	    vst.momn[0][n+nrad] = m_vst->momn[1][index];
-		    	    vst.momn[1][n+nrad] = m_vst->momn[0][index];
-		    	    vst.momn[2][n+nrad] = 0.0;
-			    n++;
-			}
-			seg_max = j;
-		    }
-		    icoords[0] = i;
-		    icoords[1] = seg_min;
-		    appendGhostBuffer(&vst,m_vst,n,icoords,1,0);
-		    icoords[1] = seg_max;
-		    appendGhostBuffer(&vst,m_vst,n,icoords,1,1);
-		    
-		    eos = &(eqn_params->eos[comp]);
-		    EosSetTVDParams(&scheme_params, eos);
-		    numericalFlux((POINTER)&scheme_params,&vst,&vflux,n);
-		    
-		    n = 0;
-		    for (j = seg_min; j <= seg_max; ++j)
-		    {
-		    	index = d_index2d(i,j,top_gmax);
-		    	m_flux->dens_flux[index] += vflux.dens_flux[n+nrad];
-		    	m_flux->engy_flux[index] += vflux.engy_flux[n+nrad];
-		    	m_flux->momn_flux[1][index] += 
-					vflux.momn_flux[0][n+nrad];
-		    	m_flux->momn_flux[0][index] += 
-					vflux.momn_flux[1][n+nrad];
-		    	m_flux->momn_flux[2][index] = 0.0;
-			n++;
-		    }
-		    seg_min = seg_max + 1;
-		}
-	    }
-	    break;
-	}
-	stop_clock("addFluxInDirection2d");
-}	/* end addFluxInDirection2d */
-
-void G_CARTESIAN::addFluxInDirection3d(
-	int dir,
-	SWEEP *m_vst,
-	FSWEEP *m_flux,
-	double delta_t)
-{
-	int		i,j,k,n,index;
-	SCHEME_PARAMS	scheme_params;
-	EOS_PARAMS	*eos;
-	static SWEEP 	vst;
-	static FSWEEP 	vflux;
-	static boolean 	first = YES;
-	COMPONENT 	comp;
-	int 		seg_min,seg_max;
-	int 		icoords[3];
-	
-	start_clock("addFluxInDirection3d");
-	if (first)
-	{
-	    first = NO;
-	    allocDirVstFlux(&vst,&vflux);
-	}
-	
-	scheme_params.lambda = delta_t/top_h[dir];
-	scheme_params.beta = 0.0;
-	
-	switch (dir)
-	{
-	case 0:
-	    for (k = imin[2]; k <= imax[2]; k++)
-	    for (j = imin[1]; j <= imax[1]; j++)
-	    {
-		seg_min = imin[0];
-		while (seg_min <= imax[0])
-		{
-		    for (; seg_min <= imax[0]; ++seg_min)
-                    {
-                        i = seg_min;
-                        index = d_index3d(i,j,k,top_gmax);
-                        comp = top_comp[index];
-                        if (gas_comp(comp)) break;
-                    }
-                    if (seg_min > imax[0]) break;
-		    for (i = 0; i <= top_gmax[1]; ++i)
-		    {
-		    	vst.dens[i] = 0.0; 
-		    	vst.pres[i] = 0.0; 
-		    	vst.engy[i] = 0.0; 
-		    	vst.momn[0][i] = vst.momn[1][i] = vst.momn[2][i] = 0.0;
-		    }
-		    i = seg_min;
-		    index = d_index3d(i,j,k,top_gmax);
-		    comp = top_comp[index];
-		    n = 0;
-		    vst.dens[n+nrad] = m_vst->dens[index];
-                    vst.engy[n+nrad] = m_vst->engy[index];
-                    vst.pres[n+nrad] = m_vst->pres[index];
-                    vst.momn[0][n+nrad] = m_vst->momn[0][index];
-                    vst.momn[1][n+nrad] = m_vst->momn[1][index];
-                    vst.momn[2][n+nrad] = m_vst->momn[2][index];
-		    seg_max = i;
-		    n++;
-		    for (i = seg_min+1; i <= imax[0]; i++)
-		    {
-			index = d_index3d(i,j,k,top_gmax);
-			if (needBufferFromIntfc(comp,top_comp[index]))
-                            break;
-			else
-			{
-		    	    vst.dens[n+nrad] = m_vst->dens[index];
-		    	    vst.engy[n+nrad] = m_vst->engy[index];
-		    	    vst.pres[n+nrad] = m_vst->pres[index];
-		    	    vst.momn[0][n+nrad] = m_vst->momn[0][index];
-		    	    vst.momn[1][n+nrad] = m_vst->momn[1][index];
-		    	    vst.momn[2][n+nrad] = m_vst->momn[2][index];
-			    n++;
-			}
-			seg_max = i;
-		    }
-		    
-		    icoords[1] = j;
-		    icoords[2] = k;
-		    icoords[0] = seg_min;
-		    appendGhostBuffer(&vst,m_vst,n,icoords,0,0);
-		    icoords[0] = seg_max;
-		    appendGhostBuffer(&vst,m_vst,n,icoords,0,1);
-		    
-		    eos = &(eqn_params->eos[comp]);
-		    EosSetTVDParams(&scheme_params, eos);
-		    numericalFlux((POINTER)&scheme_params,&vst,&vflux,n);
-		    
-		    n = 0;
-		    for (i = seg_min; i <= seg_max; ++i)
-		    {
-		    	index = d_index3d(i,j,k,top_gmax);
-		    	m_flux->dens_flux[index] += vflux.dens_flux[n+nrad];
-		    	m_flux->engy_flux[index] += vflux.engy_flux[n+nrad];
-		    	m_flux->momn_flux[0][index] += 
-					vflux.momn_flux[0][n+nrad];
-		    	m_flux->momn_flux[1][index] += 
-					vflux.momn_flux[1][n+nrad];
-		    	m_flux->momn_flux[2][index] +=
-					vflux.momn_flux[2][n+nrad];
-			n++;
-		    }
-
-		    seg_min = seg_max + 1;
-		}
-	    }
-	    break;
-	case 1:
-	    for (k = imin[2]; k <= imax[2]; k++)
-	    for (i = imin[0]; i <= imax[0]; i++)
-	    {
-		seg_min = imin[1];
-		while (seg_min <= imax[1])
-		{
-		    for (; seg_min <= imax[1]; ++seg_min)
-                    {
-                        j = seg_min;
-                        index = d_index3d(i,j,k,top_gmax);
-                        comp = top_comp[index];
-                        if (gas_comp(comp)) break;
-                    }
-                    if (seg_min > imax[1]) break;
-		    for (j = 0; j <= top_gmax[1]; ++j)
-		    {
-		    	vst.dens[j] = 0.0; 
-		    	vst.pres[j] = 0.0; 
-		    	vst.engy[j] = 0.0; 
-		    	vst.momn[0][j] = vst.momn[1][j] = vst.momn[2][j] = 0.0;
-		    }
-		    j = seg_min;
-		    index = d_index3d(i,j,k,top_gmax);
-		    comp = top_comp[index];
-		    n = 0;
-		    vst.dens[n+nrad] = m_vst->dens[index];
-                    vst.engy[n+nrad] = m_vst->engy[index];
-                    vst.pres[n+nrad] = m_vst->pres[index];
-                    vst.momn[0][n+nrad] = m_vst->momn[1][index];
-                    vst.momn[1][n+nrad] = m_vst->momn[2][index];
-                    vst.momn[2][n+nrad] = m_vst->momn[0][index];
-		    seg_max = j;
-		    n++;
-		    
-		    for (j = seg_min+1; j <= imax[1]; j++)
-		    {
-			index = d_index3d(i,j,k,top_gmax);
-			if (needBufferFromIntfc(comp,top_comp[index]))
-			    break;
-			else
-			{
-		    	    vst.dens[n+nrad] = m_vst->dens[index];
-		    	    vst.engy[n+nrad] = m_vst->engy[index];
-		    	    vst.pres[n+nrad] = m_vst->pres[index];
-		    	    vst.momn[0][n+nrad] = m_vst->momn[1][index];
-		    	    vst.momn[1][n+nrad] = m_vst->momn[2][index];
-		    	    vst.momn[2][n+nrad] = m_vst->momn[0][index];
-			    n++;
-			}
-			seg_max = j;
-		    }
-		    icoords[0] = i;
-		    icoords[2] = k;
-		    icoords[1] = seg_min;
-		    appendGhostBuffer(&vst,m_vst,n,icoords,1,0);
-		    icoords[1] = seg_max;
-		    appendGhostBuffer(&vst,m_vst,n,icoords,1,1);
-		    
-		    eos = &(eqn_params->eos[comp]);
-		    EosSetTVDParams(&scheme_params, eos);
-		    numericalFlux((POINTER)&scheme_params,&vst,&vflux,n);
-		    
-		    n = 0;
-		    for (j = seg_min; j <= seg_max; ++j)
-		    {
-		    	index = d_index3d(i,j,k,top_gmax);
-		    	m_flux->dens_flux[index] += vflux.dens_flux[n+nrad];
-		    	m_flux->engy_flux[index] += vflux.engy_flux[n+nrad];
-		    	m_flux->momn_flux[1][index] += 
-					vflux.momn_flux[0][n+nrad];
-		    	m_flux->momn_flux[0][index] += 
-					vflux.momn_flux[2][n+nrad];
-		    	m_flux->momn_flux[2][index] += 
-					vflux.momn_flux[1][n+nrad];
-			n++;
-		    }
-		    seg_min = seg_max + 1;
-		}
-	    }
-	    break;
-	case 2:
-	    for (j = imin[1]; j <= imax[1]; j++)
-	    for (i = imin[0]; i <= imax[0]; i++)
-	    {
-		seg_min = imin[2];
-		while (seg_min <= imax[2])
-		{
-		    for (; seg_min <= imax[2]; ++seg_min)
-                    {
-                        k = seg_min;
-                        index = d_index3d(i,j,k,top_gmax);
-                        comp = top_comp[index];
-                        if (gas_comp(comp)) break;
-                    }
-                    if (seg_min > imax[2]) break;
-		    for (k = 0; k <= top_gmax[2]; ++k)
-		    {
-		    	vst.dens[k] = 0.0; 
-		    	vst.pres[k] = 0.0; 
-		    	vst.engy[k] = 0.0; 
-		    	vst.momn[0][k] = vst.momn[1][k] = vst.momn[2][k] = 0.0;
-		    }
-		    k = seg_min;
-		    index = d_index3d(i,j,k,top_gmax);
-		    comp = top_comp[index];
-		    n = 0;
-		    vst.dens[n+nrad] = m_vst->dens[index];
-                    vst.engy[n+nrad] = m_vst->engy[index];
-                    vst.pres[n+nrad] = m_vst->pres[index];
-                    vst.momn[0][n+nrad] = m_vst->momn[2][index];
-                    vst.momn[1][n+nrad] = m_vst->momn[0][index];
-                    vst.momn[2][n+nrad] = m_vst->momn[1][index];
-		    seg_max = k;
-		    n++;
-		    
-		    for (k = seg_min+1; k <= imax[2]; k++)
-		    {
-			index = d_index3d(i,j,k,top_gmax);
-			if (needBufferFromIntfc(comp,top_comp[index]))
-			    break;
-			else
-			{
-		    	    vst.dens[n+nrad] = m_vst->dens[index];
-		    	    vst.engy[n+nrad] = m_vst->engy[index];
-		    	    vst.pres[n+nrad] = m_vst->pres[index];
-		    	    vst.momn[0][n+nrad] = m_vst->momn[2][index];
-		    	    vst.momn[1][n+nrad] = m_vst->momn[0][index];
-		    	    vst.momn[2][n+nrad] = m_vst->momn[1][index];
-			    n++;
-			}
-			seg_max = k;
-		    }
-		    icoords[0] = i;
-		    icoords[1] = j;
-		    icoords[2] = seg_min;
-		    appendGhostBuffer(&vst,m_vst,n,icoords,2,0);
-		    icoords[2] = seg_max;
-		    appendGhostBuffer(&vst,m_vst,n,icoords,2,1);
-		    
-		    eos = &(eqn_params->eos[comp]);
-		    EosSetTVDParams(&scheme_params, eos);
-		    numericalFlux((POINTER)&scheme_params,&vst,&vflux,n);
-		    
-		    n = 0;
-		    for (k = seg_min; k <= seg_max; ++k)
-		    {
-		    	index = d_index3d(i,j,k,top_gmax);
-		    	m_flux->dens_flux[index] += vflux.dens_flux[n+nrad];
-		    	m_flux->engy_flux[index] += vflux.engy_flux[n+nrad];
-		    	m_flux->momn_flux[2][index] += 
-					vflux.momn_flux[0][n+nrad];
-		    	m_flux->momn_flux[0][index] += 
-					vflux.momn_flux[1][n+nrad];
-		    	m_flux->momn_flux[1][index] += 
-					vflux.momn_flux[2][n+nrad];
-			n++;
-		    }
-		    seg_min = seg_max + 1;
-		}
-	    }
-	    break;
-	}
-	stop_clock("addFluxInDirection3d");
-}
 
 void G_CARTESIAN::scatMeshFlux(FSWEEP *m_flux)
 {
@@ -5822,3 +5276,107 @@ bool G_CARTESIAN::withinStencilLen( int *icrds, int stencil )
 	}
 	return YES;
 }
+
+void G_CARTESIAN::addFluxAlongGridLine(
+	int idir,
+	int *grid_icoords,
+	double dt,
+	SWEEP *m_vst,
+        FSWEEP *m_flux)
+{
+	int i,l,n,index;
+	SCHEME_PARAMS scheme_params;
+	EOS_PARAMS	*eos;
+	static SWEEP vst;
+	static FSWEEP vflux;
+	static boolean first = YES;
+	COMPONENT comp;
+	int seg_min,seg_max;
+	static int icoords[MAXD];
+	
+	if (first)
+        {
+            first = NO;
+            allocDirVstFlux(&vst,&vflux);
+        }
+	scheme_params.lambda = dt/top_h[idir];
+        scheme_params.beta = 0.0;
+	for (i = 0; i < dim; ++i)
+	    icoords[i] = grid_icoords[i];
+	seg_min = imin[idir];
+	while (seg_min <= imax[idir])
+	{
+	    for (; seg_min <= imax[idir]; ++seg_min)
+	    {
+		icoords[idir] = seg_min;
+	    	index = d_index(icoords,top_gmax,dim);
+	    	comp = top_comp[index];
+	    	if (gas_comp(comp)) break;
+	    }
+	    if (seg_min > imax[idir]) break;
+	    for (i = 0; i <= top_gmax[idir]; ++i)
+	    {
+	    	vst.dens[i] = 0.0; 
+	    	vst.pres[i] = 0.0; 
+	    	vst.engy[i] = 0.0; 
+	    	vst.momn[0][i] = vst.momn[1][i] = vst.momn[2][i] = 0.0;
+	    }
+	    i = seg_min;
+	    icoords[idir] = i;
+	    index = d_index(icoords,top_gmax,dim);
+	    comp = top_comp[index];
+	    n = 0;
+	    vst.dens[n+nrad] = m_vst->dens[index];
+            vst.engy[n+nrad] = m_vst->engy[index];
+            vst.pres[n+nrad] = m_vst->pres[index];
+	    for (l = 0; l < dim; ++l)
+            	vst.momn[l][n+nrad] = m_vst->momn[(l+idir)%dim][index];
+	    for (l = dim; l < 3; ++l)
+            	vst.momn[l][n+nrad] = 0.0;
+	    seg_max = i;
+	    n++;
+	    for (i = seg_min+1; i <= imax[idir]; i++)
+	    {
+		icoords[idir] = i;
+		index = d_index(icoords,top_gmax,dim);
+		if (needBufferFromIntfc(comp,top_comp[index]))
+		    break;
+		else
+		{
+	    	    vst.dens[n+nrad] = m_vst->dens[index];
+	    	    vst.engy[n+nrad] = m_vst->engy[index];
+	    	    vst.pres[n+nrad] = m_vst->pres[index];
+		    for (l = 0; l < dim; ++l)
+	    	    	vst.momn[l][n+nrad] = m_vst->momn[(l+idir)%dim][index];
+		    for (l = dim; l < 3; ++l)
+	    	    	vst.momn[l][n+nrad] = 0.0;
+		    n++;
+		}
+		seg_max = i;
+	    }
+	    icoords[idir] = seg_min;
+	    appendGhostBuffer(&vst,m_vst,n,icoords,idir,0);
+	    icoords[idir] = seg_max;
+	    appendGhostBuffer(&vst,m_vst,n,icoords,idir,1);
+	    
+	    eos = &(eqn_params->eos[comp]);
+	    EosSetTVDParams(&scheme_params, eos);
+	    numericalFlux((POINTER)&scheme_params,&vst,&vflux,n);
+		    
+	    n = 0;
+	    for (i = seg_min; i <= seg_max; ++i)
+	    {
+		icoords[idir] = i;
+	    	index = d_index(icoords,top_gmax,dim);
+	    	m_flux->dens_flux[index] += vflux.dens_flux[n+nrad];
+	    	m_flux->engy_flux[index] += vflux.engy_flux[n+nrad];
+		for (l = 0; l < dim; ++l)
+	    	    m_flux->momn_flux[(l+idir)%dim][index] += 
+				vflux.momn_flux[l][n+nrad];
+		for (l = dim; l < 3; ++l)
+	    	    m_flux->momn_flux[l][index] = 0.0;
+		n++;
+	    }
+	    seg_min = seg_max + 1;
+	}
+}	/* end addFluxAlongGridLine */
