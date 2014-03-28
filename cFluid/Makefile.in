@@ -16,6 +16,9 @@ PETSC_DIR=@PETSC_DIR@
 
 Petsc_Include=@PETSC_INCLUDE@
 Petsc_Lib=@PETSC_LIB@
+
+USEGPU = @USEGPU@
+
 all: cFluid ../lib/libcF.a
 
 cFluid : @devel@
@@ -44,9 +47,23 @@ cFinit.o : cFluid.h cFinit.cpp
 cFeos.o : cFluid.h cFeos.cpp
 	${CXX} -c cFeos.cpp $(incsloc) $(incs) ${Petsc_Include}
 
-cFluid: cFluid.h cFluid.cpp cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o
+cFluid.o : cFluid.h cFluid.cpp
 	${CXX} -c cFluid.cpp -I../include $(incs) ${Petsc_Include}
+
+ifeq ($(USEGPU),no)
+
+cFluid: cFluid.h cFluid.o cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o
 	$(CXX) -o cFluid cFluid.o -g -I../include -L../lib/${build_cpu}  cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
+
+else
+
+cFweno_gpu.o: cFweno_gpu.cuh cFweno_gpu.cu
+	nvcc -arch sm_20 -c -I. -I../include cFweno_gpu.cu
+
+cFluid: cFluid.h cFweno_gpu.cuh cFluid.o cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o cFweno_gpu.o
+	$(CXX) -o cFluid cFluid.o -g -I../include -L../lib/${build_cpu}  cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o cFweno_gpu.o ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so
+
+endif
 
 ../lib/libcF.a: cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o
 	$(AR) cru libcF.a $<

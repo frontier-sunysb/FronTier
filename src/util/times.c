@@ -1,10 +1,11 @@
-/***************************************************************
-FronTier is a set of libraries that implements differnt types of 
-Front Traking algorithms. Front Tracking is a numerical method for 
-the solution of partial differential equations whose solutions have 
-discontinuities.  
+/************************************************************************************
+FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
+Front Tracking is a numerical method for the solution of partial differential equations 
+whose solutions have discontinuities.  
+
 
 Copyright (C) 1999 by The University at Stony Brook. 
+ 
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -18,8 +19,36 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-****************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+******************************************************************************/
+
+
+/************************************************************************************
+FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
+Front Tracking is a numerical method for the solution of partial differential equations 
+whose solutions have discontinuities.  
+
+
+Copyright (C) 1999 by The University at Stony Brook. 
+ 
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+******************************************************************************/
+
 
 /*		
 *			times.c
@@ -39,6 +68,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <time.h>
 #include <sys/times.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+
+struct clock {
+        char* name;
+        long totalTime;
+        long startTime;
+        struct clock* next;
+};
+
+static struct clock *clocks = NULL;
+static long wall_time();
+
 #if !defined(CLK_TCK)
 #define CLK_TCK sysconf(_SC_CLK_TCK)
 #endif /* !defined(CLK_TCK) */
@@ -51,8 +95,6 @@ LOCAL	void	print_rss_usage(void);
 LOCAL	int  MAX_TIMES = 0;	/* Length of cputime stack */
 LOCAL	double *cputime = NULL;	/* Stack for  Storing Recursive Times */
 LOCAL int  top = 0;			/* Pointer To top of Stack */
-
-
 
 EXPORT void print_execution_times(void)
 {
@@ -88,10 +130,6 @@ EXPORT void print_execution_times(void)
 	print_rss_usage();
 }		/*end print_execution_times*/
 
-
-
-
-
 EXPORT void start_clock(
 	const char	*s)
 {
@@ -126,7 +164,6 @@ EXPORT void start_clock(
 	top++;
 }		/*end start_clock*/
 
-
 EXPORT void stop_clock(
 	const char	*s)
 {
@@ -152,20 +189,53 @@ EXPORT void stop_clock(
 	}
 }		/*end stop_clock*/
 
-
-
-
-
-
-
 EXPORT void cpu_time(
 	const char	*s)
 {
 	(void) printf("TIME: %7.2f  at %s\n", cpu_seconds(), s);
 }		/*end cpu_time*/
 
+EXPORT void startClock(char* name) 
+{
+        struct clock *cp = clocks;
 
+        while (cp != NULL) {
+                if (strcmp(cp->name,name) == 0) {
+                        cp->startTime = wall_time();
+                        return;
+                }
+                cp = cp->next;
+        }
+        cp = (struct clock*)malloc(sizeof(struct clock));
+        cp->name = (char*) malloc(strlen(name)+1);
+        strcpy(cp->name,name);
+        cp->totalTime = 0;
+        cp->startTime = wall_time();
+        cp->next = clocks;
+        clocks = cp;
+        return;
+}
 
+EXPORT void stopClock(char* name) 
+{
+        struct clock *cp = clocks;
+        while (cp && strcmp(cp->name,name)) {
+                cp = cp->next;
+        }
+        if (cp && cp->startTime) {
+                cp->totalTime = (wall_time() - cp->startTime);
+                printf("%-20s %ld micros\n",cp->name,cp->totalTime);
+                cp->startTime = 0;
+        }
+}
+
+static long wall_time() 
+{
+        struct timeval tv;
+
+        gettimeofday(&tv,NULL);
+        return 1000000*(tv.tv_sec % (60*60*24*365)) + tv.tv_usec;
+}
 
 /*
 *				cpu_seconds():

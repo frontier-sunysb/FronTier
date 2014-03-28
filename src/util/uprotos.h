@@ -276,13 +276,15 @@ IMPORT	void	print_execution_times(void);
 IMPORT	void	start_clock(const char*);
 IMPORT	void	stop_clock(const char*);
 IMPORT	void	cpu_time(const char*);
-IMPORT	double	cpu_seconds(void);
-IMPORT	double	real_time(void);
 IMPORT	char	*date_string(void);
 IMPORT  void    add_time_start(int);
 IMPORT  void    add_time_end(int);
 IMPORT  void    add_time_clear(int);
-IMPORT  double   add_time_get(int);
+IMPORT  void    startClock(char*);
+IMPORT  void    stopClock(char*);
+IMPORT	double	cpu_seconds(void);
+IMPORT	double	real_time(void);
+IMPORT  double  add_time_get(int);
 
 /* uinit.c */
 IMPORT	void	init_prompting_and_debugging(INIT_DATA*);

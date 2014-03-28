@@ -22,6 +22,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ****************************************************************/
 
 #include <cFluid.h>
+#include <ctime>
+#include <time.h>
+
+#if defined(__GPU__)
+#include "cFweno_gpu.cuh"
+#endif
 
 static double weno5_scal(double *f);
 static void matmvec(double *b, double L[5][5], double *x);
@@ -59,7 +65,20 @@ extern void WENO_flux(
 	flux[4] = vflux->engy_flux;
 	ghost_size = 3;
 	extend_size = n + 2*ghost_size;
+
+#if defined(__GPU__)
+
+	startClock("Total_time_flux_gpu");
+
+	weno5_get_flux_gpu(scheme_params->gamma,scheme_params->lambda,extend_size,ghost_size,u_old,flux);
+
+	stopClock("Total_time_flux_gpu");
+
+#else
+
 	weno5_get_flux(params,extend_size,ghost_size,u_old,flux);
+
+#endif
 
 	for (i = ghost_size; i < n+ghost_size; ++i)
 	{
@@ -238,10 +257,10 @@ static void weno5_get_flux(
 		{
 		    (void) printf("In weno5_flux(): f[%d][%d] = %f\n",j,i,
 					f[j][i]);
-		    for (i = 0; i < extend_size; ++i)
-                        printf("u[%d] = %f %f %f %f %f\n",k,u_old[0][i],
-				u_old[1][i],u_old[2][i],u_old[3][i],
-				u_old[4][i]);
+		    for (k = 0; k < extend_size; ++k)
+                        printf("u[%d] = %f %f %f %f %f\n",k,u_old[0][k],
+				u_old[1][k],u_old[2][k],u_old[3][k],
+				u_old[4][k]);
                     clean_up(ERROR);
 		}
 	    }
