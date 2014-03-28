@@ -32,8 +32,8 @@ aftest.o : ../airfoil/airfoil.h ../airfoil/aftest.cpp
 	${CXX} -c ../airfoil/aftest.cpp $(incsloc) $(incs) ${Petsc_Include}
 afsetd.o : ../airfoil/airfoil.h ../airfoil/afsetd.cpp
 	${CXX} -c ../airfoil/afsetd.cpp $(incsloc) $(incs) ${Petsc_Include}
-afcnpy.o : ../airfoil/airfoil.h afcnpy.cpp
-	${CXX} -c afcnpy.cpp $(incsloc) $(incs) ${Petsc_Include}
+afcnpy.o : ../airfoil/airfoil.h ../airfoil/afcnpy.cpp
+	${CXX} -c ../airfoil/afcnpy.cpp $(incsloc) $(incs) ${Petsc_Include}
 spring.o : ../airfoil/airfoil.h spring.cpp
 	${CXX} -c spring.cpp $(incsloc) $(incs) ${Petsc_Include}
 modules.o : ../airfoil/airfoil.h modules.cpp

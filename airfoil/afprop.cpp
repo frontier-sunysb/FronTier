@@ -31,6 +31,8 @@ static void string_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
 static void mono_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
 static void gore_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
 static void gore_point_propagate(Front*,POINTER,POINT*,POINT*,BOND*,double);
+static void coating_mono_hyper_surf2d(Front*);
+static void coating_mono_hyper_surf3d(Front*);
 static	int arrayOfMonoHsbdry(INTERFACE*,CURVE**);
 static	int arrayOfGoreHsbdry(INTERFACE*,CURVE**);
 static 	int getGoreNodes(INTERFACE*,NODE**);
@@ -679,3 +681,244 @@ extern double springCharTimeStep(
             dt_tol = sqrt((af_params->m_g)/(af_params->kg));
 	return dt_tol;
 }	/* end springCharTimeStep */
+
+extern void coating_mono_hyper_surf(
+	Front *front)
+{
+	int dim = front->rect_grid->dim;
+	switch (dim)
+	{
+	case 2:
+	    coating_mono_hyper_surf2d(front);
+	    return;
+	case 3:
+	    coating_mono_hyper_surf3d(front);
+	    return;
+	}
+}	/* end coating_mono_hyper_surf */
+
+static void coating_mono_hyper_surf2d(
+	Front *front)
+{
+	INTERFACE *grid_intfc = front->grid_intfc;
+	RECT_GRID *top_grid = &topological_grid(grid_intfc);
+	struct Table *T = table_of_interface(grid_intfc);
+	COMPONENT *top_comp = T->components;
+        COMPONENT          comp;
+        INTERFACE          *intfc = front->interf;
+	double 		   *L = top_grid->L;
+	double 		   *h = top_grid->h;
+	double             coords[MAXD];
+        double             t[MAXD],p[MAXD],vec[MAXD];
+	const double 	   *nor;
+	CURVE **c,*immersed_curve;
+        HYPER_SURF_ELEMENT *hse;
+        HYPER_SURF         *hs;
+	BOND *b;
+	COMPONENT base_comp;
+	int i,index,nb,index_nb,*top_gmax = top_grid->gmax;
+	int dim = top_grid->dim;
+	int icoords[MAXD],icn[MAXD],smin[MAXD],smax[MAXD];
+	GRID_DIRECTION dir[4] = {WEST,EAST,SOUTH,NORTH};
+
+	if (debugging("trace"))
+	    (void) printf("Entering coating_mono_hyper_surf2d()\n");
+
+	immersed_curve = NULL;
+	for (c = grid_intfc->curves; c && *c; ++c)
+	{
+	    if (wave_type(*c) == ELASTIC_BOUNDARY)
+	    {
+		immersed_curve = *c;
+		comp = base_comp = negative_component(*c);
+		hs = Hyper_surf(immersed_curve);
+		break;
+	    }
+	}
+	if (immersed_curve == NULL)
+	{
+	    (void) printf("ERROR: In coating_mono_hyper_surf3d()"
+			 " no immersed_curve found!\n");
+	    clean_up(ERROR);
+	}
+
+	for (icoords[0] = 1; icoords[0] < top_gmax[0]; ++icoords[0])
+	for (icoords[1] = 1; icoords[1] < top_gmax[1]; ++icoords[1])
+	{
+	    index = d_index(icoords,top_gmax,dim);
+	    for (i = 0; i < dim; ++i)
+		coords[i] = L[i] + icoords[i]*h[i];
+	    if (nearest_interface_point_within_range(coords,comp,grid_intfc,
+			NO_BOUNDARIES,hs,p,t,&hse,&hs,3))
+	    {
+		if (wave_type(hs) != ELASTIC_BOUNDARY) continue;
+		b = Bond_of_hse(hse);
+	    	t[1] = Coords(b->start)[0] - Coords(b->end)[0]; // t is normal
+	    	t[0] = Coords(b->end)[1] - Coords(b->start)[1];
+	    	for (i = 0; i < dim; ++i)
+		    vec[i] = coords[i] - p[i];
+	    	if (scalar_product(vec,t,dim) > 0.0)
+		    top_comp[index] = base_comp + 1;
+	    	else
+		    top_comp[index] = base_comp - 1;
+	    }
+	}
+	negative_component(immersed_curve) = base_comp - 1;
+	positive_component(immersed_curve) = base_comp + 1;
+	if (debugging("coat_comp"))
+	{
+	    for (icoords[1] = 1; icoords[1] < top_gmax[1]; ++icoords[1])
+	    {
+	    	for (icoords[0] = 1; icoords[0] < top_gmax[0]; ++icoords[0])
+	    	{
+		    index = d_index(icoords,top_gmax,dim);
+		    (void) printf("%d",top_comp[index]);
+	    	}
+	    	(void) printf("\n");
+	    }
+	}
+	if (debugging("trace"))
+	    (void) printf("Leaving coating_mono_hyper_surf2d()\n");
+}	/* end coating_mono_hyper_surf2d */
+
+static void coating_mono_hyper_surf3d(
+	Front *front)
+{
+	INTERFACE *grid_intfc = front->grid_intfc;
+	RECT_GRID *top_grid = &topological_grid(grid_intfc);
+	struct Table *T = table_of_interface(grid_intfc);
+	COMPONENT *top_comp = T->components;
+        COMPONENT          comp;
+        INTERFACE          *intfc = front->interf;
+	double 		   *L = top_grid->L;
+	double 		   *h = top_grid->h;
+	double             coords[MAXD];
+        double             t[MAXD],p[MAXD],vec[MAXD];
+	const double 	   *nor;
+	SURFACE **s,*immersed_surf;
+        HYPER_SURF_ELEMENT *hse;
+        HYPER_SURF         *hs;
+	COMPONENT base_comp;
+	int i,index,nb,index_nb,*top_gmax = top_grid->gmax;
+	int dim = top_grid->dim;
+	int icoords[MAXD],icn[MAXD],smin[MAXD],smax[MAXD];
+	GRID_DIRECTION dir[6] = {WEST,EAST,SOUTH,NORTH,LOWER,UPPER};
+
+	if (debugging("trace"))
+	    (void) printf("Entering coating_mono_hyper_surf3d()\n");
+	immersed_surf = NULL;
+	for (s = grid_intfc->surfaces; s && *s; ++s)
+	{
+	    if (wave_type(*s) == ELASTIC_BOUNDARY)
+	    {
+		immersed_surf = *s;
+		hs = Hyper_surf(*s);
+		comp = base_comp = negative_component(*s);
+		break;
+	    }
+	}
+	if (immersed_surf == NULL)
+	{
+	    (void) printf("ERROR: In coating_mono_hyper_surf3d()"
+			 " No immersed_surf found!\n");
+	    clean_up(ERROR);
+	}
+
+	for (icoords[0] = 1; icoords[0] < top_gmax[0]; ++icoords[0])
+	for (icoords[1] = 1; icoords[1] < top_gmax[1]; ++icoords[1])
+	for (icoords[2] = 1; icoords[2] < top_gmax[2]; ++icoords[2])
+	{
+	    index = d_index(icoords,top_gmax,dim);
+	    for (i = 0; i < dim; ++i)
+		coords[i] = L[i] + icoords[i]*h[i];
+	    if (nearest_interface_point_within_range(coords,comp,grid_intfc,
+			NO_BOUNDARIES,hs,p,t,&hse,&hs,3))
+	    {
+	    	nor = Tri_normal(Tri_of_hse(hse));
+	    	for (i = 0; i < dim; ++i)
+		    vec[i] = coords[i] - p[i];
+	    	if (scalar_product(vec,nor,dim) > 0.0)
+		    top_comp[index] = base_comp + 1;
+	    	else
+		    top_comp[index] = base_comp - 1;
+	    }
+	}
+	negative_component(immersed_surf) = base_comp - 1;
+	positive_component(immersed_surf) = base_comp + 1;
+	if (debugging("coat_comp"))
+	{
+	    icoords[0] = top_gmax[0]/2;
+	    for (icoords[2] = 0; icoords[2] <= top_gmax[2]; ++icoords[2])
+	    {
+	    	for (icoords[1] = 0; icoords[1] <= top_gmax[1]; ++icoords[1])
+	    	{
+		    index = d_index(icoords,top_gmax,dim);
+		    printf("%d",top_comp[index]);
+	    	}
+	    	printf("\n");
+	    }
+	}
+	if (debugging("immersed_surf") && front->step%1 == 0)
+	{
+	    int icrd_nb[MAXD],index_nb,n;
+	    POINTER l_state,u_state;
+	    double crx_coords[MAXD],crx_nb[MAXD];
+	    static double *pl,*pu,*vz,*x;
+	    FILE *pfile;
+	    char pname[200];
+
+	    n = 0;
+	    if (pu == NULL)
+	    {
+	    	FT_VectorMemoryAlloc((POINTER*)&pu,top_gmax[1],sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&pl,top_gmax[1],sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&vz,top_gmax[1],sizeof(double));
+	    	FT_VectorMemoryAlloc((POINTER*)&x,top_gmax[1],sizeof(double));
+	    }
+	    icrd_nb[0] = icoords[0] = top_gmax[0]/2;
+	    for (icoords[1] = 0; icoords[1] <= top_gmax[1]; ++icoords[1])
+	    {
+	    	icrd_nb[1] = icoords[1];
+	        for (icoords[2] = 2; icoords[2] < top_gmax[2]-1; ++icoords[2])
+		{
+		    index = d_index(icoords,top_gmax,dim);
+	    	    icrd_nb[2] = icoords[2] + 1;
+		    index_nb = d_index(icrd_nb,top_gmax,dim);
+		    if (top_comp[index] != top_comp[index_nb] &&
+			FT_StateStructAtGridCrossing(front,grid_intfc,icoords,
+                                UPPER,top_comp[index],&l_state,&hs,crx_coords)
+                        &&
+                        FT_StateStructAtGridCrossing(front,grid_intfc,icrd_nb,
+                                LOWER,top_comp[index_nb],&u_state,&hs,
+                                crx_coords))
+		    {
+			pl[n] = getStatePres(l_state);
+			pu[n] = getStatePres(u_state);
+			vz[n] = getStateZvel(l_state);
+			x[n] = crx_coords[1];
+			n++;
+		    }
+		}
+	    }
+	    sprintf(pname,"cpres-%d.xg",front->step);
+	    pfile = fopen(pname,"w");
+	    fprintf(pfile,"\"Lower pressure\"\n");
+	    for (i = 0; i < n; ++i)
+		fprintf(pfile,"%f %f\n",x[i],pl[i]);
+	    fprintf(pfile,"\n\n\"Upper pressure\"\n");
+	    for (i = 0; i < n; ++i)
+		fprintf(pfile,"%f %f\n",x[i],pu[i]);
+	    fprintf(pfile,"\n\n\"Pressure difference\"\n");
+	    for (i = 0; i < n; ++i)
+		fprintf(pfile,"%f %f\n",x[i],pl[i]-pu[i]);
+	    fclose(pfile);
+	    sprintf(pname,"cvelz-%d.xg",front->step);
+	    pfile = fopen(pname,"w");
+	    fprintf(pfile,"\"Z-velocity\"\n");
+	    for (i = 0; i < n; ++i)
+		fprintf(pfile,"%f %f\n",x[i],vz[i]);
+	    fclose(pfile);
+	}
+	if (debugging("trace"))
+	    (void) printf("Leaving coating_mono_hyper_surf3d()\n");
+}	/* end coating_mono_hyper_surf3d */

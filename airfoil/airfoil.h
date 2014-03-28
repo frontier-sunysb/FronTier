@@ -251,6 +251,7 @@ extern void ifluid_point_propagate(Front*,POINTER,POINT*,POINT*,
                         HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 extern void fourth_order_elastic_set_propagate(Front*,double);
 extern void airfoil_curve_propagate(Front*,POINTER,CURVE*,CURVE*,double);
+extern void coating_mono_hyper_surf(Front*);
 extern  int numOfGoreHsbdry(INTERFACE*);
 extern  int numOfMonoHsbdry(INTERFACE*);
 extern  int numOfGoreNodes(INTERFACE*);
@@ -277,7 +278,6 @@ extern void legacy_fourth_order_elastic_curve_propagate(Front*,Front*,
 extern void legacy_fourth_order_elastic_surf_propagate(Front*,double);
 
 // afcnpy.cpp
-extern void coating_mono_hyper_surf(Front*);
 extern void compute_total_canopy_force(Front*,double*,double*);
 extern int airfoil_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
                                 double*);
@@ -325,7 +325,7 @@ extern void set_canopy_spring_vertex(PARACHUTE_SET*,double**,double**,
 extern void set_string_spring_vertex(PARACHUTE_SET*,double**,double**,
 				SPRING_VERTEX*);
 extern void set_spring_vertex_memory(SPRING_VERTEX*,int);
-extern void compute_spring_accel1(SPRING_VERTEX,double*,int);
+extern void compute_spring_accel1(SPRING_VERTEX*,double*,int);
 extern void generic_spring_solver(SPRING_VERTEX*,double**,double**,int,int,int,
 				double);
 extern void set_surf_impulse(PARACHUTE_SET*,SURFACE*,SPRING_VERTEX*,int*);
