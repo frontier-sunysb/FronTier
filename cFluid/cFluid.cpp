@@ -120,9 +120,10 @@ int main(int argc, char **argv)
 	    	FT_ClipIntfcToSubdomain(&front);
 	    FT_RedistMesh(&front);
 	    if (debugging("trace"))
+                (void) printf("Passed FT_InitIntfc()\n");
+	    if (debugging("init_intfc"))
 	    {
                 char test_name[100];
-                (void) printf("Passed FT_InitIntfc()\n");
                 switch (f_basic.dim)
                 {
                 case 2:
