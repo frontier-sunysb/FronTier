@@ -3859,9 +3859,9 @@ EXPORT	int count_grid_intfc_crossings3d(
 {
 	RECT_GRID	*rgr = &topological_grid(grid_intfc);
 	struct Table	*T = table_of_interface(grid_intfc);
-	TRI		*****tz, ****tzy, ***tzyx;
+	TRI		**t;
 	int		i,j,k;
-	int		***ntz, **ntzy, *ntzyx;
+	int		nt;
 	int		icrds[MAXD];
 	int		n_crx = 0;
 	int             xmax, ymax, zmax;
@@ -3876,22 +3876,15 @@ EXPORT	int count_grid_intfc_crossings3d(
 	ymax = rgr->gmax[1];
 	zmax = rgr->gmax[2];
 
-	for (k = 0, ntz = T->num_of_tris, tz = T->tris;
-						k < zmax; ++k, ++ntz, ++tz)
+	for (k = 0; k < zmax; ++k)
+	for (j = 0; j < ymax; ++j)
+	for (i = 0; i < xmax; ++i)
 	{
-	    for (j = 0, ntzy = *ntz, tzy = *tz;
-						j < ymax; ++j, ++ntzy, ++tzy)
-	    {
-		for (i = 0, ntzyx = *ntzy, tzyx = *tzy;
-						i < xmax; ++i, ++ntzyx, ++tzyx)
-		{
-		    if (*ntzyx == 0)
-			continue;
-		    icrds[0] = i; icrds[1] = j; icrds[2] = k;
-		    n_crx += count_block_crossings(rgr,seg_crx_count,*tzyx,
-				    		*ntzyx,icrds);
-		}
-	    }
+	    nt = T->num_of_tris[k][j][i];
+	    if (nt == 0) continue;
+	    t = T->tris[k][j][i];
+	    icrds[0] = i; icrds[1] = j; icrds[2] = k;
+	    n_crx += count_block_crossings(rgr,seg_crx_count,t,nt,icrds);
 	}
 	DEBUG_LEAVE(count_grid_crossings3d)
 	return n_crx;

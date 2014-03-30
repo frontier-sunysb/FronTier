@@ -2879,9 +2879,11 @@ void G_CARTESIAN::copyFromMeshVst(
 	//GFM
 	if(eqn_params->tracked)
 	{
+	    start_clock("get_ghost_state");
 	    get_ghost_state(m_vst, 2, 0);
 	    get_ghost_state(m_vst, 3, 1);
 	    scatMeshGhost();
+	    stop_clock("get_ghost_state");
 	}
 
 	state.dim = dim;
@@ -4408,10 +4410,12 @@ void G_CARTESIAN::tecplot_interior_states(
 					gnor[2][index]);
 			    fprintf(fp, "%12.5e %12.5e   %12.5e %12.5e %12.5e ",
 			    		Gdens[0][index], Gpres[0][index],
-					Gvel[0][0][index], Gvel[0][1][index], Gvel[0][2][index]);
+					Gvel[0][0][index], Gvel[0][1][index], 
+					Gvel[0][2][index]);
 			    fprintf(fp, "%12.5e %12.5e   %12.5e %12.5e %12.5e ",
 			    		Gdens[1][index], Gpres[1][index],
-					Gvel[1][0][index], Gvel[1][1][index], Gvel[1][2][index]);
+					Gvel[1][0][index], Gvel[1][1][index], 
+					Gvel[1][2][index]);
 			}
 			fprintf(fp, "\n");
 		  }
@@ -4440,8 +4444,8 @@ EXPORT  void    tecplot_surface_states(
 		return;
 	    }
 	    (void) fprintf(file,"TITLE = \"tecplot surface\"\n"
-		   	    "VARIABLES = \"x\", \"y\", \"z\", \"PL\", \"PR\", \"DL\", \"DR\" "
-			    "\"u\", \"v\", \"w\", \"u1\", \"v1\", \"w1\" \n");
+	 		"VARIABLES = \"x\", \"y\", \"z\", \"PL\", \"PR\", \"DL\", \"DR\" "
+			"\"u\", \"v\", \"w\", \"u1\", \"v1\", \"w1\" \n");
 	}
 	
 	//called from tecplot_interface
@@ -4457,14 +4461,16 @@ EXPORT  void    tecplot_surface_states(
 	}
 
 	//count number of points(npts) and number of tris(ntri)
-	for (tri=first_tri(s),ntri=0; !at_end_of_tri_list(tri,s); tri=tri->next,ntri++)
+	for (tri = first_tri(s), ntri = 0; !at_end_of_tri_list(tri,s); 
+			tri = tri->next, ntri++)
 	{
 	    for (i = 0; i < 3; i++)
 	    {
 		Index_of_point(Point_of_tri(tri)[i]) = -1;
 	    }
 	}
-	for (tri=first_tri(s),npts=0; !at_end_of_tri_list(tri,s); tri=tri->next)
+	for (tri = first_tri(s), npts = 0; !at_end_of_tri_list(tri,s); 
+			tri = tri->next)
 	{
 	    for (i = 0; i < 3; i++)
 	    {
@@ -4487,7 +4493,8 @@ EXPORT  void    tecplot_surface_states(
 		Index_of_point(Point_of_tri(tri)[i]) = -1;
 	    }
 	}
-	for (tri=first_tri(s),npts=0; !at_end_of_tri_list(tri,s); tri=tri->next)
+	for (tri = first_tri(s), npts = 0; !at_end_of_tri_list(tri,s); 
+			tri = tri->next)
 	{
 	    for (i = 0; i < 3; i++)
 	    {
@@ -4496,18 +4503,9 @@ EXPORT  void    tecplot_surface_states(
 		{
 		    Index_of_point(p) = ++npts;
 		    
-		    FT_GetStatesAtPoint(p,Hyper_surf_element(tri),Hyper_surf(s),&sl,&sr);
-		    //sl = is_obstacle_state(sl) ? sr : sl;
-		    //sr = is_obstacle_state(sr) ? sl : sr;
-	     	   
-		    //if(NO && wave_type(s) != PASSIVE_BOUNDARY)
-		    //  fprintf(file,"%15.8e %15.8e %15.8e  %15.8e %15.8e %15.8e %15.8e %15.8e %15.8e %15.8e %15.8e %15.8e %15.8e\n",Coords(p)[0],
-		    //	   Coords(p)[1],Coords(p)[2], pressure(sl), pressure(sr), density(sl), density(sr), 
-			//   vel(0,sl), vel(1,sl), vel(2,sl), vel(0,sr), vel(1,sr), vel(2,sr));
-		        //fprintf(file,"%15.8e %15.8e %15.8e   %15.8e %15.8e %15.8e\n",Coords(p)[0],
-		    	//   Coords(p)[1],Coords(p)[2], vel(0,sr), vel(1,sr), vel(2,sr));
-		    //else
-		        fprintf(file,"%15.8e %15.8e %15.8e  %15.8e %15.8e %15.8e %15.8e %15.8e %15.8e %15.8e %15.8e %15.8e %15.8e\n",Coords(p)[0],
+		    FT_GetStatesAtPoint(p,Hyper_surf_element(tri),
+				Hyper_surf(s),&sl,&sr);
+	            fprintf(file,"%15.8e %15.8e %15.8e  %15.8e %15.8e %15.8e %15.8e %15.8e %15.8e %15.8e %15.8e %15.8e %15.8e\n",Coords(p)[0],
 		    	 Coords(p)[1],Coords(p)[2], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 		}
 	    }
@@ -4549,8 +4547,8 @@ EXPORT  void    tecplot_interface_states(
 	    return;
 	}
 	(void) fprintf(file,"TITLE = \"tecplot interface\"\n"
-		   	    "VARIABLES = \"x\", \"y\", \"z\", \"PL\", \"PR\", \"DL\", \"DR\" "
-			    "\"u\", \"v\", \"w\", \"u1\", \"v1\", \"w1\" \n");
+	    "VARIABLES = \"x\", \"y\", \"z\", \"PL\", \"PR\", \"DL\", \"DR\" "
+	    "\"u\", \"v\", \"w\", \"u1\", \"v1\", \"w1\" \n");
 
 	for (s = intfc->surfaces; s && *s; ++s)
 	{
@@ -4645,86 +4643,6 @@ boolean G_CARTESIAN::get_ave_state(
 
 	return YES;
 }
-
-/*
-void G_CARTESIAN::get_ghost_state(
-	SWEEP 		m_vst,
-	int		comp,
-	int		ind)
-{
-	int			i,j,k,l;
-	int			ic[3],index;
-	int			c, num;
-	boolean			found;
-	double			**momn = m_vst.momn;
-	double			*dens = m_vst.dens;
-	double			*pres = m_vst.pres;
-	double			***Gvel = eqn_params->Gvel;
-	double			**Gdens = eqn_params->Gdens;
-	double			**Gpres = eqn_params->Gpres;
-	static	int		***norset;
-
-
-	if (norset == NULL)
-	    FT_TriArrayMemoryAlloc((POINTER*)&norset,top_gmax[0]+1,
-				top_gmax[1]+1,top_gmax[2]+1, INT);
-	
-	for (i = 0; i <= top_gmax[0]; i++)
-	for (j = 0; j <= top_gmax[1]; j++)
-	for (k = 0; k <= top_gmax[2]; k++)
-	{
-	    ic[0] = i;
-	    ic[1] = j;
-	    ic[2] = k;
-	    index = d_index(ic,top_gmax,dim);
-	    c = cell_center[index].comp;
-		    
-	    if(c == comp)
-	    {
-		norset[i][j][k] = 1;
-		Gdens[ind][index] = dens[index];
-		Gpres[ind][index] = pres[index];
-		for (l = 0; l < dim; ++l)
-		    Gvel[ind][l][index] = momn[l][index]/dens[index];
-	    }
-	    else
-		norset[i][j][k] = 0;
-	}
-
-	found = YES;
-	num = 1;
-	while(found && num > 0)
-	{
-	    found = NO;
-
-	    num = 0;
-	    for (i = 0; i <= top_gmax[0]; i++)
-	    for (j = 0; j <= top_gmax[1]; j++)
-	    for (k = 0; k <= top_gmax[2]; k++)
-	    {
-		if (norset[i][j][k] != 0)
-		    continue;
-
-		found = YES;
-		ic[0] = i;
-		ic[1] = j;
-		ic[2] = k;
-
-		if (get_ave_state(m_vst,ic,norset,comp,ind))
-		{
-		    num++;
-		    norset[i][j][k] = 2;
-		}
-	    }
-
-	    for (i = 0; i <= top_gmax[0]; i++)
-	    for (j = 0; j <= top_gmax[1]; j++)
-	    for (k = 0; k <= top_gmax[2]; k++)
-		if(norset[i][j][k] == 2)
-		    norset[i][j][k] = 1;
-	}
-}
-*/
 
 void G_CARTESIAN::get_ghost_state(
 	SWEEP 		m_vst,
@@ -4835,7 +4753,9 @@ void G_CARTESIAN::get_ghost_state(
 		    aghst.icoords[1] = ic[1];
 		    aghst.icoords[2] = ic[2]; 
 		    resetThese.push_back(aghst);
-		    it=fillThese.erase(it);// erase returns the next valid entery after the one we just erased.
+		    // erase returns the next valid entery 
+		    // after the one we just erased.
+		    it=fillThese.erase(it);
 		}
 		else
 		{

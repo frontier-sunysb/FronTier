@@ -2465,15 +2465,17 @@ EXPORT	boolean FrontGetPointChain(
 EXPORT void FrontPreAdvance(
 	Front *front)
 {
+	start_clock("FrontPreAdvance");
 	switch (front->rect_grid->dim)
 	{
 	case 2:
 	    FrontPreAdvance2d(front);
-	    return;
+	    break;
 	case 3:
 	    FrontPreAdvance3d(front);
-	    return;
+	    break;
 	}
+	stop_clock("FrontPreAdvance");
 }	/* end FrontPreAdvance */
 
 LOCAL void FrontPreAdvance2d(

@@ -251,6 +251,7 @@ static  void gas_driver(
 	
             /* Output section */
 
+	    start_clock("output");
             if (FT_IsSaveTime(front))
 	    {
             	FT_Save(front,out_name);
@@ -265,9 +266,11 @@ static  void gas_driver(
 	    {
             	FT_AddMovieFrame(front,out_name,binary);
 	    }
+	    stop_clock("output");
 
             if (FT_TimeLimitReached(front))
 	    {
+	    	start_clock("exit-output");
 		if (!FT_IsSaveTime(front))
 		{
             	    FT_Save(front,out_name);
@@ -280,6 +283,7 @@ static  void gas_driver(
 		(void) printf("\ntime = %20.14f   step = %5d   ",
                                 front->time,front->step);
                 (void) printf("next dt = %20.14f\n",front->dt);
+	    	stop_clock("exit-output");
 	    	stop_clock("time_loop");
                 break;
 	    }
