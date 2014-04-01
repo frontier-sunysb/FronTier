@@ -27,7 +27,7 @@ Projection type can be
         PEROT_BOTELLA
 Enter projection type: SIMPLE
 Enter the center of the rectangle: 0.5 3.0
-Enter lengths of the rectangle: 0.1999999 0.1999999
+Enter lengths of the rectangle: 0.2025 0.2025
 Enter density and viscosity of the fluid: 0.1 0.0628
 Enter gravity: 0.0 0.0
 Enter surface tension: 0.0

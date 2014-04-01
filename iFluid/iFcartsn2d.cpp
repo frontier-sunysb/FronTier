@@ -1196,30 +1196,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionDual(void)
 	setDualGlobalIndex();
 	setDualIndexMap();
 
-	/*temporarily fixed the component*/
-	for (j = jmin+1; j <= jmax-1; j++)
-        for (i = imin+1; i <= imax-1; i++)
-        {
-	    int count = 0;
-	    for (int m = 0; m <2; ++m)
-	    {
-		index = d_index2d(i+pow(-1,m),j,top_gmax);
-		if (!ifluid_comp(top_comp[index]))
-                    count++;
-	    }
-	    for (int m = 0; m <2; ++m)
-            {
-                index = d_index2d(i,j+pow(-1,m),top_gmax);
-                if (!ifluid_comp(top_comp[index]))
-                    count++;
-            }
-	    index  = d_index2d(i,j,top_gmax);
-	    if (count > 1 && ifluid_comp(top_comp[index]))
-		top_comp[index] = SOLID_COMP;	
-	    if (top_comp[index] == SOLID_COMP && count < 4)
-		field->rho[index] = field->rho[d_index2d(imin,jmin,top_gmax)];
-        }
-	
 	sum_div = 0.0;
 	max_value = 0.0;
 
