@@ -700,7 +700,7 @@ void Incompress_Solver_Smooth_Basis::readFrontInteriorStates(char *restart_name)
 {
 	FILE *infile;
 	int i,j,k,l,index;
-	char fname[400];
+	char fname[200];
 	double **vel = field->vel;
 
 
@@ -2512,7 +2512,6 @@ void Incompress_Solver_Smooth_Basis::checkVelocityDiv(
 	double div_min =  HUGE;
 	int i,j,k,l,index;
 	int icoords[MAXD];
-	
 	switch (dim)
 	{
 	case 2:
@@ -2524,6 +2523,7 @@ void Incompress_Solver_Smooth_Basis::checkVelocityDiv(
 		index = d_index2d(i,j,top_gmax);
 		if (!ifluid_comp(top_comp[index]))
 		    continue;
+
 		div_tmp = computeFieldPointDiv(icoords,vel);
 		if (div_max < div_tmp) div_max = div_tmp;
                 if (div_min > div_tmp) div_min = div_tmp;
@@ -2856,7 +2856,16 @@ void Incompress_Solver_Smooth_Basis::computeDualFieldPointGrad(
 		    dual_compu = ctop_comp[index_u];
 		    dual_compl = ctop_comp[index_l];
 		    if (dual_compu != comp && dual_compl != comp)
-			continue;
+		    {
+			if (ifluid_comp(dual_compu) && ifluid_comp(dual_compl))
+			{
+			    pu += field[index_u];
+			    pl += field[index_l];
+			    denom += 1.0;
+		    	}
+			else
+			    continue;
+		    }
 		    else if (dual_compl != comp)
 		    {
 			status = (*findStateAtCGCrossing)(front,dual_icu,
@@ -2875,6 +2884,7 @@ void Incompress_Solver_Smooth_Basis::computeDualFieldPointGrad(
 			}
 			else if (status == CONST_V_PDE_BOUNDARY)
                     	{
+			    denom += 1.0;
 			    continue;		// Do nothing
 			}
 		    }
@@ -2896,6 +2906,7 @@ void Incompress_Solver_Smooth_Basis::computeDualFieldPointGrad(
 			}
 			else if (status == CONST_V_PDE_BOUNDARY)
                     	{
+			    denom += 1.0;
 			    continue;		// Do nothing
 			}
 		    }
@@ -2906,7 +2917,8 @@ void Incompress_Solver_Smooth_Basis::computeDualFieldPointGrad(
 		    	denom += 1.0;
 		    }
 	    	}
-		grad_field[i] = (denom == 0.0) ? 0.0 : (pu - pl)/top_h[i]/denom;
+		grad_field[i] = (denom == 0.0) ? 0.0 : 
+				(pu - pl)/top_h[i]/denom;
 	    }
 	    break;
 	case 3:
@@ -3173,7 +3185,6 @@ double Incompress_Solver_Smooth_Basis::computeDualFieldPointDiv(
 	{
 	    ic[i] = icoords[i] - 1 + offset[i];
 	}
-
 	div = 0.0;
 	for (i = 0; i < dim; ++i)
         {

@@ -396,7 +396,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocityDual(void)
 	if (V == NULL)
             FT_MatrixMemoryAlloc((POINTER*)&V,2,(top_gmax[0]+1)*(top_gmax[1]+1),
                 			sizeof(double));
-
 	max_speed = 0.0;
         for (i = 0; i < dim; ++i)
         {
@@ -418,14 +417,59 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocityDual(void)
 	    icoords[1] = j;
             index = d_index(icoords,top_gmax,dim);
             comp = top_comp[index];
-            if (!ifluid_comp(comp))
-            {
-                vel[0][index] = 0.0;
-                vel[1][index] = 0.0;
-                continue;
-            }
+
 	    rho = field->rho[index];
 	    computeDualFieldPointGrad(icoords,d_phi,grad_phi);
+	    if (!ifluid_comp(comp))
+	    {
+	    	int index1,index2,index3,index4;
+	    	index1 = d_index2d(i-1,j,top_gmax);
+	    	index2 = d_index2d(i+1,j,top_gmax);
+	    	index3 = d_index2d(i,j-1,top_gmax);
+	    	index4 = d_index2d(i,j+1,top_gmax);
+		if (!ifluid_comp(top_comp[index1])&&
+		    !ifluid_comp(top_comp[index2])&&
+		    !ifluid_comp(top_comp[index3])&&
+		    !ifluid_comp(top_comp[index4]))
+		{
+		    vel[0][index] = 0.0;
+                    vel[1][index] = 0.0;
+		}
+		else if (!(ifluid_comp(top_comp[index1]))&&
+                        !(ifluid_comp(top_comp[index2])))
+		{
+		    if (ifluid_comp(top_comp[index3]))
+		    	vel[0][index] = (V[0][index]+V[0][index3])/2.0 -
+				accum_dt/rho*grad_phi[0];
+		    else
+			vel[0][index] = (V[0][index]+V[0][index4])/2.0 -
+                                accum_dt/rho*grad_phi[0];
+
+		    vel[1][index] = (V[1][index1]+V[1][index2] +
+                        2*V[1][index])/4.0 - accum_dt/rho*grad_phi[1]; 
+		}
+		else if (!(ifluid_comp(top_comp[index3]))&&
+                        !(ifluid_comp(top_comp[index4])))
+		{
+		    vel[0][index] = 0.0;
+		    vel[0][index] = (V[0][index3]+V[0][index4]+
+                        2*V[0][index])/4.0 - accum_dt/rho*grad_phi[0];
+		    if (ifluid_comp(top_comp[index2]))
+			vel[1][index] = (V[1][index]+V[1][index2])/2.0 -
+				accum_dt/rho*grad_phi[1];
+		    else
+			vel[1][index] = (V[1][index]+V[1][index1])/2.0 -
+                                accum_dt/rho*grad_phi[1];
+		} else
+		{
+		    vel[0][index] = (V[0][index3]+V[0][index4]+
+                        2*V[0][index])/4.0 - accum_dt/rho*grad_phi[0];
+		    vel[1][index] = (V[1][index1]+V[1][index2] +
+                        2*V[1][index])/4.0 - accum_dt/rho*grad_phi[1];
+		}
+		continue;
+	    }
+
 	    speed = 0.0;
 	    double denom;
 	    for (l = 0; l < dim; ++l)
@@ -1152,6 +1196,30 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionDual(void)
 	setDualGlobalIndex();
 	setDualIndexMap();
 
+	/*temporarily fixed the component*/
+	for (j = jmin+1; j <= jmax-1; j++)
+        for (i = imin+1; i <= imax-1; i++)
+        {
+	    int count = 0;
+	    for (int m = 0; m <2; ++m)
+	    {
+		index = d_index2d(i+pow(-1,m),j,top_gmax);
+		if (!ifluid_comp(top_comp[index]))
+                    count++;
+	    }
+	    for (int m = 0; m <2; ++m)
+            {
+                index = d_index2d(i,j+pow(-1,m),top_gmax);
+                if (!ifluid_comp(top_comp[index]))
+                    count++;
+            }
+	    index  = d_index2d(i,j,top_gmax);
+	    if (count > 1 && ifluid_comp(top_comp[index]))
+		top_comp[index] = SOLID_COMP;	
+	    if (top_comp[index] == SOLID_COMP && count < 4)
+		field->rho[index] = field->rho[d_index2d(imin,jmin,top_gmax)];
+        }
+	
 	sum_div = 0.0;
 	max_value = 0.0;
 
@@ -1668,38 +1736,16 @@ void Incompress_Solver_Smooth_2D_Cartesian::extractFlowThroughVelocity()
 	double div;
 	int status;
 
-	/* Reset external velocity */
-        for (j = 0; j <= top_gmax[1]; ++j)
-        for (i = 0; i <= top_gmax[0]; ++i)
-	{
-	    icoords[0] = i;
-	    icoords[1] = j;
-            index = d_index(icoords,top_gmax,dim);
-            if (ifluid_comp(top_comp[index])) continue;
-	    for (l = 0; l < dim; ++l)
-		vel[l][index] = 0.0;
-	}
-
 	/* Extract velocity for zero interior divergence */
         for (j = 0; j <= top_gmax[1]; ++j)
         for (i = 0; i <= top_gmax[0]; ++i)
 	{
+	    if (i >= imin && i <= imax && j >= jmin && j <= jmax)
+		continue;
+
 	    icoords[0] = i;
 	    icoords[1] = j;
             index = d_index(icoords,top_gmax,dim);
-	    if (i == 24 && j == 140)
-	    {
-		printf("Testing 24, 140 comp = %d\n",top_comp[index]);
-            	index = d_index2d(i+1,j,top_gmax);
-		printf("Testing %d, %d comp = %d\n",i+1,j,top_comp[index]);
-            	index = d_index2d(i-1,j,top_gmax);
-		printf("Testing %d, %d comp = %d\n",i-1,j,top_comp[index]);
-            	index = d_index2d(i,j+1,top_gmax);
-		printf("Testing %d, %d comp = %d\n",i,j+1,top_comp[index]);
-            	index = d_index2d(i,j-1,top_gmax);
-		printf("Testing %d, %d comp = %d\n",i,j-1,top_comp[index]);
-            	index = d_index(icoords,top_gmax,dim);
-	    }
             if (ifluid_comp(top_comp[index])) continue;
 	    for (l = 0; l < dim; ++l)
 		icoords_nb[l] = icoords_op[l] = icoords[l];
@@ -1708,9 +1754,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::extractFlowThroughVelocity()
 	    {
 		status = (*findStateAtCrossing)(front,icoords,dir[l][nb],
                                 top_comp[index],&intfc_state,&hs,crx_coords);
-	    	if (i == 24 && j == 141)
-		    printf("Testing dir = %s  status = %d\n",
-			grid_direction_name(dir[l][nb]),status);
 		if (status == NO_PDE_BOUNDARY) continue;
 		icoords_nb[l] = (nb == 0) ? icoords[l] - 1 : icoords[l] + 1;
 		icoords_op[l] = (nb == 0) ? icoords[l] - 2 : icoords[l] + 2;
@@ -1721,16 +1764,9 @@ void Incompress_Solver_Smooth_2D_Cartesian::extractFlowThroughVelocity()
 		vel_save = vel[l][index_op];
 		vel[l][index_op] = 0.0;
 		div = computeFieldPointDiv(icoords_nb,vel);
-		if (icoords_nb[0] == 24 && icoords_nb[1] == 140)
-		    printf("Before setting: div = %f\n",div);
 		vel[l][index_op] = vel_save;
 		vel[l][index] = (nb == 0) ? vel[l][index_op] - 2.0*top_h[l]*div
 				: vel[l][index_op] + 2.0*top_h[l]*div;
-		if (icoords_nb[0] == 24 && icoords_nb[1] == 140)
-		{
-		    div = computeFieldPointDiv(icoords_nb,vel);
-		    printf("Before setting: div = %f\n",div);
-		}
 	    }
 	}
 }	/* end extractFlowThroughVelocity */
