@@ -13,8 +13,10 @@ static void HandleError( cudaError_t err, const char *file, int line )
     }
 }
 
-__global__ void link_kernel(double**,double**,double*,double*,double*,double*,double*,double*,double*,double*,double*,double*,double*);
-__global__ void flux_kernel(double,double,double,double,double,int,int,double**,double**);
+__global__ void link_kernel(double**,double**,double*,double*,double*,double*,
+		double*,double*,double*,double*,double*,double*,double*);
+__global__ void flux_kernel(double,double,double,double,double,int,int,
+		double**,double**);
 __device__ void u2f(double*,int,int);
 __device__ void matmvec(double *b, double RL[5][5], double *x);
 __device__ double weno5_scal(double *f);
@@ -36,24 +38,35 @@ extern void weno5_get_flux_gpu(
 
 	double a,v, maxeig[5];
 	int block_size = 512;
-	int shared_mem_size_Bytes = 11 * (block_size+2*ghost_size-1) * sizeof(double);
+	int shared_mem_size_Bytes=11*(block_size+2*ghost_size-1)*sizeof(double);
 
 //startClock("Alloc_mem");
 	HANDLE_ERROR(cudaMalloc((void**)&dev_u,6*sizeof(double*)));	
 	HANDLE_ERROR(cudaMalloc((void**)&dev_flux,5*sizeof(double*)));	
 
-	HANDLE_ERROR(cudaMalloc((void**)&dev_u_dens,extend_size*sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**)&dev_u_engy,extend_size*sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**)&dev_u_pres,extend_size*sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**)&dev_u_momn_1,extend_size*sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**)&dev_u_momn_2,extend_size*sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**)&dev_u_momn_3,extend_size*sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**)&dev_u_dens,
+				extend_size*sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**)&dev_u_engy,
+				extend_size*sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**)&dev_u_pres,
+				extend_size*sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**)&dev_u_momn_1,
+				extend_size*sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**)&dev_u_momn_2,
+				extend_size*sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**)&dev_u_momn_3,
+				extend_size*sizeof(double)));
 
-	HANDLE_ERROR(cudaMalloc((void**)&dev_flux_dens,extend_size*sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**)&dev_flux_engy,extend_size*sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**)&dev_flux_momn_1,extend_size*sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**)&dev_flux_momn_2,extend_size*sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**)&dev_flux_momn_3,extend_size*sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**)&dev_flux_dens,
+				extend_size*sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**)&dev_flux_engy,
+				extend_size*sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**)&dev_flux_momn_1,
+				extend_size*sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**)&dev_flux_momn_2,
+				extend_size*sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**)&dev_flux_momn_3,
+				extend_size*sizeof(double)));
 //stopClock("Alloc_mem");
 
 //startClock("link_pointers");
@@ -67,12 +80,18 @@ extern void weno5_get_flux_gpu(
 //stopClock("link_pointers");
 
 //startClock("memcpy_H2D");
-	HANDLE_ERROR(cudaMemcpy(dev_u_dens,u_old[0],extend_size*sizeof(double),cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(dev_u_momn_1,u_old[1],extend_size*sizeof(double),cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(dev_u_momn_2,u_old[2],extend_size*sizeof(double),cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(dev_u_momn_3,u_old[3],extend_size*sizeof(double),cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(dev_u_engy,u_old[4],extend_size*sizeof(double),cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(dev_u_pres,u_old[5],extend_size*sizeof(double),cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(dev_u_dens,u_old[0],extend_size*
+				sizeof(double),cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(dev_u_momn_1,u_old[1],extend_size*
+				sizeof(double),cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(dev_u_momn_2,u_old[2],extend_size*
+				sizeof(double),cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(dev_u_momn_3,u_old[3],extend_size*
+				sizeof(double),cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(dev_u_engy,u_old[4],extend_size*
+				sizeof(double),cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(dev_u_pres,u_old[5],extend_size*
+				sizeof(double),cudaMemcpyHostToDevice));
 //stopClock("memcpy_H2D");
 	
 //startClock("gpu_compute");
@@ -85,18 +104,24 @@ extern void weno5_get_flux_gpu(
             maxeig[4] = std::max(maxeig[4], fabs(v + a));
         }
 
-	flux_kernel<<<(extend_size-2*ghost_size+1+block_size-1)/block_size,block_size,shared_mem_size_Bytes>>>(gamma, lambda, maxeig[0], maxeig[1], maxeig[4], 
-		extend_size, ghost_size, dev_u, dev_flux);
+	flux_kernel<<<(extend_size-2*ghost_size+1+block_size-1)/block_size,
+		block_size,shared_mem_size_Bytes>>>(gamma, lambda, maxeig[0], 
+		maxeig[1], maxeig[4],extend_size, ghost_size, dev_u, dev_flux);
 
 	HANDLE_ERROR(cudaDeviceSynchronize());
 //stopClock("gpu_compute");
 
 //startClock("memcpy_D2H");
-	HANDLE_ERROR(cudaMemcpy(flux[0],dev_flux_dens,extend_size*sizeof(double),cudaMemcpyDeviceToHost));
-	HANDLE_ERROR(cudaMemcpy(flux[1],dev_flux_momn_1,extend_size*sizeof(double),cudaMemcpyDeviceToHost));
-	HANDLE_ERROR(cudaMemcpy(flux[2],dev_flux_momn_2,extend_size*sizeof(double),cudaMemcpyDeviceToHost));
-	HANDLE_ERROR(cudaMemcpy(flux[3],dev_flux_momn_3,extend_size*sizeof(double),cudaMemcpyDeviceToHost));
-	HANDLE_ERROR(cudaMemcpy(flux[4],dev_flux_engy,extend_size*sizeof(double),cudaMemcpyDeviceToHost));
+	HANDLE_ERROR(cudaMemcpy(flux[0],dev_flux_dens,extend_size*
+				sizeof(double),cudaMemcpyDeviceToHost));
+	HANDLE_ERROR(cudaMemcpy(flux[1],dev_flux_momn_1,extend_size*
+				sizeof(double),cudaMemcpyDeviceToHost));
+	HANDLE_ERROR(cudaMemcpy(flux[2],dev_flux_momn_2,extend_size*
+				sizeof(double),cudaMemcpyDeviceToHost));
+	HANDLE_ERROR(cudaMemcpy(flux[3],dev_flux_momn_3,extend_size*
+				sizeof(double),cudaMemcpyDeviceToHost));
+	HANDLE_ERROR(cudaMemcpy(flux[4],dev_flux_engy,extend_size*
+				sizeof(double),cudaMemcpyDeviceToHost));
 //stopClock("memcpy_D2H");
 
 //startClock("Free_mem");
@@ -169,7 +194,8 @@ __global__ void	flux_kernel(
 	double RL[5][5];
 	double sten_u[6][5], sten_f[6][5];
 	double u[5];
-	double maxeig[5] = {dev_maxe_0,dev_maxe_1,dev_maxe_1,dev_maxe_1,dev_maxe_4};
+	double maxeig[5] = {dev_maxe_0,dev_maxe_1,dev_maxe_1,dev_maxe_1,
+				dev_maxe_4};
 	double gfluxp[5][5], gfluxm[5][5];
 	double f_tmp[5];
 	double ff[5];
@@ -187,27 +213,30 @@ __global__ void	flux_kernel(
 	    {
 		for(int i = 0; i< 6; i++)
 		{
-		    uf[threadIdx.x + i*block_extend_size] = dev_u[i][gindex - ghost_size];
+		    uf[threadIdx.x + i*block_extend_size] = 
+				dev_u[i][gindex - ghost_size];
 		}
 
 		u2f(uf,threadIdx.x,block_extend_size);
 	    }
 
-	    if (threadIdx.x > blockDim.x - 3)
+	    if (lindex > blockDim.x || gindex + 2*ghost_size - 1 > extend_size)
 	    {
 		for(int i = 0; i< 6; i++)
 		{
-		    uf[lindex+ghost_size-1+i*block_extend_size]=dev_u[i][gindex+ghost_size];
+		    uf[lindex+ghost_size-1+i*block_extend_size]=
+				dev_u[i][gindex+ghost_size-1];
 		}
 
-		    u2f(uf,lindex+ghost_size-1,block_extend_size);
+		u2f(uf,lindex+ghost_size-1,block_extend_size);
 	    }
 
 	    __syncthreads();
 
 	    for(int i = 0; i < 5; i++)
 	    {
-		u_mid[i] = 0.5*(uf[lindex + i*block_extend_size] + uf[lindex-1 + i*block_extend_size]);
+		u_mid[i] = 0.5*(uf[lindex + i*block_extend_size] + 
+				uf[lindex-1 + i*block_extend_size]);
 	    }
 
 	    u_mid[5] = u_mid[1]/u_mid[0];
@@ -334,10 +363,12 @@ __device__ void	u2f(
 {
 	double v = uf[lindex + 1*extend_size] / uf[lindex];
 	uf[lindex + 6*extend_size] = uf[lindex + 1*extend_size];
-	uf[lindex + 7*extend_size] = v * uf[lindex + 1*extend_size] + uf[lindex + 5*extend_size];
+	uf[lindex + 7*extend_size] = v * uf[lindex + 1*extend_size] + 
+				uf[lindex + 5*extend_size];
 	uf[lindex + 8*extend_size] = v * uf[lindex + 2*extend_size];
 	uf[lindex + 9*extend_size] = v * uf[lindex + 3*extend_size];
-	uf[lindex + 10*extend_size] = v * (uf[lindex + 4*extend_size] + uf[lindex + 5*extend_size]);
+	uf[lindex + 10*extend_size] = v * (uf[lindex + 4*extend_size] + 
+				uf[lindex + 5*extend_size]);
 }
 
 __device__ void matmvec(
@@ -358,7 +389,7 @@ __device__ void matmvec(
 __device__ double weno5_scal(double *f)
 {
         int i, j;
-        const double eps = 1.e-8;
+        const double eps = 1.e-16;
         const int p = 2;
 
         double c[3] = {0.1, 0.6, 0.3}; //*** Optimal weights C_k 

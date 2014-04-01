@@ -67,19 +67,13 @@ extern void WENO_flux(
 	extend_size = n + 2*ghost_size;
 
 #if defined(__GPU__)
-
-	startClock("Total_time_flux_gpu");
-
-	weno5_get_flux_gpu(scheme_params->gamma,scheme_params->lambda,extend_size,ghost_size,u_old,flux);
-
-	stopClock("Total_time_flux_gpu");
-
+	//startClock("Total_time_flux_gpu");
+	weno5_get_flux_gpu(scheme_params->gamma,scheme_params->lambda,
+				extend_size,ghost_size,u_old,flux);
+	//stopClock("Total_time_flux_gpu");
 #else
-
 	weno5_get_flux(params,extend_size,ghost_size,u_old,flux);
-
 #endif
-
 	for (i = ghost_size; i < n+ghost_size; ++i)
 	{
 	    vflux->dens_flux[i] = -lambda*(flux[0][i+1] - flux[0][i]);
@@ -270,7 +264,7 @@ static void weno5_get_flux(
 static double weno5_scal(double *f)
 {
     	int i, j;
-    	const double eps = 1.e-8;
+    	const double eps = 1.e-16;
     	const int p = 2;
 
     	double c[3] = {0.1, 0.6, 0.3}; //*** Optimal weights C_k 
