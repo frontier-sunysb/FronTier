@@ -648,7 +648,7 @@ void Incompress_Solver_Smooth_Basis::setGlobalIndex()
 void Incompress_Solver_Smooth_Basis::printFrontInteriorStates(char *out_name)
 {
 	int i,j,k,l,index;
-	char filename[100];
+	char filename[200];
 	FILE *outfile;
 	double **vel = field->vel;
 

@@ -3509,11 +3509,13 @@ void G_CARTESIAN::copyFromMeshVst(
 		{
 		    state.eos = &(eqn_params->eos[comp]);
 		    checkCorrectForTolerance(&state);
+		    mach[index] = getStateMach(&state);
 		}
+		else
+		    mach[index] = 0.0;
 		dens[index] = state.dens;
 		engy[index] = state.engy;
 		pres[index] = state.pres;
-		mach[index] = getStateMach(&state);
 		for (l = 0; l < dim; ++l)
 		    momn[l][index] = state.momn[l];
 	    }
