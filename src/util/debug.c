@@ -202,6 +202,8 @@ EXPORT	DEBUG_PARAMS *init_debug(
 #if defined(DEB_FILE)
 	char filename[15];
 #endif /* defined(DEB_FILE) */
+	int status;
+	char *string;
 
 	if (debug_output == NULL)
 	    debug_output = stdout;
@@ -265,7 +267,7 @@ get_names:
 	    for(i=0; ;++i)
 	    {
 	        screen("\t: ");
-	        (void) fscanf(debug_input,"%s",s);
+	        status = fscanf(debug_input,"%s",s);
 	        (void) printf("%s\n",s);
 	        (void) strncpy(debug_names[i],s,MAX_CHARS);/* Read next Name */
 	        if (remember != NULL)			/* Put in Remember */
@@ -288,7 +290,7 @@ get_names:
 
 	    num_of_debug_names = i;
 	    /* Remove any residual whitespace */
-	    (void) fgets(s,Gets_BUF_SIZE-2,debug_input);
+	    string = fgets(s,Gets_BUF_SIZE-2,debug_input);
 	    if (remember != NULL)
 	        (void) fclose(remember);
 	}

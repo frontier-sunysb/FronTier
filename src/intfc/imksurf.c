@@ -4552,6 +4552,7 @@ EXPORT boolean read_sdl_surface(
 	TRI **ptris;
 	POINT *p;
 	int num_ptris;
+	int status;
 
 	sav_intfc = current_interface();
 	set_current_interface(intfc);
@@ -4578,7 +4579,7 @@ EXPORT boolean read_sdl_surface(
 	num_vtx = 0;
 	while (fgetstring(sdl_file,"vertex"))
 	{
-	    fscanf(sdl_file,"%lf %lf %lf",coords,coords+1,coords+2);
+	    status = fscanf(sdl_file,"%lf %lf %lf",coords,coords+1,coords+2);
 	    point_recorded = NO;
 	    for (i = 0; i < num_pts; ++i)
 	    {
@@ -4722,6 +4723,7 @@ EXPORT boolean read_vtk_surface(
 	static boolean first = YES;
 	double dist,max_side,min_side,ave_side;
 	int N,num_edges;
+	int status;
 
 	sav_intfc = current_interface();
 	set_current_interface(intfc);
@@ -4740,7 +4742,7 @@ EXPORT boolean read_vtk_surface(
 	    }
 	}
 	fgetstring(vtk_file,"POINTS");
-	fscanf(vtk_file,"%d\n",&num_vtx);
+	status = fscanf(vtk_file,"%d\n",&num_vtx);
 	uni_array(&vertex,3*num_vtx,FLOAT);
 	uni_array(&index,num_vtx,INT);
 	if (!fgetstring(vtk_file,"double"))
@@ -4758,7 +4760,7 @@ EXPORT boolean read_vtk_surface(
 	num_vtx = num_pts = 0;
 	for (k = 0; k < N; ++k)
 	{
-	    fscanf(vtk_file,"%lf %lf %lf",coords,coords+1,coords+2);
+	    status = fscanf(vtk_file,"%lf %lf %lf",coords,coords+1,coords+2);
 	    point_recorded = NO;
 	    for (i = 0; i < num_pts; ++i)
             {
@@ -4799,13 +4801,13 @@ EXPORT boolean read_vtk_surface(
 		clean_up(ERROR);
 	    }
 	}
-	fscanf(vtk_file,"%d %d\n",&num_tris,&num_edges);
+	status = fscanf(vtk_file,"%d %d\n",&num_tris,&num_edges);
 	uni_array(&tris,num_tris,sizeof(TRI*));
 	num_point_tris = 0;
 	for (i = 0; i < num_tris; ++i)
 	{
 	    int ns,ii1,ii2,ii3;
-	    fscanf(vtk_file,"%d %d %d %d",&ns,&ii1,&ii2,&ii3);
+	    status = fscanf(vtk_file,"%d %d %d %d",&ns,&ii1,&ii2,&ii3);
 	    i1 = index[ii1];  i2 = index[ii2];  i3 = index[ii3];
 	    tris[i] = make_tri(points[i1],points[i2],points[i3],
 	    			NULL,NULL,NULL,NO);

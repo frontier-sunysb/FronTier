@@ -233,6 +233,7 @@ EXPORT	FILE	*UncompressAndOpenFile(
 	char       s[512];
 	int	   i, slen = 0;
 	int	   len = (int)strlen(fname);
+	int	   status;
 
 	if (len > 3 && strncmp(fname+len-3,".gz",3)==0)
 	{
@@ -252,7 +253,7 @@ EXPORT	FILE	*UncompressAndOpenFile(
 	len = (int)strlen(uc->fname);
 	uc->fname[len - slen] = '\0';
 	(void) sprintf(s,"zcat < %s > %s",fname,uc->fname);
-	(void) system(s);
+	status = system(s);
 	uc->file = fopen(uc->fname,type);
 	uc->next = uc_head;
 	uc->prev = NULL;

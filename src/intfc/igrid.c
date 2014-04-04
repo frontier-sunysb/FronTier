@@ -1025,6 +1025,8 @@ EXPORT void read_rectangular_grid(
 	int  dim;
 	int  maxd = MAXD, size_float = FLOAT;
 	boolean b_iput;
+	int status;
+	char *string;
 
 	if (gr == NULL)
 	{
@@ -1040,18 +1042,19 @@ EXPORT void read_rectangular_grid(
 	}
 	else
 	{
-	    (void) fscanf(file,"%d",&dim);
+	    status = fscanf(file,"%d",&dim);
 	    while ((c = getc(file)) != '\n');
 	    if ((c = getc(file)) == '\f') /* Binary input */
 	    {
 	        c = getc(file);
 	        if (c == 1) /*oldstyle printout*/
 	        {
+		    size_t nbytes;
 		    (void) printf("WARNING in read_rectangular_grid(), "
 		                  "old style binary IO only valid for\n"
 				  "reading from runs with same floating "
 				  "point precision and endian as output\n");
-	            (void) fread((void *)gr,sizeof(RECT_GRID),1,file);
+	            nbytes = fread((void *)gr,sizeof(RECT_GRID),1,file);
 		    return;
 		}
 		if (c != 0)
@@ -1062,7 +1065,7 @@ EXPORT void read_rectangular_grid(
 		    return;
 		}
 		b_iput = YES;
-		(void) fscanf(file,"%*s%*s%d%*s%*s%d",&maxd,&size_float);
+		status = fscanf(file,"%*s%*s%d%*s%*s%d",&maxd,&size_float);
 		(void) getc(file); /* newline */
 	    }
 	    else
@@ -1079,7 +1082,7 @@ EXPORT void read_rectangular_grid(
 			  "grid not found\n");
 	    return;
 	}
-	(void) fgets(Line,2046,file);		/* clear end of X,Y line */
+	string = fgets(Line,2046,file);		/* clear end of X,Y line */
 
 #define read_grid_float(x)						\
 	if (b_iput)							\
@@ -1093,17 +1096,17 @@ EXPORT void read_rectangular_grid(
 	/* Read grid endpoints */
 	for (i = 0; i < dim; ++i)
 	{
-	    (void) fscanf(file,"%*s%*s");
+	    status = fscanf(file,"%*s%*s");
 	    read_grid_float(gr->L+i);
-	    (void) fscanf(file,"%*s%*s");
+	    status = fscanf(file,"%*s%*s");
 	    read_grid_float(gr->U+i);
 	}
 	/* Read grid spacings */
 	for (i = 0; i < dim; ++i)
 	{
-	    (void) fscanf(file,"%*s%*s");
+	    status = fscanf(file,"%*s%*s");
 	    read_grid_float(gr->h+i);
-	    (void) fscanf(file,"%*s%*s%d",gr->gmax+i);
+	    status = fscanf(file,"%*s%*s%d",gr->gmax+i);
 	}
 
 	offset = ftell(file);
@@ -1135,22 +1138,22 @@ EXPORT void read_rectangular_grid(
 	/* Read global grid endpoints */
 	for (i = 0; i < dim; ++i)
 	{
-	    (void) fscanf(file,"%*s%*s");
+	    status = fscanf(file,"%*s%*s");
 	    read_grid_float(gr->GL+i);
-	    (void) fscanf(file,"%*s%*s");
+	    status = fscanf(file,"%*s%*s");
 	    read_grid_float(gr->GU+i);
 	}
 	/* Read virtual domain endpoints */
 	for (i = 0; i < dim; ++i)
 	{
-	    (void) fscanf(file,"%*s%*s");
+	    status = fscanf(file,"%*s%*s");
 	    read_grid_float(gr->VL+i);
-	    (void) fscanf(file,"%*s%*s");
+	    status = fscanf(file,"%*s%*s");
 	    read_grid_float(gr->VU+i);
 	}
 	/* Read buffer zone widths */
 	for (i = 0; i < dim; ++i)
-	    (void) fscanf(file,"%*s%*s%d%*s%*s%d",gr->lbuf+i,gr->ubuf+i);
+	    status = fscanf(file,"%*s%*s%d%*s%*s%d",gr->lbuf+i,gr->ubuf+i);
 
 	set_rect_grid(gr->L,gr->U,gr->GL,gr->GU,gr->lbuf,gr->ubuf,gr->gmax,
 		      dim,&gr->Remap,gr);

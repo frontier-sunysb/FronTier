@@ -295,16 +295,17 @@ EXPORT	void	f_read_print_front_options(
 	const IO_TYPE *io_type = restart_io_type(init);
 	FILE    *file = io_type->file;
 	int	redis_flag;
+	int	status;
 
 	front->interf = restart_intfc(init);
 	if (next_output_line_containing_string(file,
 					 "REDISTRIBUTION INFORMATION:") != NULL)
 	{
 	    (void) fgetstring(file,"redistribution count = ");
-	    (void) fscanf(file,"%d",&redistribution_count(init));
+	    status = fscanf(file,"%d",&redistribution_count(init));
 	    
 	    (void) fgetstring(file,"redis_flag = ");
-	    (void) fscanf(file,"%d",&redis_flag);
+	    status = fscanf(file,"%d",&redis_flag);
 	    redis_flag(init) = redis_flag == 0 ? NO : YES;
 	}
 	else
@@ -1132,13 +1133,14 @@ LOCAL	void	read_print_FlowSpecifiedRegion_list(
 	FlowSpecifiedRegion *fsr;
 	FILE                *file = io_type->file;
 	int                 n, num_regions;
+	int		    status;
 
 	if (next_output_line_containing_string(file,
 			"FLOW SPECIFIED REGIONS DATA LIST") == NULL)
 		return;
 
 	(void) fgetstring(file,"Number of regions = ");
-	(void) fscanf(file,"%d",&num_regions);
+	status = fscanf(file,"%d",&num_regions);
 
 	/* Initialize doubly linked list */
 	for (n = 0; n < num_regions; ++n)
@@ -1159,11 +1161,12 @@ LOCAL	boolean	f_read_print_FlowSpecifiedRegion_data(
 {
 	FILE	                   *file = io_type->file;
 	static FlowSpecifiedRegion Fsr;
+	int status;
 
 	(void) fgetstring(file,"comp = ");
-	(void) fscanf(file,"%d",&Fsr.comp);
+	status = fscanf(file,"%d",&Fsr.comp);
 	(void) fgetstring(file,"type = ");
-	(void) fscanf(file,"%s",Fsr.type);
+	status = fscanf(file,"%s",Fsr.type);
 
 	if (strcmp(Fsr.type,"CONSTANT_REGION") == 0)
 	    return read_print_ConstantFlowRegion(init,io_type,
@@ -2113,11 +2116,12 @@ LOCAL void read_print_front_time_and_step(
 	Front *front,
 	FILE *file)
 {
+	int status;
 	fgetstring(file,"Time Data");
 	fgetstring(file,"t = ");
-	fscanf(file,"%lf",&front->time);
+	status = fscanf(file,"%lf",&front->time);
 	fgetstring(file,"j = ");
-	fscanf(file,"%d",&front->step);
+	status = fscanf(file,"%d",&front->step);
 	fgetstring(file,"dt = ");
-	fscanf(file,"%lf",&front->dt);
+	status = fscanf(file,"%lf",&front->dt);
 }	/* end read_print_front_time_and_step */

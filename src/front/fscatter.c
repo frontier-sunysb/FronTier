@@ -1096,6 +1096,7 @@ EXPORT	boolean cpu_adapt_front(
 	else if (debugging("re_adapt_subdomain"))
 	{
 	    char step_string[100];
+	    int status;
 	    printf("Debugging re_adapt_subdomain\n");
 	    adaptation = NO;
 	    sprintf(debug_name,"adapt_step-%d",pp_mynode());
@@ -1105,14 +1106,14 @@ EXPORT	boolean cpu_adapt_front(
 	    fgetstring(debug_file,"lexpand =");
 	    for (i = 0; i < dim; ++i)
 	    {
-	    	fscanf(debug_file,"%d ",&lexpand[i]);
+	    	status = fscanf(debug_file,"%d ",&lexpand[i]);
 		if (lexpand[i] != 0) 
 		    adaptation = YES;
 	    }
 	    fgetstring(debug_file,"uexpand =");
 	    for (i = 0; i < dim; ++i)
 	    {
-	    	fscanf(debug_file,"%d ",&uexpand[i]);
+	    	status = fscanf(debug_file,"%d ",&uexpand[i]);
 		if (uexpand[i] != 0) 
 		    adaptation = YES;
 	    }

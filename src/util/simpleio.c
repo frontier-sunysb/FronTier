@@ -728,6 +728,8 @@ EXPORT	double	fread_float(
 	double	x;
 	char	s[81];
 	int	c;
+	char *string;
+	size_t size;
 
 	if (label != NULL)
 	    (void) fgetstring(file,label);
@@ -736,7 +738,7 @@ EXPORT	double	fread_float(
 	    long current;
 	    (void) ungetc(c,file);
 	    current = ftell(file);
-	    (void) fgets(s,5,file);
+	    string = fgets(s,5,file);
 	    if (strncasecmp("inf",s,3) == 0)
 	    	x = HUGE_VAL;
 	    else if (strncasecmp("-inf",s,4) == 0)
@@ -757,14 +759,14 @@ EXPORT	double	fread_float(
 	    (void) getc(file);
 	    if (io_type->read_float_size == io_type->cpu_float_size)
 	    {
-	        (void) fread((void *)&x,sizeof(double),1,file);
+	        size = fread((void *)&x,sizeof(double),1,file);
 	        if (io_type->reverse_endian)
 	            byte_reverse(x);
 	    }
 	    else if (io_type->read_float_size > io_type->cpu_float_size)
 	    {
 		double tmp;
-	        (void) fread((void *)&tmp,sizeof(double),1,file);
+	        size = fread((void *)&tmp,sizeof(double),1,file);
 	        if (io_type->reverse_endian)
 	            byte_reverse(tmp);
 		x = tmp;
@@ -772,7 +774,7 @@ EXPORT	double	fread_float(
 	    else
 	    {
 	        TRUEfloat tmp;
-	        (void) fread((void *)&tmp,sizeof(TRUEfloat),1,file);
+	        size = fread((void *)&tmp,sizeof(TRUEfloat),1,file);
 	        if (io_type->reverse_endian)
 	            byte_reverse(tmp);
 		x = tmp;
@@ -871,6 +873,7 @@ EXPORT	boolean	fread_boolean(
 	boolean    value;
 	int     c;
 	int	value_read;
+	int	status;
 
 	value = NO;
 	c = getc(file);
@@ -878,7 +881,7 @@ EXPORT	boolean	fread_boolean(
 	{
 	    char s[120];
 	    (void) ungetc(c,file);
-	    (void) fscanf(file,"%s",s);
+	    status = fscanf(file,"%s",s);
 	    if ((c == 'y') || (c == 'Y'))
 	        value = YES;
 	    else if ((c == 'n') || (c == 'N'))
@@ -891,7 +894,7 @@ EXPORT	boolean	fread_boolean(
 	}
 	else
 	{
-	    (void) fscanf(file,"%d",&value_read);
+	    status = fscanf(file,"%d",&value_read);
 	    switch (value_read)
 	    {
 	    case YES:

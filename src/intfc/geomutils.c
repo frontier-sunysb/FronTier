@@ -685,7 +685,8 @@ EXPORT	ANGLE_DIRECTION	fread_angle_direction(
 	FILE* file)
 {
 	int i;
-	(void) fscanf(file,"%d",&i);
+	int status;
+	status = fscanf(file,"%d",&i);
 	switch (i)
 	{
 	case CLOCKWISE:

@@ -480,12 +480,13 @@ LOCAL	Locstate f_read_print_state_data(
 	int	c;
 	size_t	i, nfloats;
 	size_t	sizest = size_of_state(intfc);
+	int status;
 
 	if (state == NULL)
 	    state = (Locstate) store(sizest);
 	x = (double *) state;
 	(void) fgetstring(file,"State information for state");
-	(void) fscanf(file,"%*s%*s");
+	status = fscanf(file,"%*s%*s");
 	nfloats = sizest/sizeof(double);
 	if ((c = getc(file)) == '\f')
 	{

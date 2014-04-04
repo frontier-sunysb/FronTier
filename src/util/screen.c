@@ -114,6 +114,7 @@ EXPORT	int	Scanf(const char *fmt, ...)
 	double *ppd;
 	static const int ERROR_SCAN = EOF-1;
 	va_list ap;
+	int status;
 
 	va_start(ap, fmt);
 
@@ -141,12 +142,12 @@ EXPORT	int	Scanf(const char *fmt, ...)
 	    {
 	    case 'c':		/* Character: */
 	    	ppc = va_arg(ap,char *);
-	    	(void) scanf(Fmt,ppc);
+	    	status = scanf(Fmt,ppc);
 	    	(void) printf(Fmt,*ppc);
 	    	break;
 	    case 'd':		/* Integer: */
 	    	ppi = va_arg(ap,int *);
-	    	(void) scanf(Fmt,ppi);
+	    	status = scanf(Fmt,ppi);
 	    	(void) printf(Fmt,*ppi);
 		    break;
 
@@ -156,13 +157,13 @@ EXPORT	int	Scanf(const char *fmt, ...)
 	        if (*fmt == 'd') 		/* Long: */
 	        {
 	            ppl = va_arg(ap,long *);
-	            (void) scanf(Fmt,ppl);
+	            status = scanf(Fmt,ppl);
 	            (void) printf(Fmt,*ppl);
 	        }
 	        else				/* Double: */
 		{
 		    ppd = va_arg(ap,double *);
-		    (void) scanf(Fmt,ppd);
+		    status = scanf(Fmt,ppd);
 		    --t;
 		    *--t = *fmt;
 		    *++t = '\0';
@@ -172,14 +173,14 @@ EXPORT	int	Scanf(const char *fmt, ...)
 
 	    case 's':		/* String: */
 	        pps = va_arg(ap,char *);
-	        (void) scanf(Fmt,pps);
+	        status = scanf(Fmt,pps);
 	        (void) printf(Fmt,pps);
 	        break;
 
 	    case 'f':		/* Float: */
 	        {
 	            ppd = va_arg(ap,double *);
-	            (void) scanf("%lf",ppd);
+	            status = scanf("%lf",ppd);
 	            (void) printf("%g",*ppd);
 	        }
 	        break;

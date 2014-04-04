@@ -1239,6 +1239,7 @@ LIB_LOCAL SURFACE *read_print_surface(
 	int		indx[3],hs_index;
 	char		bdry_string[20];
 	char		indx_str[3][20];
+	int 		status;
 
 	debug_print("restart","Entered read_print_surface\n");
 
@@ -1255,23 +1256,23 @@ LIB_LOCAL SURFACE *read_print_surface(
 		/* Read Components and Boundary Flag: */
 
 	(void) fgetstring(file,"Surface");
-	(void) fscanf(file,"%llu:",(long long unsigned int *)(&old_surf));
+	status = fscanf(file,"%llu:",(long long unsigned int *)(&old_surf));
 	iaddr->surfaces[s_index] = old_surf;
 	(void) fgetstring(file,"Hypersurface index =");
-	(void) fscanf(file,"%d:",&hs_index);
+	status =  fscanf(file,"%d:",&hs_index);
 	(void) fgetstring(file,"Positive");
-	(void) fscanf(file,"%*s %*s %d %*s %*s %*s %d %s %*s",
+	status = fscanf(file,"%*s %*s %d %*s %*s %*s %d %s %*s",
 		      &pcomp,&ncomp,bdry_string);
 
 		/* Determine the CURVES which bound it: */
 
-	(void) fscanf(file,"%d %*s %*s %*s %*s %*s",&n_pos_curves);
+	status = fscanf(file,"%d %*s %*s %*s %*s %*s",&n_pos_curves);
 	iaddr->num_pcurves[s_index] = n_pos_curves;
 	uni_array(&pos_curves,n_pos_curves+1,sizeof(CURVE *));
 	uni_array(iaddr->pcurves+s_index,n_pos_curves,sizeof(uint64_t));
 	for (j = 0; j < n_pos_curves; ++j)
 	{
-	    (void) fscanf(file,"%llu",(long long unsigned int *)(&old_curve));
+	    status = fscanf(file,"%llu",(long long unsigned int *)(&old_curve));
 	    iaddr->pcurves[s_index][j] = old_curve;
 	    for (k = 0; k < ncurves; ++k)
 	    	if (old_curve == iaddr->curves[k])
@@ -1287,13 +1288,13 @@ LIB_LOCAL SURFACE *read_print_surface(
 	    pos_curves[j] = intfc->curves[k];
 	}
 	pos_curves[n_pos_curves] = NULL;
-	(void) fscanf(file,"%d %*s %*s %*s %*s %*s",&n_neg_curves);
+	status = fscanf(file,"%d %*s %*s %*s %*s %*s",&n_neg_curves);
 	iaddr->num_ncurves[s_index] = n_neg_curves;
 	uni_array(&neg_curves,n_neg_curves+1,sizeof(CURVE *));
 	uni_array(iaddr->ncurves+s_index,n_neg_curves,sizeof(uint64_t));
 	for (j = 0; j < n_neg_curves; ++j)
 	{
-	    (void) fscanf(file,"%llu",(long long unsigned int *)(&old_curve));
+	    status = fscanf(file,"%llu",(long long unsigned int *)(&old_curve));
 	    iaddr->ncurves[s_index][j] = old_curve;
 	    for (k = 0; k < ncurves; ++k)
 	    	if (old_curve == iaddr->curves[k])
@@ -1320,8 +1321,8 @@ LIB_LOCAL SURFACE *read_print_surface(
 
 			/* Read Triangles */
 
-	(void) fscanf(file,"%d %*s %*s %*s",&npts);
-	(void) fscanf(file,"%d %*s %*s %*s",&ntris);
+	status = fscanf(file,"%d %*s %*s %*s",&npts);
+	status = fscanf(file,"%d %*s %*s %*s",&ntris);
 	if (ntris == 0)
 	{
 	    (void) printf("WARNING in read_print_surface(), "
@@ -1355,7 +1356,7 @@ LIB_LOCAL SURFACE *read_print_surface(
 	for (j = 0; j < ntris; ++j)
 	{
 	    tri = new_tris[j];
-	    (void) fscanf(file,"%*s %*d %*s %*s %s %*s %s %*s %s %*s %d\n",
+	    status = fscanf(file,"%*s %*d %*s %*s %s %*s %s %*s %s %*s %d\n",
 			       indx_str[0],indx_str[1],indx_str[2],
 			       &Boundary_tri(tri));
 
@@ -1373,18 +1374,19 @@ LIB_LOCAL SURFACE *read_print_surface(
 		}
 	    }
 	    (void) fgetstring(file,"Original side length");
-	    (void) fscanf(file,"%lf %lf %lf",tri->side_length0,
+	    status = fscanf(file,"%lf %lf %lf",tri->side_length0,
 				tri->side_length0+1,tri->side_length0+2);
 
 	    (void) fgetstring(file,"Points - Indices");
-	    (void) fscanf(file,"%d %d %d",indx,indx+1,indx+2);
+	    status = fscanf(file,"%d %d %d",indx,indx+1,indx+2);
 	    for (k = 0; k < 3; ++k)
 	    	Point_of_tri(tri)[k] = new_pts[indx[k]];
 	    (void) fgetstring(file,"Positions");
 	    if (getc(file) != '\f')	/* NOBINARY */
 	    {
-	        static const char *fmt = "%lf %lf %lf %*s %lf %lf %lf %*s %lf %lf %lf";
-	        (void) fscanf(file,fmt,Coords(Point_of_tri(tri)[0]),
+	        static const char *fmt = 
+				"%lf %lf %lf %*s %lf %lf %lf %*s %lf %lf %lf";
+	        status = fscanf(file,fmt,Coords(Point_of_tri(tri)[0]),
 				       Coords(Point_of_tri(tri)[0])+1,
 	    			       Coords(Point_of_tri(tri)[0])+2,
 				       Coords(Point_of_tri(tri)[1]),
@@ -1918,6 +1920,7 @@ LIB_LOCAL void read_print_tris_on_curve(
 	BOND     *b;
 	uint64_t *bonds;
 	int	 **tris, i, k;
+	int	status;
 
 	if (curve->interface->dim != 3)
 	    return;
@@ -1926,15 +1929,16 @@ LIB_LOCAL void read_print_tris_on_curve(
 	(void) getc(file);			/* Grab trailing \n */
 	while (getc(file) != '\n'); /* next line */
 	uni_array(iaddr->tris+c_index,iaddr->num_bonds[c_index],sizeof(int*));
-	uni_array(iaddr->bonds+c_index,iaddr->num_bonds[c_index],sizeof(uint64_t));
+	uni_array(iaddr->bonds+c_index,iaddr->num_bonds[c_index],
+				sizeof(uint64_t));
 	tris = iaddr->tris[c_index];
 	bonds = iaddr->bonds[c_index];
 	for (b = curve->first, i = 0; b != NULL; b = b->next, ++i)
 	{
-	    (void) fscanf(file,"%llu",(long long unsigned int *)(bonds+i));
+	    status = fscanf(file,"%llu",(long long unsigned int *)(bonds+i));
 	    uni_array(tris+i,iaddr->num_surfs[c_index],INT);
 	    for (k = 0; k < iaddr->num_surfs[c_index]; ++k)
-	    	(void) fscanf(file,"%d",tris[i]+k);
+	    	status = fscanf(file,"%d",tris[i]+k);
 	}
 }		/*end read_print_tris_on_curve*/
 
@@ -1991,6 +1995,7 @@ LIB_LOCAL void read_print_length0_on_curve(
 	INTERFACE_ADDRESSES *iaddr)
 {
 	BOND     *b;
+	int status;
 
 	if (!fgetstring(file,"Original length of bond"))
 	{
@@ -2001,7 +2006,7 @@ LIB_LOCAL void read_print_length0_on_curve(
 	while (getc(file) != '\n'); /* next line */
 	for (b = curve->first; b != NULL; b = b->next)
 	{
-	    (void) fscanf(file,"%*s");
+	    status = fscanf(file,"%*s");
 	    fscan_float(file,&b->length0);
 	}
 }		/*end read_print_length0_on_curve*/

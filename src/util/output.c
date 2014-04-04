@@ -666,12 +666,13 @@ EXPORT const char *next_output_line_containing_string(
 	if (oput->output_blocked)
 	{
 	    static OUTPUT *oput = NULL;
+	    char *string;
 	    oput = save_read_file_variables(file,oput);
 	    while (next_output(file))
 	    {
 	        if (blank == YES)
 		{
-	            (void) fgets(line,MAX_LINE_LEN,file);
+	            string = fgets(line,MAX_LINE_LEN,file);
 		}
 	        else
 	        {
@@ -1018,6 +1019,8 @@ EXPORT	void	determine_io_type(
 {
 	static OUTPUT *oput = NULL;
 	IOUTPUT *ioput;
+	int status;
+	char *string;
 
 	if (determine_io_type_blocked)
 	    return;
@@ -1053,7 +1056,7 @@ EXPORT	void	determine_io_type(
 	        if (fgetstring(file,"\tByte Ordering            = "))
 	        {
 	            char line[25];
-		    (void) fgets(line,24,file);
+		    string = fgets(line,24,file);
 		    if (strstr(line,"Big"))
 		       io_type->read_endian = FT_BIG_ENDIAN;
 		    else if (strstr(line,"Little"))
@@ -1063,7 +1066,7 @@ EXPORT	void	determine_io_type(
 	        }
 	        if (fgetstring(file,"\tFloating Point Word Size = "))
 	        {
-	            (void) fscanf(file,"%lu",&io_type->read_float_size);
+	            status = fscanf(file,"%lu",&io_type->read_float_size);
 	        }
 	    }
 	    if (((io_type->cpu_endian==FT_BIG_ENDIAN) &&

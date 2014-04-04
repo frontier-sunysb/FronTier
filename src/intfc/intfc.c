@@ -735,6 +735,7 @@ EXPORT INTERFACE *read_print_interface(
 	const char          *search_string;
 	int		    dim;
 	int                 nread;
+	int		    status;
 
 	debug_print("restart","Entered read_print_interface\n");
 
@@ -794,7 +795,7 @@ EXPORT INTERFACE *read_print_interface(
 	{
 	    int npoints;
 
-	    (void) fscanf(file,"%d %*s",&npoints);
+	    status = fscanf(file,"%d %*s",&npoints);
 	    if (DEBUG)
 		(void) printf("Got npoints = %d\n",npoints);
 	    for (i=0; i<npoints; ++i)
@@ -813,7 +814,7 @@ EXPORT INTERFACE *read_print_interface(
 	case 2:
 	        /* Process the Nodes: */
 
-	    (void) fscanf(file,"%d %*s",&Iaddr.num_nodes);
+	    status = fscanf(file,"%d %*s",&Iaddr.num_nodes);
 	    if (DEBUG)
 	        (void) printf("Got num_nodes = %d\n",Iaddr.num_nodes);
 	    uni_array(&Iaddr.nodes,Iaddr.num_nodes,sizeof(uint64_t));
@@ -831,7 +832,7 @@ EXPORT INTERFACE *read_print_interface(
 
 	        /* Process the Curves: */
 
-	    (void) fscanf(file,"%d %*s",&Iaddr.num_curves);
+	    status = fscanf(file,"%d %*s",&Iaddr.num_curves);
 	    uni_array(&Iaddr.curves,Iaddr.num_curves,sizeof(uint64_t));
 	    uni_array(&Iaddr.ns,Iaddr.num_curves,sizeof(uint64_t));
 	    uni_array(&Iaddr.ne,Iaddr.num_curves,sizeof(uint64_t));
@@ -850,7 +851,7 @@ EXPORT INTERFACE *read_print_interface(
 	case 3:
 	        /* Process the Nodes: */
 
-	    (void) fscanf(file,"%d %*s",&Iaddr.num_nodes);
+	    status = fscanf(file,"%d %*s",&Iaddr.num_nodes);
 	    if (DEBUG)
 	        (void) printf("Got num_nodes = %d\n",Iaddr.num_nodes);
 	    uni_array(&Iaddr.nodes,Iaddr.num_nodes,sizeof(uint64_t));
@@ -868,7 +869,7 @@ EXPORT INTERFACE *read_print_interface(
 
 	        /* Process the Curves: */
 
-	    (void) fscanf(file,"%d %*s",&Iaddr.num_curves);
+	    status = fscanf(file,"%d %*s",&Iaddr.num_curves);
 	    uni_array(&Iaddr.curves,Iaddr.num_curves,sizeof(uint64_t));
 	    uni_array(&Iaddr.ns,Iaddr.num_curves,sizeof(uint64_t));
 	    uni_array(&Iaddr.ne,Iaddr.num_curves,sizeof(uint64_t));
@@ -895,7 +896,7 @@ EXPORT INTERFACE *read_print_interface(
 
 	        /* Process the Surfaces */
 
-	    (void) fscanf(file,"%d %*s",&Iaddr.num_surfaces);
+	    status = fscanf(file,"%d %*s",&Iaddr.num_surfaces);
 	    uni_array(&Iaddr.surfaces,Iaddr.num_surfaces,sizeof(uint64_t));
 	    uni_array(&Iaddr.num_pcurves,Iaddr.num_surfaces,INT);
 	    uni_array(&Iaddr.num_ncurves,Iaddr.num_surfaces,INT);
@@ -930,7 +931,7 @@ EXPORT INTERFACE *read_print_interface(
 	        (void) fgetstring(file,"direction");
 	        for (j = 0; j < 2; ++j)
 	        {
-	            (void) fscanf(file,"%s",s);
+	            status = fscanf(file,"%s",s);
 	            rect_boundary_type(infc,i,j) =
 	                read_boundary_type_from_string(s,infc);
 	        }
@@ -941,7 +942,7 @@ EXPORT INTERFACE *read_print_interface(
 	{
 	    unsigned int xsubi[3];
 	    (void) fgetstring(file,"random01_seed = ");
-	    (void) fscanf(file,"%x %x %x",xsubi,xsubi+1,xsubi+2);
+	    status = fscanf(file,"%x %x %x",xsubi,xsubi+1,xsubi+2);
 	    Random01_seed(infc)[0] = xsubi[0];
 	    Random01_seed(infc)[1] = xsubi[1];
 	    Random01_seed(infc)[2] = xsubi[2];
@@ -1056,6 +1057,7 @@ LIB_LOCAL	POINT *i_read_print_point(
 	double	  coords[MAXD];
 	int	  c;
 	int	  i, dim;
+	int	  status;
 
 	dim = intfc->dim;
 
@@ -1078,7 +1080,7 @@ LIB_LOCAL	POINT *i_read_print_point(
 	    (void) ungetc(c,file);
 	    for (i = 0; i < dim; ++i)
 	    {
-	        (void) fscanf(file,"%*s %*s");
+	        status = fscanf(file,"%*s %*s");
 	        (void) fscan_float(file,coords+i);
 	    }
 	}
@@ -1089,7 +1091,7 @@ LIB_LOCAL	POINT *i_read_print_point(
 	}
 	(void) fgetstring(file,"Left");
 	bdry[0] = '\0';
-	(void) fscanf(file,"%*s %*s %d %*s %*s %*s %d %s %*s",
+	status = fscanf(file,"%*s %*s %d %*s %*s %*s %d %s %*s",
 	              &left,&right,bdry);
 	point = make_point(coords,left,right);
 	user_read_print_point(point,io_type,overlay);
@@ -1253,6 +1255,7 @@ LOCAL	boolean read_print_curve_boundary(
 	INTERFACE_ADDRESSES *iaddr)
 {
 	FILE *file = io_type->file;
+	int status;
 	if (fscanf(file,"%*s %*s %*s %llu %*s %*s %*s %llu",
 	           (long long unsigned int *)iaddr->ns+c_index,
 		   (long long unsigned int *)iaddr->ne+c_index) != 2)
@@ -1280,7 +1283,8 @@ LOCAL	boolean read_print_curve_boundary(
 	           iaddr->num_surfs[c_index],sizeof(uint64_t));
 	    	for (k = 0; k < iaddr->num_surfs[c_index]; ++k)
 	    	{
-	            if (fscanf(file,"%llu",(long long unsigned int *)iaddr->surfs[c_index]+k) != 1)
+	            if (fscanf(file,"%llu",
+		       (long long unsigned int *)iaddr->surfs[c_index]+k) != 1)
 		    {
 	            	(void) printf("WARNING in read_print_curve_boundary(), "
 	                          "can't read surfs[%d][%d]\n",c_index,k);
@@ -1289,7 +1293,7 @@ LOCAL	boolean read_print_curve_boundary(
 	    	}
 	    }
 	    else
-	    	fscanf(file,"%*s");
+	    	status = fscanf(file,"%*s");
 	    if (fscanf(file,"%d %*s",iaddr->num_psurfs+c_index) != 1)
 	    {
 	        (void) printf("WARNING in read_print_curve_boundary(), "
@@ -1311,7 +1315,7 @@ LOCAL	boolean read_print_curve_boundary(
 	    	}
 	    }
 	    else
-	    	fscanf(file,"%*s");
+	    	status = fscanf(file,"%*s");
 	    if (fscanf(file,"%d %*s",iaddr->num_nsurfs+c_index) != 1)
 	    {
 	        (void) printf("WARNING in read_print_curve_boundary(), "
@@ -1333,7 +1337,7 @@ LOCAL	boolean read_print_curve_boundary(
 	    	}
 	    }
 	    else
-	    	fscanf(file,"%*s");
+	    	status = fscanf(file,"%*s");
 	    if (!fgetstring(file,"Data"))
 	    {
 	        (void) printf("WARNING in read_print_curve_boundary(), "
@@ -1359,6 +1363,7 @@ LOCAL boolean read_print_curve_points(
 	FILE    *file = io_type->file;
 	int     i,j,n, dim = curve->interface->dim;
 	double   coords[MAXD];
+	int	status;
 
 
 	        /* Find All Points on Curve: */
@@ -1387,7 +1392,7 @@ LOCAL boolean read_print_curve_points(
 		        return NO;
 		    }
 	        }
-	        (void) fscanf(file,"%*s");
+	        status = fscanf(file,"%*s");
 	        if (i == 0) /* Skip Start Node */
 		    continue;
 	        if (insert_point_in_bond(Point(coords),curve->last,curve) !=
@@ -1933,10 +1938,11 @@ LOCAL NODE *read_print_node(
 	double   coords[MAXD];
 	char    bdry[20];
 	int     i, c, dim;
+	int 	status;
 
 	(void) fgetstring(file,"Node");
-	(void) fscanf(file,"%llu:",(long long unsigned int *)node_p);
-	(void) fscanf(file,"%s %*s",bdry);
+	status = fscanf(file,"%llu:",(long long unsigned int *)node_p);
+	status = fscanf(file,"%s %*s",bdry);
 
 	dim = intfc->dim;
 	(void) fgetstring(file,"Position  ");
@@ -1945,7 +1951,7 @@ LOCAL NODE *read_print_node(
 	    (void) ungetc(c,file);
 	    for (i = 0; i < dim; ++i)
 	    {
-	        (void) fscanf(file,"%*s %*s");
+	        status = fscanf(file,"%*s %*s");
 	        (void) fscan_float(file,coords+i);
 	    }
 	}

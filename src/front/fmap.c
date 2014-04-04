@@ -363,6 +363,7 @@ EXPORT	void	FT_Init(
         int i,total_num_proc = 1;
 	char dirname[256];
 	char file_name[256];
+	FILE *ifile;
 
 	f_basic->ReadFromInput = NO;
 	f_basic->RestartRun = NO;
@@ -450,7 +451,7 @@ EXPORT	void	FT_Init(
                     sprintf(file_name,"%s/run-output.%d",dirname,pp_mynode());
 		else
                     sprintf(file_name,"%s/run-output",dirname);
-		freopen(file_name,"w",stdout);
+		ifile = freopen(file_name,"w",stdout);
 		zero_scalar(out_name,200);
 		strcpy(out_name,argv[1]);
 		argc -= 2;
@@ -1698,20 +1699,20 @@ EXPORT void FT_ReadSpaceDomain(
 	
 	FILE *infile;
 	char input_string[200],sbdry[200];
-	int i;
+	int i,status;
 
 	infile = fopen(in_name,"r");
 	for (i = 0; i < f_basic->dim; ++i)
 	{
             sprintf(input_string,"Domain limit in %d-th dimension:",i);
             CursorAfterString(infile,input_string);
-            fscanf(infile,"%lf %lf",&f_basic->L[i],&f_basic->U[i]);
+            status = fscanf(infile,"%lf %lf",&f_basic->L[i],&f_basic->U[i]);
             (void) printf("%f %f\n",f_basic->L[i],f_basic->U[i]);
 	}
 	CursorAfterString(infile,"Computational grid:");
 	for (i = 0; i < f_basic->dim; ++i)
 	{
-	    fscanf(infile,"%d",&f_basic->gmax[i]);
+	    status = fscanf(infile,"%d",&f_basic->gmax[i]);
 	    (void) printf("%d ",f_basic->gmax[i]);
 	}
 	(void) printf("\n");
@@ -1719,7 +1720,7 @@ EXPORT void FT_ReadSpaceDomain(
 	{
             sprintf(input_string,"Lower boundary in %d-th dimension:",i);
             CursorAfterString(infile,input_string);
-            fscanf(infile,"%s",sbdry);
+            status = fscanf(infile,"%s",sbdry);
 	    (void) printf("%s\n",sbdry);
 	    switch (sbdry[0])
 	    {
@@ -1752,7 +1753,7 @@ EXPORT void FT_ReadSpaceDomain(
 	    }
             sprintf(input_string,"Upper boundary in %d-th dimension:",i);
             CursorAfterString(infile,input_string);
-            fscanf(infile,"%s",sbdry);
+            status = fscanf(infile,"%s",sbdry);
 	    (void) printf("%s\n",sbdry);
 	    switch (sbdry[0])
 	    {
@@ -1794,7 +1795,7 @@ EXPORT void FT_ReadComparisonDomain(
 	
 	FILE *infile;
 	char input_string[200],sbdry[200];
-	int i;
+	int i,status;
 
 	infile = fopen(in_name,"r");
 
@@ -1806,13 +1807,13 @@ EXPORT void FT_ReadComparisonDomain(
 	{
             sprintf(input_string,"Domain limit in %d-th dimension:",i);
             CursorAfterString(infile,input_string);
-            fscanf(infile,"%lf %lf",&f_basic->L[i],&f_basic->U[i]);
+            status = fscanf(infile,"%lf %lf",&f_basic->L[i],&f_basic->U[i]);
             (void) printf("%f %f\n",f_basic->L[i],f_basic->U[i]);
 	}
 	CursorAfterString(infile,"Computational grid:");
 	for (i = 0; i < f_basic->dim; ++i)
 	{
-	    fscanf(infile,"%d",&f_basic->gmax[i]);
+	    status = fscanf(infile,"%d",&f_basic->gmax[i]);
 	    (void) printf("%d ",f_basic->gmax[i]);
 	}
 	(void) printf("\n");
@@ -1820,7 +1821,7 @@ EXPORT void FT_ReadComparisonDomain(
 	{
             sprintf(input_string,"Lower boundary in %d-th dimension:",i);
             CursorAfterString(infile,input_string);
-            fscanf(infile,"%s",sbdry);
+            status = fscanf(infile,"%s",sbdry);
 	    (void) printf("%s\n",sbdry);
 	    switch (sbdry[0])
 	    {
@@ -1853,7 +1854,7 @@ EXPORT void FT_ReadComparisonDomain(
 	    }
             sprintf(input_string,"Upper boundary in %d-th dimension:",i);
             CursorAfterString(infile,input_string);
-            fscanf(infile,"%s",sbdry);
+            status = fscanf(infile,"%s",sbdry);
 	    (void) printf("%s\n",sbdry);
 	    switch (sbdry[0])
 	    {
@@ -1894,31 +1895,32 @@ EXPORT void FT_ReadTimeControl(
 {
 	FILE *infile;
 	char msg[100],s[100];
+	int status;
 
 	infile = fopen(in_name,"r");
         CursorAfterString(infile,"Max time:");
-        fscanf(infile,"%lf",&front->max_time);
+        status = fscanf(infile,"%lf",&front->max_time);
         (void) printf("%f\n",front->max_time);
         CursorAfterString(infile,"Max step:");
-        fscanf(infile,"%d",&front->max_step);
+        status = fscanf(infile,"%d",&front->max_step);
         (void) printf("%d\n",front->max_step);
         CursorAfterString(infile,"Print interval:");
-        fscanf(infile,"%lf",&front->print_time_interval);
+        status = fscanf(infile,"%lf",&front->print_time_interval);
         (void) printf("%f\n",front->print_time_interval);
         CursorAfterString(infile,"Movie frame interval:");
-        fscanf(infile,"%lf",&front->movie_frame_interval);
+        status = fscanf(infile,"%lf",&front->movie_frame_interval);
         (void) printf("%f\n",front->movie_frame_interval);
         CursorAfterString(infile,"CFL factor:");
-        fscanf(infile,"%lf",&(Time_step_factor(front)));
+        status = fscanf(infile,"%lf",&(Time_step_factor(front)));
         (void) printf("%f\n",Time_step_factor(front));
         CursorAfterString(infile,"Redistribution interval:");
-        fscanf(infile,"%d",&(Frequency_of_redistribution(front,GENERAL_WAVE)));
+        status = fscanf(infile,"%d",&(Frequency_of_redistribution(front,GENERAL_WAVE)));
         (void) printf("%d\n",Frequency_of_redistribution(front,GENERAL_WAVE));
 	sprintf(msg,"Type yes to turn off auto-redistribution:");
 	front->Auto_Redist = YES;	
         if (CursorAfterStringOpt(infile,msg))
 	{
-            fscanf(infile,"%s",s);
+            status = fscanf(infile,"%s",s);
 	    (void) printf("%s\n",s);
 	    if (s[0] == 'y' || s[0] == 'Y')
 		front->Auto_Redist = NO;	
@@ -2970,13 +2972,14 @@ EXPORT	void FT_InitDebug(char *inname)
 {
 	FILE *infile = fopen(inname,"r");
 	char string[100];
+	int status;
 
 	if (!fgetstring(infile,"Enter yes for debugging:"))
 	{
 	    unset_debug();
 	    return;
 	}
-	fscanf(infile,"%s",string);
+	status = fscanf(infile,"%s",string);
 	(void) printf("Enter yes for debugging: %s\n",string);
 	if (string[0] == 'n' || string[0] == 'N')
 	{
@@ -2986,7 +2989,7 @@ EXPORT	void FT_InitDebug(char *inname)
 	while (fgetstring(infile,"Enter the debugging string:"))
 	{
 	    zero_scalar(string,100*sizeof(char));	
-	    fscanf(infile,"%s",string);
+	    status = fscanf(infile,"%s",string);
 	    add_to_debug(string);
 	    (void) printf("Enter the debugging string: %s\n",string);
 	}
@@ -3176,6 +3179,7 @@ EXPORT void FT_PromptSetMixedTypeBoundary2d(
 	int n_nodes,n_curves;
 	int i,j,dim,idir,nb;
 	char input_string[100],s[100];
+	int status;
 
 	dim = intfc->dim;
 	if (dim != 2) return;	/* 3D not implemented */
@@ -3219,7 +3223,7 @@ EXPORT void FT_PromptSetMixedTypeBoundary2d(
 	    {
 		sprintf(input_string,"Enter type of node %d:",i+1);
             	CursorAfterString(infile,input_string);
-		fscanf(infile,"%s",s);
+		status = fscanf(infile,"%s",s);
 		(void) printf("%s\n",s);
 		switch (s[0])
 		{
@@ -3264,7 +3268,7 @@ EXPORT void FT_PromptSetMixedTypeBoundary2d(
 		    clean_up(ERROR);
 		}
             	CursorAfterString(infile,input_string);
-		fscanf(infile,"%s",s);
+		status = fscanf(infile,"%s",s);
 		(void) printf("%s\n",s);
 		switch (s[0])
 		{

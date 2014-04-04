@@ -357,6 +357,8 @@ EXPORT	int	f_user_read_print_interface(
 	FILE       *file = io_type->file;
 	const char *search_string;
 	int	   i;
+	int	   status;
+	char *string;
 
 	if (next_output_line_containing_string(file,
 	        "Interface normal and tangent operators"))
@@ -365,7 +367,7 @@ EXPORT	int	f_user_read_print_interface(
 	    {
 	        F_USER_INTERFACE *fuh;
 	        char s[2048];
-	        (void) fgets(s,2046,file);
+	        string = fgets(s,2046,file);
 	        s[strlen(s)-1] = '\0';
 	        set_normal_function(s,&interface_normal_function(intfc),intfc);
 	        fuh = f_user_hook(intfc->dim);
@@ -376,7 +378,7 @@ EXPORT	int	f_user_read_print_interface(
 	    {
 	        F_USER_INTERFACE *fuh;
 	        char s[2048];
-	        (void) fgets(s,2046,file);
+	        string = fgets(s,2046,file);
 	        s[strlen(s)-1] = '\0';
 	        set_tangent_function(s,&interface_tangent_function(intfc),
 		                     intfc);
@@ -400,10 +402,10 @@ EXPORT	int	f_user_read_print_interface(
 	    int		ncomps;
 
 	    (void) fgetstring(file,"Number of excluded components = ");
-	    (void) fscanf(file,"%d",&ncomps);
+	    status = fscanf(file,"%d",&ncomps);
 	    for (i = 0; i < ncomps; ++i)
 	    {
-	    	(void) fscanf(file,"%*s %*s %*d %*s %d",&comp);
+	    	status = fscanf(file,"%*s %*s %*d %*s %d",&comp);
 	    	exclude_comp(comp,intfc);
 	    }
 	    search_string = "End Excluded Components List";
@@ -429,6 +431,8 @@ LOCAL	int	read_print_boundary_state_data_list(
 	char	   s[2048];
 	const char *search_string;
 	int	   index, nbstates;
+	int	   status;
+	char	   *string;
 
 	for (hs = hyper_surf_list(intfc); hs && *hs; ++hs)
 	    if (wave_type(*hs) == DIRICHLET_BOUNDARY)
@@ -444,16 +448,16 @@ LOCAL	int	read_print_boundary_state_data_list(
 	    clean_up(ERROR);
 	}
 	(void) fgetstring(file,"num_bstates =");
-	(void) fscanf(file,"%d",&nbstates);
+	status = fscanf(file,"%d",&nbstates);
 	(void) getc(file);/*trailing newline*/
 	for (index = 0; index < nbstates; ++index)
 	{
-	    (void) fgets(s,2046,file);
+	    string = fgets(s,2046,file);
 	    if (s[0] == 'N')
 		continue;
 	    (*read_print_boundary_state_data(intfc))(init,io_type,intfc,index);
 	    (void) fgetstring(file,"End Boundary state data for index");
-	    (void) fscanf(file,"%*d");
+	    status = fscanf(file,"%*d");
 	    (void) getc(file);/*trailing newline*/
 	}
 	return YES;
@@ -468,6 +472,7 @@ EXPORT	void	f_read_print_boundary_state_data(
 	FILE           *file = io_type->file;
 	BOUNDARY_STATE Bstate;
 	char	       c, s[120];
+	int	       status;
 
 	Bstate._fprint_boundary_state_data = f_fprint_boundary_state_data;
 	Bstate._boundary_state_data = NULL;
@@ -484,7 +489,7 @@ EXPORT	void	f_read_print_boundary_state_data(
 
 	(void) fgetstring(file,"Boundary state function = ");
 
-	(void) fscanf(file,"%s",s);
+	status = fscanf(file,"%s",s);
 	if (strcmp(s,"NONE") == 0 || strcmp(s,"none") == 0 ||
 		    strcmp(s,"(NULL)") == 0 || strcmp(s,"(null)") == 0)
 	{
@@ -1317,7 +1322,7 @@ EXPORT	boolean f_user_read_print_curve(
 	INTERFACE *intfc = curve->interface;
 	FILE      *file = io_type->file;
 	char	  type[120];
-	int	  i;
+	int	  i,status;
 
 	switch (intfc->dim)
 	{
@@ -1342,7 +1347,7 @@ EXPORT	boolean f_user_read_print_curve(
 	    (void) fgetstring(file,"Hs_flag(curve) = "); 
 
             /* FIXME. Implementation of boolean is compiler dependent. */
-            (void) fscanf(file,"%p", (void**)&Hs_flag(curve));
+            status = fscanf(file,"%p", (void**)&Hs_flag(curve));
 	    if (fgetstring(file,"redistribution_direction = ") ==
 		FUNCTION_SUCCEEDED)
 	    {
@@ -1358,7 +1363,8 @@ EXPORT	boolean f_user_read_print_curve(
 	    if (fgetstring(file,"Specialized curve normal function = "))
 	    {
 	        char s[2048];
-	        (void) fgets(s,2046,file);
+		char *string;
+	        string = fgets(s,2046,file);
 	        s[strlen(s)-1] = '\0';
 	        set_normal_function(s,&hypersurface_normal_function(curve),
 		                    intfc);
@@ -1367,7 +1373,7 @@ EXPORT	boolean f_user_read_print_curve(
 	    	wave_type(curve) == ICE_PARTICLE_BOUNDARY)
             {
                 fgetstring(file,"Body index = ");
-            	(void) fscanf(file,"%d",&body_index(Hyper_surf(curve)));
+            	status = fscanf(file,"%d",&body_index(Hyper_surf(curve)));
                 total_mass(Hyper_surf(curve)) =
                         read_print_float("Total mass = ",1.0,io_type);
                 mom_inertial(Hyper_surf(curve)) =
@@ -1388,7 +1394,7 @@ EXPORT	boolean f_user_read_print_curve(
                             read_print_float("Angular velocity = ",1.0,io_type);
                 fgetstring(file,"Motion type = ");
                 /* FIXME: the size of enum is compiler dependent */
-            	(void) fscanf(file,"%d",(int*)&motion_type(Hyper_surf(curve)));
+            	status = fscanf(file,"%d",(int*)&motion_type(Hyper_surf(curve)));
                 spherical_radius(Hyper_surf(curve)) =
                             read_print_float("Radius = ",1.0,io_type);
 	    }
@@ -1412,7 +1418,8 @@ EXPORT	boolean f_user_read_print_curve(
 	if (fgetstring(file,"Specialized curve tangent function = "))
 	{
 	    char s[2048];
-	    (void) fgets(s,2046,file);
+	    char *string;
+	    string = fgets(s,2046,file);
 	    s[strlen(s)-1] = '\0';
 	    set_tangent_function(s,&curve_tangent_function(curve),intfc);
 	}
@@ -1453,11 +1460,12 @@ EXPORT	void f_user_read_print_node(
 	FILE *file = io_type->file;
 	char type[120];
 	int  dim = node->interface->dim;
+	int  status;
 
 	if (dim == 2)
 	{
 	    (void) fgetstring(file,"node->type = ");
-	    (void) fscanf(file,"%s",type);        
+	    status = fscanf(file,"%s",type);        
 	    node_type(node) = read_node_type_from_string(type,node->interface);
 	}
 }		/*end f_user_read_print_node*/
@@ -2756,15 +2764,16 @@ EXPORT	void f_user_read_print_surface(
 	FILE *file = io_type->file;
 	char type[120];
 	int i;
+	int status;
 
 	(void) fgetstring(file,"surface->wave_type = ");
-	(void) fscanf(file,"%s",type);
+	status = fscanf(file,"%s",type);
 	wave_type(surf) = read_wave_type_from_string(type,surf->interface);
 	if (wave_type(surf) == MOVABLE_BODY_BOUNDARY ||
 	    wave_type(surf) == ICE_PARTICLE_BOUNDARY)
         {
             fgetstring(file,"Body index = ");
-            (void) fscanf(file,"%d",&body_index(Hyper_surf(surf)));
+            status = fscanf(file,"%d",&body_index(Hyper_surf(surf)));
             total_mass(Hyper_surf(surf)) =
                             read_print_float("Total mass = ",1.0,io_type);
             mom_inertial(Hyper_surf(surf)) =
@@ -2790,14 +2799,15 @@ EXPORT	void f_user_read_print_surface(
                         read_print_float("Angular velocity = ",1.0,io_type);
             fgetstring(file,"Motion type = ");
             /* FIXME: the size of enum is compiler dependent */
-            (void) fscanf(file,"%d",(int*)&motion_type(Hyper_surf(surf)));
+            status = fscanf(file,"%d",(int*)&motion_type(Hyper_surf(surf)));
             spherical_radius(Hyper_surf(surf)) =
                         read_print_float("Radius = ",1.0,io_type);
 	}
 	if (fgetstring(file,"Specialized surface normal function = "))
 	{
 	    char s[2048];
-	    (void) fgets(s,2046,file);
+	    char *string;
+	    string = fgets(s,2046,file);
 	    s[strlen(s)-1] = '\0';
 	    set_normal_function(s,&hypersurface_normal_function(surf),
 		                surf->interface);
@@ -3218,6 +3228,7 @@ LOCAL	void f_read_print_Dirichlet_bdry_states(
 	FILE       *file = io_type->file;
 	HYPER_SURF **hs;
 	int	   i;
+	int	   status;
 
 	if (next_output_line_containing_string(file,
 		"Hypersurface Dirichlet boundary state information") == NULL)
@@ -3230,7 +3241,7 @@ LOCAL	void f_read_print_Dirichlet_bdry_states(
 	    if (wave_type(*hs) != DIRICHLET_BOUNDARY)
 		continue;
 	    (void) fgetstring(file,"Boundary state index for");
-	    (void) fscanf(file,"%*s %*d %*s %d",&bstate_index(*hs));
+	    status = fscanf(file,"%*s %*d %*s %d",&bstate_index(*hs));
 	}
 	(void) next_output_line_containing_string(file,
 		"End hypersurface Dirichlet boundary state information");
