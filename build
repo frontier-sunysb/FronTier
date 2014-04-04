@@ -3,23 +3,22 @@
 function parse_arguments {
  # Parse command-line arguments
     if [[ "$1" == "-h" ]]; then
-        echo "$0    High-level build script for FronTier."
+        echo "$0    High-level build script for FronTier++."
         echo "Usage: $0 [-d] [-n] [-g] [--with-hdf]"
         echo
         echo "    -d          Enable debugging."
         echo "    -n          Just configure. Do not run make."
-        echo "    -g          Enable compilation of Gas directory."
+        echo "    -o2          Just configure. Do not run make."
         echo "    --with-gpu  Enable compilation with GPU."
         echo "    --without-hypre  Not to enable compilation with HYPRE."
-        echo "    --with-hdf  Enable compilation with HDF4."
-        echo "    --with-gd   Enable compilation with graphics drawing for 1-D post processing."
+        echo "    --without-hdf  Not to enable compilation with HDF4."
+        echo "    --without-gd   Not to enable compilation with graphics drawing for 1-D post processing."
         echo "    --enable-itaps  Enable compilation with ITAPS."
         echo "    --enable-imesh  Enable compilation with IMESH."
 	echo "    --with-***      Same parameter as old configure file."
         exit
     fi
     
-    OPTS="-O2"
     WITHHYPRE=1
     WITHHDF=1
     WITHGD=1
@@ -36,6 +35,8 @@ function parse_arguments {
 	    CONF="$CONF --enable-imesh"
         elif [[ "$arg" == "--with-gpu" ]]; then
             WITHGPU=1
+        elif [[ "$arg" == "-o2" ]]; then
+	    OPTS="-O2"
         elif [[ "$arg" == "--without-hypre" ]]; then
             WITHHYPRE=0
         elif [[ "$arg" == "--without-hdf" ]]; then
