@@ -143,15 +143,19 @@ int main(int argc, char **argv)
 	l_cartesian->initMesh();
         if (RestartRun)
 	{
-            l_cartesian->readFrontInteriorStates(restart_state_name);
-	    readAfExtraDada(&front,restart_state_name);
 	    if (ReSetTime) 
 	    {
 		/* forbidden if restart with inherited states */
+	    	readAfExtraDada(&front,restart_state_name);
 	    	modifyInitialization(&front);
 	    	read_iF_dirichlet_bdry_data(in_name,&front,f_basic);
 		l_cartesian->initMesh();
             	l_cartesian->setInitialCondition();
+	    }
+	    else
+	    {
+            	l_cartesian->readFrontInteriorStates(restart_state_name);
+	    	readAfExtraDada(&front,restart_state_name);
 	    }
 	}
         else

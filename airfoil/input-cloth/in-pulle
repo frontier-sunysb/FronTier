@@ -9,7 +9,7 @@ Upper boundary in 1-th dimension: NEUMANN_BOUNDARY
 Lower boundary in 2-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 2-th dimension: DIRICHLET_BOUNDARY
 
-Max time: 8.0
+Max time: 6.0
 Max step: 50000
 Print interval: 0.1
 Movie frame interval: 0.1
