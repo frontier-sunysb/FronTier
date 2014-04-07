@@ -523,24 +523,26 @@ extern void modifyInitialization(
         {
             fscanf(infile,"%s",string);
             (void) printf("%s\n",string);
-            if (string[0] != 'y' && string[0] != 'Y')
-		return;
+            if (string[0] == 'y' || string[0] == 'Y')
+	    {
+		for (i = 0; i < dim; ++i)
+        	{
+	            sprintf(input_string,
+				"New domain limit in %d-th dimension:",i);
+	            CursorAfterString(infile,input_string);
+	            fscanf(infile,"%lf %lf",&L[i],&U[i]);
+	            (void) printf("%f %f\n",L[i],U[i]);
+        	}
+		CursorAfterString(infile,"New computational grid:");
+        	for (i = 0; i < dim; ++i)
+        	{
+	            fscanf(infile,"%d",&gmax[i]);
+		    (void) printf("%d ",gmax[i]);
+        	}
+        	(void) printf("\n");
+		FT_ResetDomainAndGrid(front,L,U,gmax);
+	    }
         }
-	for (i = 0; i < dim; ++i)
-        {
-            sprintf(input_string,"New domain limit in %d-th dimension:",i);
-            CursorAfterString(infile,input_string);
-            fscanf(infile,"%lf %lf",&L[i],&U[i]);
-            (void) printf("%f %f\n",L[i],U[i]);
-        }
-	CursorAfterString(infile,"New computational grid:");
-        for (i = 0; i < dim; ++i)
-        {
-            fscanf(infile,"%d",&gmax[i]);
-	    (void) printf("%d ",gmax[i]);
-        }
-        (void) printf("\n");
-	FT_ResetDomainAndGrid(front,L,U,gmax);
 }	/* end modifyInitialization */
 
 extern void gviewSurfaceStress(

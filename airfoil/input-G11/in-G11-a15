@@ -96,7 +96,7 @@ Enter yes for translation of interior interface: n
 Enter displacement of translation: 0 7 0
 Enter yes for rotation of interior interface: n
 Enter center of rotation: 7 14 14
-Enter azimuthal and polar angles: 90 30
+Enter azimuthal and polar angles: 90 15
 Entering yes to modify computational grid: y
 New domain limit in 0-th dimension: 0 14
 New domain limit in 1-th dimension: 0 28
