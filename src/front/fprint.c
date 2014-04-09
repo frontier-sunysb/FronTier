@@ -86,6 +86,7 @@ LOCAL 	void 	vtk_plot_vector_field(const char*,Front*,int);
 LOCAL 	void 	vtk_plot_scalar_field(const char*,Front*,int);
 LOCAL 	void 	vtk_plot_scalar_field2d(const char*,Front*,int);
 LOCAL 	void 	vtk_plot_scalar_field3d(const char*,Front*,int);
+LOCAL 	void 	vtk_plot_intfc_color(char*,Front*);
 LOCAL	void	show_front_gd(Front*,char*);
 LOCAL	void	show_front_xg(Front*,char*);
 LOCAL	void	show_front_hdf(Front*,char*);
@@ -1150,29 +1151,12 @@ EXPORT void print_front_output(
 	char *out_name)
 {
 	FILE *out_file;
-	char dirname[200];
 	char intfc_name[200],comp_name[200];
 	int step = front->step;
 	int dim = front->rect_grid->dim;
 	int numnodes = pp_numnodes();
 	boolean save_binary_output = is_binary_output();
 
-	sprintf(dirname,"%s/gview",out_name);
-	if (pp_mynode() == 0)
-	{
-	    if (!create_directory(dirname,YES))
-	    {
-	    	screen("Cannot create directory %s\n",dirname);
-	    	clean_up(ERROR);
-	    }
-	}
-	pp_gsync();
-	sprintf(dirname,"%s/gv.ts%s",dirname,right_flush(step,7));
-	if (numnodes > 1)
-	    sprintf(dirname,"%s-nd%s",dirname,right_flush(pp_mynode(),4));
-
-	if (dim != 1)
-	    gview_plot_interface(dirname,front->interf);
 	sprintf(intfc_name,"%s/intfc-ts%s",out_name,right_flush(step,7));
 	if (numnodes > 1)
 	    sprintf(intfc_name,"%s-nd%s",intfc_name,right_flush(pp_mynode(),4));
@@ -1187,7 +1171,8 @@ EXPORT void print_front_output(
 	{
 	    sprintf(comp_name,"%s/comp.ts%s",out_name,right_flush(step,7));
 	    if (numnodes > 1)
-	        sprintf(comp_name,"%s-nd%s",comp_name,right_flush(pp_mynode(),4));
+	        sprintf(comp_name,"%s-nd%s",comp_name,right_flush(pp_mynode(),
+					4));
 	    out_file = fopen(comp_name,"w");
 	    (void) make_bond_comp_lists(front->interf);
 	    show_COMP(out_file,front->interf);
@@ -1202,13 +1187,21 @@ LOCAL	void show_front_vtk(
         boolean print_in_binary)
 {
 	char dirname[256];
+	char vdirname[256];
+	char sdirname[256];
         int step = front->step; 
 	int dim = front->rect_grid->dim;
+	static boolean first = YES;
+	static FILE *intfc_file;
+	static FILE *curve_file;
+	static char prefix[100];
+	char fname[256];
 
 	if (dim == 1) return;
 
 	/* Create vtk directories */
 
+        sprintf(vdirname,"%s/vtk",out_name);
         sprintf(dirname,"%s/vtk",out_name);
 	if (pp_mynode() == 0)
 	{
@@ -1220,8 +1213,12 @@ LOCAL	void show_front_vtk(
 	}
 	pp_gsync();
         sprintf(dirname,"%s/vtk.ts%s",dirname,right_flush(step,7));
+        sprintf(sdirname,"vtk.ts%s",right_flush(step,7));
 	if (pp_numnodes() > 1)
+	{
             sprintf(dirname,"%s-nd%s",dirname,right_flush(pp_mynode(),4));
+            sprintf(sdirname,"%s-nd",right_flush(pp_mynode(),4));
+	}
 	if (!create_directory(dirname,YES))
 	{
 	    screen("Cannot create directory %s\n",dirname);
@@ -1229,15 +1226,82 @@ LOCAL	void show_front_vtk(
 	}
         vtk_interface_plot(dirname,front->interf,print_in_binary,
 					front->time,front->step);
+	if (first == YES)
+	{
+	    sprintf(fname,"%s/intfc.visit",vdirname);
+	    intfc_file = fopen(fname,"w");
+	    if (dim == 3)
+	    {
+	    	sprintf(fname,"%s/curves.visit",vdirname);
+	    	curve_file = fopen(fname,"w");
+		sprintf(prefix,"3d-");
+	    }
+	    else
+		sprintf(prefix,"2d-");
+	}
+	fprintf(intfc_file,"%s/%sintfc.vtk\n",sdirname,prefix);
+	fflush(intfc_file);
+	if (dim == 3)
+	{
+	    fprintf(curve_file,"%s/%scurves.vtk\n",sdirname,prefix);
+	    fflush(curve_file);
+	}
 	if (front->vtk_movie_var != NULL)
 	{
 	    VTK_MOVIE_VAR *vtk_movie_var = front->vtk_movie_var;
 	    int i;
+	    static FILE **vfiles;
+	    static FILE **sfiles;
+	    static FILE *cfiles;
+	    char **vnames = vtk_movie_var->vector_var_name;
+	    char **snames = vtk_movie_var->scalar_var_name;
+	    char *cname = vtk_movie_var->intfc_var_name;
+
+	    if (first == YES)
+	    {
+	    	if (vtk_movie_var->num_vector_var != 0)
+		    FT_VectorMemoryAlloc((POINTER*)&vfiles,
+			vtk_movie_var->num_vector_var,sizeof(FILE*));
+	    	if (vtk_movie_var->num_scalar_var != 0)
+		    FT_VectorMemoryAlloc((POINTER*)&sfiles,
+			vtk_movie_var->num_scalar_var,sizeof(FILE*));
+	    }
+
 	    for (i = 0; i < vtk_movie_var->num_vector_var; ++i)
+	    {
 	    	vtk_plot_vector_field(dirname,front,i);
+		if (first == YES)
+		{
+	    	    sprintf(fname,"%s/%s.visit",vdirname,vnames[i]);
+		    vfiles[i] = fopen(fname,"w");
+		}
+	    	fprintf(vfiles[i],"%s/%s.vtk\n",sdirname,vnames[i]);
+	    	fflush(vfiles[i]);
+	    }
 	    for (i = 0; i < vtk_movie_var->num_scalar_var; ++i)
+	    {
 	    	vtk_plot_scalar_field(dirname,front,i);
+		if (first == YES)
+		{
+	    	    sprintf(fname,"%s/%s.visit",vdirname,snames[i]);
+		    sfiles[i] = fopen(fname,"w");
+		}
+	    	fprintf(sfiles[i],"%s/%s.vtk\n",sdirname,snames[i]);
+	    	fflush(sfiles[i]);
+	    }
+	    if (vtk_movie_var->plot_intfc_var == YES);
+	    {
+		vtk_plot_intfc_color(dirname,front);
+		if (first == YES)
+		{
+	    	    sprintf(fname,"%s/%s.visit",vdirname,cname);
+		    cfiles = fopen(fname,"w");
+		}
+	    	fprintf(cfiles,"%s/%s.vtk\n",sdirname,cname);
+	    	fflush(cfiles);
+	    }
 	}
+	first = NO;
 }	/* end show_front_vtk */
 
 LOCAL	void show_front_hdf(
@@ -1307,12 +1371,15 @@ LOCAL	void show_front_gv(
         int step = front->step; 
 	int dim = front->rect_grid->dim;
 	static boolean first = YES;
+	int numnodes = pp_numnodes();
 
-	if (dim == 3 || dim == 1) return;
+	if (dim == 1) return;
+
 	/* Create GV directory */
 	sprintf(dirname,"%s/gview",out_name);
 	if (first && pp_mynode() == 0)
 	{
+	    first = NO;
 	    if (!create_directory(dirname,NO))
 	    {
 	    	screen("Cannot create directory %s\n",dirname);
@@ -1320,6 +1387,21 @@ LOCAL	void show_front_gv(
 	    }
 	}
 	pp_gsync();
+	sprintf(dirname,"%s/gv.ts%s",dirname,right_flush(step,7));
+        if (numnodes > 1)
+            sprintf(dirname,"%s-nd%s",dirname,right_flush(pp_mynode(),4));
+	gview_plot_interface(dirname,front->interf);
+	if (front->print_gview_color == YES)
+	{
+	    sprintf(dirname,"%s/gview",out_name);
+	    sprintf(dirname,"%s/gv-color.ts%s",dirname,right_flush(step,7));
+            if (numnodes > 1)
+            	sprintf(dirname,"%s-nd%s",dirname,right_flush(pp_mynode(),4));
+	    gview_plot_color_scaled_interface(dirname,front->interf);
+	}
+	if (dim != 2)
+	    return;
+
 	if (front->hdf_movie_var != NULL)
 	{
 	    HDF_MOVIE_VAR *hdf_movie_var = front->hdf_movie_var;
@@ -1329,7 +1411,6 @@ LOCAL	void show_front_gv(
 	        gv_plot_var2d(front,dirname,hdf_movie_var,i);
 	    }
         }
-	first = NO;
 	return;
 }	/* end show_front_gv */
 
@@ -1553,6 +1634,7 @@ EXPORT  void show_front_output(
 	show_front_gd(front,out_name);
 	show_front_xg(front,out_name);
 	show_front_hdf(front,out_name);
+	show_front_gv(front,out_name);
 	
 	show_front_vtk(front,out_name,print_in_binary);	
 	show_front_sdl(front,out_name);
@@ -4131,3 +4213,88 @@ LOCAL	void	gv_plot_var2d(
 	    (void) printf("Left gv_plot_var2d().\n");
 }	/* end gv_plot_var2d */
 
+LOCAL void vtk_plot_intfc_color(
+	char *dirname,
+	Front *front)
+{
+	char *vname = front->vtk_movie_var->intfc_var_name;
+	INTERFACE *intfc = front->interf;
+	SURFACE **s;
+	TRI *tri;
+	POINT *p;
+	static char *fname = NULL;
+	int i,j;
+	int n,N;
+	double *color;
+	FILE *vfile;
+	int num_tri;
+	size_t fname_len = 0;
+	
+	fname = get_vtk_file_name(fname,dirname,vname,&fname_len);
+	n = 0;
+	if (create_directory(dirname,YES) == FUNCTION_FAILED)
+        {
+            printf("Cannot create directory %s\n",dirname);
+            clean_up(ERROR);
+        }
+	sprintf(fname,"%s/%s.vtk",dirname,vname);
+	vfile = fopen(fname,"w");
+	fprintf(vfile,"# vtk DataFile Version 3.0\n");
+        fprintf(vfile,"%s\n",vname);
+        fprintf(vfile,"ASCII\n");
+        fprintf(vfile,"DATASET UNSTRUCTURED_GRID\n");
+
+	num_tri = 0;
+
+	intfc_surface_loop(intfc,s)
+	{
+	    if (Boundary(*s)) continue;
+	    num_tri += (*s)->num_tri;
+	}
+	fprintf(vfile,"POINTS %d double\n", 3*num_tri);
+	intfc_surface_loop(intfc,s)
+	{
+	    if (Boundary(*s)) continue;
+	    surf_tri_loop(*s,tri)
+	    {
+		for (i = 0; i < 3; ++i)
+		{
+		    p = Point_of_tri(tri)[i];
+		    fprintf(vfile,"%f %f %f\n",Coords(p)[0],Coords(p)[1],
+						Coords(p)[2]);
+		}
+	    }
+	}
+	fprintf(vfile,"CELLS %i %i\n",num_tri,4*num_tri);
+	n = 0;
+	intfc_surface_loop(intfc,s)
+	{
+	    if (Boundary(*s)) continue;
+	    surf_tri_loop(*s,tri)
+	    {
+		fprintf(vfile,"3 %i %i %i\n",3*n,3*n+1,3*n+2);
+		n++;
+	    }
+	}
+	fprintf(vfile, "CELL_TYPES %i\n",num_tri);
+        intfc_surface_loop(intfc,s)
+	{
+            if (Boundary(*s)) continue;
+            surf_tri_loop(*s,tri)
+            {
+                fprintf(vfile,"5\n");
+            }
+        }
+
+	fprintf(vfile, "CELL_DATA %i\n", num_tri);
+        fprintf(vfile, "SCALARS %s double\n",vname);
+        fprintf(vfile, "LOOKUP_TABLE default\n");
+	intfc_surface_loop(intfc,s)
+	{
+	    if (Boundary(*s)) continue;
+	    surf_tri_loop(*s,tri)
+	    {
+		fprintf(vfile,"%f\n",tri->color);
+	    }
+	}
+}	/* end vtk_plot_intfc_color */

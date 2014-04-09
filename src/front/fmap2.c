@@ -4,9 +4,7 @@ Front Traking algorithms. Front Tracking is a numerical method for
 the solution of partial differential equations whose solutions have 
 discontinuities.  
 
-
 Copyright (C) 1999 by The University at Stony Brook. 
- 
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -1293,7 +1291,11 @@ EXPORT void FT_AddVtkVectorMovieVariable(
                                 MAX_MOVIE_VARIABLES,100,sizeof(char));
 	    FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->vector_var_name,
                                 MAX_MOVIE_VARIABLES,100,sizeof(char));
+	    FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->intfc_var_name,
+                                100,sizeof(char));
+	    vtk_movie_var->num_scalar_var = 0;
 	    vtk_movie_var->num_vector_var = 0;
+	    vtk_movie_var->plot_intfc_var = NO;
 	    front->vtk_movie_var = vtk_movie_var;
 	}
 	else
@@ -1330,7 +1332,11 @@ EXPORT void FT_AddVtkScalarMovieVariable(
                                 MAX_MOVIE_VARIABLES,100,sizeof(char));
 	    FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->vector_var_name,
                                 MAX_MOVIE_VARIABLES,100,sizeof(char));
+	    FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->intfc_var_name,
+                                100,sizeof(char));
 	    vtk_movie_var->num_scalar_var = 0;
+	    vtk_movie_var->num_vector_var = 0;
+	    vtk_movie_var->plot_intfc_var = NO;
 	    front->vtk_movie_var = vtk_movie_var;
 	}
 	else
@@ -1343,6 +1349,44 @@ EXPORT void FT_AddVtkScalarMovieVariable(
         if (debugging("trace"))
             (void) printf("Leaving FT_AddVtkScalarMovieVariable()\n");
 }	/* end FT_AddVtkScalarMovieVariable */
+
+EXPORT void FT_AddVtkIntfcMovieVariable(
+	Front *front,
+	const char *var_name)
+{
+	static VTK_MOVIE_VAR *vtk_movie_var;
+	int i;
+
+        if (debugging("trace"))
+            (void) printf("Entering FT_AddVtkIntfcMovieVariable()\n");
+
+	if (front->vtk_movie_var == NULL)
+	{
+	    FT_ScalarMemoryAlloc((POINTER*)&vtk_movie_var,
+				sizeof(VTK_MOVIE_VAR));
+	    FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->scalar_var,
+				MAX_MOVIE_VARIABLES,sizeof(double*));
+	    FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->vector_var,
+				MAX_MOVIE_VARIABLES,sizeof(double**));
+	    FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->scalar_var_name,
+                                MAX_MOVIE_VARIABLES,100,sizeof(char));
+	    FT_MatrixMemoryAlloc((POINTER*)&vtk_movie_var->vector_var_name,
+                                MAX_MOVIE_VARIABLES,100,sizeof(char));
+	    FT_VectorMemoryAlloc((POINTER*)&vtk_movie_var->intfc_var_name,
+                                100,sizeof(char));
+	    vtk_movie_var->num_scalar_var = 0;
+	    vtk_movie_var->num_vector_var = 0;
+	    vtk_movie_var->plot_intfc_var = NO;
+	    front->vtk_movie_var = vtk_movie_var;
+	}
+	else
+	    vtk_movie_var = front->vtk_movie_var;
+	vtk_movie_var->plot_intfc_var = YES;
+	sprintf(vtk_movie_var->intfc_var_name,"%s",var_name);
+
+        if (debugging("trace"))
+            (void) printf("Leaving FT_AddVtkIntfcMovieVariable()\n");
+}	/* end FT_AddVtkIntfcMovieVariable */
 
 EXPORT void FT_ResetDomainAndGrid(
 	Front *front,

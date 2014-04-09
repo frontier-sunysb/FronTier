@@ -666,6 +666,8 @@ autoconf
 # Run ./configure.
 ./configure $CONF
 
+make ${PMAKE} clean
+
 # Finally, invoke make
 if [[ -z "$NOMAKE" ]]; then
     make ${PMAKE}

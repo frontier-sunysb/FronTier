@@ -545,16 +545,14 @@ extern void modifyInitialization(
         }
 }	/* end modifyInitialization */
 
-extern void gviewSurfaceStress(
+extern void setStressColor(
 	Front *front)
 {
-	char *outname = OutName(front);
 	INTERFACE *intfc = front->interf;
 	SURFACE **s;
 	TRI *tri;
 	POINT *p;
 	double f[MAXD];
-	char dirname[200];
 	int i,j;
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 	double ks = af_params->ks;
@@ -591,11 +589,34 @@ extern void gviewSurfaceStress(
 	    if (Boundary(*s)) continue;
 	    I_SmoothSurfColor(*s,3);
 	}
-	sprintf(dirname,"%s/gview/%s-ts%s",outname,"gv.stress",
-			right_flush(front->step,7));
-	gview_plot_color_scaled_interface(dirname,intfc);
-	vtkPlotSurfaceStress(front);
-}	/* end gviewSurfaceStress */
+}	/* end setStressColor */
+
+extern void initMovieStress(
+	Front *front,
+	char *inname)
+{
+	char string[100];
+	FILE *infile = fopen(inname,"r");
+	if (CursorAfterStringOpt(infile,
+            "Type y plot surface stress: "))
+        {
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'n' || string[0] == 'n')
+            //if (string[0] == 'y' || string[0] == 'Y')
+	    {
+		/*
+		front->print_gview_color = YES;
+		FT_AddVtkIntfcMovieVariable(front,"VMSTRESS");
+		*/
+		return;
+	    }
+        }
+        fclose(infile);
+	/* Change all input files before using yes as default */
+	front->print_gview_color = YES;
+	FT_AddVtkIntfcMovieVariable(front,"VMSTRESS");
+}	/* end initMovieStress */
 
 static void naturalStressOfTri(
 	TRI *tri,
@@ -636,92 +657,6 @@ static void naturalStressOfTri(
 	// Use von Mises stress as a measure
 	tri->color = sqrt(sqr(sigma1) + sqr(sigma2) - sigma1*sigma2);
 }	/* end naturalStressOfTri */
-
-extern void vtkPlotSurfaceStress(
-	Front *front)
-{
-	char *outname = OutName(front);
-	INTERFACE *intfc = front->interf;
-	SURFACE **s;
-	TRI *tri;
-	POINT *p;
-	char dirname[200],fname[200];
-	int i,j;
-	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
-	int n,N;
-	double *color;
-	FILE *vfile;
-	int num_tri;
-	
-	n = 0;
-	sprintf(dirname,"%s/%s%s",outname,"vtk.ts",
-			right_flush(front->step,7));
-	if (!create_directory(dirname,NO))
-        {
-            printf("Cannot create directory %s\n",dirname);
-            clean_up(ERROR);
-        }
-	sprintf(fname,"%s/%s",dirname,"stress.vtk");
-	vfile = fopen(fname,"w");
-	fprintf(vfile,"# vtk DataFile Version 3.0\n");
-        fprintf(vfile,"Surface stress\n");
-        fprintf(vfile,"ASCII\n");
-        fprintf(vfile,"DATASET UNSTRUCTURED_GRID\n");
-
-	num_tri = 0;
-
-	intfc_surface_loop(intfc,s)
-	{
-	    if (Boundary(*s)) continue;
-	    num_tri += (*s)->num_tri;
-	}
-	fprintf(vfile,"POINTS %d double\n", 3*num_tri);
-	intfc_surface_loop(intfc,s)
-	{
-	    if (Boundary(*s)) continue;
-	    surf_tri_loop(*s,tri)
-	    {
-		for (i = 0; i < 3; ++i)
-		{
-		    p = Point_of_tri(tri)[i];
-		    fprintf(vfile,"%f %f %f\n",Coords(p)[0],Coords(p)[1],
-						Coords(p)[2]);
-		}
-	    }
-	}
-	fprintf(vfile,"CELLS %i %i\n",num_tri,4*num_tri);
-	n = 0;
-	intfc_surface_loop(intfc,s)
-	{
-	    if (Boundary(*s)) continue;
-	    surf_tri_loop(*s,tri)
-	    {
-		fprintf(vfile,"3 %i %i %i\n",3*n,3*n+1,3*n+2);
-		n++;
-	    }
-	}
-	fprintf(vfile, "CELL_TYPES %i\n",num_tri);
-        intfc_surface_loop(intfc,s)
-	{
-            if (Boundary(*s)) continue;
-            surf_tri_loop(*s,tri)
-            {
-                fprintf(vfile,"5\n");
-            }
-        }
-
-	fprintf(vfile, "CELL_DATA %i\n", num_tri);
-        fprintf(vfile, "SCALARS von_Mises_stress double\n");
-        fprintf(vfile, "LOOKUP_TABLE default\n");
-	intfc_surface_loop(intfc,s)
-	{
-	    if (Boundary(*s)) continue;
-	    surf_tri_loop(*s,tri)
-	    {
-		fprintf(vfile,"%f\n",tri->color);
-	    }
-	}
-}	/* end vtkSurfaceStress */
 
 extern void poisson_ratio(
 	Front *front)

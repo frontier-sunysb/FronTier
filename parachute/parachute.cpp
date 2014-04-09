@@ -168,14 +168,13 @@ static  void airfoil_driver(
 	    	xgraph_front(front,out_name);
 	    }
 
+	    setStressColor(front);
 	    FT_Save(front,out_name);
-	    gviewSurfaceStress(front);
 
             l_cartesian->printFrontInteriorStates(out_name);
 	    printAfExtraDada(front,out_name);
 
             FT_AddMovieFrame(front,out_name,binary);
-	    vtkPlotSurfaceStress(front);
 
 	    FT_Propagate(front);
 	    if (!af_params->no_fluid)
@@ -246,15 +245,14 @@ static  void airfoil_driver(
 
             if (FT_IsSaveTime(front))
 	    {
+		setStressColor(front);
 		FT_Save(front,out_name);
-		gviewSurfaceStress(front);
                 l_cartesian->printFrontInteriorStates(out_name);
 	    	printAfExtraDada(front,out_name);
 	    }
             if (FT_IsMovieFrameTime(front))
 	    {
                 FT_AddMovieFrame(front,out_name,binary);
-		vtkPlotSurfaceStress(front);
 	    }
 
             if (FT_TimeLimitReached(front))

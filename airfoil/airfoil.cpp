@@ -19,7 +19,6 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-
 ****************************************************************/
 
 
@@ -164,6 +163,7 @@ int main(int argc, char **argv)
 	if (debugging("sample_velocity"))
             l_cartesian->initSampleVelocity(in_name);
         l_cartesian->initMovieVariables();
+	initMovieStress(&front,in_name);
 
 	if (!RestartRun || ReSetTime)
 	    resetFrontVelocity(&front);
@@ -204,8 +204,8 @@ static  void airfoil_driver(
 
 	    if (debugging("trace"))
                 (void) printf("Calling FT_Save()\n");
+	    setStressColor(front);
 	    FT_Save(front,out_name);
-	    gviewSurfaceStress(front);
 
             if (debugging("trace"))
                 (void) printf("Calling printFrontInteriorStates()\n");
@@ -215,7 +215,6 @@ static  void airfoil_driver(
             if (debugging("trace"))
                 (void) printf("Calling FT_AddMovieFrame()\n");
             FT_AddMovieFrame(front,out_name,binary);
-	    vtkPlotSurfaceStress(front);
 
 	    FT_Propagate(front);
 	    if (!af_params->no_fluid)
@@ -300,8 +299,8 @@ static  void airfoil_driver(
 
             if (FT_IsSaveTime(front))
 	    {
+	    	setStressColor(front);
 		FT_Save(front,out_name);
-	    	gviewSurfaceStress(front);
                 l_cartesian->printFrontInteriorStates(out_name);
 	    	printAfExtraDada(front,out_name);
 	    }
@@ -310,7 +309,6 @@ static  void airfoil_driver(
             if (FT_IsMovieFrameTime(front))
 	    {
                 FT_AddMovieFrame(front,out_name,binary);
-		vtkPlotSurfaceStress(front);
 	    }
 
             if (FT_TimeLimitReached(front))

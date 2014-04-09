@@ -487,6 +487,8 @@ struct _VTK_MOVIE_VAR {
 	int num_scalar_var;
 	char **scalar_var_name;
 	double **scalar_var;
+	boolean plot_intfc_var;
+	char *intfc_var_name;
 };
 typedef struct _VTK_MOVIE_VAR VTK_MOVIE_VAR;
 
@@ -553,6 +555,7 @@ struct _Front {
 	double *max_scaled_propagation;
 	double *max_prop_point;
 	boolean print_sdl_file;
+	boolean print_gview_color;
         boolean tan_sec, parab;
         double subgrid_time;
 

@@ -138,13 +138,12 @@ static  void spring_driver(
 	    FT_ResetTime(front);
 
 	    // Always output the initial interface.
+	    setStressColor(front);
 	    FT_Save(front,out_name);
-	    gviewSurfaceStress(front);
 
 	    printAfExtraDada(front,out_name);
 
             FT_AddMovieFrame(front,out_name,binary);
-	    vtkPlotSurfaceStress(front);
 
 	    FT_Propagate(front);
 	    print_airfoil_stat(front,out_name);
@@ -190,14 +189,13 @@ static  void spring_driver(
 
             if (FT_IsSaveTime(front))
 	    {
+		setStressColor(front);
 		FT_Save(front,out_name);
 	    	printAfExtraDada(front,out_name);
-		gviewSurfaceStress(front);
 	    }
             if (FT_IsMovieFrameTime(front))
 	    {
                 FT_AddMovieFrame(front,out_name,binary);
-		vtkPlotSurfaceStress(front);
 	    }
 
             if (FT_TimeLimitReached(front))

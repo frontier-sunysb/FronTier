@@ -1655,6 +1655,18 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
         const char *var_name,
         double *var_field);
 
+/*! \fn void FT_AddVtkIntfcMovieVariable(
+ * 	Front *front,
+        const char *var_name)
+ *  \ingroup INITIALIZATION
+    \brief Initialize the variable name for vtk interface movie output.
+    \param front @b in	Pointer to the front  
+    \param var_name @b in Names of the variable
+ */
+   IMPORT  void FT_AddVtkIntfcMovieVariable(
+	Front *front,
+        const char *var_name);
+
 /*! \fn void FT_ResetDomainAndGrid(Front *front, 
    	Front *front,
    	double *L,

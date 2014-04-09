@@ -346,9 +346,10 @@ extern void readAfExtraDada(Front*,char*);
 extern void printHyperSurfQuality(Front*);
 extern void optimizeElasticMesh(Front*);
 extern void modifyInitialization(Front*);
-extern void gviewSurfaceStress(Front*);
+extern void setStressColor(Front*);
 extern void vtkPlotSurfaceStress(Front*);
 extern void poisson_ratio(Front*);
+extern void initMovieStress(Front*,char*);
 
 // sprModel/modules.cpp
 extern void initSpringModel(Front*);
