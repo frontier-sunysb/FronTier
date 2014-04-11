@@ -53,6 +53,7 @@ Enter edge of Tetrahedron: 0.5
 
 ************Movie option********************
 
+Type y to make movie of temperature: y
 Type y to make movie of solute: y
 
 ************Debugging options*****************
