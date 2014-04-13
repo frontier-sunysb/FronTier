@@ -85,4 +85,4 @@ Enter the debugging string: tsample_velocity
 
 Enter yes to use GPU solver: yes
 
-Type y plot surface stress: y
+Type y to plot surface stress: y

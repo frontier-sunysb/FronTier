@@ -96,6 +96,7 @@ int main(int argc, char **argv)
         front.extra2 = (POINTER)&af_params;
         read_iFparams(in_name,&iFparams);
 	initParachuteDefault(&front);
+	initMovieStress(in_name,&front);
 
 	level_func_pack.pos_component = LIQUID_COMP2;
 	if (!RestartRun)

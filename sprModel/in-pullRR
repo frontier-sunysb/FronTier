@@ -81,4 +81,4 @@ Enter velocity direction: 1 -1 0
 Enter speed: 1.0
 Enter stop time: 2.0
 
-Type y plot surface stress: y
+Type y to plot surface stress: y

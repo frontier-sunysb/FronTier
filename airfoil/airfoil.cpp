@@ -122,6 +122,7 @@ int main(int argc, char **argv)
 	{
 	    read_iF_dirichlet_bdry_data(in_name,&front,f_basic);
 	}
+	initMovieStress(in_name,&front);
 
 	/* Time control */
 	FT_ReadTimeControl(in_name,&front);
@@ -163,7 +164,6 @@ int main(int argc, char **argv)
 	if (debugging("sample_velocity"))
             l_cartesian->initSampleVelocity(in_name);
         l_cartesian->initMovieVariables();
-	initMovieStress(&front,in_name);
 
 	if (!RestartRun || ReSetTime)
 	    resetFrontVelocity(&front);

@@ -88,4 +88,4 @@ Enter the debugging string: step_size
 Enter the debugging string: no_optimize
 Enter the debugging string: tsample_velocity
 
-Type y plot surface stress: y
+Type y to plot surface stress: y

@@ -95,6 +95,7 @@ int main(int argc, char **argv)
 	    else
 		initSpringModel(&front);
 	}
+	initMovieStress(in_name,&front);
 	setMotionParams(&front);
 
 	/* Time control */

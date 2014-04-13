@@ -592,14 +592,14 @@ extern void setStressColor(
 }	/* end setStressColor */
 
 extern void initMovieStress(
-	Front *front,
-	char *inname)
+	char *inname,
+	Front *front)
 {
 	char string[100];
 	FILE *infile = fopen(inname,"r");
 	front->print_gview_color = NO;
 	if (CursorAfterStringOpt(infile,
-            "Type y plot surface stress: "))
+            "Type y to plot surface stress: "))
         {
             fscanf(infile,"%s",string);
             (void) printf("%s\n",string);

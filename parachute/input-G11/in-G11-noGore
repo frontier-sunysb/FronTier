@@ -101,3 +101,5 @@ Enter displacement of translation: 0 0 30
 Enter yes for rotation of interior interface: n
 Enter center of rotation: 7 14 14
 Enter azimuthal and polar angles: 0 0
+
+Type y to plot surface stress: y
