@@ -174,7 +174,7 @@ static void CgalCircle(
 	int out_vtx_oneside = 5, in_vtx_oneside = 2;
 	char gore_bool[10],vent_bool[10];
 	std::list<Cgal_Point> list_of_seeds;
-	double cri_dx = computational_grid(front->interf)->h[0];
+	double cri_dx = 0.6*computational_grid(front->interf)->h[0];
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 	int i;
 
@@ -638,7 +638,7 @@ static void CgalEllipse(
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 
 	Vertex_handle *v_out;
-	double cri_dx = computational_grid(front->interf)->h[0];
+	double cri_dx = 0.6*computational_grid(front->interf)->h[0];
         double width=cri_dx;
         int i,j;
 
@@ -798,7 +798,7 @@ static void CgalCross(
 
 	Vertex_handle *v_out;
 	double width;
-	double cri_dx = computational_grid(front->interf)->h[0];
+	double cri_dx = 0.6*computational_grid(front->interf)->h[0];
 	int i,j;
 
         CursorAfterString(infile,"Enter the height of the plane:");
@@ -1017,7 +1017,7 @@ static void InstallString(
             for (j = 0; j < 3; ++j)
                 dir[j] = (Coords(nload->posn)[j] -
                         Coords(string_nodes[i]->posn)[j])/spacing;
-            nb = (int)spacing/(1.1*h[0]);
+            nb = (int)spacing/(0.3*h[0]);
             spacing /= (double)nb;
             bond = string_curves[i]->first;
             for (j = 1; j < nb; ++j)

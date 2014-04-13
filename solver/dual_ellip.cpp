@@ -730,7 +730,8 @@ void DUAL_ELLIPTIC_SOLVER::get_dual_D(
 			denom += 1.0;
 		    }
 		}
-		D_nb[l] /= denom;
+		if (denom != 0.0)
+		    D_nb[l] /= denom;
 	    }
 	    break;
 	case 3:

@@ -4,9 +4,7 @@ Front Traking algorithms. Front Tracking is a numerical method for
 the solution of partial differential equations whose solutions 
 have discontinuities.
 
-
 Copyright (C) 1999 by The University at Stony Brook.
-
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -21,7 +19,6 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
 **************************************************************************/
 
 
@@ -75,6 +72,7 @@ LOCAL	void	eliminate_same_crossings(int*,int*,INTERFACE*);
 LOCAL 	int	fill_missing_crx(INTERFACE*,int*,int*,GRID_DIRECTION,int);
 LOCAL	void	adjust_for_min_spacing(CRXING*,double,double*,int,int);
 LOCAL	void	multi_crx_debug(CRX_SORT*,int,GRID_PT*,double*,double*,int);
+LOCAL   void    debug_comp_on_grid_line(const char*,INTERFACE*,int*,int*);
 LOCAL	void	print_crx_sort(CRX_SORT*,int,GRID_PT*);
 LOCAL	void	print_edge_crxings(GRID_PT*,INTERFACE*);
 LOCAL	void	set_grid_crx_edge(RECT_GRID*,int*,GRID_DIRECTION,
@@ -1201,6 +1199,9 @@ EXPORT 	boolean track_comp_through_crxings3d(
             stat_matrix(&ips,MAX_NUM_UNPHY_IP,3,INT);
 
 	/* eliminate duplicate crossings */
+	if (debugging("grid_line_comp"))
+            debug_comp_on_grid_line("Before adjust_crossings()",
+                                intfc,smin,smax);
 	adjust_crossings(smin,smax,intfc);
 
 	/* assign components and isolate unphysical clusters */
@@ -5587,3 +5588,27 @@ LOCAL void enforce_single_crossing(
 	}
 }	/* end enforce_single_crossing */
 
+LOCAL void debug_comp_on_grid_line(
+        const char *mesg,
+        INTERFACE *intfc,
+        int *smin,
+        int *smax)
+{
+        int ip1[MAXD],ip2[MAXD];
+        GRID_DIRECTION dirs[] = {EAST,NORTH,UPPER};
+        struct Table *T = table_of_interface(intfc);
+        RECT_GRID       gr = topological_grid(intfc);
+        int *gmax = gr.gmax;
+        int idir = get_grid_debug_direction();
+        int *icrds_debug = get_grid_debug_icoords();
+        int i,dim = gr.dim;
+
+        for (i = 0; i < dim; ++i)
+            ip1[i] = ip2[i] = icrds_debug[i];
+        ip1[idir] = 0;          ip2[idir] = gmax[idir];
+
+        (void) printf("%s\n",mesg);
+        (void) printf("Component at (%d %d %d), direction %s:\n",
+                        ip1[0],ip1[1],ip1[2],grid_direction_name(dirs[idir]));
+        print_comp_along_grid_line(ip1,ip2,dirs[idir],T,gmax,smin,smax);
+}       /* end debug_comp_on_grid_line */

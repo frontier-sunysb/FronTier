@@ -85,3 +85,5 @@ Type y to make vector velocity field movie: y
 Enter yes for debugging: yes
 Enter the debugging string: set_module
 Enter the debugging string: trace
+
+Type y plot surface stress: y

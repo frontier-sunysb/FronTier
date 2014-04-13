@@ -80,3 +80,5 @@ Type yes to set the curve motion: y
 Enter velocity direction: 0.000000 -1.000000 0.000000
 Enter speed: 1.000000
 Enter stop time: 3.000000
+
+Type y plot surface stress: y

@@ -520,6 +520,8 @@ EXPORT	void FT_MakeGridIntfc(
 {
 	if (Tracking_algorithm(front) == SIMPLE_TRACKING)
 	    return;
+	if (debugging("grid_line_comp"))
+	    init_grid_debug(front);
 	front->grid_intfc = make_grid_intfc(front->interf,
 			EXPANDED_DUAL_GRID,NULL);
 }	/* end FT_MakeGridIntfc */

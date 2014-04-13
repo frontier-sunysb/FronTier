@@ -597,25 +597,21 @@ extern void initMovieStress(
 {
 	char string[100];
 	FILE *infile = fopen(inname,"r");
+	front->print_gview_color = NO;
 	if (CursorAfterStringOpt(infile,
             "Type y plot surface stress: "))
         {
             fscanf(infile,"%s",string);
             (void) printf("%s\n",string);
             if (string[0] == 'n' || string[0] == 'n')
-            //if (string[0] == 'y' || string[0] == 'Y')
+            if (string[0] == 'y' || string[0] == 'Y')
 	    {
-		/*
 		front->print_gview_color = YES;
 		FT_AddVtkIntfcMovieVariable(front,"VMSTRESS");
-		*/
 		return;
 	    }
         }
         fclose(infile);
-	/* Change all input files before using yes as default */
-	front->print_gview_color = YES;
-	FT_AddVtkIntfcMovieVariable(front,"VMSTRESS");
 }	/* end initMovieStress */
 
 static void naturalStressOfTri(

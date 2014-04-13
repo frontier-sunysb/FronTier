@@ -2449,3 +2449,38 @@ EXPORT void adjust_grid_intfc_points(INTERFACE *intfc)
 	    intfc->modified = YES;
         }
 }	/* end adjust_grid_intfc_points */
+
+LOCAL	int debug_grid_dir;
+LOCAL	int debug_grid_icoords[MAXD];
+
+EXPORT void init_grid_debug(Front *front)
+{
+	char *inname = InName(front);
+	FILE *infile = fopen(inname,"r");
+	int i,dim = FT_Dimension();
+	static boolean first = YES;
+
+	if (first == NO) return;
+	CursorAfterString(infile,"Enter direction for grid line debugging:");
+	fscanf(infile,"%d",&debug_grid_dir);
+        (void) printf("%d\n",debug_grid_dir);
+	CursorAfterString(infile,"Enter icoords for grid line debugging:");
+	for (i = 0; i < dim; ++i)
+	{
+	    fscanf(infile,"%d ",&debug_grid_icoords[i]);
+	    (void) printf(" %d",debug_grid_icoords[i]);
+	}
+	(void) printf("\n");
+	first = NO;
+	fclose(infile);
+}	/* end init_grid_debug */
+
+EXPORT	int *get_grid_debug_icoords()
+{
+	return debug_grid_icoords;
+}	/* end get_grid_debug_icoords */
+
+EXPORT	int get_grid_debug_direction()
+{
+	return debug_grid_dir;
+}	/* end get_grid_debug_direction */

@@ -1,7 +1,7 @@
 Domain limit in 0-th dimension: 0 14
 Domain limit in 1-th dimension: 0 14
-Domain limit in 2-th dimension: -14 28
-Computational grid: 60 60 180
+Domain limit in 2-th dimension: -28 28
+Computational grid: 60 60 240
 Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
 Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
 Lower boundary in 1-th dimension: PERIODIC_BOUNDARY
@@ -9,8 +9,8 @@ Upper boundary in 1-th dimension: PERIODIC_BOUNDARY
 Lower boundary in 2-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 2-th dimension: DIRICHLET_BOUNDARY
 
-Max time: 4.0
-Max step: 600
+Max time: 6.0
+Max step: 4000
 Print interval: 0.05
 Movie frame interval: 0.05
 CFL factor: 0.5
@@ -87,4 +87,4 @@ Enter the sample line type: xy
 Enter the sample line coordinate: 7.0 7.0
 Enter the start step for sample: 0
 Enter the end step for sample: 10000
-Enter the step interval for sample: 1
+Enter the step interval for sample: 10

@@ -2112,14 +2112,17 @@ int	i;
 
 	for(i = 0; i < 3; i++)
 	{
-	    if(coords[i] < VL[i] || coords[i] > VU[i])
+	    if(coords[i] <= VL[i] || coords[i] >= VU[i])
 	        return  NO;
 	}
 	return YES;
 }
 
 /*the tri t is outside the expanded grid. */
-EXPORT boolean is_tri_outside(INTERFACE *intfc, TRI *t, RECT_GRID *grid)
+EXPORT boolean is_tri_outside(
+	INTERFACE *intfc, 
+	TRI *t, 
+	RECT_GRID *grid)
 {
 	const double *h = grid->h;
 	const double *VL = grid->VL, *VU = grid->VU;
@@ -2143,18 +2146,18 @@ EXPORT boolean is_tri_outside(INTERFACE *intfc, TRI *t, RECT_GRID *grid)
 
 	/*WARN  this case is not changed, SHIFT is very large. */
 	/*grid free case */
-	for(i=0; i<3; i++)
+	for(i = 0; i < 3; i++)
 	{
-	    for(j=0; j<3; j++)
+	    for(j = 0; j < 3; j++)
 	        if(Coords(Point_of_tri(t)[j])[i] >= VL[i]-SHIFT*h[i])
 		    break;
-	    if(j==3)
+	    if(j == 3)
 	        return YES;
 	    
-	    for(j=0; j<3; j++)
+	    for(j = 0; j < 3; j++)
 	        if(Coords(Point_of_tri(t)[j])[i] <= VU[i]+SHIFT*h[i])
 		    break;
-	    if(j==3)
+	    if(j == 3)
 	        return YES;
 	}
 	return NO;
@@ -2833,7 +2836,8 @@ LOCAL void blocks_on_tri(
 	ubuf = grid->ubuf;
 	hmintol = blk_tol*min3(grid->h[0], grid->h[1], grid->h[2]);
 
-	/* if a point is on a face of a block, make sure it belongs to both blocks. */
+	/* if a point is on a face of a block, make sure 
+	   it belongs to both blocks. */
 	
 	p = Point_of_tri(t);
 	for(i=0; i<3; i++)
@@ -2888,19 +2892,6 @@ LOCAL void blocks_on_tri(
 	    clean_up(ERROR);
 	}
 
-	if(the_tri(t) && NO)
-	{
-	    printf("#tri found.\n");
-	    print_tri(t,intfc);
-	    print_int_vector("i_diff", i_diff, 3, "\n");
-	    print_int_vector("imin", imin, 3, "\n");
-	    print_int_vector("imax", imax, 3, "\n");
-	    printf("posn  %24.15e %24.15e  %24.15e\n", 
-		grid->L[2] + imin[2]*grid->h[2],
-		grid->L[2] + (imax[2]+1)*grid->h[2], hmintol);
-	    print_rectangular_grid(grid);
-	}
-	
 	for (i = 0; i < i_diff[0]; ++i)
 	{
 	    for (j = 0; j < i_diff[1]; ++j)
@@ -3794,7 +3785,7 @@ EXPORT boolean tri_edge_crossing(
 	      + sqr(pt[(ic+2)%3] - crds_crx[(ic+2)%3]);
 	
 	    if (d < crx_tolv && crds_start[ic] <= pt[ic] && 
-			crds_end[ic] > pt[ic])
+			crds_end[ic] >= pt[ic])
 	    {
 	        crds_crx[ic] = Coords(p[i])[ic];
 		*iv = i;
@@ -3837,7 +3828,8 @@ EXPORT boolean tri_edge_crossing(
 		printf(" d= %24.16e  crx_toll = %24.16e \n", d, crx_toll);
 	    }
 
-	    if ((crds_start[ic] <= crds_crx[ic] && crds_end[ic] > crds_crx[ic]) 
+	    if ((crds_start[ic] <= crds_crx[ic] && 
+		 crds_end[ic] >= crds_crx[ic]) 
 		&& within_interval(p1[0],p2[0],pe_crx[0])  
 		&& within_interval(p1[1],p2[1],pe_crx[1])  
 		&& within_interval(p1[2],p2[2],pe_crx[2])) 
@@ -3866,7 +3858,7 @@ EXPORT boolean tri_edge_crossing(
 	    printf("D= %24.16e \n", D);
 	}
 
-	if ( crds_start[ic] <= crds_crx[ic] && crds_end[ic] > crds_crx[ic]  &&
+	if ( crds_start[ic] <= crds_crx[ic] && crds_end[ic] >= crds_crx[ic] &&
 	     within_tri(crds_crx,Coords(p[0]),Coords(p[1]),Coords(p[2]),norm,
 					0.0))
 	{

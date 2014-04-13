@@ -86,3 +86,5 @@ Enter the debugging string: step_size
 Enter the debugging string: tsample_velocity
 
 Enter yes to use GPU solver: yes
+
+Type y plot surface stress: y

@@ -4,9 +4,7 @@ Front Traking algorithms. Front Tracking is a numerical method for
 the solution of partial differential equations whose solutions have 
 discontinuities.  
 
-
 Copyright (C) 1999 by The University at Stony Brook. 
- 
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -271,6 +269,10 @@ IMPORT	void	show_grid_components(int*,int*,int,INTERFACE*);
 IMPORT	void	show_line_components3d(int*,int*,int*,int,INTERFACE*);
 IMPORT	void 	show_the_grid_comp(const char*,INTERFACE*);
 IMPORT	void	adjust_grid_intfc_points(INTERFACE*);
+/* for grid line debugging */
+IMPORT	void 	init_grid_debug(Front*);
+IMPORT	int	*get_grid_debug_icoords();
+IMPORT	int	get_grid_debug_direction();
 	
 	/* finit.c*/
 IMPORT	void	f_read_print_front_options(INIT_DATA*,Front*);

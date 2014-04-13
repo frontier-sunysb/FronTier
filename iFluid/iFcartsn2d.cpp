@@ -77,6 +77,17 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeAdvection(void)
 	hyperb_solver.rho2 = iFparams->rho2;
 	hyperb_solver.findStateAtCrossing = ifluid_find_state_at_crossing;
 	hyperb_solver.solveRungeKutta();
+	double speed = 0.0;
+	double **vel = field->vel;
+        for (j = jmin; j <= jmax; j++)
+        for (i = imin; i <= imax; i++)
+	{
+	    index = d_index2d(i,j,top_gmax);
+            speed = fabs(vel[0][index]) + fabs(vel[1][index]);
+            if (speed > max_speed)
+                max_speed = speed;
+	}
+        pp_global_max(&max_speed,1);
 }
 
 void Incompress_Solver_Smooth_2D_Cartesian::computeProjection(void)
@@ -483,16 +494,9 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocityDual(void)
                     icl[(l+n)%dim] -= 1;        icu[(l+n)%dim] += 1;
                     index_l = d_index(icl,top_gmax,dim);
                     index_u = d_index(icu,top_gmax,dim);
-                    if (ifluid_comp(top_comp[index_l]))
-                    {
-                        v_ave += 0.5*(V[l][index] + V[l][index_l]);
-                        denom += 1.0;
-                    }
-                    if (ifluid_comp(top_comp[index_u]))
-                    {
-                        v_ave += 0.5*(V[l][index] + V[l][index_u]);
-                        denom += 1.0;
-                    }
+                    v_ave += 0.5*(V[l][index] + V[l][index_l]);
+                    v_ave += 0.5*(V[l][index] + V[l][index_u]);
+                    denom += 2.0;
                 }
 		v_ave /= denom;
 		vel[l][index] = v_ave - accum_dt/rho*grad_phi[l];
@@ -563,6 +567,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 	setDomain();
 
 	setComponent();
+	if (iFparams->num_scheme.ellip_method == DUAL_ELLIP)
+	    updateComponent();
 	if (debugging("trace"))
 	    printf("Passed setComponent()\n");
 
@@ -579,27 +585,29 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 	// 1) solve for intermediate velocity
 	start_clock("computeAdvection");
 	computeAdvection();
-
+	if (debugging("check_div"))
+	{
+            checkVelocityDiv("After computeAdvection()",0,0);
+	    (void) printf("max_speed after computeAdvection(): %20.14f\n",
+				max_speed);
+	}
 	stop_clock("computeAdvection");
-	if (debugging("step_size"))
-	    printf("max_speed after computeAdvection(): %20.14f\n",max_speed);
+
 	if (debugging("sample_velocity"))
 	    sampleVelocity();
 	
 	start_clock("computeDiffusion");
 	computeDiffusion();
-
+	if (debugging("check_div"))
+	{
+            checkVelocityDiv("After computeDiffusion()",0,0);
+	    (void) printf("max_speed after computeDiffusion(): %20.14f\n",
+				max_speed);
+	}
 	stop_clock("computeDiffusion");
+
 	if (debugging("sample_velocity"))
 	    sampleVelocity();
-
-        start_clock("compSGS");
-        //compSGS();	//Subgrid model by Hyunkyun Lim
-        stop_clock("compSGS");
-
-	if (debugging("step_size"))
-	    printf("max_speed after computeDiffusion(): %20.14f\n",
-				max_speed);
 
 	// 2) projection step
 	accum_dt += m_dt;
@@ -624,18 +632,18 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 	    sampleVelocity();
 
 	if (debugging("step_size"))
-	    printf("max_speed after computeNewVelocity(): %20.14f\n",
+	    (void) printf("max_speed after computeNewVelocity(): %20.14f\n",
 				max_speed);
 
 	start_clock("copyMeshStates");
 	copyMeshStates();
 	stop_clock("copyMeshStates");
 
+	/* The following is for climate modelling */
         if(iFparams->if_ref_pres == YES)
             setReferencePressure();
 
 	setAdvectionDt();
-
 	stop_clock("solve");
 }	/* end solve */
 
@@ -1737,12 +1745,77 @@ void Incompress_Solver_Smooth_2D_Cartesian::extractFlowThroughVelocity()
             	index_op = d_index(icoords_op,top_gmax,dim);
 		if (!ifluid_comp(top_comp[index_nb]))
 		    continue;
-		vel_save = vel[l][index_op];
-		vel[l][index_op] = 0.0;
-		div = computeFieldPointDiv(icoords_nb,vel);
-		vel[l][index_op] = vel_save;
-		vel[l][index] = (nb == 0) ? vel[l][index_op] - 2.0*top_h[l]*div
-				: vel[l][index_op] + 2.0*top_h[l]*div;
+		vel[l][index] = 0.0;
+                div = computeFieldPointDiv(icoords_nb,vel);
+                vel[l][index] = (nb == 0) ? vel[l][index] - 2.0*top_h[l]*div
+                                : vel[l][index] + 2.0*top_h[l]*div;
 	    }
 	}
 }	/* end extractFlowThroughVelocity */
+
+
+void Incompress_Solver_Smooth_2D_Cartesian::updateComponent(void)
+{
+	int i,j,l,icoords[MAXD];
+	int index;
+	
+	for (j = cjmin; j <= cjmax; ++j)
+	for (i = cimin; i <= cimax; ++i)
+	{
+	    icoords[0] = i;
+	    icoords[1] = j;
+	    index = d_index(icoords,ctop_gmax,dim);
+	    if (!ifluid_comp(ctop_comp[index]))
+	    {
+		int cl[MAXD], ctmp[MAXD];
+		for (l = 0; l < dim; ++l)
+		    cl[l] = icoords[l] + offset[l] - 1;
+		for (int m = 0; m < 2; ++m)
+		for (int n = 0; n < 2; ++n)
+		{
+		    ctmp[0] = cl[0] + m;
+		    ctmp[1] = cl[1] + n;
+		    int indexl = d_index(ctmp,top_gmax,dim);
+		    if (ifluid_comp(top_comp[indexl]))
+			top_comp[indexl] = SOLID_COMP;
+		}
+	    }
+	}
+	/*Set rho for boundary velocity*/
+	for (j = jmin; j <= jmax; ++j)
+	for (i = imin; i <= imax; ++i)
+	{
+	    icoords[0] = i;
+            icoords[1] = j;
+            index = d_index(icoords,top_gmax,dim);
+            if (!ifluid_comp(top_comp[index]))
+	    {
+		int cl[MAXD], cu[MAXD];
+		boolean VelSet = NO;
+		for (l = 0; l < dim; ++l)
+		    cl[l] = icoords[l] - offset[l];
+		for (int m = 0; m < 2; ++m)
+		for (int n = 0; n < 2; ++n)
+		{
+		    cu[0] = cl[0] + m;
+		    cu[1] = cl[1] + n;
+		    int index_tmp = d_index(cu,ctop_gmax,dim);
+		    if (ifluid_comp(ctop_comp[index_tmp])&&!VelSet)
+		    {
+			int ctmp[MAXD];
+			if (cu[0]==i)
+			{
+			    ctmp[0] = cu[0] - 1;
+			    ctmp[1] = cu[1];
+			} else {
+			    ctmp[0] = cu[0];
+			    ctmp[1] = cu[1] + 1; 
+			}
+			field->rho[index] = 
+				field->rho[d_index(ctmp,top_gmax,dim)];
+			VelSet = YES;
+		    }
+		}
+	    }
+	}
+}	/* end updateComponent */

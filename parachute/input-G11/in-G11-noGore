@@ -10,7 +10,7 @@ Lower boundary in 2-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 2-th dimension: DIRICHLET_BOUNDARY
 
 Max time: 6.0
-Max step: 5230
+Max step: 4000
 Print interval: 0.05
 Movie frame interval: 0.05
 CFL factor: 0.5
@@ -50,10 +50,10 @@ Enter area density of canopy: 5.0
 Enter interior sub step number: 10
 
 Enter fabric spring constant: 5000
-Enter fabric friction constant: 0.02 
-Enter fabric point mass: 0.001
+Enter fabric friction constant: 0.01
+Enter fabric point mass: 0.01
 Enter string spring constant: 50000.0
-Enter string friction constant: 0.001
+Enter string friction constant: 0.0
 Enter string friction constant in perpendicular direction: 0.0
 Enter string point mass: 0.01
 

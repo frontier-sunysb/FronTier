@@ -424,6 +424,7 @@ protected:
 	void computeSourceTerm(double *coords, double *source);
 	void surfaceTension(double*, HYPER_SURF_ELEMENT*, HYPER_SURF*, 
 				double*, double);
+	void updateComponent(void);
 
 	/***************   Low level computation functions  *************/
 	double getVorticity(int i, int j);

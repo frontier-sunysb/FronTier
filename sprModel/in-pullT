@@ -77,3 +77,5 @@ For node at (12.500000 4.500000 0.000800)
 Enter velocity direction: 1.000000 -1.000000 0.000000
 Enter speed: 1.000000
 Enter stop time: 2.000000
+
+Type y plot surface stress: y
