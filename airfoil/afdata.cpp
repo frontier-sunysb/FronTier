@@ -603,7 +603,6 @@ extern void initMovieStress(
         {
             fscanf(infile,"%s",string);
             (void) printf("%s\n",string);
-            if (string[0] == 'n' || string[0] == 'n')
             if (string[0] == 'y' || string[0] == 'Y')
 	    {
 		front->print_gview_color = YES;
