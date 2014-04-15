@@ -2185,15 +2185,17 @@ EXPORT  boolean is_tri_outside_box(TRI *t, double **fbox)
 }
 
 EXPORT boolean    is_outside_surface(
-		INTERFACE  *intfc, 
-		SURFACE    *s, 
-		RECT_GRID  *gr)
+	INTERFACE  *intfc, 
+	SURFACE    *s, 
+	RECT_GRID  *gr)
 {
-TRI        *t;
+	TRI *t;
 
-	for(t=first_tri(s); !at_end_of_tri_list(t, s); t=t->next)
+	if (Boundary_hs(Hyper_surf(s)))
+	    return NO;
+	for (t = first_tri(s); !at_end_of_tri_list(t, s); t = t->next)
 	{
-	    if(!is_tri_outside(intfc, t, gr))
+	    if(!is_tri_outside(intfc,t,gr))
 	        return NO;
 	}
 	return YES;
