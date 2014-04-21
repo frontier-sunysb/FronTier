@@ -35,8 +35,10 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeAdvection(void)
 {
 	int i,j,index;
 	static HYPERB_SOLVER hyperb_solver(*front);
-
 	static double *rho;
+	double speed = 0.0;
+	double **vel = field->vel;
+
 	if (rho == NULL)
 	{
 	    int size = (top_gmax[0]+1)*(top_gmax[1]+1);
@@ -77,8 +79,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeAdvection(void)
 	hyperb_solver.rho2 = iFparams->rho2;
 	hyperb_solver.findStateAtCrossing = ifluid_find_state_at_crossing;
 	hyperb_solver.solveRungeKutta();
-	double speed = 0.0;
-	double **vel = field->vel;
         for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
 	{
@@ -865,8 +865,10 @@ void Incompress_Solver_Smooth_2D_Cartesian::
             for (j = 0; j <= top_gmax[1]; j++)
             for (i = 0; i <= top_gmax[0]; i++)
             {
+                I = ij_to_I[i][j];
                 index  = d_index2d(i,j,top_gmax);
-                vel[l][index] = array[index];
+		if (I > 0)
+                    vel[l][index] = array[index];
             }
         }
         for (j = jmin; j <= jmax; j++)

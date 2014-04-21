@@ -462,6 +462,8 @@ protected:
 	void computeGradientQ(void);
 	void computeNewVelocity(void);
 	void computeNewVelocityDual(void);
+	void updateComponent(void);
+	boolean InsideSolid(int*);
 	void extractFlowThroughVelocity(void);
 	void computeSourceTerm(double *coords, double *source);
 	void surfaceTension(double*, HYPER_SURF_ELEMENT*, HYPER_SURF*, 
