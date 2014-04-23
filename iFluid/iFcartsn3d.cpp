@@ -36,7 +36,7 @@ static double (*getStateVel[3])(POINTER) = {getStateXvel,getStateYvel,
 static int countvel = 0;
 void Incompress_Solver_Smooth_3D_Cartesian::computeAdvection(void)
 {
-	int i,j,k,index;
+	int i,j,k,l,index;
 	static HYPERB_SOLVER hyperb_solver(*front);
 	double speed;
 
@@ -99,7 +99,17 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeAdvection(void)
 		icrds_max[1] = j;
 		icrds_max[2] = k;
 	    }
+	    for (l = 0; l < dim; ++l)
+	    {
+		if (vmin[l] > field->vel[l][index])
+		    vmin[l] = field->vel[l][index];
+		if (vmax[l] < field->vel[l][index])
+		    vmax[l] = field->vel[l][index];
+	    }
 	}
+	pp_global_max(&max_speed,1);
+	pp_global_min(vmin,dim);
+	pp_global_max(vmax,dim);
 }
 
 void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
@@ -113,7 +123,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 	double *phi = field->phi;
 	double mag_grad_phi,max_grad_phi,ave_grad_phi;
 	int icrds_max[MAXD];
-	double vmin[MAXD],vmax[MAXD];
 
 	if (iFparams->num_scheme.ellip_method == DUAL_ELLIP)
         {
@@ -213,9 +222,11 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 	}
 	if (debugging("check_div"))
 	{
-	    checkVelocityDiv("After computeNewVelocity3d()",vmin,vmax);
+	    checkVelocityDiv("After computeNewVelocity3d()");
 	}
 	pp_global_max(&max_speed,1);
+	pp_global_min(vmin,dim);
+	pp_global_max(vmax,dim);
 }	/* end computeNewVelocity3d */
 
 boolean Incompress_Solver_Smooth_3D_Cartesian::InsideSolid(int* icoords)
@@ -230,7 +241,7 @@ boolean Incompress_Solver_Smooth_3D_Cartesian::InsideSolid(int* icoords)
             icu[0] = icl[0] + i;
             icu[1] = icl[1] + j;
             icu[2] = icl[2] + k;
-            int index = d_index(icu,top_gmax,dim);
+            int index = d_index(icu,ctop_gmax,dim);
 	    if (ifluid_comp(ctop_comp[index]))
 		return NO;
 	}
@@ -239,16 +250,15 @@ boolean Incompress_Solver_Smooth_3D_Cartesian::InsideSolid(int* icoords)
 
 void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocityDual(void)
 {
-	int i,j,k,l,m,n,mm,nn,index,dual_index;
+	int i,j,k,l,m,n,mm,nn,ii;
+	int index,index_tmp,index_u,index_l,dual_compu,dual_compl;
 	double grad_phi[MAXD],rho;
         COMPONENT comp;
-        double v_ave,speed;
+        double v_ave,speed,denom;
         int icoords[MAXD];
-	int ic[MAXD],icu[MAXD],icl[MAXD];
-	int index_l,index_u;
+	int ic[MAXD],icu[MAXD],icl[MAXD],ictmp[MAXD];
         double **vel = field->vel;
         double *d_phi = field->d_phi;
-        double vmin[MAXD],vmax[MAXD];
 	static double **V;
 
 	computeProjectionDual();
@@ -280,19 +290,18 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocityDual(void)
 	    icoords[0] = i;
 	    icoords[1] = j;
 	    icoords[2] = k;
+            index = d_index(icoords,top_gmax,dim);
 	    if (InsideSolid(icoords))
 	    {
 		for (l = 0; l < dim; ++l)
                     vel[l][index] = 0.0;
 		continue;
 	    }
-            index = d_index(icoords,top_gmax,dim);
 	    rho = field->rho[index];
 	    computeDualFieldPointGrad(icoords,d_phi,grad_phi);
 	    speed = 0.0;
 	    for (l = 0; l < dim; ++l)
 	    {
-		int index_u,index_l,dual_compu,dual_compl,denom,tmpc[MAXD];
 		v_ave = 0.0; 
 		denom = 0.0;
 		icl[l] = icoords[l] - offset[l];
@@ -310,16 +319,16 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocityDual(void)
                     dual_compl = ctop_comp[index_l];
 		    if (ifluid_comp(dual_compu)||ifluid_comp(dual_compl))
 		    {
-			for (int ii = 0; ii < dim; ++ii)
-			    tmpc[ii] = icu[ii] - 1 + offset[ii];
+			for (ii = 0; ii < dim; ++ii)
+			    ictmp[ii] = icu[ii] - 1 + offset[ii];
 			for (mm = 0; mm < 2; ++mm)
 			for (nn = 0; nn < 2; ++nn)
 			{
-			    ic[l] = tmpc[l];
-			    ic[(l+1)%dim] = tmpc[(l+1)%dim] + mm;
-                            ic[(l+2)%dim] = tmpc[(l+2)%dim] + nn;
-			    int index = d_index(ic,top_gmax,dim);
-			    v_ave += V[l][index];
+			    ic[l] = ictmp[l];
+			    ic[(l+1)%dim] = ictmp[(l+1)%dim] + mm;
+                            ic[(l+2)%dim] = ictmp[(l+2)%dim] + nn;
+			    index_tmp = d_index(ic,top_gmax,dim);
+			    v_ave += V[l][index_tmp];
                             denom += 1.0;
 			}
 		    }
@@ -337,14 +346,16 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocityDual(void)
 	for (l = 0; l < dim; ++l)
 	    FT_ParallelExchGridArrayBuffer(vel[l],front);
 
-	checkVelocityDiv("Before extractFlowThroughVelocity()",vmin,vmax);
+	checkVelocityDiv("Before extractFlowThroughVelocity()");
 	extractFlowThroughVelocity();
 
         if (debugging("check_div"))
         {
-            checkVelocityDiv("After extractFlowThroughVelocity()",vmin,vmax);
+            checkVelocityDiv("After extractFlowThroughVelocity()");
         }
         pp_global_max(&max_speed,1);
+        pp_global_min(vmin,dim);
+        pp_global_max(vmax,dim);
 }	/* end computeNewVelocityDual */
 
 void Incompress_Solver_Smooth_3D_Cartesian::
@@ -522,6 +533,11 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 
         setIndexMap();
 	max_speed = 0.0;
+	for (l = 0; l < dim; ++l)
+        {
+            vmin[l] = HUGE;
+            vmax[l] = -HUGE;
+        }
 
         size = iupper - ilower;
         FT_VectorMemoryAlloc((POINTER*)&x,size,sizeof(double));
@@ -690,8 +706,15 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 		icrds_max[2] = k;
                 max_speed = speed;
 	    }
+	    for (l = 0; l < dim; ++l)
+	    {
+		if (vmin[l] > vel[l][index]) vmin[l] = vel[l][index];
+		if (vmax[l] < vel[l][index]) vmax[l] = vel[l][index];
+	    }
 	}
         pp_global_max(&max_speed,1);
+        pp_global_min(vmin,dim);
+        pp_global_max(vmax,dim);
         FT_FreeThese(1,x);
 
 	if (debugging("trace"))
@@ -1523,7 +1546,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
         double value;
 	double min_phi,max_phi;
 	int icrds_max[MAXD],icrds_min[MAXD];
-	double vmin[MAXD],vmax[MAXD];
 
 	if (debugging("trace"))
 	    (void) printf("Entering computeProjectionSimple()\n");
@@ -1611,7 +1633,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
         }
 	if (debugging("check_div"))
         {
-            checkVelocityDiv("Before computeProjection()",vmin,vmax);
+            checkVelocityDiv("Before computeProjection()");
         }
         elliptic_solver.D = diff_coeff;
         elliptic_solver.source = source;

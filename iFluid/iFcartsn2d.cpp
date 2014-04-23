@@ -79,6 +79,9 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeAdvection(void)
 	hyperb_solver.rho2 = iFparams->rho2;
 	hyperb_solver.findStateAtCrossing = ifluid_find_state_at_crossing;
 	hyperb_solver.solveRungeKutta();
+	max_speed = 0.0;
+	vmin[0] = vmin[1] = HUGE;
+	vmax[0] = vmax[1] = -HUGE;
         for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
 	{
@@ -86,8 +89,14 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeAdvection(void)
             speed = fabs(vel[0][index]) + fabs(vel[1][index]);
             if (speed > max_speed)
                 max_speed = speed;
+	    if (vmin[0] > vel[0][index]) vmin[0] = vel[0][index];
+	    if (vmin[1] > vel[1][index]) vmin[1] = vel[1][index];
+	    if (vmax[0] < vel[0][index]) vmax[0] = vel[0][index];
+	    if (vmax[1] < vel[1][index]) vmax[1] = vel[1][index];
 	}
         pp_global_max(&max_speed,1);
+        pp_global_min(vmin,dim);
+        pp_global_max(vmax,dim);
 }
 
 void Incompress_Solver_Smooth_2D_Cartesian::computeProjection(void)
@@ -209,7 +218,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	double *div_U = field->div_U;
 	double sum_div;
 	double value;
-	double vmin[MAXD],vmax[MAXD];
 
 	sum_div = 0.0;
 	max_value = 0.0;
@@ -277,7 +285,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	}
 	if (debugging("check_div"))
         {
-	    checkVelocityDiv("Before computeProjection()",vmin,vmax);
+	    checkVelocityDiv("Before computeProjection()");
         }
         elliptic_solver.D = diff_coeff;
         elliptic_solver.source = source;
@@ -317,7 +325,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocity(void)
 	int icoords[MAXD];
 	double **vel = field->vel;
 	double *phi = field->phi;
-	double vmin[MAXD],vmax[MAXD];
 
 	if (iFparams->num_scheme.ellip_method == DUAL_ELLIP)
 	{
@@ -383,7 +390,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocity(void)
 
 	if (debugging("check_div"))
         {
-	    checkVelocityDiv("After computeNewVelocity()",vmin,vmax);
+	    checkVelocityDiv("After computeNewVelocity()");
         }
 	pp_global_max(&max_speed,1);
 }	/* end computeNewVelocity */
@@ -399,7 +406,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocityDual(void)
 	int index_l,index_u;
         double **vel = field->vel;
         double *d_phi = field->d_phi;
-        double vmin[MAXD],vmax[MAXD];
 	static double **V;
 
 	computeProjectionDual();
@@ -511,12 +517,12 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocityDual(void)
 	for (l = 0; l < dim; ++l)
 	    FT_ParallelExchGridArrayBuffer(vel[l],front);
 
-	checkVelocityDiv("Before extractFlowThroughVelocity()",vmin,vmax);
+	checkVelocityDiv("Before extractFlowThroughVelocity()");
 	extractFlowThroughVelocity();
 
         if (debugging("check_div"))
         {
-            checkVelocityDiv("After computeNewVelocityDual()",vmin,vmax);
+            checkVelocityDiv("After computeNewVelocityDual()");
         }
         pp_global_max(&max_speed,1);
 }	/* end computeNewVelocityDual */
@@ -587,7 +593,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 	computeAdvection();
 	if (debugging("check_div"))
 	{
-            checkVelocityDiv("After computeAdvection()",0,0);
+            checkVelocityDiv("After computeAdvection()");
 	    (void) printf("max_speed after computeAdvection(): %20.14f\n",
 				max_speed);
 	}
@@ -600,7 +606,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 	computeDiffusion();
 	if (debugging("check_div"))
 	{
-            checkVelocityDiv("After computeDiffusion()",0,0);
+            checkVelocityDiv("After computeDiffusion()");
 	    (void) printf("max_speed after computeDiffusion(): %20.14f\n",
 				max_speed);
 	}
@@ -848,7 +854,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
             if (debugging("PETSc"))
                 (void) printf("Incompress_Solver_Smooth_2D_Cartesian::"
 			"computeDiffusion: "
-                        "num_iter = %d, rel_residual = %g. \n",
+       			"num_iter = %d, rel_residual = %g. \n", 
                         num_iter,rel_residual);
 
             for (j = jmin; j <= jmax; j++)
@@ -871,6 +877,9 @@ void Incompress_Solver_Smooth_2D_Cartesian::
                     vel[l][index] = array[index];
             }
         }
+	max_speed = 0.0;
+	vmin[0] = vmin[1] = HUGE;
+	vmax[0] = vmax[1] = -HUGE;
         for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
 	{
@@ -878,8 +887,14 @@ void Incompress_Solver_Smooth_2D_Cartesian::
             speed = fabs(vel[0][index]) + fabs(vel[1][index]);
             if (speed > max_speed)
                 max_speed = speed;
+	    if (vmin[0] > vel[0][index]) vmin[0] = vel[0][index];
+	    if (vmin[1] > vel[1][index]) vmin[1] = vel[1][index];
+	    if (vmax[0] < vel[0][index]) vmax[0] = vel[0][index];
+	    if (vmax[1] < vel[1][index]) vmax[1] = vel[1][index];
 	}
         pp_global_max(&max_speed,1);
+        pp_global_min(vmin,dim);
+        pp_global_max(vmax,dim);
 	stop_clock("computeDiffusionCN");
 
         FT_FreeThese(1,x);

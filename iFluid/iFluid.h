@@ -202,6 +202,7 @@ public:
 	double max_dt;
 	double min_dt;
 	double *top_h;
+	double vmin[MAXD],vmax[MAXD];
 	int dim;
 	int icrds_max[MAXD];
 
@@ -338,7 +339,7 @@ protected:
 	double computeDualMu(int*, double*);
 	void   computeFieldPointGrad(int*, double*, double*);
 	void   computeDualFieldPointGrad(int*, double*, double*);
-	void   checkVelocityDiv(const char*,double*,double*);
+	void   checkVelocityDiv(const char*);
 	void   computeDualFieldPointrho(int*);
 /************* TMP Functions which are not implemented or used ***********/
 

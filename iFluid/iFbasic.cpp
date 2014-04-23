@@ -481,6 +481,7 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 	dim = grid_intfc->dim;
 	T = table_of_interface(grid_intfc);
 	top_comp = T->components;
+	field = iFparams->field;
 
 	hmin = top_h[0];
 	size = top_gmax[0]+1;
@@ -2502,9 +2503,7 @@ boolean Incompress_Solver_Smooth_Basis::nextConnectedPoint(
 }	/* end connectedPoint */
 
 void Incompress_Solver_Smooth_Basis::checkVelocityDiv(
-	const char *mesg,
-	double *vmin,
-	double *vmax)
+	const char *mesg)
 {
 	double **vel = field->vel;
 	double div_tmp,denom;
@@ -2548,7 +2547,8 @@ void Incompress_Solver_Smooth_Basis::checkVelocityDiv(
 	}
 	denom = 0.0;
 	for (l = 0; l < dim; ++l)
-	    denom += fabs((vmax - vmin)/(top_U[l] - top_L[l]));
+	    denom += fabs((vmax[l] - vmin[l])/(top_U[l] - top_L[l]));
+	if (denom == 0.0) denom = 1.0;
 	(void) printf("Check divergence at %s\n",mesg);
 	(void) printf("Absolute: div_max = %20.14f  div_min = %20.14f\n",
 			div_max,div_min);
@@ -2931,19 +2931,16 @@ void Incompress_Solver_Smooth_Basis::computeDualFieldPointGrad(
 	    	for (j = 0; j <= 1; ++j)
 	    	for (k = 0; k <= 1; ++k)
 	    	{
-		    dual_icu[(i+1)%dim] = icoords[(i+1)%dim] - 
-				offset[(i+1)%dim] + j;
-		    dual_icu[(i+2)%dim] = icoords[(i+2)%dim] - 
-				offset[(i+2)%dim] + k;
-		    dual_icl[(i+1)%dim] = icoords[(i+1)%dim] - 
-				offset[(i+1)%dim] + j;
-		    dual_icl[(i+2)%dim] = icoords[(i+2)%dim] - 
-				offset[(i+2)%dim] + k;
+		    dual_icl[(i+1)%dim] = dual_icu[(i+1)%dim] = 
+			icoords[(i+1)%dim] - offset[(i+1)%dim] + j;
+		    dual_icl[(i+2)%dim] = dual_icu[(i+2)%dim] = 
+			icoords[(i+2)%dim] - offset[(i+2)%dim] + k;
 		    index_u = d_index(dual_icu,ctop_gmax,dim);
 		    index_l = d_index(dual_icl,ctop_gmax,dim);
 		    dual_compu = ctop_comp[index_u];
                     dual_compl = ctop_comp[index_l];
-                    if (dual_compu != comp && dual_compl != comp)
+                    if (dual_compu == comp && dual_compl == comp &&
+				!ifluid_comp(comp))
                         continue;
                     else if (dual_compl != comp)
                     {
@@ -2963,6 +2960,7 @@ void Incompress_Solver_Smooth_Basis::computeDualFieldPointGrad(
                         }
                         else if (status == CONST_V_PDE_BOUNDARY)
                         {
+			    denom += 1.0;
                             continue;           // Do nothing
                         }
 		    }
@@ -2984,6 +2982,7 @@ void Incompress_Solver_Smooth_Basis::computeDualFieldPointGrad(
                         }
                         else if (status == CONST_V_PDE_BOUNDARY)
                         {
+			    denom += 1.0;
                             continue;           // Do nothing
                         }
                     }
