@@ -266,7 +266,7 @@ void ELLIPTIC_SOLVER::solve1d(double *soln)
 	    if (max_soln < soln[index]) max_soln = soln[index];
 	    if (min_soln > soln[index]) min_soln = soln[index];
 	}
-	FT_ParallelExchGridArrayBuffer(soln,front);
+	FT_ParallelExchGridArrayBuffer(soln,front,NULL);
 	pp_global_max(&max_soln,1);
 	pp_global_min(&min_soln,1);
 
@@ -462,7 +462,7 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 		min_soln = soln[index];
 	    }
 	}
-	FT_ParallelExchGridArrayBuffer(soln,front);
+	FT_ParallelExchGridArrayBuffer(soln,front,NULL);
 	pp_global_max(&max_soln,1);
 	pp_global_min(&min_soln,1);
 
@@ -688,7 +688,7 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 		icrds_min[2] = k;
 	    }
 	}
-	FT_ParallelExchGridArrayBuffer(soln,front);
+	FT_ParallelExchGridArrayBuffer(soln,front,NULL);
 	pp_global_max(&max_soln,1);
 	pp_global_min(&min_soln,1);
 
@@ -909,7 +909,7 @@ void ELLIPTIC_SOLVER::dsolve2d(double *soln)
 		icrds_min[1] = j;
 	    }
 	}
-	FT_ParallelExchGridArrayBuffer(soln,front);
+	FT_ParallelExchGridArrayBuffer(soln,front,NULL);
 	pp_global_max(&max_soln,1);
 	pp_global_min(&min_soln,1);
 
@@ -1137,7 +1137,7 @@ void ELLIPTIC_SOLVER::dsolve3d(double *soln)
 		icrds_min[2] = k;
 	    }
 	}
-	FT_ParallelExchGridArrayBuffer(soln,front);
+	FT_ParallelExchGridArrayBuffer(soln,front,NULL);
 	pp_global_max(&max_soln,1);
 	pp_global_min(&min_soln,1);
 

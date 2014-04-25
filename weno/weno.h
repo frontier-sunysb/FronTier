@@ -21,6 +21,7 @@ enum _INIT_TYPE {
         UNKNOWN_INIT_TYPE = -1,
 	SQUARE = 1,
         HAMP,
+	COSINE,
         WAVE
 };
 typedef enum _INIT_TYPE INIT_TYPE;
@@ -32,9 +33,10 @@ struct _PARAMS {
 };
 typedef struct _PARAMS PARAMS;
 
-void setEquationType(PARAMS);
+void setEquationType(_PARAMS PARAMS);
 void Weno5(int mesh_size, double *u_old, double *u_new, double dx, double dt);
 void Runge_Kutta_4th(int mesh_size, double *u_old, double *u_new, double dx, double dt);
+void TVD_RK_3th(int mesh_size, double *u_old, double *u_new, double dx, double dt);
 void Weno5_Get_Flux(double *u_old, double *flux, double lambda, int mesh_size);
 
 #endif /* WENO_H_ */

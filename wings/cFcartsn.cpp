@@ -1514,7 +1514,7 @@ void G_CARTESIAN::allocDirVstFlux(
 
 void G_CARTESIAN::scatMeshArray()
 {
-	FT_ParallelExchGridArrayBuffer(array,front);
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
 }
 
 void G_CARTESIAN::checkVst(SWEEP *vst)
@@ -2209,6 +2209,7 @@ void G_CARTESIAN::copyMeshStates()
 	double *pres = eqn_params->pres;
 	double *engy = eqn_params->engy;
 	double *vort = eqn_params->vort;
+	int symmetry[MAXD];
 
 	switch (dim)
 	{
@@ -2219,11 +2220,12 @@ void G_CARTESIAN::copyMeshStates()
 		for (l = 0; l < dim; ++l)
 		    vel[l][index] = mom[l][index]/dens[index];	
 	    }
-	    FT_ParallelExchGridArrayBuffer(dens,front);
-	    FT_ParallelExchGridArrayBuffer(pres,front);
-	    FT_ParallelExchGridArrayBuffer(engy,front);
-	    FT_ParallelExchGridArrayBuffer(mom[0],front);
-	    FT_ParallelExchGridArrayBuffer(vel[0],front);
+	    FT_ParallelExchGridArrayBuffer(dens,front,NULL);
+	    FT_ParallelExchGridArrayBuffer(pres,front,NULL);
+	    FT_ParallelExchGridArrayBuffer(engy,front,NULL);
+	    symmetry[0] = ODD;
+	    FT_ParallelExchGridArrayBuffer(mom[0],front,symmetry);
+	    FT_ParallelExchGridArrayBuffer(vel[0],front,symmetry);
 	    break;
 	case 2:
 	    for (i = imin[0]; i <= imax[0]; ++i)
@@ -2233,14 +2235,17 @@ void G_CARTESIAN::copyMeshStates()
 		for (l = 0; l < dim; ++l)
 		    vel[l][index] = mom[l][index]/dens[index];	
 	    }
-	    FT_ParallelExchGridArrayBuffer(dens,front);
-	    FT_ParallelExchGridArrayBuffer(pres,front);
-	    FT_ParallelExchGridArrayBuffer(engy,front);
-	    FT_ParallelExchGridArrayBuffer(vort,front);
+	    FT_ParallelExchGridArrayBuffer(dens,front,NULL);
+	    FT_ParallelExchGridArrayBuffer(pres,front,NULL);
+	    FT_ParallelExchGridArrayBuffer(engy,front,NULL);
+	    symmetry[0] = symmetry[1] = ODD;
+	    FT_ParallelExchGridArrayBuffer(vort,front,symmetry);
 	    for (l = 0; l < dim; ++l)
 	    {
-	    	FT_ParallelExchGridArrayBuffer(mom[l],front);
-	    	FT_ParallelExchGridArrayBuffer(vel[l],front);
+	    	symmetry[0] = symmetry[1] = EVEN;
+		symmetry[l] = ODD;
+	    	FT_ParallelExchGridArrayBuffer(mom[l],front,symmetry);
+	    	FT_ParallelExchGridArrayBuffer(vel[l],front,symmetry);
 	    }
 	    break;
 	case 3:
@@ -2252,13 +2257,15 @@ void G_CARTESIAN::copyMeshStates()
 		for (l = 0; l < dim; ++l)
 		    vel[l][index] = mom[l][index]/dens[index];	
 	    }
-	    FT_ParallelExchGridArrayBuffer(dens,front);
-	    FT_ParallelExchGridArrayBuffer(pres,front);
-	    FT_ParallelExchGridArrayBuffer(engy,front);
+	    FT_ParallelExchGridArrayBuffer(dens,front,NULL);
+	    FT_ParallelExchGridArrayBuffer(pres,front,NULL);
+	    FT_ParallelExchGridArrayBuffer(engy,front,NULL);
 	    for (l = 0; l < dim; ++l)
 	    {
-	    	FT_ParallelExchGridArrayBuffer(mom[l],front);
-	    	FT_ParallelExchGridArrayBuffer(vel[l],front);
+	    	symmetry[0] = symmetry[1] = symmetry[2] = EVEN;
+		symmetry[l] = ODD;
+	    	FT_ParallelExchGridArrayBuffer(mom[l],front,symmetry);
+	    	FT_ParallelExchGridArrayBuffer(vel[l],front,symmetry);
 	    }
 	    break;
 	}

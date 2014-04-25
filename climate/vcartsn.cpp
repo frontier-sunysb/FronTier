@@ -1306,7 +1306,7 @@ void VCARTESIAN::deleteGridIntfc()
 
 void VCARTESIAN::scatMeshArray()
 {
-	FT_ParallelExchGridArrayBuffer(array,front);
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
 }
 
 void VCARTESIAN::setGlobalIndex(COMPONENT sub_comp)

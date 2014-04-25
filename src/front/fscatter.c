@@ -39,7 +39,7 @@ LOCAL 	void  	bundle_array_buffer(int,int*,int*,int*,double*,byte*);
 LOCAL 	void  	unbundle_array_buffer(int,int*,int*,int*,double*,byte*);
 LOCAL 	int 	set_send_buffer_limits(int,int*,int*,int,int,int*,int*,int*);
 LOCAL 	int 	set_recv_buffer_limits(int,int*,int*,int,int,int*,int*,int*);
-LOCAL   void    reflect_array_buffer(int,int,int,int*,int*,int*,double*);
+LOCAL   void    reflect_array_buffer(int,int,int,int*,int*,int*,double*,int);
 LOCAL 	int 	set_send_comp_buffer_limits(int,int*,int*,int,int,int*,
 					int*,int*);
 LOCAL 	int 	set_recv_comp_buffer_limits(int,int*,int*,int,int,int*,
@@ -409,7 +409,8 @@ EXPORT	void set_front_pp_grid(
 EXPORT void scatter_top_grid_float_array(
 	GRID_TYPE grid_type,
 	double *solute,
-	Front *front)
+	Front *front,
+	int *symmetry)
 {
 	INTERFACE *intfc;
 	PP_GRID	*pp_grid = front->pp_grid;
@@ -425,6 +426,7 @@ EXPORT void scatter_top_grid_float_array(
 	static int storage_size = 0;
 	static int min_gmax;
 	int size;
+	int array_symmetry;
 
 	myid = pp_mynode();
 	G = pp_grid->gmax;
@@ -502,7 +504,9 @@ EXPORT void scatter_top_grid_float_array(
                 else if (rect_boundary_type(intfc,dir,side) ==
                                 REFLECTION_BOUNDARY)
                 {
-                    reflect_array_buffer(dim,dir,side,gmax,lbuf,ubuf,solute);
+		    array_symmetry = (symmetry == NULL) ? EVEN : symmetry[dir];
+                    reflect_array_buffer(dim,dir,side,gmax,lbuf,ubuf,solute,
+					array_symmetry);
                 }
 		if (rect_boundary_type(intfc,dir,(side+1)%2) ==
 					SUBDOMAIN_BOUNDARY)
@@ -519,97 +523,6 @@ EXPORT void scatter_top_grid_float_array(
 	    }
 	}
 }	/* end scatter_top_grid_float_array */
-
-EXPORT void scatter_comp_grid_float_array(
-	double *solute,
-	Front *front)
-{
-	INTERFACE *intfc = front->comp_grid_intfc;
-	PP_GRID	*pp_grid = front->pp_grid;
-	int dim = Dimension(intfc);
-	static byte *storage;
-	int i,j,k,dir,side,len;
-	int bmin[3],bmax[3];
-	int myid,dst_id,*G;
-	int me[3],him[3];
-	RECT_GRID *comp_grid,*top_grid;
-	int lbuf[MAXD],ubuf[MAXD],*gmax;
-	static int max_buf = 0;
-	static int storage_size;
-	static int min_gmax;
-
-	start_clock("scatter_comp_grid_float_array");
-	myid = pp_mynode();
-	G = pp_grid->gmax;
-	find_Cartesian_coordinates(myid,pp_grid,me);
-
-	comp_grid = computational_grid(intfc);
-	top_grid = &topological_grid(intfc);
-	gmax = top_grid->gmax;
-	for (i = 0; i < dim; ++i)
-	{
-	    lbuf[i] = comp_grid->lbuf[i];
-	    ubuf[i] = comp_grid->ubuf[i];
-	}
-
-	if (storage == NULL)
-	{
-	    min_gmax = gmax[0];
-	    for (i = 0; i < dim; i++)
-	    {
-	    	if (lbuf[i] > max_buf)
-		    max_buf = lbuf[i] + 1;
-	    	if (ubuf[i] > max_buf)
-		    max_buf = ubuf[i] + 1;
-		if (min_gmax > gmax[i])
-		    min_gmax = gmax[i];
-	    }
-	    storage_size = max_buf*FLOAT;
-	    for (i = 0; i < dim; i++)
-	    	storage_size *= (gmax[i] + 1);
-	    storage_size /= (min_gmax + 1);
-	    uni_array(&storage,storage_size,sizeof(byte));
-	}
-
-	for (dir = 0; dir < dim; ++dir)
-	{
-	    for (side = 0; side < 2; ++side)
-	    {
-		for (k = 0; k < dim; ++k)
-		    him[k] = me[k];
-	    	if (rect_boundary_type(intfc,dir,side) == SUBDOMAIN_BOUNDARY)
-		{
-		    him[dir] = (me[dir] + 2*side - 1 + G[dir])%G[dir];
-		    dst_id = domain_id(him,G,dim);
-	    	    len = set_send_comp_buffer_limits(dim,bmin,bmax,dir,
-					side,lbuf,ubuf,gmax);
-		    bundle_array_buffer(dim,bmin,bmax,gmax,solute,
-		    			storage);
-		    if (dst_id != myid)
-		    	pp_send(array_id(0),storage,len,dst_id);
-		}
-                else if (rect_boundary_type(intfc,dir,side) ==
-                                REFLECTION_BOUNDARY)
-                {
-		    (void) printf("REFLECTION_BOUNDARY code needed!\n");
-		    clean_up(ERROR);
-                }
-		if (rect_boundary_type(intfc,dir,(side+1)%2) ==
-					SUBDOMAIN_BOUNDARY)
-		{
-		    him[dir] = (me[dir] - 2*side + 1 + G[dir])%G[dir];
-		    dst_id = domain_id(him,G,dim);
-	    	    len = set_recv_comp_buffer_limits(dim,bmin,bmax,dir,
-					(side+1)%2,lbuf,ubuf,gmax);
-		    if (dst_id != myid)
-		    	pp_recv(array_id(0),dst_id,storage,len);
-		    unbundle_array_buffer(dim,bmin,bmax,gmax,solute,
-		    			storage);
-		}
-	    }
-	}
-	stop_clock("scatter_comp_grid_float_array");
-}	/* end scatter_comp_grid_float_array */
 
 LOCAL	void bundle_array_buffer(
 	int dim,
@@ -1206,10 +1119,12 @@ LOCAL   void reflect_array_buffer(
         int *gmax,
         int *lbuf,
         int *ubuf,
-        double *solute)
+        double *solute,
+	int symmetry)
 {
         int i,j,k;
         int isend,irecv;
+
         switch (dim)
         {
         case 1:
@@ -1219,7 +1134,10 @@ LOCAL   void reflect_array_buffer(
                 {
                     isend = d_index1d(lbuf[0]+i,gmax);
                     irecv = d_index1d(lbuf[0]-1-i,gmax);
-                    solute[irecv] = solute[isend];
+		    if (symmetry == ODD)
+			solute[irecv] = -1.0 * solute[isend];
+		    else if (symmetry == EVEN)
+			solute[irecv] = solute[isend];
                 }
             }
             else
@@ -1228,7 +1146,10 @@ LOCAL   void reflect_array_buffer(
                 {
                     isend = d_index1d(gmax[0]-ubuf[0]-i,gmax);
                     irecv = d_index1d(gmax[0]-ubuf[0]+1+i,gmax);
-                    solute[irecv] = solute[isend];
+		    if (symmetry == ODD)
+			solute[irecv] = -1.0 * solute[isend];
+		    else if (symmetry == EVEN)
+			solute[irecv] = solute[isend];
                 }
             }
             break;
@@ -1243,7 +1164,10 @@ LOCAL   void reflect_array_buffer(
 		    {
                     	isend = d_index2d(lbuf[0]+i,j,gmax);
                     	irecv = d_index2d(lbuf[0]-1-i,j,gmax);
-                    	solute[irecv] = solute[isend];
+		    	if (symmetry == ODD)
+			    solute[irecv] = -solute[isend];
+		    	else if (symmetry == EVEN)
+			    solute[irecv] = solute[isend];
 		    }
 		    break;
 		case 1:
@@ -1252,7 +1176,10 @@ LOCAL   void reflect_array_buffer(
 		    {
                     	isend = d_index2d(i,lbuf[1]+j,gmax);
                     	irecv = d_index2d(i,lbuf[1]-1-j,gmax);
-                    	solute[irecv] = solute[isend];
+		    	if (symmetry == ODD)
+			    solute[irecv] = -solute[isend];
+		    	else if (symmetry == EVEN)
+			    solute[irecv] = solute[isend];
 		    }
 		    break;
 		}
@@ -1267,7 +1194,10 @@ LOCAL   void reflect_array_buffer(
 		    {
                     	isend = d_index2d(gmax[0]-ubuf[0]-i,j,gmax);
                     	irecv = d_index2d(gmax[0]-ubuf[0]+1+i,j,gmax);
-                    	solute[irecv] = solute[isend];
+		    	if (symmetry == ODD)
+			    solute[irecv] = -solute[isend];
+		    	else if (symmetry == EVEN)
+			    solute[irecv] = solute[isend];
 		    }
 		    break;
 		case 1:
@@ -1276,7 +1206,10 @@ LOCAL   void reflect_array_buffer(
 		    {
                     	isend = d_index2d(i,gmax[1]-ubuf[1]-j,gmax);
                     	irecv = d_index2d(i,gmax[1]-ubuf[1]+1+j,gmax);
-                    	solute[irecv] = solute[isend];
+		    	if (symmetry == ODD)
+			    solute[irecv] = -solute[isend];
+		    	else if (symmetry == EVEN)
+			    solute[irecv] = solute[isend];
 		    }
 		    break;
 		}
@@ -1294,7 +1227,10 @@ LOCAL   void reflect_array_buffer(
 		    {
                     	isend = d_index3d(lbuf[0]+i,j,k,gmax);
                     	irecv = d_index3d(lbuf[0]-1-i,j,k,gmax);
-                    	solute[irecv] = solute[isend];
+		    	if (symmetry == ODD)
+			    solute[irecv] = -solute[isend];
+		    	else if (symmetry == EVEN)
+			    solute[irecv] = solute[isend];
 		    }
 		    break;
 		case 1:
@@ -1304,7 +1240,10 @@ LOCAL   void reflect_array_buffer(
 		    {
                     	isend = d_index3d(i,lbuf[1]+j,k,gmax);
                     	irecv = d_index3d(i,lbuf[1]-1-j,k,gmax);
-                    	solute[irecv] = solute[isend];
+		    	if (symmetry == ODD)
+			    solute[irecv] = -solute[isend];
+		    	else if (symmetry == EVEN)
+			    solute[irecv] = solute[isend];
 		    }
 		    break;
 		case 2:
@@ -1314,7 +1253,10 @@ LOCAL   void reflect_array_buffer(
 		    {
                     	isend = d_index3d(i,j,lbuf[2]+k,gmax);
                     	irecv = d_index3d(i,j,lbuf[2]-1-k,gmax);
-                    	solute[irecv] = solute[isend];
+		    	if (symmetry == ODD)
+			    solute[irecv] = -solute[isend];
+		    	else if (symmetry == EVEN)
+			    solute[irecv] = solute[isend];
 		    }
 		    break;
 		}
@@ -1330,7 +1272,10 @@ LOCAL   void reflect_array_buffer(
 		    {
                     	isend = d_index3d(gmax[0]-ubuf[0]-i,j,k,gmax);
                     	irecv = d_index3d(gmax[0]-ubuf[0]+1+i,j,k,gmax);
-                    	solute[irecv] = solute[isend];
+		    	if (symmetry == ODD)
+			    solute[irecv] = -solute[isend];
+		    	else if (symmetry == EVEN)
+			    solute[irecv] = solute[isend];
 		    }
 		    break;
 		case 1:
@@ -1340,7 +1285,10 @@ LOCAL   void reflect_array_buffer(
 		    {
                     	isend = d_index3d(i,gmax[1]-ubuf[1]-j,k,gmax);
                     	irecv = d_index3d(i,gmax[1]-ubuf[1]+1+j,k,gmax);
-                    	solute[irecv] = solute[isend];
+		    	if (symmetry == ODD)
+			    solute[irecv] = -solute[isend];
+		    	else if (symmetry == EVEN)
+			    solute[irecv] = solute[isend];
 		    }
 		    break;
 		case 2:
@@ -1350,7 +1298,10 @@ LOCAL   void reflect_array_buffer(
 		    {
                     	isend = d_index3d(i,j,gmax[2]-ubuf[2]-k,gmax);
                     	irecv = d_index3d(i,j,gmax[2]-ubuf[2]+1+k,gmax);
-                    	solute[irecv] = solute[isend];
+		    	if (symmetry = ODD)
+			    solute[irecv] = -solute[isend];
+		    	else if (symmetry == EVEN)
+			    solute[irecv] = solute[isend];
 		    }
 		    break;
 		}

@@ -578,16 +578,18 @@ EXPORT	void FT_ParallelExchIntfcBuffer(
 
 EXPORT	void FT_ParallelExchGridArrayBuffer(
 	double *grid_array,
-	Front *front)
+	Front *front,
+	int *symmetry)
 {
-	scatter_top_grid_float_array(DUAL_GRID,grid_array,front);
+	scatter_top_grid_float_array(DUAL_GRID,grid_array,front,symmetry);
 }	/* end FT_ParallelExchGridArrayBuffer */
 
 EXPORT  void FT_ParallelExchCompGridArrayBuffer(
         double *grid_array,
-        Front *front)
+        Front *front,
+	int *symmetry)
 {
-	scatter_top_grid_float_array(COMP_GRID,grid_array,front);
+	scatter_top_grid_float_array(COMP_GRID,grid_array,front,symmetry);
 }       /* end FT_ParallelExchCompGridArrayBuffer */
 
 EXPORT	HYPER_SURF *FT_HyperSurfAtGridCrossing(

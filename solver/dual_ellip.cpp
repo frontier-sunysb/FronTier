@@ -220,7 +220,7 @@ void DUAL_ELLIPTIC_SOLVER::solve1d(double *soln)
 		min_soln = soln[index];
 	    }
 	}
-	FT_ParallelExchCompGridArrayBuffer(soln,front);
+	FT_ParallelExchCompGridArrayBuffer(soln,front,NULL);
 
 	pp_global_max(&max_soln,1);
 	pp_global_min(&min_soln,1);
@@ -431,7 +431,7 @@ void DUAL_ELLIPTIC_SOLVER::solve2d(double *soln)
 		min_soln = soln[index];
 	    }
 	}
-	FT_ParallelExchCompGridArrayBuffer(soln,front);
+	FT_ParallelExchCompGridArrayBuffer(soln,front,NULL);
 
 	pp_global_max(&max_soln,1);
 	pp_global_min(&min_soln,1);
@@ -652,7 +652,7 @@ void DUAL_ELLIPTIC_SOLVER::solve3d(double *soln)
 		min_soln = soln[index];
 	    }
 	}
-	FT_ParallelExchCompGridArrayBuffer(soln,front);
+	FT_ParallelExchCompGridArrayBuffer(soln,front,NULL);
 
 	pp_global_max(&max_soln,1);
 	pp_global_min(&min_soln,1);

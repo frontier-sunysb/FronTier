@@ -294,6 +294,8 @@ static  void gas_driver(
             fflush(stdout);
 	    stop_clock("time_loop");
         }
+	if (FT_Dimension() == 1)
+	    g_cartesian.errFunction();
 	if (debugging("trace")) printf("After time loop\n");
 }       /* end gas_driver */
 

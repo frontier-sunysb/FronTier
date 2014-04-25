@@ -1,7 +1,7 @@
 Domain limit in 0-th dimension: 0 1
-Computational grid: 400
-Lower boundary in 0-th dimension: DIRICHLET_BOUNDARY
-Upper boundary in 0-th dimension: DIRICHLET_BOUNDARY
+Computational grid: 799
+Lower boundary in 0-th dimension: REFLECTION_BOUNDARY
+Upper boundary in 0-th dimension: REFLECTION_BOUNDARY
 
 Enter position of interface: 0.0
 Type yes to track the interface: n
@@ -11,11 +11,11 @@ Enter type of Dirichlet boundary: FLOW_THROUGH
 For upper boundary in 0-th dimension
 Enter type of Dirichlet boundary: FLOW_THROUGH
 
-Max time: 0.035
+Max time: 0.038
 Max step: 10000
 Print interval: 0.05
 Movie frame interval: 0.001
-CFL factor: 0.5
+CFL factor: 0.6
 Redistribution interval: 5
 
 Problem type can be
@@ -38,9 +38,9 @@ Enter order of point propagator: 2
 
 Type y to set movie bounds: y
 Type y to make movie of density: y
-Enter min and max density: 0.125 15.0
+Enter min and max density: 0.125 6.0
 Type y to make movie of pressure: y
-Enter min and max pressure: 0.1 1500.0
+Enter min and max pressure: 0.001 1500.0
 Type y to make movie of vorticity: y
 Type y to make movie of velocity: y
 Enter min and max velocity: -10.0 20.0

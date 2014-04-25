@@ -38,7 +38,9 @@ char *in_name,*out_name;
 static void (*exact_soln)(double,double,double*,double*,int);
 static void wave_func(double,double,double*,double*,int);
 static void hamp_func(double,double,double*,double*,int);
+static void cosine_func(double,double,double*,double*,int);
 static void square_func(double,double,double*,double*,int);
+static void error_func(double*,double*,double*,int);
 
 int main(int argc, char **argv) 
 {
@@ -60,6 +62,7 @@ int main(int argc, char **argv)
 	int boundary_type[2];
 	PARAMS params;
 	double wave_speed;
+	double err[3];
 
 	FT_Init(argc,argv,&f_basic);
         in_name         = f_basic.in_name;
@@ -71,8 +74,8 @@ int main(int argc, char **argv)
         mesh_size = f_basic.gmax[0];
 	boundary_type[0] = f_basic.boundary[0][0];
         boundary_type[1] = f_basic.boundary[0][1];
-        imin = buffer_size;
-        imax = imin + mesh_size;
+        imin = 0;
+        imax = mesh_size;
 
 	FT_ReadTimeControl(in_name,&front);
         CFL = Time_step_factor(&front);
@@ -84,23 +87,23 @@ int main(int argc, char **argv)
 
 	/* Allocating memory for arrays */
         expanded_mesh_size = mesh_size + 2*buffer_size;
-        FT_VectorMemoryAlloc((POINTER*)&u_old,expanded_mesh_size,
+        FT_VectorMemoryAlloc((POINTER*)&u_old,mesh_size,
                                         sizeof(double));
-        FT_VectorMemoryAlloc((POINTER*)&u_new,expanded_mesh_size,
+        FT_VectorMemoryAlloc((POINTER*)&u_new,mesh_size,
                                         sizeof(double));
-        FT_VectorMemoryAlloc((POINTER*)&u_sol,expanded_mesh_size,
+        FT_VectorMemoryAlloc((POINTER*)&u_sol,mesh_size,
                                         sizeof(double));
-        FT_VectorMemoryAlloc((POINTER*)&x,expanded_mesh_size,
+        FT_VectorMemoryAlloc((POINTER*)&x,mesh_size,
                                         sizeof(double));
 	dx = (U - L)/(mesh_size - 1);
         FT_TimeControlFilter(&front);
 
 	/* Set the initial condition */
-        for (i = 0; i < expanded_mesh_size; i++)
+        for (i = imin; i < imax; i++)
 	{
-            x[i] = L + (i - buffer_size)*dx;
+            x[i] = L + i*dx;
 	}
-        exact_soln(wave_speed,0.0,x,u_old,expanded_mesh_size);
+        exact_soln(wave_speed,0.0,x,u_old,mesh_size);
 	
 	/* Set frame margin for GD movie output */
         xmin = L;       xmax = U;
@@ -119,12 +122,12 @@ int main(int argc, char **argv)
         gd_initplot(gd_name,movie_caption,xmin,xmax,umin,umax,2);
 
 	/* Time loop */
-	front.dt = dt = 0.4*dx/wave_speed;
+	front.dt = dt = CFL*pow(dx,1.5)/wave_speed;
         for (;;)
         {
             /* Advancing numerical solution */
 	    printf("dx = %f  dt = %f\n",dx,dt);
-	    Weno5(mesh_size,u_old+buffer_size,u_new+buffer_size,dx,front.dt);
+	    Weno5(mesh_size,u_old,u_new,dx,front.dt);
 
             /* Swapping solution storage */
             for (i = imin; i < imax; i++)
@@ -141,14 +144,14 @@ int main(int argc, char **argv)
             if (FT_IsMovieFrameTime(&front))
             {
                 /* Numerical solution */
-                x_movie = x+buffer_size;
-                y_movie = u_old+buffer_size;
+                x_movie = x;
+                y_movie = u_old;
                 gd_plotdata(mesh_size,x_movie,y_movie);
 
                 /* Exact solution */
-                exact_soln(wave_speed,front.time,x,u_sol,expanded_mesh_size);
-                x_movie = x+buffer_size;
-                y_movie = u_sol+buffer_size;
+                exact_soln(wave_speed,front.time,x,u_sol,mesh_size);
+                x_movie = x;
+                y_movie = u_sol;
                 gd_plotdata(mesh_size,x_movie,y_movie);
 
                 /* Time label */
@@ -162,21 +165,21 @@ int main(int argc, char **argv)
 		sprintf(xg_name,"%s/num_sol-%d.xg",out_name,front.ip);
                 xg_file = fopen(xg_name,"w");
                 fprintf(xg_file,"\"u vs. x\"\n");
-                for (i = imin; i < imax; ++i)
+                for (i = imin; i < imax; i++)
                 {
                     fprintf(xg_file,"%f  %f\n",x[i],u_old[i]);
                 }
                 fclose(xg_file);
 
                 /* Exact solution */
-                exact_soln(wave_speed,front.time,x,u_sol,expanded_mesh_size);
+                exact_soln(wave_speed,front.time,x,u_sol,mesh_size);
                 sprintf(xg_name,"%s/exc-%d.xg",out_name,front.ip);
                 xg_file = fopen(xg_name,"w");
                 fprintf(xg_file,"\"u vs. x\"\n");
-                for (i = imin; i < imax; ++i)
+                for (i = imin; i < imax; i++)
                 {
                     fprintf(xg_file,"%f  %f\n",x[i],u_sol[i]);
-                }
+		}
                 fclose(xg_file);
             }
 
@@ -186,6 +189,8 @@ int main(int argc, char **argv)
                 front.dt = dt;
                 FT_TimeControlFilter(&front); /* reduce time step for output */
                 (void) printf("next dt = %20.14f\n",front.dt);
+        	exact_soln(wave_speed,front.time,x,u_sol,mesh_size);
+		error_func(u_sol,u_old,err,mesh_size);
                 break;
             }
 
@@ -199,6 +204,30 @@ int main(int argc, char **argv)
 	free(u_new);
 	free(u_sol);
 	clean_up(0);
+}
+
+static void error_func(
+	double *u_num,
+	double *u_exc,
+	double err[3],
+	int mesh_size)
+{
+	int i;
+	double tmp;
+
+	err[0]=0.0;
+	err[1]=0.0;
+	err[2]=0.0;
+	for (i = 0; i < mesh_size; i++)
+	{
+	    tmp = (u_exc[i]-u_num[i] > 0) ? u_exc[i]-u_num[i] : u_num[i]-u_exc[i];
+	    err[0] += tmp;
+	    err[1] += pow(tmp,2);
+	    err[2] = (err[2] > tmp) ? err[2] : tmp;
+	}
+	err[0] /= mesh_size;
+	err[1] = sqrt(err[1]/mesh_size);
+	printf("\n%d\t%e\t%e\t%e\n",mesh_size,err[0],err[1],err[2]);
 }
 
 static void readWenoParams(
@@ -238,6 +267,10 @@ static void readWenoParams(
         case 'H':
 	    params->init_type = HAMP;
 	    break;
+        case 'c':
+        case 'C':
+	    params->init_type = COSINE;
+	    break;
         case 'w':
         case 'W':
 	    params->init_type = WAVE;
@@ -262,7 +295,7 @@ static void wave_func(
         int i;
         double arg;
 
-        for (i = 0; i < mesh_size; ++i)
+        for (i = 0; i < mesh_size; i++)
         {
             arg = x[i] - a*time;
             u[i] = sin(2.0*PI*(arg - 1.0));
@@ -279,14 +312,31 @@ static void hamp_func(
         int i;
         double arg;
 
-        for (i = 0; i < mesh_size; ++i)
+        for (i = 0; i < mesh_size; i++)
         {
             arg = x[i] - a*time;
             if (arg >= 1.0 && arg <= 2.0)
-                u[i] = sin(PI*(arg - 1.0))*sin(PI*(arg - 1.0));
+                u[i] = sin(PI*(arg - 1.0))/**sin(PI*(arg - 1.0))*/;
             else
-                u[i] = 0.0;
+		u[i]=0.0;
         }
+}
+
+static void cosine_func(
+        double a,
+        double time,
+        double *x,
+        double *u,
+        int mesh_size)
+{
+        int i;
+        double arg;
+
+        for (i = 0; i < mesh_size; i++)
+        {
+            arg = x[i] - a*time;
+	    u[i]=sin(PI*arg);
+	}
 }
 
 static void square_func(
@@ -299,7 +349,7 @@ static void square_func(
         int i;
         double arg;
 
-        for (i = 0; i < mesh_size; ++i)
+        for (i = 0; i < mesh_size; i++)
         {
             arg = x[i] - a*time;
 	    
@@ -321,6 +371,9 @@ static void setSolutionType(
         case HAMP:
 	    exact_soln = hamp_func;
             break;
+	case COSINE:
+	    exact_soln = cosine_func;
+	    break;
         case SQUARE:
 	    exact_soln = square_func;
             break;

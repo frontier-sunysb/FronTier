@@ -824,7 +824,7 @@ void CARTESIAN::setDomain()
 
 void CARTESIAN::scatMeshArray()
 {
-	FT_ParallelExchGridArrayBuffer(array,front);
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
 }
 
 void CARTESIAN::setGlobalIndex()

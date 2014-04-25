@@ -921,7 +921,7 @@ void C_CARTESIAN::setDomain()
 
 void C_CARTESIAN::scatMeshArray()
 {
-	FT_ParallelExchGridArrayBuffer(array,front);
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
 }
 
 void C_CARTESIAN::setGlobalIndex()

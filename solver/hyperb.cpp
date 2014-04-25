@@ -691,7 +691,7 @@ void HYPERB_SOLVER::addMeshFluxToVst(
                     if (max_speed < fabs(array[index]))
                     	max_speed = array[index];
                 }
-		FT_ParallelExchGridArrayBuffer(array,front);
+		FT_ParallelExchGridArrayBuffer(array,front,NULL);
             	for (i = 0; i <= top_gmax[0]; ++i)
 		{
 		    index = d_index1d(i,top_gmax);
@@ -711,7 +711,7 @@ void HYPERB_SOLVER::addMeshFluxToVst(
                     if (max_speed < fabs(array[index]))
                     	max_speed = array[index];
                 }
-		FT_ParallelExchGridArrayBuffer(array,front);
+		FT_ParallelExchGridArrayBuffer(array,front,NULL);
             	for (j = 0; j <= top_gmax[1]; ++j)
             	for (i = 0; i <= top_gmax[0]; ++i)
 		{
@@ -733,7 +733,7 @@ void HYPERB_SOLVER::addMeshFluxToVst(
                     if (max_speed < fabs(array[index]))
                     	max_speed = array[index];
                 }
-		FT_ParallelExchGridArrayBuffer(array,front);
+		FT_ParallelExchGridArrayBuffer(array,front,NULL);
             	for (k = 0; k <= top_gmax[2]; ++k)
             	for (j = 0; j <= top_gmax[1]; ++j)
             	for (i = 0; i <= top_gmax[0]; ++i)

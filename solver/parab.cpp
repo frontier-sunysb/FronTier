@@ -186,7 +186,7 @@ void PARABOLIC_SOLVER::solve2d(
 	    else if (comp == obst_comp)
                 array[ic] = var_obst;
 	}
-	FT_ParallelExchGridArrayBuffer(array,front);
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
         for (i = 0; i <= top_gmax[0]; ++i)
         for (j = 0; j <= top_gmax[1]; ++j)
         {
@@ -376,7 +376,7 @@ void PARABOLIC_SOLVER::solve1d(
 	    else if (comp == obst_comp)
                 array[ic] = var_obst;
 	}
-	FT_ParallelExchGridArrayBuffer(array,front);
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
         for (i = 0; i <= top_gmax[0]; ++i)
         {
 	    icoords[0] = i;
@@ -541,7 +541,7 @@ void PARABOLIC_SOLVER::solve3d(
 	    else if (comp == obst_comp)
                 array[ic] = var_obst;
 	}
-	FT_ParallelExchGridArrayBuffer(array,front);
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
         for (i = 0; i <= top_gmax[0]; ++i)
         for (j = 0; j <= top_gmax[1]; ++j)
         for (k = 0; k <= top_gmax[2]; ++k)

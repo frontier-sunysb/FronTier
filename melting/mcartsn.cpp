@@ -590,7 +590,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	    }
 	    break;
 	}
-	scatMeshArray();
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
 	switch (dim)
 	{
         case 1:
@@ -1084,11 +1084,6 @@ void CARTESIAN::makeGridIntfc()
 void CARTESIAN::deleteGridIntfc()
 {
 	FT_FreeGridIntfc(front);
-}
-
-void CARTESIAN::scatMeshArray()
-{
-	FT_ParallelExchGridArrayBuffer(array,front);
 }
 
 void CARTESIAN::setGlobalIndex(COMPONENT sub_comp)
@@ -2174,7 +2169,7 @@ void CARTESIAN::computeAdvectionExplicitCim(COMPONENT sub_comp)
 	    }
 	    break;
 	}
-	scatMeshArray();
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
 	switch (dim)
 	{
         case 1:
@@ -2393,7 +2388,7 @@ void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
 	    }
 	    break;
 	}
-	scatMeshArray();
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
 	switch (dim)
 	{
         case 1:

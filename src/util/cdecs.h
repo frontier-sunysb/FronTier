@@ -4,10 +4,8 @@ Front Traking algorithms. Front Tracking is a numerical method for
 the solution of partial differential equations whose solutions have 
 discontinuities.  
 
-
 Copyright (C) 1999 by The University at Stony Brook. 
  
-
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
 License as published by the Free Software Foundation; either
@@ -21,7 +19,6 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-
 ****************************************************************/
 
 
@@ -170,6 +167,15 @@ typedef  void	    *POINTER;	/* Pointer to Unknown Data Types. */
 typedef  const void *CPOINTER;	/* Constant Pointer to Unknown Data Types. */
 
 #define  ERROR_FLOAT  -HUGE_VAL	/* Returned by Float Functions on Errors */
+
+#if defined(ODD)
+#  undef ODD
+#endif /* defined(ODD) */
+#if defined(EVEN)
+#  undef EVEN
+#endif /* defined(EVEN) */
+#define		ODD	1
+#define		EVEN	0
 
 
 		/* stuff for parallel computers */

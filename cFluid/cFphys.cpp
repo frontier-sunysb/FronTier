@@ -66,6 +66,8 @@ extern void read_cFluid_params(
 	    	eqn_params->prob_type = ONED_SSINE;
 	    else if (string[5] == 'B' || string[5] == 'b')
 	    	eqn_params->prob_type = ONED_BLAST;
+	    else if (string[5] == 'A' || string[5] == 'a')
+	    	eqn_params->prob_type = ONED_ASINE;
 	}
 	CursorAfterString(infile,"Enter numerical scheme for interior solver:");
 	fscanf(infile,"%s",string);

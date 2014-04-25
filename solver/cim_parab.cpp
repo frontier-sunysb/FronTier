@@ -151,7 +151,7 @@ void CIM_PARAB_SOLVER::solve2d(double *soln)
             (void) printf("Linear solver failed\n");
 	    clean_up(ERROR);
         }
-	FT_ParallelExchGridArrayBuffer(soln,front);
+	FT_ParallelExchGridArrayBuffer(soln,front,NULL);
 	if (solve_front_state)
 	    cimSolveFrontState();
         
@@ -229,7 +229,7 @@ void CIM_PARAB_SOLVER::solve3d(double *soln)
             (void) printf("Linear solver failed\n");
 	    clean_up(ERROR);
         }
-	FT_ParallelExchGridArrayBuffer(soln,front);
+	FT_ParallelExchGridArrayBuffer(soln,front,NULL);
         
         FT_FreeThese(3,A.a,A.j,A.i);
 

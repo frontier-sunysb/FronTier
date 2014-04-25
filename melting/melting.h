@@ -196,7 +196,6 @@ public:
 
 	// parallelization related functions
 	//
-	void scatMeshArray();
 	void setGlobalIndex(COMPONENT);
 
 	// physics calculation

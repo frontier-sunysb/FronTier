@@ -30,6 +30,7 @@ static void getBubbleState(STATE*,EQN_PARAMS*,double*,COMPONENT);
 static void getAmbientState(STATE*,EQN_PARAMS*,double*,COMPONENT);
 static void getBlastState(STATE*,EQN_PARAMS*,double*,COMPONENT);
 static void getShockSineWaveState(STATE*,EQN_PARAMS*,double*,COMPONENT);
+static void getAccuracySineWaveState(STATE*,EQN_PARAMS*,double*,COMPONENT);
 static void behind_state(int,double,double*,int,STATE*,STATE*);
 static void prompt_for_rigid_body_params(int,char*,RG_PARAMS*);
 static void set_rgbody_params(RG_PARAMS,HYPER_SURF*);
@@ -1582,6 +1583,7 @@ void G_CARTESIAN::initRiemannProb(
 	    break;
 	case ONED_BLAST:
 	case ONED_SSINE:
+	case ONED_ASINE:
 	    break;
 	default:
 	    (void) printf("Unknow problem type\n");
@@ -1802,6 +1804,60 @@ void G_CARTESIAN::initShockSineWaveStates()
 	scatMeshStates();
 }	/* end initShockSineWaveStates */
 
+void G_CARTESIAN::initAccuracySineWaveStates()
+{
+	int i,l,index;
+	EQN_PARAMS *eqn_params = (EQN_PARAMS*)front->extra1;
+	double coords[MAXD];
+	COMPONENT comp;
+	STATE *sl,*sr,state;
+        POINT *p;
+        HYPER_SURF *hs;
+        HYPER_SURF_ELEMENT *hse;
+	INTERFACE *intfc = front->interf;
+	double *dens = field.dens;
+	double *engy = field.engy;
+	double *pres = field.pres;
+	double **momn = field.momn;
+
+        next_point(intfc,NULL,NULL,NULL);
+        while (next_point(intfc,&p,&hse,&hs))
+        {
+	    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+	    getAccuracySineWaveState(sl,eqn_params,Coords(p),
+				negative_component(hs));
+	    getAccuracySineWaveState(sr,eqn_params,Coords(p),
+				positive_component(hs));
+	}
+	FT_MakeGridIntfc(front);
+	setDomain();
+
+	switch (dim)
+	{
+	case 1:
+	    for (i = imin[0]; i <= imax[0]; ++i)
+	    {
+		index = d_index1d(i,top_gmax);
+		comp = top_comp[index];
+		getRectangleCenter(index,coords);
+	    	getAccuracySineWaveState(&state,eqn_params,coords,comp);
+		dens[index] = state.dens;
+		pres[index] = state.pres;
+		engy[index] = state.engy;
+		for (l = 0; l < dim; ++l)
+		    momn[l][index] = state.momn[l];
+	    }
+	    break;
+	case 2:
+	case 3:
+	default:
+	    (void) printf("initAcuracySineWaveStates() not for case dim = %d\n",
+				dim);
+	    clean_up(ERROR);
+	}
+	scatMeshStates();
+}	/* end initAccuracySineWaveStates */
+
 static void getBlastState(
 	STATE *state,
 	EQN_PARAMS *eqn_params,
@@ -1815,22 +1871,22 @@ static void getBlastState(
 	if (coords[0] < 0.1)
 	{
 	    state->dens = 1.0;
-	    state->momn[0] = 0.0;
+	    state->vel[0] = 0.0;
 	    state->pres = 1000.0;
 	}
-	else if (coords[0] < 0.9)
+	else if (coords[0] > 0.9)
 	{
 	    state->dens = 1.0;
-	    state->momn[0] = 0.0;
-	    state->pres = 0.01;
+	    state->vel[0] = 0.0;
+	    state->pres = 100.0;
 	}
 	else
 	{
 	    state->dens = 1.0;
-	    state->momn[0] = 0.0;
-	    state->pres = 100.0;
+	    state->vel[0] = 0.0;
+	    state->pres = 0.01;
 	}
-	state->vel[0] = state->momn[0]/state->dens;
+	state->momn[0] = state->vel[0] * state->dens;
 	state->engy = EosInternalEnergy(state);
 }	/* end getBlastState */
 
@@ -1859,3 +1915,20 @@ static void getShockSineWaveState(
 	state->vel[0] = state->momn[0]/state->dens;
 	state->engy = EosInternalEnergy(state);
 }	/* end getShockSineWaveState */
+
+static void getAccuracySineWaveState(
+	STATE *state,
+	EQN_PARAMS *eqn_params,
+	double *coords,
+	COMPONENT comp)
+{
+	EOS_PARAMS	*eos;
+	eos = &(eqn_params->eos[comp]);
+	state->eos = eos;
+	state->dim = 1;
+	state->dens = 1.0 + 0.2 * sin(PI*coords[0]);
+	state->vel[0] = 0.7;
+	state->pres = 1.0;
+	state->momn[0]= state->dens * state->vel[0];
+	state->engy = EosInternalEnergy(state);
+}	/* end getAccuracySineWaveState */

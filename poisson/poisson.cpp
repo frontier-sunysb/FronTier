@@ -30,10 +30,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 	/*  Local Application Function Declarations */
 
-struct _EXP_PARAMS {
+struct _PARAMS {
 	double K[2];
 };
-typedef struct _EXP_PARAMS EXP_PARAMS;
+typedef struct _PARAMS PARAMS;
 
 static double	exp_func(POINTER,double*);
 static double	sin_func(POINTER,double*);
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 	static Front front;
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
-	EXP_PARAMS sparams; /* function parameters */
+	PARAMS sparams; /* function parameters */
 	LAPLACE laplace;
 	int i,j,num_nodes,*gmax;
 	RECT_GRID *grid;
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 
 	embed_bdry_poison((POINTER)&laplace,&front);
 
-	scatter_top_grid_float_array(laplace.solute,&front);
+	FT_ParallelExchGridArrayBuffer(laplace.solute,&front,NULL);
 
 	print_vtk_solution(dirname,(POINTER)&laplace,&front);
 	print_error_analysis(dirname,(POINTER)&laplace,&front);
@@ -389,7 +389,7 @@ LOCAL double exp_func(
         POINTER func_params,
         double *coords)
 {
-	EXP_PARAMS *exp_params = (EXP_PARAMS*)func_params;
+	PARAMS *exp_params = (PARAMS*)func_params;
 	double *K = exp_params->K;
 	double x,y,zz;
 
@@ -406,7 +406,7 @@ LOCAL void exp_func_flux(
         double *coords,
 	double *flux)
 {
-	EXP_PARAMS *exp_params = (EXP_PARAMS*)func_params;
+	PARAMS *exp_params = (PARAMS*)func_params;
 	double *K = exp_params->K;
 	double x,y,zz;
 	int i;
@@ -423,7 +423,7 @@ LOCAL double exp_solution(
 	POINTER func_params,
         double *coords)
 {
-	EXP_PARAMS *exp_params = (EXP_PARAMS*)func_params;
+	PARAMS *exp_params = (PARAMS*)func_params;
 	double *K = exp_params->K;
 	double x,y,zz;
 

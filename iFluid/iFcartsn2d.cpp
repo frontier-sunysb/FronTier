@@ -141,8 +141,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionCim(void)
 	    source[index] = computeFieldPointDiv(icoords,vel);
 	    diff_coeff[index] = 1.0/field->rho[index];
 	}
-	FT_ParallelExchGridArrayBuffer(source,front);
-	FT_ParallelExchGridArrayBuffer(diff_coeff,front);
+	FT_ParallelExchGridArrayBuffer(source,front,NULL);
+	FT_ParallelExchGridArrayBuffer(diff_coeff,front,NULL);
 	for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
 	{
@@ -249,8 +249,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 		}
 	    }
 	}
-	FT_ParallelExchGridArrayBuffer(source,front);
-	FT_ParallelExchGridArrayBuffer(diff_coeff,front);
+	FT_ParallelExchGridArrayBuffer(source,front,NULL);
+	FT_ParallelExchGridArrayBuffer(diff_coeff,front,NULL);
 	for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
 	{
@@ -407,6 +407,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocityDual(void)
         double **vel = field->vel;
         double *d_phi = field->d_phi;
 	static double **V;
+	int symmetry[MAXD];
 
 	computeProjectionDual();
 
@@ -515,7 +516,11 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocityDual(void)
 	}
 
 	for (l = 0; l < dim; ++l)
-	    FT_ParallelExchGridArrayBuffer(vel[l],front);
+	{
+	    symmetry[0] = symmetry[1] = symmetry[2] = EVEN;
+	    symmetry[l] = ODD;
+	    FT_ParallelExchGridArrayBuffer(vel[l],front,symmetry);
+	}
 
 	checkVelocityDiv("Before extractFlowThroughVelocity()");
 	extractFlowThroughVelocity();
@@ -684,6 +689,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::copyMeshStates(void)
 	double **vel = field->vel;
 	double *pres = field->pres;
 	double *vort = field->vort;
+	int symmetry[MAXD];
 	
 	for (i = imin; i <= imax; ++i)
 	for (j = jmin; j <= jmax; ++j)
@@ -694,7 +700,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::copyMeshStates(void)
 	    else
 		vort[index] = 0.0;
 	}
-	FT_ParallelExchGridArrayBuffer(vort,front);
+	symmetry[0] = symmetry[1] = ODD;
+	FT_ParallelExchGridArrayBuffer(vort,front,symmetry);
 }	/* end copyMeshStates */
 
 void Incompress_Solver_Smooth_2D_Cartesian::
@@ -1231,7 +1238,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionDual(void)
 	    index  = d_index2d(i,j,top_gmax);
 	    diff_coeff[index] = 1.0/field->rho[index];
 	}
-	FT_ParallelExchGridArrayBuffer(diff_coeff,front);
+	FT_ParallelExchGridArrayBuffer(diff_coeff,front,NULL);
 	for (j = cjmin; j <= cjmax; j++)
         for (i = cimin; i <= cimax; i++)
 	{
@@ -1242,7 +1249,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionDual(void)
 		continue;
 	    source[index] = computeDualFieldPointDiv(icoords,vel);
 	}
-	FT_ParallelExchCompGridArrayBuffer(source,front);
+	FT_ParallelExchCompGridArrayBuffer(source,front,NULL);
 
 	for (j = 0; j <= ctop_gmax[1]; j++)
         for (i = 0; i <= ctop_gmax[0]; i++)
@@ -1548,7 +1555,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
             index  = d_index2d(i,j,top_gmax);
             nu[index] = field->mu[index]/field->rho[index];
         }
-        FT_ParallelExchGridArrayBuffer(nu,front);
+        FT_ParallelExchGridArrayBuffer(nu,front,NULL);
 
         parab_solver.soln_comp = LIQUID_COMP2;
         parab_solver.obst_comp = SOLID_COMP;

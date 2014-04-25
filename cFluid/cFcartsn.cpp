@@ -493,7 +493,7 @@ void G_CARTESIAN::scatMeshFlux(FSWEEP *m_flux)
 		index = d_index1d(i,top_gmax);
 		array[index] = m_flux->dens_flux[index];
 	    }
-	    scatMeshArray();
+	    FT_ParallelExchGridArrayBuffer(array,front,NULL);
             for (i = 0; i <= top_gmax[0]; i++)
             {
                 index  = d_index1d(i,top_gmax);
@@ -504,7 +504,7 @@ void G_CARTESIAN::scatMeshFlux(FSWEEP *m_flux)
 		index = d_index1d(i,top_gmax);
 		array[index] = m_flux->engy_flux[index];
 	    }
-	    scatMeshArray();
+	    FT_ParallelExchGridArrayBuffer(array,front,NULL);
             for (i = 0; i <= top_gmax[0]; i++)
             {
                 index  = d_index1d(i,top_gmax);
@@ -517,7 +517,7 @@ void G_CARTESIAN::scatMeshFlux(FSWEEP *m_flux)
 		    index = d_index1d(i,top_gmax);
 		    array[index] = m_flux->momn_flux[l][index];
 	    	}
-	    	scatMeshArray();
+	    	FT_ParallelExchGridArrayBuffer(array,front,NULL);
             	for (i = 0; i <= top_gmax[0]; i++)
             	{
                     index = d_index1d(i,op_gmax);
@@ -532,7 +532,7 @@ void G_CARTESIAN::scatMeshFlux(FSWEEP *m_flux)
 		index = d_index2d(i,j,top_gmax);
 		array[index] = m_flux->dens_flux[index];
 	    }
-	    scatMeshArray();
+	    FT_ParallelExchGridArrayBuffer(array,front,NULL);
             for (j = 0; j <= top_gmax[1]; j++)
             for (i = 0; i <= top_gmax[0]; i++)
             {
@@ -545,7 +545,7 @@ void G_CARTESIAN::scatMeshFlux(FSWEEP *m_flux)
 		index = d_index2d(i,j,top_gmax);
 		array[index] = m_flux->engy_flux[index];
 	    }
-	    scatMeshArray();
+	    FT_ParallelExchGridArrayBuffer(array,front,NULL);
             for (j = 0; j <= top_gmax[1]; j++)
             for (i = 0; i <= top_gmax[0]; i++)
             {
@@ -560,7 +560,7 @@ void G_CARTESIAN::scatMeshFlux(FSWEEP *m_flux)
 		    index = d_index2d(i,j,top_gmax);
 		    array[index] = m_flux->momn_flux[l][index];
 	    	}
-	    	scatMeshArray();
+	    	FT_ParallelExchGridArrayBuffer(array,front,NULL);
             	for (j = 0; j <= top_gmax[1]; j++)
             	for (i = 0; i <= top_gmax[0]; i++)
             	{
@@ -577,7 +577,7 @@ void G_CARTESIAN::scatMeshFlux(FSWEEP *m_flux)
 		index = d_index3d(i,j,k,top_gmax);
 		array[index] = m_flux->dens_flux[index];
 	    }
-	    scatMeshArray();
+	    FT_ParallelExchGridArrayBuffer(array,front,NULL);
             for (k = 0; k <= top_gmax[2]; k++)
             for (j = 0; j <= top_gmax[1]; j++)
             for (i = 0; i <= top_gmax[0]; i++)
@@ -592,7 +592,7 @@ void G_CARTESIAN::scatMeshFlux(FSWEEP *m_flux)
 		index = d_index3d(i,j,k,top_gmax);
 		array[index] = m_flux->engy_flux[index];
 	    }
-	    scatMeshArray();
+	    FT_ParallelExchGridArrayBuffer(array,front,NULL);
             for (k = 0; k <= top_gmax[2]; k++)
             for (j = 0; j <= top_gmax[1]; j++)
             for (i = 0; i <= top_gmax[0]; i++)
@@ -609,7 +609,7 @@ void G_CARTESIAN::scatMeshFlux(FSWEEP *m_flux)
 		    index = d_index3d(i,j,k,top_gmax);
 		    array[index] = m_flux->momn_flux[l][index];
 	    	}
-	    	scatMeshArray();
+	    	FT_ParallelExchGridArrayBuffer(array,front,NULL);
             	for (k = 0; k <= top_gmax[2]; k++)
             	for (j = 0; j <= top_gmax[1]; j++)
             	for (i = 0; i <= top_gmax[0]; i++)
@@ -1015,11 +1015,6 @@ void G_CARTESIAN::allocDirVstFlux(
 	FT_VectorMemoryAlloc((POINTER*)&flux->engy_flux,size,sizeof(double));
 	FT_MatrixMemoryAlloc((POINTER*)&flux->momn_flux,MAXD,size,sizeof(double));
 }	/* end allocDirMeshVstFlux */
-
-void G_CARTESIAN::scatMeshArray()
-{
-	FT_ParallelExchGridArrayBuffer(array,front);
-}
 
 void G_CARTESIAN::checkVst(SWEEP *vst)
 {
@@ -1627,6 +1622,7 @@ void G_CARTESIAN::copyMeshStates()
 	double *pres = eqn_params->pres;
 	double *engy = eqn_params->engy;
 	double *vort = eqn_params->vort;
+	int symmetry[MAXD];
 
 	switch (dim)
 	{
@@ -1637,11 +1633,12 @@ void G_CARTESIAN::copyMeshStates()
 		for (l = 0; l < dim; ++l)
 		    vel[l][index] = mom[l][index]/dens[index];	
 	    }
-	    FT_ParallelExchGridArrayBuffer(dens,front);
-	    FT_ParallelExchGridArrayBuffer(pres,front);
-	    FT_ParallelExchGridArrayBuffer(engy,front);
-	    FT_ParallelExchGridArrayBuffer(mom[0],front);
-	    FT_ParallelExchGridArrayBuffer(vel[0],front);
+	    FT_ParallelExchGridArrayBuffer(dens,front,NULL);
+	    FT_ParallelExchGridArrayBuffer(pres,front,NULL);
+	    FT_ParallelExchGridArrayBuffer(engy,front,NULL);
+	    symmetry[0] = ODD;
+	    FT_ParallelExchGridArrayBuffer(mom[0],front,symmetry);
+	    FT_ParallelExchGridArrayBuffer(vel[0],front,symmetry);
 	    break;
 	case 2:
 	    for (i = imin[0]; i <= imax[0]; ++i)
@@ -1651,14 +1648,17 @@ void G_CARTESIAN::copyMeshStates()
 		for (l = 0; l < dim; ++l)
 		    vel[l][index] = mom[l][index]/dens[index];	
 	    }
-	    FT_ParallelExchGridArrayBuffer(dens,front);
-	    FT_ParallelExchGridArrayBuffer(pres,front);
-	    FT_ParallelExchGridArrayBuffer(engy,front);
-	    FT_ParallelExchGridArrayBuffer(vort,front);
+	    FT_ParallelExchGridArrayBuffer(dens,front,NULL);
+	    FT_ParallelExchGridArrayBuffer(pres,front,NULL);
+	    FT_ParallelExchGridArrayBuffer(engy,front,NULL);
+	    symmetry[0] = symmetry[1] = ODD;
+	    FT_ParallelExchGridArrayBuffer(vort,front,symmetry);
 	    for (l = 0; l < dim; ++l)
 	    {
-	    	FT_ParallelExchGridArrayBuffer(mom[l],front);
-	    	FT_ParallelExchGridArrayBuffer(vel[l],front);
+	    	symmetry[0] = symmetry[1] = EVEN;
+		symmetry[l] = ODD;
+	    	FT_ParallelExchGridArrayBuffer(mom[l],front,symmetry);
+	    	FT_ParallelExchGridArrayBuffer(vel[l],front,symmetry);
 	    }
 	    break;
 	case 3:
@@ -1670,13 +1670,15 @@ void G_CARTESIAN::copyMeshStates()
 		for (l = 0; l < dim; ++l)
 		    vel[l][index] = mom[l][index]/dens[index];	
 	    }
-	    FT_ParallelExchGridArrayBuffer(dens,front);
-	    FT_ParallelExchGridArrayBuffer(pres,front);
-	    FT_ParallelExchGridArrayBuffer(engy,front);
+	    FT_ParallelExchGridArrayBuffer(dens,front,NULL);
+	    FT_ParallelExchGridArrayBuffer(pres,front,NULL);
+	    FT_ParallelExchGridArrayBuffer(engy,front,NULL);
 	    for (l = 0; l < dim; ++l)
 	    {
-	    	FT_ParallelExchGridArrayBuffer(mom[l],front);
-	    	FT_ParallelExchGridArrayBuffer(vel[l],front);
+	    	symmetry[0] = symmetry[1] = symmetry[2] = EVEN;
+		symmetry[l] = ODD;
+	    	FT_ParallelExchGridArrayBuffer(mom[l],front,symmetry);
+	    	FT_ParallelExchGridArrayBuffer(vel[l],front,symmetry);
 	    }
 	    break;
 	}
@@ -2605,7 +2607,7 @@ void G_CARTESIAN::scatMeshVst(SWEEP *m_vst)
 		index = d_index1d(i,top_gmax);
 		array[index] = m_vst->dens[index];
 	    }
-	    scatMeshArray();
+	    FT_ParallelExchGridArrayBuffer(array,front,NULL);
             for (i = 0; i <= top_gmax[0]; i++)
             {
                 index  = d_index1d(i,top_gmax);
@@ -2616,7 +2618,7 @@ void G_CARTESIAN::scatMeshVst(SWEEP *m_vst)
 		index = d_index1d(i,top_gmax);
 		array[index] = m_vst->engy[index];
 	    }
-	    scatMeshArray();
+	    FT_ParallelExchGridArrayBuffer(array,front,NULL);
             for (i = 0; i <= top_gmax[0]; i++)
             {
                 index  = d_index1d(i,top_gmax);
@@ -2627,7 +2629,7 @@ void G_CARTESIAN::scatMeshVst(SWEEP *m_vst)
 		index = d_index1d(i,top_gmax);
 		array[index] = m_vst->pres[index];
 	    }
-	    scatMeshArray();
+	    FT_ParallelExchGridArrayBuffer(array,front,NULL);
             for (i = 0; i <= top_gmax[0]; i++)
             {
                 index  = d_index1d(i,top_gmax);
@@ -2640,7 +2642,7 @@ void G_CARTESIAN::scatMeshVst(SWEEP *m_vst)
 		    index = d_index1d(i,top_gmax);
 		    array[index] = m_vst->momn[l][index];
 	    	}
-	    	scatMeshArray();
+	    	FT_ParallelExchGridArrayBuffer(array,front,NULL);
             	for (i = 0; i <= top_gmax[0]; i++)
             	{
                     index = d_index1d(i,top_gmax);
@@ -2655,7 +2657,7 @@ void G_CARTESIAN::scatMeshVst(SWEEP *m_vst)
 		index = d_index2d(i,j,top_gmax);
 		array[index] = m_vst->dens[index];
 	    }
-	    scatMeshArray();
+	    FT_ParallelExchGridArrayBuffer(array,front,NULL);
             for (j = 0; j <= top_gmax[1]; j++)
             for (i = 0; i <= top_gmax[0]; i++)
             {
@@ -2668,7 +2670,7 @@ void G_CARTESIAN::scatMeshVst(SWEEP *m_vst)
 		index = d_index2d(i,j,top_gmax);
 		array[index] = m_vst->engy[index];
 	    }
-	    scatMeshArray();
+	    FT_ParallelExchGridArrayBuffer(array,front,NULL);
             for (j = 0; j <= top_gmax[1]; j++)
             for (i = 0; i <= top_gmax[0]; i++)
             {
@@ -2681,7 +2683,7 @@ void G_CARTESIAN::scatMeshVst(SWEEP *m_vst)
 		index = d_index2d(i,j,top_gmax);
 		array[index] = m_vst->pres[index];
 	    }
-	    scatMeshArray();
+	    FT_ParallelExchGridArrayBuffer(array,front,NULL);
             for (j = 0; j <= top_gmax[1]; j++)
             for (i = 0; i <= top_gmax[0]; i++)
             {
@@ -2696,7 +2698,7 @@ void G_CARTESIAN::scatMeshVst(SWEEP *m_vst)
 		    index = d_index2d(i,j,top_gmax);
 		    array[index] = m_vst->momn[l][index];
 	    	}
-	    	scatMeshArray();
+	    	FT_ParallelExchGridArrayBuffer(array,front,NULL);
             	for (j = 0; j <= top_gmax[1]; j++)
             	for (i = 0; i <= top_gmax[0]; i++)
             	{
@@ -2713,7 +2715,7 @@ void G_CARTESIAN::scatMeshVst(SWEEP *m_vst)
 		index = d_index3d(i,j,k,top_gmax);
                 array[index] = m_vst->dens[index];
 	    }
-	    scatMeshArray();
+	    FT_ParallelExchGridArrayBuffer(array,front,NULL);
             for (k = 0; k <= top_gmax[2]; k++)
             for (j = 0; j <= top_gmax[1]; j++)
             for (i = 0; i <= top_gmax[0]; i++)
@@ -2728,7 +2730,7 @@ void G_CARTESIAN::scatMeshVst(SWEEP *m_vst)
 		index = d_index3d(i,j,k,top_gmax);
                 array[index] = m_vst->engy[index];
 	    }
-	    scatMeshArray();
+	    FT_ParallelExchGridArrayBuffer(array,front,NULL);
             for (k = 0; k <= top_gmax[2]; k++)
             for (j = 0; j <= top_gmax[1]; j++)
             for (i = 0; i <= top_gmax[0]; i++)
@@ -2743,7 +2745,7 @@ void G_CARTESIAN::scatMeshVst(SWEEP *m_vst)
 		index = d_index3d(i,j,k,top_gmax);
                 array[index] = m_vst->pres[index];
 	    }
-	    scatMeshArray();
+	    FT_ParallelExchGridArrayBuffer(array,front,NULL);
             for (k = 0; k <= top_gmax[2]; k++)
             for (j = 0; j <= top_gmax[1]; j++)
             for (i = 0; i <= top_gmax[0]; i++)
@@ -2760,7 +2762,7 @@ void G_CARTESIAN::scatMeshVst(SWEEP *m_vst)
 		    index = d_index3d(i,j,k,top_gmax);
                     array[index] = m_vst->momn[l][index];
 	    	}
-	    	scatMeshArray();
+	    	FT_ParallelExchGridArrayBuffer(array,front,NULL);
             	for (k = 0; k <= top_gmax[2]; k++)
             	for (j = 0; j <= top_gmax[1]; j++)
             	for (i = 0; i <= top_gmax[0]; i++)
@@ -3777,7 +3779,7 @@ void G_CARTESIAN::solve_exp_value()
 	 	    index = d_index1d(i,top_gmax);
 		    array[index] = gnor[k][index];
 		}
-		scatMeshArray();
+	    	FT_ParallelExchGridArrayBuffer(array,front,NULL);
         	for (i = 0; i <= top_gmax[0]; i++)
         	{
 	    	    index  = d_index1d(i,top_gmax);
@@ -3795,7 +3797,7 @@ void G_CARTESIAN::solve_exp_value()
 	 	    index = d_index2d(i,j,top_gmax);
 		    array[index] = gnor[k][index];
 		}
-		scatMeshArray();
+	    	FT_ParallelExchGridArrayBuffer(array,front,NULL);
         	for (j = 0; j <= top_gmax[1]; j++)
         	for (i = 0; i <= top_gmax[0]; i++)
         	{
@@ -3815,7 +3817,7 @@ void G_CARTESIAN::solve_exp_value()
 	    	    index = d_index3d(i,j,n,top_gmax);
 	    	    array[index] = gnor[k][index];
 		}
-		scatMeshArray();
+	    	FT_ParallelExchGridArrayBuffer(array,front,NULL);
         	for (n = 0; n <= top_gmax[2]; n++)
         	for (j = 0; j <= top_gmax[1]; j++)
         	for (i = 0; i <= top_gmax[0]; i++)
@@ -3844,7 +3846,7 @@ void G_CARTESIAN::scatMeshGhost()
 	    index = d_index2d(i,j,top_gmax);
 	    array[index] = Gdens[k][index];
 	}
-	scatMeshArray();
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
         for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
         {
@@ -3858,7 +3860,7 @@ void G_CARTESIAN::scatMeshGhost()
 	    index = d_index2d(i,j,top_gmax);
 	    array[index] = Gpres[k][index];
 	}
-	scatMeshArray();
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
         for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
         {
@@ -3872,7 +3874,7 @@ void G_CARTESIAN::scatMeshGhost()
 	    index = d_index2d(i,j,top_gmax);
 	    array[index] = Gvel[k][0][index];
 	}
-	scatMeshArray();
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
         for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
         {
@@ -3886,7 +3888,7 @@ void G_CARTESIAN::scatMeshGhost()
 	    index = d_index2d(i,j,top_gmax);
 	    array[index] = Gvel[k][1][index];
 	}
-	scatMeshArray();
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
         for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
         {
@@ -3906,7 +3908,7 @@ void G_CARTESIAN::scatMeshGhost()
 	    index = d_index3d(i,j,n,top_gmax);
 	    array[index] = Gdens[k][index];
 	}
-	scatMeshArray();
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
         for (n = 0; n <= top_gmax[2]; n++)
         for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
@@ -3922,7 +3924,7 @@ void G_CARTESIAN::scatMeshGhost()
 	    index = d_index3d(i,j,n,top_gmax);
 	    array[index] = Gpres[k][index];
 	}
-	scatMeshArray();
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
         for (n = 0; n <= top_gmax[2]; n++)
         for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
@@ -3938,7 +3940,7 @@ void G_CARTESIAN::scatMeshGhost()
 	    index = d_index3d(i,j,n,top_gmax);
 	    array[index] = Gvel[k][0][index];
 	}
-	scatMeshArray();
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
         for (n = 0; n <= top_gmax[2]; n++)
         for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
@@ -3954,7 +3956,7 @@ void G_CARTESIAN::scatMeshGhost()
 	    index = d_index3d(i,j,n,top_gmax);
 	    array[index] = Gvel[k][1][index];
 	}
-	scatMeshArray();
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
         for (n = 0; n <= top_gmax[2]; n++)
         for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
@@ -3970,7 +3972,7 @@ void G_CARTESIAN::scatMeshGhost()
 	    index = d_index3d(i,j,n,top_gmax);
 	    array[index] = Gvel[k][2][index];
 	}
-	scatMeshArray();
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
         for (n = 0; n <= top_gmax[2]; n++)
         for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
@@ -5300,3 +5302,45 @@ void G_CARTESIAN::addFluxAlongGridLine(
 	    seg_min = seg_max + 1;
 	}
 }	/* end addFluxAlongGridLine */
+
+void G_CARTESIAN::errFunction()
+{
+	int i,index;
+	double arg,rho,tmp;
+	double **vel = field.vel;
+	double *dens = field.dens;
+	char string[100];
+	char *inname = InName(front);
+	FILE *infile = fopen(inname,"r");
+	double err[3];
+	double time = front->time;
+
+	if (FT_Dimension() != 1) return;
+	printf("\n");
+	CursorAfterString(infile,"Enter problem type:");
+	fscanf(infile,"%s",string);
+	(void) printf("%s\n",string);
+	if (string[0] == 'O' || string[0] =='o')
+	{
+	    if (string[5] == 'A' || string[5] =='a')
+	    {
+		err[0]=0.0;
+		err[1]=0.0;
+		err[2]=0.0;
+		for (i = 3; i <= top_gmax[0]-3; ++i)
+		{
+		    index = d_index1d(i,top_gmax);
+		    tmp = vel[0][index];
+		    arg = top_L[0]+top_h[0]*index - tmp*time;
+		    rho = 1.0 + 0.2 * sin(PI*arg);
+		    err[0] += fabs(rho-dens[index]);
+		    err[1] += pow(rho-dens[index],2);
+		    err[2] = (err[2]>fabs(rho-dens[index])) ? err[2] : 
+				fabs(rho-dens[index]);
+		}
+		err[0] /= top_gmax[0]-6;
+		err[1] = sqrt(err[1]/(top_gmax[0]-6));
+		(void) printf("\n %e \t %e \t %e \n",err[0],err[1],err[2]);
+	    }
+	}
+}	/* end errFunction, check the accuracy in AccuracySineWave case */

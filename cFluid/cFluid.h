@@ -32,7 +32,8 @@ enum _PROB_TYPE {
         RIEMANN_PROB,
 	FLUID_CRYSTAL,
 	ONED_BLAST,
-	ONED_SSINE
+	ONED_SSINE,
+	ONED_ASINE
 };
 typedef enum _PROB_TYPE PROB_TYPE;
 
@@ -259,6 +260,7 @@ public:
 	void initSampleVelocity(char *in_name);
 	void compareWithBaseData(char *out_name);
 	void freeBaseFront();
+	void errFunction();
 
 	// main step function
 	void solve(double dt);		
@@ -320,7 +322,6 @@ private:
 
 	// parallelization related functions
 	//
-	void scatMeshArray();
 	void scatMeshStates();
 	void scatMeshVst(SWEEP*);
 	void scatMeshFlux(FSWEEP*);
@@ -375,6 +376,7 @@ private:
 	void initRiemProbStates();
 	void initBlastWaveStates();
 	void initShockSineWaveStates();
+	void initAccuracySineWaveStates();
 	void setRayleiTaylorParams(char*);
 	void setRichtmyerMeshkovParams(char*);
 	void setBubbleParams(char*);

@@ -584,7 +584,7 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 
 void Incompress_Solver_Smooth_Basis::scatMeshArray()
 {
-	FT_ParallelExchGridArrayBuffer(array,front);
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
 }
 
 void Incompress_Solver_Smooth_Basis::setGlobalIndex()

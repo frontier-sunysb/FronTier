@@ -1125,7 +1125,7 @@ void CARTESIAN::deleteGridIntfc()
 
 void CARTESIAN::scatMeshArray()
 {
-	FT_ParallelExchGridArrayBuffer(array,front);
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
 }
 
 void CARTESIAN::setGlobalIndex(COMPONENT sub_comp)

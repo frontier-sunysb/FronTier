@@ -1582,6 +1582,7 @@ void G_CARTESIAN::initRiemannProb(
 	    break;
 	case ONED_BLAST:
 	case ONED_SSINE:
+	case ONED_ASINE:
 	    break;
 	default:
 	    (void) printf("Unknow problem type\n");

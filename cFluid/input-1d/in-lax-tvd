@@ -1,7 +1,7 @@
 Domain limit in 0-th dimension: -1 1
 Computational grid: 600
-Lower boundary in 0-th dimension: DIRICHLET_BOUNDARY
-Upper boundary in 0-th dimension: DIRICHLET_BOUNDARY
+Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
+Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
 
 Enter position of interface: 0.0
 Type yes to track the interface: n

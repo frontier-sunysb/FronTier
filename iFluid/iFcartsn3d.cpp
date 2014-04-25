@@ -260,6 +260,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocityDual(void)
         double **vel = field->vel;
         double *d_phi = field->d_phi;
 	static double **V;
+	int symmetry[MAXD];
 
 	computeProjectionDual();
 
@@ -344,7 +345,11 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocityDual(void)
 	}
 
 	for (l = 0; l < dim; ++l)
-	    FT_ParallelExchGridArrayBuffer(vel[l],front);
+	{
+	    symmetry[0] = symmetry[1] = symmetry[2] = EVEN;
+	    symmetry[l] = ODD;
+	    FT_ParallelExchGridArrayBuffer(vel[l],front,symmetry);
+	}
 
 	checkVelocityDiv("Before extractFlowThroughVelocity()");
 	extractFlowThroughVelocity();
@@ -495,7 +500,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::copyMeshStates()
 	    if (!ifluid_comp(top_comp[index]))
 	    	pres[index] = 0.0;
 	}
-	FT_ParallelExchGridArrayBuffer(pres,front);
+	FT_ParallelExchGridArrayBuffer(pres,front,NULL);
 }	/* end copyMeshStates */
 
 void Incompress_Solver_Smooth_3D_Cartesian::
@@ -1462,7 +1467,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionDual(void)
 	    index  = d_index3d(i,j,k,top_gmax);
 	    diff_coeff[index] = 1.0/field->rho[index];
 	}
-	FT_ParallelExchGridArrayBuffer(diff_coeff,front);
+	FT_ParallelExchGridArrayBuffer(diff_coeff,front,NULL);
 	for (k = ckmin; k <= ckmax; k++)
 	for (j = cjmin; j <= cjmax; j++)
         for (i = cimin; i <= cimax; i++)
@@ -1476,7 +1481,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionDual(void)
 	    source[index] = computeDualFieldPointDiv(icoords,vel);
 	}
 
-	FT_ParallelExchCompGridArrayBuffer(source,front);
+	FT_ParallelExchCompGridArrayBuffer(source,front,NULL);
 
 	for (k = 0; k <= ctop_gmax[2]; k++)
 	for (j = 0; j <= ctop_gmax[1]; j++)
@@ -1577,8 +1582,8 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
                 }
             }
         }
-	FT_ParallelExchGridArrayBuffer(source,front);
-        FT_ParallelExchGridArrayBuffer(diff_coeff,front);
+	FT_ParallelExchGridArrayBuffer(source,front,NULL);
+        FT_ParallelExchGridArrayBuffer(diff_coeff,front,NULL);
         for (k = 0; k <= top_gmax[2]; k++)
         for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
@@ -1747,7 +1752,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
             index  = d_index3d(i,j,k,top_gmax);
 	    nu[index] = field->mu[index]/field->rho[index];
 	}
-	FT_ParallelExchGridArrayBuffer(nu,front);
+	FT_ParallelExchGridArrayBuffer(nu,front,NULL);
 
 	parab_solver.soln_comp = LIQUID_COMP2;
 	parab_solver.obst_comp = SOLID_COMP;

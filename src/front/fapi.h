@@ -1053,31 +1053,35 @@ extern "C" {
  */
    IMPORT  void FT_ParallelExchIntfcBuffer(Front* front );
 
-/*! \fn void FT_ParallelExchGridArrayBuffer(double *grid_array, Front *front)
+/*! \fn void FT_ParallelExchGridArrayBuffer(double *grid_array, Front *front, int *symmetry)
  *  \ingroup PARALLEL
     \brief This is a parallel communication function for a double array
      on the expanded dual grid of the grid_intfc in front. It will cut 
      the old buffer parts of the array and patch it with new buffer parts 
      received from other subdomains or periodically shifted sides. This is a 
      synchronous function and must be called synchronously by every processor.
-    \param grid_array @b inout	A double array of field variable on expanded duel grid.
+    \param grid_array @b inout A double array of variable on expanded duel grid.
     \param front @b in	Pointer to Front.
+    \param symmetry @b in Flag of symmetry in each direction (in reflection).
  */
    IMPORT  void FT_ParallelExchGridArrayBuffer(double *grid_array ,
-   				Front* front );
+   				Front* front ,
+				int* symmetry);
 
-/*! \fn void FT_ParallelExchCompGridArrayBuffer(double *grid_array, Front *front)
+/*! \fn void FT_ParallelExchCompGridArrayBuffer(double *grid_array, Front *front, int *symmetry)
  *  \ingroup PARALLEL
     \brief This is a parallel communication function for a double array
      on the expanded comp grid of the grid_intfc in front. It will cut 
      the old buffer parts of the array and patch it with new buffer parts 
      received from other subdomains or periodically shifted sides. This is a 
      synchronous function and must be called synchronously by every processor.
-    \param grid_array @b inout	A double array of field variable on expanded comp grid.
-    \param front @b in	Pointer to Front.
+    \param grid_array @b inout A double array of variable on expanded comp grid.
+    \param front @b in Pointer to Front.
+    \param symmetry @b in Flag of symmetry in each direction (in reflection).
  */
    IMPORT  void FT_ParallelExchCompGridArrayBuffer(double *grid_array ,
-   				Front* front );
+   				Front* front ,
+				int* symmetry);
 
 /*! \fn void FT_ParallelExchCellIndex(Front *front, int *lbuf, int *ubuf, POINTER ijk_to_I)
  *  \ingroup PARALLEL
