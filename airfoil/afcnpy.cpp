@@ -251,103 +251,23 @@ extern void fourth_order_parachute_propagate(
 {
 	static int size = 0;
 	static double **x_pos,**v_pos;
-	double lambda_s,m_s,lambda_l,m_l;
 	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
-	int i,j,num_pts;
-	int n,n_tan = af_params->n_tan;
-	double fr_dt = fr->dt;
-	double dt = fr_dt/(double)n_tan;
-	int num_strings = new_geom_set->num_strings;
-	int n_cps,n_sps;
-	double dt_tol;
-	double xcom[MAXD],vcom[MAXD];
-	double coeff1,coeff2;
+	int i,j,n,n_sub,num_pts;
+	double dt;
 	static SPRING_VERTEX *sv;
 	static boolean first = YES;
 	int dim = FT_Dimension();
 
 	start_clock("set_data");
-
-	n_cps = FT_NumOfSurfPoints(new_geom_set->canopy);  /* canopy pts */
-	n_sps = 1;				/* load node */
-	for (i = 0; i < num_strings; ++i)	/* string interior pts */
-	{
-	    n_sps += FT_NumOfCurvePoints(new_geom_set->string_curves[i]) - 2;
-	}
+	n_sub = new_geom_set->n_sub;
+	dt = new_geom_set->dt;
 
 	if (debugging("trace"))
 	    (void) printf("Entering fourth_order_parachute_propagate()\n");
-	if (debugging("step_size"))
-	{
-	    double *spfr = Spfr(fr);
-	    printf("Before fourth_order_parachute_propagate()\n");
-	    for (i = 0; i <= 3; ++i)
-		printf("Max front speed(%d) = %f\n",i,spfr[i]);
-	}
 
-	num_pts = n_cps + n_sps;
+	num_pts = new_geom_set->num_verts;
 
-	new_geom_set->ks = af_params->ks;
-	new_geom_set->lambda_s = af_params->lambda_s;
-	new_geom_set->m_s = af_params->m_s;
-
-	new_geom_set->kl = af_params->kl;
-	new_geom_set->lambda_l = af_params->lambda_l;
-	new_geom_set->m_l = af_params->m_l;
-
-	new_geom_set->kg = af_params->kg;
-	new_geom_set->lambda_g = af_params->lambda_g;
-	new_geom_set->m_g = af_params->m_g;
-
-	new_geom_set->n_cps = n_cps;
-	new_geom_set->n_sps = n_sps;
-	dt_tol = sqrt((af_params->m_s)/(af_params->ks))/10.0;
-	if (af_params->m_l != 0.0 &&
-	    dt_tol > sqrt((af_params->m_l)/(af_params->kl))/10.0)
-	    dt_tol = sqrt((af_params->m_l)/(af_params->kl))/10.0;
-	if (af_params->m_g != 0.0 &&
-	    dt_tol > sqrt((af_params->m_g)/(af_params->kg))/10.0)
-	    dt_tol = sqrt((af_params->m_g)/(af_params->kg))/10.0;
-	if (debugging("step_size"))
-	{
-	    (void) printf("Input surface parameters:\n");
-	    (void) printf("ks = %f  m_s = %f  lambda_s = %f\n",
-			new_geom_set->ks,
-			new_geom_set->m_s,
-			new_geom_set->lambda_s);
-	    (void) printf("Input string parameters:\n");
-	    (void) printf("kl = %f  m_l = %f  lambda_l = %f\n",
-			new_geom_set->kl,
-			new_geom_set->m_l,
-			new_geom_set->lambda_l);
-	    (void) printf("Input gore parameters:\n");
-	    (void) printf("kg = %f  m_g = %f  lambda_g = %f\n",
-			new_geom_set->kg,
-			new_geom_set->m_g,
-			new_geom_set->lambda_g);
-	    (void) printf("n_cps = %d  n_sps = %d  num_pts = %d\n",
-			n_cps,n_sps,num_pts);
-	    (void) printf("number of strings = %d\n",
-			new_geom_set->num_strings);
-	    (void) printf("number of mono bdry = %d\n",
-			new_geom_set->num_mono_hsbdry);
-	    (void) printf("number of gore bdry = %d\n",
-			new_geom_set->num_gore_hsbdry);
-	    (void) printf("number of gore node = %d\n",
-			new_geom_set->num_gore_nodes);
-	}
-
-	if (dt > dt_tol)
-	{
-	    n_tan = (int)(fr_dt/dt_tol);
-	    dt = fr_dt/(double)n_tan;
-	}
-	(void) printf("\nfr_dt = %f  dt_tol = %20.14f  dt = %20.14f\n",
-				fr_dt,dt_tol,dt);
-	(void) printf("Number of interior sub-steps = %d\n\n",n_tan);
-
-	new_geom_set->dt = dt;
-
+	dt = new_geom_set->dt;
 	if (size < num_pts)
 	{
 	    size = num_pts;
@@ -360,15 +280,13 @@ extern void fourth_order_parachute_propagate(
 	    FT_VectorMemoryAlloc((POINTER*)&sv,size,sizeof(SPRING_VERTEX));
 	}
 
-	count_canopy_spring_neighbors(new_geom_set,sv);
-	count_string_spring_neighbors(new_geom_set,sv);
+	count_vertex_neighbors(new_geom_set,sv);
 	if (first)
 	{
 	    set_spring_vertex_memory(sv,size);
 	    first = NO;
 	}
-	set_canopy_spring_vertex(new_geom_set,x_pos,v_pos,sv);
-	set_string_spring_vertex(new_geom_set,x_pos,v_pos,sv);
+	set_vertex_neighbors(new_geom_set,x_pos,v_pos,sv);
 	stop_clock("set_data");
 
 	start_clock("spring_model");
@@ -377,13 +295,13 @@ extern void fourth_order_parachute_propagate(
         {
             if (debugging("trace"))
                 (void) printf("Enter gpu_spring_solver()\n");
-            gpu_spring_solver(sv,x_pos,v_pos,dim,size,n_tan,dt);
+            gpu_spring_solver(sv,x_pos,v_pos,dim,size,n_sub,dt);
             if (debugging("trace"))
                 (void) printf("Left gpu_spring_solver()\n");
         }
         else
 #endif
-        generic_spring_solver(sv,x_pos,v_pos,dim,size,n_tan,dt);
+        generic_spring_solver(sv,x_pos,v_pos,dim,size,n_sub,dt);
 	stop_clock("spring_model");
 
 	set_canopy_impulse(new_geom_set,sv);

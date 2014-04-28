@@ -185,9 +185,66 @@ extern void fourth_order_elastic_set_propagate(
 	static PARACHUTE_SET new_geom_set;
 	NODE **n;
 	int num_gore_nodes = numOfGoreNodes(new_intfc);
+	AF_PARAMS *af_params = (AF_PARAMS*)newfr->extra2;
+	double dt,dt_tol;
+	int n_tan = af_params->n_tan;
 
 	if (debugging("trace"))
 	    (void) printf("Entering fourth_order_elastic_set_propagate()\n");
+
+	/* Set parameters */
+	new_geom_set.ks = af_params->ks;
+        new_geom_set.lambda_s = af_params->lambda_s;
+        new_geom_set.m_s = af_params->m_s;
+        new_geom_set.kl = af_params->kl;
+        new_geom_set.lambda_l = af_params->lambda_l;
+        new_geom_set.m_l = af_params->m_l;
+        new_geom_set.kg = af_params->kg;
+        new_geom_set.lambda_g = af_params->lambda_g;
+        new_geom_set.m_g = af_params->m_g;
+	/* Set spring time step */
+	dt = fr_dt;
+	dt_tol = sqrt((af_params->m_s)/(af_params->ks))/10.0;
+        if (af_params->m_l != 0.0 &&
+            dt_tol > sqrt((af_params->m_l)/(af_params->kl))/10.0)
+            dt_tol = sqrt((af_params->m_l)/(af_params->kl))/10.0;
+        if (af_params->m_g != 0.0 &&
+            dt_tol > sqrt((af_params->m_g)/(af_params->kg))/10.0)
+            dt_tol = sqrt((af_params->m_g)/(af_params->kg))/10.0;
+	if (dt > dt_tol)
+        {
+            n_tan = (int)(fr_dt/dt_tol);
+            dt = fr_dt/(double)n_tan;
+        }
+        new_geom_set.dt = dt;
+        new_geom_set.n_sub = n_tan;
+
+	if (debugging("step_size"))
+        {
+	    double *spfr = Spfr(newfr);
+            printf("Before fourth_order_parachute_propagate()\n");
+            for (i = 0; i <= 3; ++i)
+                printf("Max front speed(%d) = %f\n",i,spfr[i]);
+            (void) printf("Input surface parameters:\n");
+            (void) printf("ks = %f  m_s = %f  lambda_s = %f\n",
+                        new_geom_set.ks,
+                        new_geom_set.m_s,
+                        new_geom_set.lambda_s);
+            (void) printf("Input string parameters:\n");
+            (void) printf("kl = %f  m_l = %f  lambda_l = %f\n",
+                        new_geom_set.kl,
+                        new_geom_set.m_l,
+                        new_geom_set.lambda_l);
+            (void) printf("Input gore parameters:\n");
+            (void) printf("kg = %f  m_g = %f  lambda_g = %f\n",
+                        new_geom_set.kg,
+                        new_geom_set.m_g,
+                        new_geom_set.lambda_g);
+	    (void) printf("\nfr_dt = %f  dt_tol = %20.14f  dt = %20.14f\n",
+                                fr_dt,dt_tol,dt);
+            (void) printf("Number of interior sub-steps = %d\n\n",n_tan);
+        }
+
 	newn = NULL;
 	for (n = new_intfc->nodes; n && *n; ++n)
 	{
@@ -255,6 +312,12 @@ extern void fourth_order_elastic_set_propagate(
 	new_geom_set.gore_nodes = new_gore_nodes;
 	new_geom_set.canopy = news;
 	new_geom_set.front = newfr;
+	new_geom_set.n_cps = FT_NumOfSurfPoints(new_geom_set.canopy);
+	new_geom_set.n_sps = 1;
+	for (i = 0; i < num_str_curves; ++i)
+	    new_geom_set.n_sps += 
+		FT_NumOfCurvePoints(new_geom_set.string_curves[i]) - 2;
+	new_geom_set.num_verts = new_geom_set.n_cps + new_geom_set.n_sps;
 
 	if (debugging("para_set"))
 	{

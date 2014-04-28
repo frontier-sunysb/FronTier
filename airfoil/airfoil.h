@@ -224,7 +224,9 @@ struct _PARACHUTE_SET{
 	double V_load[MAXD];
 	int n_cps;		/* Number of points on canopy */
 	int n_sps;		/* Number of points on string */
+	int num_verts;		/* Total number of spring-mass points */
 	double dt;
+	int n_sub;
 };
 
 typedef struct _PARACHUTE_SET PARACHUTE_SET;
@@ -316,6 +318,7 @@ extern void count_curve_neighbors(CURVE*,SPRING_VERTEX*,int*);
 extern void count_surf_neighbors(SURFACE*,SPRING_VERTEX*,int*);
 extern void count_canopy_spring_neighbors(PARACHUTE_SET*,SPRING_VERTEX*);
 extern void count_string_spring_neighbors(PARACHUTE_SET*,SPRING_VERTEX*);
+extern void count_vertex_neighbors(PARACHUTE_SET*,SPRING_VERTEX*);
 extern void set_node_spring_vertex(PARACHUTE_SET*,NODE*,double**,double**,
 				SPRING_VERTEX*,int*);
 extern void set_curve_spring_vertex(PARACHUTE_SET*,CURVE*,double**,double**,
@@ -325,6 +328,8 @@ extern void set_surf_spring_vertex(PARACHUTE_SET*,SURFACE*,double**,double**,
 extern void set_canopy_spring_vertex(PARACHUTE_SET*,double**,double**,
 				SPRING_VERTEX*);
 extern void set_string_spring_vertex(PARACHUTE_SET*,double**,double**,
+				SPRING_VERTEX*);
+extern void set_vertex_neighbors(PARACHUTE_SET*,double**,double**,
 				SPRING_VERTEX*);
 extern void set_spring_vertex_memory(SPRING_VERTEX*,int);
 extern void compute_spring_accel1(SPRING_VERTEX*,double*,int);
