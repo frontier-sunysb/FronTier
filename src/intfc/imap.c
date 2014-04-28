@@ -282,27 +282,7 @@ EXPORT void I_SphericalRotateInteriorIntfcPoints(
 	BOND *b;
 	boolean first = YES;
 
-	intfc_surface_loop(intfc,s)
-	{
-	    surf_tri_loop(*s,t)
-	    {
-		for (i = 0; i < 3; ++i)
-		{
-		    p = Point_of_tri(t)[i];
-		    sorted(p) = NO;
-		}
-	    }
-	}
-	intfc_curve_loop(intfc,c)
-	{
-	    b = (*c)->first;	p = b->start;
-	    sorted(p) = NO;
-	    curve_bond_loop(*c,b)
-	    {
-		p = b->end;
-	    	sorted(p) = NO;
-	    }
-	}
+	reset_sort_status(intfc);
 
 	intfc_surface_loop(intfc,s)
 	{
@@ -341,3 +321,61 @@ EXPORT void I_SphericalRotateInteriorIntfcPoints(
 	    }
 	}
 }	/* end I_SphericalRotateInteriorIntfcPoints */
+
+EXPORT void I_SphericalRotateInteriorSurfPoints(
+	SURFACE *surf,
+        double *center,
+        double phi,
+        double theta)
+{
+	TRI *t;
+	POINT *p;
+	int i;
+	boolean first = YES;
+
+	surf_tri_loop(surf,t)
+	{
+	    for (i = 0; i < 3; ++i)
+	    {
+		p = Point_of_tri(t)[i];
+		sorted(p) = NO;
+	    }
+	}
+	surf_tri_loop(surf,t)
+	{
+	    for (i = 0; i < 3; ++i)
+	    {
+		p = Point_of_tri(t)[i];
+		if (sorted(p) || Boundary_point(p)) continue;
+		rotate_point_with_spherical_angle(p,center,phi,theta,first);
+		if (first == YES) first = NO;
+		sorted(p) = YES;
+	    }
+	}
+}	/* end I_SphericalRotateInteriorSurfPoints */
+
+EXPORT void I_SphericalRotateInteriorCurvePoints(
+	CURVE *curve,
+        double *center,
+        double phi,
+        double theta)
+{
+	boolean first = YES;
+	POINT *p;
+	BOND *b;
+	for (b = curve->first; b != curve->last; b = b->next)
+	{
+	    p = b->end;
+	    rotate_point_with_spherical_angle(p,center,phi,theta,first);
+	    if (first == YES)	first = NO;
+	}
+}	/* end I_SphericalRotateInteriorCurvePoints */
+
+EXPORT void I_SphericalRotateInteriorNodePoints(
+	NODE *node,
+        double *center,
+        double phi,
+        double theta)
+{
+	rotate_point_with_spherical_angle(node->posn,center,phi,theta,YES);
+}	/* end I_SphericalRotateInteriorNodePoints */

@@ -104,6 +104,12 @@ int main(int argc, char **argv)
 	    FT_InitIntfc(&front,&level_func_pack);
 	    read_iF_dirichlet_bdry_data(in_name,&front,f_basic);
 	    initParachuteModules(&front);
+	    if (debugging("trace"))
+	    {
+		if (consistent_interface(front.interf) == NO)
+            	    clean_up(ERROR);
+		gview_plot_interface("ginit",front.interf);
+	    }
 	}
 	else
 	{

@@ -1538,6 +1538,12 @@ typedef struct _SCALED_REDIST_PARAMS SCALED_REDIST_PARAMS;
 #define	curve_neg_surf_loop(curve,s)	\
 	for ((s) = (curve)->neg_surfaces; (s) && (*s); ++(s))
 
+#define	node_in_curve_loop(node,c)	\
+	for ((c) = (node)->in_curves; (c) && (*c); ++(c))
+
+#define	node_out_curve_loop(node,c)	\
+	for ((c) = (node)->out_curves; (c) && (*c); ++(c))
+
 #define E_comps(intfc)          ((EQUIV_COMPS *) (intfc)->e_comps)
 
 #if defined(c_plusplus) || defined(__cplusplus)

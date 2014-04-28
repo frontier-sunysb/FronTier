@@ -116,10 +116,11 @@ extern "C" {
         		double phi,                     /* Polar angle */
         		boolean first);
 
-/*! \fn void I_SphericalRorateInteriorIntfcPoints(INTERFACE *intfc,double *center,double phi,double theta,boolean first)
+/*! \fn void I_SphericalRorateInteriorIntfcPoints(INTERFACE *intfc,double *center,double phi,double theta)
     \ingroup POINT
     \brief This function rotates the interior points of the input interface 
-     about the center with spherical angle.
+     about the center with spherical angle (bounding curves or surfaces will
+     not be rotated.
     \param intfc @b inout Interface whose interior points to be rotated.
     \param center @b in Center of the rotation.
     \param phi @b in Azimuthal angle.
@@ -127,6 +128,36 @@ extern "C" {
  */
    IMPORT  void I_SphericalRotateInteriorIntfcPoints(
 			INTERFACE *intfc,
+        		double *center,                 /* Rotation center */
+        		double phi,                     /* Azimuthal angle */
+        		double theta);                   /* Polar angle */
+
+/*! \fn void I_SphericalRorateInteriorSurfPoints(SURFACE *surf,double *center,double phi,double theta)
+    \ingroup POINT
+    \brief This function rotates the interior points of the input surface 
+     about the center with spherical angle (no curve point is rotated).
+    \param surf @b inout Surface whose interior points to be rotated.
+    \param center @b in Center of the rotation.
+    \param phi @b in Azimuthal angle.
+    \param theta @b in Polar angle.
+ */
+   IMPORT  void I_SphericalRotateInteriorSurfPoints(
+			SURFACE *surf,
+        		double *center,                 /* Rotation center */
+        		double phi,                     /* Azimuthal angle */
+        		double theta);                   /* Polar angle */
+
+/*! \fn void I_SphericalRorateInteriorCurvePoints(CURVE *curve,double *center,double phi,double theta)
+    \ingroup POINT
+    \brief This function rotates the interior points of the input surface 
+     about the center with spherical angle (no node point is rotated).
+    \param curve @b inout Curve whose interior points to be rotated.
+    \param center @b in Center of the rotation.
+    \param phi @b in Azimuthal angle.
+    \param theta @b in Polar angle.
+ */
+   IMPORT  void I_SphericalRotateInteriorCurvePoints(
+			CURVE *curve,
         		double *center,                 /* Rotation center */
         		double phi,                     /* Azimuthal angle */
         		double theta);                   /* Polar angle */
