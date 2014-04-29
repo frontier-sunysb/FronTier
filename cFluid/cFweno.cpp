@@ -34,6 +34,7 @@ static void matmvec(double *b, double L[5][5], double *x);
 static void f2is(double *f, double *s);
 static void u2f(double *u, double *f);
 static void weno5_get_flux(POINTER,int,int,double**,double**);
+static double arti_compression(double*,double*,double,double,double*,int,double &c);
 
 extern void WENO_flux(
         POINTER params,
@@ -112,7 +113,11 @@ static void weno5_get_flux(
 	static int max_n = 0;
 	SCHEME_PARAMS *scheme_params = (SCHEME_PARAMS*)params;
 	double gamma = scheme_params->gamma;
+	double vecp[5][4],vecm[5][4];
     	double a,gm = gamma - 1.0;
+	double c,f_ac_tmp,ac_alpha,ac_alpha_nume,ac_alpha_deno;
+	double f_prevp[5],f_nowp[5],f_prevm[5],f_nowm[5];
+	double gflux_tmp[5];
 
 	if (max_n < extend_size)
         {
@@ -148,7 +153,7 @@ static void weno5_get_flux(
 	    u_mid[6] = u_mid[2]/u_mid[0];
 	    u_mid[7] = u_mid[3]/u_mid[0];
 	    u_mid[9] = sqr(u_mid[5]) + sqr(u_mid[6]) + sqr(u_mid[7]);
-            u_mid[8] = (u_mid[4] - 0.5*u_mid[0]*u_mid[9])*(gamma - 1.0);
+	    u_mid[8] = (u_mid[4] - 0.5*u_mid[0]*u_mid[9])*(gamma - 1.0);
 	    u_mid[10] = sqrt(gamma*u_mid[8]/u_mid[0]);
 
 	    /*** R(u_1/2) & R^-1(u_1/2) ***/
@@ -239,8 +244,24 @@ static void weno5_get_flux(
 
 	    for(j = 0; j < 5; ++j)
 	    {
-	    	f_tmp[j] = weno5_scal(gfluxp[j]);
-	    	f_tmp[j] += weno5_scal(gfluxm[j]);
+		f_prevp[j] = f_nowp[j];
+	    	f_nowp[j] = weno5_scal(gfluxp[j]);
+		f_tmp[j] = f_nowp[j];
+		/* artificial compression */
+	    	for(k = 0; k < 5; ++k)
+			gflux_tmp[k] = 0.5*(sten_f[5-k][j] + maxeig[j]*sten_u[5-k][j]);
+		arti_compression(gfluxp[j],gflux_tmp,f_prevp[j],f_nowp[j],vecp[j],1,c);
+		f_tmp[j] += c;
+		/* end of artificial compression */
+		f_prevm[j] = f_nowm[j];
+	    	f_nowm[j] = weno5_scal(gfluxm[j]);
+		f_tmp[j] += f_nowm[j];
+		/* artificial compression */
+	    	for(k = 0; k < 5; ++k)
+			gflux_tmp[k] = 0.5*(sten_f[k][j] - maxeig[j]*sten_u[k][j]);
+		arti_compression(gfluxm[j],gflux_tmp,f_prevm[j],f_nowm[j],vecm[j],-1,c);
+		f_tmp[j] += c;
+		/* end of artificial compression */
 	    }
 
 	    matmvec(ff, R, f_tmp);
@@ -249,7 +270,7 @@ static void weno5_get_flux(
                 flux[j][i] = ff[j];
 		if (isnan(f[j][i]))
 		{
-		    (void) printf("In weno5_flux(): f[%d][%d] = %f\n",j,i,
+		    (void) printf("In weno5_flux(): flux[%d][%d] = %f\n",j,i,
 					f[j][i]);
 		    for (k = 0; k < extend_size; ++k)
                         printf("u[%d] = %f %f %f %f %f\n",k,u_old[0][k],
@@ -264,10 +285,10 @@ static void weno5_get_flux(
 static double weno5_scal(double *f)
 {
     	int i, j;
-    	const double eps = 1.e-16;
+    	const double eps = 1.e-40;
     	const int p = 2;
 
-    	double c[3] = {0.1, 0.6, 0.3}; //*** Optimal weights C_k 
+    	double d[3] = {0.1, 0.6, 0.3}; //*** Optimal weights C_k 
     	double is[3]; //*** a smoothness measurement of the flux function
     	double alpha[3];
     	double omega[3]; // weights for stencils
@@ -277,7 +298,7 @@ static double weno5_scal(double *f)
 			  {0, 0, 1.0/3, 5.0/6, -1.0/6}}; 
 		//*** coefficients for 2nd-order ENO interpolation stencil
     	double w[5]; //weight for every point
-    	double flux = 0.0;
+	double flux = 0.0;
 
     	f2is(f,is);
 
@@ -285,7 +306,7 @@ static double weno5_scal(double *f)
 
     	for(i = 0; i < 3; ++i)
     	{
-	    alpha[i] = c[i]/pow(eps + is[i],p);
+	    alpha[i] = d[i]/pow(eps + is[i],p);
 	    sum += alpha[i];
     	}
     	for(i = 0; i < 3; ++i)
@@ -304,8 +325,8 @@ static double weno5_scal(double *f)
     	for(i = 0; i < 5; ++i)
     	{
 	    flux += w[i] * f[i];
-    	}  	  
-    	return flux;
+    	}
+	return flux;
 }
 
 static void f2is(
@@ -348,4 +369,62 @@ static void u2f(
     	f[2] = v*u[2];
     	f[3] = v*u[3];
     	f[4] = v*(u[4] + u[5]);
+}
+
+static double arti_compression(
+	double *sten,
+	double *sten_tmp,
+	double f_prev,
+	double f_now,
+	double *vec,
+	int sign,
+	double &c)
+{
+	double tmp,f_ac_tmp;
+	double ac_alpha,ac_alpha_nume,ac_alpha_deno;
+
+	c = 0.0;
+	ac_alpha_nume = fabs(sten[3] - 2.0*sten[2] + sten[1]);
+	ac_alpha_deno = fabs(sten[3] - sten[2]) + fabs(sten[2] - sten[1]);
+	if (ac_alpha_deno != 0.0)
+	{
+	    ac_alpha = 33.0 * pow(ac_alpha_nume/ac_alpha_deno,2);
+	    if (ac_alpha > 1.0)
+	    {
+		f_ac_tmp = weno5_scal(sten_tmp);
+		if (sign == 1)
+		{
+		    vec[1] = vec[0];
+		    vec[0] = f_ac_tmp - f_now;
+		    vec[2] = sten[3] - f_now;
+		    vec[3] = vec[1] + f_prev - sten[1];
+		}
+		else if (sign == -1)
+		{
+	    	    vec[0] = vec[1];
+	    	    vec[1] = f_ac_tmp - f_now;
+	    	    vec[2] = sten[1] - f_prev;
+	    	    vec[3] = vec[1] + f_now - sten[3];
+		}
+		if (vec[0] > 0.0 && vec[1] > 0.0)
+		    tmp = (vec[0] < vec[1]) ? vec[0] : vec[1];
+		else if (vec[0] < 0.0 && vec[1] < 0.0)
+		    tmp = (vec[0] > vec[1]) ? vec[0] : vec[1];
+		else
+		    tmp = 0.0;
+		tmp *= ac_alpha / 2.0;
+		if (tmp > 0.0 && vec[2] > 0.0 && vec[3] > 0.0)
+		{
+		    c = (tmp < vec[2]) ? tmp : vec[2];
+		    c = (c < vec[3]) ? c : vec[3];
+		}
+		else if (tmp < 0.0 && vec[2] < 0.0 && vec[3] < 0.0)
+		{
+		    c = (tmp > vec[2]) ? tmp : vec[2];
+		    c = (c > vec[3]) ? c : vec[3];
+		}
+		else
+		    c = 0.0;
+	    }
+	}
 }

@@ -228,6 +228,7 @@ void G_CARTESIAN::setInitialIntfc(
 	case RIEMANN_PROB:
 	case ONED_BLAST:
 	case ONED_SSINE:
+	case ONED_ASINE:
 	    initRiemannProb(level_func_pack,inname);
 	    break;
 	default:
@@ -265,6 +266,7 @@ void G_CARTESIAN::setProbParams(char *inname)
 	    break;
 	case ONED_BLAST:
 	case ONED_SSINE:
+	case ONED_ASINE:
 	    setOnedParams(inname);
 	    break;
 	default:
@@ -303,6 +305,9 @@ void G_CARTESIAN::setInitialStates()
 	    break;
 	case ONED_SSINE:
 	    initShockSineWaveStates();
+	    break;
+	case ONED_ASINE:
+	    initAccuracySineWaveStates();
 	    break;
 	default:
 	    (void) printf("In setInitialStates(), case not implemented!\n");

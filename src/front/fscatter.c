@@ -536,6 +536,14 @@ LOCAL	void bundle_array_buffer(
 	int i,j,k,ic;
 	switch (dim)
 	{
+	case 1:
+	    for (i = bmin[0]; i < bmax[0]; ++i)
+	    {
+	    	ic = d_index1d(i,gmax);
+		ft_assign(variable,(POINTER)&array[ic],FLOAT);
+		variable += FLOAT;
+	    }
+	    break;
 	case 2:
 	    for (i = bmin[0]; i < bmax[0]; ++i)
 	    for (j = bmin[1]; j < bmax[1]; ++j)
@@ -569,6 +577,14 @@ LOCAL	void unbundle_array_buffer(
 	int i,j,k,ic;
 	switch (dim)
 	{
+	case 1:
+	    for (i = bmin[0]; i < bmax[0]; ++i)
+	    {
+	    	ic = d_index1d(i,gmax);
+		ft_assign(array+ic,variable,FLOAT);
+		variable += FLOAT;
+	    }
+	    break;
 	case 2:
 	    for (i = bmin[0]; i < bmax[0]; ++i)
 	    for (j = bmin[1]; j < bmax[1]; ++j)
