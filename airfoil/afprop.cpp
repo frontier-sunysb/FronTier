@@ -175,22 +175,16 @@ extern void fourth_order_elastic_set_propagate(
 	Front           *newfr,
         double           fr_dt)
 {
-	INTERFACE *new_intfc = newfr->interf;
-	NODE *newn;	/* new payload nodes */
-	AF_NODE_EXTRA *extra;
-	CURVE **new_str_curves,**new_mono_hsbdry,**new_gore_hsbdry;
-	NODE **new_str_nodes,**new_gore_nodes;
-	SURFACE *news;
-	int i,num_str_curves,num_mono_hsbdry,num_gore_hsbdry;
 	static PARACHUTE_SET new_geom_set;
-	NODE **n;
-	int num_gore_nodes = numOfGoreNodes(new_intfc);
 	AF_PARAMS *af_params = (AF_PARAMS*)newfr->extra2;
 	double dt,dt_tol;
 	int n_tan = af_params->n_tan;
 
 	if (debugging("trace"))
 	    (void) printf("Entering fourth_order_elastic_set_propagate()\n");
+
+	new_geom_set.front = newfr;
+	assembleParachuteSet(newfr,&new_geom_set,3);
 
 	/* Set parameters */
 	new_geom_set.ks = af_params->ks;
@@ -221,6 +215,7 @@ extern void fourth_order_elastic_set_propagate(
 
 	if (debugging("step_size"))
         {
+	    int i;
 	    double *spfr = Spfr(newfr);
             printf("Before fourth_order_parachute_propagate()\n");
             for (i = 0; i <= 3; ++i)
@@ -245,90 +240,7 @@ extern void fourth_order_elastic_set_propagate(
             (void) printf("Number of interior sub-steps = %d\n\n",n_tan);
         }
 
-	newn = NULL;
-	for (n = new_intfc->nodes; n && *n; ++n)
-	{
-	    extra = (AF_NODE_EXTRA*)(*n)->extra;
-	    if (extra == NULL || extra->af_node_type != LOAD_NODE) 
-		continue;
-	    newn = *n;
-	    break;
-	}
-	if (newn == NULL)
-	{
-	    (void) printf("ERROR: No load node!\n");
-	    clean_up(ERROR);
-	}
-
-	new_geom_set.load_node = newn;
-
-	num_str_curves = FT_NumOfNodeCurves(newn);
-
-	if (num_str_curves != FT_NumOfNodeCurves(newn))
-	{
-	    (void) printf("ERROR in af_node_propagate(): "
-			  "new number of string curves not equal!\n");
-	    clean_up(ERROR);
-	}
-	FT_VectorMemoryAlloc((POINTER*)&new_str_curves,num_str_curves,
-			sizeof(CURVE*));
-	FT_VectorMemoryAlloc((POINTER*)&new_str_nodes,num_str_curves,
-			sizeof(NODE*));
-	FT_VectorMemoryAlloc((POINTER*)&new_gore_nodes,num_gore_nodes,
-			sizeof(NODE*));
-	FT_ArrayOfNodeCurves(newn,new_str_curves);
-
-	new_geom_set.num_strings = num_str_curves;
-
-	new_geom_set.string_node = new_str_nodes;
-
-	new_geom_set.string_curves = new_str_curves;
-
-	for (i = 0; i < num_str_curves; ++i)
-	{
-	    new_str_nodes[i] = (new_str_curves[i]->start == newn) ? 
-			new_str_curves[i]->end : new_str_curves[i]->start;
-	}
-	news = canopy_of_string_node(new_str_nodes[0]);
-
-	num_gore_nodes  = numOfGoreNodes(new_intfc);
-	num_gore_hsbdry = numOfGoreHsbdry(new_intfc);
-	num_mono_hsbdry = numOfMonoHsbdry(new_intfc);
-
-	FT_VectorMemoryAlloc((POINTER*)&new_mono_hsbdry,num_mono_hsbdry,
-			sizeof(CURVE*));
-	num_mono_hsbdry = arrayOfMonoHsbdry(new_intfc,new_mono_hsbdry);
-	FT_VectorMemoryAlloc((POINTER*)&new_gore_hsbdry,num_gore_hsbdry,
-			sizeof(CURVE*));
-	num_gore_hsbdry = arrayOfGoreHsbdry(new_intfc,new_gore_hsbdry);
-
-	new_geom_set.num_mono_hsbdry = num_mono_hsbdry;
-	new_geom_set.num_gore_hsbdry = num_gore_hsbdry;
-	new_geom_set.num_gore_nodes = num_gore_nodes;
-
-	new_geom_set.mono_hsbdry = new_mono_hsbdry;
-	new_geom_set.gore_hsbdry = new_gore_hsbdry;
-	getGoreNodes(new_intfc,new_gore_nodes);
-	new_geom_set.gore_nodes = new_gore_nodes;
-	new_geom_set.canopy = news;
-	new_geom_set.front = newfr;
-	new_geom_set.n_cps = FT_NumOfSurfPoints(new_geom_set.canopy);
-	new_geom_set.n_sps = 1;
-	for (i = 0; i < num_str_curves; ++i)
-	    new_geom_set.n_sps += 
-		FT_NumOfCurvePoints(new_geom_set.string_curves[i]) - 2;
-	new_geom_set.num_verts = new_geom_set.n_cps + new_geom_set.n_sps;
-
-	if (debugging("para_set"))
-	{
-	    (void) printf("The parachute contains:\n");
-	    (void) printf("%d string chord curves\n",num_str_curves);
-	    (void) printf("%d canopy boundary curves\n",num_mono_hsbdry);
-	    (void) printf("%d canopy gore curves\n",num_gore_hsbdry);
-	}
 	fourth_order_parachute_propagate(newfr,&new_geom_set);
-	FT_FreeThese(5,new_str_curves,new_str_nodes,new_mono_hsbdry,
-			new_gore_hsbdry,new_gore_nodes);
 	
 	if (debugging("trace"))
 	    (void) printf("Leaving fourth_order_elastic_set_propagate()\n");
@@ -985,3 +897,91 @@ static void coating_mono_hyper_surf3d(
 	if (debugging("trace"))
 	    (void) printf("Leaving coating_mono_hyper_surf3d()\n");
 }	/* end coating_mono_hyper_surf3d */
+
+extern void assembleParachuteSet(
+	Front *front,
+	PARACHUTE_SET *geom_set,
+	int num_layers)
+{
+	INTERFACE *intfc = front->interf;
+	SURFACE **s;
+	CURVE **c;
+	NODE **n;
+	int i,l,ns,nc,nn;
+	SURFACE **surfs = geom_set->surfs;
+	CURVE **curves = geom_set->curves;
+	NODE **nodes = geom_set->nodes;
+
+	ns = nc = nn = 0;
+	/* Assemble canopy surfaces */
+	intfc_surface_loop(intfc,s)
+	{
+	    if (wave_type(*s) != ELASTIC_BOUNDARY)
+		continue;
+	    surfs[ns++] = *s;
+	    surf_pos_curve_loop(*s,c)
+	    {
+	    	if (!pointer_in_list(*c,nc,(POINTER*)curves))
+	    	{
+		    curves[nc++] = *c;
+		    if (!pointer_in_list((*c)->start,nn,(POINTER*)nodes))
+		    	nodes[nn++] = (*c)->start;
+		    if (!pointer_in_list((*c)->end,nn,(POINTER*)nodes))
+		    	nodes[nn++] = (*c)->end;
+	    	}
+	    }
+	    surf_neg_curve_loop(*s,c)
+	    {
+	    	if (!pointer_in_list(*c,nc,(POINTER*)curves))
+	    	{
+		    curves[nc++] = *c;
+		    if (!pointer_in_list((*c)->start,nn,(POINTER*)nodes))
+		    	nodes[nn++] = (*c)->start;
+		    if (!pointer_in_list((*c)->end,nn,(POINTER*)nodes))
+		    	nodes[nn++] = (*c)->end;
+	    	}
+	    }
+	}
+
+	/* Assemble curves and nodes */
+	for (l = 0; l < num_layers; ++l)
+	{
+	    for (i = 0; i < nn; ++i)
+	    {
+	    	node_in_curve_loop(nodes[i],c)
+	    	{
+		    if (!pointer_in_list(*c,nc,(POINTER*)curves))
+		    {
+		    	curves[nc++] = *c;
+		    	if (!pointer_in_list((*c)->start,nn,(POINTER*)nodes))
+		    	    nodes[nn++] = (*c)->start;
+		    	if (!pointer_in_list((*c)->end,nn,(POINTER*)nodes))
+		    	    nodes[nn++] = (*c)->end;
+		    }
+	    	}
+	    	node_out_curve_loop(nodes[i],c)
+	    	{
+		    if (!pointer_in_list(*c,nc,(POINTER*)curves))
+		    {
+		    	curves[nc++] = *c;
+		    	if (!pointer_in_list((*c)->start,nn,(POINTER*)nodes))
+		    	    nodes[nn++] = (*c)->start;
+		    	if (!pointer_in_list((*c)->end,nn,(POINTER*)nodes))
+		    	    nodes[nn++] = (*c)->end;
+		    }
+	    	}
+	    }
+	}
+	geom_set->num_surfs = ns;
+	geom_set->num_curves = nc;
+	geom_set->num_nodes = nn;
+	geom_set->num_verts = 0;
+	for (i = 0; i < ns; ++i)
+	    geom_set->num_verts += I_NumOfSurfInteriorPoints(surfs[i]);
+	for (i = 0; i < nc; ++i)
+	    geom_set->num_verts += I_NumOfCurveInteriorPoints(curves[i]);
+	geom_set->num_verts += nn;
+	for (i = 0; i < nn; ++i)
+	    if (is_load_node(nodes[i]))
+		geom_set->load_node = nodes[i];
+}	/* end assembleParachuteSet */

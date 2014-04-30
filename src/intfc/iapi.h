@@ -162,6 +162,23 @@ extern "C" {
         		double phi,                     /* Azimuthal angle */
         		double theta);                   /* Polar angle */
 
+/*! \fn int I_NumOfSurfInteriorPoints(SURFACE *surf)
+ *  \ingroup QUERY
+    \brief This function count number of interior points on the surface
+     boundary (on curve or node) points are not included.
+    \param surf @b in   Pointer to a surface of the front interface.
+ */
+
+   IMPORT  int I_NumOfSurfInteriorPoints(SURFACE *surf);
+
+/*! \fn int I_NumOfCurveInteriorPoints(CURVE *curve)
+ *  \ingroup QUERY
+    \brief This function count number of interior points on the curve
+     boundary (on node) points are not included.
+    \param curve @b in   Pointer to a curve of the front interface.
+ */
+
+   IMPORT  int I_NumOfCurveInteriorPoints(CURVE *curve);
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif

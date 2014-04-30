@@ -200,17 +200,13 @@ typedef struct _REGISTERED_PTS REGISTERED_PTS;
 
 struct _PARACHUTE_SET{
 	Front *front;
-        SURFACE *canopy;
-        CURVE **mono_hsbdry;
-        CURVE **gore_hsbdry;
-        NODE **string_node;
-	NODE **gore_nodes;
         NODE *load_node;
-        CURVE **string_curves;
-        int num_mono_hsbdry;
-        int num_gore_hsbdry;
-        int num_strings;
-	int num_gore_nodes;
+	SURFACE *surfs[20];
+	CURVE *curves[500];
+	NODE *nodes[500];
+	int num_surfs;
+	int num_curves;
+	int num_nodes;
 	double ks;
 	double kl;
 	double kg;
@@ -220,10 +216,6 @@ struct _PARACHUTE_SET{
 	double m_s;
 	double m_l;
 	double m_g;
-	double V_surf[MAXD];
-	double V_load[MAXD];
-	int n_cps;		/* Number of points on canopy */
-	int n_sps;		/* Number of points on string */
 	int num_verts;		/* Total number of spring-mass points */
 	double dt;
 	int n_sub;
@@ -264,6 +256,7 @@ extern boolean is_gore_node(NODE*);
 extern boolean is_bdry_node(NODE*);
 extern boolean is_string_node(NODE*);
 extern double springCharTimeStep(Front*);	// spring characteristic time
+extern void assembleParachuteSet(Front*,PARACHUTE_SET*,int);
 
 // aftest.cpp
 extern void second_order_elastic_curve_propagate(Front*,Front*,INTERFACE*,
@@ -316,8 +309,6 @@ extern boolean is_registered_point(SURFACE*,POINT*);
 extern void count_node_neighbors(NODE*,SPRING_VERTEX*,int*);
 extern void count_curve_neighbors(CURVE*,SPRING_VERTEX*,int*);
 extern void count_surf_neighbors(SURFACE*,SPRING_VERTEX*,int*);
-extern void count_canopy_spring_neighbors(PARACHUTE_SET*,SPRING_VERTEX*);
-extern void count_string_spring_neighbors(PARACHUTE_SET*,SPRING_VERTEX*);
 extern void count_vertex_neighbors(PARACHUTE_SET*,SPRING_VERTEX*);
 extern void set_node_spring_vertex(PARACHUTE_SET*,NODE*,double**,double**,
 				SPRING_VERTEX*,int*);
@@ -325,10 +316,6 @@ extern void set_curve_spring_vertex(PARACHUTE_SET*,CURVE*,double**,double**,
 				SPRING_VERTEX*,int*);
 extern void set_surf_spring_vertex(PARACHUTE_SET*,SURFACE*,double**,double**,
 				SPRING_VERTEX*,int*);
-extern void set_canopy_spring_vertex(PARACHUTE_SET*,double**,double**,
-				SPRING_VERTEX*);
-extern void set_string_spring_vertex(PARACHUTE_SET*,double**,double**,
-				SPRING_VERTEX*);
 extern void set_vertex_neighbors(PARACHUTE_SET*,double**,double**,
 				SPRING_VERTEX*);
 extern void set_spring_vertex_memory(SPRING_VERTEX*,int);

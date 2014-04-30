@@ -4,10 +4,8 @@ Front Traking algorithms. Front Tracking is a numerical method for
 the solution of partial differential equations whose solutions 
 have discontinuities.  
 
-
 Copyright (C) 1999 by The University at Stony Brook. 
  
-
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
 License as published by the Free Software Foundation; either
@@ -379,3 +377,33 @@ EXPORT void I_SphericalRotateInteriorNodePoints(
 {
 	rotate_point_with_spherical_angle(node->posn,center,phi,theta,YES);
 }	/* end I_SphericalRotateInteriorNodePoints */
+
+EXPORT int I_NumOfSurfInteriorPoints(SURFACE *surf)
+{
+	TRI *tri;
+        POINT *p;
+        int i,n;
+
+	surf_tri_loop(surf,tri)
+	{
+	    for (i = 0; i < 3; ++i)
+		sorted(Point_of_tri(tri)[i]) = NO;
+	}
+	n = 0;
+	surf_tri_loop(surf,tri)
+	{
+	    for (i = 0; i < 3; ++i)
+	    {
+		p = Point_of_tri(tri)[i];
+		if (sorted(p) || Boundary_point(p)) continue;
+		++n;
+		sorted(p) = YES;
+	    }
+	}
+	return n;
+}	/* end I_NumOfSurfInteriorPoints */
+
+EXPORT int I_NumOfCurveInteriorPoints(CURVE *curve)
+{
+	return curve->num_points - 2;
+}	/* end I_NumOfCurveInteriorPoints */

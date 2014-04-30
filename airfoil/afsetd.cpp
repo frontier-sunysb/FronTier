@@ -621,122 +621,6 @@ extern void compute_spring_accel1(
 	}
 }	/* end compute_spring_accel */
 
-extern void count_canopy_spring_neighbors(
-	PARACHUTE_SET *geom_set,
-	SPRING_VERTEX *sv)
-{
-	int i,n = 0;
-	int ns,nbc,ngc,ng;
-	int n_start,n_end;
-
-	if (debugging("canopy"))
-	    (void) printf("Entering count_canopy_spring_neighbors()\n");
-	ns = geom_set->num_strings;
-	nbc = geom_set->num_mono_hsbdry;
-	ngc = geom_set->num_gore_hsbdry;
-	ng = geom_set->num_gore_nodes;
-
-	count_surf_neighbors(geom_set->canopy,sv,&n);
-	for (i = 0; i < ng; ++i)
-            count_node_neighbors(geom_set->gore_nodes[i],sv,&n);
-	for (i = 0; i < ns; ++i)
-	    count_node_neighbors(geom_set->string_node[i],sv,&n);
-	for (i = 0; i < ngc; ++i)
-	    count_curve_neighbors(geom_set->gore_hsbdry[i],sv,&n);
-	for (i = 0; i < nbc; ++i)
-	{
-	    count_curve_neighbors(geom_set->mono_hsbdry[i],sv,&n);
-	    if (is_closed_curve(geom_set->mono_hsbdry[i]))
-		count_node_neighbors(geom_set->mono_hsbdry[i]->start,sv,&n);	
-	}
-	if (debugging("canopy"))
-	    (void) printf("Leaving count_canopy_spring_neighbors()\n");
-}	/* end count_canopy_spring_neighbors */
-
-extern void count_string_spring_neighbors(
-	PARACHUTE_SET *geom_set,
-	SPRING_VERTEX *sv)
-{
-	int i,n;
-	int ns = geom_set->num_strings;
-
-	if (debugging("canopy"))
-	    (void) printf("Entering count_string_spring_neighbors()\n");
-
-	n = geom_set->n_cps;
-	count_node_neighbors(geom_set->load_node,sv,&n);
-	for (i = 0; i < ns; ++i)
-	{
-	    count_curve_neighbors(geom_set->string_curves[i],sv,&n);
-	}
-
-	if (debugging("canopy"))
-	    (void) printf("Leaving count_string_spring_neighbors()\n");
-}	/* end  count_string_spring_neighbors */
-
-extern void set_canopy_spring_vertex(
-	PARACHUTE_SET *geom_set,
-	double **x,
-	double **v,
-	SPRING_VERTEX *sv)
-{
-	int i,n = 0;
-	int ns,nbc,ngc,ng;
-	int n_start,n_end;
-	Front *fr = geom_set->front;
-
-	if (debugging("canopy"))
-	    (void) printf("Entering set_canopy_spring_vertex()\n");
-
-	ns = geom_set->num_strings;
-	nbc = geom_set->num_mono_hsbdry;
-	ngc = geom_set->num_gore_hsbdry;
-	ng = geom_set->num_gore_nodes;
-
-	set_surf_spring_vertex(geom_set,geom_set->canopy,x,v,sv,&n);
-	for (i = 0; i < ng; ++i)
-            set_node_spring_vertex(geom_set,geom_set->gore_nodes[i],x,v,sv,&n);
-	for (i = 0; i < ns; ++i)
-	    set_node_spring_vertex(geom_set,geom_set->string_node[i],x,v,sv,&n);
-	for (i = 0; i < ngc; ++i)
-	    set_curve_spring_vertex(geom_set,geom_set->gore_hsbdry[i],
-					x,v,sv,&n);
-	for (i = 0; i < nbc; ++i)
-	{
-	    set_curve_spring_vertex(geom_set,geom_set->mono_hsbdry[i],x,
-				v,sv,&n);
-	    if (is_closed_curve(geom_set->mono_hsbdry[i]))
-		set_node_spring_vertex(geom_set,
-				geom_set->mono_hsbdry[i]->start,x,v,sv,&n);	
-	}
-	if (debugging("canopy"))
-	    (void) printf("Leaving set_canopy_spring_vertex()\n");
-}	/* end set_canopy_spring_vertex */
-
-extern void set_string_spring_vertex(
-	PARACHUTE_SET *geom_set,
-	double **x,
-	double **v,
-	SPRING_VERTEX *sv)
-{
-	int i,n;
-	int ns = geom_set->num_strings;
-
-	if (debugging("canopy"))
-	    (void) printf("Entering set_string_spring_vertex()\n");
-
-	n = geom_set->n_cps;
-	set_node_spring_vertex(geom_set,geom_set->load_node,x,v,sv,&n);
-	for (i = 0; i < ns; ++i)
-	{
-	    set_curve_spring_vertex(geom_set,geom_set->string_curves[i],x,v,
-					sv,&n);
-	}
-
-	if (debugging("canopy"))
-	    (void) printf("Leaving set_string_spring_vertex()\n");
-}	/* end  set_string_spring_vertex */
-
 extern void generic_spring_solver(
 	SPRING_VERTEX *sv,
 	double **x_pos,
@@ -924,33 +808,29 @@ extern void count_vertex_neighbors(
 	PARACHUTE_SET *geom_set,
 	SPRING_VERTEX *sv)
 {
-	int i,n = 0;
-	int ns,nbc,ngc,ng;
-	int n_start,n_end;
+	int i,n,ns,nc,nn;
 
 	if (debugging("canopy"))
 	    (void) printf("Entering count_vertex_neighbors()\n");
-	ns = geom_set->num_strings;
-	nbc = geom_set->num_mono_hsbdry;
-	ngc = geom_set->num_gore_hsbdry;
-	ng = geom_set->num_gore_nodes;
 
-	count_surf_neighbors(geom_set->canopy,sv,&n);
-	for (i = 0; i < ng; ++i)
-            count_node_neighbors(geom_set->gore_nodes[i],sv,&n);
+	ns = geom_set->num_surfs;
+	nc = geom_set->num_curves;
+	nn = geom_set->num_nodes;
+	int n1,n2,n3;
+	n = 0;
 	for (i = 0; i < ns; ++i)
-	    count_node_neighbors(geom_set->string_node[i],sv,&n);
-	for (i = 0; i < ngc; ++i)
-	    count_curve_neighbors(geom_set->gore_hsbdry[i],sv,&n);
-	for (i = 0; i < nbc; ++i)
-	{
-	    count_curve_neighbors(geom_set->mono_hsbdry[i],sv,&n);
-	    if (is_closed_curve(geom_set->mono_hsbdry[i]))
-		count_node_neighbors(geom_set->mono_hsbdry[i]->start,sv,&n);	
-	}
-	count_node_neighbors(geom_set->load_node,sv,&n);
-	for (i = 0; i < ns; ++i)
-	    count_curve_neighbors(geom_set->string_curves[i],sv,&n);
+	    count_surf_neighbors(geom_set->surfs[i],sv,&n);
+	n1 = n;
+	printf("Counted total surf n = %d\n",n);
+	for (i = 0; i < nc; ++i)
+	    count_curve_neighbors(geom_set->curves[i],sv,&n);
+	n2 = n - n1;
+	printf("Counted total curve n = %d\n",n);
+	for (i = 0; i < nn; ++i)
+	    count_node_neighbors(geom_set->nodes[i],sv,&n);	
+	n3 = n - n1 - n2;
+	printf("Counted total node n = %d\n",n);
+	printf("n1 = %d  n2 = %d  n3 = %d\n",n1,n2,n3);
 
 	if (debugging("canopy"))
 	    (void) printf("Leaving count_vertex_neighbors()\n");
@@ -962,42 +842,21 @@ extern void set_vertex_neighbors(
 	double **v,
 	SPRING_VERTEX *sv)
 {
-	int i,n = 0;
-	int ns,nbc,ngc,ng;
-	int n_start,n_end;
-	Front *fr = geom_set->front;
+	int i,n,ns,nc,nn;
 
 	if (debugging("canopy"))
 	    (void) printf("Entering set_vertex_neighbors()\n");
 
-	ns = geom_set->num_strings;
-	nbc = geom_set->num_mono_hsbdry;
-	ngc = geom_set->num_gore_hsbdry;
-	ng = geom_set->num_gore_nodes;
-
-	set_surf_spring_vertex(geom_set,geom_set->canopy,x,v,sv,&n);
-	for (i = 0; i < ng; ++i)
-            set_node_spring_vertex(geom_set,geom_set->gore_nodes[i],x,v,sv,&n);
+	ns = geom_set->num_surfs;
+	nc = geom_set->num_curves;
+	nn = geom_set->num_nodes;
+	n = 0;
 	for (i = 0; i < ns; ++i)
-	    set_node_spring_vertex(geom_set,geom_set->string_node[i],x,v,sv,&n);
-	for (i = 0; i < ngc; ++i)
-	    set_curve_spring_vertex(geom_set,geom_set->gore_hsbdry[i],
-					x,v,sv,&n);
-	for (i = 0; i < nbc; ++i)
-	{
-	    set_curve_spring_vertex(geom_set,geom_set->mono_hsbdry[i],x,
-				v,sv,&n);
-	    if (is_closed_curve(geom_set->mono_hsbdry[i]))
-		set_node_spring_vertex(geom_set,
-				geom_set->mono_hsbdry[i]->start,x,v,sv,&n);	
-	}
-
-	set_node_spring_vertex(geom_set,geom_set->load_node,x,v,sv,&n);
-	for (i = 0; i < ns; ++i)
-	{
-	    set_curve_spring_vertex(geom_set,geom_set->string_curves[i],x,v,
-					sv,&n);
-	}
+	    set_surf_spring_vertex(geom_set,geom_set->surfs[i],x,v,sv,&n);
+	for (i = 0; i < nc; ++i)
+	    set_curve_spring_vertex(geom_set,geom_set->curves[i],x,v,sv,&n);
+	for (i = 0; i < nn; ++i)
+	    set_node_spring_vertex(geom_set,geom_set->nodes[i],x,v,sv,&n);
 
 	if (debugging("canopy"))
 	    (void) printf("Leaving set_vertex_neighbors()\n");

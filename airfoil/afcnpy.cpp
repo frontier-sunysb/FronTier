@@ -28,19 +28,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 static void spring_force_at_point1(double*,POINT*,TRI*,SURFACE*,double);
 static void spring_force_at_point2(double*,POINT*,TRI*,SURFACE*,double);
 static boolean is_pore(Front*,HYPER_SURF_ELEMENT*,double*);
-static void compute_canopy_accel(PARACHUTE_SET*,double**,double**,double**);
-static void compute_string_accel(PARACHUTE_SET*,double**,double**,double**);
-static void assign_canopy_field(PARACHUTE_SET*,double**,double**);
-static void assign_string_field(PARACHUTE_SET*,double**,double**);
 static void compute_total_canopy_force2d(Front*,double*,double*);
 static void compute_total_canopy_force3d(Front*,double*,double*);
 static void compute_center_of_mass_velo(PARACHUTE_SET*);
-static void set_canopy_velocity(PARACHUTE_SET*,double**);
+static void set_geomset_velocity(PARACHUTE_SET*,double**);
 static void reduce_high_freq_vel(Front*,SURFACE*);
 static void smooth_vel(double*,POINT*,TRI*,SURFACE*);
 static boolean curve_in_pointer_list(CURVE*,CURVE**);
-static void set_canopy_impulse(PARACHUTE_SET*,SPRING_VERTEX*);
 static void set_string_impulse(PARACHUTE_SET*,SPRING_VERTEX*);
+static void set_vertex_impulse(PARACHUTE_SET*,SPRING_VERTEX*);
+static void setNodeVelocity(PARACHUTE_SET*,NODE*,double**,int*);
+static void setCurveVelocity(PARACHUTE_SET*,CURVE*,double**,int*);
+static void setSurfVelocity(PARACHUTE_SET*,SURFACE*,double**,int*);
 
 #define 	MAX_NUM_RING1		30
 
@@ -304,196 +303,13 @@ extern void fourth_order_parachute_propagate(
         generic_spring_solver(sv,x_pos,v_pos,dim,size,n_sub,dt);
 	stop_clock("spring_model");
 
-	set_canopy_impulse(new_geom_set,sv);
-	set_string_impulse(new_geom_set,sv);
+	set_vertex_impulse(new_geom_set,sv);
+	set_geomset_velocity(new_geom_set,v_pos);
 	compute_center_of_mass_velo(new_geom_set);
-	set_canopy_velocity(new_geom_set,v_pos);
 
 	if (debugging("trace"))
 	    (void) printf("Leaving fourth_order_parachute_propagate()\n");
 }	/* end fourth_order_parachute_propagate */
-
-static void compute_canopy_accel(
-	PARACHUTE_SET *geom_set,
-	double **f,
-	double **x,
-	double **v)
-{
-	int i,n = 0;
-	int ns,nbc,ngc,ng;
-	int n_start,n_end;
-	Front *fr = geom_set->front;
-	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
-	void (*compute_node_accel)(PARACHUTE_SET*,NODE*,double**,
-                                double**,double **,int*);
-        void (*compute_curve_accel)(PARACHUTE_SET*,CURVE*,double**,
-                                double**,double **,int*);
-        void (*compute_surf_accel)(PARACHUTE_SET*,SURFACE*,double**,
-                                double**,double **,int*);
-
-        switch (af_params->spring_model)
-        {
-        case MODEL1:
-            compute_surf_accel = compute_surf_accel1;
-            compute_curve_accel = compute_curve_accel1;
-            compute_node_accel = compute_node_accel1;
-            break;
-        case MODEL2:
-            compute_surf_accel = compute_surf_accel2;
-            compute_curve_accel = compute_curve_accel2;
-            compute_node_accel = compute_node_accel2;
-            break;
-        case MODEL3:
-        default:
-            (void) printf("Model function not implemented yet!\n");
-            clean_up(ERROR);
-        }
-	if (debugging("canopy"))
-	    (void) printf("Entering compute_canopy_accel()\n");
-
-	ns = geom_set->num_strings;
-	nbc = geom_set->num_mono_hsbdry;
-	ngc = geom_set->num_gore_hsbdry;
-	ng = geom_set->num_gore_nodes;
-
-	if (debugging("string_chord") || debugging("rigid_canopy") || 
-	    debugging("ave_lift"))
-	    n_start = n;
-	compute_surf_accel(geom_set,geom_set->canopy,f,x,v,&n);
-	for (i = 0; i < ng; ++i)
-            compute_node_accel(geom_set,geom_set->gore_nodes[i],f,x,v,&n);
-	for (i = 0; i < ns; ++i)
-	    compute_node_accel(geom_set,geom_set->string_node[i],f,x,v,&n);
-	for (i = 0; i < ngc; ++i)
-	    compute_curve_accel(geom_set,geom_set->gore_hsbdry[i],f,x,v,&n);
-	for (i = 0; i < nbc; ++i)
-	{
-	    compute_curve_accel(geom_set,geom_set->mono_hsbdry[i],f,x,
-				v,&n);
-	    if (is_closed_curve(geom_set->mono_hsbdry[i]))
-		compute_node_accel(geom_set,
-				geom_set->mono_hsbdry[i]->start,f,x,v,&n);	
-	}
-	if (debugging("string_chord") || debugging("rigid_canopy") 
-			|| debugging("ave_lift"))
-	{
-	    n_end = n;
-	    for (i = n_start; i < n_end; ++i)
-	    {
-		f[i][0] = f[i][1] = f[i][2] = 0.0;
-		if (debugging("string_chord"))
-		    v[i][0] = v[i][1] = v[i][2] = 0.0;
-	    }
-	}
-	if (debugging("canopy"))
-	    (void) printf("Leaving compute_canopy_accel()\n");
-}	/* end compute_canopy_accel */
-
-static void compute_string_accel(
-	PARACHUTE_SET *geom_set,
-	double **f,
-	double **x,
-	double **v)
-{
-	int i,n;
-	Front *fr = geom_set->front;
-	int dim = fr->rect_grid->dim;
-	IF_PARAMS *iFparams = (IF_PARAMS*)fr->extra1;
-	double g = iFparams->gravity[dim-1];
-	int ns = geom_set->num_strings;
-	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
-	void (*compute_node_accel)(PARACHUTE_SET*,NODE*,double**,
-                                double**,double **,int*);
-        void (*compute_curve_accel)(PARACHUTE_SET*,CURVE*,double**,
-                                double**,double **,int*);
-
-        switch (af_params->spring_model)
-        {
-        case MODEL1:
-            compute_curve_accel = compute_curve_accel1;
-            compute_node_accel = compute_node_accel1;
-            break;
-        case MODEL2:
-            compute_curve_accel = compute_curve_accel2;
-            compute_node_accel = compute_node_accel2;
-            break;
-        case MODEL3:
-            compute_curve_accel = compute_curve_accel3;
-            compute_node_accel = compute_node_accel3;
-            break;
-        default:
-            (void) printf("Model function not implemented yet!\n");
-            clean_up(ERROR);
-        }
-
-	if (debugging("canopy"))
-	    (void) printf("Entering compute_string_accel()\n");
-
-	n = geom_set->n_cps;
-	compute_node_accel(geom_set,geom_set->load_node,f,x,v,&n);
-	for (i = 0; i < ns; ++i)
-	{
-	    compute_curve_accel(geom_set,geom_set->string_curves[i],f,x,v,&n);
-	}
-
-	if (debugging("canopy"))
-	    (void) printf("Leaving compute_string_accel()\n");
-}	/* end  compute_string_accel */
-
-static void assign_canopy_field(
-	PARACHUTE_SET *geom_set,
-        double **x,
-        double **v)
-{
-	int n = 0;
-	int i,ns,nbc,ngc,ng;
-
-	if (debugging("canopy"))
-	    (void) printf("Entering assign_canopy_field()\n");
-	ng = geom_set->num_gore_nodes;
-	ns = geom_set->num_strings;
-	nbc = geom_set->num_mono_hsbdry;
-	ngc = geom_set->num_gore_hsbdry;
-
-	assign_surf_field(geom_set->canopy,x,v,&n);
-	for (i = 0; i < ng; ++i)
-            assign_node_field(geom_set->gore_nodes[i],x,v,&n);
-	for (i = 0; i < ns; ++i)
-	    assign_node_field(geom_set->string_node[i],x,v,&n);
-	for (i = 0; i < ngc; ++i)
-	    assign_curve_field(geom_set->gore_hsbdry[i],x,v,&n);
-	for (i = 0; i < nbc; ++i)
-	{
-	    assign_curve_field(geom_set->mono_hsbdry[i],x,v,&n);
-	    if (is_closed_curve(geom_set->mono_hsbdry[i]))
-		 assign_node_field(geom_set->mono_hsbdry[i]->start,
-			x,v,&n);
-	}
-	if (debugging("canopy"))
-	    (void) printf("Leaving assign_canopy_field()\n");
-}	/* end assign_canopy_field */
-
-static void assign_string_field(
-	 PARACHUTE_SET *geom_set,
-        double **x,
-        double **v)
-{
-	int n;
-	int i,ns;
-
-	ns = geom_set->num_strings;
-	n = geom_set->n_cps;
-
-	if (debugging("canopy"))
-	    (void) printf("Entering assign_string_field()\n");
-
-	assign_node_field(geom_set->load_node,x,v,&n);
-	for (i = 0; i < ns; ++i)
-	    assign_curve_field(geom_set->string_curves[i],x,v,&n);
-
-	if (debugging("canopy"))
-	    (void) printf("Leaving assign_string_field()\n");
-}       /* end assign_string_field */
 
 extern void assign_node_field(
 	NODE *node,
@@ -917,12 +733,13 @@ extern void compute_node_accel1(
 static void compute_center_of_mass_velo(
 	PARACHUTE_SET *geom_set)
 {
-	int i,j;
+	int i,j,n;
 	TRI *tri;
 	POINT *p;
 	STATE *state;
 	Front *front = geom_set->front;
-	SURFACE *canopy = geom_set->canopy;
+	SURFACE **surfs = geom_set->surfs;
+	SURFACE *canopy;
 	NODE *node;
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 	double area_dens = af_params->area_dens;
@@ -933,12 +750,14 @@ static void compute_center_of_mass_velo(
 	if (debugging("canopy"))
 	    (void) printf("Entering compute_center_of_mass_velo()\n");
 
-	for (j = 0; j < 3; ++j)
-	    vcan[j] = 0.0;
-	area = mass_canopy = 0.0;
-	for (tri = first_tri(canopy); !at_end_of_tri_list(tri,canopy); 
-			tri = tri->next)
+	for (n = 0; n < geom_set->num_surfs; ++n)
 	{
+	  canopy = geom_set->surfs[n];
+	  for (j = 0; j < 3; ++j)
+	    vcan[j] = 0.0;
+	  area = mass_canopy = 0.0;
+	  surf_tri_loop(canopy,tri)
+	  {
 	    for (j = 0; j < 3; ++j)
 	    {
 		vt[j] = 0.0;
@@ -960,31 +779,32 @@ static void compute_center_of_mass_velo(
 		xcan[j] += xt[j]*tri_area(tri);
 	    }
 	    area += tri_area(tri);
-	}
-	mass_canopy += area_dens*area;
-	for (j = 0; j < 3; ++j)
-	{
+	  }
+	  mass_canopy += area_dens*area;
+	  for (j = 0; j < 3; ++j)
+	  {
 	    vcan[j] /= area;
 	    xcan[j] /= area;
-	}
+	  }
 
-	node = geom_set->load_node;
-	state = (STATE*)left_state(node->posn);
-	for (j = 0; j < 3; ++j)
-	{
+	  node = geom_set->load_node;
+	  state = (STATE*)left_state(node->posn);
+	  for (j = 0; j < 3; ++j)
+	  {
 	    vload[j] = state->vel[j];
 	    xload[j] = Coords(node->posn)[j];
-	}
-	payload = af_params->payload;
+	  }
+	  payload = af_params->payload;
 
-	xcom = center_of_mass(Hyper_surf(canopy));
-	vcom = center_of_mass_velo(Hyper_surf(canopy));
-	for (j = 0; j < 3; ++j)
-	{
+	  xcom = center_of_mass(Hyper_surf(canopy));
+	  vcom = center_of_mass_velo(Hyper_surf(canopy));
+	  for (j = 0; j < 3; ++j)
+	  {
 	    vcom[j] = (vcan[j]*mass_canopy + vload[j]*payload)/
 				(mass_canopy + payload);
 	    xcom[j] = (xcan[j]*mass_canopy + xload[j]*payload)/
 				(mass_canopy + payload);
+	  }
 	}
 	if (debugging("canopy"))
 	    (void) printf("Leaving compute_center_of_mass_velo()\n");
@@ -1026,266 +846,6 @@ static void smooth_vel(
 	for (k = 0; k < 3; ++k)
 	    vel[k] /= (double)np;
 }	/* end smooth_vel */
-
-static void set_canopy_velocity(
-	PARACHUTE_SET *geom_set,
-	double **v)
-{
-	int i,j;
-	TRI *tri;
-	BOND *b;
-	POINT *p;
-	BOND_TRI **btris;
-	STATE *sl,*sr;
-	HYPER_SURF_ELEMENT *hse;
-        HYPER_SURF         *hs;
-	Front *front = geom_set->front;
-	SURFACE *canopy = geom_set->canopy;
-	CURVE **c,*curve;
-	NODE *node,*load_node = geom_set->load_node;
-	int dim = front->rect_grid->dim;
-	double nor[MAXD],nor_speed,max_speed;
-	double *vel;
-	int n,ng,ngc,ns,nbc;
-	double crds_max[MAXD];
-	int gindex_max;
-
-	if (debugging("canopy"))
-	    (void) printf("Entering set_canopy_velocity()\n");
-
-	if (debugging("string_chord") || debugging("folding"))
-	    return;
-	if (debugging("step_size"))
-	{
-	    double *spfr = Spfr(front);
-	    (void) printf("Before set_canopy_velocity()\n");
-	    for (i = 0; i < dim; ++i)
-            {
-                (void) printf("front: spfr[%d] %g\n",i,spfr[i]);
-            }
-            (void) printf("front: spfr[%d] %g\n",i,spfr[i]);
-	}
-
-	unsort_surf_point(canopy);
-	hs = Hyper_surf(canopy);
-	max_speed = 0.0;
-	n = 0;
-	for (tri = first_tri(canopy); !at_end_of_tri_list(tri,canopy); 
-			tri = tri->next)
-	{
-	    hse = Hyper_surf_element(tri);
-	    for (i = 0; i < 3; ++i)
-	    {
-		p = Point_of_tri(tri)[i];
-		if (sorted(p) || Boundary_point(p)) continue;
-		FT_NormalAtPoint(p,front,nor,NO_COMP);
-		FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		vel = v[n];
-		nor_speed = scalar_product(vel,nor,dim);
-		for (j = 0; j < 3; ++j)
-		{
-		    sl->vel[j] = sl->impulse[j] + nor_speed*nor[j];
-		    sr->vel[j] = sr->impulse[j] + nor_speed*nor[j];
-		}
-		sorted(p) = YES;
-		n++;
-	    }
-	}
-	reduce_high_freq_vel(front,canopy);
-
-	ng = geom_set->num_gore_nodes;
-	for (i = 0; i < ng; ++i)
-	{
-	    node = geom_set->gore_nodes[i];
-	    for (c = node->out_curves; c && *c; ++c)
-            {
-		if (hsbdry_type(*c) != GORE_HSBDRY) continue;
-                b = (*c)->first;
-                p = b->start;
-		for (btris = Btris(b); btris && *btris; ++btris)
-		{
-                    p->hse = hse = Hyper_surf_element((*btris)->tri);
-                    p->hs = hs = Hyper_surf((*btris)->surface);
-                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		    FT_NormalAtPoint(p,front,nor,NO_COMP);
-		    vel = v[n];
-		    nor_speed = scalar_product(vel,nor,dim);
-		    if (max_speed < fabs(nor_speed)) 
-		    {
-			max_speed = fabs(nor_speed);
-		    	gindex_max = Gindex(p);
-		    	for (j = 0; j < 3; ++j)
-			    crds_max[j] = Coords(p)[j];
-		    }
-                    for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = 
-				sl->impulse[j] + nor_speed*nor[j];
-		}
-            }
-            for (c = node->in_curves; c && *c; ++c)
-            {
-		if (hsbdry_type(*c) != GORE_HSBDRY) continue;
-                b = (*c)->last;
-                p = b->end;
-                btris = Btris(b);
-		for (btris = Btris(b); btris && *btris; ++btris)
-		{
-                    p->hse = hse = Hyper_surf_element((*btris)->tri);
-                    p->hs = hs = Hyper_surf((*btris)->surface);
-                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		    FT_NormalAtPoint(p,front,nor,NO_COMP);
-		    vel = v[n];
-		    nor_speed = scalar_product(vel,nor,dim);
-		    if (max_speed < fabs(nor_speed)) 
-		    {
-			max_speed = fabs(nor_speed);
-		    	gindex_max = Gindex(p);
-		    	for (j = 0; j < 3; ++j)
-			    crds_max[j] = Coords(p)[j];
-		    }
-                    for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = 
-				sl->impulse[j] + nor_speed*nor[j];
-		}
-            }
-	    n++;
-	}
-
-	ns = geom_set->num_strings;
-	for (i = 0; i < ns; ++i)
-	{
-	    node = geom_set->string_node[i];
-	    for (c = node->out_curves; c && *c; ++c)
-            {
-		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
-		    hsbdry_type(*c) != GORE_HSBDRY) 
-		    continue;
-                b = (*c)->first;
-                p = b->start;
-		for (btris = Btris(b); btris && *btris; ++btris)
-		{
-                    p->hse = hse = Hyper_surf_element((*btris)->tri);
-                    p->hs = hs = Hyper_surf((*btris)->surface);
-                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		    FT_NormalAtPoint(p,front,nor,NO_COMP);
-		    vel = v[n];
-		    nor_speed = scalar_product(vel,nor,dim);
-		    if (max_speed < fabs(nor_speed)) 
-		    {
-		    	max_speed = fabs(nor_speed);
-		    	gindex_max = Gindex(p);
-		    	for (j = 0; j < 3; ++j)
-			    crds_max[j] = Coords(p)[j];
-		    }
-                    for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = 
-				sl->impulse[j] + nor_speed*nor[j];
-		}
-            }
-            for (c = node->in_curves; c && *c; ++c)
-            {
-		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
-		    hsbdry_type(*c) != GORE_HSBDRY) 
-		    continue;
-                b = (*c)->last;
-                p = b->end;
-		for (btris = Btris(b); btris && *btris; ++btris)
-		{
-                    p->hse = hse = Hyper_surf_element((*btris)->tri);
-                    p->hs = hs = Hyper_surf((*btris)->surface);
-                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		    FT_NormalAtPoint(p,front,nor,NO_COMP);
-		    vel = v[n];
-		    nor_speed = scalar_product(vel,nor,dim);
-		    if (max_speed < fabs(nor_speed)) 
-		    {
-		    	max_speed = fabs(nor_speed);
-		    	gindex_max = Gindex(p);
-		    	for (j = 0; j < 3; ++j)
-			    crds_max[j] = Coords(p)[j];
-		    }
-                    for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = 
-				sl->impulse[j] + nor_speed*nor[j];
-		    }
-            }
-	    n++;
-	}
-
-	ngc = geom_set->num_gore_hsbdry;
-	for (i = 0; i < ngc; ++i)
-	{
-	    curve = geom_set->gore_hsbdry[i];
-	    for (b = curve->first; b != curve->last; b = b->next)
-            {
-            	p = b->end;
-		for (btris = Btris(b); btris && *btris; ++btris)
-            	{
-                    p->hse = hse = Hyper_surf_element((*btris)->tri);
-                    p->hs = hs = Hyper_surf((*btris)->surface);
-                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		    FT_NormalAtPoint(p,front,nor,NO_COMP);
-		    vel = v[n];
-		    nor_speed = scalar_product(vel,nor,dim);
-                    for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = 
-				sl->impulse[j] + nor_speed*nor[j];
-            	}
-            	n++;
-            }
-	}
-
-	nbc = geom_set->num_mono_hsbdry;
-	for (i = 0; i < nbc; ++i)
-	{
-	    curve = geom_set->mono_hsbdry[i];
-	    for (b = curve->first; b != curve->last; b = b->next)
-            {
-            	p = b->end;
-            	btris = Btris(b);
-            	if (btris && *btris)
-            	{
-                    p->hse = hse = Hyper_surf_element((*btris)->tri);
-                    p->hs = hs = Hyper_surf((*btris)->surface);
-                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		    FT_NormalAtPoint(p,front,nor,NO_COMP);
-		    vel = v[n];
-		    nor_speed = scalar_product(vel,nor,dim);
-                    for (j = 0; j < dim; ++j)
-		    	sl->vel[j] = sr->vel[j] = 
-				sl->impulse[j] + nor_speed*nor[j];
-            	}
-            	n++;
-            }
-	}
-
-	if (debugging("step_size"))
-	{
-	    double *spfr = Spfr(front);
-	    (void) printf("In set_canopy_velocity(): max_speed = %f\n",
-				max_speed);
-	    (void) printf("After set_canopy_velocity()\n");
-	    for (i = 0; i < dim; ++i)
-            {
-                (void) printf("front: spfr[%d] %g\n",i,spfr[i]);
-            }
-            (void) printf("front: spfr[%d] %g\n",i,spfr[i]);
-	    (void) printf("Coordinate of max speed: %f %f %f\n",
-				crds_max[0],crds_max[1],crds_max[2]);
-	    (void) printf("Global index of point-max: %d\n",gindex_max);
-	}
-	n = geom_set->n_cps;
-	sl = (STATE*)left_state(load_node->posn);
-	sr = (STATE*)right_state(load_node->posn);
-	vel = v[n];
-	for (j = 0; j < 3; ++j)
-	{
-	    sl->vel[j] = vel[j];
-	    sr->vel[j] = vel[j];
-	}
-	if (debugging("canopy"))
-	    (void) printf("Leaving set_canopy_velocity()\n");
-}	/* end set_canopy_velocity */
 
 extern void compute_node_accel2(
 	PARACHUTE_SET *geom_set,
@@ -2196,64 +1756,211 @@ static void reduce_high_freq_vel(
 
 }	/* end reduce_high_freq_vel */
 
-static void set_canopy_impulse(
+static void set_vertex_impulse(
 	PARACHUTE_SET *geom_set,
 	SPRING_VERTEX *sv)
 {
-	int i,j;
-	SURFACE *canopy = geom_set->canopy;
-	NODE *node;
-	CURVE *curve;
-	int ng,ngc,ns,n = 0;
+	int i,n,ns,nc,nn;
 
-	set_surf_impulse(geom_set,canopy,sv,&n);
-	ng = geom_set->num_gore_nodes;
-	for (i = 0; i < ng; ++i)
-	{
-	    node = geom_set->gore_nodes[i];
-	    set_node_impulse(geom_set,node,sv,&n);
-	}
-	ns = geom_set->num_strings;
+	ns = geom_set->num_surfs;
+	nc = geom_set->num_curves;
+	nn = geom_set->num_nodes;
+	n = 0;
 	for (i = 0; i < ns; ++i)
+	    set_surf_impulse(geom_set,geom_set->surfs[i],sv,&n);
+	for (i = 0; i < nc; ++i)
+	    set_curve_impulse(geom_set,geom_set->curves[i],sv,&n);
+	for (i = 0; i < nn; ++i)
+	    set_node_impulse(geom_set,geom_set->nodes[i],sv,&n);	
+
+}	/* end set_vertex_impulse */
+
+static void setSurfVelocity(
+	PARACHUTE_SET *geom_set,
+	SURFACE *surf,
+	double **v,
+	int *n)
+{
+	int i,j;
+	TRI *tri;
+	POINT *p;
+	STATE *sl,*sr;
+	HYPER_SURF_ELEMENT *hse;
+        HYPER_SURF         *hs;
+	Front *front = geom_set->front;
+	double nor[MAXD],nor_speed;
+	double *vel;
+	int gindex_max;
+
+	unsort_surf_point(surf);
+	hs = Hyper_surf(surf);
+	for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
+			tri = tri->next)
 	{
-	    node = geom_set->string_node[i];
-	    set_node_impulse(geom_set,node,sv,&n);
-	}
-	ngc = geom_set->num_gore_hsbdry;
-	for (i = 0; i < ngc; ++i)
-        {
-	    curve = geom_set->gore_hsbdry[i];
-	    set_curve_impulse(geom_set,curve,sv,&n);
-	}
-	for (i = 0; i < ns; ++i)
-        {
-	    curve = geom_set->mono_hsbdry[i];
-	    set_curve_impulse(geom_set,curve,sv,&n);
-	    if (is_closed_curve(curve))
+	    hse = Hyper_surf_element(tri);
+	    for (i = 0; i < 3; ++i)
 	    {
-	    	node = curve->start;
-	    	set_node_impulse(geom_set,node,sv,&n);
+		p = Point_of_tri(tri)[i];
+		if (sorted(p) || Boundary_point(p)) continue;
+		FT_NormalAtPoint(p,front,nor,NO_COMP);
+		FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		vel = v[*n];
+		nor_speed = scalar_product(vel,nor,3);
+		for (j = 0; j < 3; ++j)
+		{
+		    sl->vel[j] = sl->impulse[j] + nor_speed*nor[j];
+		    sr->vel[j] = sr->impulse[j] + nor_speed*nor[j];
+		}
+		sorted(p) = YES;
+		(*n)++;
 	    }
 	}
-}	/* end set_canopy_impulse */
+	reduce_high_freq_vel(front,surf);
+}	/* end setSurfVelocity */
 
-static void set_string_impulse(
+static void setCurveVelocity(
 	PARACHUTE_SET *geom_set,
-	SPRING_VERTEX *sv)
+	CURVE *curve,
+	double **v,
+	int *n)
 {
 	int i,j;
-	CURVE *c;
-	NODE *load_node = geom_set->load_node;
-	int n,ns;
+	BOND *b;
+	POINT *p;
+	BOND_TRI **btris;
+	STATE *sl,*sr;
+	HYPER_SURF_ELEMENT *hse;
+        HYPER_SURF         *hs;
+	Front *front = geom_set->front;
+	double nor[MAXD],nor_speed;
+	double *vel;
+	double crds_max[MAXD];
+	int gindex_max;
 
-	n = geom_set->n_cps;
-	ns = geom_set->num_strings;
+	for (b = curve->first; b != curve->last; b = b->next)
+        {
+            	p = b->end;
+		for (btris = Btris(b); btris && *btris; ++btris)
+            	{
+                    p->hse = hse = Hyper_surf_element((*btris)->tri);
+                    p->hs = hs = Hyper_surf((*btris)->surface);
+                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		    FT_NormalAtPoint(p,front,nor,NO_COMP);
+		    vel = v[*n];
+		    nor_speed = scalar_product(vel,nor,3);
+                    for (j = 0; j < 3; ++j)
+		    	sl->vel[j] = sr->vel[j] = 
+				sl->impulse[j] + nor_speed*nor[j];
+            	}
+            	(*n)++;
+        }
+}	/* end setCurveVelocity */
 
-	set_node_impulse(geom_set,load_node,sv,&n);
+static void setNodeVelocity(
+	PARACHUTE_SET *geom_set,
+	NODE *node,
+	double **v,
+	int *n)
+{
+	int i,j;
+	BOND *b;
+	POINT *p;
+	BOND_TRI **btris;
+	STATE *sl,*sr;
+	HYPER_SURF_ELEMENT *hse;
+        HYPER_SURF         *hs;
+	Front *front = geom_set->front;
+	CURVE **c;
+	double nor[MAXD],nor_speed,max_speed;
+	double *vel;
+	double crds_max[MAXD];
+	int gindex_max;
 
-	for (i = 0; i < ns; ++i)
+	for (c = node->out_curves; c && *c; ++c)
+        {
+		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
+		    hsbdry_type(*c) != GORE_HSBDRY) 
+		    continue;
+                b = (*c)->first;
+                p = b->start;
+		for (btris = Btris(b); btris && *btris; ++btris)
+		{
+                    p->hse = hse = Hyper_surf_element((*btris)->tri);
+                    p->hs = hs = Hyper_surf((*btris)->surface);
+                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		    FT_NormalAtPoint(p,front,nor,NO_COMP);
+		    vel = v[*n];
+		    nor_speed = scalar_product(vel,nor,3);
+		    if (max_speed < fabs(nor_speed)) 
+		    {
+		    	max_speed = fabs(nor_speed);
+		    	gindex_max = Gindex(p);
+		    	for (j = 0; j < 3; ++j)
+			    crds_max[j] = Coords(p)[j];
+		    }
+                    for (j = 0; j < 3; ++j)
+		    	sl->vel[j] = sr->vel[j] = 
+				sl->impulse[j] + nor_speed*nor[j];
+		}
+        }
+        for (c = node->in_curves; c && *c; ++c)
+        {
+		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
+		    hsbdry_type(*c) != GORE_HSBDRY) 
+		    continue;
+                b = (*c)->last;
+                p = b->end;
+		for (btris = Btris(b); btris && *btris; ++btris)
+		{
+                    p->hse = hse = Hyper_surf_element((*btris)->tri);
+                    p->hs = hs = Hyper_surf((*btris)->surface);
+                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		    FT_NormalAtPoint(p,front,nor,NO_COMP);
+		    vel = v[*n];
+		    nor_speed = scalar_product(vel,nor,3);
+		    if (max_speed < fabs(nor_speed)) 
+		    {
+		    	max_speed = fabs(nor_speed);
+		    	gindex_max = Gindex(p);
+		    	for (j = 0; j < 3; ++j)
+			    crds_max[j] = Coords(p)[j];
+		    }
+                    for (j = 0; j < 3; ++j)
+		    	sl->vel[j] = sr->vel[j] = 
+				sl->impulse[j] + nor_speed*nor[j];
+		    }
+        }
+	if (is_load_node(node))
 	{
-	    c = geom_set->string_curves[i];
-	    set_curve_impulse(geom_set,c,sv,&n);
+	    sl = (STATE*)left_state(node->posn);
+            sr = (STATE*)right_state(node->posn);
+            vel = v[*n];
+            for (j = 0; j < 3; ++j)
+            {
+            	sl->vel[j] = vel[j];
+            	sr->vel[j] = vel[j];
+            }
+	    printf("Setting load node velocity\n");
 	}
-}	/* end set_string_impulse */
+	(*n)++;
+}	/* end setNodeVelocity */
+
+static void set_geomset_velocity(
+	PARACHUTE_SET *geom_set,
+	double **v)
+{
+	int i,n,ns,nc,nn;
+
+	ns = geom_set->num_surfs;
+	nc = geom_set->num_curves;
+	nn = geom_set->num_nodes;
+	n = 0;
+	for (i = 0; i < ns; ++i)
+	    setSurfVelocity(geom_set,geom_set->surfs[i],v,&n);
+	for (i = 0; i < nc; ++i)
+	    setCurveVelocity(geom_set,geom_set->curves[i],v,&n);
+	for (i = 0; i < nn; ++i)
+	    setNodeVelocity(geom_set,geom_set->nodes[i],v,&n);
+
+}	/* end set_geomset_velocity */
+
