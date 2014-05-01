@@ -787,7 +787,6 @@ static void coating_mono_hyper_surf3d(
 	    if (wave_type(*s) == ELASTIC_BOUNDARY)
 	    {
 		immersed_surf = *s;
-		hs = Hyper_surf(*s);
 		comp = base_comp = negative_component(*s);
 		break;
 	    }
@@ -807,8 +806,9 @@ static void coating_mono_hyper_surf3d(
 	    for (i = 0; i < dim; ++i)
 		coords[i] = L[i] + icoords[i]*h[i];
 	    if (nearest_interface_point_within_range(coords,comp,grid_intfc,
-			NO_BOUNDARIES,hs,p,t,&hse,&hs,3))
+			NO_BOUNDARIES,NULL,p,t,&hse,&hs,3))
 	    {
+		if (wave_type(hs) != ELASTIC_BOUNDARY) continue;
 	    	nor = Tri_normal(Tri_of_hse(hse));
 	    	for (i = 0; i < dim; ++i)
 		    vec[i] = coords[i] - p[i];
@@ -818,8 +818,17 @@ static void coating_mono_hyper_surf3d(
 		    top_comp[index] = base_comp - 1;
 	    }
 	}
-	negative_component(immersed_surf) = base_comp - 1;
-	positive_component(immersed_surf) = base_comp + 1;
+	for (s = grid_intfc->surfaces; s && *s; ++s)
+	{
+	    if (wave_type(*s) == ELASTIC_BOUNDARY)
+	    {
+		if (base_comp == negative_component(*s))
+		{
+		    negative_component(*s) = base_comp - 1;
+		    positive_component(*s) = base_comp + 1;
+		}
+	    }
+	}
 	if (debugging("coat_comp"))
 	{
 	    icoords[0] = top_gmax[0]/2;
