@@ -344,6 +344,7 @@ extern void setStressColor(Front*);
 extern void vtkPlotSurfaceStress(Front*);
 extern void poisson_ratio(Front*);
 extern void initMovieStress(char*,Front*);
+extern void InstallNewLoadNode(Front*,int);
 
 // sprModel/modules.cpp
 extern void initSpringModel(Front*);

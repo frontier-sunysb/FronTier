@@ -921,6 +921,7 @@ extern void assembleParachuteSet(
 	CURVE **curves = geom_set->curves;
 	NODE **nodes = geom_set->nodes;
 
+	geom_set->front = front;
 	ns = nc = nn = 0;
 	/* Assemble canopy surfaces */
 	intfc_surface_loop(intfc,s)

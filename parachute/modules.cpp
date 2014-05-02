@@ -28,7 +28,6 @@ static void initSingleModule(Front*);
 static void initMultiModule(Front*,int);
 static void MergeTwoIntfc(INTERFACE*,INTERFACE*);
 static void CopyNodeInfo(INTERFACE*,INTERFACE*);
-static void InstallNewLoadNode(Front*,int);
 static void modifyCanopySet(FILE*,Front*,SURFACE*);
 static boolean curve_of_boundary_hs(CURVE*);
 
@@ -188,100 +187,6 @@ static void MergeTwoIntfc(
 	free(p_table);
 	set_current_interface(cur_intfc);
 }	/* end MergeTwoIntfc */
-
-static void InstallNewLoadNode(
-	Front *front,
-	int num_canopy)
-{
-	INTERFACE *intfc = front->interf;
-	FILE *infile = fopen(InName(front),"r");
-	NODE **n, *sec_nload, *nload;
-	CURVE **string_curves;
-	AF_NODE_EXTRA *extra;
-	BOND *bond;
-	double center[MAXD],newload[MAXD],dir[MAXD],coords[MAXD];
-	double spacing,*h = front->rect_grid->h;
-	int i,j,k,nb;
-        INTERFACE *cur_intfc;
-
-        if (CursorAfterStringOpt(infile,"Enter new load position:"))
-	{
-            fscanf(infile,"%lf %lf %lf",newload,newload+1,newload+2);
-            (void) printf("%f %f %f\n",newload[0],newload[1],newload[2]);
-	}
-	else
-	{
-	    fclose(infile);
-	    return;
-	}
-
-        CursorAfterString(infile,"Enter center of rotation:");
-        fscanf(infile,"%lf %lf %lf",center,center+1,center+2);
-        (void) printf("%f %f %f\n",center[0],center[1],center[2]);
-
-        cur_intfc = current_interface();
-	set_current_interface(intfc);
-	FT_VectorMemoryAlloc((POINTER*)&string_curves,num_canopy+1,
-                                sizeof(CURVE*));
-	sec_nload = make_node(Point(center));
-        FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
-        extra->af_node_type = SEC_LOAD_NODE;
-        sec_nload->extra = (POINTER)extra;
-
-	i = 0;
-	intfc_node_loop(intfc,n)
-	{
-	    extra = (AF_NODE_EXTRA*)((*n)->extra);
-	    if (extra != NULL && extra->af_node_type == LOAD_NODE)
-	    {
-		extra->af_node_type = THR_LOAD_NODE;
-		string_curves[i] = make_curve(0,0,(*n),sec_nload);
-		hsbdry_type(string_curves[i]) = STRING_HSBDRY;
-		spacing = separation((*n)->posn,sec_nload->posn,3);
-		for (j = 0; j < 3; ++j)
-                    dir[j] = (Coords(sec_nload->posn)[j] -
-                        Coords((*n)->posn)[j])/spacing;
-		nb = (int)spacing/(1.1*h[0]);
-		spacing /= (double)nb;
-		bond = string_curves[i]->first;
-		for (j = 1; j < nb; ++j)
-		{
-		    for (k = 0; k < 3; ++k)
-                    	coords[k] = Coords((*n)->posn)[k] +
-                                        j*dir[k]*spacing;
-                    insert_point_in_bond(Point(coords),bond,string_curves[i]);
-                    bond = bond->next;
-		}
-		i++;
-	    }
-	}	
-
-	nload = make_node(Point(newload));
-        FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
-        extra->af_node_type = LOAD_NODE;
-        nload->extra = (POINTER)extra;
-
-	string_curves[num_canopy] = make_curve(0,0,sec_nload,nload);
-	hsbdry_type(string_curves[num_canopy]) = STRING_HSBDRY;
-	spacing = separation(sec_nload->posn,nload->posn,3);
-	for (j = 0; j < 3; ++j)
-            dir[j] = (Coords(nload->posn)[j] -
-                        Coords(sec_nload->posn)[j])/spacing;
-	nb = (int)spacing/(1.1*h[0]);
-	spacing /= (double)nb;
-	bond = string_curves[num_canopy]->first;
-	for (j = 1; j < nb; ++j)
-	{
-	    for (k = 0; k < 3; ++k)
-               	coords[k] = Coords(sec_nload->posn)[k] +
-        		j*dir[k]*spacing;
-            insert_point_in_bond(Point(coords),bond,string_curves[i]);
-            bond = bond->next;
-	}
-	set_current_interface(cur_intfc);
-	fclose(infile);
-	FT_FreeThese(1,string_curves);
-}	/* end InstallNewLoadNode */
 
 static boolean curve_of_boundary_hs(
         CURVE *c)

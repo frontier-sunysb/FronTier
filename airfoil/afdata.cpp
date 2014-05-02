@@ -25,6 +25,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <airfoil.h>
 
 static void naturalStressOfTri(TRI*,double);
+static void singleCanopyModification(Front*);
+static void bifurcateCanopyModification(Front*);
+static void copyParachuteSet(PARACHUTE_SET,PARACHUTE_SET*);
+static void rotateParachuteSet(PARACHUTE_SET*,double*,double,double);
 
 extern void printAfExtraDada(
 	Front *front,
@@ -462,7 +466,6 @@ extern void optimizeElasticMesh(
 	if (debugging("optimize_intfc"))
 	{
 	    gview_plot_interface("gview-after-optimize",intfc);
-	    //clean_up(0);
 	}
 	if (debugging("trace"))
 	    (void) printf("Leaving optimizeElasticMesh()\n");
@@ -474,75 +477,38 @@ extern void modifyInitialization(
 	char *inname = InName(front);
 	FILE *infile = fopen(inname,"r");
 	char string[200],input_string[200];
-	double disp[MAXD],center[MAXD];
-	double phi,theta;
-	INTERFACE *intfc = front->interf;
-	double L[MAXD],U[MAXD];
-	int i,dim,gmax[MAXD];
+	boolean bifurcate_initialization;
 	
 	if (!CursorAfterStringOpt(infile,
             "Entering yes to modify initialization:"))
+	{
+	    fclose(infile);
 	    return;
+	}
 	else
         {
             fscanf(infile,"%s",string);
             (void) printf("%s\n",string);
             if (string[0] != 'y' && string[0] != 'Y')
+	    {
+	    	fclose(infile);
 		return;
+	    }
         }
-	dim = FT_Dimension();
-	CursorAfterString(infile,
-		"Enter yes for translation of interior interface:");
-        fscanf(infile,"%s",string);
-        (void) printf("%s\n",string);
-	if (string[0] != 'y' || string[0] != 'Y')
-	{
-	    CursorAfterString(infile,"Enter displacement of translation:");
-            fscanf(infile,"%lf %lf %lf",disp,disp+1,disp+2);
-            (void) printf("%f %f %f\n",disp[0],disp[1],disp[2]);
-	    I_TransInteriorIntfcPoints(intfc,disp);
-	}
-	CursorAfterString(infile,
-		"Enter yes for rotation of interior interface:");
-        fscanf(infile,"%s",string);
-        (void) printf("%s\n",string);
-	if (string[0] != 'y' || string[0] != 'Y')
-	{
-	    CursorAfterString(infile,"Enter center of rotation:");
-            fscanf(infile,"%lf %lf %lf",center,center+1,center+2);
-            (void) printf("%f %f %f\n",center[0],center[1],center[2]);
-	    CursorAfterString(infile,"Enter azimuthal and polar angles:");
-            fscanf(infile,"%lf %lf",&phi,&theta);
-            (void) printf("%f %f\n",phi,theta);
-	    theta *= PI/180.0;
-	    phi *= PI/180.0;
-	    I_SphericalRotateInteriorIntfcPoints(intfc,center,phi,theta);
-	}
+	bifurcate_initialization = NO;
 	if (CursorAfterStringOpt(infile,
-            "Entering yes to modify computational grid:"))
-        {
+            "Enter yes to bifurcate initialization:"))
+	{
             fscanf(infile,"%s",string);
             (void) printf("%s\n",string);
             if (string[0] == 'y' || string[0] == 'Y')
-	    {
-		for (i = 0; i < dim; ++i)
-        	{
-	            sprintf(input_string,
-				"New domain limit in %d-th dimension:",i);
-	            CursorAfterString(infile,input_string);
-	            fscanf(infile,"%lf %lf",&L[i],&U[i]);
-	            (void) printf("%f %f\n",L[i],U[i]);
-        	}
-		CursorAfterString(infile,"New computational grid:");
-        	for (i = 0; i < dim; ++i)
-        	{
-	            fscanf(infile,"%d",&gmax[i]);
-		    (void) printf("%d ",gmax[i]);
-        	}
-        	(void) printf("\n");
-		FT_ResetDomainAndGrid(front,L,U,gmax);
-	    }
+		bifurcate_initialization = YES;
         }
+    	fclose(infile);
+	if (bifurcate_initialization)
+	    bifurcateCanopyModification(front);
+	else
+	    singleCanopyModification(front);
 }	/* end modifyInitialization */
 
 extern void setStressColor(
@@ -691,3 +657,348 @@ extern void poisson_ratio(
 	    }
 	}
 }	/* poisson_ratio */
+
+static void singleCanopyModification(
+	Front *front)
+{
+	char *inname = InName(front);
+	FILE *infile = fopen(inname,"r");
+	char string[200],input_string[200];
+	double disp[MAXD],center[MAXD];
+	double phi,theta;
+	INTERFACE *intfc = front->interf;
+	double L[MAXD],U[MAXD];
+	int i,dim,gmax[MAXD];
+
+	dim = FT_Dimension();
+	CursorAfterString(infile,
+		"Enter yes for translation of interior interface:");
+        fscanf(infile,"%s",string);
+        (void) printf("%s\n",string);
+	if (string[0] != 'y' || string[0] != 'Y')
+	{
+	    CursorAfterString(infile,"Enter displacement of translation:");
+            fscanf(infile,"%lf %lf %lf",disp,disp+1,disp+2);
+            (void) printf("%f %f %f\n",disp[0],disp[1],disp[2]);
+	    I_TransInteriorIntfcPoints(intfc,disp);
+	}
+	CursorAfterString(infile,
+		"Enter yes for rotation of interior interface:");
+        fscanf(infile,"%s",string);
+        (void) printf("%s\n",string);
+	if (string[0] != 'y' || string[0] != 'Y')
+	{
+	    CursorAfterString(infile,"Enter center of rotation:");
+            fscanf(infile,"%lf %lf %lf",center,center+1,center+2);
+            (void) printf("%f %f %f\n",center[0],center[1],center[2]);
+	    CursorAfterString(infile,"Enter azimuthal and polar angles:");
+            fscanf(infile,"%lf %lf",&phi,&theta);
+            (void) printf("%f %f\n",phi,theta);
+	    theta *= PI/180.0;
+	    phi *= PI/180.0;
+	    I_SphericalRotateInteriorIntfcPoints(intfc,center,phi,theta);
+	}
+	if (CursorAfterStringOpt(infile,
+            "Entering yes to modify computational grid:"))
+        {
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'y' || string[0] == 'Y')
+	    {
+		for (i = 0; i < dim; ++i)
+        	{
+	            sprintf(input_string,
+				"New domain limit in %d-th dimension:",i);
+	            CursorAfterString(infile,input_string);
+	            fscanf(infile,"%lf %lf",&L[i],&U[i]);
+	            (void) printf("%f %f\n",L[i],U[i]);
+        	}
+		CursorAfterString(infile,"New computational grid:");
+        	for (i = 0; i < dim; ++i)
+        	{
+	            fscanf(infile,"%d",&gmax[i]);
+		    (void) printf("%d ",gmax[i]);
+        	}
+        	(void) printf("\n");
+		FT_ResetDomainAndGrid(front,L,U,gmax);
+	    }
+        }
+	fclose(infile);
+}	/* end singleCanopyModification */
+
+static void bifurcateCanopyModification(
+	Front *front)
+{
+	char *inname = InName(front);
+	FILE *infile = fopen(inname,"r");
+	char string[200],input_string[200];
+	PARACHUTE_SET *parachute_set;
+	int num_canopy;
+	double disp[MAXD],center[MAXD];
+	double phi,theta;
+	INTERFACE *intfc = front->interf;
+	double L[MAXD],U[MAXD];
+	int i,dim,gmax[MAXD];
+
+	dim = FT_Dimension();
+
+	CursorAfterString(infile,
+		"Enter total number of canopy sets:");
+        fscanf(infile,"%d",&num_canopy);
+        (void) printf("%d\n",num_canopy);
+	FT_VectorMemoryAlloc((POINTER*)&parachute_set,num_canopy,
+			sizeof(PARACHUTE_SET));
+	/* Get the original set */
+	assembleParachuteSet(front,&parachute_set[0],2);
+	for (i = 1; i < num_canopy; ++i)
+	{
+	    copyParachuteSet(parachute_set[0],&parachute_set[i]);
+	}
+	for (i = 0; i < num_canopy; ++i)
+	{
+	    sprintf(string,"For canopy set %d",i+1);
+	    CursorAfterString(infile,string);
+	    (void) printf("\n");
+
+	    	CursorAfterString(infile,
+		"Enter yes for translation of canopy set:");
+            fscanf(infile,"%s",input_string);
+            (void) printf("%s\n",input_string);
+	    if (input_string[0] == 'y' || input_string[0] == 'Y')
+	    {
+	    	CursorAfterString(infile,"Enter displacement of translation:");
+            	fscanf(infile,"%lf %lf %lf",disp,disp+1,disp+2);
+            	(void) printf("%f %f %f\n",disp[0],disp[1],disp[2]);
+	    }
+	    CursorAfterString(infile,
+		"Enter yes for rotation of canopy set:");
+            fscanf(infile,"%s",input_string);
+            (void) printf("%s\n",input_string);
+	    if (input_string[0] == 'y' || input_string[0] == 'Y')
+	    {
+	    	CursorAfterString(infile,"Enter center of rotation:");
+            	fscanf(infile,"%lf %lf %lf",center,center+1,center+2);
+            	(void) printf("%f %f %f\n",center[0],center[1],center[2]);
+	    	CursorAfterString(infile,"Enter azimuthal and polar angles:");
+            	fscanf(infile,"%lf %lf",&phi,&theta);
+            	(void) printf("%f %f\n",phi,theta);
+	    	theta *= PI/180.0;
+	    	phi *= PI/180.0;
+	    	rotateParachuteSet(&parachute_set[i],center,phi,theta);
+	    }
+	}
+	InstallNewLoadNode(front,num_canopy);
+
+	if (CursorAfterStringOpt(infile,
+            "Entering yes to modify computational grid:"))
+        {
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'y' || string[0] == 'Y')
+	    {
+		for (i = 0; i < dim; ++i)
+        	{
+	            sprintf(input_string,
+				"New domain limit in %d-th dimension:",i);
+	            CursorAfterString(infile,input_string);
+	            fscanf(infile,"%lf %lf",&L[i],&U[i]);
+	            (void) printf("%f %f\n",L[i],U[i]);
+        	}
+		CursorAfterString(infile,"New computational grid:");
+        	for (i = 0; i < dim; ++i)
+        	{
+	            fscanf(infile,"%d",&gmax[i]);
+		    (void) printf("%d ",gmax[i]);
+        	}
+        	(void) printf("\n");
+		FT_ResetDomainAndGrid(front,L,U,gmax);
+	    }
+        }
+	fclose(infile);
+}	/* end bifurcateCanopyModification */
+
+static void copyParachuteSet(
+	PARACHUTE_SET orig_set,
+	PARACHUTE_SET *copy_set)
+{
+	int i,j,ns,nc,nn;
+	INTERFACE *cur_intfc = current_interface();
+	Front *front = orig_set.front;
+	NODE *start,*end;
+	CURVE **c,**pos_curves,**neg_curves;
+	AF_NODE_EXTRA *extra;
+
+	set_current_interface(front->interf);
+
+	ns = copy_set->num_surfs = orig_set.num_surfs;
+	nc = copy_set->num_curves = orig_set.num_curves;
+	nn = copy_set->num_nodes = orig_set.num_nodes;
+
+	for (i = 0; i < nn; ++i)
+	{
+	    copy_set->nodes[i] = copy_node(orig_set.nodes[i]);
+	    if (is_load_node(orig_set.nodes[i]))
+	    {
+		copy_set->load_node = copy_set->nodes[i];
+        	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+		copy_set->load_node->extra = extra;
+		extra->af_node_type = LOAD_NODE;
+	    }
+	}
+	for (i = 0; i < nc; ++i)
+	{
+	    start = end = NULL;
+	    for (j = 0; j < nn; ++j)
+	    {
+		if (orig_set.curves[i]->start == orig_set.nodes[j])
+		    start = copy_set->nodes[j];
+		if (orig_set.curves[i]->end == orig_set.nodes[j])
+		    end = copy_set->nodes[j];
+	    }
+	    if (start == NULL || end == NULL)
+	    {
+		printf("Cannot find start or end node\n");
+		clean_up(ERROR);
+	    }
+	    copy_set->curves[i] = copy_curve(orig_set.curves[i],start,end);
+	}
+	for (i = 0; i < ns; ++i)
+	{
+	    pos_curves = neg_curves = NULL;
+	    for (j = 0; j < nc; ++j)
+	    {
+		surf_pos_curve_loop(orig_set.surfs[i],c)
+		{
+		    if (*c == orig_set.curves[j])
+			unique_add_to_pointers(copy_set->curves[j],&pos_curves);
+		}
+		surf_neg_curve_loop(orig_set.surfs[i],c)
+		{
+		    if (*c == orig_set.curves[j])
+			unique_add_to_pointers(copy_set->curves[j],&neg_curves);
+		}
+	    }
+	    copy_set->surfs[i] = copy_surface(orig_set.surfs[i],pos_curves,
+				neg_curves,YES);
+	}
+}	/* end copyParachuteSet */
+
+static void rotateParachuteSet(
+	PARACHUTE_SET *parachute_set,
+	double *center,
+	double phi,
+	double theta)
+{
+	int i;
+	for (i = 0; i < parachute_set->num_surfs; ++i)
+	{
+	    I_SphericalRotateInteriorSurfPoints(parachute_set->surfs[i],
+					center,phi,theta);
+	}
+	for (i = 0; i < parachute_set->num_curves; ++i)
+	{
+	    I_SphericalRotateInteriorCurvePoints(parachute_set->curves[i],
+					center,phi,theta);
+	}
+	for (i = 0; i < parachute_set->num_nodes; ++i)
+	{
+	    I_SphericalRotatePoint(parachute_set->nodes[i]->posn,
+					center,phi,theta,NO);
+	}
+}	/* end rotateParachuteSet */
+
+extern void InstallNewLoadNode(
+	Front *front,
+	int num_canopy)
+{
+	INTERFACE *intfc = front->interf;
+	FILE *infile = fopen(InName(front),"r");
+	NODE **n, *sec_nload, *nload;
+	CURVE **string_curves;
+	AF_NODE_EXTRA *extra;
+	BOND *bond;
+	double center[MAXD],newload[MAXD],dir[MAXD],coords[MAXD];
+	double spacing,*h = front->rect_grid->h;
+	int i,j,k,nb;
+        INTERFACE *cur_intfc;
+
+        if (CursorAfterStringOpt(infile,"Enter new load position:"))
+	{
+            fscanf(infile,"%lf %lf %lf",newload,newload+1,newload+2);
+            (void) printf("%f %f %f\n",newload[0],newload[1],newload[2]);
+	}
+	else
+	{
+	    fclose(infile);
+	    return;
+	}
+
+        CursorAfterString(infile,"Enter center of rotation:");
+        fscanf(infile,"%lf %lf %lf",center,center+1,center+2);
+        (void) printf("%f %f %f\n",center[0],center[1],center[2]);
+
+        cur_intfc = current_interface();
+	set_current_interface(intfc);
+	FT_VectorMemoryAlloc((POINTER*)&string_curves,num_canopy+1,
+                                sizeof(CURVE*));
+	sec_nload = make_node(Point(center));
+        FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+        extra->af_node_type = SEC_LOAD_NODE;
+        sec_nload->extra = (POINTER)extra;
+
+	i = 0;
+	intfc_node_loop(intfc,n)
+	{
+	    extra = (AF_NODE_EXTRA*)((*n)->extra);
+	    if (extra == NULL)
+		continue;
+	    if (extra->af_node_type == LOAD_NODE)
+	    {
+		extra->af_node_type = THR_LOAD_NODE;
+		string_curves[i] = make_curve(0,0,(*n),sec_nload);
+		hsbdry_type(string_curves[i]) = STRING_HSBDRY;
+		spacing = separation((*n)->posn,sec_nload->posn,3);
+		for (j = 0; j < 3; ++j)
+                    dir[j] = (Coords(sec_nload->posn)[j] -
+                        Coords((*n)->posn)[j])/spacing;
+		nb = (int)spacing/(1.1*h[0]);
+		spacing /= (double)nb;
+		bond = string_curves[i]->first;
+		for (j = 1; j < nb; ++j)
+		{
+		    for (k = 0; k < 3; ++k)
+                    	coords[k] = Coords((*n)->posn)[k] +
+                                        j*dir[k]*spacing;
+                    insert_point_in_bond(Point(coords),bond,string_curves[i]);
+                    bond = bond->next;
+		}
+		i++;
+	    }
+	}	
+
+	nload = make_node(Point(newload));
+        FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
+        extra->af_node_type = LOAD_NODE;
+        nload->extra = (POINTER)extra;
+
+	string_curves[num_canopy] = make_curve(0,0,sec_nload,nload);
+	hsbdry_type(string_curves[num_canopy]) = STRING_HSBDRY;
+	spacing = separation(sec_nload->posn,nload->posn,3);
+	for (j = 0; j < 3; ++j)
+            dir[j] = (Coords(nload->posn)[j] -
+                        Coords(sec_nload->posn)[j])/spacing;
+	nb = (int)spacing/(1.1*h[0]);
+	spacing /= (double)nb;
+	bond = string_curves[num_canopy]->first;
+	for (j = 1; j < nb; ++j)
+	{
+	    for (k = 0; k < 3; ++k)
+               	coords[k] = Coords(sec_nload->posn)[k] +
+        		j*dir[k]*spacing;
+            insert_point_in_bond(Point(coords),bond,string_curves[i]);
+            bond = bond->next;
+	}
+	set_current_interface(cur_intfc);
+	fclose(infile);
+	FT_FreeThese(1,string_curves);
+}	/* end InstallNewLoadNode */

@@ -96,7 +96,6 @@ int main(int argc, char **argv)
         front.extra2 = (POINTER)&af_params;
         read_iFparams(in_name,&iFparams);
 	initParachuteDefault(&front);
-	initMovieStress(in_name,&front);
 
 	level_func_pack.pos_component = LIQUID_COMP2;
 	if (!RestartRun)
@@ -119,12 +118,6 @@ int main(int argc, char **argv)
 	/* Time control */
 	FT_ReadTimeControl(in_name,&front);
 
-	if (!RestartRun)
-	{
-	    set_equilibrium_mesh(&front);
-	}
-	FT_SetGlobalIndex(&front);
-	    
 	/* Initialize velocity field function */
 
 	setMotionParams(&front);
@@ -132,18 +125,44 @@ int main(int argc, char **argv)
 	l_cartesian->findStateAtCrossing = af_find_state_at_crossing;
 	l_cartesian->getInitialState = zero_state;
 	l_cartesian->initMesh();
-        l_cartesian->initMovieVariables();
 	if (debugging("sample_velocity"))
             l_cartesian->initSampleVelocity(in_name);
 
         if (RestartRun)
 	{
-            l_cartesian->readFrontInteriorStates(restart_state_name);
-	    readAfExtraDada(&front,restart_state_name);
+	    if (ReSetTime)
+	    {
+		readAfExtraDada(&front,restart_state_name);
+                modifyInitialization(&front);
+                read_iF_dirichlet_bdry_data(in_name,&front,f_basic);
+                l_cartesian->initMesh();
+                l_cartesian->setInitialCondition();
+	    	if (debugging("trace"))
+	    	{
+		    if (consistent_interface(front.interf) == NO)
+            	    	clean_up(ERROR);
+		    gview_plot_interface("gmodified",front.interf);
+	    	}
+	    }
+	    else
+	    {
+            	l_cartesian->readFrontInteriorStates(restart_state_name);
+	    	readAfExtraDada(&front,restart_state_name);
+	    }
 	}
         else
+	{
             l_cartesian->setInitialCondition();
+	}
 
+	if (!RestartRun)
+	{
+	    set_equilibrium_mesh(&front);
+	}
+	FT_SetGlobalIndex(&front);
+        l_cartesian->initMovieVariables();
+	initMovieStress(in_name,&front);
+	    
 	if (!RestartRun || ReSetTime)
 	    resetFrontVelocity(&front);
 
