@@ -961,9 +961,10 @@ extern void InstallNewLoadNode(
 		for (j = 0; j < 3; ++j)
                     dir[j] = (Coords(sec_nload->posn)[j] -
                         Coords((*n)->posn)[j])/spacing;
-		nb = (int)spacing/(1.1*h[0]);
+		nb = (int)spacing/(0.25*h[0]);
 		spacing /= (double)nb;
 		bond = string_curves[i]->first;
+		bond->length0 = spacing;
 		for (j = 1; j < nb; ++j)
 		{
 		    for (k = 0; k < 3; ++k)
@@ -971,6 +972,7 @@ extern void InstallNewLoadNode(
                                         j*dir[k]*spacing;
                     insert_point_in_bond(Point(coords),bond,string_curves[i]);
                     bond = bond->next;
+		    bond->length0 = spacing;
 		}
 		i++;
 	    }
@@ -987,9 +989,10 @@ extern void InstallNewLoadNode(
 	for (j = 0; j < 3; ++j)
             dir[j] = (Coords(nload->posn)[j] -
                         Coords(sec_nload->posn)[j])/spacing;
-	nb = (int)spacing/(1.1*h[0]);
+	nb = (int)spacing/(0.25*h[0]);
 	spacing /= (double)nb;
 	bond = string_curves[num_canopy]->first;
+	bond->length0 = spacing;
 	for (j = 1; j < nb; ++j)
 	{
 	    for (k = 0; k < 3; ++k)
@@ -997,6 +1000,7 @@ extern void InstallNewLoadNode(
         		j*dir[k]*spacing;
             insert_point_in_bond(Point(coords),bond,string_curves[i]);
             bond = bond->next;
+	    bond->length0 = spacing;
 	}
 	set_current_interface(cur_intfc);
 	fclose(infile);

@@ -675,7 +675,7 @@ static boolean install_strings_and_rotate(
 	    for (j = 0; j < 3; ++j)
 		dir[j] = (Coords(nload->posn)[j] - 
 			Coords(string_nodes[i]->posn)[j])/spacing;
-	    nb = (int)spacing/(1.1*h[0]);
+	    nb = (int)spacing/(0.25*h[0]);
 	    spacing /= (double)nb;
 	    b = curve->first;
 	    for (j = 1; j < nb; ++j)
@@ -885,7 +885,7 @@ static boolean install_strings_and_rotate_w_gores(
 	    for (j = 0; j < 3; ++j)
 		dir[j] = (Coords(nload->posn)[j] - 
 			Coords(string_nodes[i]->posn)[j])/spacing;
-	    nb = (int)spacing/(1.1*h[0]);
+	    nb = (int)spacing/(0.25*h[0]);
 	    spacing /= (double)nb;
 	    b = string_curve->first;
 	    for (j = 1; j < nb; ++j)
@@ -1081,7 +1081,7 @@ static boolean install_strings(
 	    for (j = 0; j < 3; ++j)
 		dir[j] = (Coords(nload->posn)[j] - 
 			Coords(string_nodes[i]->posn)[j])/spacing;
-	    nb = (int)spacing/(1.1*h[0]);
+	    nb = (int)spacing/(0.25*h[0]);
 	    spacing /= (double)nb;
 	    b = string_curves[i]->first;
 	    for (j = 1; j < nb; ++j)
@@ -1543,7 +1543,7 @@ static boolean install_strings_and_rotate_w_fixer(
 	    for (j = 0; j < 3; ++j)
 		dir[j] = (Coords(nload->posn)[j] - 
 			Coords(string_nodes[i]->posn)[j])/spacing;
-	    nb = (int)spacing/(1.1*h[0]);
+	    nb = (int)spacing/(0.25*h[0]);
 	    spacing /= (double)nb;
 	    b = curve->first;
 	    for (j = 1; j < nb; ++j)
@@ -1722,7 +1722,7 @@ static boolean install_strings_and_rotate_w_parallel_gores(
             for (j = 0; j < 3; ++j)
                 dir[j] = (Coords(nload->posn)[j] -
                         Coords(start_nodes[i]->posn)[j])/spacing;
-            nb = (int)spacing/(1.1*h[0]);
+            nb = (int)spacing/(0.25*h[0]);
             spacing /= (double)nb;
             b = curve->first;
             for (j = 1; j < nb; ++j)
@@ -1740,7 +1740,7 @@ static boolean install_strings_and_rotate_w_parallel_gores(
             for (j = 0; j < 3; ++j)
                 dir[j] = (Coords(nload->posn)[j] -
                         Coords(end_nodes[i]->posn)[j])/spacing;
-            nb = (int)spacing/(1.1*h[0]);
+            nb = (int)spacing/(0.25*h[0]);
             spacing /= (double)nb;
             b = curve->first;
             for (j = 1; j < nb; ++j)

@@ -1243,8 +1243,7 @@ extern void compute_node_accel3(
 
 	if (dim == 3)
 	{
-	    AF_NODE_EXTRA *extra = (AF_NODE_EXTRA*)node->extra;
-	    if (extra != NULL && extra->af_node_type == LOAD_NODE)
+	    if (is_load_node(node))
 	    {
 	    	Front *front = geom_set->front;
 	    	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
