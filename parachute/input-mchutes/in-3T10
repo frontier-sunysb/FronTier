@@ -1,7 +1,7 @@
-Domain limit in 0-th dimension: -21 21
-Domain limit in 1-th dimension: -21 21
-Domain limit in 2-th dimension: -28 28
-Computational grid: 180 180 240
+Domain limit in 0-th dimension: -14 14
+Domain limit in 1-th dimension: -14 14
+Domain limit in 2-th dimension: -42 28
+Computational grid: 120 120 300
 Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
 Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
 Lower boundary in 1-th dimension: PERIODIC_BOUNDARY
@@ -10,8 +10,8 @@ Lower boundary in 2-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 2-th dimension: DIRICHLET_BOUNDARY
 
 Max time: 6.0
-Max step: 2000
-Print interval: 0.05
+Max step: 4000
+Print interval: 0.5
 Movie frame interval: 0.05
 CFL factor: 0.5
 Redistribution interval: 10000000
@@ -26,64 +26,76 @@ Enter projection type: SIMPLE
 Enter number of canopy surfaces: 3
 
 Enter yes to use CGAL to generate mesh: yes
-Enter canopy surface type: FLAT
-Enter type of canopy boundary: C
-Enter the height of the plane: 20
+Enter canopy surface type: P
 Enter circle center: 0 0
-Enter circle radius: 5
-Enter yes to attach gores to canopy: no
-Enter yes to cut a vent on canopy: no
-Enter number of chords: 30
+Enter circle radius: 5.2915
+Enter vertex coordinate of the paraboloid: 0 0 22.8
+Enter coefficients of the paraboloid: 0.1 0.1
+Enter the height of the plane: 20
+Enter yes to cut a vent on canopy: yes
+Enter radius of the vent: 0.535
 Enter yes to attach strings to canopy: yes
+Enter yes to attach gores to canopy: yes
+Enter gore length factor: 0.95
+Enter number of chords: 30
+Enter start angle of chord: 6.263185
 Enter initial position of load: 0 0 6
-Enter rotation angles: 0.0
+Enter rotation angles: 0 0
 Entering yes to modify initialization: yes
 Enter yes for translation of canopy: n
 Enter displacement of translation: 0 0 0
 Enter yes for rotation of canopy: y
 Enter center of rotation: 0 0 2
-Enter azimuthal and polar angles: 0 30
-Enter canopy surface type: FLAT
-Enter type of canopy boundary: C
-Enter the height of the plane: 20
+Enter azimuthal and polar angles: 0 20
+Enter canopy surface type: P
 Enter circle center: 0 0
-Enter circle radius: 5
-Enter yes to attach gores to canopy: no
-Enter yes to cut a vent on canopy: no
-Enter number of chords: 30
+Enter circle radius: 5.2915
+Enter vertex coordinate of the paraboloid: 0 0 22.8
+Enter coefficients of the paraboloid: 0.1 0.1
+Enter the height of the plane: 20
+Enter yes to cut a vent on canopy: yes
+Enter radius of the vent: 0.535
 Enter yes to attach strings to canopy: yes
+Enter yes to attach gores to canopy: yes
+Enter gore length factor: 0.95
+Enter number of chords: 30
+Enter start angle of chord: 6.263185
 Enter initial position of load: 0 0 6
-Enter rotation angles: 0.0
+Enter rotation angles: 0 0
 Entering yes to modify initialization: yes
 Enter yes for translation of canopy: n
 Enter displacement of translation: 0 0 0
 Enter yes for rotation of canopy: y
 Enter center of rotation: 0 0 2
-Enter azimuthal and polar angles: 120 30
-Enter canopy surface type: FLAT
-Enter type of canopy boundary: C
-Enter the height of the plane: 20
+Enter azimuthal and polar angles: 120 20
+Enter canopy surface type: P
 Enter circle center: 0 0
-Enter circle radius: 5
-Enter yes to attach gores to canopy: no
-Enter yes to cut a vent on canopy: no
-Enter number of chords: 30
+Enter circle radius: 5.2915
+Enter vertex coordinate of the paraboloid: 0 0 22.8
+Enter coefficients of the paraboloid: 0.1 0.1
+Enter the height of the plane: 20
+Enter yes to cut a vent on canopy: yes
+Enter radius of the vent: 0.535
 Enter yes to attach strings to canopy: yes
+Enter yes to attach gores to canopy: yes
+Enter gore length factor: 0.95
+Enter number of chords: 30
+Enter start angle of chord: 6.263185
 Enter initial position of load: 0 0 6
-Enter rotation angles: 0.0
+Enter rotation angles: 0 0
 Entering yes to modify initialization: yes
 Enter yes for translation of canopy: n
 Enter displacement of translation: 0 0 0
 Enter yes for rotation of canopy: y
 Enter center of rotation: 0 0 2
-Enter azimuthal and polar angles: 240 30
+Enter azimuthal and polar angles: 240 20
 
 Enter center of rotation: 0 0 2
-Enter new load position: 0 0 -4
+Enter new load position: 0 0 -2
 
 Entering yes to turn off fluid solver: no
 Enter gravity: 0 0 -9.8
-Enter payload: 600
+Enter payload: 300
 Enter density and viscosity of the fluid: 1.2 0.000628
 Enter surface tension: 0.0
 Enter factor of smoothing radius: 1.0
@@ -94,6 +106,9 @@ Enter interior sub step number: 10
 Enter fabric spring constant: 5000
 Enter fabric friction constant: 0.02 
 Enter fabric point mass: 0.001
+Enter gore spring constant: 5000
+Enter gore friction constant: 0.1
+Enter gore point mass: 0.01
 Enter string spring constant: 50000.0
 Enter string friction constant: 0.001
 Enter string friction constant in perpendicular direction: 0.0
