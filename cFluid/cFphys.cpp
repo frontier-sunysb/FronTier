@@ -109,6 +109,15 @@ extern void read_cFluid_params(
 		printf("Numerical scheme %s not implemented!\n",string);
 		clean_up(ERROR);
 	    }
+	    eqn_params->articomp = NO;
+	    if (CursorAfterStringOpt(infile,
+		"Enter yes to use artificial compression:"))
+	    {
+	    	fscanf(infile,"%s",string);
+            	(void) printf("%s\n",string);
+	    	if (string[0] == 'y' || string[0] == 'Y')
+	            eqn_params->articomp = YES;
+	    }
 	    break;
 	default:
 	    printf("Numerical scheme %s not implemented!\n",string);
@@ -142,6 +151,7 @@ extern void read_cFluid_params(
             if (string[0] == 'y' || string[0] == 'Y')
             	eqn_params->use_base_soln = YES;
 	}
+
 	if (eqn_params->use_base_soln == YES)
         {
 	    CursorAfterString(infile,"Enter base directory name:");

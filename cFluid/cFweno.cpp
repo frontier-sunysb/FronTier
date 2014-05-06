@@ -34,7 +34,7 @@ static void matmvec(double *b, double L[5][5], double *x);
 static void f2is(double *f, double *s);
 static void u2f(double *u, double *f);
 static void weno5_get_flux(POINTER,int,int,double**,double**);
-static double arti_compression(double*,double*,double,double,double*,int,double &c);
+static void arti_compression(POINTER,double*,double*,double,double,double*,int,double &c);
 
 extern void WENO_flux(
         POINTER params,
@@ -250,7 +250,7 @@ static void weno5_get_flux(
 		/* artificial compression */
 	    	for(k = 0; k < 5; ++k)
 			gflux_tmp[k] = 0.5*(sten_f[5-k][j] + maxeig[j]*sten_u[5-k][j]);
-		arti_compression(gfluxp[j],gflux_tmp,f_prevp[j],f_nowp[j],vecp[j],1,c);
+		arti_compression(params,gfluxp[j],gflux_tmp,f_prevp[j],f_nowp[j],vecp[j],1,c);
 		f_tmp[j] += c;
 		/* end of artificial compression */
 		f_prevm[j] = f_nowm[j];
@@ -259,7 +259,7 @@ static void weno5_get_flux(
 		/* artificial compression */
 	    	for(k = 0; k < 5; ++k)
 			gflux_tmp[k] = 0.5*(sten_f[k][j] - maxeig[j]*sten_u[k][j]);
-		arti_compression(gfluxm[j],gflux_tmp,f_prevm[j],f_nowm[j],vecm[j],-1,c);
+		arti_compression(params,gfluxm[j],gflux_tmp,f_prevm[j],f_nowm[j],vecm[j],-1,c);
 		f_tmp[j] += c;
 		/* end of artificial compression */
 	    }
@@ -371,7 +371,8 @@ static void u2f(
     	f[4] = v*(u[4] + u[5]);
 }
 
-static double arti_compression(
+static void arti_compression(
+	POINTER params,
 	double *sten,
 	double *sten_tmp,
 	double f_prev,
@@ -382,30 +383,32 @@ static double arti_compression(
 {
 	double tmp,f_ac_tmp;
 	double ac_alpha,ac_alpha_nume,ac_alpha_deno;
+	SCHEME_PARAMS *scheme_params = (SCHEME_PARAMS*)params; 
 
 	c = 0.0;
+	if (scheme_params->artificial_compression == NO) return;
 	ac_alpha_nume = fabs(sten[3] - 2.0*sten[2] + sten[1]);
 	ac_alpha_deno = fabs(sten[3] - sten[2]) + fabs(sten[2] - sten[1]);
+	f_ac_tmp = weno5_scal(sten_tmp);
+	if (sign == 1)
+	{
+	    vec[1] = vec[0];
+	    vec[0] = f_ac_tmp - f_now;
+	    vec[2] = sten[3] - f_now;
+	    vec[3] = vec[1] + f_prev - sten[1];
+	}
+	else if (sign == -1)
+	{
+	    vec[0] = vec[1];
+	    vec[1] = f_ac_tmp - f_now;
+	    vec[2] = sten[1] - f_prev;
+    	    vec[3] = vec[1] + f_now - sten[3];
+	}
 	if (ac_alpha_deno != 0.0)
 	{
 	    ac_alpha = 33.0 * pow(ac_alpha_nume/ac_alpha_deno,2);
 	    if (ac_alpha > 1.0)
 	    {
-		f_ac_tmp = weno5_scal(sten_tmp);
-		if (sign == 1)
-		{
-		    vec[1] = vec[0];
-		    vec[0] = f_ac_tmp - f_now;
-		    vec[2] = sten[3] - f_now;
-		    vec[3] = vec[1] + f_prev - sten[1];
-		}
-		else if (sign == -1)
-		{
-	    	    vec[0] = vec[1];
-	    	    vec[1] = f_ac_tmp - f_now;
-	    	    vec[2] = sten[1] - f_prev;
-	    	    vec[3] = vec[1] + f_now - sten[3];
-		}
 		if (vec[0] > 0.0 && vec[1] > 0.0)
 		    tmp = (vec[0] < vec[1]) ? vec[0] : vec[1];
 		else if (vec[0] < 0.0 && vec[1] < 0.0)

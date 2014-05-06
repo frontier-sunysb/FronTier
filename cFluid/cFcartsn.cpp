@@ -5220,6 +5220,7 @@ void G_CARTESIAN::addFluxAlongGridLine(
 	COMPONENT comp;
 	int seg_min,seg_max;
 	static int icoords[MAXD];
+	EQN_PARAMS *eqn_params = (EQN_PARAMS*)(front->extra1);
 	
 	if (first)
         {
@@ -5228,6 +5229,7 @@ void G_CARTESIAN::addFluxAlongGridLine(
         }
 	scheme_params.lambda = dt/top_h[idir];
         scheme_params.beta = 0.0;
+	scheme_params.artificial_compression = eqn_params->articomp;
 	for (i = 0; i < dim; ++i)
 	    icoords[i] = grid_icoords[i];
 	seg_min = imin[idir];

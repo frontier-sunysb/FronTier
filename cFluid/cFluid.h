@@ -89,6 +89,7 @@ typedef struct {
         POINT_PROP_SCHEME point_prop_scheme;
 	EOS_PARAMS      eos[MAX_COMP];
 	boolean tracked;
+	boolean articomp;
 	int shock_dir;
 	double p0;
         double p1;
@@ -130,6 +131,7 @@ typedef struct {
 
 struct _SCHEME_PARAMS
 {
+	boolean artificial_compression;
         double lambda;
         double beta;
 	double gamma, einf;
