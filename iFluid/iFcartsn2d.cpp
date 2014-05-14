@@ -522,13 +522,12 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocityDual(void)
 	    FT_ParallelExchGridArrayBuffer(vel[l],front,symmetry);
 	}
 
-	checkVelocityDiv("Before extractFlowThroughVelocity()");
-	extractFlowThroughVelocity();
-
         if (debugging("check_div"))
-        {
-            checkVelocityDiv("After computeNewVelocityDual()");
-        }
+	    checkVelocityDiv("Before extractFlowThroughVelocity()");
+	extractFlowThroughVelocity();
+        if (debugging("check_div"))
+            checkVelocityDiv("After extractFlowThroughVelocity()");
+
         pp_global_max(&max_speed,1);
 }	/* end computeNewVelocityDual */
 
@@ -566,6 +565,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeSourceTerm(
 void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 {
 	static boolean first = YES;
+	double **vel = field->vel;
 	if (first)
 	{
 	    accum_dt = 0.0;
@@ -573,6 +573,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 	}
 	m_dt = dt;
 	max_speed = 0.0;
+	int j,icoords[MAXD];
+	double div;
 
 	start_clock("solve");
 	setDomain();
@@ -622,7 +624,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 
 	// 2) projection step
 	accum_dt += m_dt;
-	printf("min_dt = %f  accum_dt = %f\n",min_dt,accum_dt);
+	if (debugging("step_size"))
+	    (void) printf("min_dt = %f  accum_dt = %f\n",min_dt,accum_dt);
 	if (accum_dt >= min_dt)
 	{
 	    start_clock("computeProjection");
@@ -1228,6 +1231,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionDual(void)
 	setDualGlobalIndex();
 	setDualIndexMap();
 
+	updateComponent();
+
 	sum_div = 0.0;
 	max_value = 0.0;
 
@@ -1782,30 +1787,36 @@ void Incompress_Solver_Smooth_2D_Cartesian::updateComponent(void)
 {
 	int i,j,l,icoords[MAXD];
 	int index;
-	
-	for (j = cjmin; j <= cjmax; ++j)
-	for (i = cimin; i <= cimax; ++i)
-	{
-	    icoords[0] = i;
-	    icoords[1] = j;
-	    index = d_index(icoords,ctop_gmax,dim);
-	    if (!ifluid_comp(ctop_comp[index]))
-	    {
-		int cl[MAXD], ctmp[MAXD];
-		for (l = 0; l < dim; ++l)
-		    cl[l] = icoords[l] + offset[l] - 1;
-		for (int m = 0; m < 2; ++m)
-		for (int n = 0; n < 2; ++n)
-		{
-		    ctmp[0] = cl[0] + m;
-		    ctmp[1] = cl[1] + n;
-		    int indexl = d_index(ctmp,top_gmax,dim);
-		    if (ifluid_comp(top_comp[indexl]))
-			top_comp[indexl] = SOLID_COMP;
-		}
-	    }
-	}
-	/*Set rho for boundary velocity*/
+
+	/*update the component of pressure on dual grid*/
+	for (j = jmin; j <= jmax; ++j)
+        for (i = imin; i <= imax; ++i)
+        {
+            icoords[0] = i;
+            icoords[1] = j;
+            index = d_index(icoords,top_gmax,dim);
+            if (ifluid_comp(top_comp[index]))
+            {
+                int cl[MAXD], cu[MAXD];
+                for (l = 0; l < dim; ++l)
+                    cl[l] = icoords[l] - offset[l];
+                for (int m = 0; m < 2; ++m)
+                for (int n = 0; n < 2; ++n)
+                {
+                    cu[0] = cl[0] + m;
+                    cu[1] = cl[1] + n;
+		    if (cu[0]<cimin||cu[0]>cimax||cu[1]<cjmin||cu[1]>cjmax)
+			continue;
+                    int index_tmp = d_index(cu,ctop_gmax,dim);
+		    if (!ifluid_comp(ctop_comp[index_tmp]))
+                    	ctop_comp[index_tmp] = top_comp[index];
+                }
+            }
+        }
+
+	/*Set rho for boundary layer on computational grid*/
+	if (field->rho == NULL)
+	    return;
 	for (j = jmin; j <= jmax; ++j)
 	for (i = imin; i <= imax; ++i)
 	{
@@ -1814,30 +1825,29 @@ void Incompress_Solver_Smooth_2D_Cartesian::updateComponent(void)
             index = d_index(icoords,top_gmax,dim);
             if (!ifluid_comp(top_comp[index]))
 	    {
-		int cl[MAXD], cu[MAXD];
+		int cl[MAXD],cu[MAXD],indexl,indexu;
 		boolean VelSet = NO;
-		for (l = 0; l < dim; ++l)
-		    cl[l] = icoords[l] - offset[l];
-		for (int m = 0; m < 2; ++m)
-		for (int n = 0; n < 2; ++n)
+		for (l = 0; l < dim && !VelSet; ++l)
 		{
-		    cu[0] = cl[0] + m;
-		    cu[1] = cl[1] + n;
-		    int index_tmp = d_index(cu,ctop_gmax,dim);
-		    if (ifluid_comp(ctop_comp[index_tmp])&&!VelSet)
+		    cl[l] = icoords[l]-1;
+		    cu[l] = icoords[l]+1;
+		    for (int n = -1; n < 2 && !VelSet; ++n)
 		    {
-			int ctmp[MAXD];
-			if (cu[0]==i)
-			{
-			    ctmp[0] = cu[0] - 1;
-			    ctmp[1] = cu[1];
-			} else {
-			    ctmp[0] = cu[0];
-			    ctmp[1] = cu[1] + 1; 
-			}
-			field->rho[index] = 
-				field->rho[d_index(ctmp,top_gmax,dim)];
-			VelSet = YES;
+			cl[(l+1)%dim] = cu[(l+1)%dim] = icoords[(l+1)%dim]+n;
+			indexl = d_index(cl,top_gmax,dim);
+                        if (ifluid_comp(top_comp[indexl]))
+                        {
+                            field->rho[index] = field->rho[indexl];
+                            VelSet = YES;
+                            continue;
+                        }
+                        indexu = d_index(cu,top_gmax,dim);
+                        if (ifluid_comp(top_comp[indexu]))
+                        {
+                            field->rho[index] = field->rho[indexu];
+                            VelSet = YES;
+                            continue;
+                        }
 		    }
 		}
 	    }

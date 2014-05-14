@@ -60,6 +60,7 @@ struct _IF_FIELD {
 
 	double *div_U;
 	double *d_phi;			/* Dual grid phi */
+	double *nu_t;			/* Turbulent viscosity */
 };
 typedef struct _IF_FIELD IF_FIELD;
 
@@ -126,6 +127,7 @@ typedef struct {
 	boolean if_buoyancy;
 	double  ref_temp;
 	boolean if_ref_pres;
+	boolean use_eddy_visc;	/* Yes if to use eddy viscosity */
 	double  ref_pres;
 	double  Amplitute; /*Amplitute of velocity*/
 } IF_PARAMS;
@@ -337,6 +339,7 @@ protected:
 	double computeFieldPointDiv(int*, double**);
 	double computeDualFieldPointDiv(int*, double**);
 	double computeDualMu(int*, double*);
+	double computeFieldPointMuTurb(int*, double);
 	void   computeFieldPointGrad(int*, double*, double*);
 	void   computeDualFieldPointGrad(int*, double*, double*);
 	void   checkVelocityDiv(const char*);

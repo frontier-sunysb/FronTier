@@ -324,17 +324,22 @@ void DUAL_ELLIPTIC_SOLVER::solve2d(double *soln)
 		if (num_nb == 0) break;
 		status = (*findStateAtCrossing)(front,icoords,dir[l],comp,
                                 &intfc_state,&hs,crx_coords);
-		if (status == NO_PDE_BOUNDARY)
+		if (status == CONST_P_PDE_BOUNDARY)
                 {
-                    solver.Set_A(I,I_nb[l],coeff[l]);
+                    rhs += -coeff[l]*getStateVar(intfc_state);
                     aII += -coeff[l];
+                    use_neumann_solver = NO;
                 }
-                else if (status == CONST_P_PDE_BOUNDARY)
-                {
-		    rhs += -coeff[l]*getStateVar(intfc_state);
-                    aII += -coeff[l];
-		    use_neumann_solver = NO;
-                }
+		else
+		{
+		    if (I_nb[l] == -1)	/*CONST_V_PDE_BOUNDARY*/
+                        continue;
+                    else	/*NO_PDE_BOUNDARY*/
+                    {
+                        solver.Set_A(I,I_nb[l],coeff[l]);
+                        aII += -coeff[l];
+                    }
+		}
 	    }
 	    /*
 	     * This change reflects the need to treat point with only one
@@ -542,17 +547,22 @@ void DUAL_ELLIPTIC_SOLVER::solve3d(double *soln)
 		if (num_nb == 0) break;
 		status = (*findStateAtCrossing)(front,icoords,dir[l],comp,
                                 &intfc_state,&hs,crx_coords);
-		if (status == NO_PDE_BOUNDARY)
+		if (status == CONST_P_PDE_BOUNDARY)
                 {
-                    solver.Set_A(I,I_nb[l],coeff[l]);
+                    rhs += -coeff[l]*getStateVar(intfc_state);
                     aII += -coeff[l];
+                    use_neumann_solver = NO;
                 }
-                else if (status == CONST_P_PDE_BOUNDARY)
-                {
-		    rhs += -coeff[l]*getStateVar(intfc_state);
-                    aII += -coeff[l];
-		    use_neumann_solver = NO;
-                }
+		else
+		{
+		    if (I_nb[l] == -1)	/*CONST_V_PDE_BOUNDARY*/
+			continue;
+		    else	/*NO_PDE_BOUNDARY*/
+		    {
+			solver.Set_A(I,I_nb[l],coeff[l]);
+                        aII += -coeff[l];
+		    }
+		}
 	    }
 	    /*
 	     * This change reflects the need to treat point with only one
@@ -746,13 +756,14 @@ void DUAL_ELLIPTIC_SOLVER::get_dual_D(
 		    ic[(i+1)%dim] = ii;
 		    ic[(i+2)%dim] = jj;
 		    index = d_index(ic,top_gmax,dim);
-		    if (top_comp[index] != obst_comp)
+		    if (ijk_to_I[ic[0]][ic[1]][ic[2]] != -1)
 		    {
 			D_nb[l] += D[index];
 			denom += 1.0;
 		    }
 		}
-		D_nb[l] /= denom;
+		if (denom != 0.0)
+		    D_nb[l] /= denom;
 	    }
 	    break;
 	}

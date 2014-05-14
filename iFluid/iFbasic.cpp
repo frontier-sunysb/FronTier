@@ -1450,6 +1450,7 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 	double **f_surf = field->f_surf;
 	double *mu = field->mu;
 	double *rho = field->rho;
+	double dist;
 
 	for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
@@ -1484,6 +1485,16 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 			f_surf[l][index] = force[l];
 		    }
 		}
+	    }
+	    else if (status == YES && iFparams->use_eddy_visc &&
+		     (wave_type(hs) == NEUMANN_BOUNDARY ||
+		      wave_type(hs) == ELASTIC_BOUNDARY))
+	    {
+		int icoords[MAXD];
+		icoords[0] = i;
+		icoords[1] = j;
+		dist = distance_between_positions(center,point,dim);
+		mu[index] = computeFieldPointMuTurb(icoords,dist);
 	    }
 	    else
 	    {
@@ -2522,7 +2533,6 @@ void Incompress_Solver_Smooth_Basis::checkVelocityDiv(
 		index = d_index2d(i,j,top_gmax);
 		if (!ifluid_comp(top_comp[index]))
 		    continue;
-
 		div_tmp = computeFieldPointDiv(icoords,vel);
 		if (div_max < div_tmp) div_max = div_tmp;
                 if (div_min > div_tmp) div_min = div_tmp;
@@ -2855,70 +2865,62 @@ void Incompress_Solver_Smooth_Basis::computeDualFieldPointGrad(
 		    index_l = d_index(dual_icl,ctop_gmax,dim);
 		    dual_compu = ctop_comp[index_u];
 		    dual_compl = ctop_comp[index_l];
-		    if (dual_compu != comp && dual_compl != comp)
-		    {
-			if (ifluid_comp(dual_compu) && ifluid_comp(dual_compl))
-			{
-			    pu += field[index_u];
-			    pl += field[index_l];
-			    denom += 1.0;
-		    	}
-			else
-			    continue;
-		    }
+		    if (dual_compu == comp && dual_compl == comp &&
+                                !ifluid_comp(comp))
+                        continue;	/*Common all solid case*/
 		    else if (dual_compl != comp)
 		    {
 			status = (*findStateAtCGCrossing)(front,dual_icu,
 				dir[i][0],comp,&intfc_state,&hs,crx_coords);
-			if (status == NO_PDE_BOUNDARY)
-                    	{
-		    	    pu += field[index_u];
-		    	    pl += field[index_l];
-		    	    denom += 1.0;
-			}
-			else if (status == CONST_P_PDE_BOUNDARY)
-                    	{
-		    	    pu += field[index_u];
-			    pl += getStatePhi(intfc_state);
-		    	    denom += 1.0;
-			}
-			else if (status == CONST_V_PDE_BOUNDARY)
-                    	{
-			    denom += 1.0;
-			    continue;		// Do nothing
+			if (status == CONST_P_PDE_BOUNDARY)
+                        {
+                            pu += field[index_u];
+                            pl += getStatePhi(intfc_state);
+                            denom += 1.0;
+                        }
+			else	 /*CONST_V_PDE_BOUNDARY and NO_PDE_BOUNDARY*/ 
+			{
+			    if (dual_compl != dual_compu)
+                            {
+                                denom += 1.0;
+                                continue;
+                            }
+                            pu += field[index_u];
+                            pl += field[index_l];
+                            denom += 1.0;
+
 			}
 		    }
 		    else if (dual_compu != comp)
 		    {
 			status = (*findStateAtCGCrossing)(front,dual_icl,
 				dir[i][1],comp,&intfc_state,&hs,crx_coords);
-			if (status == NO_PDE_BOUNDARY)
-                    	{
-		    	    pu += field[index_u];
-		    	    pl += field[index_l];
-		    	    denom += 1.0;
-			}
-			else if (status == CONST_P_PDE_BOUNDARY)
-                    	{
-			    pu += getStatePhi(intfc_state);
-		    	    pl += field[index_l];
-		    	    denom += 1.0;
-			}
-			else if (status == CONST_V_PDE_BOUNDARY)
-                    	{
-			    denom += 1.0;
-			    continue;		// Do nothing
+			if (status == CONST_P_PDE_BOUNDARY)
+                        {
+                            pu += getStatePhi(intfc_state);
+                            pl += field[index_l];
+                            denom += 1.0;
+                        }
+			else	/*CONST_V_PDE_BOUNDARY and NO_PDE_BOUNDARY*/
+			{
+			    if (dual_compl != dual_compu)
+                            {
+                                denom += 1.0;
+                                continue;
+                            }
+                            pu += field[index_u];
+                            pl += field[index_l];
+                            denom += 1.0;
 			}
 		    }
-		    else
+		    else	/*Common all fluid case*/
 		    {
 		    	pu += field[index_u];
 		    	pl += field[index_l];
 		    	denom += 1.0;
 		    }
 	    	}
-		grad_field[i] = (denom == 0.0) ? 0.0 : 
-				(pu - pl)/top_h[i]/denom;
+		grad_field[i] = (denom == 0.0) ? 0.0:(pu - pl)/top_h[i]/denom;
 	    }
 	    break;
 	case 3:
@@ -2941,52 +2943,52 @@ void Incompress_Solver_Smooth_Basis::computeDualFieldPointGrad(
                     dual_compl = ctop_comp[index_l];
                     if (dual_compu == comp && dual_compl == comp &&
 				!ifluid_comp(comp))
-                        continue;
+                        continue;	/*Common all solid case*/
                     else if (dual_compl != comp)
                     {
                         status = (*findStateAtCGCrossing)(front,dual_icu,
                                 dir[i][0],comp,&intfc_state,&hs,crx_coords);
-                        if (status == NO_PDE_BOUNDARY)
-                        {
-                            pu += field[index_u];
-                            pl += field[index_l];  
-                            denom += 1.0;
-                        }
-                        else if (status == CONST_P_PDE_BOUNDARY)
+			if (status == CONST_P_PDE_BOUNDARY)
                         {
                             pu += field[index_u];
                             pl += getStatePhi(intfc_state);
                             denom += 1.0;
                         }
-                        else if (status == CONST_V_PDE_BOUNDARY)
-                        {
-			    denom += 1.0;
-                            continue;           // Do nothing
-                        }
+			else	/*CONST_V_PDE_BOUNDARY and NO_PDE_BOUNDARY*/
+			{
+			    if (dual_compl != dual_compu)
+                            {
+                                denom += 1.0;
+                                continue;
+                            }
+                            pu += field[index_u];
+                            pl += field[index_l];
+                            denom += 1.0;
+			}
 		    }
 		    else if (dual_compu != comp)
                     {
                         status = (*findStateAtCGCrossing)(front,dual_icl,
                                 dir[i][1],comp,&intfc_state,&hs,crx_coords);
-                        if (status == NO_PDE_BOUNDARY)
-                        {
-                            pu += field[index_u];
-                            pl += field[index_l];
-                            denom += 1.0;
-                        }
-                        else if (status == CONST_P_PDE_BOUNDARY)
+			if (status == CONST_P_PDE_BOUNDARY)
                         {
                             pu += getStatePhi(intfc_state);
                             pl += field[index_l];
                             denom += 1.0;
                         }
-                        else if (status == CONST_V_PDE_BOUNDARY)
-                        {
-			    denom += 1.0;
-                            continue;           // Do nothing
-                        }
+			else	/*CONST_V_PDE_BOUNDARY and NO_PDE_BOUNDARY*/
+			{
+			    if (dual_compl != dual_compu)
+                            {
+                                denom += 1.0;
+                                continue;
+                            }
+                            pu += field[index_u];
+                            pl += field[index_l];
+                            denom += 1.0;
+			}
                     }
-                    else
+                    else	/*Common all fluid case*/
                     {
                         pu += field[index_u];
                         pl += field[index_l];
@@ -3341,3 +3343,14 @@ void Incompress_Solver_Smooth_Basis::applicationSetStates(void)
 	FT_FreeGridIntfc(front);
 	FT_MakeGridIntfc(front);
 }	/* end applicationSetStates */
+
+double Incompress_Solver_Smooth_Basis::computeFieldPointMuTurb(
+        int *icoords,
+        double dist)
+{
+	double mu_t;
+	printf("Entering computeFieldPointMuTurb()\n");
+	clean_up(0);
+
+	return mu_t;
+}	/* end computeFieldPointMuTurb */

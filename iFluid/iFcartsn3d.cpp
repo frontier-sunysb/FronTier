@@ -33,7 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 static double (*getStateVel[3])(POINTER) = {getStateXvel,getStateYvel,
                                         getStateZvel};
-static int countvel = 0;
+
+
 void Incompress_Solver_Smooth_3D_Cartesian::computeAdvection(void)
 {
 	int i,j,k,l,index;
@@ -351,13 +352,12 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocityDual(void)
 	    FT_ParallelExchGridArrayBuffer(vel[l],front,symmetry);
 	}
 
-	checkVelocityDiv("Before extractFlowThroughVelocity()");
-	extractFlowThroughVelocity();
-
         if (debugging("check_div"))
-        {
+	    checkVelocityDiv("Before extractFlowThroughVelocity()");
+	extractFlowThroughVelocity();
+        if (debugging("check_div"))
             checkVelocityDiv("After extractFlowThroughVelocity()");
-        }
+
         pp_global_max(&max_speed,1);
         pp_global_min(vmin,dim);
         pp_global_max(vmax,dim);
@@ -404,6 +404,27 @@ void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
 	setComponent();
 	if (iFparams->num_scheme.ellip_method == DUAL_ELLIP)
 	    updateComponent();
+/*
+printf("test vel comp\n");
+for (int k = kmin; k <= kmax; ++k)
+for (int j = jmin; j <= jmax; ++j)
+for (int i = imin; i <= imax; ++i)
+{
+int index = d_index3d(i,j,k,top_gmax);
+if (!ifluid_comp(top_comp[index]))
+printf("%d %d %d\n",i,j,k);
+}
+printf("test pres comp\n");
+for (int k = ckmin; k <= ckmax; ++k)
+for (int j = cjmin; j <= cjmax; ++j)
+for (int i = cimin; i <= cimax; ++i)
+{
+int index = d_index3d(i,j,k,ctop_gmax);
+if (!ifluid_comp(ctop_comp[index]))
+printf("%d %d %d\n",i,j,k);
+}
+clean_up(0);
+*/
 	if (debugging("trace"))
 	    printf("Passed setComponent()\n");
 
@@ -2156,34 +2177,38 @@ void Incompress_Solver_Smooth_3D_Cartesian::updateComponent(void)
         int i,j,k,l,icoords[MAXD];
         int index;
 
-        for (k = ckmin; k <= ckmax; ++k)
-        for (j = cjmin; j <= cjmax; ++j)
-        for (i = cimin; i <= cimax; ++i)
+	/*update the component of pressure on dual grid*/
+        for (k = kmin; k <= kmax; ++k)
+        for (j = jmin; j <= jmax; ++j)
+        for (i = imin; i <= imax; ++i)
         {
             icoords[0] = i;
             icoords[1] = j;
             icoords[2] = k;
-            index = d_index(icoords,ctop_gmax,dim);
-            if (!ifluid_comp(ctop_comp[index]))
+            index = d_index(icoords,top_gmax,dim);
+            if (ifluid_comp(top_comp[index]))
             {
-                int cl[MAXD], ctmp[MAXD];
+                int cl[MAXD], cu[MAXD];
                 for (l = 0; l < dim; ++l)
-                    cl[l] = icoords[l] + offset[l] - 1;
+                    cl[l] = icoords[l] - offset[l];
                 for (int m = 0; m < 2; ++m)
                 for (int n = 0; n < 2; ++n)
                 for (int r = 0; r < 2; ++r)
                 {
-                    ctmp[0] = cl[0] + m;
-                    ctmp[1] = cl[1] + n;
-                    ctmp[2] = cl[2] + r;
-                    int indexl = d_index(ctmp,top_gmax,dim);
-                    if (ifluid_comp(top_comp[indexl]))
-                        top_comp[indexl] = SOLID_COMP;
+                    cu[0] = cl[0] + m;
+                    cu[1] = cl[1] + n;
+                    cu[2] = cl[2] + r;
+		    if (cu[0]<cimin || cu[0]>cimax || cu[1]<cjmin 
+			|| cu[1]>cjmax || cu[2]<ckmin || cu[2]>ckmax)
+			continue;
+                    int index_tmp = d_index(cu,ctop_gmax,dim);
+		    if (!ifluid_comp(ctop_comp[index_tmp]))
+		    	ctop_comp[index_tmp] = top_comp[index];
                 }
             }
         }
-        /*Set rho for boundary velocity*/
 
+        /*Set rho for boundary layer on computational grid*/
 	if (field->rho == NULL)
 	    return;
         for (k = kmin; k <= kmax; ++k)
@@ -2194,36 +2219,35 @@ void Incompress_Solver_Smooth_3D_Cartesian::updateComponent(void)
             icoords[1] = j;
             icoords[2] = k;
             index = d_index(icoords,top_gmax,dim);
-            if (!ifluid_comp(top_comp[index]))
+            if (!ifluid_comp(top_comp[index])&&!InsideSolid(icoords))
             {
-                int cl[MAXD], cu[MAXD];
-                boolean VelSet = NO;
-                for (l = 0; l < dim; ++l)
-                    cl[l] = icoords[l] - offset[l];
-                for (int m = 0; m < 2; ++m)
-                for (int n = 0; n < 2; ++n)
-                for (int r = 0; r < 2; ++r)
-                {
-                    cu[0] = cl[0] + m;
-                    cu[1] = cl[1] + n;
-                    cu[2] = cl[2] + r;
-                    int index_tmp = d_index(cu,ctop_gmax,dim);
-                    if (ifluid_comp(ctop_comp[index_tmp])&&!VelSet)
-                    {
-                        int ctmp[MAXD];
-                        if (cu[0] + offset[0] == icoords[0])
+                int cl[MAXD],cu[MAXD],indexl,indexu;
+		boolean VelSet = NO;
+		for (l = 0; l < dim && !VelSet; ++l)
+		{
+		    cl[l] = icoords[l]-1;
+		    cu[l] = icoords[l]+1;
+		    for (int n = -1; n < 2 && !VelSet; ++n)
+                    for (int r = -1; r < 2 && !VelSet; ++r)
+		    {
+			cl[(l+1)%dim] = cu[(l+1)%dim] = icoords[(l+1)%dim]+n;
+			cl[(l+2)%dim] = cu[(l+2)%dim] = icoords[(l+2)%dim]+r;
+			indexl = d_index(cl,top_gmax,dim);
+			if (ifluid_comp(top_comp[indexl]))
+			{
+			    field->rho[index] = field->rho[indexl];
+			    VelSet = YES;
+			    continue;
+			}
+			indexu = d_index(cu,top_gmax,dim);
+			if (ifluid_comp(top_comp[indexu]))
                         {
-                            for (l = 0; l < dim; ++l)
-                                ctmp[l] = cu[l] + offset[l] - 1;
-                        } else {
-                            for (l = 0; l < dim; ++l)
-                                ctmp[l] = cu[l] + offset[l];
+                            field->rho[index] = field->rho[indexu];
+                            VelSet = YES;
+                            continue;
                         }
-                        field->rho[index] =
-                                field->rho[d_index(ctmp,top_gmax,dim)];
-                        VelSet = YES;
-                    }
-                }
+		    }
+		}
             }
         }
 }	/* end updateComponent */

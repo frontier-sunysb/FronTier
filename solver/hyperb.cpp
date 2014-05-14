@@ -748,12 +748,14 @@ void HYPERB_SOLVER::addMeshFluxToVst(
 void HYPERB_SOLVER::copyFromMeshVst(SWEEP state)
 {
 	int i,j,k,l,index;
+	int c;
         switch (dim)
         {
         case 1:
             for (i = 0; i <= top_gmax[0]; ++i)
             {
                 index = d_index1d(i,top_gmax);
+		if (!soln_comp(top_comp[index])) continue;
 		for (l = 0; l < dim; ++l)
 		    soln[l][index] = state.vel[l][index];
             }
@@ -763,6 +765,7 @@ void HYPERB_SOLVER::copyFromMeshVst(SWEEP state)
             for (i = 0; i <= top_gmax[0]; ++i)
             {
                 index = d_index2d(i,j,top_gmax);
+		if (!soln_comp(top_comp[index])) continue;
 		for (l = 0; l < dim; ++l)
 		    soln[l][index] = state.vel[l][index];
             }
@@ -773,6 +776,7 @@ void HYPERB_SOLVER::copyFromMeshVst(SWEEP state)
             for (i = 0; i <= top_gmax[0]; ++i)
             {
                 index = d_index3d(i,j,k,top_gmax);
+		if (!soln_comp(top_comp[index])) continue;
 		for (l = 0; l < dim; ++l)
 		    soln[l][index] = state.vel[l][index];
             }
