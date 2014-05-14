@@ -30,6 +30,10 @@ static void makeSolnMovie(char*,double*,double**,int,int,double,double,char*);
 static void readMonteCarloParams(PARAMS*,char*);
 static void plotDistFunction(PARAMS,char*);
 static void goMonteCarlo(PARAMS,char*);
+#if defined(__GSL__)
+static void makeGIGdensityPlot(PARAMS*,char*,int,double*,double*,int,double);
+static void makeGHdensityPlot(PARAMS*,char*,int,double*,double*,int,double);
+#endif /* if defined(__GSL__) */
 
 double (*random_func)(POINTER,unsigned short int*);
 
@@ -95,6 +99,14 @@ static void plotDistFunction(
                 f[ii] += 1.0/dx/N;
         }
 	makeXgraphPlot(outname,M,x,f,0,0.0);
+
+#if defined(__GSL__)
+	if (params.rand_type == GIG)
+	    makeGIGdensityPlot(&params,outname,M,x,f,0,0.0);
+	else if (params.rand_type == GH)
+	    makeGHdensityPlot(&params,outname,M,x,f,0,0.0);
+#endif /* if defined(__GSL__) */
+
 	FT_FreeThese(2,x,f);
 
 }	/* end plotDistFunction */
@@ -113,6 +125,7 @@ static void makeXgraphPlot(
 
 	sprintf(xname,"%s/soln-%d.xg",out_name,l);
 	xfile = fopen(xname,"w");
+	fprintf(xfile,"color=%s\n","red");
 	fprintf(xfile,"\"time = %6.3f\"\n",time);
 	for (i = 0; i < N; ++i)
 	    	fprintf(xfile,"%f %f\n",x[i],u[i]);
@@ -242,6 +255,8 @@ static void readMonteCarloParams(
 	static POWER_PARAMS *power_params;
 	static UNIFORM_PARAMS *uniform_params;
 	static STABLE_PARAMS *stable_params;
+	static GIG_PARAMS *gig_params;
+	static GH_PARAMS *gh_params;
 	char string[100];
         FILE *infile = fopen(inname,"r");
 
@@ -252,29 +267,72 @@ static void readMonteCarloParams(
 	{
 	case 'g':
 	case 'G':
-	    FT_ScalarMemoryAlloc((POINTER*)&gauss_params,sizeof(GAUSS_PARAMS));
-	    switch (string[6])
+	    switch (string[1])
 	    {
-	    case 'n':
-	    case 'N':
-	    	params->rand_type = GAUSS_NEWTON;
+	    case 'a':
+	    case 'A':
+	    	FT_ScalarMemoryAlloc((POINTER*)&gauss_params,
+			sizeof(GAUSS_PARAMS));
+	    	switch (string[6])
+	    	{
+	    	case 'n':
+	    	case 'N':
+	    	    params->rand_type = GAUSS_NEWTON;
+		    break;
+	    	case 'b':
+	    	case 'B':
+	    	    params->rand_type = GAUSS_BM;
+		    break;
+	    	case 'c':
+	    	case 'C':
+	    	    params->rand_type = GAUSS_CL;
+		    break;
+	    	}
+	    	CursorAfterString(infile,"Enter mathematical expectation:");
+            	fscanf(infile,"%lf",&gauss_params->mu);
+            	(void) printf(" %f\n",gauss_params->mu);
+	    	CursorAfterString(infile,"Enter standard deviation:");
+            	fscanf(infile,"%lf",&gauss_params->sigma);
+            	(void) printf(" %f\n",gauss_params->sigma);
+	    	params->pdf_params = (POINTER)gauss_params;
 		break;
-	    case 'b':
-	    case 'B':
-	    	params->rand_type = GAUSS_BM;
+	    case 'i':
+	    case 'I':
+		FT_ScalarMemoryAlloc((POINTER*)&gig_params,sizeof(GIG_PARAMS));
+		params->rand_type = GIG;
+		CursorAfterString(infile,"Enter parameter lambda:");
+                fscanf(infile,"%lf",&gig_params->lambda);
+                (void) printf(" %f\n",gig_params->lambda);
+                CursorAfterString(infile,"Enter parameter psi:");
+                fscanf(infile,"%lf",&gig_params->psi);
+                (void) printf(" %f\n",gig_params->psi);
+		CursorAfterString(infile,"Enter parameter chi:");
+                fscanf(infile,"%lf",&gig_params->chi);
+                (void) printf(" %f\n",gig_params->chi);
+                params->pdf_params = (POINTER)gig_params;
 		break;
-	    case 'c':
-	    case 'C':
-	    	params->rand_type = GAUSS_CL;
-		break;
+	    case 'h':
+            case 'H':
+                FT_ScalarMemoryAlloc((POINTER*)&gh_params,sizeof(GH_PARAMS));
+		params->rand_type = GH;
+                CursorAfterString(infile,"Enter parameter lambda:");
+                fscanf(infile,"%lf",&gh_params->lambda);
+                (void) printf(" %f\n",gh_params->lambda);
+                CursorAfterString(infile,"Enter parameter alpha:");
+                fscanf(infile,"%lf",&gh_params->alpha);
+                (void) printf(" %f\n",gh_params->alpha);
+                CursorAfterString(infile,"Enter parameter beta:");
+                fscanf(infile,"%lf",&gh_params->beta);
+                (void) printf(" %f\n",gh_params->beta);
+		CursorAfterString(infile,"Enter parameter mu:");
+                fscanf(infile,"%lf",&gh_params->mu);
+                (void) printf(" %f\n",gh_params->mu);
+		CursorAfterString(infile,"Enter parameter delta:");
+                fscanf(infile,"%lf",&gh_params->delta);
+                (void) printf(" %f\n",gh_params->delta);
+                params->pdf_params = (POINTER)gh_params;
+                break;
 	    }
-	    CursorAfterString(infile,"Enter mathematical expectation:");
-            fscanf(infile,"%lf",&gauss_params->mu);
-            (void) printf(" %f\n",gauss_params->mu);
-	    CursorAfterString(infile,"Enter standard deviation:");
-            fscanf(infile,"%lf",&gauss_params->sigma);
-            (void) printf(" %f\n",gauss_params->sigma);
-	    params->pdf_params = (POINTER)gauss_params;
 	    break;
 	case 'e':
 	case 'E':
@@ -375,6 +433,12 @@ static void readMonteCarloParams(
 	    break;
 	case STABLE:
 	    random_func = dist_stable;
+	    break;
+	case GIG:
+	    random_func = dist_gig;
+	    break;
+	case GH:
+	    random_func = dist_gh;
 	    break;
 	default:
 	    (void) printf("Unknown random variable\n");
@@ -718,3 +782,74 @@ static void goMonteCarlo(
 	FT_FreeThese(2,S_ave,S_bank);
 }	/* end goMonteCarlo */
 
+#if defined(__GSL__)
+static void makeGIGdensityPlot(
+	PARAMS *params,
+	char *out_name,
+	int N,
+	double *x,
+	double *u,
+	int l,
+	double time)
+{
+	char xname[256];
+	FILE *xfile;
+	int i;
+
+	GIG_PARAMS *gig_params = (GIG_PARAMS*)params->pdf_params;	
+	double lambda = gig_params->lambda;
+	double psi = gig_params->psi;
+	double chi = gig_params->chi;
+	double coeff = 0.5*pow(psi/chi,lambda/2.0)
+			/gsl_sf_bessel_Knu(fabs(lambda),sqrt(chi*psi));
+
+	sprintf(xname,"%s/exact-%d.xg",out_name,l);
+	xfile = fopen(xname,"w");
+	fprintf(xfile,"color=%s\n","blue");
+	fprintf(xfile,"\"time = %6.3f\"\n",time);
+	for (i = 0; i < N; ++i)
+	{
+	    u[i] = coeff*pow(x[i],lambda-1.0)*exp(-0.5*(chi/x[i]+psi*x[i]));
+	    fprintf(xfile,"%f %f\n",x[i],u[i]);
+	}
+	fclose(xfile);
+}	/* end makeGIGdensityPlot */
+
+static void makeGHdensityPlot(
+	PARAMS *params,
+	char *out_name,
+	int N,
+	double *x,
+	double *u,
+	int l,
+	double time)
+{
+	char xname[256];
+	FILE *xfile;
+	int i;
+
+	GH_PARAMS *gh_params = (GH_PARAMS*)params->pdf_params;	
+	double lambda = gh_params->lambda;
+	double alpha = gh_params->alpha;
+	double beta = gh_params->beta;
+	double delta = gh_params->delta;
+	double mu = gh_params->mu;
+	double gamma = sqrt(alpha*alpha-beta*beta);
+	double coeff = pow(gamma/delta,lambda)/sqrt(2*PI)
+			/gsl_sf_bessel_Knu(fabs(lambda),gamma*delta);
+
+	sprintf(xname,"%s/exact-%d.xg",out_name,l);
+	xfile = fopen(xname,"w");
+	fprintf(xfile,"color=%s\n","blue");
+	fprintf(xfile,"\"time = %6.3f\"\n",time);
+	for (i = 0; i < N; ++i)
+	{
+	    double temp = sqrt(delta*delta+(x[i]-mu)*(x[i]-mu));
+	    u[i] = coeff*exp(beta*(x[i]-mu))
+		/pow(temp/alpha,0.5-lambda)
+		*gsl_sf_bessel_Knu(fabs(lambda-0.5),alpha*temp);
+	    fprintf(xfile,"%f %f\n",x[i],u[i]);
+	}
+	fclose(xfile);
+}	/* end makeGIGdensityPlot */
+#endif /* if defined(__GSL__) */

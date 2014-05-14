@@ -554,6 +554,22 @@ struct _STABLE_PARAMS {
 };
 typedef struct _STABLE_PARAMS STABLE_PARAMS;
 
+struct _GIG_PARAMS {
+        double lambda;
+        double psi;
+        double chi;
+};
+typedef struct _GIG_PARAMS GIG_PARAMS;
+
+struct _GH_PARAMS {
+        double lambda;
+        double alpha;
+        double beta;
+        double mu;
+        double delta;
+};
+typedef struct _GH_PARAMS GH_PARAMS;
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif

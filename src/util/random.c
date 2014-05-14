@@ -222,3 +222,156 @@ EXPORT  double dist_stable(
 	return y;
 }	/* end dist_stable */
 
+EXPORT  double dist_gig(
+        POINTER params,
+        unsigned short int xsubi[3])
+{
+	GIG_PARAMS *gig_params = (GIG_PARAMS*)params;
+	static UNIFORM_PARAMS *U,*V;
+	double lambda = gig_params->lambda;
+	double psi = gig_params->psi;
+	double chi = gig_params->chi;
+	double beta = sqrt(psi*chi);
+	double m,a,b,c,p,q,phi,xminus,xplus,vplus,uminus,uplus,u,v,x;
+	double x0,x1,k1,k2,k3,A1,A2,A3,A,h;
+
+	if (lambda < 0.0)
+	{
+	    static GIG_PARAMS *new_gig_params;
+	    if (new_gig_params == NULL)
+		FT_ScalarMemoryAlloc((POINTER*)&new_gig_params,
+			sizeof(GIG_PARAMS));
+	    new_gig_params->lambda = -lambda;
+	    new_gig_params->psi = chi;
+	    new_gig_params->chi = psi;
+	    double gig = dist_gig((POINTER)new_gig_params,xsubi);
+	    return 1.0/gig;
+	}
+
+	if (U == NULL)
+        {
+            FT_ScalarMemoryAlloc((POINTER*)&U,sizeof(UNIFORM_PARAMS));
+            FT_ScalarMemoryAlloc((POINTER*)&V,sizeof(UNIFORM_PARAMS));
+        }
+
+	if (lambda > 1.0 || beta > 1.0)
+	{
+	    m = (sqrt((lambda-1.0)*(lambda-1.0)+beta*beta)+lambda-1.0)/beta;
+	    a = -2.0*(lambda+1.0)/beta-m;
+	    b = 2.0*(lambda-1.0)*m/beta-1.0;
+	    c = m;
+	    p = b-a*a/3.0;
+	    q = 2.0*a*a*a/27.0-a*b/3.0+c;
+	    phi = acos(0.5*q*sqrt(-27.0/p)/p);
+	    xminus = sqrt(-4.0*p/3.0)*cos(phi/3.0+4.0*PI/3.0)-a/3.0;
+	    xplus = sqrt(-4.0*p/3.0)*cos(phi/3.0)-a/3.0;
+	    vplus = pow(m,(lambda-1.0)/2.0)*exp(-beta/4.0*(m+1.0/m));
+	    uminus = (xminus-m)*pow(xminus,(lambda-1.0)/2.0)
+		*exp(-beta/4.0*(xminus+1.0/xminus));
+	    uplus = (xplus-m)*pow(xplus,(lambda-1.0)/2.0)
+                *exp(-beta/4.0*(xplus+1.0/xplus));
+	    U->a = uminus;	U->b = uplus;
+	    V->a = 0.0;		V->b = vplus;
+	    do
+	    {
+	    	u = dist_uniform((POINTER)U,xsubi);
+	    	v = dist_uniform((POINTER)V,xsubi);
+		x = u/v+m;
+	    } while (x<0 || v*v>pow(x,lambda-1.0)*exp(-beta/2.0*(x+1.0/x)));
+	}
+	else if (beta >= min(1.0/2.0,2.0*sqrt(1.0-lambda)/3.0))
+	{
+	    m = beta/(sqrt((1.0-lambda)*(1.0-lambda)+beta*beta)+1.0-lambda);
+	    xplus = (sqrt((lambda+1.0)*(lambda+1.0)+beta*beta)+lambda+1.0)/beta;
+	    vplus = pow(m,(lambda-1.0)/2.0)*exp(-beta/4.0*(m+1.0/m));
+	    uplus = xplus*pow(xplus,(lambda-1.0)/2.0)
+		*exp(-beta/4.0*(xplus+1.0/xplus));
+	    U->a = 0.0;      U->b = uplus;
+            V->a = 0.0;         V->b = vplus;
+	    do
+	    {
+		u = dist_uniform((POINTER)U,xsubi);
+                v = dist_uniform((POINTER)V,xsubi);
+                x = u/v;
+	    } while (v*v>pow(x,lambda-1)*exp(-beta/2.0*(x+1.0/x)));
+	}
+	else
+	{
+	    m = beta/(sqrt((lambda-1.0)*(lambda-1.0)+beta*beta)-lambda+1.0);
+	    x0 = beta/(1.0-lambda);
+	    x1 = max(x0,2.0/beta);
+	    k1 = pow(m,lambda-1.0)*exp(-beta/2.0*(m+1.0/m));
+	    A1 = k1*x0;
+	    if (x0 < 2.0/beta)
+	    {
+		k2 = exp(-beta);
+		A2 = (lambda == 0.0) ? k2*log(2.0/beta*beta):
+			k2*(pow(2.0/beta,lambda)-pow(x0,lambda))/lambda;
+	    }
+	    else	
+	    {
+		k2 = 0.0;
+		A2 = 0.0;
+	    }
+	    k3 = pow(x1,lambda-1.0);
+	    A3 = 2.0*k3*exp(-x1*beta/2.0)/beta;
+	    A = A1 + A2 + A3;
+	    U->a = 0.0;		U->b = 1.0;
+            V->a = 0.0;		V->b = A;
+	    do
+	    {
+		u = dist_uniform((POINTER)U,xsubi);
+                v = dist_uniform((POINTER)V,xsubi);
+		if (v <= A1)
+		{
+		    x = x0*v/A1;
+		    h = k1;
+		}
+		else if (v <= A1+A2)
+		{
+		    v = v-A1;
+		    x = (lambda == 0) ? beta*exp(v*exp(beta)):
+			pow(pow(x0,lambda)+v*lambda/k2,1.0/lambda);
+		    h = k2*pow(x,lambda-1.0);
+		}
+		else
+		{
+		    v = v-A1-A2;
+		    x = -2.0/beta*log(exp(-x1*beta/2.0)-0.5*v*beta/k3);
+		    h = k3*exp(-x*beta*0.5);
+		}
+	    } while (u*h>pow(x,lambda-1)*exp(-beta/2.0*(x+1.0/x)));
+	}
+	return sqrt(chi/psi)*x;
+}
+
+EXPORT  double dist_gh(
+        POINTER params,
+        unsigned short int xsubi[3])
+{
+	GH_PARAMS *gh_params = (GH_PARAMS*)params;
+	double lambda = gh_params->lambda;
+	double alpha = gh_params->alpha;
+	double beta = gh_params->beta;
+	double delta = gh_params->delta;
+	double mu = gh_params->mu;
+
+	static GIG_PARAMS *gig_params;
+	static GAUSS_PARAMS *U;
+	double gig, u;
+
+	if (U==NULL)
+	{
+	    FT_ScalarMemoryAlloc((POINTER*)&gig_params,sizeof(GIG_PARAMS));
+            FT_ScalarMemoryAlloc((POINTER*)&U,sizeof(GAUSS_PARAMS));
+	}
+	gig_params->lambda = lambda;
+	gig_params->psi = alpha*alpha-beta*beta;
+	gig_params->chi = delta*delta;
+	U->sigma = 1.0;
+	U->mu = 0.0;
+	gig = dist_gig((POINTER)gig_params,xsubi);
+	u = gauss_box_muller((POINTER)U,xsubi);
+
+	return mu + beta*gig + sqrt(gig)*u;
+}

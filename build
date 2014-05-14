@@ -43,6 +43,8 @@ function parse_arguments {
             WITHHDF=0
         elif [[ "$arg" == "--without-gd" ]]; then
             WITHGD=0
+        elif [[ "$arg" == "--with-gsl" ]]; then
+            WITHGSL=1
 	else
 	    CONF="$CONF ${arg}"
         fi
@@ -66,6 +68,9 @@ function config_ycshu {
     fi
     if [[ -n "$WITHGD" ]]; then
         CONF="$CONF --with-gd=/usr/local"
+    fi
+    if [[ -n "$WITHGSL" ]]; then
+        CONF="$CONF --with-gsl=/usr/local"
     fi
 
     export CONF="--with-mpich=/usr/local/mpich --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/usr/local"
@@ -157,6 +162,9 @@ function config_blade {
     if [[ -n "$WITHGD" ]]; then
         CONF="$CONF --with-gd=/home/netusers/visitor/xiaolin/newpkg/gd"
     fi
+    if [[ -n "$WITHGSL" ]]; then
+        CONF="$CONF --with-gsl=/home/netusers/visitor/xiaolin/newpkg/gd"
+    fi
 
     export CONF="--with-mpich=/home/netusers/visitor/xiaolin/newpkg/mpich --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/home/netusers/visitor/xiaolin/newpkg/gd"
     PMAKE="-j2"
@@ -181,6 +189,9 @@ function config_vogon {
     fi
     if [[ -n "$WITHGD" ]]; then
         CONF="$CONF --with-gd=/usr"
+    fi
+    if [[ -n "$WITHGSL" ]]; then
+        CONF="$CONF --with-gsl=/usr"
     fi
 
     export CONF="--with-openmpi=/usr/local/pkg/openmpi --with-petsc=${PETSC_DIR} -with-devel ${CONF}"
@@ -249,6 +260,10 @@ function config_omega {
 
     if [[ -n "$WITHHDF" ]]; then
         CONF="$CONF --with-hdf=/usr/local/pkg/hdf"
+    fi
+
+    if [[ -n "$WITHGSL" ]]; then
+        CONF="$CONF --with-gsl=/usr"
     fi
 
     export CONF="--with-mpich=/usr/local/pkg/mpich2 --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/usr"
@@ -323,6 +338,9 @@ function config_delta {
     if [[ -n "$WITHGD" ]]; then
         CONF="$CONF --with-gd=/usr"
     fi
+    if [[ -n "$WITHGSL" ]]; then
+        CONF="$CONF --with-gsl=/usr"
+    fi
 
     export CONF="--with-mpich=/usr/local/pkg/mpich --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/usr"
     PMAKE="-j2"
@@ -347,6 +365,9 @@ function config_ubuntu {
     fi
     if [[ -n "$WITHGD" ]]; then
         CONF="$CONF --with-gd=/usr"
+    fi
+    if [[ -n "$WITHGSL" ]]; then
+        CONF="$CONF --with-gsl=/usr"
     fi
 
     export CONF="--with-mpi --with-petsc=${PETSC_DIR} -with-devel ${CONF}"
@@ -374,6 +395,9 @@ function config_gentooORNL {
     if [[ -n "$WITHGD" ]]; then
         CONF="$CONF --with-gd=/usr"
     fi
+    if [[ -n "$WITHGSL" ]]; then
+        CONF="$CONF --with-gsl=/usr"
+    fi
 
     export CONF="--with-openmpi=/usr/local/ompi --with-petsc=${PETSC_DIR} --with-devel ${CONF}"
     PMAKE="-j2"
@@ -399,6 +423,9 @@ function config_fission {
     fi
     if [[ -n "$WITHGD" ]]; then
         CONF="$CONF --with-gd=/usr"
+    fi
+    if [[ -n "$WITHGSL" ]]; then
+        CONF="$CONF --with-gsl=/usr"
     fi
 
     export CONF="--with-openmpi=/apps/local/openmpi/1.4.3/gcc-4.1.2/opt --with-petsc=${PETSC_DIR} --with-devel ${CONF}"
@@ -562,6 +589,9 @@ function config_icestorm {
     fi
     if [[ -n "$WITHGD" ]]; then
         CONF="$CONF --with-gd=/usr"
+    fi
+    if [[ -n "$WITHGSL" ]]; then
+        CONF="$CONF --with-gsl=/usr"
     fi
 
     export CONF="--with-openmpi=/usr/local/openmpi/openmpi-1.4.3/gcc-opt --with-petsc=${PETSC_DIR} --with-devel ${CONF}"

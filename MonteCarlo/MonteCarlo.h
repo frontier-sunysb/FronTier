@@ -1,6 +1,11 @@
+#ifndef _MONTECARLO_
+#define _MONTECARLO_
 
 #include <FronTier.h>
 #include <ctime>
+#if defined(__GSL__)
+#include <gsl/gsl_sf_bessel.h>
+#endif /* if defined(__GSL__) */
 
 enum _RANDOM_TYPE {
         ERROR_TYPE = -1,
@@ -12,7 +17,9 @@ enum _RANDOM_TYPE {
 	MIDDLE,
         CAUCHY,
         STABLE,
-	UNIFORM
+	UNIFORM,
+	GIG,
+	GH
 };
 typedef enum _RANDOM_TYPE RANDOM_TYPE;
 
@@ -49,3 +56,4 @@ struct _PARAMS {
 };
 typedef struct _PARAMS PARAMS;
 
+#endif
