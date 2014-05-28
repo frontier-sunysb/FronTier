@@ -1578,7 +1578,7 @@ EXPORT int i_delete_interface(
 	struct Table	*T;
 
 	if (DEBUG) (void) printf("Entered i_delete_interface(%llu)\n",
-	    		         (long long unsigned int)interface_number(intfc));
+	    	         (long long unsigned int)interface_number(intfc));
 	if (intfc==NULL)
 	{
 	    return 0;
@@ -1640,6 +1640,32 @@ EXPORT int i_delete_interface(
 	    free(T->surfaces);
 	if (T->surfacestore)
 	    free(T->surfacestore);
+	if (T->surf_blocks)
+	{
+	    int i;
+	    for (i = 0; i < T->num_surf_blocks; ++i)
+	    {
+		if (T->surf_blocks[i].num_on_blocks != 0)
+		{
+		    free(T->surf_blocks[i].blocks);
+		    T->surf_blocks[i].num_on_blocks = 0;
+		}
+	    }
+	    free(T->surf_blocks);
+	}
+	if (T->curve_blocks)
+	{
+	    int i;
+	    for (i = 0; i < T->num_curve_blocks; ++i)
+	    {
+		if (T->curve_blocks[i].num_on_blocks != 0)
+		{
+		    free(T->curve_blocks[i].blocks);
+		    T->curve_blocks[i].num_on_blocks = 0;
+		}
+	    }
+	    free(T->curve_blocks);
+	}
 
 	        /* Unlink and Free the Table: */
 	if (T->prev != NULL)

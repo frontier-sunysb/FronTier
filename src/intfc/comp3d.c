@@ -80,7 +80,8 @@ LOCAL	void	blocks_on_tri(TRI*,int***,COMPONENT***,RECT_GRID*,INTERFACE*);
 LOCAL	void	fill_tri_and_surface_lists(int***,TRI*****,SURFACE*****,
 	        			   INTERFACE*);
 LOCAL	void	nearest_on_front_grid_block(int*,int*,INTERFACE*);
-LOCAL  	boolean    nearest_local_on_front_grid_block(int*,int*,int,INTERFACE*);
+LOCAL  	boolean    nearest_local_on_front_grid_block(int*,int*,int,
+				USE_BOUNDARIES,INTERFACE*);
 LOCAL	void	set_off_front_comp3d(INTERFACE*);
 LOCAL	void	set_x_face_comps(int,INTERFACE*);
 LOCAL	void	set_y_face_comps(int,INTERFACE*);
@@ -489,10 +490,11 @@ LOCAL	void	nearest_on_front_grid_block(
 	icrds[2] = iz_closest;
 }		/*end nearest_on_front_grid_block*/
 
-LIB_LOCAL boolean	nearest_local_on_front_grid_block(
+LOCAL boolean	nearest_local_on_front_grid_block(
 	int		*icoords,
 	int		*icrds,		/*output */
 	int		width,
+	USE_BOUNDARIES	bdry,
 	INTERFACE	*intfc)
 {
 	RECT_GRID	*gr = &topological_grid(intfc);
@@ -501,57 +503,59 @@ LIB_LOCAL boolean	nearest_local_on_front_grid_block(
 	int		zmax = gr->gmax[2];
 	int		ixmin, ixmax, iymin, iymax, izmin, izmax;
 	int		ix = icoords[0], iy = icoords[1], iz = icoords[2];
-	int		i, j, k;
+	int		i, j, k, l;
 	int             ix_closest, iy_closest, iz_closest;
 	int		ir, irmin;
 	struct Table	*T = intfc->table;
+	BLOCK		*surf_blocks = T->surf_blocks;
+	int		nb = T->num_surf_blocks;
+	int		*bmin,*bmax,i_diff[MAXD];
+	int 		num_on_blocks;
+	boolean		block_too_far;
 
 	irmin = sqr(xmax) + sqr(ymax) + sqr(zmax);
-	
 	ix_closest = -1;
 	iy_closest = -1;
 	iz_closest = -1;
-
-	ixmin = max(icoords[0]-width, 0);
-	ixmax = min(icoords[0]+width+1, xmax);
-	
-	iymin = max(icoords[1]-width, 0);
-	iymax = min(icoords[1]+width+1, ymax);
-	
-	izmin = max(icoords[2]-width, 0);
-	izmax = min(icoords[2]+width+1, zmax);
-
-	for (i = ixmin; i < ixmax; ++i)
+	for (l = 0; l < nb; ++l)
 	{
-	    for (j = iymin; j < iymax; ++j)
+	    if (bdry == NO_BOUNDARIES && surf_blocks[l].is_bdry)
+		continue;
+	    bmin = surf_blocks[l].bmin;
+	    bmax = surf_blocks[l].bmax;
+	    block_too_far = NO;
+	    for (i = 0; i < 3; ++i)
 	    {
-	    	for (k = izmin; k < izmax; ++k)
+		if (bmin[i] - icoords[0] > width ||
+		    icoords[i] - bmax[i] > width)
+		    block_too_far = YES;
+	    }
+	    if (block_too_far)
+		continue;
+	    num_on_blocks = surf_blocks[l].num_on_blocks;
+	    for (i = 0; i < num_on_blocks; ++i)
+	    {
+		int ix_block = surf_blocks[l].blocks[i][0];
+		int iy_block = surf_blocks[l].blocks[i][1];
+		int iz_block = surf_blocks[l].blocks[i][2];
+	    	ir = sqr(ix_block-ix)+sqr(iy_block-iy)+sqr(iz_block-iz);
+	    	if (ir < irmin)
 	    	{
-	            if ((T->compon3d[k][j][i] != ONFRONT) ||
-	                (T->num_of_tris[k][j][i] == 0))
-	    	    	continue;
-
-	    	    ir = sqr(i-ix)+sqr(j-iy)+sqr(k-iz);
-	    	    if (ir < irmin)
-	    	    {
-	    	    	irmin = ir;
-	    	    	ix_closest = i;
-	    	    	iy_closest = j;
-	    	    	iz_closest = k;
-	    	    }
+	    	    irmin = ir;
+	    	    ix_closest = ix_block;
+	    	    iy_closest = iy_block;
+	    	    iz_closest = iz_block;
 	    	}
 	    }
 	}
 
-	if(ix_closest == -1)
-		return NO;
 
 	icrds[0] = ix_closest;
 	icrds[1] = iy_closest;
 	icrds[2] = iz_closest;
-	
+	if(ix_closest == -1)
+		return NO;
 	return YES;
-
 }		/*end nearest_on_front_grid_block*/
 
 
@@ -753,7 +757,8 @@ LIB_LOCAL boolean nearest_interface_point3d(
 	    (rect_in_which(coords,icoords,&T->rect_grid) == FUNCTION_FAILED) ||
 	    (T->compon3d[icoords[2]][icoords[1]][icoords[0]] != ONFRONT))
 	{
-		if(!nearest_local_on_front_grid_block(icoords,icoords,10,intfc))
+		if(!nearest_local_on_front_grid_block(icoords,icoords,10,
+					bdry,intfc))
 		{
 		    if (debugging("interpolate"))
 			print_rectangular_grid(&T->rect_grid);
@@ -1050,7 +1055,8 @@ LIB_LOCAL boolean nearest_interface_point_within_range3d(
 	    (rect_in_which(coords,icoords,&T->rect_grid) == FUNCTION_FAILED) ||
 	    (T->compon3d[icoords[2]][icoords[1]][icoords[0]] != ONFRONT))
 	{
-	    if(!nearest_local_on_front_grid_block(icoords,icoords,range,intfc))
+	    if(!nearest_local_on_front_grid_block(icoords,icoords,range,bdry,
+				intfc))
 	        return NO;
         }
 
@@ -2289,7 +2295,7 @@ LIB_LOCAL boolean make_tri_lists(
 	TRI	     *t;
 	boolean	     status;
 	double	     *h, hmintol;
-	int	     i, size;
+	int	     i, j, size;
 	int	     ix, iy, iz, max_size, out_cnt, dim;
 	register int xmax, ymax, zmax;
 	struct Table *T;
@@ -2345,6 +2351,19 @@ LIB_LOCAL boolean make_tri_lists(
 	    free(T->surfaces);
 	    T->surfaces = NULL;
 	}
+	if (T->surf_blocks != NULL)
+	{
+	    for (i = 0; i < T->num_surf_blocks; ++i)
+	    {
+		if (T->surf_blocks[i].num_on_blocks != 0)
+                {
+                    free(T->surf_blocks[i].blocks);
+                    T->surf_blocks[i].num_on_blocks = 0;
+                }
+	    }
+	    free(T->surf_blocks);
+	    T->surf_blocks = NULL;
+	}
 
 	/* Create a Grid if Needed: */
 
@@ -2380,6 +2399,29 @@ LIB_LOCAL boolean make_tri_lists(
 	    stop_clock("make_tri_lists");
 	    DEBUG_LEAVE(make_tri_lists)
 	    return NO;
+	}
+
+	size = 0;
+	for (s = intfc->surfaces; s && *s; ++s)
+	{
+	    size++;
+	}
+	T->num_surf_blocks = size;
+	uni_array(&T->surf_blocks,size,sizeof(BLOCK));
+	if (T->surf_blocks == NULL)
+	{
+	    stop_clock("make_tri_lists");
+	    DEBUG_LEAVE(make_tri_lists)
+	    return NO;
+	}
+	else
+	{
+	    for (i = 0; i < size; ++i)
+	    for (j = 0; j < 3; ++j)
+	    {
+		T->surf_blocks[i].bmin[j] = top_grid->gmax[j];	
+		T->surf_blocks[i].bmax[j] = 0;	
+	    }
 	}
 
 	/* Initialize all blocks to NO_COMP */
@@ -2745,27 +2787,77 @@ LOCAL void fill_tri_and_surface_lists(
 	SURFACE		*****surfaces,
 	INTERFACE	*intfc)
 {
-	int		ix, iy, iz;
+	int		i,ix,iy,iz;
 	TRI		*t;
 	SURFACE		**s;
+	int		isurf;
+	struct	Table	*T = table_of_interface(intfc);
+	BLOCK	*surf_blocks = T->surf_blocks;
 
 	DEBUG_ENTER(fill_tri_and_surface_lists)
 	tri_blocks = Tri_blocks;
 
+	isurf = 0;
 	for (s = intfc->surfaces; s && *s; ++s)
-	    for (t = first_tri(*s); !at_end_of_tri_list(t,*s); t = t->next)
 	{
-	    while(!end_tri(*tri_blocks))
+	    surf_blocks[isurf].surf = *s;
+	    if (Boundary(*s)) 
+		surf_blocks[isurf].is_bdry = YES;
+	    for (t = first_tri(*s); !at_end_of_tri_list(t,*s); t = t->next)
 	    {
-	    	int num_tris;
-	    	ix = *(tri_blocks++);
-	    	iy = *(tri_blocks++);
-	    	iz = *(tri_blocks++);
-	    	num_tris = num_of_tris[iz][iy][ix]++;
-	    	tris[iz][iy][ix][num_tris] = t;
-	    	surfaces[iz][iy][ix][num_tris] = *s;
+	    	while(!end_tri(*tri_blocks))
+	    	{
+	    	    int num_tris;
+	    	    ix = *(tri_blocks++);
+	    	    iy = *(tri_blocks++);
+	    	    iz = *(tri_blocks++);
+	    	    num_tris = num_of_tris[iz][iy][ix]++;
+	    	    tris[iz][iy][ix][num_tris] = t;
+	    	    surfaces[iz][iy][ix][num_tris] = *s;
+		    if (surf_blocks[isurf].bmin[0] > ix)
+			surf_blocks[isurf].bmin[0] = ix;
+		    if (surf_blocks[isurf].bmax[0] < ix)
+			surf_blocks[isurf].bmax[0] = ix;
+		    if (surf_blocks[isurf].bmin[1] > iy)
+			surf_blocks[isurf].bmin[1] = iy;
+		    if (surf_blocks[isurf].bmax[1] < iy)
+			surf_blocks[isurf].bmax[1] = iy;
+		    if (surf_blocks[isurf].bmin[2] > iz)
+			surf_blocks[isurf].bmin[2] = iz;
+		    if (surf_blocks[isurf].bmax[2] < iz)
+			surf_blocks[isurf].bmax[2] = iz;
+	    	}
+	    	++tri_blocks;	/* Skip END_TRI */
 	    }
-	    ++tri_blocks;	/* Skip END_TRI */
+	    ++isurf;
+	}
+	for (i = 0; i < isurf; ++i)
+	{
+	    int *bmin = surf_blocks[i].bmin;
+	    int *bmax = surf_blocks[i].bmax;
+	    int num_on_blocks = 0;
+	    for (ix = bmin[0]; ix <= bmax[0]; ++ix)
+	    for (iy = bmin[1]; iy <= bmax[1]; ++iy)
+	    for (iz = bmin[2]; iz <= bmax[2]; ++iz)
+	    {
+		if (num_of_tris[iz][iy][ix] != 0)
+		    num_on_blocks++;
+	    }
+	    surf_blocks[i].num_on_blocks = num_on_blocks;
+	    bi_array(&surf_blocks[i].blocks,num_on_blocks,MAXD,INT);
+	    num_on_blocks = 0;
+	    for (ix = bmin[0]; ix <= bmax[0]; ++ix)
+	    for (iy = bmin[1]; iy <= bmax[1]; ++iy)
+	    for (iz = bmin[2]; iz <= bmax[2]; ++iz)
+	    {
+		if (num_of_tris[iz][iy][ix] != 0)
+		{
+		    surf_blocks[i].blocks[num_on_blocks][0] = ix;
+		    surf_blocks[i].blocks[num_on_blocks][1] = iy;
+		    surf_blocks[i].blocks[num_on_blocks][2] = iz;
+		    num_on_blocks++;
+		}
+	    }
 	}
 	
 	DEBUG_LEAVE(fill_tri_and_surface_lists)

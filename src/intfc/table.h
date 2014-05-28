@@ -123,6 +123,8 @@ struct Table {
 	int		**num_of_bonds;	/* Number BONDS in each Grid Block */
 	BOND		****bonds;	/* BOND lists in each Grid Block */
 	CURVE		****curves;	/* CURVE lists in each Grid Block */
+	BLOCK		*curve_blocks;	/* bounding boxes for each curve */
+	int		num_curve_blocks;
 
 			/* Quantities used by loc_comp_list: */
 	
@@ -136,6 +138,8 @@ struct Table {
 	SURFACE		*****surfaces;	/* SURFACE lists in each Grid Block */
 	double		***area;	/* Surface area in each Grid Block */
 	double		***vol_frac;	/* Volume frac in each Grid Block */
+	BLOCK		*surf_blocks;	/* bounding boxes for each surface */
+	int		num_surf_blocks;
 
 			/* Quantities used by loc_comp_list: */
 	

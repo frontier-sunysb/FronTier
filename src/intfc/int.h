@@ -510,6 +510,17 @@ struct _P_LINK {
 };
 typedef struct _P_LINK P_LINK;
 
+struct _BLOCK {		/* bounding box to hash hypersurfaces */
+	CURVE	*curve;
+	SURFACE *surf;
+	boolean is_bdry;
+	int	bmin[MAXD];
+	int	bmax[MAXD];
+	int	num_on_blocks;
+	int	**blocks;
+};
+typedef struct _BLOCK BLOCK;
+
 /*
 *		Block based interface reconstruction structure:
 */
