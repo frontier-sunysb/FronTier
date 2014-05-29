@@ -604,6 +604,7 @@ extern "C" {
     \param front @b in	Pointer to Front.
     \param comp @b in	Component index of the space coordinates.
     \param coords @b in	Coordinates of the space point.
+    \param bdry @b in	Whether boundary hypersurface should be used.
     \param intfc_point @b out	Coordinates of the nearest point on the interface.
     \param t @b out	Interpolation factors.
     \param hse @b out	Residing hyper surface element (bond in 2D and tri in 3D).
@@ -614,6 +615,7 @@ extern "C" {
    IMPORT  boolean FT_FindNearestIntfcPointInRange(Front *front ,
    					int comp ,
    					double *coords ,
+					USE_BOUNDARIES bdry,
    					double *intfc_point ,
    					double *t ,
    					HYPER_SURF_ELEMENT **hse ,

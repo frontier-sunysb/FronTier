@@ -2861,6 +2861,7 @@ EXPORT	boolean FT_FindNearestIntfcPointInRange(
 	Front *front,
 	COMPONENT comp,
 	double *coords,
+	USE_BOUNDARIES brdy,
 	double *p,
 	double *t,
 	HYPER_SURF_ELEMENT **phse,

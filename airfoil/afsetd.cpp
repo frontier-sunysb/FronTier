@@ -816,21 +816,13 @@ extern void count_vertex_neighbors(
 	ns = geom_set->num_surfs;
 	nc = geom_set->num_curves;
 	nn = geom_set->num_nodes;
-	int n1,n2,n3;
 	n = 0;
 	for (i = 0; i < ns; ++i)
 	    count_surf_neighbors(geom_set->surfs[i],sv,&n);
-	n1 = n;
-	printf("Counted total surf n = %d\n",n);
 	for (i = 0; i < nc; ++i)
 	    count_curve_neighbors(geom_set->curves[i],sv,&n);
-	n2 = n - n1;
-	printf("Counted total curve n = %d\n",n);
 	for (i = 0; i < nn; ++i)
 	    count_node_neighbors(geom_set->nodes[i],sv,&n);	
-	n3 = n - n1 - n2;
-	printf("Counted total node n = %d\n",n);
-	printf("n1 = %d  n2 = %d  n3 = %d\n",n1,n2,n3);
 
 	if (debugging("canopy"))
 	    (void) printf("Leaving count_vertex_neighbors()\n");

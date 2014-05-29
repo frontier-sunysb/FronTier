@@ -1460,8 +1460,8 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 	    if (!ifluid_comp(comp)) continue;
 
 	    getRectangleCenter(index, center);
-	    status = FT_FindNearestIntfcPointInRange(front,comp,center,point,
-				t,&hse,&hs,range);
+	    status = FT_FindNearestIntfcPointInRange(front,comp,center,
+				INCLUDE_BOUNDARIES,point,t,&hse,&hs,range);
 
 	    for (l = 0; l < dim; ++l) force[l] = 0.0;
 
@@ -2168,8 +2168,9 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
 	    if (!ifluid_comp(comp)) continue;
 
 	    getRectangleCenter(index, center);
-            status = FT_FindNearestIntfcPointInRange(front,comp,center,point,
-				t,&hse,&hs,(int)m_smoothing_radius);
+            status = FT_FindNearestIntfcPointInRange(front,comp,center,
+				INCLUDE_BOUNDARIES,point,t,&hse,&hs,
+				(int)m_smoothing_radius);
             for (l = 0; l < dim; ++l) force[l] = 0.0;
 
 	    if (status  == YES && 
@@ -3302,7 +3303,7 @@ void Incompress_Solver_Smooth_Basis::applicationSetStates(void)
 
 		ave_comp = (cell_center[i].comp + top_comp[i])/2;
 		if (!FT_FindNearestIntfcPointInRange(front,ave_comp,
-			coords,p_intfc,t,&hse,&hs,2))
+			coords,NO_BOUNDARIES,p_intfc,t,&hse,&hs,2))
 		    continue;
 
 		dist = 0.0;

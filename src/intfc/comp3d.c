@@ -526,7 +526,7 @@ LOCAL boolean	nearest_local_on_front_grid_block(
 	    block_too_far = NO;
 	    for (i = 0; i < 3; ++i)
 	    {
-		if (bmin[i] - icoords[0] > width ||
+		if (bmin[i] - icoords[i] > width ||
 		    icoords[i] - bmax[i] > width)
 		    block_too_far = YES;
 	    }
@@ -549,14 +549,16 @@ LOCAL boolean	nearest_local_on_front_grid_block(
 	    }
 	}
 
-
-	icrds[0] = ix_closest;
-	icrds[1] = iy_closest;
-	icrds[2] = iz_closest;
 	if(ix_closest == -1)
 		return NO;
-	return YES;
-}		/*end nearest_on_front_grid_block*/
+	else
+	{
+	    icrds[0] = ix_closest;
+	    icrds[1] = iy_closest;
+	    icrds[2] = iz_closest;
+	    return YES;
+	}
+}		/*end nearest_local_on_front_grid_block*/
 
 
 
