@@ -129,7 +129,8 @@ typedef struct {
 	boolean if_ref_pres;
 	boolean use_eddy_visc;	/* Yes if to use eddy viscosity */
 	double  ref_pres;
-	double  Amplitute; /*Amplitute of velocity*/
+	double  Amplitute; 	/*Amplitute of velocity*/
+	double	ymax;	   	/* Maximum distance in Baldwin-Lomax model */
 } IF_PARAMS;
 
 struct _FLOW_THROUGH_PARAMS {
@@ -339,7 +340,7 @@ protected:
 	double computeFieldPointDiv(int*, double**);
 	double computeDualFieldPointDiv(int*, double**);
 	double computeDualMu(int*, double*);
-	double computeFieldPointMuTurb(int*, double);
+	double computeFieldPointMuTurb(int*, double, boolean);
 	void   computeFieldPointGrad(int*, double*, double*);
 	void   computeDualFieldPointGrad(int*, double*, double*);
 	void   checkVelocityDiv(const char*);

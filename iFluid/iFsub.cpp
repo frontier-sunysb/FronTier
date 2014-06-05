@@ -1060,13 +1060,28 @@ extern void read_iFparams(
 	    fscanf(infile,"%s",string);
 	    (void) printf("%s\n",string);
 	    if (string[0] == 'y' || string[0] == 'Y')
-	    iFparams->total_div_cancellation = YES;
+	    	iFparams->total_div_cancellation = YES;
 	}
         if (CursorAfterStringOpt(infile,
 		"Enter density and viscosity of the fluid:"))
         {
             fscanf(infile,"%lf %lf",&iFparams->rho2,&iFparams->mu2);
             (void) printf("%f %f\n",iFparams->rho2,iFparams->mu2);
+	}
+	iFparams->use_eddy_visc = NO;
+        if (CursorAfterStringOpt(infile,
+		"Enter yes to use eddy viscosity:"))
+        {
+	    fscanf(infile,"%s",string);
+	    (void) printf("%s\n",string);
+	    if (string[0] == 'y' || string[0] == 'Y')
+	    {
+	    	iFparams->use_eddy_visc = YES;
+        	CursorAfterString(infile,
+			"Enter maximum distance for eddy viscosity:");
+            	fscanf(infile,"%lf",&iFparams->ymax);
+            	(void) printf("%f\n",iFparams->ymax);
+	    }
 	}
         if (CursorAfterStringOpt(infile,"Enter gravity:"))
         {

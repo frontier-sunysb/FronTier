@@ -1446,11 +1446,14 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 	double center[MAXD],point[MAXD],H,D;
 	HYPER_SURF_ELEMENT *hse;
 	HYPER_SURF *hs;
-	int range = (int)(m_smoothing_radius+1);
 	double **f_surf = field->f_surf;
 	double *mu = field->mu;
 	double *rho = field->rho;
 	double dist;
+	int range = (int)(m_smoothing_radius+1);
+	boolean first = YES;
+	if (iFparams->use_eddy_visc)
+	    range = FT_Max(range,(int)5*iFparams->ymax);
 
 	for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
@@ -1494,7 +1497,8 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 		icoords[0] = i;
 		icoords[1] = j;
 		dist = distance_between_positions(center,point,dim);
-		mu[index] = computeFieldPointMuTurb(icoords,dist);
+		mu[index] = computeFieldPointMuTurb(icoords,dist,first);
+		first = NO;
 	    }
 	    else
 	    {
@@ -1806,6 +1810,30 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                     }
                     fclose(sfile);
 
+                    sprintf(sname,"%s/mu-%d.xg",dirname,count);
+                    sfile = fopen(sname,"w");
+		    fprintf(sfile,"Next\n");
+		    fprintf(sfile,"color=%s\n",sample_color[count]);
+		    fprintf(sfile,"thickness=1.5\n");
+                    for (k = kmin; k <= kmax; ++k)
+                    {
+                        index = d_index3d(i,j,k,top_gmax);
+                        velo1 = field->mu[index];
+                        index = d_index3d(i+1,j,k,top_gmax);
+                        velo2 = field->mu[index];
+                        velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                        index = d_index3d(i,j+1,k,top_gmax);
+                        velo1 = field->mu[index];
+                        index = d_index3d(i+1,j+1,k,top_gmax);
+                        velo2 = field->mu[index];
+                        velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                        velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
+                        getRectangleCenter(index,coords);
+                        fprintf(sfile,"%20.14f   %20.14f\n",coords[2],velo);
+                    }
+                    fclose(sfile);
                     printf("sample line: x = %20.14f, y = %20.14f\n",coords[0],
                         coords[1]);
 
@@ -2158,6 +2186,11 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
 	double **f_surf = field->f_surf;
 	double *mu = field->mu;
 	double *rho = field->rho;
+	double dist;
+	int range = (int)(m_smoothing_radius+1);
+	boolean first = YES;
+	if (iFparams->use_eddy_visc)
+	    range = FT_Max(range,(int)5*iFparams->ymax/top_h[0]);
 
 	for (k = kmin; k <= kmax; k++)
 	for (j = jmin; j <= jmax; j++)
@@ -2169,8 +2202,7 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
 
 	    getRectangleCenter(index, center);
             status = FT_FindNearestIntfcPointInRange(front,comp,center,
-				INCLUDE_BOUNDARIES,point,t,&hse,&hs,
-				(int)m_smoothing_radius);
+				INCLUDE_BOUNDARIES,point,t,&hse,&hs,range);
             for (l = 0; l < dim; ++l) force[l] = 0.0;
 
 	    if (status  == YES && 
@@ -2194,6 +2226,27 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
                     }
                 }
 	    }
+	    else if (status == YES && iFparams->use_eddy_visc &&
+                     (wave_type(hs) == NEUMANN_BOUNDARY ||
+                      wave_type(hs) == ELASTIC_BOUNDARY))
+            {
+                int icoords[MAXD];
+                icoords[0] = i;
+                icoords[1] = j;
+                icoords[2] = k;
+                dist = distance_between_positions(center,point,dim);
+                mu[index] = computeFieldPointMuTurb(icoords,dist,first);
+		first = NO;
+		switch (comp)
+		{
+		case LIQUID_COMP1:
+		    rho[index] = m_rho[0];
+		    break;
+		case LIQUID_COMP2:
+		    rho[index] = m_rho[1];
+		    break;
+		}
+            }
 	    else
 	    {
 		switch (comp)
@@ -2209,6 +2262,7 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
 		}
 	    }
 	}
+
 	for (k = kmin; k <= kmax; k++)
 	for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
@@ -3347,11 +3401,74 @@ void Incompress_Solver_Smooth_Basis::applicationSetStates(void)
 
 double Incompress_Solver_Smooth_Basis::computeFieldPointMuTurb(
         int *icoords,
-        double dist)
+	double dist,
+	boolean first)
 {
-	double mu_t;
-	printf("Entering computeFieldPointMuTurb()\n");
-	clean_up(0);
+	int i,j,k,index;
+	COMPONENT comp;
+	double dudy = 1.0;
+	double vort = 2.8;
+	static double udif;
+	static double Fmax;
+	double speed, umax = -HUGE, umin = HUGE;
+	double mu_t, mu_in, mu_out, y_plus, l;
+	double rho = iFparams->rho2;
+	double nu = iFparams->mu2/rho;
+	double Fkleb, Fwake;
+	double ymax = iFparams->ymax;
 
-	return mu_t;
+	if (first == YES)
+	{
+	    first = NO;
+	    switch(dim)
+	    {
+	    case 2:
+	    	for (j = jmin; j < jmax; j++)
+	    	for (i = imin; i < imax; i++)
+	    	{
+		    index = d_index2d(i,j,top_gmax);
+		    comp  = cell_center[index].comp;
+            	    if (!ifluid_comp(comp)) continue;
+		    speed = sqrt(sqr(field->vel[0][index])+
+				sqr(field->vel[1][index]));
+		    umax = std::max(umax,speed);
+		    umin = std::min(umin,speed);
+	    	}
+		break;
+	    case 3:	
+		for (k = kmin; k < kmax; k++)
+		for (j = jmin; j < jmax; j++)
+                for (i = imin; i < imax; i++)
+                {
+                    index = d_index3d(i,j,k,top_gmax);
+		    comp  = cell_center[index].comp;
+            	    if (!ifluid_comp(comp)) continue;
+                    speed = sqrt(sqr(field->vel[0][index])+
+				sqr(field->vel[1][index])+
+				sqr(field->vel[2][index]));
+                    umax = std::max(umax,speed);
+                    umin = std::min(umin,speed);
+                }
+                break;
+	    }
+	    udif = umax - umin;
+	    y_plus = ymax*sqrt(abs(dudy)/nu);
+	    Fmax = ymax*abs(vort)*(1-exp(-y_plus/26.0));
+	    printf("udif = %f  Fmax = %f\n",udif,Fmax);	
+	}
+	index = d_index(icoords,top_gmax,dim);
+	y_plus = dist*sqrt(abs(dudy)/nu);
+
+	l = 0.41*dist*(1.0-exp(-y_plus/26.0));
+	mu_in = rho * l * l * abs(vort); 
+
+	Fwake = std::min(ymax*Fmax,0.25*ymax*sqr(udif)/Fmax);
+	Fkleb = 1.0/(1+5.5*pow((dist*0.3/ymax),6));
+	mu_out = rho*0.0168*1.6*Fwake*Fkleb;
+
+	if (mu_in < mu_out)
+	    mu_t = mu_in;
+	else
+	    mu_t = mu_out;
+	return mu_t + nu*rho;
 }	/* end computeFieldPointMuTurb */
