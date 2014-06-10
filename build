@@ -22,10 +22,12 @@ function parse_arguments {
     WITHHYPRE=1
     WITHHDF=1
     WITHGD=1
+    COPTS_GCC="-fopenmp"
+
     for arg in $@ ; do
         if [[ "$arg" == "-d" ]]; then
 	    OPTS="-g"
-	    COPTS_GCC="-pedantic -Wno-long-long"
+	    COPTS_GCC="-fopenmp -pedantic -Wno-long-long"
 	    COPTS_ICC="-Wall"
         elif [[ "$arg" == "-n" ]]; then
 	    NOMAKE=1
@@ -36,7 +38,7 @@ function parse_arguments {
         elif [[ "$arg" == "--with-gpu" ]]; then
             WITHGPU=1
         elif [[ "$arg" == "-o2" ]]; then
-	    OPTS="-O2"
+	    OPTS="-fopenmp -O2"
         elif [[ "$arg" == "--without-hypre" ]]; then
             WITHHYPRE=0
         elif [[ "$arg" == "--without-hdf" ]]; then
@@ -61,7 +63,7 @@ function config_ycshu {
 
     export PETSC_DIR=/usr/local/petsc
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -lm -L/usr/X11R6/lib -lX11 -lgfortran" 
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11 -lgfortran" 
 
     if [[ -n "$WITHHDF" ]]; then
         CONF="$CONF --with-hdf=/usr/local/"
@@ -137,7 +139,7 @@ function config_generic {
 
         export PETSC_INCLUDE="-I${PETSC_DIR}/include -I${PETSC_DIR}/${PETSC_ARCH}/include"
 
-        export PETSC_LIB="-lblas -llapack -L${PETSC_DIR}/${PETSC_ARCH}/lib -lpetsc -ldl -lm -lX11"
+        export PETSC_LIB="-lblas -llapack -L${PETSC_DIR}/${PETSC_ARCH}/lib -lpetsc -ldl -fopenmp -lm -lX11"
         echo -n "Enter PETSC_LIB. Note that you may also need to include libraries for LAPACK and BLAS also. (Hit return to use default $PETSC_LIB):"
         read PETSC_LIB_
         if  [[ -n "$PETSC_LIB_" ]]; then export PETSC_LIB=$PETSC_LIB_; fi
@@ -154,7 +156,7 @@ function config_blade {
 
     export PETSC_DIR=/home/netusers/visitor/xiaolin/newpkg/petsc
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -lm -L/usr/X11R6/lib -lX11 -lgfortran" 
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11 -lgfortran" 
 
     if [[ -n "$WITHHDF" ]]; then
         CONF="$CONF --with-hdf=/home/netusers/visitor/xiaolin/pkg/hdf"
@@ -178,7 +180,7 @@ function config_vogon {
 
     export PETSC_DIR=/usr/local/pkg/petsc-3.1-p7
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -llapack -lblas -ldl -lm -L/usr/X11R6/lib -lX11"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -llapack -lblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
 
     if [[ -n "$WITHHDF" ]]; then
         CONF="$CONF --with-hdf=/usr/local/pkg/HDF4"
@@ -208,7 +210,7 @@ function config_alpha {
 
     export PETSC_DIR=/usr/local/pkg/petsc
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -lm -L/usr/X11R6/lib -lX11"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
 
     if [[ -n "$WITHHYPRE" ]]; then
         CONF="$CONF --with-hypre"
@@ -242,7 +244,7 @@ function config_omega {
 
     export PETSC_DIR=/usr/local/pkg/petsc
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -lm -L/usr/X11R6/lib -lX11"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
 
     if [[ -n "$WITHHYPRE" ]]; then
         CONF="$CONF --with-hypre"
@@ -281,7 +283,7 @@ function config_lambda {
 
     export PETSC_DIR=/usr/local/pkg/petsc
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -lm -L/usr/X11R6/lib -lX11"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
 
     if [[ -n "$WITHHYPRE" ]]; then
         CONF="$CONF --with-hypre"
@@ -316,7 +318,7 @@ function config_delta {
 
     export PETSC_DIR=/usr/local/pkg/petsc
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -lm -L/usr/X11R6/lib -lX11"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
 
     if [[ -n "$WITHHYPRE" ]]; then
         CONF="$CONF --with-hypre"
@@ -355,7 +357,7 @@ function config_ubuntu {
     export PETSC_DIR=/usr/lib/petscdir/3.0.0
     export PETSC_ARCH=linux-gnu-c-opt
     export PETSC_INCLUDE="-I${PETSC_DIR}/include -I${PETSC_DIR}/${PETSC_ARCH}/include"
-    export PETSC_LIB="-lblas -llapack -L${PETSC_DIR}/${PETSC_ARCH}/lib -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -ldl -lm -L/usr/X11R6/lib -lX11"
+    export PETSC_LIB="-lblas -llapack -L${PETSC_DIR}/${PETSC_ARCH}/lib -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
 
     if [[ -n "$WITHHDF" ]]; then
         CONF="$CONF --with-hdf=/usr/lib"
@@ -383,7 +385,7 @@ function config_gentooORNL {
     export PETSC_DIR=/home/dealmeida/codes-tryout/petsc-3.1-p8_ompi-1.4.3_gcc-4.4.4_lpt1
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
 
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -lm -L/usr/lib64 -lX11"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -fopenmp -lm -L/usr/lib64 -lX11"
 
     if [[ -n "$WITHHDF" ]]; then
         CONF="$CONF --with-hdf=/usr/local/pkg/HDF4"
@@ -412,7 +414,7 @@ function config_fission {
     export PETSC_DIR=/home/dealvf/libs/petsc-3.1-p8_ompi_gcc-1.4.3_fission
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
 
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -lm -L/usr/X11R6/lib64 -lX11"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -fopenmp -lm -L/usr/X11R6/lib64 -lX11"
 
     if [[ -n "$WITHHDF" ]]; then
         CONF="$CONF --with-hdf=/usr/local/pkg/HDF4"
@@ -442,7 +444,7 @@ function config_galaxy {
     export PETSC_DIR=/nfs/admin/shiqiangqiang/petsc-3.0.0-p12
     export PETSC_ARCH=linux-gnu-c-debug
     export PETSC_INCLUDE="-I${PETSC_DIR}/include -I${PETSC_DIR}/${PETSC_ARCH}/include"
-    export PETSC_LIB="-lblas -llapack -L${PETSC_DIR}/${PETSC_ARCH}/lib -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -ldl -lm -L/usr/X11R6/lib -lX11"
+    export PETSC_LIB="-lblas -llapack -L${PETSC_DIR}/${PETSC_ARCH}/lib -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
     
     if [[ -n "$WITHHDF" ]]; then
         CONF="$CONF --with-hdf=/usr/local/pkg/HDF4"
@@ -476,7 +478,7 @@ function config_seawulf {
     export PETSC_DIR=/usr/local/pkg/petsc-2.3.3-p11
     export PETSC_ARCH=linux-gnu-c-debug
     export PETSC_INCLUDE="-I${PETSC_DIR}/include -I${PETSC_DIR}/bmake/${PETSC_ARCH}"
-    export PETSC_LIB="-lblas -llapack -L${PETSC_DIR}/lib/${PETSC_ARCH} -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -ldl -lm -lX11"
+    export PETSC_LIB="-lblas -llapack -L${PETSC_DIR}/lib/${PETSC_ARCH} -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -ldl -fopenmp -lm -lX11"
 
     if [[ -n "$WITHHDF" ]]; then
         CONF="$CONF --with-hdf=/usr/local/pkg/HDF4"
@@ -501,7 +503,7 @@ function config_nybluel {
 
     export PETSC_LIB="-L${PETSC_DIR}/lib/${PETSC_ARCH} -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -lg2c -L/bgl/local/lib -L${HYPRE_DIR} -lHYPRE -L${SUPERLU_DIR} -lsuperlu_3.0 -L${SUPERLU_DIST_DIR} -lsuperlu_dist_2.0  -lc -L${NSS_FILES_DIR} -lnss_files -lnss_dns -lresolv -llapack.rts -lblas.rts -L/usr/lib -ldl -lm"
 
-    export F77_LIBS="-L/opt/ibmcmp/xlsmp/bg/1.7/blrts_lib -L/opt/ibmcmp/xlmass/bg/4.4/blrts_lib -L/opt/ibmcmp/xlf/bg/11.1/blrts_lib -lxlf90 -lxlopt -lxlomp_ser -lxl -lxlfmath -lm -lc -lgcc"
+    export F77_LIBS="-L/opt/ibmcmp/xlsmp/bg/1.7/blrts_lib -L/opt/ibmcmp/xlmass/bg/4.4/blrts_lib -L/opt/ibmcmp/xlf/bg/11.1/blrts_lib -lxlf90 -lxlopt -lxlomp_ser -lxl -lxlfmath -fopenmp -lm -lc -lgcc"
 
     export CXX="mpixlcxx -DMPICH_IGNORE_CXX_SEEK ${OPTS}"
     export F77="mpixlf77 ${OPTS}"
@@ -535,7 +537,7 @@ function config_pnnl {
     export PETSC_ARCH=linux-hpmpi-intel
     export PETSC_DIR=/hptc_cluster/apps/libraries/petsc/2.3.3-p8/Intel
     export PETSC_INCLUDE="-I${PETSC_DIR}/include -I${PETSC_DIR}/bmake/${PETSC_ARCH}"
-    export PETSC_LIB="-lblas -L${PETSC_DIR}/lib/${PETSC_ARCH} -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -ldl -lm -L/usr/X11R6/lib64"
+    export PETSC_LIB="-lblas -L${PETSC_DIR}/lib/${PETSC_ARCH} -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -ldl -fopenmp -lm -L/usr/X11R6/lib64"
     
     ./configure --with-mpi --with-petsc=$PETSC_DIR --with-devel ${CONF}
     PMAKE="-j8"
@@ -551,7 +553,7 @@ function config_abe {
     export PETSC_ARCH=abe-intel10-opt
     export PETSC_DIR=/usr/apps/math/petsc/petsc-2.3.3-p7
     export PETSC_INCLUDE="-I${PETSC_DIR}/include -I${PETSC_DIR}/bmake/${PETSC_ARCH}"
-    export PETSC_LIB="-lblas -llapack -L${PETSC_DIR}/lib/${PETSC_ARCH} -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -L ${MKL_HOME}/lib/em64t -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -ldl -lm -L/usr/X11R6/lib64"
+    export PETSC_LIB="-lblas -llapack -L${PETSC_DIR}/lib/${PETSC_ARCH} -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -L ${MKL_HOME}/lib/em64t -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -ldl -fopenmp -lm -L/usr/X11R6/lib64"
 
     # add szip library
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/apps/hdf/szip/lib
@@ -578,7 +580,7 @@ function config_icestorm {
     export PETSC_DIR=/home/dealvf/libs/petsc-3.1-p8_ompi_gcc-1.4.3_icestorm
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
 
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -lm -L/usr/X11R6/lib64 -lX11"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -fopenmp -lm -L/usr/X11R6/lib64 -lX11"
 
     if [[ -n "$WITHHDF" ]]; then
         CONF="$CONF --with-hdf=/usr/local/pkg/HDF4"
@@ -696,9 +698,11 @@ autoconf
 # Run ./configure.
 ./configure $CONF
 
-make ${PMAKE} clean
-
 # Finally, invoke make
+if [[ -z "$NOMAKE" ]]; then
+    make ${PMAKE} clean
+fi
+
 if [[ -z "$NOMAKE" ]]; then
     make ${PMAKE}
 fi

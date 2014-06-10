@@ -94,6 +94,7 @@ $(header_files): include/FronTier/%: src/%
 	sed -e "1,$$ s,FronTier/unistd.h,unistd.h,g" | \
 	sed -e "1,$$ s,FronTier/ctype.h,ctype.h,g" | \
 	sed -e "1,$$ s,FronTier/math.h,math.h,g" | \
+	sed -e "1,$$ s,FronTier/omp.h,omp.h,g" | \
 	sed -e "1,$$ s,FronTier/limits.h,limits.h,g" | \
 	sed -e "1,$$ s,FronTier/float.h,float.h,g" | \
 	sed -e "1,$$ s,FronTier/errno.h,errno.h,g" | \
