@@ -1427,6 +1427,13 @@ extern void restart_set_dirichlet_bdry_function(Front *front)
         int i;
         BOUNDARY_STATE  *bstate;
         const char *s;
+	CURVE **curves;
+	SURFACE **surfs;
+	int comp;
+	STATE *state;
+	EQN_PARAMS *eqn_params = (EQN_PARAMS*)front->extra1;
+	int dim = Dimension(intfc);
+
         for (i = 0; i < num_bstates(intfc); ++i)
         {
             bstate = bstate_list(intfc)[i];
@@ -1438,4 +1445,31 @@ extern void restart_set_dirichlet_bdry_function(Front *front)
 	    else if (strcmp(s,"cF_variableBoundaryState") == 0)
                 bstate->_boundary_state_function = cF_variableBoundaryState;
         }
+	switch (dim)
+	{
+	case 2:
+	    intfc_curve_loop(intfc,curves)
+	    {
+	    	if (wave_type(*curves) != DIRICHLET_BOUNDARY) continue;
+	    	state = (STATE*)boundary_state(Hyper_surf(*curves));
+	    	if (state == NULL) continue;
+	    	comp = gas_comp(positive_component(*curves)) ?
+                                positive_component(*curves) :
+                                negative_component(*curves);
+	    	state->eos = &(eqn_params->eos[comp]);
+	    }
+	    break;
+	case 3:
+	    intfc_surface_loop(intfc,surfs)
+	    {
+	    	if (wave_type(*surfs) != DIRICHLET_BOUNDARY) continue;
+	    	state = (STATE*)boundary_state(Hyper_surf(*surfs));
+	    	if (state == NULL) continue;
+	    	comp = gas_comp(positive_component(*surfs)) ?
+                                positive_component(*surfs) :
+                                negative_component(*surfs);
+	    	state->eos = &(eqn_params->eos[comp]);
+	    }
+	    break;
+	}
 }       /* end restart_set_dirichlet_bdry_function */
