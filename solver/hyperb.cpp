@@ -1179,18 +1179,7 @@ void upwind_flux(
 			q[i][j] = (ul+ur > 0.0) ? 0.5*sqr(ul) : 0.5*sqr(ur);
 		    }
 		}
-		else
-		{
-		    //a = 0.5*(vel[dir][j] + vel[dir][j+1]);
-		    //a = (rho[j+1]*vel[dir][j] + rho[j]*vel[dir][j+1])/
-					//(rho[j] + rho[j+1]);
-		    a = (rho[j]*vel[dir][j] + rho[j+1]*vel[dir][j+1])/
-					(rho[j] + rho[j+1]);
-		    ul = vel[i][j];
-		    ur = vel[i][j+1];
-		    q[i][j] = (a > 0.0) ? a*ul : a*ur;
-		}
-	    }
+	   }
 	}
 	
 	for (i = 0; i < dim; ++i)
@@ -1200,13 +1189,8 @@ void upwind_flux(
 		vel_flux[i][j] = lambda*(q[i][j+1] - q[i][j]);
 	    }
 	}
-	/* The same as the old code, not conservative  */
-	if (debugging("old_adv_flux"))
+	for (i = 0; i < dim; ++i)
 	{
-	    if (debugging("upwind"))
-	    	(void) printf("In upwind_flux(), using old flux\n");
-	    for (i = 0; i < dim; ++i)
-	    {
 	    	if (i == dir) continue;
 	    	for (j = 0; j < n; ++j)
 	    	{
@@ -1221,7 +1205,6 @@ void upwind_flux(
 		    else
 		    	vel_flux[i][j] = lambda*a*(ur - um);	
 	    	}
-	    }
 	}
 }	/* end upwind_flux */
 
@@ -1238,14 +1221,15 @@ static double linear_flux(
 	double wave_speed,
 	double u)
 {
-        return wave_speed*u;
+        return u;
 }
 
 static double linear_dF(
 	double wave_speed,
 	double u)
 {
-        return wave_speed;
+	return 1.0;
+        //return wave_speed;
 }
 
 static double burger_flux(
@@ -1275,9 +1259,10 @@ void Weno5_Get_Flux(
 	const double eps = 1.e-8;
 	const int p = 2;
 	static double *f; /* f(u(x)) */
-	static double *fp, *fm;
+	static double *fp, *fm, *fm_burg;
 	static int max_n = 0;
 	double max_df, norm;
+	double aa;
 
 	/* coefficients for 2rd-order ENO interpolation stencil */
 	double a[3][3] = {{1.0/3.0, -7.0/6.0, 11.0/6.0}, 
@@ -1303,6 +1288,7 @@ void Weno5_Get_Flux(
             FT_VectorMemoryAlloc((POINTER*)&f,extend_size,sizeof(double));
             FT_VectorMemoryAlloc((POINTER*)&fp,n+1,sizeof(double));
             FT_VectorMemoryAlloc((POINTER*)&fm,n+1,sizeof(double));
+            FT_VectorMemoryAlloc((POINTER*)&fm_burg,n+1,sizeof(double));
         }
 
 	/* Find the maximum of fabs(df(u))*/
@@ -1360,6 +1346,49 @@ void Weno5_Get_Flux(
 	/* f[i] = 0.5 * (f_{i - nrad} - max_df * u[i])
 	 * ensure that df[i] < 0*/
 	for (i = 0; i < extend_size; ++i)
+	    f[i] = 0.5*(flux_func(v[i],u[i]) + max_df*u[i]);
+	for (j = 0; j < n + 1; ++j)
+	/* To approximate flux at x_{j+1/2}, we use stencil S_k =
+	 {x_{j+1-k+2}, x_{j+1-k+1}, x_{j+1-k}} = {x[j+1-k+2+nrad],
+	 x[j+1-k+1+nrad], x[j+1-k+nrad]} */
+
+	{
+	    /* compute the weights omega[] */
+	    is[0] = 13.0/12.0*(f[j+5] - 2.0*f[j+4] + f[j+3])
+		    *(f[j+5] - 2.0*f[j+4] + f[j+3]) + 0.25*(f[j+5]
+		    - 4.0*f[j+4] + 3.0*f[j+3])*(f[j+5] - 4.0*f[j+4]
+		    + 3.0*f[j+3]);
+	    is[1] = 13.0/12.0*(f[j+4] - 2.0*f[j+3] + f[j+2])
+		    *(f[j+4] - 2.0*f[j+3] + f[j+2]) + 0.25*(f[j+4]
+		    - f[j+2])*(f[j+4] - f[j+2]);
+	    is[2] = 13.0/12.0*(f[j+3] - 2.0*f[j+2] + f[j+1])
+		    *(f[j+3] - 2.0*f[j+2] + f[j+1]) + 0.25*(3.0*f[j+3] 
+		    - 4.0*f[j+2] + f[j+1])*(3.0*f[j+3] - 4.0*f[j+2] + f[j+1]);
+
+	    for (i = 0; i < nrad; ++i)
+		alpha[i] = c[i]/pow(eps + is[i], p);
+
+	    sum = alpha[0] + alpha[1] + alpha[2];
+	    for (i = 0; i < nrad; ++i)
+		omega[i] = alpha[i]/sum;
+
+		/* compute ENO approximation of the flux */
+	    for (i = 0; i < nrad; ++i) 
+	    {
+		q[i] = 0.0;
+		for (k = 0; k < nrad; ++k)
+		    q[i] += a[i][k]*f[j+5-i-k];
+	    }
+
+		/* compute the linear combination of the r candidate stencils
+	     to get a higher order approximation of the flux */
+	    fm[j] = 0.0;
+	    for (i = 0; i < nrad; ++i)
+		fm[j] += omega[i]*q[i];
+	}
+	
+/*only for burger's equations*/
+	for (i = 0; i < extend_size; ++i)
 	    f[i] = 0.5*(flux_func(v[i],u[i]) - max_df*u[i]);
 	for (j = 0; j < n + 1; ++j)
 	/* To approximate flux at x_{j+1/2}, we use stencil S_k =
@@ -1396,13 +1425,33 @@ void Weno5_Get_Flux(
 
 		/* compute the linear combination of the r candidate stencils
 		 to get a higher order approximation of the flux */
-	    fm[j] = 0.0;
+	    fm_burg[j] = 0.0;
 	    for (i = 0; i < nrad; ++i)
-		fm[j] += omega[i]*q[i];
+		fm_burg[j] += omega[i]*q[i];
 	}
+/*end fm_burg*/
 
+	/*upwinding strategy*/
 	for (j = 0; j < n; ++j)
-	    flux[j] = lambda*(fp[j+1] + fm[j+1] - fp[j] - fm[j]);
+	{
+	    double fL, fR;
+	    aa = 0.5*(v[j+nrad-1]+v[j+nrad]);
+	    if (aa >= 0)
+		fL = fp[j];
+	    else
+		fL = fm[j];
+
+	    aa = 0.5*(v[j+nrad]+v[j+nrad+1]);
+	    if (aa >= 0)
+		fR = fp[j+1];
+	    else
+		fR = fm[j+1];
+	    if (u[j] == v[j]) /*using different strategy for burger and linear*/
+		flux[j] = lambda*(fp[j+1]+fm_burg[j+1] - fp[j]-fm_burg[j]);
+	    else
+	        flux[j] = lambda*(fR - fL);
+	
+	}
 
 }
 
@@ -1416,7 +1465,9 @@ void weno5_flux(
 {
 	double **vel = vst->vel;
 	double **vel_flux = vflux->vel_flux;
-	int i;
+	int i, j;
+	int nrad = 3;
+	double a;
 
 	if (debugging("weno"))
 	{
@@ -1436,6 +1487,11 @@ void weno5_flux(
 		flux_func = linear_flux;
 	    }
 	    Weno5_Get_Flux(vel[i],vel[dir],vel_flux[i],lambda,n);
+	    if (i != dir)
+	    for (j = 0; j < n; j++)
+	    {
+	            vel_flux[i][j] *= vel[dir][j+nrad];
+	    }
 	}
 }	/* end weno5_flux */
 
