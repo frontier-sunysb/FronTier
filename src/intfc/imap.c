@@ -266,6 +266,50 @@ EXPORT void I_PolarRotatePoint(
 	rotate_point_with_polar_angle(p,center,phi,first);
 }	/* end I_RoratePoint */
 
+EXPORT void I_RotatePointAboutAxis(
+	POINT *p,
+	double *dir,		/* dir vector is a unit vector */
+	double *axis,		/* a point on the axis */
+	double phi)
+{
+	double v[MAXD],vt[MAXD],vn[MAXD],nor[MAXD],cnor[MAXD];
+	double dot_prod = 0;
+	double mag_vn;
+	int i;
+
+	for (i = 0; i < 3; ++i)
+	{
+	    /* from position vector relative vector */
+	    v[i] = Coords(p)[i] - axis[i];
+	    dot_prod += v[i]*dir[i];
+	}
+	/* vt and vn are tangential and normal components of v */
+	for (i = 0; i < 3; ++i)
+	{
+	    vt[i] = dot_prod*dir[i];
+	    vn[i] = v[i] - vt[i];
+	}
+	mag_vn = Mag3d(vn);
+	if (mag_vn == 0.0) return; /* no normal component to rotate */
+	/* calculating unit normal vector */
+	for (i = 0; i < 3; ++i)
+	{
+	    nor[i] = vn[i]/mag_vn;
+	    vn[i] = 0.0;
+	}
+	/* calculating unit co-normal vector */
+	Cross3d(dir,nor,cnor);
+	for (i = 0; i < 3; ++i)
+	{
+	    /* rotate the normal vector */
+	    vn[i] += mag_vn*cos(phi)*nor[i] + mag_vn*sin(phi)*cnor[i];
+	    /* add the tangential vector */
+	    v[i] = vn[i] + vt[i];
+	    /* recover the position vector */
+	    Coords(p)[i] = v[i] + axis[i];
+	}
+}	/* end I_RotatePointAboutAxis */
+
 EXPORT void I_SphericalRotateInteriorIntfcPoints(
 	INTERFACE *intfc,
         double *center,
@@ -407,3 +451,41 @@ EXPORT int I_NumOfCurveInteriorPoints(CURVE *curve)
 {
 	return curve->num_points - 2;
 }	/* end I_NumOfCurveInteriorPoints */
+
+EXPORT void I_FoldSurface(
+	SURFACE *surf,
+	double *dir,
+	double *axis,
+	double angle,
+	SIDE side)
+{
+	TRI *tri;
+	POINT *p;
+        int i,j;
+	double pv[MAXD],cx[MAXD];
+	const double *nor;
+
+	surf_tri_loop(surf,tri)
+	{
+	    for (i = 0; i < 3; ++i)
+		sorted(Point_of_tri(tri)[i]) = NO;
+	}
+	surf_tri_loop(surf,tri)
+	{
+	    nor = Tri_normal(tri);
+	    for (i = 0; i < 3; ++i)
+	    {
+		p = Point_of_tri(tri)[i];
+		if (sorted(p)) continue;
+		sorted(p) = YES;
+		for (j = 0; j < 3; ++j)
+		    pv[j] = Coords(p)[j] - axis[j];
+		Cross3d(pv,dir,cx);
+		if ((Dot3d(cx,nor) < 0  && side == POSITIVE_SIDE) ||
+		    (Dot3d(cx,nor) >= 0 && side == NEGATIVE_SIDE))
+		    continue;
+		I_RotatePointAboutAxis(p,dir,axis,angle);
+		
+	    }
+	}
+}	/* end I_FoldSurface */

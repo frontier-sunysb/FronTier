@@ -894,6 +894,43 @@ EXPORT void rotate_point_with_polar_angle(
  *	This is a three dimensional rotation with polar angles 
  */
 
+EXPORT void rotate_point_with_spherical_angles(
+	POINT *p,
+	double *center,			/* Rotation center */
+	double phi,			/* Azimuthal angle */
+	double theta,			/* Polar angle */
+	boolean first)
+{
+	static double cc,ss,cs,sc,c,s;
+	double pt[3],rho,r;
+	int i;
+
+	if (first)
+	{
+	    cc = cos(theta)*cos(phi);
+	    ss = sin(theta)*sin(phi);
+	    cs = cos(theta)*sin(phi);
+	    sc = sin(theta)*cos(phi);
+	    c = cos(theta);
+	    s = sin(theta);
+	}
+	r = 0;
+	for (i = 0; i < 3; i++)
+	{
+	    pt[i] = Coords(p)[i] - center[i];
+	    r += sqr(pt[i]);
+	}
+	if (r == 0.0) return;
+	rho = sqrt(sqr(pt[0]) + sqr(pt[1]));
+	Coords(p)[0] = cc*pt[0] - cs*pt[1] + 
+		sc*pt[2]*pt[0]/rho - ss*pt[2]*pt[1]/rho;
+	Coords(p)[1] = cc*pt[1] - cs*pt[0] + 
+		sc*pt[2]*pt[1]/rho - ss*pt[2]*pt[0]/rho;
+	Coords(p)[2] = c*pt[2] - rho*s;
+	for (i = 0; i < 3; i++)
+	    Coords(p)[i] += center[i];
+}	/* end rotate_point_with_spherical_angle */
+
 EXPORT void rotate_point_with_spherical_angle(
 	POINT *p,
 	double *center,			/* Rotation center */

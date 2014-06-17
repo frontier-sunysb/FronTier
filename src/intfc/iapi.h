@@ -116,6 +116,20 @@ extern "C" {
         		double phi,                     /* Polar angle */
         		boolean first);
 
+/*! \fn void I_RotatePointAboutAxis(POINT *p,double *dir,double *axis,double phi)
+    \ingroup POINT
+    \brief This function rotate the point about a line as axis.
+    \param p @b inout Point to be rotated.
+    \param dir @b in Direction vector of rotation line of axis.
+    \param axis @b in A point on the line of axis.
+    \param phi @b in Angle of rotation in counter-clock wise direction.
+ */
+   IMPORT  void I_RotatePointAboutAxis(
+			POINT *p,
+        		double *dir,                
+        		double *axis,                
+        		double phi);   
+
 /*! \fn void I_SphericalRorateInteriorIntfcPoints(INTERFACE *intfc,double *center,double phi,double theta)
     \ingroup POINT
     \brief This function rotates the interior points of the input interface 
@@ -179,6 +193,26 @@ extern "C" {
  */
 
    IMPORT  int I_NumOfCurveInteriorPoints(CURVE *curve);
+
+/*! \fn void I_FoldSurface(SURFACE *surf,double *dir,double *axis,double angle,SIDE side)
+    \ingroup SURFACE
+    \brief This function fold the surface around the axis described by 
+     dir (direction) and axis (a point on the axis) with input angle.
+     Only points on the input side of the axis will be rotated. The
+     function does its job of the surface is flat and axis is a line
+     on the surface.
+    \param surf @b inout Input of the surface to be folded.
+    \param dir @b in direction of the folding axis.
+    \param axis @b in a point on the folding axis.
+    \param angle @b in angle of folding.
+    \param side @b in indicating point on the side to be rotated (folded).
+ */
+   IMPORT  void I_FoldSurface(SURFACE *surf,
+			double *dir,
+			double *axis,
+			double angle,
+			SIDE side);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif
