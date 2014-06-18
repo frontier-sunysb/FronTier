@@ -83,6 +83,22 @@ Enter start angle of chord: 6.263185
 Enter initial position of load: 7 7 -1
 Enter rotation angles: 0.0
 
+Entering yes to sew surface: yes
+Stitches must be along existing curves
+Enter number of sewing stitches: 4
+For stitche 1
+Enter start point: 5.5 5.5 13
+Enter end point: 5.5 5.5 14.5
+For stitche 2
+Enter start point: 8.5 5.5 13
+Enter end point: 8.5 5.5 14.5
+For stitche 3
+Enter start point: 5.5 8.5 13
+Enter end point: 5.5 8.5 14.5
+For stitche 4
+Enter start point: 8.5 8.5 13
+Enter end point: 8.5 8.5 14.5
+
 Entering yes to turn off fluid solver: no
 Enter interior propagator: p
 Enter gravity: 0 0 -9.8
