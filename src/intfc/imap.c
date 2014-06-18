@@ -457,18 +457,24 @@ EXPORT void I_FoldSurface(
 	double *dir,
 	double *axis,
 	double angle,
-	SIDE side)
+	SIDE side,
+	boolean first)
 {
 	TRI *tri;
 	POINT *p;
         int i,j;
 	double pv[MAXD],cx[MAXD];
 	const double *nor;
+	double prod;
+	double tol = 0.1;
 
-	surf_tri_loop(surf,tri)
+	if (first == YES)
 	{
-	    for (i = 0; i < 3; ++i)
-		sorted(Point_of_tri(tri)[i]) = NO;
+	    surf_tri_loop(surf,tri)
+	    {
+	    	for (i = 0; i < 3; ++i)
+		    sorted(Point_of_tri(tri)[i]) = NO;
+	    }
 	}
 	surf_tri_loop(surf,tri)
 	{
@@ -477,15 +483,43 @@ EXPORT void I_FoldSurface(
 	    {
 		p = Point_of_tri(tri)[i];
 		if (sorted(p)) continue;
-		sorted(p) = YES;
 		for (j = 0; j < 3; ++j)
 		    pv[j] = Coords(p)[j] - axis[j];
 		Cross3d(pv,dir,cx);
-		if ((Dot3d(cx,nor) < 0  && side == POSITIVE_SIDE) ||
-		    (Dot3d(cx,nor) >= 0 && side == NEGATIVE_SIDE))
+		prod = Mag3d(cx);
+		if (prod == 0.0) continue;
+		for (j = 0; j < 3; ++j)
+		    cx[j] /= prod;
+		prod = Dot3d(cx,nor);
+		if ((prod < 0  && side == POSITIVE_SIDE) ||
+		    (prod >= 0 && side == NEGATIVE_SIDE))
 		    continue;
+		sorted(p) = YES;
 		I_RotatePointAboutAxis(p,dir,axis,angle);
 		
 	    }
 	}
 }	/* end I_FoldSurface */
+
+/***********************************************************************
+*       Sew surface from crds_start to crds_end. The sewing line must  *
+*       be along existing curves with tolerance, else return NO.       *
+***********************************************************************/
+
+EXPORT boolean I_SewSurface(
+	SURFACE *surf,
+	double *crds_start,
+	double *crds_end)
+{
+	CURVE **c;
+	double dir[MAXD];
+	double len;
+	int i;
+	for (i = 0; i < 3; ++i)
+	    dir[i] = crds_end[i] - crds_start[i];
+	len = Mag3d(dir);
+	for (i = 0; i < 3; ++i) dir[i] /= len;
+	printf("dir = %f %f %f\n",dir[0],dir[1],dir[2]);
+	printf("Entering I_SewSurface()\n");
+	clean_up(0);
+}	/* end I_SewSurface */

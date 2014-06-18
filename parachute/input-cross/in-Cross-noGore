@@ -10,8 +10,8 @@ Lower boundary in 2-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 2-th dimension: DIRICHLET_BOUNDARY
 
 Max time: 2.0
-Max step: 20000
-Print interval: 0.05
+Max step: 2000
+Print interval: 0.5
 Movie frame interval: 0.1
 CFL factor: 0.5
 Redistribution interval: 10000000
@@ -25,7 +25,6 @@ Projection type can be
 Enter projection type: SIMPLE
 Enter fluid ambient velocity: 0 0 3
 Enter upper bound for speed: 50
-Enter yes to use total divergence cancellation: y
 
 Enter number of canopy surfaces: 1
 Enter yes to use CGAL to generate mesh: yes

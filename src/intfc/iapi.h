@@ -194,7 +194,7 @@ extern "C" {
 
    IMPORT  int I_NumOfCurveInteriorPoints(CURVE *curve);
 
-/*! \fn void I_FoldSurface(SURFACE *surf,double *dir,double *axis,double angle,SIDE side)
+/*! \fn void I_FoldSurface(SURFACE *surf,double *dir,double *axis,double angle,SIDE side,boolean first)
     \ingroup SURFACE
     \brief This function fold the surface around the axis described by 
      dir (direction) and axis (a point on the axis) with input angle.
@@ -206,12 +206,27 @@ extern "C" {
     \param axis @b in a point on the folding axis.
     \param angle @b in angle of folding.
     \param side @b in indicating point on the side to be rotated (folded).
+    \param first @b in if true, reset all the point of the surface.
  */
    IMPORT  void I_FoldSurface(SURFACE *surf,
 			double *dir,
 			double *axis,
 			double angle,
-			SIDE side);
+			SIDE side,
+			boolean first);
+
+/*! \fn boolean I_SewSurface(SURFACE *surf,double *crds_start,double *crds_end)
+    \ingroup SURFACE
+    \brief This function switches the surface along a line segment starting
+     from crds_start to crds_end. The sewing line must be along existing 
+     curves with tolerance, else return NO.
+    \param surf @b inout Input of the surface to be sewed.
+    \param crds_start @b in start coordinates of sewing line segment.
+    \param crds_end @b in end coordinates of sewing line segment.
+ */
+   IMPORT  boolean I_SewSurface(SURFACE *surf,
+			double *crds_start,
+			double *crds_end);
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }

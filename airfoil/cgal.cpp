@@ -50,7 +50,6 @@ static void CgalCross(FILE*,Front*,SURFACE**);
 static void CgalCircle(FILE*,Front*,SURFACE**);
 static void CgalEllipse(FILE*,Front*,SURFACE**);
 static void GenerateCgalSurf(Front*,SURFACE**,CDT*,int*,double);
-static void InstallString(FILE*,Front*,SURFACE*,int,double*);
 static void InstallGore(Front*,SURFACE*,int,double*,double*);
 static void InstallInCurve(Front*,SURFACE*,double,double,double*,int);
 static void SplitInCirBdry(Front*,SURFACE*,int,double*);
@@ -58,6 +57,7 @@ static void linkCurveTriBond(CURVE*,SURFACE*);
 static bool ptinbox(double *c, double *l, double *u);
 static bool ptoutcircle(double*,double*,double);
 static void foldSurface(FILE*,SURFACE*);
+static void sewSurface(FILE*,SURFACE*);
 static void findStringNodePoints(SURFACE*,double*,POINT**,int,CURVE**);
 static void installString(Front*,SURFACE*,CURVE*,POINT**,int);
 
@@ -171,6 +171,7 @@ static void CgalCircle(
 	CDT::Finite_faces_iterator fit;
         Vertex_handle *v_out, *v_in;
         int num_out_vtx,num_in_vtx;
+	POINT **string_node_pts;
         double *out_nodes_coords,*in_nodes_coords;
 	double *out_vtx_coords,*in_vtx_coords;
 	double ang_out, ang_in;
@@ -180,6 +181,7 @@ static void CgalCircle(
 	double cri_dx = 0.6*computational_grid(front->interf)->h[0];
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 	int i;
+	CURVE *cbdry;
 
         CursorAfterString(infile,"Enter the height of the plane:");
         fscanf(infile,"%lf",&height);
@@ -214,6 +216,8 @@ static void CgalCircle(
 	CursorAfterString(infile,"Enter number of chords:");
 	fscanf(infile,"%d",&num_strings);
 	(void) printf("%d\n",num_strings);
+	FT_VectorMemoryAlloc((POINTER*)&string_node_pts,num_strings,
+                                sizeof(POINT*));
 
 	num_out_vtx = num_strings * out_vtx_oneside;
 	num_in_vtx = num_strings * in_vtx_oneside;
@@ -311,7 +315,9 @@ static void CgalCircle(
 	GenerateCgalSurf(front,surf,&cdt,flag,height);
         wave_type(*surf) = ELASTIC_BOUNDARY;
         FT_InstallSurfEdge(*surf,MONO_COMP_HSBDRY);
-	InstallString(infile,front,*surf,num_strings,out_nodes_coords);
+	findStringNodePoints(*surf,out_nodes_coords,string_node_pts,
+                                num_strings,&cbdry);
+	installString(front,*surf,cbdry,string_node_pts,num_strings);
 
 	if (gore_bool[0]=='y'|| gore_bool[0]=='Y')
         {
@@ -324,6 +330,7 @@ static void CgalCircle(
 	    InstallGore(front,*surf,num_strings,out_nodes_coords,
 				in_nodes_coords);
 	}
+	FT_FreeThese(1,string_node_pts);
 	if (consistent_interface(front->interf) == NO)
 	    clean_up(ERROR);
 }	/* end CgalCircle */
@@ -634,11 +641,13 @@ static void CgalEllipse(
         int num_strings;
         int num_out_vtx;
         int num_gore_oneside;
+	POINT **string_node_pts;
 	double startx, distance;
         double *out_nodes_coords,*out_vtx_coords;
         CDT cdt;
         CDT::Finite_faces_iterator fit;
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
+	CURVE *cbdry;
 
 	Vertex_handle *v_out;
 	double cri_dx = 0.6*computational_grid(front->interf)->h[0];
@@ -676,6 +685,8 @@ static void CgalEllipse(
 
 	num_strings = 2*(num_gore_oneside+2);
         out_nodes_coords = new double[num_strings*2];
+	FT_VectorMemoryAlloc((POINTER*)&string_node_pts,num_strings,
+                                sizeof(POINT*));
 
 	out_nodes_coords[0]=out_nodes_coords[num_strings-1]=xrange[0];
 	out_nodes_coords[num_gore_oneside+1]=
@@ -761,7 +772,9 @@ static void CgalEllipse(
 	GenerateCgalSurf(front,surf,&cdt,flag,height);
         wave_type(*surf) = ELASTIC_BOUNDARY;
         FT_InstallSurfEdge(*surf,MONO_COMP_HSBDRY);
-	InstallString(infile,front,*surf,num_strings,out_nodes_coords);
+	findStringNodePoints(*surf,out_nodes_coords,string_node_pts,
+                                num_strings,&cbdry);
+	installString(front,*surf,cbdry,string_node_pts,num_strings);
 
         if (gore_bool[0]=='y'|| gore_bool[0]=='Y')
         {
@@ -914,6 +927,7 @@ static void CgalCross(
 	findStringNodePoints(*surf,out_nodes_coords,string_node_pts,
 				num_strings,&cbdry);
 	foldSurface(infile,*surf);
+	sewSurface(infile,*surf);
 	installString(front,*surf,cbdry,string_node_pts,num_strings);
 	FT_FreeThese(1,string_node_pts);
 }	/* end CgalCross */
@@ -926,6 +940,7 @@ static void foldSurface(
 	char string[200];
 	SIDE side;
 	int i,num_foldings;
+	boolean first;
 
 	if (CursorAfterStringOpt(infile,
             "Entering yes to fold surface:"))
@@ -941,6 +956,7 @@ static void foldSurface(
 	CursorAfterString(infile,"Enter number of folding steps: ");
         fscanf(infile,"%d",&num_foldings);
         (void) printf("%d\n",num_foldings);
+	first = YES;
 	for (i = 0; i < num_foldings; ++i)
 	{
 	    sprintf(string,"Folding step %d",i+1);
@@ -963,133 +979,49 @@ static void foldSurface(
 	    	side = POSITIVE_SIDE;
 	    else if (string[0] == 'n' || string[0] == 'N')
 	    	side = NEGATIVE_SIDE;
-	    I_FoldSurface(surf,dir,axis,angle,side);
+	    I_FoldSurface(surf,dir,axis,angle,side,first);
+	    first = NO;
 	}
 }	/* end foldSurface */
 
-static void InstallString(
+static void sewSurface(
 	FILE *infile,
-	Front *front,
-	SURFACE *surf,
-	int num_strings,
-	double *nodes_coords)
+	SURFACE *surf)
 {
-	INTERFACE *intfc = front->interf;
-	char string[10];
-	double cload[MAXD],coords[MAXD],dir[MAXD];
-	NODE *nload,**string_nodes;
-	CURVE *canopy_bdry,**string_curves,**c;
-	BOND *bond;
-	AF_NODE_EXTRA *extra;
-	boolean node_moved;
-	double spacing,*h = computational_grid(intfc)->h;
-	int nb;
-	int i, j,k;
+	double crds_start[MAXD],crds_end[MAXD];
+	char string[200];
+	int i,num_stitches;
 
-        CursorAfterString(infile,"Enter yes to attach strings to canopy:");
-        fscanf(infile,"%s",string);
-        (void) printf("%s\n",string);
-        if (string[0] != 'Y' && string[0] != 'y')
-	    return;
-        CursorAfterString(infile,"Enter initial position of load:");
-        fscanf(infile,"%lf %lf %lf",&cload[0],&cload[1],&cload[2]);
-        (void) printf("%f %f %f\n",cload[0],cload[1],cload[2]);
+	if (CursorAfterStringOpt(infile,
+            "Entering yes to sew surface:"))
+        {
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] != 'y' && string[0] != 'Y')
+                return;
+        }
+        else
+            return;
 
-	nload = make_node(Point(cload));
-	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
-        extra->af_node_type = LOAD_NODE;
-        nload->extra = (POINTER)extra;
-
-	FT_VectorMemoryAlloc((POINTER*)&string_nodes,num_strings,
-                                sizeof(NODE*));
-        FT_VectorMemoryAlloc((POINTER*)&string_curves,num_strings,
-                                sizeof(CURVE*));
-
-	canopy_bdry = NULL;
-	surf_pos_curve_loop(surf,c)
+        (void) printf("Stitches must be along existing curves");
+	CursorAfterString(infile,"Enter number of sewing stitches: ");
+        fscanf(infile,"%d",&num_stitches);
+        (void) printf("%d\n",num_stitches);
+	for (i = 0; i < num_stitches; ++i)
 	{
-	    if (canopy_bdry != NULL)
-		break;
-	    curve_bond_loop(*c,bond)
-	    if (Coords(bond->start)[0] == nodes_coords[0] &&
-            	Coords(bond->start)[1] == nodes_coords[num_strings])
-	    {
-	    	canopy_bdry = *c; 
-	    	break;
-	    }
+	    sprintf(string,"For stitche %d",i+1);
+	    CursorAfterString(infile,string);
+	    (void) printf("\n");
+	    CursorAfterString(infile,"Enter start point: ");
+            fscanf(infile,"%lf %lf %lf",crds_start,crds_start+1,crds_start+2);
+            (void) printf("%f %f %f\n",crds_start[0],crds_start[1],
+					crds_start[2]);
+	    CursorAfterString(infile,"Enter end point: ");
+            fscanf(infile,"%lf %lf %lf",crds_end,crds_end+1,crds_end+2);
+            (void) printf("%f %f %f\n",crds_end[0],crds_end[1],crds_end[2]);
+	    I_SewSurface(surf,crds_start,crds_end);
 	}
-	surf_neg_curve_loop(surf,c)
-	{
-	    if (canopy_bdry != NULL)
-		break;
-	    curve_bond_loop(*c,bond)
-	    if (Coords(bond->start)[0] == nodes_coords[0] &&
-            	Coords(bond->start)[1] == nodes_coords[num_strings])
-	    {
-	    	canopy_bdry = *c; 
-	    	break;
-	    }
-	}
-
-	node_moved = NO;
-	for (i = 0; i < num_strings; ++i)
-	{
-	    if (!node_moved)
-	    {
-		node_moved = YES;
-		curve_bond_loop(canopy_bdry,bond)
-		{
-		    if (Coords(bond->start)[0] == nodes_coords[i] &&
-			Coords(bond->start)[1] == nodes_coords[i+num_strings])   
-		    {
-			move_closed_loop_node(canopy_bdry,bond);
-			string_nodes[i] = FT_NodeOfPoint(intfc,bond->start);
-			FT_ScalarMemoryAlloc((POINTER*)&extra,
-					sizeof(AF_NODE_EXTRA));
-                	extra->af_node_type = STRING_NODE;
-                	string_nodes[i]->extra = (POINTER)extra;
-			break;
-		    }
-		}
-		continue;		
-	    }
-	    curve_bond_loop(canopy_bdry,bond)
-	    {
-		if (Coords(bond->start)[0] == nodes_coords[i] &&
-		    Coords(bond->start)[1] == nodes_coords[i+num_strings])
-		{
-		    split_curve(bond->start,bond,canopy_bdry,0,0,0,0);
-		    string_nodes[i] = FT_NodeOfPoint(intfc,bond->start);
-                    FT_ScalarMemoryAlloc((POINTER*)&extra,
-					sizeof(AF_NODE_EXTRA));
-                    extra->af_node_type = STRING_NODE;
-                    string_nodes[i]->extra = (POINTER)extra;
-                    break;
-		}
-	    }
-	    canopy_bdry = FT_CurveOfPoint(intfc,bond->start,&bond);
-	}
-	for (i = 0; i < num_strings; ++i)
-	{
-	    string_curves[i] = make_curve(0,0,string_nodes[i],nload);
-	    hsbdry_type(string_curves[i]) = STRING_HSBDRY;
-            spacing = separation(string_nodes[i]->posn,nload->posn,3);
-            for (j = 0; j < 3; ++j)
-                dir[j] = (Coords(nload->posn)[j] -
-                        Coords(string_nodes[i]->posn)[j])/spacing;
-            nb = (int)spacing/(0.3*h[0]);
-            spacing /= (double)nb;
-            bond = string_curves[i]->first;
-            for (j = 1; j < nb; ++j)
-            {
-                for (k = 0; k < 3; ++k)
-                    coords[k] = Coords(string_nodes[i]->posn)[k] +
-                                        j*dir[k]*spacing;
-                insert_point_in_bond(Point(coords),bond,string_curves[i]);
-                bond = bond->next;
-            }
-	}
-}	/* end InstallString */
+}	/* end sewSurface */
 
 static void GenerateCgalSurf(
 	Front *front,
