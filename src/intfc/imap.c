@@ -506,20 +506,212 @@ EXPORT void I_FoldSurface(
 *       be along existing curves with tolerance, else return NO.       *
 ***********************************************************************/
 
+static boolean find_sewing_segments(SURFACE*,double*,double*,BOND**,
+				BOND**,BOND**,BOND**,CURVE**,CURVE**);
+static boolean find_seg_start_and_end(CURVE*,ORIENTATION,double*,double*,
+				double*,BOND**,BOND**);
 EXPORT boolean I_SewSurface(
 	SURFACE *surf,
 	double *crds_start,
 	double *crds_end)
 {
+	BOND *bps,*bpe;
+	BOND *bns,*bne;
+	CURVE *pos_curve,*neg_curve;
+	boolean status;
+	BOND *b;
+
+	printf("Entering I_SewSurface()\n");
+	status = find_sewing_segments(surf,crds_start,crds_end,
+			&bps,&bpe,&bns,&bne,&pos_curve,&neg_curve);
+	printf("status = %d\n",status);
+	printf("bps = %d  bpe = %d  pos_curve = %d\n",bps,bpe,pos_curve);
+	printf("bns = %d  bne = %d  neg_curve = %d\n",bns,bne,neg_curve);
+	printf("Positive segment:\n");
+	if (bps == NULL)
+	{
+	    printf("bps = %d bpe = %d  bns = %d bne = %d\n",bps,bpe,bns,bns);
+	    clean_up(0);
+	}
+	printf("%f %f %f\n",Coords(bps->start)[0],Coords(bps->start)[1],
+					Coords(bps->start)[2]);
+	for (b = bps; b != bpe->next; b = b->next);
+	    printf("%f %f %f\n",Coords(b->end)[0],Coords(b->end)[1],
+					Coords(b->end)[2]);
+	printf("Negative segment:\n");
+	printf("%f %f %f\n",Coords(bns->end)[0],Coords(bns->end)[1],
+					Coords(bns->end)[2]);
+	for (b = bns; b != bne->prev; b = b->prev);
+	    printf("%f %f %f\n",Coords(b->start)[0],Coords(b->start)[1],
+					Coords(b->start)[2]);
+	clean_up(0);
+}	/* end I_SewSurface */
+
+static boolean find_sewing_segments(
+	SURFACE *surf,
+	double *crds_start,
+	double *crds_end,
+	BOND **bps,
+	BOND **bpe,
+	BOND **bns,
+	BOND **bne,
+	CURVE **pos_curve,
+	CURVE **neg_curve)
+{
+	int i;
 	CURVE **c;
 	double dir[MAXD];
 	double len;
-	int i;
+	boolean status;
+	BOND *bs,*be;
+
 	for (i = 0; i < 3; ++i)
 	    dir[i] = crds_end[i] - crds_start[i];
 	len = Mag3d(dir);
 	for (i = 0; i < 3; ++i) dir[i] /= len;
-	printf("dir = %f %f %f\n",dir[0],dir[1],dir[2]);
-	printf("Entering I_SewSurface()\n");
-	clean_up(0);
-}	/* end I_SewSurface */
+
+	*pos_curve = *neg_curve = NULL;
+	*bps = *bpe = *bns = *bne = NULL;
+	surf_neg_curve_loop(surf,c)
+	{
+	    status = find_seg_start_and_end(*c,POSITIVE_ORIENTATION,						dir,crds_start,crds_end,&bs,&be);
+	    if (status == YES)
+	    {
+		*bps = bs;
+		*bpe = be;
+		*pos_curve = *c;
+	    }
+	    status = find_seg_start_and_end(*c,NEGATIVE_ORIENTATION,						dir,crds_start,crds_end,&bs,&be);
+	    if (status == YES)
+	    {
+		*bns = bs;
+		*bne = be;
+		*neg_curve = *c;
+	    }
+	}
+	if (*pos_curve != NULL && *neg_curve != NULL)
+	    return YES;
+	surf_pos_curve_loop(surf,c)
+	{
+	    status = find_seg_start_and_end(*c,POSITIVE_ORIENTATION,						dir,crds_start,crds_end,&bs,&be);
+	    if (status == YES)
+	    {
+		*bps = bs;
+		*bpe = be;
+		*pos_curve = *c;
+	    }
+	    status = find_seg_start_and_end(*c,NEGATIVE_ORIENTATION,						dir,crds_start,crds_end,&bs,&be);
+	    if (status == YES)
+	    {
+		*bns = bs;
+		*bne = be;
+		*neg_curve = *c;
+	    }
+	}
+	if (*pos_curve != NULL && *neg_curve != NULL)
+	    return YES;
+	return NO;
+}	/* end find_sewing_segments */
+
+static boolean find_seg_start_and_end(
+	CURVE *curve,
+	ORIENTATION orient,
+	double *dir,
+	double *crds_start,
+	double *crds_end,
+	BOND **bs,
+	BOND **be)
+{
+	BOND *b,*start,*end;
+	int i,j,i_max;
+	double pv[MAXD],bv[MAXD],dir_max;
+	double *p;
+	double lambda,tol = 1.0e-5;
+	start = end = NULL;
+	p = crds_start;
+
+	dir_max = -1.0;
+	for (i = 0; i < 3; ++i)
+	{
+	    if (dir_max < dir[i])
+	    {
+		dir_max = dir[i];
+		i_max = i;
+	    }
+	}
+
+	switch (orient)
+	{
+	case POSITIVE_ORIENTATION:
+	    printf("positive loop:\n");
+	    for (b = curve->first; b != NULL; b = b->next)
+	    {
+		
+		dir_max = (Coords(b->end)[i_max] - Coords(b->start)[i_max])/
+				bond_length(b);
+		if (fabs(dir_max - dir[i_max]) > tol) 
+		{
+		    p = crds_start;
+		    continue;
+		}
+		lambda = (p[i_max] - Coords(b->start)[i_max])/
+			(Coords(b->end)[i_max] - Coords(b->start)[i_max]);
+		for (i = 0; i < 3; ++i)
+		{
+		    pv[i] = Coords(b->start)[i] + lambda*dir[i];
+		    if (fabs(pv[i] - p[i]) > tol) break;
+		}
+		if (i < 3)
+		{
+		    p = crds_start;
+		    continue;
+		}
+		if (start == NULL)
+		{
+		    start = b;
+		    p = crds_end;
+		}
+		else
+		{
+		    end = b;
+		    break;
+		}
+	    }
+	    print_bond(start);
+	    print_bond(end);
+	    clean_up(0);
+	    break;
+	case NEGATIVE_ORIENTATION:
+	    printf("negative loop:\n");
+	    for (b = curve->last; b != NULL; b = b->prev)
+	    {
+		for (i = 0; i < 3; ++i)
+		{
+		    if (fabs(dir[i]) < tol) continue;
+		    bv[i] = (Coords(b->start)[i] - Coords(b->end)[i])/
+				bond_length(b);
+		    pv[i] = (p[i] - Coords(b->end)[i])/bond_length(b);
+		    if (fabs(bv[i] - dir[i]) > tol ||
+		        pv[i]/bv[i] < 0.0 || pv[i]/bv[i] > 1.0)
+		    {
+		    	start = NULL;		/* restart */
+			p = crds_start;
+			break;
+		    }
+		}
+		if (i < 3) continue;
+		if (start == NULL)
+		{
+		    start = b;
+		    p = crds_end;
+		}
+		else
+		    end = b;
+		if (end != NULL) break;
+	    }
+	    break;
+	}
+	*bs = start;	*be = end;
+	if (start == NULL || end == NULL) return NO;
+	return YES;
+}	/* end find_seg_start_and_end */

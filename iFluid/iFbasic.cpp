@@ -3092,6 +3092,34 @@ void Incompress_Solver_Smooth_Basis::setReferencePressure()
 	}
 }	/* end computeFieldPointGrad */
 
+void Incompress_Solver_Smooth_Basis::PrintVelocity()
+{
+	PrintVelocity("u",field->vel[0]);
+	PrintVelocity("v",field->vel[1]);
+	PrintVelocity("p",field->pres);
+}
+
+void Incompress_Solver_Smooth_Basis::PrintVelocity(const char* varname,double* var)
+{
+	int i,j,k,index;
+	char filename[256];
+	sprintf(filename,"%s/%s-%f",OutName(front),varname,front->time);
+	FILE* outfile = fopen(filename,"w");
+	if(dim == 3)
+	   return;
+
+	for (j = jmin; j <= jmax; j++)
+	{
+	    for (i = imin; i <= imax; i++)
+	    {
+		index = d_index2d(i,j,top_gmax);
+		fprintf(outfile,"%f ",var[index]);
+	    }
+	    fprintf(outfile,"\n");
+	}
+	fclose(outfile);
+}
+
 extern int ifluid_find_state_at_crossing(
 	Front *front,
 	int *icoords,

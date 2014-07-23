@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <iFluid.h>
 #include <ifluid_basic.h>
 
+static void TG_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void kh_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void ambient_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
@@ -68,6 +69,7 @@ extern void setInitialIntfc(
         case TWO_FLUID_KH:
             initKHIntfc(front,level_func_pack,inname);
             break;
+	case TAYLOR_GREEN_VORTEX:
         case CHANNEL_FLOW:
 	    iFparams->m_comp1 = SOLID_COMP;
             initChannelFlow(front,level_func_pack,inname);
@@ -331,6 +333,9 @@ extern void init_fluid_state_func(
 	case TWO_FLUID_KH:
 	    l_cartesian->getInitialState = kh_state;
 	    break;
+	case TAYLOR_GREEN_VORTEX:
+            l_cartesian->getInitialState = TG_state;
+            break;
 	case RANDOM_FLOW:
 	    l_cartesian->getInitialState = random_state;
 	    break;
@@ -338,6 +343,39 @@ extern void init_fluid_state_func(
 	    l_cartesian->getInitialState = ambient_state;
 	}
 }	/* end init_fluid_state_func */
+
+static void TG_state(
+        COMPONENT comp,
+        double *coords,
+        IF_FIELD *field,
+        int index,
+        int dim,
+        IF_PARAMS *iFparams)
+{
+        int i;
+        double tcoords[MAXD], a[MAXD] = {2*PI, 2*PI, 2*PI}, A[MAXD] = {1., -1., 0.};
+        double **vel = field->vel;
+        switch (dim)
+        {
+            case 2:
+                for (i = 0; i < dim; i++)
+                    tcoords[i] = coords[i];
+                vel[0][index] = A[0]*sin(tcoords[0]) * cos(tcoords[1]);
+                vel[1][index] = A[1]*cos(tcoords[0]) * sin(tcoords[1]);
+                break;
+            case 3:
+                for (i = 0; i < dim; i++)
+                    tcoords[i] = a[i] * coords[i];
+                vel[0][index] = A[0]*cos(tcoords[0])*sin(tcoords[1])*sin(tcoords[2]);
+                vel[1][index] = A[1]*sin(tcoords[0])*cos(tcoords[1])*sin(tcoords[2]);
+                vel[2][index] = A[2]*sin(tcoords[0])*sin(tcoords[1])*cos(tcoords[2]);
+                break;
+            default:
+                printf("Unknown dim = %d\n",dim);
+                clean_up(ERROR);
+        }
+
+}
 
 static void kh_state(
 	COMPONENT comp,
@@ -428,6 +466,8 @@ extern void read_iF_prob_type(
 	    	*prob_type = TWO_FLUID_RT;
 	    else if (string[10] == 'K' || string[10] == 'k')
 	    	*prob_type = TWO_FLUID_KH;
+	    else if (string[7] == 'G' || string[7] == 'g')
+                *prob_type = TAYLOR_GREEN_VORTEX;
 	} 
 	else if (string[0] == 'F' || string[0] == 'f')
 	{

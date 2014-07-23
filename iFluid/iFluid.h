@@ -230,6 +230,8 @@ public:
 
 	//For debugging test
 	void solveTest(const char *msg);
+	void   PrintVelocity(const char*,double*);
+	void   PrintVelocity();
 
 	//User interface
 	virtual void setInitialCondition(void) = 0;

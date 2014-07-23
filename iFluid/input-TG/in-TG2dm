@@ -1,0 +1,44 @@
+Domain limit in 0-th dimension: 0 6.28 
+Domain limit in 1-th dimension: 0 6.28
+Computational grid: 128 128
+Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
+Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
+Lower boundary in 1-th dimension: PERIODIC_BOUNDARY
+Upper boundary in 1-th dimension: PERIODIC_BOUNDARY
+
+Max time: 5.0
+Max step: 10000
+Print interval: 0.1
+Movie frame interval: 0.2
+CFL factor: 0.75
+Redistribution interval: 5
+
+Problem type can be
+	TWO_FLUID_BUBBLE
+	TWO_FLUID_RT
+	TWO_FLUID_KH
+	FLUID_SOLID_CIRCLE
+	CHANNEL_FLOW
+Enter problem type: TAYLOR_GREEN_VORTEX 
+Projection type can be
+        SIMPLE
+        BELL_COLELLA
+        KIM_MOIN
+        PEROT_BOTELLA
+Enter advection order: 4 
+Enter projection type: SIMPLE
+Enter density and viscosity of the fluid: 1 0.01
+Enter yes to use eddy viscosity: yes
+Enter maximum distance for eddy viscosity: 0.1
+Enter gravity: 0.0 0.0
+
+Type y to make movie of pressure: y
+Type y to make movie of vorticity: y
+Type y to make movie of velocity: y
+
+Type y to make vector velocity field movie: y
+
+************Debugging options*****************
+
+Enter yes for debugging: no 
+Enter the debugging string: upwind 

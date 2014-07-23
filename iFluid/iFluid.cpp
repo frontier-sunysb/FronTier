@@ -250,6 +250,7 @@ static  void ifluid_driver(
 	    {
             	FT_Save(front,out_name);
 		l_cartesian->printFrontInteriorStates(out_name);
+		l_cartesian->PrintVelocity();
 	    }
             if (FT_IsMovieFrameTime(front))
 	    {
