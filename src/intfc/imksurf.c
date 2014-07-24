@@ -2248,11 +2248,11 @@ EXPORT  double cylinder_func(
 
         if(x > -h && x < h)
         {
-            arg = sqr(r) - sqr(z) - sqr(y);
+            arg = sqr(z) + sqr(y) - sqr(r);
         }
         else
         {
-            arg = -1;
+            arg = 1;
         }
         return arg;
 }	/*end cylinder_func*/

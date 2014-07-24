@@ -351,7 +351,7 @@ EXPORT void f_curve_propagate2d(
 	    wave_type(oldc) == ICE_PARTICLE_BOUNDARY)
         {
             /* Propagate center of mass */
-            int i,dim;
+/*            int i,dim;
             dim = fr->rect_grid->dim;
             for (i = 0; i < dim; ++i)
 	    {
@@ -360,7 +360,7 @@ EXPORT void f_curve_propagate2d(
                         dt*center_of_mass_velo(oldc)[i];
 	    }
 	    angular_velo(newc) = angular_velo(oldc);
-	    spherical_radius(newc) = spherical_radius(oldc);
+	    spherical_radius(newc) = spherical_radius(oldc);*/
         }
 	debug_print("f_curve_propagate","Leaving f_curve_propagate2d\n");
 }		/*end f_curve_propagate2d*/
