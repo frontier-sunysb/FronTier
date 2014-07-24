@@ -260,9 +260,9 @@ EXPORT boolean the_tri(TRI *tri)
 	double tol = 1.0e-5;	/* vertices coords must have at least */
 				/* five digits after decimal points */
 
-	double p[3][3] = {{6.68241,7.14907,16.0},
-			  {6.84599,7.11666,16.0},
-			  {6.73447,7.20114,16.0}};
+	double p[3][3] = {{5.5, 5.5, 13.84375},
+			  {5.5, 5.5, 13.9375},
+			  {5.5, 5.55205072317067039, 13.890625}};
 
 	/*return NO; */
 
@@ -331,6 +331,33 @@ EXPORT void print_tri_coords(TRI* tri)
 	    /*print_general_vector("p= ", Coords(p), 3, "\n"); */
 	}
 }	/* end print_tri_coords */
+
+EXPORT void print_bond_coords(BOND* bond)
+{
+	POINT *p;
+	int i,j;
+	int dim = Dimension(current_interface());
+
+	if (bond == NULL)
+	{
+	    printf("Null bond!\n");
+	    return;
+	}
+	else if (dim == 2)
+	{
+	    p = bond->start;
+	    printf("start: %f %f\n",Coords(p)[0],Coords(p)[1]);
+	    p = bond->end;
+	    printf("end  : %f %f\n",Coords(p)[0],Coords(p)[1]);
+	}
+	else if (dim == 3)
+	{
+	    p = bond->start;
+	    printf("start: %f %f %f\n",Coords(p)[0],Coords(p)[1],Coords(p)[2]);
+	    p = bond->end;
+	    printf("end  : %f %f %f\n",Coords(p)[0],Coords(p)[1],Coords(p)[2]);
+	}
+}	/* end print_bond_coords */
 
 EXPORT	boolean check_tri_and_neighbor(TRI *tri)
 {

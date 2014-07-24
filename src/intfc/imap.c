@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <intfc/int.h>		/* includes int.h, table.h */
 
 LOCAL boolean curve_of_boundary_hs(CURVE*);
+LOCAL void change_vertex_of_tris(POINT*,TRI*,POINT*);
 
 EXPORT	void I_MoveNodeToPoint(
 	POINT *pt,
@@ -507,9 +508,11 @@ EXPORT void I_FoldSurface(
 ***********************************************************************/
 
 static boolean find_sewing_segments(SURFACE*,double*,double*,BOND**,
-				BOND**,BOND**,BOND**,CURVE**,CURVE**);
+				BOND**,BOND**,BOND**);
 static boolean find_seg_start_and_end(CURVE*,ORIENTATION,double*,double*,
 				double*,BOND**,BOND**);
+static boolean merge_tris_on_bonds(BOND*,BOND*,BOND*,BOND*,SURFACE*);
+
 EXPORT boolean I_SewSurface(
 	SURFACE *surf,
 	double *crds_start,
@@ -517,35 +520,144 @@ EXPORT boolean I_SewSurface(
 {
 	BOND *bps,*bpe;
 	BOND *bns,*bne;
-	CURVE *pos_curve,*neg_curve;
 	boolean status;
 	BOND *b;
 
-	printf("Entering I_SewSurface()\n");
-	status = find_sewing_segments(surf,crds_start,crds_end,
-			&bps,&bpe,&bns,&bne,&pos_curve,&neg_curve);
-	printf("status = %d\n",status);
-	printf("bps = %d  bpe = %d  pos_curve = %d\n",bps,bpe,pos_curve);
-	printf("bns = %d  bne = %d  neg_curve = %d\n",bns,bne,neg_curve);
-	printf("Positive segment:\n");
-	if (bps == NULL)
+	if (debugging("sewing"))
+	    (void) printf("Entering I_SewSurface()\n");
+	status = find_sewing_segments(surf,crds_start,crds_end,&bps,&bpe,
+				&bns,&bne);
+	if (debugging("sewing"))
 	{
-	    printf("bps = %d bpe = %d  bns = %d bne = %d\n",bps,bpe,bns,bns);
-	    clean_up(0);
+	    (void) printf("find_sewing_segments status = %d\n",status);
+	    (void) printf("bps = %p  bpe = %p\n",(void*)bps,(void*)bpe);
+	    (void) printf("bns = %p  bne = %p\n",(void*)bns,(void*)bne);
+	    (void) printf("Positive segment:\n");
+	    (void) printf("%f %f %f\n",Coords(bps->start)[0],
+				Coords(bps->start)[1],Coords(bps->start)[2]);
+	    (void) printf("%f %f %f\n",Coords(bpe->end)[0],Coords(bpe->end)[1],
+				Coords(bpe->end)[2]);
+	    (void) printf("Negative segment:\n");
+	    (void) printf("%f %f %f\n",Coords(bns->end)[0],Coords(bns->end)[1],
+				Coords(bns->end)[2]);
+	    (void) printf("%f %f %f\n",Coords(bne->start)[0],
+				Coords(bne->start)[1],Coords(bne->start)[2]);
 	}
-	printf("%f %f %f\n",Coords(bps->start)[0],Coords(bps->start)[1],
-					Coords(bps->start)[2]);
-	for (b = bps; b != bpe->next; b = b->next);
-	    printf("%f %f %f\n",Coords(b->end)[0],Coords(b->end)[1],
-					Coords(b->end)[2]);
-	printf("Negative segment:\n");
-	printf("%f %f %f\n",Coords(bns->end)[0],Coords(bns->end)[1],
-					Coords(bns->end)[2]);
-	for (b = bns; b != bne->prev; b = b->prev);
-	    printf("%f %f %f\n",Coords(b->start)[0],Coords(b->start)[1],
-					Coords(b->start)[2]);
-	clean_up(0);
+	status = merge_tris_on_bonds(bps,bpe,bns,bne,surf);
+	if (debugging("sewing"))
+	{
+	    (void) printf("merge_tris_on_bonds status = %d\n",status);
+	}
+	if (debugging("sewing"))
+	{
+	    (void) printf("Leaving I_SewSurface()\n");
+	    (void) printf("Check consistency of interface:\n");
+	    if (consistent_interface(surf->interface))
+		(void) printf("Interface is consistent!\n");
+	}
 }	/* end I_SewSurface */
+
+static boolean merge_tris_on_bonds(
+	BOND *bps,
+	BOND *bpe,
+	BOND *bns,
+	BOND *bne,
+	SURFACE *surf)
+{
+	INTERFACE *intfc = surf->interface;
+	POINT *p,*ps,*pe;
+	CURVE **curves,*curve;
+	BOND *bp,*bn;
+	BOND *bps_prev,*bpe_next,*bns_next,*bne_prev;
+	CURVE *cp,*cps_prev,*cpe_next,*cn,*cns_next,*cne_prev;
+	NODE *nps,*npe,*nns,*nne;
+	int i,j;
+	POINT *pt_ps,*pt_pe,*pt_ns,*pt_ne;
+	TRI *trip,*trin;
+
+	bps_prev = bps->prev;
+	bpe_next = bpe->next;
+	bns_next = bns->next;
+	bne_prev = bne->prev;
+
+	p = bps->start;
+	curve = curve_of_bond(bps,intfc);
+	if (is_closed_curve(curve))
+	{
+	    move_closed_loop_node(curve,bps);
+	}
+	else
+	{
+	    curves = split_curve(p,bps,curve,NO_COMP,NO_COMP,NO_COMP,NO_COMP);
+	    curve = curves[1];
+	}
+	p = bpe->end;
+	curves = split_curve(p,bpe,curve,NO_COMP,NO_COMP,NO_COMP,NO_COMP);
+	cp = curves[0];
+
+	p = bns->end;
+	curve = curve_of_bond(bns,intfc);
+	curves = split_curve(p,bns,curve,NO_COMP,NO_COMP,NO_COMP,NO_COMP);
+	curve = curves[0];
+	p = bne->start;
+	curves = split_curve(p,bne,curve,NO_COMP,NO_COMP,NO_COMP,NO_COMP);
+	cn = curves[1];
+
+	for (bp = bps, bn = bns; bp != NULL; bp = bp->next, bn = bn->prev)
+	{
+	    trip = (*Btris(bp))->tri;
+	    trin = (*Btris(bn))->tri;
+	    pt_ps = bp->start;
+	    pt_pe = bp->end;
+	    pt_ns = bn->end;
+	    pt_ne = bn->start;
+	    change_vertex_of_tris(pt_ps,trin,pt_ns);
+	    if (bp->next == NULL)
+	    	change_vertex_of_tris(pt_pe,trin,pt_ne);
+	    else
+		Boundary_point(pt_pe) = NO;
+	}
+	for (bp = bps, bn = bns; bp != NULL; bp = bp->next, bn = bn->prev)
+	{
+	    trip = (*Btris(bp))->tri;
+	    trin = (*Btris(bn))->tri;
+	    for (i = 0; i < 3; ++i)
+	    for (j = 0; j < 3; ++j)
+	    {
+		if (Point_of_tri(trip)[i] == Point_of_tri(trin)[(j+1)%3] &&
+		    Point_of_tri(trip)[(i+1)%3] == Point_of_tri(trin)[j])
+		{
+		    Tri_on_side(trip,i) = trin;
+		    Tri_on_side(trin,j) = trip;
+		    set_side_bdry(Boundary_tri(trip),i,NO);
+		    set_side_bdry(Boundary_tri(trin),j,NO);
+		}
+	    }
+	}
+	cps_prev = curve_of_bond(bps_prev,intfc);
+	cpe_next = curve_of_bond(bpe_next,intfc);
+	cns_next = curve_of_bond(bns_next,intfc);
+	cne_prev = curve_of_bond(bne_prev,intfc);
+	nps = cps_prev->end;
+	npe = cpe_next->start;
+	nns = cns_next->start;
+	nne = cne_prev->end;
+
+	change_node_of_curve(cns_next,POSITIVE_ORIENTATION,nps);
+	change_node_of_curve(cne_prev,NEGATIVE_ORIENTATION,npe);
+	delete_curve(cp);
+	delete_curve(cn);
+	delete_node(nns);
+	delete_node(nne);
+
+	cps_prev = join_curves(cps_prev,cns_next,NO_COMP,NO_COMP,NULL);
+	cne_prev = join_curves(cne_prev,cpe_next,NO_COMP,NO_COMP,NULL);
+	delete_node(nps);
+	delete_node(npe);
+
+	return YES;
+}	/* end merge_tris_on_bonds */
+	
 
 static boolean find_sewing_segments(
 	SURFACE *surf,
@@ -554,15 +666,13 @@ static boolean find_sewing_segments(
 	BOND **bps,
 	BOND **bpe,
 	BOND **bns,
-	BOND **bne,
-	CURVE **pos_curve,
-	CURVE **neg_curve)
+	BOND **bne)
 {
 	int i;
 	CURVE **c;
 	double dir[MAXD];
 	double len;
-	boolean status;
+	boolean status,pos_status,neg_status;
 	BOND *bs,*be;
 
 	for (i = 0; i < 3; ++i)
@@ -570,8 +680,8 @@ static boolean find_sewing_segments(
 	len = Mag3d(dir);
 	for (i = 0; i < 3; ++i) dir[i] /= len;
 
-	*pos_curve = *neg_curve = NULL;
 	*bps = *bpe = *bns = *bne = NULL;
+	pos_status = neg_status = NO;
 	surf_neg_curve_loop(surf,c)
 	{
 	    status = find_seg_start_and_end(*c,POSITIVE_ORIENTATION,						dir,crds_start,crds_end,&bs,&be);
@@ -579,17 +689,17 @@ static boolean find_sewing_segments(
 	    {
 		*bps = bs;
 		*bpe = be;
-		*pos_curve = *c;
+		pos_status = YES;
 	    }
 	    status = find_seg_start_and_end(*c,NEGATIVE_ORIENTATION,						dir,crds_start,crds_end,&bs,&be);
 	    if (status == YES)
 	    {
 		*bns = bs;
 		*bne = be;
-		*neg_curve = *c;
+		neg_status = YES;
 	    }
 	}
-	if (*pos_curve != NULL && *neg_curve != NULL)
+	if (pos_status == YES && neg_status == YES)
 	    return YES;
 	surf_pos_curve_loop(surf,c)
 	{
@@ -598,17 +708,17 @@ static boolean find_sewing_segments(
 	    {
 		*bps = bs;
 		*bpe = be;
-		*pos_curve = *c;
+		pos_status = YES;
 	    }
 	    status = find_seg_start_and_end(*c,NEGATIVE_ORIENTATION,						dir,crds_start,crds_end,&bs,&be);
 	    if (status == YES)
 	    {
 		*bns = bs;
 		*bne = be;
-		*neg_curve = *c;
+		neg_status = YES;
 	    }
 	}
-	if (*pos_curve != NULL && *neg_curve != NULL)
+	if (pos_status == YES && neg_status == YES)
 	    return YES;
 	return NO;
 }	/* end find_sewing_segments */
@@ -626,14 +736,14 @@ static boolean find_seg_start_and_end(
 	int i,j,i_max;
 	double pv[MAXD],bv[MAXD],dir_max;
 	double *p;
-	double lambda,tol = 1.0e-5;
+	double lambda,tol = 1.0e-8;
 	start = end = NULL;
 	p = crds_start;
 
-	dir_max = -1.0;
+	dir_max = 0.0;
 	for (i = 0; i < 3; ++i)
 	{
-	    if (dir_max < dir[i])
+	    if (fabs(dir_max) < fabs(dir[i]))
 	    {
 		dir_max = dir[i];
 		i_max = i;
@@ -643,10 +753,8 @@ static boolean find_seg_start_and_end(
 	switch (orient)
 	{
 	case POSITIVE_ORIENTATION:
-	    printf("positive loop:\n");
 	    for (b = curve->first; b != NULL; b = b->next)
 	    {
-		
 		dir_max = (Coords(b->end)[i_max] - Coords(b->start)[i_max])/
 				bond_length(b);
 		if (fabs(dir_max - dir[i_max]) > tol) 
@@ -656,9 +764,11 @@ static boolean find_seg_start_and_end(
 		}
 		lambda = (p[i_max] - Coords(b->start)[i_max])/
 			(Coords(b->end)[i_max] - Coords(b->start)[i_max]);
+		if (lambda < 0.0 || lambda > 1.0) continue;
 		for (i = 0; i < 3; ++i)
 		{
-		    pv[i] = Coords(b->start)[i] + lambda*dir[i];
+		    pv[i] = lambda*Coords(b->end)[i] + 
+				(1.0 - lambda)*Coords(b->start)[i];
 		    if (fabs(pv[i] - p[i]) > tol) break;
 		}
 		if (i < 3)
@@ -677,37 +787,41 @@ static boolean find_seg_start_and_end(
 		    break;
 		}
 	    }
-	    print_bond(start);
-	    print_bond(end);
-	    clean_up(0);
 	    break;
 	case NEGATIVE_ORIENTATION:
-	    printf("negative loop:\n");
 	    for (b = curve->last; b != NULL; b = b->prev)
 	    {
+		dir_max = (Coords(b->start)[i_max] - Coords(b->end)[i_max])/
+				bond_length(b);
+		if (fabs(dir_max - dir[i_max]) > tol) 
+		{
+		    p = crds_start;
+		    continue;
+		}
+		lambda = (p[i_max] - Coords(b->end)[i_max])/
+			(Coords(b->start)[i_max] - Coords(b->end)[i_max]);
+		if (lambda < 0.0 || lambda > 1.0) continue;
 		for (i = 0; i < 3; ++i)
 		{
-		    if (fabs(dir[i]) < tol) continue;
-		    bv[i] = (Coords(b->start)[i] - Coords(b->end)[i])/
-				bond_length(b);
-		    pv[i] = (p[i] - Coords(b->end)[i])/bond_length(b);
-		    if (fabs(bv[i] - dir[i]) > tol ||
-		        pv[i]/bv[i] < 0.0 || pv[i]/bv[i] > 1.0)
-		    {
-		    	start = NULL;		/* restart */
-			p = crds_start;
-			break;
-		    }
+		    pv[i] = lambda*Coords(b->start)[i] + 
+				(1.0 - lambda)*Coords(b->end)[i];
+		    if (fabs(pv[i] - p[i]) > tol) break;
 		}
-		if (i < 3) continue;
+		if (i < 3)
+		{
+		    p = crds_start;
+		    continue;
+		}
 		if (start == NULL)
 		{
 		    start = b;
 		    p = crds_end;
 		}
 		else
+		{
 		    end = b;
-		if (end != NULL) break;
+		    break;
+		}
 	    }
 	    break;
 	}
@@ -715,3 +829,22 @@ static boolean find_seg_start_and_end(
 	if (start == NULL || end == NULL) return NO;
 	return YES;
 }	/* end find_seg_start_and_end */
+
+LOCAL void change_vertex_of_tris(
+	POINT *pnew,
+	TRI *tri,
+	POINT *pold)
+{
+	int i,j,nt;
+	TRI **tris;
+
+	nt = set_tri_list_around_point(pold,tri,&tris,pold->interface);
+	for (i = 0; i < nt; ++i)
+	{
+	    for (j = 0; j < 3; ++j)
+	    {
+		if (Point_of_tri(tris[i])[j] == pold)
+		    Point_of_tri(tris[i])[j] = pnew;
+	    }
+	}
+}	/* end change_vertex_of_tris */

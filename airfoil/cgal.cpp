@@ -992,6 +992,9 @@ static void sewSurface(
 	char string[200];
 	int i,num_stitches;
 
+	if (debugging("sewing"))
+	    (void) printf("Entering  sewSurface()\n");
+
 	if (CursorAfterStringOpt(infile,
             "Entering yes to sew surface:"))
         {
@@ -1003,7 +1006,7 @@ static void sewSurface(
         else
             return;
 
-        (void) printf("Stitches must be along existing curves");
+        (void) printf("Stitches must be along existing curves\n");
 	CursorAfterString(infile,"Enter number of sewing stitches: ");
         fscanf(infile,"%d",&num_stitches);
         (void) printf("%d\n",num_stitches);
@@ -1020,6 +1023,10 @@ static void sewSurface(
             fscanf(infile,"%lf %lf %lf",crds_end,crds_end+1,crds_end+2);
             (void) printf("%f %f %f\n",crds_end[0],crds_end[1],crds_end[2]);
 	    I_SewSurface(surf,crds_start,crds_end);
+	}
+	if (debugging("sewing"))
+	{
+	    (void) printf("Leaving sewSurface()\n");
 	}
 }	/* end sewSurface */
 
