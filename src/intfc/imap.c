@@ -608,12 +608,14 @@ static boolean merge_tris_on_bonds(
 	    trip = (*Btris(bp))->tri;
 	    trin = (*Btris(bn))->tri;
 	    pt_ps = bp->start;
-	    pt_pe = bp->end;
 	    pt_ns = bn->end;
+	    pt_pe = bp->end;
 	    pt_ne = bn->start;
 	    change_vertex_of_tris(pt_ps,trin,pt_ns);
 	    if (bp->next == NULL)
+	    {
 	    	change_vertex_of_tris(pt_pe,trin,pt_ne);
+	    }
 	    else
 		Boundary_point(pt_pe) = NO;
 	}
@@ -645,6 +647,14 @@ static boolean merge_tris_on_bonds(
 
 	change_node_of_curve(cns_next,POSITIVE_ORIENTATION,nps);
 	change_node_of_curve(cne_prev,NEGATIVE_ORIENTATION,npe);
+
+	trin = (*Btris(bns_next))->tri;
+	delete_from_pointers(*Btris(bns_next),&Btris(bns_next));
+	link_tri_to_bond(NULL,trin,surf,bns_next,cns_next);
+	trin = (*Btris(bne_prev))->tri;
+	delete_from_pointers(*Btris(bne_prev),&Btris(bne_prev));
+	link_tri_to_bond(NULL,trin,surf,bne_prev,cne_prev);
+
 	delete_curve(cp);
 	delete_curve(cn);
 	delete_node(nns);

@@ -57,9 +57,10 @@ static void linkCurveTriBond(CURVE*,SURFACE*);
 static bool ptinbox(double *c, double *l, double *u);
 static bool ptoutcircle(double*,double*,double);
 static void foldSurface(FILE*,SURFACE*);
-static void sewSurface(FILE*,SURFACE*);
 static void findStringNodePoints(SURFACE*,double*,POINT**,int,CURVE**);
 static void installString(Front*,SURFACE*,CURVE*,POINT**,int);
+static void resetStringNodePoints(SURFACE*,POINT**,int*,CURVE**);
+static boolean sewSurface(FILE*,SURFACE*);
 
 extern void CgalCanopySurface(
 	FILE *infile,
@@ -927,7 +928,10 @@ static void CgalCross(
 	findStringNodePoints(*surf,out_nodes_coords,string_node_pts,
 				num_strings,&cbdry);
 	foldSurface(infile,*surf);
-	sewSurface(infile,*surf);
+	if (sewSurface(infile,*surf))
+	{
+	    resetStringNodePoints(*surf,string_node_pts,&num_strings,&cbdry);
+	}
 	installString(front,*surf,cbdry,string_node_pts,num_strings);
 	FT_FreeThese(1,string_node_pts);
 }	/* end CgalCross */
@@ -984,7 +988,7 @@ static void foldSurface(
 	}
 }	/* end foldSurface */
 
-static void sewSurface(
+static boolean sewSurface(
 	FILE *infile,
 	SURFACE *surf)
 {
@@ -1001,10 +1005,10 @@ static void sewSurface(
             fscanf(infile,"%s",string);
             (void) printf("%s\n",string);
             if (string[0] != 'y' && string[0] != 'Y')
-                return;
+                return NO;
         }
         else
-            return;
+            return NO;
 
         (void) printf("Stitches must be along existing curves\n");
 	CursorAfterString(infile,"Enter number of sewing stitches: ");
@@ -1028,6 +1032,7 @@ static void sewSurface(
 	{
 	    (void) printf("Leaving sewSurface()\n");
 	}
+	return YES;
 }	/* end sewSurface */
 
 static void GenerateCgalSurf(
@@ -1339,3 +1344,85 @@ static void installString(
             }
 	}
 }	/* end installString */
+
+static void resetStringNodePoints(
+	SURFACE *surf,
+	POINT **string_node_pts,
+	int *num_strings,
+	CURVE **cbdry)
+{
+	CURVE *canopy_bdry = NULL;
+	CURVE **c;
+	BOND *bond;
+	int i,j,nv;
+	boolean node_found;
+
+	nv = *num_strings;
+	if (debugging("sewing"))
+	{
+	    (void) printf("Entering resetStringNodePoints()\n");
+	    (void) printf("nv = %d\n",nv);
+	}
+	surf_pos_curve_loop(surf,c)
+	{
+	    if (canopy_bdry != NULL)
+		break;
+	    curve_bond_loop(*c,bond)
+	    {
+		for (i = 0; i < nv; ++i)
+		{
+		    if (bond->start == string_node_pts[i])
+		    {
+	    		canopy_bdry = *c; 
+	    		break;
+		    }	
+		    if (canopy_bdry != NULL)
+			break;
+		}
+	    }
+	}
+	surf_neg_curve_loop(surf,c)
+	{
+	    if (canopy_bdry != NULL)
+		break;
+	    curve_bond_loop(*c,bond)
+	    {
+		for (i = 0; i < nv; ++i)
+		{
+		    if (bond->start == string_node_pts[i])
+		    {
+	    		canopy_bdry = *c; 
+	    		break;
+		    }	
+		    if (canopy_bdry != NULL)
+			break;
+		}
+	    }
+	}
+
+	for (i = 0; i < nv; ++i)
+	{
+	    node_found = NO;
+	    curve_bond_loop(canopy_bdry,bond)
+	    {
+		if (bond->start == string_node_pts[i])
+		    node_found = YES;
+	    }
+	    if (canopy_bdry->last->end == string_node_pts[i])
+		node_found = YES;
+	    if (!node_found)
+	    {
+		for (j = i; j < nv-1; ++j)
+		    string_node_pts[i] = string_node_pts[i+1];
+		nv--;
+	    }
+	}
+	*num_strings = nv;
+	*cbdry = canopy_bdry;
+	if (debugging("sewing"))
+	{
+	    (void) printf("Leaving resetStringNodePoints()\n");
+	    (void) printf("nv = %d\n",nv);
+	}
+}	/* end resetStringNodePoints */
+
