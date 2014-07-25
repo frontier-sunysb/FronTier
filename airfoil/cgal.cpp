@@ -1413,7 +1413,7 @@ static void resetStringNodePoints(
 	    if (!node_found)
 	    {
 		for (j = i; j < nv-1; ++j)
-		    string_node_pts[i] = string_node_pts[i+1];
+		    string_node_pts[j] = string_node_pts[j+1];
 		nv--;
 	    }
 	}
