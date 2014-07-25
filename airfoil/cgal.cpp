@@ -60,6 +60,9 @@ static void foldSurface(FILE*,SURFACE*);
 static void findStringNodePoints(SURFACE*,double*,POINT**,int,CURVE**);
 static void installString(Front*,SURFACE*,CURVE*,POINT**,int);
 static void resetStringNodePoints(SURFACE*,POINT**,int*,CURVE**);
+static void setCurveZeroLength(CURVE*,double);
+static void setSurfZeroMesh(SURFACE*);
+static void setMonoCompBdryZeroLength(SURFACE*);
 static boolean sewSurface(FILE*,SURFACE*);
 
 extern void CgalCanopySurface(
@@ -316,6 +319,7 @@ static void CgalCircle(
 	GenerateCgalSurf(front,surf,&cdt,flag,height);
         wave_type(*surf) = ELASTIC_BOUNDARY;
         FT_InstallSurfEdge(*surf,MONO_COMP_HSBDRY);
+	setMonoCompBdryZeroLength(*surf);
 	findStringNodePoints(*surf,out_nodes_coords,string_node_pts,
                                 num_strings,&cbdry);
 	installString(front,*surf,cbdry,string_node_pts,num_strings);
@@ -354,6 +358,8 @@ static void InstallInCurve(
 	int i,j;
 	NODE *node;
 	AF_NODE_EXTRA *extra;
+	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
+	double len_fac = af_params->gore_len_fac;
 
 	p = NULL;
 	surf_tri_loop(surf,tri)
@@ -418,6 +424,7 @@ static void InstallInCurve(
 	} while(p != p_end);
 
 	linkCurveTriBond(vent_curve,surf);
+	setCurveZeroLength(vent_curve,len_fac);
 }	/* end InstallInCurve */
 
 static void linkCurveTriBond(
@@ -483,6 +490,8 @@ static void InstallGore(
 	double dir[3],dir_tmp[3];
 	POINT *p_tmp[2];
 	int i,j,k,l;
+	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
+	double len_fac = af_params->gore_len_fac;
 
         FT_VectorMemoryAlloc((POINTER*)&gore_curves,num_gores,sizeof(CURVE*));
 
@@ -543,6 +552,7 @@ static void InstallGore(
 		}
 	    }
 	    linkCurveTriBond(gore_curves[i],surf);
+	    setCurveZeroLength(gore_curves[i],len_fac);
 	}
 }	/* end InstallGore */
 
@@ -773,6 +783,7 @@ static void CgalEllipse(
 	GenerateCgalSurf(front,surf,&cdt,flag,height);
         wave_type(*surf) = ELASTIC_BOUNDARY;
         FT_InstallSurfEdge(*surf,MONO_COMP_HSBDRY);
+	setMonoCompBdryZeroLength(*surf);
 	findStringNodePoints(*surf,out_nodes_coords,string_node_pts,
                                 num_strings,&cbdry);
 	installString(front,*surf,cbdry,string_node_pts,num_strings);
@@ -925,6 +936,7 @@ static void CgalCross(
 	GenerateCgalSurf(front,surf,&cdt,flag,height);
         wave_type(*surf) = ELASTIC_BOUNDARY;
         FT_InstallSurfEdge(*surf,MONO_COMP_HSBDRY);
+	setMonoCompBdryZeroLength(*surf);
 	findStringNodePoints(*surf,out_nodes_coords,string_node_pts,
 				num_strings,&cbdry);
 	foldSurface(infile,*surf);
@@ -1168,6 +1180,7 @@ static void GenerateCgalSurf(
         reset_intfc_num_points(newsurf->interface);
 
 	*surf = newsurf;	
+	setSurfZeroMesh(newsurf);
 	set_current_interface(sav_intfc);
 }	/* end GenerateCgalSurf */
 
@@ -1267,6 +1280,7 @@ static void installString(
 	int nb;
 	int i, j,k;
 	FILE *infile = fopen(InName(front),"r");
+	double length,len_fac;
 
         CursorAfterString(infile,"Enter yes to attach strings to canopy:");
         fscanf(infile,"%s",string);
@@ -1323,6 +1337,14 @@ static void installString(
 	    }
 	    canopy_bdry = FT_CurveOfPoint(intfc,bond->start,&bond);
 	}
+	length = HUGE;
+	for (i = 0; i < num_strings; ++i)
+	{
+	    double sep = separation(string_nodes[i]->posn,nload->posn,3);
+	    if (length > sep)
+		length = sep;
+	}
+	nb = (int)length/(0.3*h[0]);
 	for (i = 0; i < num_strings; ++i)
 	{
 	    string_curves[i] = make_curve(0,0,string_nodes[i],nload);
@@ -1331,7 +1353,7 @@ static void installString(
             for (j = 0; j < 3; ++j)
                 dir[j] = (Coords(nload->posn)[j] -
                         Coords(string_nodes[i]->posn)[j])/spacing;
-            nb = (int)spacing/(0.3*h[0]);
+	    len_fac = length/spacing;
             spacing /= (double)nb;
             bond = string_curves[i]->first;
             for (j = 1; j < nb; ++j)
@@ -1342,6 +1364,7 @@ static void installString(
                 insert_point_in_bond(Point(coords),bond,string_curves[i]);
                 bond = bond->next;
             }
+	    setCurveZeroLength(string_curves[i],len_fac);
 	}
 }	/* end installString */
 
@@ -1426,3 +1449,109 @@ static void resetStringNodePoints(
 	}
 }	/* end resetStringNodePoints */
 
+static void setSurfZeroMesh(
+	SURFACE *surf)
+{
+	TRI *t;
+	int i,j;
+	double total_num_sides;
+	double max_len,min_len,ave_len,len;
+
+	if (debugging("zero_mesh"))
+	    (void) printf("Entering setSurfZeroMesh()\n");
+
+	ave_len = 0.0;
+	max_len = 0.0;
+	min_len = HUGE;
+	total_num_sides = 0.0;
+
+	surf_tri_loop(surf,t)
+	{
+	    for (i = 0; i < 3; ++i)
+	    {
+		t->side_length0[i] = separation(Point_of_tri(t)[i],
+			Point_of_tri(t)[(i+1)%3],3);
+		for (j = 0; j < 3; ++j)
+		{
+		    t->side_dir0[i][j] = 
+				(Coords(Point_of_tri(t)[(i+1)%3])[j] -
+				 Coords(Point_of_tri(t)[i])[j])/
+				 t->side_length0[i];
+		}
+		if (max_len < t->side_length0[i]) 
+		    max_len = t->side_length0[i];
+		if (min_len > t->side_length0[i])
+		    min_len = t->side_length0[i];
+		ave_len += t->side_length0[i];
+		total_num_sides += 1.0;
+	    }
+	}
+	never_redistribute(Hyper_surf(surf)) = YES;
+
+	if (debugging("zero_mesh"))
+	{
+	    (void) printf("Leaving setSurfZeroMesh()\n");
+	    (void) printf("Equilibrium length:\n");
+	    (void) printf("min_len = %16.12f\n",min_len);
+	    (void) printf("max_len = %16.12f\n",max_len);
+	    (void) printf("ave_len = %16.12f\n",ave_len/total_num_sides);
+	}
+}	/* end setSurfZeroMesh */
+
+static void setCurveZeroLength(
+	CURVE *curve,
+	double len_fac)
+{
+	int i,j;
+	double max_len,min_len,ave_len,len;
+	double total_num_sides;
+	BOND *b;
+
+	if (debugging("zero_mesh"))
+	    (void) printf("Entering setCurveZeroLength()\n");
+
+	ave_len = 0.0;
+        max_len = 0.0;
+        min_len = HUGE;
+        total_num_sides = 0.0;
+
+	curve_bond_loop(curve,b)
+	{
+	    set_bond_length(b,3);
+	    b->length0 = len_fac*bond_length(b);
+	    for (i = 0; i < 3; ++i)
+		b->dir0[i] = (Coords(b->end)[i] - Coords(b->start)[i])/
+					b->length0;	
+	    if (max_len < b->length0) max_len = b->length0;
+	    if (min_len > b->length0) min_len = b->length0;
+	    ave_len += b->length0;
+	    total_num_sides += 1.0;
+	}
+	if (debugging("zero_mesh"))
+	{
+	    (void) printf("Leaving setCurveZeroLength()\n");
+	    (void) printf("Equilibrium length:\n");
+	    (void) printf("min_len = %16.12f\n",min_len);
+	    (void) printf("max_len = %16.12f\n",max_len);
+	    (void) printf("ave_len = %16.12f\n",ave_len/total_num_sides);
+	}
+}	/* end setCurveZeroLength */
+
+static void setMonoCompBdryZeroLength(
+	SURFACE *surf)
+{
+	CURVE **c;
+
+	surf_pos_curve_loop(surf,c)
+	{
+	    if (hsbdry_type(*c) != MONO_COMP_HSBDRY)
+		continue;
+	    setCurveZeroLength(*c,1.0);
+	}
+	surf_neg_curve_loop(surf,c)
+	{
+	    if (hsbdry_type(*c) != MONO_COMP_HSBDRY)
+		continue;
+	    setCurveZeroLength(*c,1.0);
+	}
+}	/* end setMonoCompBdryZeroLength */

@@ -155,10 +155,12 @@ int main(int argc, char **argv)
             l_cartesian->setInitialCondition();
 	}
 
+	/*
 	if (!RestartRun)
 	{
 	    set_equilibrium_mesh(&front);
 	}
+	*/
 	FT_SetGlobalIndex(&front);
         l_cartesian->initMovieVariables();
 	initMovieStress(in_name,&front);
