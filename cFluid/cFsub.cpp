@@ -1117,8 +1117,7 @@ static	void cfluid_compute_force_and_torque2d(
 	    	for (i = 0; i < dim; ++i)
 	    	{
 		    f[i] = pres*area[i];
-	    	    rr[i] = 0.5*(Coords(b->start)[i] + Coords(b->end)[i])
-				- rotation_center(curve)[i];
+	    	    rr[i] = posn[i] - rotation_center(curve)[i];
 	    	    force[i] += f[i];
 	    	}
 	    	Cross2d(rr,f,t);

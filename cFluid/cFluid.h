@@ -33,7 +33,10 @@ enum _PROB_TYPE {
 	FLUID_CRYSTAL,
 	ONED_BLAST,
 	ONED_SSINE,
-	ONED_ASINE
+	ONED_ASINE,
+        FLUID_SOLID_RECT,
+        FLUID_SOLID_TRIANGLE,
+        FLUID_SOLID_CYLINDER
 };
 typedef enum _PROB_TYPE PROB_TYPE;
 
@@ -379,6 +382,9 @@ private:
 	void initBlastWaveStates();
 	void initShockSineWaveStates();
 	void initAccuracySineWaveStates();
+	void initRectPlaneIntfc(LEVEL_FUNC_PACK*,char*);
+	void initTrianglePlaneIntfc(LEVEL_FUNC_PACK*,char*);
+	void initCylinderPlaneIntfc(LEVEL_FUNC_PACK*,char*);
 	void setRayleiTaylorParams(char*);
 	void setRichtmyerMeshkovParams(char*);
 	void setBubbleParams(char*);
@@ -519,3 +525,6 @@ private:
         int imin,jmin,kmin;
         int imax,jmax,kmax;
 };
+
+extern void prompt_for_rigid_body_params(int,char*,RG_PARAMS*);
+extern void set_rgbody_params(RG_PARAMS,HYPER_SURF*);

@@ -35,6 +35,7 @@ static void gas_driver(Front*,G_CARTESIAN&);
 static int g_cartesian_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
                         HYPER_SURF*,double*);
 static boolean compare_with_base_data(Front *front);
+static void rgb_init(Front*,RG_PARAMS);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -50,6 +51,7 @@ int main(int argc, char **argv)
 	static VELO_FUNC_PACK velo_func_pack;
 	static EQN_PARAMS eqn_params;
 	int i;
+	RG_PARAMS rgb_params;
 
 	G_CARTESIAN	g_cartesian(front);
 
@@ -111,7 +113,7 @@ int main(int argc, char **argv)
 	    g_cartesian.setInitialIntfc(&level_func_pack,in_name);
 	    if (f_basic.dim == 3) level_func_pack.set_3d_bdry = YES;
 	    FT_InitIntfc(&front,&level_func_pack);
-
+	    rgb_init(&front,rgb_params);
 	    FT_PromptSetMixedTypeBoundary2d(in_name,&front);
 	    if (debugging("trace"))
 	    	printf("Passed g_cartesian.setProbParams()\n");
@@ -317,3 +319,36 @@ static boolean compare_with_base_data(Front *front)
 	EQN_PARAMS *eqn_params = (EQN_PARAMS*)front->extra1;
 	return eqn_params->use_base_soln;
 }	/* end compare_with_base_data */
+
+static void rgb_init(Front *front,
+	RG_PARAMS rgb_params)
+{
+	CURVE **c;
+	SURFACE **s;
+
+	if (FT_Dimension() == 1) return;
+	else if (FT_Dimension() == 2)
+	{
+	    for (c = front->interf->curves; c && *c; ++c)
+	    {
+		if (wave_type(*c) == MOVABLE_BODY_BOUNDARY)
+		{
+		    prompt_for_rigid_body_params(front->f_basic->dim,front->f_basic->in_name,&rgb_params);
+		    body_index(*c) = 0;
+		    set_rgbody_params(rgb_params,Hyper_surf(*c));
+		}
+	    }
+	}
+	else
+	{
+	    for (s = front->interf->surfaces; s && *s; ++s)
+	    {
+		if (wave_type(*s) == MOVABLE_BODY_BOUNDARY)
+		{
+		    prompt_for_rigid_body_params(front->f_basic->dim,front->f_basic->in_name,&rgb_params);
+		    body_index(*s) = 0;
+		    set_rgbody_params(rgb_params,Hyper_surf(*s));
+		}
+	    }
+	}
+} /* end rgb_init */

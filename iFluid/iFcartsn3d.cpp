@@ -221,6 +221,8 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
 	    (void) printf("Ave gradient phi = %f\n",ave_grad_phi/(imax-imin+1)
 			/(jmax-jmin+1)/(kmax-kmin+1));
 	}
+        extractFlowThroughVelocity();
+
 	if (debugging("check_div"))
 	{
 	    checkVelocityDiv("After computeNewVelocity3d()");
@@ -719,6 +721,10 @@ void Incompress_Solver_Smooth_3D_Cartesian::
                     vel[l][index] = array[index];
             }
         }
+
+        max_speed = 0.0;
+        vmin[0] = vmin[1] = vmin[2] = HUGE;
+        vmax[0] = vmax[1] = vmax[2] = -HUGE;
 	for (k = kmin; k <= kmax; k++)
         for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
@@ -1063,6 +1069,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 		rhs += m_dt*source[l];
 		rhs += m_dt*f_surf[l][index];
 		//rhs -= m_dt*grad_q[l][index]/rho;
+		/* need to execute the above line in PmI and PmII*/
             	solver.Set_A(I,I,aII);
 
 		solver.Set_b(I, rhs);
@@ -1162,8 +1169,8 @@ void Incompress_Solver_Smooth_3D_Cartesian::computePressurePmI(void)
         for (i = 0; i <= top_gmax[0]; i++)
 	{
             index = d_index3d(i,j,k,top_gmax);
-            //pres[index] += phi[index];
-            pres[index] = phi[index];
+            pres[index] += phi[index];
+            //pres[index] = phi[index];
 	    q[index] = pres[index];
 	    if (i < imin || i > imax || j < jmin || j > jmax || 
 		k < kmin || k > kmax)
@@ -1212,7 +1219,8 @@ void Incompress_Solver_Smooth_3D_Cartesian::computePressurePmII(void)
 	{
             index = d_index3d(i,j,k,top_gmax);
             mu0 = 0.5*field->mu[index];
-            pres[index] += phi[index] - accum_dt*mu0*div_U[index];
+            pres[index] += phi[index] - mu0*div_U[index];
+            //pres[index] += phi[index] - accum_dt*mu0*div_U[index];
 	    q[index] = pres[index];
 	    if (min_pressure > pres[index])
 		min_pressure = pres[index];
@@ -1240,8 +1248,10 @@ void Incompress_Solver_Smooth_3D_Cartesian::computePressurePmIII(void)
 	{
             index = d_index3d(i,j,k,top_gmax);
             mu0 = 0.5*field->mu[index];
-            pres[index] = phi[index] - accum_dt*mu0*div_U[index];
-	    q[index] = pres[index];
+            pres[index] = phi[index] - mu0*div_U[index];
+	    q[index] = 0.0;
+            //pres[index] = phi[index] - accum_dt*mu0*div_U[index];
+	    //q[index] = pres[index];
 	    if (min_pressure > pres[index])
 		min_pressure = pres[index];
 	    if (max_pressure < pres[index])

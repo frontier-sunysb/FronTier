@@ -35,6 +35,7 @@ static void initCirclePlaneIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
 static void initRectPlaneIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
 static void initTrianglePlaneIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
 static void initChannelFlow(Front*,LEVEL_FUNC_PACK*,char*);
+static void initCylinderPlaneIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
 
 extern void setInitialIntfc(
 	Front *front,
@@ -73,6 +74,10 @@ extern void setInitialIntfc(
         case CHANNEL_FLOW:
 	    iFparams->m_comp1 = SOLID_COMP;
             initChannelFlow(front,level_func_pack,inname);
+            break;
+        case FLUID_SOLID_CYLINDER:
+            iFparams->m_comp1 = SOLID_COMP;
+            initCylinderPlaneIntfc(front,level_func_pack,inname,prob_type);
             break;
 	default:
 	    (void) printf("In setInitialIntfc unknown type: %d\n",prob_type);
@@ -283,7 +288,7 @@ static void initCirclePlaneIntfc(
             level_func_pack->neg_component = SOLID_COMP;
             level_func_pack->pos_component = LIQUID_COMP2;
             level_func_pack->func = level_circle_func;
-            level_func_pack->wave_type = NEUMANN_BOUNDARY;
+            level_func_pack->wave_type = MOVABLE_BODY_BOUNDARY;
             CursorAfterString(infile,
 			"Enter density and viscosity of the fluid:");
             fscanf(infile,"%lf %lf",&iFparams->rho2,&iFparams->mu2);
@@ -474,7 +479,12 @@ extern void read_iF_prob_type(
             if (string[6] == 'S' || string[6] == 's')
 	    {
 		if (string[12] == 'C' || string[12] == 'c')
-                    *prob_type = FLUID_SOLID_CIRCLE;
+                {
+                    if (string[13] == 'I' || string[13] == 'i')
+                        *prob_type = FLUID_SOLID_CIRCLE;
+                    else if (string[13] == 'Y' || string[13] == 'y')
+                        *prob_type = FLUID_SOLID_CYLINDER;
+                }
 		else if (string[12] == 'R' || string[12] == 'r')
                     *prob_type = FLUID_SOLID_RECT;
 		else if (string[12] == 'T' || string[12] == 't')
@@ -566,7 +576,8 @@ static void initRectPlaneIntfc(
             level_func_pack->neg_component = SOLID_COMP;
             level_func_pack->pos_component = LIQUID_COMP2;
             level_func_pack->func = rect_box_func;
-            level_func_pack->wave_type = NEUMANN_BOUNDARY;
+            level_func_pack->wave_type = MOVABLE_BODY_BOUNDARY;
+            //level_func_pack->wave_type = NEUMANN_BOUNDARY;
             CursorAfterString(infile,
 			"Enter density and viscosity of the fluid:");
             fscanf(infile,"%lf %lf",&iFparams->rho2,&iFparams->mu2);
@@ -622,7 +633,7 @@ static void initTrianglePlaneIntfc(
             level_func_pack->neg_component = SOLID_COMP;
             level_func_pack->pos_component = LIQUID_COMP2;
             level_func_pack->func = triangle_func;
-            level_func_pack->wave_type = NEUMANN_BOUNDARY;
+            level_func_pack->wave_type = MOVABLE_BODY_BOUNDARY;
             CursorAfterString(infile,
 			"Enter density and viscosity of the fluid:");
             fscanf(infile,"%lf %lf",&iFparams->rho2,&iFparams->mu2);
@@ -644,3 +655,200 @@ static void initTrianglePlaneIntfc(
 	fclose(infile);	
 }	/* end initTrianglePlaneIntfc */
 
+static void initCylinderPlaneIntfc(
+        Front *front,
+        LEVEL_FUNC_PACK *level_func_pack,
+        char *inname,
+        IF_PROB_TYPE prob_type)
+{
+        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+        FILE *infile = fopen(inname,"r");
+        static CYLINDER_PARAMS *cylinder_params;
+        int i;
+
+        iFparams = (IF_PARAMS*)front->extra1;
+        FT_ScalarMemoryAlloc((POINTER*)&cylinder_params,sizeof(CYLINDER_PARAMS));
+        CursorAfterString(infile,"Enter the center of the cylinder:");
+        for (i = 0; i < 3; ++i)
+        {
+            fscanf(infile,"%lf",&cylinder_params->center[i]);
+            (void) printf("%f ",cylinder_params->center[i]);
+        }
+        (void) printf("\n");
+        CursorAfterString(infile,"Enter radius of the cylinder:");
+        fscanf(infile,"%lf",&cylinder_params->radius);
+        (void) printf("%f\n",cylinder_params->radius);
+        CursorAfterString(infile,"Enter height of the cylinder:");
+        fscanf(infile,"%lf",&cylinder_params->height);
+        (void) printf("%f\n",cylinder_params->height);
+
+        level_func_pack->func_params = (POINTER)cylinder_params;
+
+        switch (prob_type)
+        {
+        case FLUID_SOLID_CYLINDER:
+            iFparams->m_comp1 = SOLID_COMP;
+            level_func_pack->neg_component = SOLID_COMP;
+            level_func_pack->pos_component = LIQUID_COMP2;
+            level_func_pack->func = cylinder_func;
+            level_func_pack->wave_type = MOVABLE_BODY_BOUNDARY;
+            //level_func_pack->wave_type = NEUMANN_BOUNDARY;
+            CursorAfterString(infile,
+                        "Enter density and viscosity of the fluid:");
+            fscanf(infile,"%lf %lf",&iFparams->rho2,&iFparams->mu2);
+            (void) printf("%f %f\n",iFparams->rho2,iFparams->mu2);
+            break;
+        default:
+            (void) printf("ERROR: entering wrong initialization function\n");
+            clean_up(ERROR);
+        }
+        CursorAfterString(infile,"Enter gravity:");
+        for (i = 0; i < 3; ++i)
+            fscanf(infile,"%lf\n",&iFparams->gravity[i]);
+        CursorAfterString(infile,"Enter surface tension:");
+        fscanf(infile,"%lf",&iFparams->surf_tension);
+        (void) printf("%f\n",iFparams->surf_tension);
+        CursorAfterString(infile,"Enter factor of smoothing radius:");
+        fscanf(infile,"%lf",&iFparams->smoothing_radius);
+        (void) printf("%f\n",iFparams->smoothing_radius);
+
+        fclose(infile);
+}       /* end initCylinderPlaneIntfc */
+
+extern  void prompt_for_rigid_body_params(
+        int dim,
+        char *inname,
+        RG_PARAMS *rgb_params)
+{
+        int i;
+        char msg[100],s[100];
+        FILE *infile = fopen(inname,"r");
+
+        if (debugging("rgbody"))
+            (void) printf("Enter prompt_for_rigid_body_params()\n");
+
+        rgb_params->dim = dim;
+        sprintf(msg,"Enter the total mass for rigid body:");
+        CursorAfterString(infile,msg);
+        fscanf(infile,"%lf",&rgb_params->total_mass);
+        (void) printf("%f\n",rgb_params->total_mass);
+        sprintf(msg,"Enter the center of mass for rigid body:");
+        CursorAfterString(infile,msg);
+        for (i = 0; i < dim; ++i)
+        {
+            fscanf(infile,"%lf",&rgb_params->center_of_mass[i]);
+            (void) printf("%f ",rgb_params->center_of_mass[i]);
+        }
+        (void) printf("\n");
+        CursorAfterString(infile,
+                "Type yes if rigid body will only rotate about an axis:");
+        fscanf(infile,"%s",s);
+        (void) printf("%s\n",s);
+        if (s[0] == 'y' || s[0] == 'Y')
+        {
+            if (dim == 3)
+            {
+                double mag_dir = 0.0;
+                sprintf(msg,"Enter direction of the axis:");
+                CursorAfterString(infile,msg);
+                for (i = 0; i < dim; ++i)
+                {
+                    fscanf(infile,"%lf",&rgb_params->rotation_dir[i]);
+                    (void) printf("%f ",rgb_params->rotation_dir[i]);
+                    mag_dir += sqr(rgb_params->rotation_dir[i]);
+                }
+                mag_dir = sqrt(mag_dir);
+                for (i = 0; i < dim; ++i)
+                    rgb_params->rotation_dir[i] /= mag_dir;
+                (void) printf("\n");
+            }
+
+            sprintf(msg,"Enter center of the axis:");
+            CursorAfterString(infile,msg);
+            for (i = 0; i < dim; ++i)
+            {
+                fscanf(infile,"%lf",&rgb_params->rotation_cen[i]);
+                (void) printf("%f ",rgb_params->rotation_cen[i]);
+            }
+            (void) printf("\n");
+
+            sprintf(msg,"Enter the moment of inertial about the axis:");
+            CursorAfterString(infile,msg);
+            fscanf(infile,"%lf",&rgb_params->moment_of_inertial);
+            (void) printf("%f\n",rgb_params->moment_of_inertial);
+
+            CursorAfterString(infile,
+                        "Type yes if angular velocity is preset: ");
+            fscanf(infile,"%s",s);
+            (void) printf("%s\n",s);
+            if (s[0] == 'y' || s[0] == 'Y')
+            {
+                rgb_params->motion_type = PRESET_MOTION;
+                CursorAfterString(infile,"Enter preset angular velocity: ");
+            }
+            else
+            {
+                rgb_params->motion_type = ROTATION;
+                CursorAfterString(infile,"Enter initial angular velocity: ");
+            }
+            fscanf(infile,"%lf",&rgb_params->angular_velo);
+            (void) printf("%f\n",rgb_params->angular_velo);
+        }
+        else
+        {
+            sprintf(msg,"Enter the moment of inertial about center of mass:");
+            CursorAfterString(infile,msg);
+            fscanf(infile,"%lf",&rgb_params->moment_of_inertial);
+            (void) printf("%f\n",rgb_params->moment_of_inertial);
+
+            rgb_params->motion_type = FREE_MOTION;
+            CursorAfterString(infile,
+                        "Type yes if you want vertical motion only?: ");
+            fscanf(infile,"%s",s);
+            (void) printf("%s\n",s);
+            if (s[0] == 'y' || s[0] == 'Y')
+                rgb_params->motion_type = VERTICAL_MOTION;
+            CursorAfterString(infile,
+                        "Type yes if you want horizontal motion only?: ");
+            fscanf(infile,"%s",s);
+            (void) printf("%s\n",s);
+            if (s[0] == 'y' || s[0] == 'Y')
+                rgb_params->motion_type = HORIZONTAL_MOTION;
+
+            sprintf(msg,"Enter the initial center of mass velocity:");
+            CursorAfterString(infile,msg);
+            for (i = 0; i < dim; ++i)
+            {
+                fscanf(infile,"%lf",&rgb_params->cen_of_mass_velo[i]);
+                (void) printf("%f ",rgb_params->cen_of_mass_velo[i]);
+            }
+            (void) printf("\n");
+
+        }
+
+        if (debugging("rgbody"))
+            (void) printf("Leaving prompt_for_rigid_body_params()\n");
+}       /* end prompt_for_rigid_body_params */
+
+extern void set_rgbody_params(
+        RG_PARAMS rg_params,
+        HYPER_SURF *hs)
+{
+        int i,dim = rg_params.dim;
+        total_mass(hs) = rg_params.total_mass;
+        mom_inertial(hs) = rg_params.moment_of_inertial;
+        angular_velo(hs) = rg_params.angular_velo;
+        motion_type(hs) = rg_params.motion_type;
+        surface_tension(hs) = 0.0;
+        for (i = 0; i < dim; ++i)
+        {
+            center_of_mass(hs)[i] = rg_params.center_of_mass[i];
+            center_of_mass_velo(hs)[i] =
+                                rg_params.cen_of_mass_velo[i];
+            rotation_center(hs)[i] =
+                                rg_params.rotation_cen[i];
+            if (dim == 3)
+                rotation_direction(hs)[i] =
+                                rg_params.rotation_dir[i];
+        }
+}       /* end set_rgbody_params */

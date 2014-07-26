@@ -193,9 +193,10 @@ void G_CARTESIAN::setComponent(void)
 
 		dens[i] = state->dens;
 		pres[i] = state->pres;
-		engy[i] = state->engy;
+		//engy[i] = state->engy;
 		for (j = 0; j < dim; ++j)
 		    momn[j][i] = state->momn[j];
+		engy[i] = EosEnergy(state);
 	    }
 	    cell_center[i].comp = top_comp[i];
 	}
@@ -214,6 +215,7 @@ void G_CARTESIAN::setInitialIntfc(
 	    initSinePertIntfc(level_func_pack,inname);
 	    break;
 	case TWO_FLUID_BUBBLE:
+	case FLUID_SOLID_CIRCLE:
 	    initCirclePlaneIntfc(level_func_pack,inname);
 	    break;
 	case IMPLOSION:
@@ -225,6 +227,15 @@ void G_CARTESIAN::setInitialIntfc(
 	case PROJECTILE:
 	    initProjectileIntfc(level_func_pack,inname);
 	    break;
+	case FLUID_SOLID_RECT:
+	    initRectPlaneIntfc(level_func_pack,inname);
+	    break;
+	case FLUID_SOLID_TRIANGLE:
+	    initTrianglePlaneIntfc(level_func_pack,inname);
+	    break;
+	case FLUID_SOLID_CYLINDER:
+             initCylinderPlaneIntfc(level_func_pack,inname);
+             break;
 	case RIEMANN_PROB:
 	case ONED_BLAST:
 	case ONED_SSINE:
@@ -259,6 +270,10 @@ void G_CARTESIAN::setProbParams(char *inname)
 	    setMTFusionParams(inname);
 	    break;
 	case PROJECTILE:
+	case FLUID_SOLID_CIRCLE:
+	case FLUID_SOLID_RECT:
+	case FLUID_SOLID_TRIANGLE:
+	case FLUID_SOLID_CYLINDER:
 	    setProjectileParams(inname);
 	    break;
 	case RIEMANN_PROB:
@@ -295,6 +310,10 @@ void G_CARTESIAN::setInitialStates()
 	    initMTFusionStates();
 	    break;
 	case PROJECTILE:
+        case FLUID_SOLID_CIRCLE:
+        case FLUID_SOLID_RECT:
+        case FLUID_SOLID_TRIANGLE:
+        case FLUID_SOLID_CYLINDER:
 	    initProjectileStates();
 	    break;
 	case RIEMANN_PROB:
@@ -4913,11 +4932,14 @@ void G_CARTESIAN::setNeumannStates(
 		v[j] = st_tmp.momn[j]/st_tmp.dens - vel_ref[j];
 		vn += v[j]*nor[j];
 	    }
-	    for (j = 0; j < dim; j++)
+            /* Only normal component is reflected, 
+               relative tangent velocity is zero */
+            for (j = 0; j < dim; j++)
 	    {
-		v[j] += vel_ref[j] - 2.0*vn*nor[j];
+                v[j] = vel_ref[j] - 1.0*vn*nor[j];
 		st_tmp.momn[j] = v[j]*st_tmp.dens;
 	    }
+
 	    st_tmp.pres = EosPressure(&st_tmp);
 	    if (st_tmp.pres < min_pres) st_tmp.pres = min_pres;
 	    st_tmp.engy = EosEnergy(&st_tmp);

@@ -843,6 +843,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
             	rhs += m_dt*source[l];
 		rhs += m_dt*f_surf[l][index];
 	    	//rhs -= m_dt*grad_q[l][index]/rho;
+		/* need to execute the above line in PmI and PmII */
 
 		solver.Set_A(I,I,aII);
             	solver.Set_b(I, rhs);
@@ -944,7 +945,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computePressurePmII(void)
 	{
             index = d_index2d(i,j,top_gmax);
             mu0 = 0.5*field->mu[index];
-	    pres[index] += phi[index] - accum_dt*mu0*div_U[index];
+	    pres[index] += phi[index] - mu0*div_U[index];
 	    q[index] = pres[index];
 	}
 }        /* end computePressurePmII2d */
@@ -963,8 +964,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computePressurePmIII(void)
 	{
             index = d_index2d(i,j,top_gmax);
             mu0 = 0.5*field->mu[index];
-            pres[index] = phi[index] -
-                        	accum_dt*mu0*div_U[index];
+            pres[index] = phi[index] - mu0*div_U[index];
 	    q[index] = 0.0;
 	}
 }        /* end computePressurePmIII */

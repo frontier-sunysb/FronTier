@@ -157,6 +157,19 @@ struct _TIME_DEPENDENT_PARAMS {
 };
 typedef struct _TIME_DEPENDENT_PARAMS TIME_DEPENDENT_PARAMS;
 
+struct _RG_PARAMS {
+        int dim;
+        double  total_mass;             /* Total mass */
+        double  moment_of_inertial;     /* Moment of inertial about the axis */
+        double  center_of_mass[MAXD];   /* Center of mass */
+        double  rotation_dir[MAXD];     /* Direction of rotation */
+        double  rotation_cen[MAXD];     /* Center of rotation */
+        double  cen_of_mass_velo[MAXD]; /* Center of mass velocity */
+        double  angular_velo;           /* Angular velocity of rotation */
+        MOTION_TYPE motion_type;
+};
+typedef struct _RG_PARAMS RG_PARAMS;
+
 /******************************************************************************
  * 		lcartsn.h
  * A simple incompressible flow solver using the ghost fluid method and the
@@ -506,4 +519,8 @@ extern double grad_p_jump_n(POINTER,int,double*,double*);
 extern double grad_p_jump_t(POINTER,int,int,double*,double*);
 extern boolean neumann_type_bdry(int);
 
+extern void prompt_for_rigid_body_params(int,char*,RG_PARAMS*);
+extern void set_rgbody_params(RG_PARAMS,HYPER_SURF*);
+extern void ifluid_compute_force_and_torque(Front*,HYPER_SURF*,double,double*,
+                        double*);
 #endif

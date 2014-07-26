@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 static void ifluid_driver(Front*,Incompress_Solver_Smooth_Basis*);
 static int l_cartesian_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
                         HYPER_SURF*,double*);
+static void rgb_init(Front*,RG_PARAMS);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -43,6 +44,7 @@ int main(int argc, char **argv)
 	static VELO_FUNC_PACK velo_func_pack;
 	static IF_PARAMS iFparams;
 	IF_PROB_TYPE prob_type;
+        RG_PARAMS rgb_params;
 
 	/* Initialize basic computational data */
 
@@ -99,6 +101,7 @@ int main(int argc, char **argv)
 	{
 	    if (f_basic.dim == 3) level_func_pack.set_3d_bdry = YES;
 	    FT_InitIntfc(&front,&level_func_pack);
+            rgb_init(&front,rgb_params);
 	    if (debugging("trace"))
 	    {
 		char test_name[100];
@@ -127,6 +130,7 @@ int main(int argc, char **argv)
 
 	/* Initialize velocity field function */
 
+        front._compute_force_and_torque = ifluid_compute_force_and_torque;
 	velo_func_pack.func_params = (POINTER)l_cartesian;
 	velo_func_pack.func = l_cartesian_vel;
 	velo_func_pack.point_propagate = ifluid_point_propagate;
@@ -180,6 +184,7 @@ static  void ifluid_driver(
         if (!RestartRun)
         {
 	    FT_ResetTime(front);
+            FrontPreAdvance(front);
 	    if (debugging("trace"))
 		printf("Before FT_Propagate() front->dt = %f\n",front->dt);
             FT_Propagate(front);
@@ -212,6 +217,7 @@ static  void ifluid_driver(
 
 	    if (debugging("trace"))
                 printf("Before FT_Propagate()\n");
+            FrontPreAdvance(front);
             FT_Propagate(front);
 	    if (debugging("trace")) printf("Passed FT_Propagate()\n");
 
@@ -287,3 +293,38 @@ static int l_cartesian_vel(
 	((Incompress_Solver_Smooth_Basis*)params)->getVelocity(coords, vel);
 	return YES;
 }	/* end l_cartesian_vel */
+
+static void rgb_init(Front *front,
+        RG_PARAMS rgb_params)
+{
+        CURVE **c;
+        SURFACE **s;
+
+        if (FT_Dimension() == 1) return;
+        else if (FT_Dimension() == 2)
+        {
+            for (c = front->interf->curves; c && *c; ++c)
+            {
+                if (wave_type(*c) == MOVABLE_BODY_BOUNDARY)
+                {
+                    prompt_for_rigid_body_params(front->f_basic->dim,
+				front->f_basic->in_name,&rgb_params);
+                    body_index(*c) = 0;
+                    set_rgbody_params(rgb_params,Hyper_surf(*c));
+                }
+            }
+        }
+        else
+        {
+            for (s = front->interf->surfaces; s && *s; ++s)
+            {
+                if (wave_type(*s) == MOVABLE_BODY_BOUNDARY)
+                {
+                    prompt_for_rigid_body_params(front->f_basic->dim,
+				front->f_basic->in_name,&rgb_params);
+                    body_index(*s) = 0;
+                    set_rgbody_params(rgb_params,Hyper_surf(*s));
+                }
+            }
+        }
+} 	/* end rgb_init */

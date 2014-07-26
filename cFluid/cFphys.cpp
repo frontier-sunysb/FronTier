@@ -49,7 +49,19 @@ extern void read_cFluid_params(
 	    }
 	} 
 	else if (string[0] == 'F' || string[0] == 'f')
-	    eqn_params->prob_type = FLUID_SOLID_CIRCLE;
+	{
+            if (string[12] == 'C' || string[12] =='c')
+            {
+                if (string[13] == 'I' || string[13] =='i')
+                    eqn_params->prob_type = FLUID_SOLID_CIRCLE;
+                else if (string[13] == 'Y' || string[13] =='y')
+                    eqn_params->prob_type = FLUID_SOLID_CYLINDER;
+            }
+            else if (string[12] == 'R' || string[12] =='r')
+                eqn_params->prob_type = FLUID_SOLID_RECT;
+            else if (string[12] == 'T' || string[12] =='t')
+                eqn_params->prob_type = FLUID_SOLID_TRIANGLE;
+        }
 	else if (string[0] == 'B' || string[0] == 'b')
 	    eqn_params->prob_type = BUBBLE_SURFACE;
 	else if (string[0] == 'I' || string[0] == 'i')

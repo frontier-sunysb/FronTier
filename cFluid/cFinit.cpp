@@ -32,8 +32,6 @@ static void getBlastState(STATE*,EQN_PARAMS*,double*,COMPONENT);
 static void getShockSineWaveState(STATE*,EQN_PARAMS*,double*,COMPONENT);
 static void getAccuracySineWaveState(STATE*,EQN_PARAMS*,double*,COMPONENT);
 static void behind_state(int,double,double*,int,STATE*,STATE*);
-static void prompt_for_rigid_body_params(int,char*,RG_PARAMS*);
-static void set_rgbody_params(RG_PARAMS,HYPER_SURF*);
 
 void G_CARTESIAN::initSinePertIntfc(
 	LEVEL_FUNC_PACK *level_func_pack,
@@ -589,9 +587,9 @@ void G_CARTESIAN::initCirclePlaneIntfc(
             break;
         case FLUID_SOLID_CIRCLE:
             level_func_pack->neg_component = SOLID_COMP;
-            level_func_pack->pos_component = GAS_COMP2;
+            level_func_pack->pos_component = GAS_COMP1;
             level_func_pack->func = level_circle_func;
-            level_func_pack->wave_type = NEUMANN_BOUNDARY;
+	    level_func_pack->wave_type = MOVABLE_BODY_BOUNDARY;
             break;
 	default:
 	    (void) printf("ERROR Wrong type in initCirclePlaneIntfc()\n");
@@ -1091,12 +1089,6 @@ void G_CARTESIAN::initProjectileIntfc(
 	projectile = (CURVE**)FT_CreateLevelHyperSurfs(front->rect_grid,
 			front->interf,neg_comp,pos_comp,func,func_params,
 			MOVABLE_BODY_BOUNDARY,&num_segs);
-	prompt_for_rigid_body_params(dim,inname,&rgb_params);
-	for (i = 0; i < num_segs; ++i)
-	{
-	    body_index(projectile[i]) = 0;
-	    set_rgbody_params(rgb_params,Hyper_surf(projectile[i]));
-	}
 
         CursorAfterString(infile,"Enter the gun open position:");
         fscanf(infile,"%lf",&gun_length);
@@ -1110,7 +1102,7 @@ void G_CARTESIAN::initProjectileIntfc(
 	rparams->y0 = proj_params->cen[1] + 
 		(proj_params->R + gap);
 	rparams->a = gun_length*2.0;
-	rparams->b = gun_thickness - 0.5*gap;
+	rparams->b = gun_thickness;
 
 	func = rectangle_func;
 	func_params = (POINTER)rparams;
@@ -1296,7 +1288,7 @@ static void getAmbientState(
 	    	state->vel[i] = v1[i];
 	    	state->momn[i] = rho1*v1[i];
 	    }
-	    state->engy = EosInternalEnergy(state);
+	    state->engy = EosEnergy(state);
 	    break;
 	case GAS_COMP2:
 	    state->dens = rho2;
@@ -1306,7 +1298,7 @@ static void getAmbientState(
 	    	state->vel[i] = v2[i];
 	    	state->momn[i] = rho2*v2[i];
 	    }
-	    state->engy = EosInternalEnergy(state);
+	    state->engy = EosEnergy(state);
 	    break;
 	case SOLID_COMP:
 	    state->dens = 0.0;
@@ -1393,7 +1385,6 @@ void G_CARTESIAN::initProjectileStates()
 		engy[index] = state.engy;
 		for (l = 0; l < dim; ++l)
 		    momn[l][index] = state.momn[l];
-		comp = top_comp[index];
 	    }
 	    break;
 	case 3:
@@ -1416,7 +1407,7 @@ void G_CARTESIAN::initProjectileStates()
 	scatMeshStates();
 }	/* end initProjectileStates */
 
-static	void prompt_for_rigid_body_params(
+extern	void prompt_for_rigid_body_params(
 	int dim,
 	char *inname,
 	RG_PARAMS *rgb_params)
@@ -1531,7 +1522,7 @@ static	void prompt_for_rigid_body_params(
 	    (void) printf("Leaving prompt_for_rigid_body_params()\n");
 }	/* end prompt_for_rigid_body_params */
 
-static void set_rgbody_params(
+extern void set_rgbody_params(
         RG_PARAMS rg_params,
         HYPER_SURF *hs)
 {
@@ -1913,7 +1904,7 @@ static void getShockSineWaveState(
 	    state->pres = 1.0;
 	}
 	state->vel[0] = state->momn[0]/state->dens;
-	state->engy = EosInternalEnergy(state);
+	state->engy = EosEnergy(state);
 }	/* end getShockSineWaveState */
 
 static void getAccuracySineWaveState(
@@ -1930,5 +1921,133 @@ static void getAccuracySineWaveState(
 	state->vel[0] = 0.7;
 	state->pres = 1.0;
 	state->momn[0]= state->dens * state->vel[0];
-	state->engy = EosInternalEnergy(state);
+	state->engy = EosEnergy(state);
 }	/* end getAccuracySineWaveState */
+
+void G_CARTESIAN::initRectPlaneIntfc(
+        LEVEL_FUNC_PACK *level_func_pack,
+        char *inname)
+{
+        EQN_PARAMS *eqn_params = (EQN_PARAMS*)front->extra1;
+        FILE *infile = fopen(inname,"r");
+        static RECT_BOX_PARAMS *rect_params;
+        int i,dim;
+        PROB_TYPE prob_type = eqn_params->prob_type;
+
+        FT_ScalarMemoryAlloc((POINTER*)&rect_params,sizeof(RECT_BOX_PARAMS));
+        rect_params->dim = dim = front->rect_grid->dim;
+        CursorAfterString(infile,"Enter the center of the rectangle:");
+        for (i = 0; i < dim; ++i)
+        {
+            fscanf(infile,"%lf",&rect_params->center[i]);
+            (void) printf("%f ",rect_params->center[i]);
+        }
+        (void) printf("\n");
+        CursorAfterString(infile,"Enter lengths of the rectangle:");
+        for (i = 0; i < dim; ++i)
+        {
+            fscanf(infile,"%lf",&rect_params->length[i]);
+            (void) printf("%f\n",rect_params->length[i]);
+        }
+        (void) printf("\n");
+
+        level_func_pack->func_params = (POINTER)rect_params;
+
+        switch (prob_type)
+        {
+        case FLUID_SOLID_RECT:
+            level_func_pack->neg_component = SOLID_COMP;
+            level_func_pack->pos_component = GAS_COMP1;
+            level_func_pack->func = rect_box_func;
+            level_func_pack->wave_type = MOVABLE_BODY_BOUNDARY;
+            break;
+        default:
+            (void) printf("ERROR: entering wrong initialization function\n");
+            clean_up(ERROR);
+        }
+        fclose(infile);
+}       /* end initRectPlaneIntfc */
+
+void G_CARTESIAN::initTrianglePlaneIntfc(
+        LEVEL_FUNC_PACK *level_func_pack,
+        char *inname)
+{
+        EQN_PARAMS *eqn_params = (EQN_PARAMS*)front->extra1;
+        FILE *infile = fopen(inname,"r");
+        static TRIANGLE_PARAMS *tri_params;
+        int i,dim;
+        char msg[100];
+        PROB_TYPE prob_type = eqn_params->prob_type;
+
+        FT_ScalarMemoryAlloc((POINTER*)&tri_params,sizeof(TRIANGLE_PARAMS));
+
+        CursorAfterString(infile,"Triangle is specified by three vertices");
+        (void) printf("\n");
+        for (i = 0; i < 3; ++i)
+        {
+            sprintf(msg,"Enter coordinates of point %d:",i+1);
+            CursorAfterString(infile,msg);
+            fscanf(infile,"%lf %lf",&tri_params->x[i],&tri_params->y[i]);
+            (void) printf("%f %f\n",tri_params->x[i],tri_params->y[i]);
+        }
+
+        level_func_pack->func_params = (POINTER)tri_params;
+
+        switch (prob_type)
+        {
+        case FLUID_SOLID_TRIANGLE:
+            level_func_pack->neg_component = SOLID_COMP;
+            level_func_pack->pos_component = GAS_COMP1;
+            level_func_pack->func = triangle_func;
+            //level_func_pack->wave_type = NEUMANN_BOUNDARY;
+            level_func_pack->wave_type = MOVABLE_BODY_BOUNDARY;
+            break;
+        default:
+            (void) printf("ERROR: entering wrong initialization function\n");
+            clean_up(ERROR);
+        }
+        fclose(infile);
+}       /* end initTrianglePlaneIntfc */
+
+void G_CARTESIAN::initCylinderPlaneIntfc(
+        LEVEL_FUNC_PACK *level_func_pack,
+        char *inname)
+{
+        EQN_PARAMS *eqn_params = (EQN_PARAMS*)front->extra1;
+        FILE *infile = fopen(inname,"r");
+        static CYLINDER_PARAMS *cylinder_params;
+        int i;
+        PROB_TYPE prob_type = eqn_params->prob_type;
+
+        FT_ScalarMemoryAlloc((POINTER*)&cylinder_params,sizeof(CYLINDER_PARAMS));
+        CursorAfterString(infile,"Enter the center of the cylinder:");
+        for (i = 0; i < 3; ++i)
+        {
+            fscanf(infile,"%lf",&cylinder_params->center[i]);
+            (void) printf("%f ",cylinder_params->center[i]);
+        }
+        (void) printf("\n");
+        CursorAfterString(infile,"Enter radius of the cylinder:");
+        fscanf(infile,"%lf",&cylinder_params->radius);
+        (void) printf("%f\n",cylinder_params->radius);
+        CursorAfterString(infile,"Enter height of the cylinder:");
+        fscanf(infile,"%lf",&cylinder_params->height);
+        (void) printf("%f\n",cylinder_params->height);
+
+        level_func_pack->func_params = (POINTER)cylinder_params;
+
+        switch (prob_type)
+        {
+        case FLUID_SOLID_CYLINDER:
+            level_func_pack->neg_component = SOLID_COMP;
+            level_func_pack->pos_component = GAS_COMP1;
+            level_func_pack->func = cylinder_func;
+            //level_func_pack->wave_type = NEUMANN_BOUNDARY;
+            level_func_pack->wave_type = MOVABLE_BODY_BOUNDARY;
+            break;
+        default:
+            (void) printf("ERROR: entering wrong initialization function\n");
+            clean_up(ERROR);
+        }
+        fclose(infile);
+}       /* end initCylinderPlaneIntfc */
