@@ -791,6 +791,9 @@ EXPORT	boolean	i_insert_point_in_tri_side(
 		return FUNCTION_FAILED;
 	    return insert_point_in_bond(p,bt->bond,bt->curve);
 	}
+	tri->side_length0[0] = -1.0;
+	tri->side_length0[1] = -1.0;
+	tri->side_length0[2] = -1.0;
 	nbr_tri = Tri_on_side(tri,side);
 	if (nbr_tri != NULL)
 	{
@@ -1605,6 +1608,9 @@ EXPORT TRI *i_make_tri(
 	Neighbor_on_side01(tri) = neighbor01;
 	Neighbor_on_side12(tri) = neighbor12;
 	Neighbor_on_side20(tri) = neighbor20;
+	tri->side_length0[0] = -1.0;
+	tri->side_length0[1] = -1.0;
+	tri->side_length0[2] = -1.0;
 	Boundary_tri(tri) = bdry;
 	tri->prev = NULL;
 	tri->next = NULL;

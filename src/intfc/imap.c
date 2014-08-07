@@ -32,6 +32,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 LOCAL boolean curve_of_boundary_hs(CURVE*);
 LOCAL void change_vertex_of_tris(POINT*,TRI*,POINT*);
+LOCAL POINT* crdsToPoint(double*,BOND*,CURVE*);
+LOCAL BOND* PointOnCurve(double*,CURVE*);
+LOCAL boolean PointOnBond(double*,BOND*);
 
 EXPORT	void I_MoveNodeToPoint(
 	POINT *pt,
@@ -527,6 +530,11 @@ EXPORT boolean I_SewSurface(
 	    (void) printf("Entering I_SewSurface()\n");
 	status = find_sewing_segments(surf,crds_start,crds_end,&bps,&bpe,
 				&bns,&bne);
+	if (!status)
+	{
+	    (void) printf("find_sewing_segments status = %d\n",status);
+	    clean_up(0);
+	}
 	if (debugging("sewing"))
 	{
 	    (void) printf("find_sewing_segments status = %d\n",status);
@@ -567,7 +575,7 @@ static boolean merge_tris_on_bonds(
 	INTERFACE *intfc = surf->interface;
 	POINT *p,*ps,*pe;
 	CURVE **curves,*curve;
-	BOND *bp,*bn;
+	BOND *bp,*bn, *bond;
 	BOND *bps_prev,*bpe_next,*bns_next,*bne_prev;
 	CURVE *cp,*cps_prev,*cpe_next,*cn,*cns_next,*cne_prev;
 	NODE *nps,*npe,*nns,*nne;
@@ -603,6 +611,25 @@ static boolean merge_tris_on_bonds(
 	curves = split_curve(p,bne,curve,NO_COMP,NO_COMP,NO_COMP,NO_COMP);
 	cn = curves[1];
 
+        curve_bond_loop(cp,bond)
+        {
+            p = bond->end;
+            crdsToPoint(Coords(p), PointOnCurve(Coords(p), cn) ,cn);
+        }
+        curve_bond_loop(cn,bond)
+        {
+            p = bond->end;
+            crdsToPoint(Coords(p), PointOnCurve(Coords(p), cp) ,cp);
+        }
+
+	if (debugging("sewing"))
+	{
+	    print_curve(cp);
+	    print_curve(cn);
+	}
+
+	bps = cp->first;
+	bns = cn->last;
 	for (bp = bps, bn = bns; bp != NULL; bp = bp->next, bn = bn->prev)
 	{
 	    trip = (*Btris(bp))->tri;
@@ -662,8 +689,8 @@ static boolean merge_tris_on_bonds(
 
 	cps_prev = join_curves(cps_prev,cns_next,NO_COMP,NO_COMP,NULL);
 	cne_prev = join_curves(cne_prev,cpe_next,NO_COMP,NO_COMP,NULL);
-	delete_node(nps);
-	delete_node(npe);
+//	delete_node(nps);
+//	delete_node(npe);
 
 	return YES;
 }	/* end merge_tris_on_bonds */
@@ -748,7 +775,7 @@ static boolean find_seg_start_and_end(
 	double *p;
 	double lambda,tol = 1.0e-8;
 	start = end = NULL;
-	p = crds_start;
+	boolean positive;
 
 	dir_max = 0.0;
 	for (i = 0; i < 3; ++i)
@@ -760,79 +787,58 @@ static boolean find_seg_start_and_end(
 	    }
 	}
 
-	switch (orient)
+	p = crds_start;
+	for (b = curve->first; b != NULL; b = b->next)
 	{
-	case POSITIVE_ORIENTATION:
-	    for (b = curve->first; b != NULL; b = b->next)
+	    dir_max = (Coords(b->end)[i_max] - Coords(b->start)[i_max])/
+			bond_length(b);
+	    if (orient == POSITIVE_ORIENTATION && 
+		fabs(dir_max - dir[i_max]) > tol) 
+		continue;
+	    if (orient == NEGATIVE_ORIENTATION && 
+		fabs(dir_max + dir[i_max]) > tol) 
+		continue;
+
+	    lambda = (p[i_max] - Coords(b->start)[i_max])/
+		(Coords(b->end)[i_max] - Coords(b->start)[i_max]);
+	    if (lambda < 0.0 || lambda > 1.0) continue;
+	    for (i = 0; i < 3; ++i)
 	    {
-		dir_max = (Coords(b->end)[i_max] - Coords(b->start)[i_max])/
-				bond_length(b);
-		if (fabs(dir_max - dir[i_max]) > tol) 
-		{
-		    p = crds_start;
-		    continue;
-		}
-		lambda = (p[i_max] - Coords(b->start)[i_max])/
-			(Coords(b->end)[i_max] - Coords(b->start)[i_max]);
-		if (lambda < 0.0 || lambda > 1.0) continue;
-		for (i = 0; i < 3; ++i)
-		{
-		    pv[i] = lambda*Coords(b->end)[i] + 
-				(1.0 - lambda)*Coords(b->start)[i];
-		    if (fabs(pv[i] - p[i]) > tol) break;
-		}
-		if (i < 3)
-		{
-		    p = crds_start;
-		    continue;
-		}
-		if (start == NULL)
-		{
-		    start = b;
-		    p = crds_end;
-		}
-		else
-		{
-		    end = b;
-		    break;
-		}
+		pv[i] = lambda*Coords(b->end)[i] + 
+			(1.0 - lambda)*Coords(b->start)[i];
+		if (fabs(pv[i] - p[i]) > tol) break;
 	    }
+            if (i < 3) continue;
+	    start = b;
 	    break;
-	case NEGATIVE_ORIENTATION:
-	    for (b = curve->last; b != NULL; b = b->prev)
+	}
+
+	p = crds_end;
+	for (b = curve->first; b != NULL; b = b->next)
+	{
+	    dir_max = (Coords(b->end)[i_max] - Coords(b->start)[i_max])/
+			bond_length(b);
+	    if (orient == POSITIVE_ORIENTATION && 
+		fabs(dir_max - dir[i_max]) > tol) 
+		continue;
+	    if (orient == NEGATIVE_ORIENTATION && 
+		fabs(dir_max + dir[i_max]) > tol) 
+		continue;
+
+	    lambda = (p[i_max] - Coords(b->start)[i_max])/
+		(Coords(b->end)[i_max] - Coords(b->start)[i_max]);
+	    if (lambda < 0.0 || lambda > 1.0) continue;
+	    for (i = 0; i < 3; ++i)
 	    {
-		dir_max = (Coords(b->start)[i_max] - Coords(b->end)[i_max])/
-				bond_length(b);
-		if (fabs(dir_max - dir[i_max]) > tol) 
-		{
-		    p = crds_start;
-		    continue;
-		}
-		lambda = (p[i_max] - Coords(b->end)[i_max])/
-			(Coords(b->start)[i_max] - Coords(b->end)[i_max]);
-		if (lambda < 0.0 || lambda > 1.0) continue;
-		for (i = 0; i < 3; ++i)
-		{
-		    pv[i] = lambda*Coords(b->start)[i] + 
-				(1.0 - lambda)*Coords(b->end)[i];
-		    if (fabs(pv[i] - p[i]) > tol) break;
-		}
-		if (i < 3)
-		{
-		    p = crds_start;
-		    continue;
-		}
-		if (start == NULL)
-		{
-		    start = b;
-		    p = crds_end;
-		}
-		else
-		{
-		    end = b;
-		    break;
-		}
+		pv[i] = lambda*Coords(b->end)[i] + 
+			(1.0 - lambda)*Coords(b->start)[i];
+		if (fabs(pv[i] - p[i]) > tol) break;
 	    }
+	    if (i < 3) continue;
+	    if (orient == NEGATIVE_ORIENTATION && fabs(1.0-lambda) < tol)
+		end = b->next;
+	    else
+		end = b;
 	    break;
 	}
 	*bs = start;	*be = end;
@@ -858,3 +864,60 @@ LOCAL void change_vertex_of_tris(
 	    }
 	}
 }	/* end change_vertex_of_tris */
+
+LOCAL POINT* crdsToPoint(
+        double *crds,
+        BOND *b,
+        CURVE *c)
+{
+        int i;
+        POINT *s = b->start;
+        POINT *e = b->end;
+        POINT *p;
+        double A[3], B[3], C[3];
+
+        for (i = 0; i < 3; i++)
+        {
+            A[i] = crds[i] - Coords(s)[i];
+            B[i] = crds[i] - Coords(e)[i];
+        }
+        if (Mag3d(A) < 1e-3)
+            return s;
+        if (Mag3d(B) < 1e-3)
+            return e;
+        p = Point(crds);
+        insert_point_in_bond(p,b,c);
+        return p;
+}       /* end crdsToPoint */
+
+LOCAL BOND* PointOnCurve(
+        double *crds,
+        CURVE *c)
+{
+        BOND *b;
+
+        curve_bond_loop(c,b)
+            if (PointOnBond(crds,b))
+                return b;
+        return NULL;
+}       /* end PointOnCurve */
+
+LOCAL boolean PointOnBond(
+        double *crds,
+        BOND *b)
+{
+        int i;
+        POINT *s = b->start;
+        POINT *e = b->end;
+        double A[3], B[3], C[3];
+
+        for (i = 0; i < 3; i++)
+        {
+            A[i] = crds[i] - Coords(s)[i];
+            B[i] = crds[i] - Coords(e)[i];
+            C[i] = Coords(s)[i] - Coords(e)[i];
+        }
+        if (fabs(Mag3d(A) + Mag3d(B) - Mag3d(C)) < 1e-8)
+            return YES;
+        return NO;
+}       /* end PointOnBond */

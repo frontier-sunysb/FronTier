@@ -3254,6 +3254,7 @@ EXPORT BOND *i_Bond(
 	b->end   = p2;
 	p1->hse = p2->hse = Hyper_surf_element(b);
 	b->length = separation(p1,p2,cur_intfc->dim);
+	b->length0 = -1.0;
 	if (cur_intfc->dim == 3)
 	{
 	    Btris(b) = NULL;
@@ -3828,6 +3829,7 @@ EXPORT boolean i_insert_point_in_bond(
 	b->next = bnew;
 	b->end  = p;
 	b->length = separation(b->start,p,c->interface->dim);
+	b->length0 = -1.0;
 	++c->num_points;
 	++c->interface->num_points;
 	if (c->interface->dim == 2)
@@ -3885,6 +3887,9 @@ LOCAL	void split_tris_at_split_bond(
 	for (btris = Btris(b); btris && *btris; ++btris)
 	{
 	    t = (*btris)->tri;
+	    t->side_length0[0] = -1.0;
+	    t->side_length0[1] = -1.0;
+	    t->side_length0[2] = -1.0;
 	    surf = Surface_of_tri(t);
 	    is = Vertex_of_point(t,ps);
 	    ie = Vertex_of_point(t,pe);
@@ -4024,6 +4029,19 @@ EXPORT boolean i_delete_start_of_bond(
 	b->prev->end = b->end;
 	b->prev->next = b->next;
 	set_bond_length(b->prev,c->interface->dim);
+	b->prev->length0 = -1.0;
+	if ((c->interface->dim == 3) && (Btris(b->prev) != NULL))
+	{
+	    int i;
+	    TRI *tri;
+	    BOND_TRI **bt;
+	    for (bt = Btris(b); bt && *bt; ++bt)
+	    {
+	    	tri = (*bt)->tri;
+		for (i = 0; i < 3; ++i)
+		    tri->side_length0[i] = -1.0;
+	    }
+	}
 
 	if (b->next==NULL) /* End of Curve */
 	    c->last = b->prev;
@@ -4050,6 +4068,7 @@ EXPORT boolean i_delete_start_of_bond(
 		    b->prev->end = b->start;
 		    b->prev->next = b;
 		    set_bond_length(b->prev,c->interface->dim);
+		    b->prev->length0 = -1.0;
 
 		    if (b->next==NULL) /* End of Curve */
 		        c->last = b;
@@ -4092,6 +4111,19 @@ EXPORT boolean i_delete_end_of_bond(
 	b->next->start = b->start;
 	b->next->prev = b->prev;
 	set_bond_length(b->next,c->interface->dim);
+	b->next->length0 = -1.0;
+	if ((c->interface->dim == 3) && (Btris(b->next) != NULL))
+	{
+	    int i;
+	    TRI *tri;
+	    BOND_TRI **bt;
+	    for (bt = Btris(b); bt && *bt; ++bt)
+	    {
+	    	tri = (*bt)->tri;
+		for (i = 0; i < 3; ++i)
+		    tri->side_length0[i] = -1.0;
+	    }
+	}
 
 	if (b->prev==NULL) /* End of Curve */
 	    c->first = b->next;

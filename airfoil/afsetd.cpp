@@ -646,13 +646,13 @@ extern void generic_spring_solver(
 
 	for (i = 0; i < size; ++i)
 	{
-		compute_spring_accel1(&sv[i],accel[i],dim);
+	    compute_spring_accel1(&sv[i],accel[i],dim);
 	}
 	for (i = 0; i < size; ++i)
 	for (j = 0; j < dim; ++j)
 	{
-		x_old[i][j] = x_pos[i][j];
-		v_old[i][j] = v_pos[i][j];
+	    x_old[i][j] = x_pos[i][j];
+	    v_old[i][j] = v_pos[i][j];
 	}
 	for (n = 0; n < n_loop; ++n)
 	{
@@ -666,7 +666,9 @@ extern void generic_spring_solver(
 	    }
 
 	    for (i = 0; i < size; ++i)
+	    {
 		compute_spring_accel1(&sv[i],accel[i],dim);
+	    }
 	    for (i = 0; i < size; ++i)
 	    for (j = 0; j < dim; ++j)
 	    {
@@ -677,7 +679,9 @@ extern void generic_spring_solver(
 	    }
 	
 	    for (i = 0; i < size; ++i)
+	    {
 		compute_spring_accel1(&sv[i],accel[i],dim);
+	    }
 	    for (i = 0; i < size; ++i)
 	    for (j = 0; j < dim; ++j)
 	    {
@@ -688,7 +692,9 @@ extern void generic_spring_solver(
 	    }
 
 	    for (i = 0; i < size; ++i)
+	    {
 		compute_spring_accel1(&sv[i],accel[i],dim);
+	    }
 	    for (i = 0; i < size; ++i)
 	    for (j = 0; j < dim; ++j)
 	    {
@@ -718,7 +724,9 @@ extern void generic_spring_solver(
                     v_old[i][j] = v_pos[i][j];
                 }
 	    	for (i = 0; i < size; ++i)
+		{
 		    compute_spring_accel1(&sv[i],accel[i],dim);
+		}
 	    }
 	}
 	if (debugging("trace"))

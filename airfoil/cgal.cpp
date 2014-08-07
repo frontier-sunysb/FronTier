@@ -335,6 +335,8 @@ static void CgalCircle(
 	    InstallGore(front,*surf,num_strings,out_nodes_coords,
 				in_nodes_coords);
 	}
+	setSurfZeroMesh(*surf);
+	setMonoCompBdryZeroLength(*surf);
 	FT_FreeThese(1,string_node_pts);
 	if (consistent_interface(front->interf) == NO)
 	    clean_up(ERROR);
@@ -806,6 +808,7 @@ static void CgalEllipse(
 	    InstallGore(front,*surf,num_gore_oneside,gore_sta_nodes,
 			gore_end_nodes);
 	}
+	setMonoCompBdryZeroLength(*surf);
 }	/* end CgalEllipse */
 
 static void CgalCross(
@@ -944,6 +947,8 @@ static void CgalCross(
 	{
 	    resetStringNodePoints(*surf,string_node_pts,&num_strings,&cbdry);
 	}
+	setSurfZeroMesh(*surf);
+	setMonoCompBdryZeroLength(*surf);
 	installString(front,*surf,cbdry,string_node_pts,num_strings);
 	FT_FreeThese(1,string_node_pts);
 }	/* end CgalCross */
@@ -1469,6 +1474,7 @@ static void setSurfZeroMesh(
 	{
 	    for (i = 0; i < 3; ++i)
 	    {
+		if (t->side_length0[i] != -1.0) continue;
 		t->side_length0[i] = separation(Point_of_tri(t)[i],
 			Point_of_tri(t)[(i+1)%3],3);
 		for (j = 0; j < 3; ++j)
@@ -1491,10 +1497,18 @@ static void setSurfZeroMesh(
 	if (debugging("zero_mesh"))
 	{
 	    (void) printf("Leaving setSurfZeroMesh()\n");
-	    (void) printf("Equilibrium length:\n");
-	    (void) printf("min_len = %16.12f\n",min_len);
-	    (void) printf("max_len = %16.12f\n",max_len);
-	    (void) printf("ave_len = %16.12f\n",ave_len/total_num_sides);
+	    if (total_num_sides == 0.0)
+	    {
+		(void) printf("Nothing done.\n");
+	    }
+	    else
+	    {
+	    	(void) printf("Equilibrium length:\n");
+	    	(void) printf("total_num_sides = %d\n",(int)total_num_sides);
+	    	(void) printf("min_len = %16.12f\n",min_len);
+	    	(void) printf("max_len = %16.12f\n",max_len);
+	    	(void) printf("ave_len = %16.12f\n",ave_len/total_num_sides);
+	    }
 	}
 }	/* end setSurfZeroMesh */
 
@@ -1517,6 +1531,7 @@ static void setCurveZeroLength(
 
 	curve_bond_loop(curve,b)
 	{
+	    if (b->length0 != -1.0) continue;
 	    set_bond_length(b,3);
 	    b->length0 = len_fac*bond_length(b);
 	    for (i = 0; i < 3; ++i)
@@ -1530,10 +1545,18 @@ static void setCurveZeroLength(
 	if (debugging("zero_mesh"))
 	{
 	    (void) printf("Leaving setCurveZeroLength()\n");
-	    (void) printf("Equilibrium length:\n");
-	    (void) printf("min_len = %16.12f\n",min_len);
-	    (void) printf("max_len = %16.12f\n",max_len);
-	    (void) printf("ave_len = %16.12f\n",ave_len/total_num_sides);
+	    if (total_num_sides == 0.0)
+	    {
+		(void) printf("Nothing done.\n");
+	    }
+	    else
+	    {
+	    	(void) printf("Equilibrium length:\n");
+	    	(void) printf("total_num_sides = %d\n",(int)total_num_sides);
+	    	(void) printf("min_len = %16.12f\n",min_len);
+	    	(void) printf("max_len = %16.12f\n",max_len);
+	    	(void) printf("ave_len = %16.12f\n",ave_len/total_num_sides);
+	    }
 	}
 }	/* end setCurveZeroLength */
 

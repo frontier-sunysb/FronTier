@@ -570,6 +570,39 @@ function config_abe {
     export CONF="-with-mpich --with-petsc=$PETSC_DIR --with-devel ${CONF}"
     PMAKE="-j8"
 }
+#################
+function config_cm {
+    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
+    export F77="mpif77 ${OPTS}"
+    export CC="mpicc ${OPTS} ${COPTS_GCC}"
+
+    export scriptotherlibs="${scriptotherlibs} /usr/lib64/libgfortran.so.3"
+
+    export PETSC_DIR=/home/zgao/pkg/petsc
+    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
+
+    if [[ -n "$WITHHYPRE" ]]; then
+        CONF="$CONF --with-hypre"
+        export USEHYPRE="yes"
+    else
+        export USEHYPRE="no"
+    fi
+
+    if [[ -n "$WITHGPU" ]]; then
+        CONF="$CONF --with-gpu"
+        export USEGPU="yes"
+    else
+        export USEGPU="no"
+    fi
+
+    if [[ -n "$WITHHDF" ]]; then
+        CONF="$CONF --with-hdf=/home/zgao/pkg/hdf"
+    fi
+
+    export CONF="--with-mpich=/software/mvapich2/2.0b-intel --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/home/zgao/pkg/gd"
+    PMAKE="-j2"
+}
 
 #################
 function config_icestorm {
@@ -674,6 +707,9 @@ elif [[ "${HOST}" == "service0" ]]; then
 elif [[ "${HOST}" == "ycshu-VirtualBox" ]]; then
     echo "Computer is recognized as blade."
     config_ycshu
+elif [[ "${HOST}" == "cm" ]]; then
+    echo "Computer is recognized as cm.faster."
+    config_cm
 else
     echo "Computer was not recognized. Using generic configure options."
     config_generic
