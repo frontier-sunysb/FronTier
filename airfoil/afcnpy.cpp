@@ -787,24 +787,31 @@ static void compute_center_of_mass_velo(
 	    xcan[j] /= area;
 	  }
 
-	  node = geom_set->load_node;
-	  state = (STATE*)left_state(node->posn);
-	  for (j = 0; j < 3; ++j)
-	  {
-	    vload[j] = state->vel[j];
-	    xload[j] = Coords(node->posn)[j];
-	  }
-	  payload = af_params->payload;
-
-	  xcom = center_of_mass(Hyper_surf(canopy));
-	  vcom = center_of_mass_velo(Hyper_surf(canopy));
-	  for (j = 0; j < 3; ++j)
-	  {
-	    vcom[j] = (vcan[j]*mass_canopy + vload[j]*payload)/
+	    if (NULL != geom_set->load_node)
+	    {
+	  	node = geom_set->load_node;
+	  	state = (STATE*)left_state(node->posn);
+	  	for (j = 0; j < 3; ++j)
+	  	{
+	    	    vload[j] = state->vel[j];
+	    	    xload[j] = Coords(node->posn)[j];
+	  	}
+	  	payload = af_params->payload;
+	  	xcom = center_of_mass(Hyper_surf(canopy));
+	  	vcom = center_of_mass_velo(Hyper_surf(canopy));
+	  	for (j = 0; j < 3; ++j)
+	  	{
+	    	    vcom[j] = (vcan[j]*mass_canopy + vload[j]*payload)/
 				(mass_canopy + payload);
-	    xcom[j] = (xcan[j]*mass_canopy + xload[j]*payload)/
+	    	    xcom[j] = (xcan[j]*mass_canopy + xload[j]*payload)/
 				(mass_canopy + payload);
-	  }
+	  	}
+	    }
+	    else
+	    {
+	  	xcom = center_of_mass(Hyper_surf(canopy));
+	  	vcom = center_of_mass_velo(Hyper_surf(canopy));
+	    }	
 	}
 	if (debugging("canopy"))
 	    (void) printf("Leaving compute_center_of_mass_velo()\n");
@@ -1752,7 +1759,6 @@ static void reduce_high_freq_vel(
 	    }
 	}
 	FT_FreeThese(1,vv);
-
 }	/* end reduce_high_freq_vel */
 
 static void set_vertex_impulse(

@@ -466,6 +466,7 @@ EXPORT INTERFACE *make_interface(
 	        rect_boundary_type(cur_intfc,i,j) = UNKNOWN_BOUNDARY_TYPE;
 
 	interface_reconstructed(cur_intfc) = NO;
+	static_mesh(cur_intfc) = NO;
 	uh = i_user_hook(dim);
 	i_user_interface(cur_intfc) = *uh;
 	user_make_interface(cur_intfc);
@@ -549,6 +550,7 @@ EXPORT INTERFACE *i_copy_interface(
 	new_intfc->table->min_comp = intfc->table->min_comp;
 	new_intfc->table->max_comp = intfc->table->max_comp;
 	interface_reconstructed(new_intfc) = interface_reconstructed(intfc);
+	static_mesh(new_intfc) = static_mesh(intfc);
 
 	if (dim == 3)
 	{

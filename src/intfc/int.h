@@ -474,6 +474,7 @@ struct _INTERFACE
 	boolean	normal_unset;	/* Normal unset since last modify */
 	boolean	curvature_unset;/* Curvature unset since last modify */
 	boolean            _interface_reconstructed;
+	boolean            _static_mesh; /* No remeshing */
 	int		rect_bdry_type[MAXD][2];
 	COMPONENT	elliptic_comp;	/* component of elliptic region */
 	COMPONENT	default_comp;	/* for subdomain with no surf */
@@ -484,6 +485,7 @@ struct _INTERFACE
 typedef struct _INTERFACE INTERFACE;
 
 #define interface_reconstructed(intfc) ((intfc)->_interface_reconstructed)
+#define static_mesh(intfc) ((intfc)->_static_mesh)
 #define Dimension(intfc) ((intfc)->dim)
 /*#bjet2 */
 #define prev_interface(intfc)    ((intfc)->prev_interf)

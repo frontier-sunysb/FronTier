@@ -52,7 +52,7 @@ static void CgalEllipse(FILE*,Front*,SURFACE**);
 static void GenerateCgalSurf(Front*,SURFACE**,CDT*,int*,double);
 static void InstallGore(Front*,SURFACE*,int,double*,double*);
 static void InstallInCurve(Front*,SURFACE*,double,double,double*,int);
-static void SplitInCirBdry(Front*,SURFACE*,int,double*);
+static void SplitCirBdry(Front*,SURFACE*,int,double*,ORIENTATION);
 static void linkCurveTriBond(CURVE*,SURFACE*);
 static bool ptinbox(double *c, double *l, double *u);
 static bool ptoutcircle(double*,double*,double);
@@ -180,7 +180,7 @@ static void CgalCircle(
 	double *out_vtx_coords,*in_vtx_coords;
 	double ang_out, ang_in;
 	int out_vtx_oneside = 5, in_vtx_oneside = 2;
-	char gore_bool[10],vent_bool[10];
+	char gore_bool[10],vent_bool[10], string_bool[10];
 	std::list<Cgal_Point> list_of_seeds;
 	double cri_dx = 0.6*computational_grid(front->interf)->h[0];
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
@@ -201,7 +201,7 @@ static void CgalCircle(
 	CursorAfterStringOpt(infile,"Enter yes to attach gores to canopy:");
         fscanf(infile,"%s",gore_bool);
         (void) printf("%s\n",gore_bool);
-        if (gore_bool[0]=='y'|| gore_bool[0]=='Y')
+        if (gore_bool[0]=='y' || gore_bool[0]=='Y')
         {
 	    CirR[1] = 0.1 * CirR[0];
 	    af_params->attach_gores = YES;
@@ -211,15 +211,23 @@ static void CgalCircle(
 	CursorAfterStringOpt(infile,"Enter yes to cut a vent on canopy:");
 	fscanf(infile,"%s",vent_bool);
 	(void) printf("%s\n",vent_bool);
-	if (vent_bool[0]=='y'|| vent_bool[0]=='Y')
+	if (vent_bool[0]=='y' || vent_bool[0]=='Y')
         {
             CursorAfterString(infile,"Enter radius of the vent:");
 	    fscanf(infile,"%lf",&CirR[1]);
 	    (void) printf("%f\n",CirR[1]);
         }
-	CursorAfterString(infile,"Enter number of chords:");
-	fscanf(infile,"%d",&num_strings);
-	(void) printf("%d\n",num_strings);
+
+	num_strings = 28;   //default
+	CursorAfterStringOpt(infile,"Enter yes to attach strings to canopy:");
+	fscanf(infile,"%s",string_bool);
+	(void) printf("%s\n",string_bool);
+	if (string_bool[0]=='y' || string_bool[0]=='Y')
+	{
+	    CursorAfterString(infile,"Enter number of chords:");
+	    fscanf(infile,"%d",&num_strings);
+	    (void) printf("%d\n",num_strings);
+	}
 	FT_VectorMemoryAlloc((POINTER*)&string_node_pts,num_strings,
                                 sizeof(POINT*));
 
@@ -246,6 +254,7 @@ static void CgalCircle(
 				CirCenter[1]+CirR[0]*sin(i*ang_out);
 	    }
 	}
+
 	for (i = 0; i < num_out_vtx-1; i++)
 		cdt.insert_constraint(v_out[i],v_out[i+1]);
 	cdt.insert_constraint(v_out[0],v_out[num_out_vtx-1]);
@@ -283,7 +292,7 @@ static void CgalCircle(
 	}
 	
 	CGAL::refine_Delaunay_mesh_2(cdt, list_of_seeds.begin(), 
-			list_of_seeds.end(),Criteria(0.125, cri_dx));
+			list_of_seeds.end(),Criteria(0.3, cri_dx));
 
 	int *flag;
 	flag = new int[cdt.number_of_faces()];
@@ -320,10 +329,12 @@ static void CgalCircle(
         wave_type(*surf) = ELASTIC_BOUNDARY;
         FT_InstallSurfEdge(*surf,MONO_COMP_HSBDRY);
 	setMonoCompBdryZeroLength(*surf);
-	findStringNodePoints(*surf,out_nodes_coords,string_node_pts,
+	if (string_bool[0] == 'y' || string_bool[0] == 'Y')
+	{
+	    findStringNodePoints(*surf,out_nodes_coords,string_node_pts,
                                 num_strings,&cbdry);
-	installString(front,*surf,cbdry,string_node_pts,num_strings);
-
+	    installString(front,*surf,cbdry,string_node_pts,num_strings);
+	}
 	if (gore_bool[0]=='y'|| gore_bool[0]=='Y')
         {
             if (vent_bool[0] !='y' && vent_bool[0] !='Y')
@@ -331,7 +342,13 @@ static void CgalCircle(
 				in_nodes_coords[num_strings],
 				CirCenter,num_in_vtx);
 
-	    SplitInCirBdry(front,*surf,num_strings,in_nodes_coords);
+	    SplitCirBdry(front,*surf,num_strings,in_nodes_coords,
+			POSITIVE_ORIENTATION);
+	    if (string_bool[0] !='y' && string_bool[0] !='Y')
+	    {
+	    	SplitCirBdry(front,*surf,num_strings,out_nodes_coords,
+			NEGATIVE_ORIENTATION);
+	    }
 	    InstallGore(front,*surf,num_strings,out_nodes_coords,
 				in_nodes_coords);
 	}
@@ -487,8 +504,9 @@ static void InstallGore(
 	CURVE **gore_curves;
 	BOND *bond;
 	POINT *sta_p;
-	NODE *sta_node, *end_node, **n;
+	NODE *sta_node = NULL, *end_node = NULL, **n;
 	TRI **tris;
+	TRI *tri;
 	double dir[3],dir_tmp[3];
 	POINT *p_tmp[2];
 	int i,j,k,l;
@@ -499,6 +517,8 @@ static void InstallGore(
 
 	for (i = 0; i < num_gores; i++)
 	{
+	    sta_node = NULL;
+	    end_node = NULL;
 	    intfc_node_loop(intfc,n)
 	    {
 		if (Coords((*n)->posn)[0] == sta_coords[i] &&
@@ -508,6 +528,7 @@ static void InstallGore(
 			 Coords((*n)->posn)[1] == end_coords[i+num_gores])
 		    end_node = *n;
 	    }
+
 	    gore_curves[i] = make_curve(0,0,sta_node,end_node);
 	    install_curve_in_surface_bdry(surf,gore_curves[i],
 				POSITIVE_ORIENTATION);
@@ -558,15 +579,16 @@ static void InstallGore(
 	}
 }	/* end InstallGore */
 
-static void SplitInCirBdry(
+static void SplitCirBdry(
         Front *front,
         SURFACE *surf,
         int num_strings,
-        double *nodes_coords)
+        double *nodes_coords,
+	ORIENTATION ORIEN)
 {
 	INTERFACE *intfc = front->interf;
 	CURVE *vent_bdry,**c;
-	BOND *bond;
+	BOND *bond, *pre_bond;
 	NODE **vent_nodes;
         AF_NODE_EXTRA *extra;
         boolean node_moved;
@@ -628,6 +650,7 @@ static void SplitInCirBdry(
                 if (Coords(bond->start)[0] == nodes_coords[num_strings-i] &&
                     Coords(bond->start)[1] == nodes_coords[2*num_strings-i])
                 {
+		    pre_bond = bond->prev;
                     split_curve(bond->start,bond,vent_bdry,0,0,0,0);
                     vent_nodes[i] = FT_NodeOfPoint(intfc,bond->start);
                     FT_ScalarMemoryAlloc((POINTER*)&extra,
@@ -637,7 +660,10 @@ static void SplitInCirBdry(
                     break;
                 }
             }
-            vent_bdry = FT_CurveOfPoint(intfc,bond->start,&bond);
+	    if (ORIEN == POSITIVE_ORIENTATION)
+                vent_bdry = FT_CurveOfPoint(intfc,bond->start,&bond);
+	    else if (ORIEN == NEGATIVE_ORIENTATION)
+                vent_bdry = FT_CurveOfPoint(intfc,pre_bond->start,&bond);
         }
 }	/* end SplitInCirBdry */
             

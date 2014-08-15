@@ -85,7 +85,6 @@ LOCAL	void	strip_curve_from_surf(CURVE*,SURFACE*,ORIENTATION);
 LOCAL	void	synchronize_tris_at_subdomain_bdry(TRI**,TRI**,int,P_LINK*,int);
 	void 	sep_common_pt_for_open_bdry(INTERFACE*);
 LOCAL	void 	incremental_alloc_tris(TRI***,int*);
-LOCAL	INTERFACE	*cut_buf_interface1(INTERFACE*,int,int,int*,int*);
 LOCAL   boolean    find_null_side_loop(INTERFACE*,TRI*,int,TRI**,int*);
 LOCAL	COMPONENT buffer_component(INTERFACE*,int,int);
 LOCAL  void    test_curve_link(CURVE *);
@@ -137,7 +136,14 @@ EXPORT boolean f_intfc_communication3d(
 	    set_default_comp(YES);
 	}
 #endif /* defined __MPI__ */
-	if (interface_reconstructed(fr->interf))
+	if (static_mesh(fr->interf))
+	{
+	    printf("In f_intfc_communication3d()\n");
+	    printf("Static mesh, new code needed!\n");
+	    return f_intfc_communication3d3(fr);
+	    //return f_intfc_communication3d1(fr);
+	}
+	else if (interface_reconstructed(fr->interf))
 	{
 	    return f_intfc_communication3d2(fr);
 	}
@@ -3826,7 +3832,7 @@ LOCAL void strip_curve_from_surf(
 }		/*end strip_curve_from_surf*/
 
 
-LOCAL	INTERFACE  *cut_buf_interface1(
+EXPORT	INTERFACE  *cut_buf_interface1(
 	INTERFACE	*intfc,
 	int		dir,
 	int		nb,

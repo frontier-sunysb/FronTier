@@ -41,6 +41,7 @@ fscat1d.$(OBJEXT) \
 fscat2d.$(OBJEXT) \
 fscat3d1.$(OBJEXT) \
 fscat3d2.$(OBJEXT) \
+fscat3d3.$(OBJEXT) \
 fstate2d.$(OBJEXT) \
 fstate.$(OBJEXT) \
 ftop.$(OBJEXT) \

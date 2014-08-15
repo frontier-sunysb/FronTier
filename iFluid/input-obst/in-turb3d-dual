@@ -22,6 +22,7 @@ Problem type can be
 	TWO_FLUID_KH
 	FLUID_SOLID_CIRCLE
 Enter problem type: FLUID_SOLID_CIRCLE
+Enter yes if the object is fixed: yes
 Projection type can be
         SIMPLE
         BELL_COLELLA

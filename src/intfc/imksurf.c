@@ -180,7 +180,7 @@ EXPORT	boolean make_bdry_surfaces(
 	    if ((*n)->in_curves == NULL && (*n)->out_curves == NULL)
 	    {
 	    	delete_node(*n);
-	    	n = intfc->nodes;
+	    	n = intfc->nodes-1;
 	    }
 	}
 	for (i = 0; i < blk_info.num_surfs; ++i)

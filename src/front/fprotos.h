@@ -714,6 +714,7 @@ IMPORT	void	install_hsbdry_on_surface(SURFACE*,int);
 IMPORT	boolean	surfaces_matched(SURFACE*,SURFACE*);
 IMPORT  void    shift_interface(INTERFACE*,double,int);
 IMPORT	void	set_default_comp(boolean);
+IMPORT  INTERFACE *cut_buf_interface1(INTERFACE*,int,int,int*,int*);
 	
 	/* fscat3d2.c*/
 IMPORT	boolean	f_intfc_communication3d2(Front*);

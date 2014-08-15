@@ -243,6 +243,7 @@ static void initCirclePlaneIntfc(
 	FILE *infile = fopen(inname,"r");
 	static CIRCLE_PARAMS *circle_params;
 	int i,dim;
+	char string[100];
 
 	iFparams = (IF_PARAMS*)front->extra1;
 	FT_ScalarMemoryAlloc((POINTER*)&circle_params,sizeof(CIRCLE_PARAMS));
@@ -293,6 +294,14 @@ static void initCirclePlaneIntfc(
 			"Enter density and viscosity of the fluid:");
             fscanf(infile,"%lf %lf",&iFparams->rho2,&iFparams->mu2);
             (void) printf("%f %f\n",iFparams->rho2,iFparams->mu2);
+	    if (CursorAfterStringOpt(infile,
+		"Enter yes if the object is fixed: "))
+	    {
+		fscanf(infile,"%s",string);
+		(void) printf("%s\n",string);
+		if (string[0] == 'y' || string[0] == 'Y')
+		    level_func_pack->wave_type = NEUMANN_BOUNDARY;
+	    }
             break;
 	default:
 	    (void) printf("ERROR: entering wrong initialization function\n");
