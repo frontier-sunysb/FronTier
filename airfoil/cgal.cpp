@@ -62,6 +62,7 @@ static void installString(Front*,SURFACE*,CURVE*,POINT**,int);
 static void resetStringNodePoints(SURFACE*,POINT**,int*,CURVE**);
 static void setCurveZeroLength(CURVE*,double);
 static void setSurfZeroMesh(SURFACE*);
+static void resetGoreBdryZerolength(SURFACE*);
 static void setMonoCompBdryZeroLength(SURFACE*);
 static boolean sewSurface(FILE*,SURFACE*);
 
@@ -118,15 +119,18 @@ static void CgalParabolicSurface(
 	{
 	    for (i = 0; i < 3; i++)
 	    {
+		tri->side_length0[i] = -1.0;
 		p = Point_of_tri(tri)[i];
 		if (sorted(p) == NO)
 		{
-		    p->_coords[2] = cen[2] - rad[0]*sqr(p->_coords[0]-cen[0])
-					   - rad[1]*sqr(p->_coords[1]-cen[1]); 
+		    Coords(p)[2] = cen[2] - rad[0]*sqr(Coords(p)[0]-cen[0])
+					  - rad[1]*sqr(Coords(p)[1]-cen[1]); 
 		    sorted(p) = YES;
 		}
 	    }
 	}
+	setSurfZeroMesh(*surf);
+	resetGoreBdryZerolength(*surf);
 }	/* end CgalParabolicSurface */
 
 static void CgalFlatSurface(
@@ -1604,3 +1608,30 @@ static void setMonoCompBdryZeroLength(
 	    setCurveZeroLength(*c,1.0);
 	}
 }	/* end setMonoCompBdryZeroLength */
+
+static void resetGoreBdryZerolength(
+        SURFACE *surf)
+{
+	CURVE **c;
+	BOND *b;
+	surf_pos_curve_loop(surf,c)
+        {
+            if (hsbdry_type(*c) != GORE_HSBDRY)
+                continue;
+	    curve_bond_loop(*c,b)
+	    {
+		b->length0 = -1.0;
+	    }
+            setCurveZeroLength(*c,1.0);
+        }
+        surf_neg_curve_loop(surf,c)
+        {
+            if (hsbdry_type(*c) != GORE_HSBDRY)
+                continue;
+	    curve_bond_loop(*c,b)
+	    {
+		b->length0 = -1.0;
+	    }
+            setCurveZeroLength(*c,1.0);
+        }
+}       /* end resetGoreBdryZerolength */

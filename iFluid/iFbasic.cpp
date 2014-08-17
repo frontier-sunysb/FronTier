@@ -3092,34 +3092,6 @@ void Incompress_Solver_Smooth_Basis::setReferencePressure()
 	}
 }	/* end computeFieldPointGrad */
 
-void Incompress_Solver_Smooth_Basis::PrintVelocity()
-{
-	PrintVelocity("u",field->vel[0]);
-	PrintVelocity("v",field->vel[1]);
-	PrintVelocity("p",field->pres);
-}
-
-void Incompress_Solver_Smooth_Basis::PrintVelocity(const char* varname,double* var)
-{
-	int i,j,k,index;
-	char filename[256];
-	sprintf(filename,"%s/%s-%f",OutName(front),varname,front->time);
-	FILE* outfile = fopen(filename,"w");
-	if(dim == 3)
-	   return;
-
-	for (j = jmin; j <= jmax; j++)
-	{
-	    for (i = imin; i <= imax; i++)
-	    {
-		index = d_index2d(i,j,top_gmax);
-		fprintf(outfile,"%f ",var[index]);
-	    }
-	    fprintf(outfile,"\n");
-	}
-	fclose(outfile);
-}
-
 extern int ifluid_find_state_at_crossing(
 	Front *front,
 	int *icoords,
@@ -3500,3 +3472,202 @@ double Incompress_Solver_Smooth_Basis::computeFieldPointMuTurb(
 	    mu_t = mu_out;
 	return mu_t + nu*rho;
 }	/* end computeFieldPointMuTurb */
+
+static void initTestParams(Front *front)
+{
+	FILE *infile = fopen(InName(front),"r");
+	IF_PARAMS *params = (IF_PARAMS*)front->extra1;
+
+	CursorAfterString(infile,"Enter base directory name:");
+            fscanf(infile,"%s",params->base_dir_name);
+	(void) printf("%s\n",params->base_dir_name);
+	CursorAfterString(infile,"Enter index of comaparing step:");
+            fscanf(infile,"%d",&params->base_step);
+	(void) printf("%d\n",params->base_step);
+	fclose(infile);
+
+}
+
+void Incompress_Solver_Smooth_Basis::compareWithBaseSoln()
+{
+	int ii,jj,kk,index,k,l,DD;
+        double P[MAXD],L1,L2,L_inf,err;
+        double uex,*u;
+        double u_max,u_min;
+        IF_PARAMS *params = (IF_PARAMS*)front->extra1;
+        IF_PARAMS *base_params;
+        IF_FIELD *base_field;
+        RECT_GRID *base_grid;
+        int *base_gmax;
+        int *base_comp;
+        int base_ic[MAXD];
+        Table *base_T;
+        int N,base_index;
+
+        L1 = L2 = L_inf = 0.0;
+
+        u_max = -HUGE;
+        u_min = HUGE;
+        u   = field->vel[0];
+
+ 	initTestParams(front);	
+        readBaseFront(params,0);
+        base_params = (IF_PARAMS*)base_front->extra1;
+        base_field = base_params->field;
+        base_grid = &topological_grid(base_front->grid_intfc);
+        base_gmax = base_grid->gmax;
+        base_T = table_of_interface(base_front->grid_intfc);
+        base_comp = base_T->components;
+
+        N = 0;
+        switch (dim)
+        {
+        case 2:
+            for (ii = imin; ii <= imax; ++ii)
+            for (jj = jmin; jj <= jmax; ++jj)
+            {
+                double R;
+                index = d_index2d(ii,jj,top_gmax);
+                getRectangleCenter(index,P);
+                rect_in_which(P,base_ic,base_grid);
+                base_index = d_index(base_ic,base_gmax,2);
+                if (top_comp[index] != base_comp[base_index])
+                    continue;
+
+                DD = (top_comp[index] == 2) ? 1 : -1;
+                R = sqrt(sqr(P[0]) + sqr(P[1]));
+                FT_IntrpStateVarAtCoords(base_front,top_comp[index],
+                        P,base_field->vel[0],getStateXvel,&uex,NULL);
+                if (u_max < u[index]) u_max = u[index];
+                if (u_min > u[index]) u_min = u[index];
+                err = fabs(u[index] - uex);
+                L1 += err;
+                L2 += sqr(err);
+                if (err > L_inf)
+                {
+                    L_inf = err;
+                }
+                N++;
+            }
+            break;
+        }
+        L1 /= N;
+        L2 /= N;
+        L2 = sqrt(L2);
+        printf("L1 = %18.16f  L2 = %18.16f  L_inf = %18.16f\n",
+                                L1,L2,L_inf);
+        printf("u_max = %f  u_min = %f\n",u_max,u_min);
+}
+
+void Incompress_Solver_Smooth_Basis::readBaseFront(
+        IF_PARAMS *iF_params,
+        int i)
+{
+        char *dir_name = iF_params->base_dir_name;
+        F_BASIC_DATA *f_basic;
+	int RestartStep = iF_params->base_step;
+	int j;
+
+        FT_ScalarMemoryAlloc((POINTER*)&base_front,sizeof(Front));
+        FT_ScalarMemoryAlloc((POINTER*)&f_basic,sizeof(F_BASIC_DATA));
+	
+	f_basic->RestartRun = YES;
+	f_basic->dim = dim;
+        f_basic->size_of_intfc_state = sizeof(STATE);
+	for (j = 0; j < dim; j++)
+	    f_basic->subdomains[j] = front->pp_grid->gmax[j];
+
+	FT_ReadComparisonDomain(InName(front),f_basic);
+
+        sprintf(f_basic->restart_name,"%s/intfc-ts%s",dir_name,
+                        right_flush(RestartStep,7));
+        printf("restart_name = %s\n",f_basic->restart_name);
+
+        FT_StartUp(base_front,f_basic);
+
+
+        sprintf(f_basic->restart_state_name,"%s/state.ts%s",dir_name,
+                        right_flush(RestartStep,7));
+        readBaseStates(f_basic->restart_state_name);
+	
+}       /* end readBaseFront */
+
+void Incompress_Solver_Smooth_Basis::readBaseStates(
+        char *restart_name)
+{
+        FILE *infile;
+        int i,j,k,index;
+        char fname[100];
+        double *u;
+	double rho, pres, phi, mu, v; //dummy variable
+        int *base_gmax;
+        RECT_GRID *base_grid;
+        static IF_PARAMS params;
+
+	printf("Entering readBaseStates()\n");
+        sprintf(fname,"%s-ifluid",restart_name);
+        infile = fopen(fname,"r");
+
+        /* Initialize states at interface and in the interior regions */
+        //fluid_read_front_states(infile,base_front);
+
+        FT_MakeGridIntfc(base_front);
+        base_grid = &topological_grid(base_front->grid_intfc);
+        base_gmax = base_grid->gmax;
+        FT_ScalarMemoryAlloc((POINTER*)&params.field,sizeof(IF_FIELD));
+        FT_VectorMemoryAlloc((POINTER*)&(params.field->vel),dim,sizeof(POINTER));
+
+        next_output_line_containing_string(infile,"Interior ifluid states:");
+
+        switch (dim)
+        {
+        case 1:
+            FT_VectorMemoryAlloc((POINTER*)&u,base_gmax[0]+1,FLOAT);
+            for (i = 0; i <= base_gmax[0]; ++i)
+            {
+                index = d_index1d(i,base_gmax);
+		fscanf(infile,"%lf",&rho);
+		fscanf(infile,"%lf",&pres);
+		fscanf(infile,"%lf",&phi);
+		fscanf(infile,"%lf",&mu);
+                fscanf(infile,"%lf",&u[index]);
+            }
+            break;
+        case 2:
+            FT_VectorMemoryAlloc((POINTER*)&u,
+                        (base_gmax[0]+1)*(base_gmax[1]+1),FLOAT);
+            for (i = 0; i <= base_gmax[0]; ++i)
+            for (j = 0; j <= base_gmax[1]; ++j)
+            {
+                index = d_index2d(i,j,base_gmax);
+		fscanf(infile,"%lf",&rho);
+		fscanf(infile,"%lf",&pres);
+		fscanf(infile,"%lf",&phi);
+		fscanf(infile,"%lf",&mu);
+                fscanf(infile,"%lf",&u[index]);
+                fscanf(infile,"%lf",&v);
+            }
+            break;
+        case 3:
+            FT_VectorMemoryAlloc((POINTER*)&u,(base_gmax[0]+1)*
+                        (base_gmax[1]+1)*(base_gmax[2]+1),FLOAT);
+            for (i = 0; i <= base_gmax[0]; ++i)
+            for (j = 0; j <= base_gmax[1]; ++j)
+            for (k = 0; k <= base_gmax[2]; ++k)
+            {
+                index = d_index3d(i,j,k,base_gmax);
+		fscanf(infile,"%lf",&rho);
+                fscanf(infile,"%lf",&pres);
+                fscanf(infile,"%lf",&phi);
+                fscanf(infile,"%lf",&mu);
+                fscanf(infile,"%lf",&u[index]);
+                fscanf(infile,"%lf",&v);
+                fscanf(infile,"%lf",&v);
+            }
+            break;
+        }
+        params.field->vel[0] = u;
+        base_front->extra1 = (POINTER)&params;
+        fclose(infile);
+}       /* end readBaseStates */
+

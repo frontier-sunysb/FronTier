@@ -256,7 +256,6 @@ static  void ifluid_driver(
 	    {
             	FT_Save(front,out_name);
 		l_cartesian->printFrontInteriorStates(out_name);
-		l_cartesian->PrintVelocity();
 	    }
             if (FT_IsMovieFrameTime(front))
 	    {
@@ -265,7 +264,11 @@ static  void ifluid_driver(
 	    //recordBdryEnergyFlux(front,out_name);
 
             if (FT_TimeLimitReached(front))
+	    {
+		if (debugging("CAUCHY_ERROR"))
+                    l_cartesian->compareWithBaseSoln();
                 break;
+	    }
 
 	    if (debugging("storage"))
 	    {

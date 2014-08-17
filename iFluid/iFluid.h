@@ -131,6 +131,8 @@ typedef struct {
 	double  ref_pres;
 	double  Amplitute; 	/*Amplitute of velocity*/
 	double	ymax;	   	/* Maximum distance in Baldwin-Lomax model */
+	char base_dir_name[200];
+        int base_step;
 } IF_PARAMS;
 
 struct _FLOW_THROUGH_PARAMS {
@@ -242,9 +244,10 @@ public:
 	void applicationSetStates();
 
 	//For debugging test
+	void compareWithBaseSoln(void);
+        void readBaseFront(IF_PARAMS *,int i);
+        void readBaseStates(char *restart_name);
 	void solveTest(const char *msg);
-	void   PrintVelocity(const char*,double*);
-	void   PrintVelocity();
 
 	//User interface
 	virtual void setInitialCondition(void) = 0;
@@ -254,6 +257,7 @@ public:
 
 protected:
 	Front *front;
+	Front *base_front;	// for convergence tests
 	IF_PARAMS *iFparams;
 	IF_FIELD  *field;
 	
