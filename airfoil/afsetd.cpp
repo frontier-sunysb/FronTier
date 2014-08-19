@@ -378,13 +378,16 @@ extern void set_node_spring_vertex(
 	    sv[*n].lambda = lambda_l;
 	}
 	sl = (STATE*)left_state(node->posn);
-        for (i = 0; i < dim; ++i)
-        {
-	    sv[*n].ext_accel[i] = g[i];
-	    sv[*n].ext_impul[i] = sl->impulse[i];
+	if (dim == 3)
+	{
+            for (i = 0; i < dim; ++i)
+            {
+	    	sv[*n].ext_accel[i] = g[i];
+	    	sv[*n].ext_impul[i] = sl->impulse[i];
+	    }
+	    if (is_fixed) 
+	    	sv[*n].ext_accel[i] = 0;
 	}
-	if (is_fixed) 
-	    sv[*n].ext_accel[i] = 0;
 	(*n)++;
 }	/* end set_node_spring_vertex */
 
@@ -456,15 +459,20 @@ extern void set_curve_spring_vertex(
 	    sv[i].num_nb = 2;
 	    sv[i].lambda = lambda_l;
 	    sl = (STATE*)left_state(b->end);
-            for (j = 0; j < dim; ++j)
-            {
-	    	sv[i].ext_accel[j] = g[j];
-	    	sv[i].ext_impul[j] = sl->impulse[j];
-	    }
-	    if (hsbdry_type(curve) == FIXED_HSBDRY)
-            for (j = 0; j < dim; ++j)
-            {
-	    	sv[i].ext_accel[j] = 0;
+	    if (dim == 3)
+	    {
+            	for (j = 0; j < dim; ++j)
+            	{
+	    	    sv[i].ext_accel[j] = g[j];
+	    	    sv[i].ext_impul[j] = sl->impulse[j];
+	    	}
+	    	if (hsbdry_type(curve) == FIXED_HSBDRY)
+	    	{
+            	    for (j = 0; j < dim; ++j)
+            	    {
+	    	    	sv[i].ext_accel[j] = 0;
+	    	    }
+	    	}
 	    }
 	    ++i;
 	}

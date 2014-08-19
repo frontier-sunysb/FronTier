@@ -2196,6 +2196,8 @@ static void set_special_node_type(
 	{
 	    for (j = 0; j < sv[n].num_nb; ++j)
 	    	sv[n].k[j] = 0.0;
+	    for (j = 0; j < dim; ++j)
+		sv[n].ext_accel[j] = 0.0;
 	    sv[n].lambda = 0.0;
 	}
 	else if (end_type == LOADED_END)

@@ -74,7 +74,7 @@ extern void setMotionParams(
 	INTERFACE *intfc = front->interf;
 
 	af_params->no_fluid = NO;
-	if (numOfGoreHsbdry(intfc) != 0)
+	if (dim == 3 && numOfGoreHsbdry(intfc) != 0)
 	{
 	    af_params->attach_gores = YES;
 	    checkSetGoreNodes(intfc);
