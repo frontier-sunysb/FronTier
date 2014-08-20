@@ -323,7 +323,6 @@ static void initRigidBody(
 	int neg_comp,pos_comp;
 	SURFACE *surf;
 
-	printf("Entering initRigidBody()\n");
 	if (CursorAfterStringOpt(infile,"Enter yes to add rigid body:"))
 	{
 	    fscanf(infile,"%s",string);
@@ -331,6 +330,8 @@ static void initRigidBody(
 	    if (string[0] != 'y' && string[0] != 'Y')
 		return;
 	}
+	else
+	    return;
 	(void) printf("Available type of rigid body include:\n");
 	(void) printf("\tSphere (S)\n");
 	CursorAfterString(infile,"Enter type of rigid body:");
