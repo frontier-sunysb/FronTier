@@ -859,20 +859,24 @@ void Incompress_Solver_Smooth_Basis::initMovieVariables()
 				"yvel",0,field->vel[1],getStateYvel,
 				var_max,var_min);
 	    }
-	    CursorAfterString(infile,"Type y to make movie of viscosity:");
-            fscanf(infile,"%s",string);
-            (void) printf("%s\n",string);
-            if (string[0] == 'Y' || string[0] == 'y')
+	    if (CursorAfterStringOpt(infile,
+		"Type y to make movie of viscosity:"))
 	    {
-		if (set_bound)
-		{
-		    CursorAfterString(infile,"Enter min and max viscosity:");
-                    fscanf(infile,"%lf %lf",&var_min,&var_max);
-                    (void) printf("%f %f\n",var_min,var_max);
-		}
-		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+            	fscanf(infile,"%s",string);
+            	(void) printf("%s\n",string);
+            	if (string[0] == 'Y' || string[0] == 'y')
+	    	{
+		    if (set_bound)
+		    {
+		        CursorAfterString(infile,
+				"Enter min and max viscosity:");
+                        fscanf(infile,"%lf %lf",&var_min,&var_max);
+                        (void) printf("%f %f\n",var_min,var_max);
+		    }
+		    FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
 				"visc",0,field->mu,getStateMu,
 				var_max,var_min);
+	    	}
 	    }
 	    break;
 	case 3:
