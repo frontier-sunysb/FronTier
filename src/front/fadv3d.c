@@ -4,9 +4,7 @@ Front Traking algorithms. Front Tracking is a numerical method for
 the solution of partial differential equations whose solutions have 
 discontinuities.  
 
-
 Copyright (C) 1999 by The University at Stony Brook. 
- 
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -1454,6 +1452,15 @@ LOCAL int struct_advance_front3d(
 	if (front->interior_propagate != NULL)
 	    (*front->interior_propagate)(*newfront,dt);
 	stop_clock("interior_propagate");
+
+	/*
+	printf("Before resolve_collision()\n");
+        printf("interface_reconstructed(intfc) = %d\n",
+                interface_reconstructed((*newfront)->interf));
+        resolve_collision(*newfront);
+	printf("Before resolve_collision()\n");
+	clean_up(0);
+	*/
 
 	start_clock("scatter_front");
 	if (!scatter_front(*newfront))

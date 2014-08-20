@@ -140,8 +140,8 @@ EXPORT boolean f_intfc_communication3d(
 	{
 	    printf("In f_intfc_communication3d()\n");
 	    printf("Static mesh, new code needed!\n");
+	    printf("Current code is the same as f_intfc_communication3d1()\n");
 	    return f_intfc_communication3d3(fr);
-	    //return f_intfc_communication3d1(fr);
 	}
 	else if (interface_reconstructed(fr->interf))
 	{

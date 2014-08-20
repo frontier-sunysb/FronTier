@@ -5376,3 +5376,74 @@ EXPORT void gview_plot_intfc_within_range(
 	free_these(1,tris);
 }	/* end gview_plot_surf_within_range */
 
+EXPORT void gview_plot_crossing_tris(
+	const char    *dname,
+	TRI **tri_list1,
+	int num_tri1,
+	TRI **tri_list2,
+	int num_tri2)
+{
+	char fname[200];
+	FILE *file;
+	int i,j;
+	POINT *p;
+	static const char *indent = "    ";
+
+	if (create_directory(dname,YES) == FUNCTION_FAILED)
+	{
+	    screen("WARNING in gview_plot_crossing_tris(), "
+	           "directory %s doesn't exist and can't be created\n",dname);
+	    return;
+	}
+	(void) sprintf(fname,"%s/tri.list",dname);
+	if ((file = fopen(fname,"w")) == NULL)
+	{
+	    screen("WARNING in gview_plot_crossing_tris(), "
+	           "can't open %s\n",fname);
+	    return;
+	}
+	(void) fprintf(file,"{ LIST\n");
+	(void) fprintf(file,"%s{\n%s%sOFF\n%s%s%6d %6d %6d\n",
+                        indent,indent,indent,
+                        indent,indent,3*num_tri1,num_tri1,0);
+	for (i = 0; i < num_tri1; ++i)
+        {
+            for (j = 0; j < 3; ++j)
+            {
+                p = Point_of_tri(tri_list1[i])[j];
+                (void) fprintf(file, "%s%s%-9g %-9g %-9g\n",
+                        indent,indent,
+                        Coords(p)[0],Coords(p)[1],Coords(p)[2]);
+            }
+        }
+        for (i = 0; i < num_tri1; ++i)
+        {
+            (void) fprintf(file,"%s%s%-4d %-4d %-4d %-4d ",indent,indent,
+                3,3*i,3*i+1,3*i+2);
+	    write_color(file,pRED,1.0);
+        }
+        (void) fprintf(file,"%s}\n",indent);
+
+	(void) fprintf(file,"%s{\n%s%sOFF\n%s%s%6d %6d %6d\n",
+                        indent,indent,indent,
+                        indent,indent,3*num_tri2,num_tri2,0);
+	for (i = 0; i < num_tri2; ++i)
+        {
+            for (j = 0; j < 3; ++j)
+            {
+                p = Point_of_tri(tri_list2[i])[j];
+                (void) fprintf(file, "%s%s%-9g %-9g %-9g\n",
+                        indent,indent,
+                        Coords(p)[0],Coords(p)[1],Coords(p)[2]);
+            }
+        }
+        for (i = 0; i < num_tri2; ++i)
+        {
+            (void) fprintf(file,"%s%s%-4d %-4d %-4d %-4d ",indent,indent,
+                3,3*i,3*i+1,3*i+2);
+	    write_color(file,pBLUE,1.0);
+        }
+        (void) fprintf(file,"%s}\n",indent);
+        (void) fprintf(file,"}\n");
+	fclose(file);
+}	/* end gview_plot_crossing_tris */

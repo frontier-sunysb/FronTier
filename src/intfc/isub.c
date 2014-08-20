@@ -4716,3 +4716,17 @@ LOCAL	void sort_ring_pts(
 	    }
 	}
 }	/* end sort_rong_pts */
+
+EXPORT	void  unit_vector(
+	double *vec,
+	double *uvec,
+	int dim)
+{
+	int i;
+	double length = 0.0;
+	for (i = 0; i < dim; ++i)
+	    length += sqr(vec[i]);
+	length = sqrt(length);
+	for (i = 0; i < dim; ++i)
+	    uvec[i] = vec[i]/length;
+}	/* end unit_vector */

@@ -689,8 +689,6 @@ static boolean merge_tris_on_bonds(
 
 	cps_prev = join_curves(cps_prev,cns_next,NO_COMP,NO_COMP,NULL);
 	cne_prev = join_curves(cne_prev,cpe_next,NO_COMP,NO_COMP,NULL);
-//	delete_node(nps);
-//	delete_node(npe);
 
 	return YES;
 }	/* end merge_tris_on_bonds */
@@ -774,9 +772,9 @@ static boolean find_seg_start_and_end(
 	double pv[MAXD],bv[MAXD],dir_max;
 	double *p;
 	double lambda,tol = 1.0e-8;
-	start = end = NULL;
 	boolean positive;
 
+	start = end = NULL;
 	dir_max = 0.0;
 	for (i = 0; i < 3; ++i)
 	{

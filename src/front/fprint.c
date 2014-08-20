@@ -3935,7 +3935,7 @@ LOCAL void vtk_plot_scalar_field2d(
         for (i = jmin; i <= jmax; i++)
                 fprintf(outfile,"%f\n",top_L[1]+(i-jmin)*top_h[1]);
         fprintf(outfile,"Z_COORDINATES    %d float\n",pointsz);
-                fprintf(outfile,"%f\n",0);
+                fprintf(outfile,"%f\n",0.0);
 
         fprintf(outfile, "POINT_DATA %i\n", num_points);
         fprintf(outfile, "SCALARS %s float\n",varname);

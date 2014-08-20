@@ -4389,3 +4389,180 @@ LOCAL double shortest_2line_dist_dir(
 
         return d;
 }       /* end shortest_2line_dist_dir */
+
+EXPORT SIDE nearest_point_to_tri_cluster(
+	double		*coords,
+	COMPONENT	comp_of_pt,
+	SURFACE		*surf,
+	TRI		**tri_list,
+	int		num_tris,
+	TRI		**tri_on,
+	int		*index,
+	double		*nearest_pt,
+	double		*nor)
+{
+	TRI_PROJECTION	Closest, Tri_proj;
+	TRI_PROJECTION	*closest = &Closest, *tri_proj = &Tri_proj;
+	int		i, k;
+	COMPONENT	comp;
+	TRI *tri,*nbtri;
+	POINT              *p;
+        HYPER_SURF_ELEMENT *hse;
+        HYPER_SURF         *hs;
+	double a1,a2;
+	double nor1[MAXD],nor2[MAXD];
+
+	/* Find Closest Point on tri list: */
+
+	Closest.tri = NULL;
+	Closest.s = NULL;
+	Closest.pv = Closest.p1 = Closest.p2 = NULL;
+	Closest.d2 = Closest.d = HUGE_VAL;
+	Closest.nor_d2 = HUGE_VAL;
+	for (i = 0; i < 3; ++i)
+	    Tri_proj.pt[i] = coords[i];
+
+	for (i = 0; i < num_tris; ++i)
+	    Tri_projection_computed(tri_list[i]) = NO;
+
+	for (i = 0; i < num_tris; ++i)
+	{
+	    if (Tri_projection_computed(tri_list[i]) != YES)
+	    {
+	        Tri_proj.tri = tri_list[i];
+	        Tri_proj.s = surf;
+	        shortest_distance3d(tri_proj);
+	        if (new_tri_is_closer(tri_proj,closest) == YES)
+		{
+		    Closest = Tri_proj;
+		}
+	    }
+	    Tri_projection_computed(tri_list[i]) = YES;
+	}
+
+	if (Closest.side == UNKNOWN_SIDE)
+	{
+	    (void) printf("shortest_distance3d() returns UNKNOWN_SIDE\n");
+	    return UNKNOWN_SIDE;
+	}
+	else if (Closest.side == COPLANAR)
+	{
+	    (void) printf("shortest_distance3d() returns COPLANAR\n");
+	    return COPLANAR;
+	}
+	*index = -1;
+	if (debugging("tri_cluster"))
+	{
+	    if (Closest.side == ONVERTEX)
+	    	(void) printf("ONVERTEX case\n");
+	    else if (Closest.side == ONEDGE)
+	    	(void) printf("ONEDGE case\n");
+	    else if (Closest.side == POSITIVE_SIDE)
+	    	(void) printf("POSITIVE_SIDE case\n");
+	    else if (Closest.side == NEGATIVE_SIDE)
+	    	(void) printf("NEGATIVE_SIDE case\n");
+	    (void) printf("Closest.a = %f %f %f\n",Closest.a[0],Closest.a[1],
+					Closest.a[2]);
+	}
+	for (i = 0; i < 3; ++i)
+	{
+	    nearest_pt[i] = 0.0;
+	    for (k = 0; k < 3; ++k)
+		nearest_pt[i] += Closest.a[k]*
+			Coords(Point_of_tri(Closest.tri)[k])[i];
+	}
+	*tri_on = Closest.tri;
+
+	/* Calculating normal at the projected point to the
+	   surface side of comp_of_pt */
+	switch (Closest.side)
+	{
+	case NEGATIVE_SIDE:
+	case POSITIVE_SIDE:
+	    for (i = 0; i < 3; ++i)
+		nor[i] = Tri_normal(Closest.tri)[i];
+	    unit_vector(nor,nor,3);
+	    break;
+	case ONEDGE:
+	    tri = Closest.tri;
+	    nbtri = Tri_on_side(Closest.tri,Closest.side_index);
+	    *index = Closest.side_index;
+	    for (i = 0; i < 3; ++i)
+	    {
+		nor1[i] =  Tri_normal(tri)[i];
+		nor2[i] =  Tri_normal(nbtri)[i];
+	    }
+	    a1 = tri_area(tri);
+	    a2 = tri_area(nbtri);
+	    unit_vector(nor1,nor1,3);
+	    unit_vector(nor2,nor2,3);
+	    for (i = 0; i < 3; ++i)
+		nor[i] = a1*nor1[i] + a2*nor2[i];
+	    unit_vector(nor,nor,3);
+	    break;
+	case ONVERTEX:
+	    tri = Closest.tri;
+	    p = Point_of_tri(tri)[Closest.vertex_index];
+	    *index = Closest.side_index;
+	    hse = Hyper_surf_element(tri);
+	    hs = Hyper_surf(surf);
+	    area_weighted_normal3d(p,hse,hs,nor);
+	    break;
+	}
+	if (comp_of_pt == negative_component(surf))
+	    nor[i] *= -1.0;
+	else if (comp_of_pt != positive_component(surf))
+	{
+	    (void) printf("In nearest_pt_to_tri_cluster():\n");
+	    (void) printf("comp_of_pt is neither positive side"
+		" nor negative side of the surface\n");
+	    clean_up(ERROR);
+	}
+
+	return Closest.side;
+}	/* end nearest_point_to_tri_cluster */
+
+
+EXPORT COMPONENT component_wrt_tri_cluster(
+	double		*coords,
+	SURFACE		*surf,
+	TRI		**tri_list,
+	int		num_tris)
+{
+	TRI_PROJECTION	Closest, Tri_proj;
+	TRI_PROJECTION	*closest = &Closest, *tri_proj = &Tri_proj;
+	int		i, k;
+	COMPONENT	comp;
+
+	/* Find Closest Point on tri list: */
+
+	Closest.tri = NULL;
+	Closest.s = NULL;
+	Closest.pv = Closest.p1 = Closest.p2 = NULL;
+	Closest.d2 = Closest.d = HUGE_VAL;
+	Closest.nor_d2 = HUGE_VAL;
+	for (i = 0; i < 3; ++i)
+	    Tri_proj.pt[i] = coords[i];
+
+	for (i = 0; i < num_tris; ++i)
+	    Tri_projection_computed(tri_list[i]) = NO;
+
+	for (i = 0; i < num_tris; ++i)
+	{
+	    if (Tri_projection_computed(tri_list[i]) != YES)
+	    {
+	        Tri_proj.tri = tri_list[i];
+	        Tri_proj.s = surf;
+	        shortest_distance3d(tri_proj);
+	        if (new_tri_is_closer(tri_proj,closest) == YES)
+		{
+		    Closest = Tri_proj;
+		}
+	    }
+	    Tri_projection_computed(tri_list[i]) = YES;
+	}
+
+	comp = comp_at_closest(&Closest);
+	
+	return comp;
+}	/* end component_wrt_tri_cluster */

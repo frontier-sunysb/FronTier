@@ -4,9 +4,7 @@ Front Traking algorithms. Front Tracking is a numerical method for
 the solution of partial differential equations whose solutions have 
 discontinuities.  
 
-
 Copyright (C) 1999 by The University at Stony Brook. 
- 
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -21,7 +19,6 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-
 ****************************************************************/
 
 
@@ -265,6 +262,7 @@ IMPORT void PointAndFirstRingTris(POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,int*,
 IMPORT boolean surf_in_interface(SURFACE*,INTERFACE*);
 IMPORT boolean curve_in_interface(CURVE*,INTERFACE*);
 IMPORT boolean node_in_interface(NODE*,INTERFACE*);
+IMPORT void unit_vector(double*,double*,int);
 
 /*	iuserintfc.c*/
 IMPORT	I_USER_INTERFACE	*i_user_hook(int);
@@ -453,6 +451,9 @@ IMPORT  boolean    is_tri_outside_box(TRI*, double **);
 IMPORT  boolean    is_outside_surface(INTERFACE*,SURFACE*,RECT_GRID*);
 IMPORT  boolean    is_outside_surfaces(INTERFACE*,RECT_GRID*);
 IMPORT  void    delete_outside_surface(INTERFACE *);
+IMPORT  COMPONENT component_wrt_tri_cluster(double*,SURFACE*,TRI**,int);
+IMPORT  SIDE    nearest_point_to_tri_cluster(double*,COMPONENT,SURFACE*,
+                        TRI**,int,TRI**,int*,double*,double*);
 
 /* 	idiagnostic.c*/
 IMPORT	int  	index_of_pointer(POINTER*,POINTER);
@@ -517,6 +518,7 @@ IMPORT	void	gview_point_tri_rings(const char*,POINT*);
 IMPORT	void	gview_plot_surf_within_range(const char*,SURFACE*,double*,
 					double);
 IMPORT	void	gview_plot_color_scaled_interface(const char*,INTERFACE*);
+IMPORT  void    gview_plot_crossing_tris(const char*,TRI**,int,TRI**,int);
 
 /*	int3d.c*/
 IMPORT	BOND_TRI *i_link_tri_to_bond(BOND_TRI*,TRI*,SURFACE*,BOND*,CURVE*);

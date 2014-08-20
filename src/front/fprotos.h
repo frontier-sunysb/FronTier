@@ -606,7 +606,8 @@ IMPORT	boolean    compute_average_point(SMOOTH_PARA*,POINT*,TRI*,SURFACE*,
 IMPORT	double	min_null_pair_angle(double*,double*,double*,double*);
 IMPORT	void	tecplot_interface_in_ball(const char*,INTERFACE*);
 
-
+        /* fcollsn3d.c*/
+IMPORT void     resolve_collision(Front *front);
 
 	/* frp1.c */
 IMPORT	F_USER_RPROBLEM	*rp_user_hook(void);

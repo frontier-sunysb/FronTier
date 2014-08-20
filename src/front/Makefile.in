@@ -14,6 +14,7 @@ fbdry2.$(OBJEXT) \
 fbdry3.$(OBJEXT) \
 fbdry4.$(OBJEXT) \
 fcheck3d.$(OBJEXT) \
+fcollsn3d.$(OBJEXT) \
 fcorrspnd.$(OBJEXT) \
 fcrosscur.$(OBJEXT) \
 fcrossext.$(OBJEXT) \
