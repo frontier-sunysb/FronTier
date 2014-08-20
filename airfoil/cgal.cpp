@@ -48,6 +48,7 @@ static void CgalFlatSurface(FILE*,Front*,SURFACE**);
 static void CgalParabolicSurface(FILE*,Front*,SURFACE**);
 static void CgalCross(FILE*,Front*,SURFACE**);
 static void CgalCircle(FILE*,Front*,SURFACE**);
+static void CgalRectangular(FILE*,Front*,SURFACE**);
 static void CgalEllipse(FILE*,Front*,SURFACE**);
 static void GenerateCgalSurf(Front*,SURFACE**,CDT*,int*,double);
 static void InstallGore(Front*,SURFACE*,int,double*,double*);
@@ -142,7 +143,7 @@ static void CgalFlatSurface(
 
         (void) printf("Available types of canopy boundaries are:\n");
         (void) printf("\tCircular (C)\n");
-        (void) printf("\tRectanglar (R)\n");
+        (void) printf("\tRectangular (R)\n");
         (void) printf("\tElliptic (E)\n");
         (void) printf("\tCross (X)\n");
         (void) printf("\tWing (W)\n");
@@ -163,8 +164,69 @@ static void CgalFlatSurface(
         case 'e':
             CgalEllipse(infile,front,surf);
             break;
+        case 'R':
+        case 'r':
+            CgalRectangular(infile,front,surf);
+            break;
         }
 }	/* end CgalFlatSurface */
+
+static void CgalRectangular(
+	FILE *infile,
+	Front *front,
+	SURFACE **surf)
+{
+	int *flag;
+	int i;
+	int num_strings = 4;
+	double height;
+	double Lower[2];
+	double Upper[2];
+	double cri_dx = 0.6*computational_grid(front->interf)->h[0];
+	std::list<Cgal_Point> list_of_seeds;
+	CDT cdt;
+	CDT::Finite_faces_iterator fit;
+        Vertex_handle *v_out;
+
+        CursorAfterString(infile,"Enter the height of the plane:");
+        fscanf(infile,"%lf",&height);
+        (void) printf("%f\n",height);
+        CursorAfterString(infile,"Enter lower bounds of the rectangle:");
+        fscanf(infile,"%lf %lf",Lower, Lower+1);
+        (void) printf("%f %f\n",Lower[0], Lower[1]);
+        CursorAfterString(infile,"Enter upper bounds of the rectangle:");
+        fscanf(infile,"%lf %lf",Upper, Upper+1);
+        (void) printf("%f %f\n",Upper[0], Upper[1]);
+
+	v_out = new Vertex_handle[num_strings];
+
+	v_out[0] = cdt.insert(Cgal_Point(Lower[0], Lower[1]));
+	v_out[1] = cdt.insert(Cgal_Point(Upper[0], Lower[1]));
+	v_out[2] = cdt.insert(Cgal_Point(Upper[0], Upper[1]));
+	v_out[3] = cdt.insert(Cgal_Point(Lower[0], Upper[1]));
+
+	for (i = 0; i < num_strings-1; i++)
+		cdt.insert_constraint(v_out[i],v_out[i+1]);
+	cdt.insert_constraint(v_out[0],v_out[num_strings-1]);
+
+	CGAL::refine_Delaunay_mesh_2(cdt, list_of_seeds.begin(), 
+			list_of_seeds.end(),Criteria(0.3, cri_dx));
+
+	flag = new int[cdt.number_of_faces()];
+
+	i = 0;
+        for (fit = cdt.finite_faces_begin(); fit != cdt.finite_faces_end();
+		++fit)
+	    flag[i++] = 1;	
+
+	GenerateCgalSurf(front,surf,&cdt,flag,height);
+        wave_type(*surf) = ELASTIC_BOUNDARY;
+        FT_InstallSurfEdge(*surf,MONO_COMP_HSBDRY);
+	setSurfZeroMesh(*surf);
+	setMonoCompBdryZeroLength(*surf);
+	if (consistent_interface(front->interf) == NO)
+	    clean_up(ERROR);
+}	/* end CgalRectangular */
 
 static void CgalCircle(
 	FILE *infile,

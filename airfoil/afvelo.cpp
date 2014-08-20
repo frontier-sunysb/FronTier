@@ -199,9 +199,11 @@ extern void setMotionParams(
             (void) printf("%f ",af_params->gravity[i]);
         }
         (void) printf("\n");
-	CursorAfterString(infile,"Enter payload:");
-        fscanf(infile,"%lf",&af_params->payload);
-        (void) printf("%f\n",af_params->payload);
+	if (CursorAfterStringOpt(infile,"Enter payload:"))
+	{
+            fscanf(infile,"%lf",&af_params->payload);
+            (void) printf("%f\n",af_params->payload);
+	}
 
 	if (af_params->no_fluid == NO)
 	{
@@ -392,6 +394,7 @@ static void initVelocityFunc(
 	    (void) printf("\tZero velocity (Z)\n");
 	    (void) printf("\tFixed area velocity (FA)\n");
 	    (void) printf("\tFixed point velocity (FP)\n");
+	    (void) printf("\tFree fall velocity (FF)\n");
             CursorAfterString(infile,"Enter velocity function: ");
 	    fscanf(infile,"%s",string);
 	    (void) printf("%s\n",string);
@@ -543,6 +546,11 @@ static void initVelocityFunc(
 		    init_fixarea_params(front,infile,fixarea_params);
 		else if (string[1] == 'p' || string[1] == 'P')
 		    init_fixpoint_params(front,infile,fixarea_params);
+		else if (string[1] == 'f' || string[1] == 'F')
+		{
+            	    velo_func_pack.func_params = NULL;
+            	    velo_func_pack.func = NULL;
+		}
             	velo_func_pack.func_params = (POINTER)fixarea_params;
             	velo_func_pack.func = marker_velo;
             	break;
