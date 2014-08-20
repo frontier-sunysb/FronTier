@@ -55,6 +55,7 @@ static boolean force_on_hse2d(HYPER_SURF_ELEMENT*,HYPER_SURF*,RECT_GRID*,
 static boolean force_on_hse3d(HYPER_SURF_ELEMENT*,HYPER_SURF*,RECT_GRID*,
                                         double*,double*,double*,boolean);
 static double intrp_between(double,double,double,double,double);
+static void setStateViscosity(IF_PARAMS*,STATE*,int);
 
 extern double getStatePres(POINTER state)
 {
@@ -108,6 +109,12 @@ extern double getStateZimp(POINTER state)
 {
 	STATE *fstate = (STATE*)state;
 	return fstate->impulse[2];
+}	/* end getStateZimp */
+
+extern double getStateMu(POINTER state)
+{
+	STATE *fstate = (STATE*)state;
+	return fstate->mu;
 }	/* end getStateZimp */
 
 extern void read_iF_dirichlet_bdry_data(
@@ -664,6 +671,7 @@ static  void neumann_point_propagate(
 	    oldst = (STATE*)sr;
 	    newst = (STATE*)right_state(newp);
 	}
+	setStateViscosity(iFparams,newst,comp);
 	FT_NormalAtPoint(oldp,front,nor,comp);
 
 	dn = grid_size_in_direction(nor,h,dim);
@@ -706,6 +714,7 @@ static  void dirichlet_point_propagate(
 	STATE *newst = NULL;
 	STATE *bstate;
 	COMPONENT comp;
+	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
 
 	if (debugging("dirichlet_bdry"))
 	{
@@ -723,6 +732,7 @@ static  void dirichlet_point_propagate(
 	    newst = (STATE*)right_state(newp);
 	    comp = positive_component(oldhs);
 	}
+	setStateViscosity(iFparams,newst,comp);
 	if (newst == NULL) return;	// node point
 
 	if (boundary_state(oldhs) != NULL)
@@ -822,6 +832,7 @@ static  void contact_point_propagate(
 	newst = (STATE*)left_state(newp);
 	newst->vort = vort;
 	newst->pres = pres;
+	setStateViscosity(iFparams,newst,negative_component(oldhs));
 	for (i = 0; i < dim; ++i)
 	{
 	    newst->vel[i] = vel[i];
@@ -829,6 +840,7 @@ static  void contact_point_propagate(
 	newst = (STATE*)right_state(newp);
 	newst->vort = vort;
 	newst->pres = pres;
+	setStateViscosity(iFparams,newst,positive_component(oldhs));
 	for (i = 0; i < dim; ++i)
 	{
 	    newst->vel[i] = vel[i];
@@ -874,6 +886,7 @@ static  void rgbody_point_propagate(
 	    oldst = (STATE*)sr;
 	    newst = (STATE*)right_state(newp);
 	}
+	setStateViscosity(iFparams,newst,comp);
 	FT_NormalAtPoint(oldp,front,nor,comp);
 
 	dn = grid_size_in_direction(nor,h,dim);
@@ -1113,10 +1126,30 @@ extern void read_iFparams(
 	    if (string[0] == 'y' || string[0] == 'Y')
 	    {
 	    	iFparams->use_eddy_visc = YES;
-        	CursorAfterString(infile,
+		(void) printf("Available tuebulence models are:\n");
+		(void) printf("\tBaldwin-Lomax (B)\n");
+		(void) printf("\tMoin (M)\n");
+        	CursorAfterString(infile,"Enter turbulence model:");
+	    	fscanf(infile,"%s",string);
+	    	(void) printf("%s\n",string);
+		switch (string[0])
+		{
+		case 'b':
+		case 'B':
+		    iFparams->eddy_visc_model = BALDWIN_LOMAX;
+        	    CursorAfterString(infile,
 			"Enter maximum distance for eddy viscosity:");
-            	fscanf(infile,"%lf",&iFparams->ymax);
-            	(void) printf("%f\n",iFparams->ymax);
+            	    fscanf(infile,"%lf",&iFparams->ymax);
+            	    (void) printf("%f\n",iFparams->ymax);
+		    break;
+		case 'm':
+		case 'M':
+		    iFparams->eddy_visc_model = MOIN;
+		    break;
+		default:
+		    (void) printf("Unknown eddy viscosity model!\n");
+		    clean_up(ERROR);
+		}
 	    }
 	}
         if (CursorAfterStringOpt(infile,"Enter gravity:"))
@@ -1873,4 +1906,22 @@ static double intrp_between(
         if (x1 == x2) return y1;
         y = y1 + (y2 - y1)/(x2 - x1)*(x - x1);
         return y;
+}
+
+static void setStateViscosity(
+	IF_PARAMS *iFparams,
+	STATE *state,
+	int comp)
+{
+	switch (comp)
+	{
+	case LIQUID_COMP1:
+	    state->mu = iFparams->mu1;
+	    break;
+	case LIQUID_COMP2:
+	    state->mu = iFparams->mu2;
+	    break;
+	default:
+	    state->mu = 0.0;
+	}
 }

@@ -43,6 +43,7 @@ struct _STATE {
 	double temperature;             /* For melting with flow problem */
 	double vapor;                   /* For climate problem */
         double supersat;		/* For climate problem */
+	double mu;			/* For eddy viscosity */
 };
 typedef struct _STATE STATE;
 
@@ -96,6 +97,12 @@ enum _DOMAIN_METHOD {
 };
 typedef enum _DOMAIN_METHOD DOMAIN_METHOD;
 
+enum _EDDY_VISC {
+	BALDWIN_LOMAX		= 1,
+	MOIN
+};
+typedef enum _EDDY_VISC EDDY_VISC;
+
 struct _NS_SCHEME {
 	PROJC_METHOD projc_method;
 	ADVEC_METHOD advec_method;
@@ -129,6 +136,8 @@ typedef struct {
 	boolean if_ref_pres;
 	boolean use_eddy_visc;	/* Yes if to use eddy viscosity */
 	double  ref_pres;
+	EDDY_VISC eddy_visc_model;
+	POINTER eddy_params;
 	double  Amplitute; 	/*Amplitute of velocity*/
 	double	ymax;	   	/* Maximum distance in Baldwin-Lomax model */
 	char base_dir_name[200];
@@ -359,7 +368,8 @@ protected:
 	double computeFieldPointDiv(int*, double**);
 	double computeDualFieldPointDiv(int*, double**);
 	double computeDualMu(int*, double*);
-	double computeFieldPointMuTurb(int*, double, boolean);
+	double computeMuOfBaldwinLomax(int*, double, boolean);
+	double computeMuOfMoinModel(int*);
 	void   computeFieldPointGrad(int*, double*, double*);
 	void   computeDualFieldPointGrad(int*, double*, double*);
 	void   checkVelocityDiv(const char*);
@@ -504,6 +514,7 @@ extern double getStateXimp(POINTER);
 extern double getStateYimp(POINTER);
 extern double getStateZimp(POINTER);
 extern double getStateComp(POINTER);
+extern double getStateMu(POINTER);
 extern double getPressure(Front*,double*,double*);
 extern double getPhiFromPres(Front*,double);
 extern double burger_flux(double,double,double);

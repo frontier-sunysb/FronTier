@@ -859,6 +859,21 @@ void Incompress_Solver_Smooth_Basis::initMovieVariables()
 				"yvel",0,field->vel[1],getStateYvel,
 				var_max,var_min);
 	    }
+	    CursorAfterString(infile,"Type y to make movie of viscosity:");
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'Y' || string[0] == 'y')
+	    {
+		if (set_bound)
+		{
+		    CursorAfterString(infile,"Enter min and max viscosity:");
+                    fscanf(infile,"%lf %lf",&var_min,&var_max);
+                    (void) printf("%f %f\n",var_min,var_max);
+		}
+		FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
+				"visc",0,field->mu,getStateMu,
+				var_max,var_min);
+	    }
 	    break;
 	case 3:
 	    CursorAfterString(infile,"Type y to make yz cross section movie:");
@@ -1489,16 +1504,42 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 		    }
 		}
 	    }
-	    else if (status == YES && iFparams->use_eddy_visc &&
-		     (wave_type(hs) == NEUMANN_BOUNDARY ||
-		      wave_type(hs) == ELASTIC_BOUNDARY))
+	    else if (iFparams->use_eddy_visc == YES)
 	    {
 		int icoords[MAXD];
 		icoords[0] = i;
 		icoords[1] = j;
-		dist = distance_between_positions(center,point,dim);
-		mu[index] = computeFieldPointMuTurb(icoords,dist,first);
-		first = NO;
+		mu[index] = 0.0;
+		switch (iFparams->eddy_visc_model)
+		{
+		case BALDWIN_LOMAX:
+		    if (status == YES &&
+			(wave_type(hs) == NEUMANN_BOUNDARY ||
+			 wave_type(hs) == ELASTIC_BOUNDARY))
+		    {
+			dist = distance_between_positions(center,point,dim);
+		    	mu[index] = computeMuOfBaldwinLomax(icoords,dist,first);
+		    	first = NO;
+		    }
+		    break;
+		case MOIN:
+		    mu[index] = computeMuOfMoinModel(icoords);
+		    break;
+		default:
+		    (void) printf("Unknown eddy viscosity model!\n");
+		    clean_up(ERROR);
+		}
+		switch (comp)
+		{
+		case LIQUID_COMP1:
+		    mu[index] += m_mu[0];
+		    rho[index] = m_rho[0];
+		    break;
+		case LIQUID_COMP2:
+		    mu[index] += m_mu[1];
+		    rho[index] = m_rho[1];
+		    break;
+		}
 	    }
 	    else
 	    {
@@ -2226,23 +2267,40 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
                     }
                 }
 	    }
-	    else if (status == YES && iFparams->use_eddy_visc &&
-                     (wave_type(hs) == NEUMANN_BOUNDARY ||
-                      wave_type(hs) == ELASTIC_BOUNDARY))
+	    else if (iFparams->use_eddy_visc == YES)
             {
                 int icoords[MAXD];
                 icoords[0] = i;
                 icoords[1] = j;
                 icoords[2] = k;
-                dist = distance_between_positions(center,point,dim);
-                mu[index] = computeFieldPointMuTurb(icoords,dist,first);
-		first = NO;
+		mu[index] = 0.0;
+		switch (iFparams->eddy_visc_model)
+		{
+		case BALDWIN_LOMAX:
+		    if (status == YES &&
+                        (wave_type(hs) == NEUMANN_BOUNDARY ||
+                         wave_type(hs) == ELASTIC_BOUNDARY))
+                    {
+                	dist = distance_between_positions(center,point,dim);
+		    	mu[index] = computeMuOfBaldwinLomax(icoords,dist,first);
+		    	first = NO;
+		    }
+		    break;
+		case MOIN:
+		    mu[index] = computeMuOfMoinModel(icoords);
+		    break;
+		default:
+		    (void) printf("Unknown eddy viscosity model!\n");
+		    clean_up(ERROR);
+		}
 		switch (comp)
 		{
 		case LIQUID_COMP1:
+		    mu[index] += m_mu[0];
 		    rho[index] = m_rho[0];
 		    break;
 		case LIQUID_COMP2:
+		    mu[index] += m_mu[1];
 		    rho[index] = m_rho[1];
 		    break;
 		}
@@ -3399,7 +3457,7 @@ void Incompress_Solver_Smooth_Basis::applicationSetStates(void)
 	FT_MakeGridIntfc(front);
 }	/* end applicationSetStates */
 
-double Incompress_Solver_Smooth_Basis::computeFieldPointMuTurb(
+double Incompress_Solver_Smooth_Basis::computeMuOfBaldwinLomax(
         int *icoords,
 	double dist,
 	boolean first)
@@ -3471,7 +3529,7 @@ double Incompress_Solver_Smooth_Basis::computeFieldPointMuTurb(
 	else
 	    mu_t = mu_out;
 	return mu_t + nu*rho;
-}	/* end computeFieldPointMuTurb */
+}	/* end computeMuOfBaldwinLomax */
 
 static void initTestParams(Front *front)
 {
@@ -3671,3 +3729,65 @@ void Incompress_Solver_Smooth_Basis::readBaseStates(
         fclose(infile);
 }       /* end readBaseStates */
 
+double Incompress_Solver_Smooth_Basis::computeMuOfMoinModel(
+	int *icoords)
+{
+	double nu_t, C_v = 0.07;
+    	int i, j, k;
+    	int index[6];
+    	double alpha[MAXD][MAXD] = {{0,0,0}, {0, 0, 0}, {0, 0, 0}};
+    	double beta[MAXD][MAXD] = {{0,0,0}, {0, 0, 0}, {0, 0, 0}};
+    	double sigma, B_beta, sum_alpha;
+    	double **vel = field->vel;
+    	double delta[MAXD];
+    	for (i = 0; i < dim; i++)
+	    delta[i] = top_h[i];
+    	switch( dim )
+    	{
+	    case 2:
+	        index[0] = d_index2d(icoords[0]-1,icoords[1],top_gmax);
+	        index[1] = d_index2d(icoords[0]+1,icoords[1],top_gmax);
+	        index[2] = d_index2d(icoords[0],icoords[1]-1,top_gmax);
+	        index[3] = d_index2d(icoords[0],icoords[1]+1,top_gmax);
+	        break;
+	    case 3:
+	        index[0] = d_index3d(icoords[0]-1,icoords[1],icoords[2],
+					top_gmax); 
+	        index[1] = d_index3d(icoords[0]+1,icoords[1],icoords[2],
+					top_gmax);
+	        index[2] = d_index3d(icoords[0],icoords[1]-1,icoords[2],
+					top_gmax);
+	        index[3] = d_index3d(icoords[0],icoords[1]+1,icoords[2],
+					top_gmax);
+	        index[4] = d_index3d(icoords[0],icoords[1],icoords[2]-1,
+					top_gmax);
+	        index[5] = d_index3d(icoords[0],icoords[1],icoords[2]+1,
+					top_gmax);
+	        break;
+    	}
+   	sum_alpha = 0;
+    	for (i = 0; i < dim; i++)
+	for (j = 0; j < dim; j++)
+	{
+	    alpha[i][j] =(vel[j][index[2*i+1]] - vel[j][index[2*i]])/
+				(2.0*top_h[i]);
+	    sum_alpha += alpha[i][j]*alpha[i][j];
+	}
+    	for (i = 0; i < dim; i++)
+	for (j = 0; j < dim; j++)
+	{
+	    beta[i][j] = 0.0;
+	    for( k = 0; k < dim; k++)
+		beta[i][j] += top_h[k]*top_h[k]*alpha[k][i]*alpha[k][j];
+	    
+	}
+    	B_beta = beta[0][0]*beta[1][1] - beta[0][1]*beta[0][1] + 
+		 beta[0][0]*beta[2][2] - beta[0][2]*beta[0][2] + 
+		 beta[1][1]*beta[2][2] - beta[1][2]*beta[1][2];
+    	if (sum_alpha == 0.0)
+	    sigma = 0.0;
+    	else
+	    sigma = sqrt( B_beta/sum_alpha );
+    	nu_t = C_v*sigma;
+     	return nu_t;
+}	/* end computeMuOfMoinModel*/

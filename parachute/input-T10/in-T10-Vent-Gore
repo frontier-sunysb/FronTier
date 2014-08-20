@@ -10,7 +10,7 @@ Lower boundary in 2-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 2-th dimension: DIRICHLET_BOUNDARY
 
 Max time: 4.0
-Max step: 2 
+Max step: 200
 Print interval: 0.1
 Movie frame interval: 0.1
 CFL factor: 0.5
