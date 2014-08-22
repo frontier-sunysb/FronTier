@@ -147,6 +147,7 @@ typedef struct {
 
 struct _SCHEME_PARAMS
 {
+	boolean artificial_compression;
         double lambda;
         double beta;
 	double gamma, einf;
