@@ -594,9 +594,10 @@ IMPORT	void	planar_surface_triangulation(SURFACE*,RECT_GRID*,const boolean);
 /*	icheck3d.c*/
 IMPORT	void	null_sides_are_consistent(void);
 IMPORT	boolean	i_consistent_interface(INTERFACE*);
-IMPORT	void	check_double_cone_point(INTERFACE*);
 IMPORT  boolean check_consistency_of_tris_on_surface(SURFACE*);
 IMPORT  boolean check_tri(TRI*,INTERFACE*);
+IMPORT	void	check_double_cone_point(INTERFACE*);
+IMPORT  void 	check_global_index(INTERFACE*);
 
 /*	userhooks.c */
 IMPORT	BOND	*Bond(POINT*,POINT*);

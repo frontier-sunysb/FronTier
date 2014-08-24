@@ -90,6 +90,8 @@ LOCAL	COMPONENT buffer_component(INTERFACE*,int,int);
 LOCAL  void    test_curve_link(CURVE *);
 LOCAL   double   *constr_position(double*,double*,
                         boolean (*constr_func)(POINTER,double*),POINTER);
+LOCAL	void merge_global_index(TRI**,int,RECT_GRID*,int,int,
+			P_LINK*,int);
 
 LOCAL	double	tol1[MAXD]; /*TOLERANCE*/
 #define MAX_NULL_SIDE      8000
@@ -138,9 +140,6 @@ EXPORT boolean f_intfc_communication3d(
 #endif /* defined __MPI__ */
 	if (static_mesh(fr->interf))
 	{
-	    printf("In f_intfc_communication3d()\n");
-	    printf("Static mesh, new code needed!\n");
-	    printf("Current code is the same as f_intfc_communication3d1()\n");
 	    return f_intfc_communication3d3(fr);
 	}
 	else if (interface_reconstructed(fr->interf))
@@ -1744,7 +1743,6 @@ comm_exit:
 
 #define	MAX_SUBDOMAIN_TRIS	3000
 LOCAL	boolean find_ending_null_side(TRI*,int,TRI**,int*);
-
 EXPORT void install_subdomain_bdry_curves(
 	INTERFACE	*intfc)
 {
@@ -2407,6 +2405,7 @@ LOCAL int append_buffer_surface1(
 	if (add_matching_pt_to_hash_table(tris_s,tris_a,ns,na,surf,
 		      adj_surf,p_table,p_size))
 	{
+	    merge_global_index(tris_a,na,grid,dir,nb,p_table,p_size);
 	    new_adj_surf = copy_buffer_surface(adj_surf,p_table,p_size);
 	    adj_surf = new_adj_surf;
 	}
@@ -2430,13 +2429,6 @@ LOCAL int append_buffer_surface1(
 		tri_bond_cross_test(tri,crx_coord,dir) == YES)
 	    {
 	        tris_a[na++] = tri;
-		/*
-	        if(the_tri(tri))
-		{
-		    printf("#copied tri\n");
-		    print_tri(tri, adj_surf->interface);
-		}
-		*/
 	    }
 	}
 
@@ -2686,14 +2678,6 @@ LOCAL boolean match_tris_at_subdomain_bdry(
 	for (i = 0; i < na; ++i)
 	{
 	    ta = tri_a[i];
-	    /*
-	    if(the_tri(ta))
-	    {
-	        printf("#append tri\n");
-		print_tri(ta, surf->interface);
-		add_to_debug("app_tri");
-	    }
-	    */
 	    
 	    for (j = 0; j < ns; ++j)
 	    {
@@ -2911,8 +2895,6 @@ LOCAL boolean add_matching_pt_to_hash_table(
 	    double	*pa, *ps;
 	    double	len, min_len;
 
-	    printf("add_matching_pt_to_hash_table: check nearest point pairs\n");
-
 	    for (pla = plista; pla != NULL; pla = pla->next)
 	    {
 	        min_len = HUGE_VAL;
@@ -2923,7 +2905,8 @@ LOCAL boolean add_matching_pt_to_hash_table(
 		}
 		for (pls = plists; pls != NULL; pls = pls->next)
 	        {
-		    len = distance_between_positions(Coords(pla->p), Coords(pls->p), 3);
+		    len = distance_between_positions(Coords(pla->p),
+				Coords(pls->p), 3);
 		    if(len < min_len)
 		    {
 		        min_len = len;
@@ -4665,3 +4648,45 @@ LOCAL	void incremental_alloc_tris(
 	    free_these(1,*tris);
 	*tris = new_tris;
 }	/* end incremental_alloc_tri */
+
+LOCAL	void merge_global_index(
+	TRI **tris_a,
+	int na,
+	RECT_GRID *grid,
+	int dir,
+	int nb,
+	P_LINK		*p_table,
+	int		p_size)
+{
+	int i,j;
+	POINT *ps,*pa;
+	TRI *t;
+	double *L = grid->L;
+	double *U = grid->U;
+
+	for (i = 0; i < na; ++i)
+	{
+	    t = tris_a[i];
+	    for (j = 0; j < 3; ++j)
+	    {
+		pa = Point_of_tri(t)[j];
+		ps = (POINT*)find_from_hash_table((POINTER)pa,p_table,p_size);
+		if (Gindex(pa) == -1 && Gindex(ps) == -1)
+		    continue;
+		if (nb == 0)
+		{
+		    if (Coords(pa)[dir] < L[dir])
+			Gindex(ps) = Gindex(pa);
+		    else
+			Gindex(pa) = Gindex(ps);
+		}
+		else
+		{
+		    if (Coords(pa)[dir] >= U[dir])
+			Gindex(ps) = Gindex(pa);
+		    else
+			Gindex(pa) = Gindex(ps);
+		}
+	    }
+	}
+}	/* end merge_global_index */

@@ -851,9 +851,52 @@ EXPORT void reset_intfc_num_points(
 	POINT		*p; 
 	int		np = 0;
 
-	(void) next_point(intfc,NULL,NULL,NULL);
-	while (next_point(intfc,&p,&hse,&hs))
-	    ++np;
+	if (Dimension(intfc) <= 2)
+	{
+	    (void) next_point(intfc,NULL,NULL,NULL);
+	    while (next_point(intfc,&p,&hse,&hs))
+	    	++np;
+	}
+	else
+	{
+	    NODE **n;
+	    CURVE **c;
+	    SURFACE **s;
+	    BOND *b;
+	    TRI *t;
+	    reset_sort_status(intfc);
+	    for (n = intfc->nodes; n && *n; ++n)
+            {
+            	p = (*n)->posn;
+            	if (sorted(p)) continue;
+            	sorted(p) = YES;
+		++np;
+            }
+	    for (c = intfc->curves; c && *c; ++c)
+            {
+            	for (b = (*c)->first; b != (*c)->last; b = b->next)
+            	{
+                    p = b->end;
+                    if (sorted(p)) continue;
+                    sorted(p) = YES;
+		    ++np;
+            	}
+            }
+	    for (s = intfc->surfaces; s && *s; ++s)
+            {
+            	for (t = first_tri(*s); !at_end_of_tri_list(t,*s); t = t->next)
+            	{
+		    int iv;
+                    for (iv = 0; iv < 3; ++iv)
+                    {
+                    	p = Point_of_tri(t)[iv];
+                    	if (sorted(p)) continue;
+                    	sorted(p) = YES;
+		    	++np;
+                    }
+            	}
+            }
+	}
 	intfc->num_points = np;
 }	/* end reset_intfc_num_points */
 

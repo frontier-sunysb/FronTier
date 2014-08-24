@@ -68,7 +68,6 @@ extern void initParachuteDefault(
 	af_params->num_opt_round = 20;
         af_params->spring_model = MODEL1;
 	af_params->gore_len_fac = 1.0;
-	static_mesh(front->interf) = YES;
 }	/* end initParachuteDefault */
 
 static void initSingleModule(

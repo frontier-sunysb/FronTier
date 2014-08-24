@@ -900,10 +900,8 @@ LOCAL boolean add_matching_pt_to_hash_table(
 	{
 	    for (pla = plista; pla != NULL; pla = pla->next)
 	    {
-		for (i = 0; i < 3; ++i) /*Floating point TOLERANCE test*/
-	            if (fabs(Coords(pla->p)[i]-Coords(pls->p)[i]) > tol1[i])
-			break;
-		if (i == 3)
+		/* Using global index matching */
+		if (Gindex(pla->p) == Gindex(pls->p))
 		{
 		    tstn++;
 	            (void) add_to_hash_table((POINTER)pla->p,(POINTER)pls->p,
@@ -947,7 +945,8 @@ LOCAL boolean add_matching_pt_to_hash_table(
 		}
 		for (pls = plists; pls != NULL; pls = pls->next)
 	        {
-		    len = distance_between_positions(Coords(pla->p), Coords(pls->p), 3);
+		    len = distance_between_positions(Coords(pla->p),
+					Coords(pls->p),3);
 		    if(len < min_len)
 		    {
 		        min_len = len;
@@ -955,7 +954,8 @@ LOCAL boolean add_matching_pt_to_hash_table(
 			ps = Coords(pls->p);
 		    }
 		}
-		
+		(void) printf("Gindex(pla->p) = %d\n",Gindex(pla->p));
+		(void) printf("Gindex(pls->p) = %d\n",Gindex(pls->p));
 		print_general_vector("pa", pa, 3, "\n");
 		print_general_vector("ps", ps, 3, "\n");
 	    }

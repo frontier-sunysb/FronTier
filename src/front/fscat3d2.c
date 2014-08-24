@@ -840,10 +840,6 @@ EXPORT  void average_btris(
 	tris[0] = ts;
 	tris[1] = ta;
 	
-	/*printf("#average_btris\n"); */
-	/*print_tri(ts, ss->interface); */
-	/*print_tri(ta, sa->interface); */
-
 	for(i=0; i<3; i++)
 	{
 	    if(Boundary_point(Point_of_tri(ts)[i]) != 

@@ -1217,3 +1217,111 @@ EXPORT	void check_double_cone_point(
 	}
 	(void) printf("End checking double cone point\n");
 }	/* end check_double_cone_point */
+
+
+EXPORT void check_global_index(
+	INTERFACE *intfc)
+{
+	POINT *p,**points;
+	POINT *gpts[20];
+	NODE **n;
+	CURVE **c;
+	SURFACE **s;
+	BOND *b;
+	TRI *t;
+	int i,j,iv,num_pts;
+
+	reset_sort_status(intfc);
+	num_pts = 0;
+	for (n = intfc->nodes; n && *n; ++n) 
+        {       
+            p = (*n)->posn;
+            if (sorted(p)) continue;
+            sorted(p) = YES;
+	    num_pts++;
+	}
+	for (c = intfc->curves; c && *c; ++c)
+        {
+            for (b = (*c)->first; b != (*c)->last; b = b->next)
+            {
+                p = b->end;
+                if (sorted(p)) continue;
+                sorted(p) = YES;
+		num_pts++;
+	    }
+	}
+	for (s = intfc->surfaces; s && *s; ++s)
+        {
+            for (t = first_tri(*s); !at_end_of_tri_list(t,*s); t = t->next)
+            {
+                for (iv = 0; iv < 3; ++iv)
+                {
+                    p = Point_of_tri(t)[iv];
+                    if (sorted(p)) continue;
+                    sorted(p) = YES;
+		    num_pts++;
+		}
+	    }
+	}
+	uni_array(&points,num_pts,sizeof(POINT*));
+	num_pts = 0;
+	reset_sort_status(intfc);
+	for (n = intfc->nodes; n && *n; ++n) 
+        {       
+            p = (*n)->posn;
+            if (sorted(p)) continue;
+            sorted(p) = YES;
+	    points[num_pts++] = p;
+	}
+	for (c = intfc->curves; c && *c; ++c)
+        {
+            for (b = (*c)->first; b != (*c)->last; b = b->next)
+            {
+                p = b->end;
+                if (sorted(p)) continue;
+                sorted(p) = YES;
+	    	points[num_pts++] = p;
+	    }
+	}
+	for (s = intfc->surfaces; s && *s; ++s)
+        {
+            for (t = first_tri(*s); !at_end_of_tri_list(t,*s); t = t->next)
+            {
+                for (iv = 0; iv < 3; ++iv)
+                {
+                    p = Point_of_tri(t)[iv];
+                    if (sorted(p)) continue;
+                    sorted(p) = YES;
+	    	    points[num_pts++] = p;
+		}
+	    }
+	}
+	for (i = 0; i < num_pts; ++i)
+	{
+	    if (Gindex(points[i]) == -1)
+	    {
+		(void) printf("Unassigned global index at point: (%f %f %f)\n",
+				Coords(points[i])[0],Coords(points[i])[1],
+				Coords(points[i])[2]);
+	    }
+	    iv = 0;
+	    gpts[iv++] = points[i];
+	    for (j = i+1; j < num_pts; ++j)
+	    {
+		if (Gindex(points[j]) == Gindex(points[i]))
+		    gpts[iv++] = points[j];
+		if (iv > 9)
+		{
+		    int k;
+		    (void) printf("WARNING in check_global_index():\n");
+		    (void) printf("More than 8 points have same Gindex\n");
+		    for (k = 0; k < iv; ++iv)
+			(void) printf("gpts[%d]: (%f %f %f)\n",k,
+				Coords(gpts[k])[0],Coords(gpts[k])[1],
+				Coords(gpts[k])[2]);
+		    
+		}
+	    }
+	}
+	free_these(1,points);
+}	/* end check_global_index */

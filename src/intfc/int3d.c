@@ -3014,9 +3014,19 @@ EXPORT	boolean tris_on_side_of_bond_for_join(
 EXPORT void reset_sort_status(
 	INTERFACE	*intfc)
 {
+	NODE 		**n;
+	CURVE 		**c;
 	SURFACE		**s;
+	BOND 		*b;
 	TRI		*t;
 
+	for (n = intfc->nodes; n && *n; ++n) 
+            sorted((*n)->posn) = NO;
+	for (c = intfc->curves; c && *c; ++c)
+        {
+            for (b = (*c)->first; b != (*c)->last; b = b->next)
+            	sorted(b->end) = NO;
+	}
 	for (s = intfc->surfaces; s && *s; ++s)
 	{
 	    for (t = first_tri(*s); !at_end_of_tri_list(t,*s); t = t->next)

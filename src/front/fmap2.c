@@ -527,12 +527,23 @@ EXPORT	void FT_SetGlobalIndex(
 	double *U = gr->U;
 	boolean is_subdomain_bdry[MAXD][2];
 	int i,j,iv,dim = gr->dim;
-	int gindex = 0;
 	int cindex = 0;
 	int sindex = 0;
 	boolean out_domain;
+	long gindex = 0;
+	long ilower,iupper,*n_dist;
+	static boolean first = YES;
+	int num_nodes = pp_numnodes();
+	int myid = pp_mynode();
 
-	reset_sort_status(intfc);
+	if (debugging("global_index"))
+	    (void) printf("Entering FT_SetGlobalIndex()\n");
+
+	if (first)
+        {
+            first = NO;
+            FT_VectorMemoryAlloc((POINTER*)&n_dist,num_nodes,sizeof(long));
+        }
 	for (i = 0; i < dim; ++i)
 	for (j = 0; j < 2; ++j)
 	{
@@ -542,6 +553,7 @@ EXPORT	void FT_SetGlobalIndex(
 		is_subdomain_bdry[i][j] = NO;
 	}
 
+	reset_sort_status(intfc);
 	for (n = intfc->nodes; n && *n; ++n)
 	{
 	    p = (*n)->posn;
@@ -559,6 +571,7 @@ EXPORT	void FT_SetGlobalIndex(
 	}
 	for (c = intfc->curves; c && *c; ++c)
 	{
+	    Gindex(*c) = cindex++;
 	    for (b = (*c)->first; b != (*c)->last; b = b->next)
 	    {
 		p = b->end;
@@ -575,16 +588,9 @@ EXPORT	void FT_SetGlobalIndex(
 	    	Gindex(p) = gindex++;
 	    }
 	}
-	cindex = 0;
-	for (c = intfc->curves; c && *c; ++c)
-	{
-	    Gindex(*c) = cindex++;
-	}
-
-	if (dim < 3) return;
-
 	for (s = intfc->surfaces; s && *s; ++s)
 	{
+	    Gindex(*s) = sindex++;
 	    for (t = first_tri(*s); !at_end_of_tri_list(t,*s); t = t->next)
 	    {
 		for (iv = 0; iv < 3; ++iv)
@@ -604,9 +610,81 @@ EXPORT	void FT_SetGlobalIndex(
 		}
 	    }
 	}
-	sindex = 0;
+
+	for (i = 0; i < num_nodes; ++i) n_dist[i] = 0;
+	n_dist[myid] = gindex;
+	pp_global_lmax(n_dist,num_nodes);
+	ilower = 0;
+        iupper = n_dist[0];
+	for (i = 1; i <= myid; i++)
+        {
+            ilower += n_dist[i-1];
+            iupper += n_dist[i];
+        }
+	reset_sort_status(intfc);
+	for (n = intfc->nodes; n && *n; ++n)
+	{
+	    p = (*n)->posn;
+	    if (sorted(p)) continue;
+	    sorted(p) = YES;
+	    out_domain = NO;
+	    for (i = 0; i < dim; ++i)
+	    {
+		if ((is_subdomain_bdry[i][0] && Coords(p)[i] < L[i]) ||
+		    (is_subdomain_bdry[i][1] && Coords(p)[i] >= U[i]))
+		    out_domain = YES;
+	    }
+	    if (out_domain) continue;
+	    Gindex(p) += ilower;
+	}
+	for (c = intfc->curves; c && *c; ++c)
+	{
+	    for (b = (*c)->first; b != (*c)->last; b = b->next)
+	    {
+		p = b->end;
+	    	if (sorted(p)) continue;
+	    	sorted(p) = YES;
+	    	out_domain = NO;
+	    	for (i = 0; i < dim; ++i)
+	    	{
+		    if ((is_subdomain_bdry[i][0] && Coords(p)[i] < L[i]) ||
+		    	(is_subdomain_bdry[i][1] && Coords(p)[i] >= U[i]))
+		    	out_domain = YES;
+	    	}
+	    	if (out_domain) continue;
+	    	Gindex(p) += ilower;
+	    }
+	}
 	for (s = intfc->surfaces; s && *s; ++s)
-	    Gindex(*s) = sindex++;
+	{
+	    for (t = first_tri(*s); !at_end_of_tri_list(t,*s); t = t->next)
+	    {
+		for (iv = 0; iv < 3; ++iv)
+		{
+		    p = Point_of_tri(t)[iv];
+	    	    if (sorted(p)) continue;
+	    	    sorted(p) = YES;
+		    out_domain = NO;
+		    for (i = 0; i < dim; ++i)
+		    {
+			if ((is_subdomain_bdry[i][0] && Coords(p)[i] < L[i]) ||
+			    (is_subdomain_bdry[i][1] && Coords(p)[i] >= U[i]))
+			    out_domain = YES;
+		    }
+		    if (out_domain) continue;
+	    	    Gindex(p) += ilower;
+		}
+	    }
+	}
+
+	static_mesh(intfc) = NO;
+	scatter_front(front);
+	if (debugging("global_index"))
+	{
+	    (void) printf("Call check_global_index()\n");
+	    check_global_index(intfc);
+	    (void) printf("Leaving FT_SetGlobalIndex()\n");
+	}
 }	/* end FT_SetGlobalIndex */
 
 EXPORT	CURVE *FT_MakePointArrayCurve(
