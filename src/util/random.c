@@ -238,13 +238,14 @@ EXPORT  double dist_gig(
 	if (lambda < 0.0)
 	{
 	    static GIG_PARAMS *new_gig_params;
+	    double gig;
 	    if (new_gig_params == NULL)
 		FT_ScalarMemoryAlloc((POINTER*)&new_gig_params,
 			sizeof(GIG_PARAMS));
 	    new_gig_params->lambda = -lambda;
 	    new_gig_params->psi = chi;
 	    new_gig_params->chi = psi;
-	    double gig = dist_gig((POINTER)new_gig_params,xsubi);
+	    gig = dist_gig((POINTER)new_gig_params,xsubi);
 	    return 1.0/gig;
 	}
 

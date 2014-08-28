@@ -5,6 +5,8 @@ struct _SPRING_VERTEX {
         double *x;
         double *v;
 	double *f;
+        double *ext_impul;
+	int ix;
         int num_nb;
         double m;
         double lambda;
@@ -13,8 +15,16 @@ struct _SPRING_VERTEX {
         double *k;
         double *len0;
         double ext_accel[3];
-        double ext_impul[3];
 };
 typedef struct _SPRING_VERTEX SPRING_VERTEX;
+
+struct _POINT_SET {
+        double x[3];
+        double v[3];
+	double f[3];
+        double impuls[3];
+        long gindex;
+};
+typedef struct _POINT_SET POINT_SET;
 
 #endif

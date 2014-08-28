@@ -161,6 +161,7 @@ extern void setMotionParams(
 		    {
 	    	    	front->interior_propagate 
 				= fourth_order_elastic_surf_propagate;
+				//= fourth_order_elastic_set_propagate;
 #if defined(__GPU__)
             		if (CursorAfterStringOpt(infile,
 				"Enter yes to use GPU solver:"))
@@ -172,11 +173,6 @@ extern void setMotionParams(
 			}
 #endif
 		    }
-	    	    break;
-	    	case 'o':
-	    	case 'O':
-	    	    front->interior_propagate 
-				= legacy_fourth_order_elastic_surf_propagate;
 	    	    break;
 	    	case 'p':
 	    	case 'P':

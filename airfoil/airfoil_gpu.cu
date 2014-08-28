@@ -30,8 +30,6 @@ __device__ void dev_comp_spring_accel(SPRING_VERTEX*,double*,int);
 
 extern void gpu_spring_solver(
 	SPRING_VERTEX *sv,
-	double **x_pos,
-	double **v_pos,
 	int dim,
 	int size,
 	int n_tan,
@@ -146,14 +144,14 @@ extern void gpu_spring_solver(
         for (i = 0; i < size; i++)
         for (j = 0; j < dim; j++)
         {
-            x_data[i*dim+j] = x_pos[i][j];
+            x_data[i*dim+j] = sv[i].x[j];
         }
 	cudaMemcpy(dev_x_store,x_data,dim*size*sizeof(double),
 				cudaMemcpyHostToDevice);
         for (i = 0; i < size; i++)
         for (j = 0; j < dim; j++)
         {
-            x_data[i*dim+j] = v_pos[i][j];
+            x_data[i*dim+j] = sv[i].v[j];
         }
 	cudaMemcpy(dev_v_store,x_data,dim*size*sizeof(double),
 				cudaMemcpyHostToDevice);
@@ -212,14 +210,14 @@ extern void gpu_spring_solver(
         for (i = 0; i < size; i++)
         for (j = 0; j < dim; j++)
         {
-            x_pos[i][j] = x_data[i*dim+j];
+            sv[i].x[j] = x_data[i*dim+j];
         }
 	cudaMemcpy(x_data,dev_v_store,dim*size*sizeof(double),
 				cudaMemcpyDeviceToHost);
         for (i = 0; i < size; i++)
         for (j = 0; j < dim; j++)
         {
-            v_pos[i][j] = x_data[i*dim+j];
+            sv[i].v[j] = x_data[i*dim+j];
         }
 	(void) printf("Leaving gpu_spring_solver()\n");
 }	/* end gpu_spring_solver */

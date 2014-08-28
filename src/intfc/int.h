@@ -467,6 +467,7 @@ struct _INTERFACE
 
 	int		dim;		/* Dimension of Imbedding Space */
 	int		num_points;	/* Total from curves */
+	long		max_point_gindex;
 
 	/* Internal Variables: */
 	struct Table	*table;	/* Pointer to Interface Table */

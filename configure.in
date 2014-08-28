@@ -533,6 +533,7 @@ src/front/Makefile
 src/intfc/Makefile 
 airfoil/Makefile
 parachute/Makefile
+parachute2d/Makefile
 sprModel/Makefile
 subsurf/Makefile
 crystal/Makefile

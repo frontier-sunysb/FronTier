@@ -1468,15 +1468,12 @@ extern void fourth_order_elastic_curve_propagate(
         double           fr_dt)
 {
 	static int size = 0;
-	static double **x_pos,**v_pos;
 	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
 	double mass;
 	int i,j,num_pts,count;
 	int n,n_tan = af_params->n_tan;
 	double dt_tol,dt = fr_dt/(double)n_tan;
 	int dim = fr->rect_grid->dim;
-	NODE *ns,*ne;
-	int is,ie;
 	double *g = af_params->gravity;
 	double payload = af_params->payload;
 	PARACHUTE_SET geom_set;
@@ -1488,6 +1485,9 @@ extern void fourth_order_elastic_curve_propagate(
 				double**,double **,int*);
 	static SPRING_VERTEX *sv;
 	static boolean first = YES;
+	static POINT_SET **point_set;
+        static POINT_SET *point_set_store;
+	long max_point_gindex = fr->interf->max_point_gindex;
 
 	if (wave_type(newc) != ELASTIC_BOUNDARY)
 	    return;
@@ -1501,15 +1501,31 @@ extern void fourth_order_elastic_curve_propagate(
             dt = fr_dt/(double)n_tan;
         }
 
+	if (point_set == NULL)
+        {
+            FT_VectorMemoryAlloc((POINTER*)&point_set,max_point_gindex,
+                                        sizeof(POINT_SET*));
+            for (i = 0; i < max_point_gindex; ++i)
+                point_set[i] = NULL;
+        }
 	num_pts = FT_NumOfCurvePoints(oldc);
+	geom_set.num_surfs = 0;
+	geom_set.num_curves = 1;
+	geom_set.curves[0] = newc;
+	geom_set.num_nodes = 2;
+	geom_set.nodes[0] = newc->start;
+	geom_set.nodes[1] = newc->end;
 	if (size < num_pts)
 	{
 	    size = num_pts;
-	    if (x_pos != NULL)
-		FT_FreeThese(3,x_pos,v_pos,sv);
-            FT_VectorMemoryAlloc((POINTER*)&x_pos,size,sizeof(double*));
-            FT_VectorMemoryAlloc((POINTER*)&v_pos,size,sizeof(double*));
+	    if (sv != NULL)
+	    {
+		FT_FreeThese(1,sv);
+	    }
             FT_VectorMemoryAlloc((POINTER*)&sv,size,sizeof(SPRING_VERTEX));
+	    FT_VectorMemoryAlloc((POINTER*)&point_set_store,size,
+                                        sizeof(POINT_SET));
+            link_point_set(&geom_set,point_set,point_set_store);
 	}
 
 	geom_set.front = fr;
@@ -1518,24 +1534,16 @@ extern void fourth_order_elastic_curve_propagate(
 	geom_set.m_l = mass = af_params->m_l;
 	geom_set.dt = dt;
 
-	ns = newc->start;	ne = newc->end;
-	is = 0;			ie = size - 1;
-
-	count = 0;
-	count_node_neighbors(ns,sv,&count);
-	count_curve_neighbors(newc,sv,&count);
-	count_node_neighbors(ne,sv,&count);
+	count_vertex_neighbors(&geom_set,sv);
 	if (first)
 	{
 	    set_spring_vertex_memory(sv,size);
 	    first = NO;
 	}
-	count = 0;
-	set_node_spring_vertex(&geom_set,ns,x_pos,v_pos,sv,&count);
-	set_curve_spring_vertex(&geom_set,newc,x_pos,v_pos,sv,&count);
-	set_node_spring_vertex(&geom_set,ne,x_pos,v_pos,sv,&count);
-	set_special_node_type(ns,is,start_type,sv,mass,payload,g);
-	set_special_node_type(ne,ie,end_type,sv,mass,payload,g);
+	new_set_vertex_neighbors(&geom_set,sv,point_set);
+        get_point_set_from(&geom_set,point_set);
+	set_special_node_type(newc->start,size-2,start_type,sv,mass,payload,g);
+	set_special_node_type(newc->end,size-1,end_type,sv,mass,payload,g);
 
 	/* Start intensive computation */
 
@@ -1546,15 +1554,17 @@ extern void fourth_order_elastic_curve_propagate(
 	{
 	    if (debugging("trace"))
             	(void) printf("Enter gpu_spring_solver()\n");
-	    gpu_spring_solver(sv,x_pos,v_pos,dim,size,n_tan,dt);
+	    gpu_spring_solver(sv,dim,size,n_tan,dt);
 	    if (debugging("trace"))
             	(void) printf("Left gpu_spring_solver()\n");
 	}
 	else
 #endif
-	generic_spring_solver(sv,x_pos,v_pos,dim,size,n_tan,dt);
+	generic_spring_solver(sv,dim,size,n_tan,dt);
 
 	stop_clock("spring_model");
+	put_point_set_to(&geom_set,point_set);
+	set_vertex_impulse(&geom_set,sv);
 
 	/* End intensive computation */
 	
@@ -1655,7 +1665,6 @@ extern void fourth_order_elastic_surf_propagate(
         double           fr_dt)
 {
 	static int size = 0;
-        static double **x_pos,**v_pos;
 	AF_PARAMS *af_params = (AF_PARAMS*)newfr->extra2;
         double *g = af_params->gravity;
 	double mass;
@@ -1672,6 +1681,9 @@ extern void fourth_order_elastic_surf_propagate(
         static boolean first = YES;
 	int countc[100],countn[100];
 	int dim = newfr->rect_grid->dim;
+	static POINT_SET **point_set;
+        static POINT_SET *point_set_store;
+	long max_point_gindex = newfr->interf->max_point_gindex;
 
 	start_clock("set_spring_model");
 	for (s = newfr->interf->surfaces; s && *s; ++s)
@@ -1731,6 +1743,7 @@ extern void fourth_order_elastic_surf_propagate(
 				(POINTER*)newc))
 	    {
 	    	newc[num_curves] = *nc;
+	    	geom_set.curves[num_curves] = *nc;
 	    	num_curves++;
 	    }
 	}
@@ -1740,15 +1753,18 @@ extern void fourth_order_elastic_surf_propagate(
 				(POINTER*)newc))
 	    {
 	    	newc[num_curves] = *nc;
+	    	geom_set.curves[num_curves] = *nc;
 	    	num_curves++;
 	    }
 	}
+	geom_set.num_curves = num_curves;
 	for (i = 0; i < num_curves; ++i)
 	{
 	    if (!pointer_in_list((POINTER)newc[i]->start,num_nodes,
 				(POINTER*)newn))
 	    {
 		newn[num_nodes] = newc[i]->start;
+	    	geom_set.nodes[num_nodes] = newc[i]->start;
 		num_nodes++;
 	    }
 	    if (is_closed_curve(newc[i])) continue;
@@ -1756,47 +1772,41 @@ extern void fourth_order_elastic_surf_propagate(
 				(POINTER*)newn))
 	    {
 		newn[num_nodes] = newc[i]->end;
+	    	geom_set.nodes[num_nodes] = newc[i]->end;
 		num_nodes++;
 	    }
 	}
+	geom_set.num_nodes = num_nodes;
+	geom_set.num_surfs = 1;
+	geom_set.surfs[0] = news;
 
 	num_pts = FT_NumOfSurfPoints(news);
+	if (point_set == NULL)
+        {
+            FT_VectorMemoryAlloc((POINTER*)&point_set,max_point_gindex,
+                                        sizeof(POINT_SET*));
+            for (i = 0; i < max_point_gindex; ++i)
+                point_set[i] = NULL;
+        }
 	if (size < num_pts && first)
 	{
 	    size = num_pts;
-	    if (x_pos != NULL)
-		FT_FreeThese(3,x_pos,v_pos,sv);
+	    if (sv != NULL)
+		FT_FreeThese(1,sv);
 	    FT_VectorMemoryAlloc((POINTER*)&sv,size,sizeof(SPRING_VERTEX));
-	    FT_VectorMemoryAlloc((POINTER*)&x_pos,size,sizeof(double*));
-            FT_VectorMemoryAlloc((POINTER*)&v_pos,size,sizeof(double*));
+	    FT_VectorMemoryAlloc((POINTER*)&point_set_store,size,
+                                        sizeof(POINT_SET));
+            link_point_set(&geom_set,point_set,point_set_store);
 	}
 
-	count = 0;
-	count_surf_neighbors(news,sv,&count);
-	for (i = 0; i < num_curves; ++i)
-	{
-	    countc[i] = count;
-	    count_curve_neighbors(newc[i],sv,&count);
-	}
-	for (i = 0; i < num_nodes; ++i)
-	{
-	    countn[i] = count;
-	    count_node_neighbors(newn[i],sv,&count);
-	}
-	size = count;
+	count_vertex_neighbors(&geom_set,sv);
 	if (first)
 	{
 	    set_spring_vertex_memory(sv,size);
             first = NO;
 	}
-	count = 0;
-	set_surf_spring_vertex(&geom_set,news,x_pos,v_pos,sv,&count);
-	for (i = 0; i < num_curves; ++i)
-	    set_curve_spring_vertex(&geom_set,newc[i],x_pos,v_pos,sv,&count);
-	for (i = 0; i < num_nodes; ++i)
-	{
-	    set_node_spring_vertex(&geom_set,newn[i],x_pos,v_pos,sv,&count);
-	}
+	new_set_vertex_neighbors(&geom_set,sv,point_set);
+        get_point_set_from(&geom_set,point_set);
 
 	stop_clock("set_spring_model");
 
@@ -1809,26 +1819,15 @@ extern void fourth_order_elastic_surf_propagate(
 	{
 	    if (debugging("trace"))
             	(void) printf("Enter gpu_spring_solver()\n");
-	    gpu_spring_solver(sv,x_pos,v_pos,dim,size,n_tan,dt);
+	    gpu_spring_solver(sv,dim,size,n_tan,dt);
 	    if (debugging("trace"))
             	(void) printf("Left gpu_spring_solver()\n");
 	}
 	else
 #endif
-	    generic_spring_solver(sv,x_pos,v_pos,dim,size,n_tan,dt);
+	    generic_spring_solver(sv,dim,size,n_tan,dt);
 
-	count = 0;
-	set_surf_impulse(&geom_set,news,sv,&count);
-	for (i = 0; i < num_curves; ++i)
-	{
-	    countc[i] = count;
-	    set_curve_impulse(&geom_set,newc[i],sv,&count);
-	}
-	for (i = 0; i < num_nodes; ++i)
-	{
-	    countn[i] = count;
-	    set_node_impulse(&geom_set,newn[i],sv,&count);
-	}
+	set_vertex_impulse(&geom_set,sv);
 
 	stop_clock("spring_model");
 
@@ -2207,490 +2206,3 @@ static void set_special_node_type(
 		sv[n].ext_accel[j] = g[j];
 	}
 }	/* set_special_node_type */
-
-/*	Save as legacy file	*/
-
-extern void legacy_fourth_order_elastic_curve_propagate(
-	Front           *fr,
-        Front           *newfr,
-        INTERFACE       *intfc,
-        CURVE           *oldc,
-        CURVE           *newc,
-        double           fr_dt)
-{
-	static int size = 0;
-	static double **x_old,**x_new,**v_old,**v_new,**f_old,**f_new;
-	static double **x_mid,**v_mid,**f_mid;
-	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
-	double mass;
-	int i,j,num_pts,count;
-	int n,n_tan = af_params->n_tan;
-	double dt_tol,dt = fr_dt/(double)n_tan;
-	int dim = fr->rect_grid->dim;
-	NODE *ns,*ne;
-	int is,ie;
-	double *g = af_params->gravity;
-	double payload = af_params->payload;
-	PARACHUTE_SET geom_set;
-	STRING_NODE_TYPE start_type = af_params->start_type;
-	STRING_NODE_TYPE end_type = af_params->end_type;
-	void (*compute_node_accel)(PARACHUTE_SET*,NODE*,double**,
-				double**,double **,int*);
-	void (*compute_curve_accel)(PARACHUTE_SET*,CURVE*,double**,
-				double**,double **,int*);
-
-	switch (af_params->spring_model)
-	{
-	case MODEL1:
-	    compute_curve_accel = compute_curve_accel1;
-	    compute_node_accel = compute_node_accel1;
-	    break;
-	case MODEL2:
-	    compute_curve_accel = compute_curve_accel2;
-	    compute_node_accel = compute_node_accel2;
-	    break;
-	case MODEL3:
-	    compute_curve_accel = compute_curve_accel3;
-	    compute_node_accel = compute_node_accel3;
-	    break;
-	default:
-	    (void) printf("Model function not implemented yet!\n");
-	    clean_up(ERROR);
-	}
-
-	if (wave_type(newc) != ELASTIC_BOUNDARY)
-	    return;
-	if (debugging("trace"))
-	    (void) printf("Entering "
-			"legacy_fourth_order_elastic_curve_propagate()\n");
-	dt_tol = sqrt((af_params->m_l)/(af_params->kl))/10.0;
-	if (dt > dt_tol)
-        {
-            n_tan = (int)(fr_dt/dt_tol);
-            dt = fr_dt/(double)n_tan;
-        }
-
-	num_pts = FT_NumOfCurvePoints(oldc);
-	if (size < num_pts)
-	{
-	    size = num_pts;
-		FT_FreeThese(9,v_old,v_new,v_mid,x_old,x_new,x_mid,
-				f_old,f_new,f_mid);
-            FT_MatrixMemoryAlloc((POINTER*)&x_old,size,dim,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&v_old,size,dim,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&f_old,size,dim,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&x_mid,size,dim,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&v_mid,size,dim,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&f_mid,size,dim,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&x_new,size,dim,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&v_new,size,dim,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&f_new,size,dim,sizeof(double));
-	}
-
-	geom_set.front = fr;
-	geom_set.kl = af_params->kl;
-	geom_set.lambda_l = af_params->lambda_l;
-	geom_set.m_l = mass = af_params->m_l;
-	geom_set.dt = dt;
-
-	ns = newc->start;	ne = newc->end;
-	is = 0;			ie = size - 1;
-
-	count = 0;
-	compute_node_accel(&geom_set,ns,f_old,x_old,v_old,&count);
-	compute_curve_accel(&geom_set,newc,f_old,x_old,v_old,&count);
-	compute_node_accel(&geom_set,ne,f_old,x_old,v_old,&count);
-
-	for (n = 0; n < n_tan; ++n)
-	{
-	    adjust_for_node_type(ns,is,start_type,f_old,v_old,mass,payload,g);
-	    adjust_for_node_type(ne,ie,end_type,f_old,v_old,mass,payload,g);
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
-		x_new[i][j] = x_old[i][j] + dt*v_old[i][j]/6.0;
-                v_new[i][j] = v_old[i][j] + dt*f_old[i][j]/6.0;
-	    	x_mid[i][j] = x_old[i][j] + 0.5*v_old[i][j]*dt;
-	    	v_mid[i][j] = v_old[i][j] + 0.5*f_old[i][j]*dt;
-	    }
-
-	    count = 0;
-	    assign_node_field(ns,x_mid,v_mid,&count);
-	    assign_curve_field(newc,x_mid,v_mid,&count);
-	    assign_node_field(ne,x_mid,v_mid,&count);
-	    count = 0;
-	    compute_node_accel(&geom_set,ns,f_mid,x_mid,v_mid,&count);
-	    compute_curve_accel(&geom_set,newc,f_mid,x_mid,v_mid,&count);
-	    compute_node_accel(&geom_set,ne,f_mid,x_mid,v_mid,&count);
-	    adjust_for_node_type(ns,is,start_type,f_mid,v_mid,mass,payload,g);
-	    adjust_for_node_type(ne,ie,end_type,f_mid,v_mid,mass,payload,g);
-
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
-		x_new[i][j] += dt*v_mid[i][j]/3.0;
-                v_new[i][j] += dt*f_mid[i][j]/3.0;
-	    	x_mid[i][j] = x_old[i][j] + 0.5*v_mid[i][j]*dt;
-	    	v_mid[i][j] = v_old[i][j] + 0.5*f_mid[i][j]*dt;
-	    }
-	
-	    count = 0;
-	    assign_node_field(ns,x_mid,v_mid,&count);
-	    assign_curve_field(newc,x_mid,v_mid,&count);
-	    assign_node_field(ne,x_mid,v_mid,&count);
-	    count = 0;
-	    compute_node_accel(&geom_set,ns,f_mid,x_mid,v_mid,&count);
-	    compute_curve_accel(&geom_set,newc,f_mid,x_mid,v_mid,&count);
-	    compute_node_accel(&geom_set,ne,f_mid,x_mid,v_mid,&count);
-	    adjust_for_node_type(ns,is,start_type,f_mid,v_mid,mass,payload,g);
-	    adjust_for_node_type(ne,ie,end_type,f_mid,v_mid,mass,payload,g);
-
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
-		x_new[i][j] += dt*v_mid[i][j]/3.0;
-                v_new[i][j] += dt*f_mid[i][j]/3.0;
-	    	x_mid[i][j] = x_old[i][j] + v_mid[i][j]*dt;
-	    	v_mid[i][j] = v_old[i][j] + f_mid[i][j]*dt; 
-	    }
-
-	    count = 0;
-	    assign_node_field(ns,x_mid,v_mid,&count);
-	    assign_curve_field(newc,x_mid,v_mid,&count);
-	    assign_node_field(ne,x_mid,v_mid,&count);
-	    count = 0;
-	    compute_node_accel(&geom_set,ns,f_mid,x_mid,v_mid,&count);
-	    compute_curve_accel(&geom_set,newc,f_mid,x_mid,v_mid,&count);
-	    compute_node_accel(&geom_set,ne,f_mid,x_mid,v_mid,&count);
-	    adjust_for_node_type(ns,is,start_type,f_mid,v_mid,mass,payload,g);
-	    adjust_for_node_type(ne,ie,end_type,f_mid,v_mid,mass,payload,g);
-
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
-		x_new[i][j] += dt*v_mid[i][j]/6.0;
-                v_new[i][j] += dt*f_mid[i][j]/6.0;
-	    }
-
-	    count = 0;
-	    propagate_curve(&geom_set,newc,x_new);
-	    assign_node_field(ns,x_new,v_new,&count);
-	    assign_curve_field(newc,x_new,v_new,&count);
-	    assign_node_field(ne,x_new,v_new,&count);
-	    if (n != n_tan-1)
-	    {
-	    	count = 0;
-	    	compute_node_accel(&geom_set,ns,f_old,x_old,v_old,&count);
-	    	compute_curve_accel(&geom_set,newc,f_old,x_old,v_old,&count);
-	    	compute_node_accel(&geom_set,ne,f_old,x_old,v_old,&count);
-	    }
-	}
-	
-	if (debugging("trace"))
-	    (void) printf("Leaving "
-			"legacy_fourth_order_elastic_curve_propagate()\n");
-}	/* end fourth_order_elastic_curve_propagate */
-
-extern void legacy_fourth_order_elastic_surf_propagate(
-        Front           *newfr,
-        double           fr_dt)
-{
-	static int size = 0;
-	static double **x_old,**x_new,**v_old,**v_new,**f_old,**f_new;
-        static double **x_mid,**v_mid,**f_mid;
-	AF_PARAMS *af_params = (AF_PARAMS*)newfr->extra2;
-        double *g = af_params->gravity;
-	double mass;
-	int i,j,num_pts,count;
-	int n,n0,n_tan = af_params->n_tan;
-	double dt_tol,dt = fr_dt/(double)n_tan;
-	PARACHUTE_SET geom_set;
-	CURVE **nc,*newc[MAX_SURF_CURVES];
-	SURFACE *news,**s;
-	NODE *newn[MAX_SURF_NODES];
-	int num_nodes,num_curves;	/* Numbers of nodes and curves */
-	boolean in_list;
-	void (*compute_node_accel)(PARACHUTE_SET*,NODE*,double**,
-				double**,double **,int*);
-	void (*compute_curve_accel)(PARACHUTE_SET*,CURVE*,double**,
-				double**,double **,int*);
-	void (*compute_surf_accel)(PARACHUTE_SET*,SURFACE*,double**,
-				double**,double **,int*);
-
-	start_clock("legacy_fourth_order_elastic_surf_propagate");
-	for (s = newfr->interf->surfaces; s && *s; ++s)
-	{
-	    if (wave_type(*s) == ELASTIC_BOUNDARY)
-	    {
-		news = *s;
-		break;
-	    }
-	}
-
-	switch (af_params->spring_model)
-	{
-	case MODEL1:
-	    compute_curve_accel = compute_curve_accel1;
-	    compute_node_accel = compute_node_accel1;
-	    compute_surf_accel = compute_surf_accel1;
-	    break;
-	case MODEL2:
-	    compute_curve_accel = compute_curve_accel2;
-	    compute_node_accel = compute_node_accel2;
-	    compute_surf_accel = compute_surf_accel2;
-	    break;
-	case MODEL3:
-	default:
-	    (void) printf("Model function not implemented yet!\n");
-	    clean_up(ERROR);
-	}
-
-	if (debugging("trace"))
-	    (void) printf("Entering "
-			"legacy_fourth_order_elastic_surf_propagate()\n");
-
-	dt_tol = sqrt((af_params->m_s)/(af_params->ks))/10.0;
-        if (af_params->m_l != 0.0 &&
-	    dt_tol > sqrt((af_params->m_l)/(af_params->kl))/10.0)
-            dt_tol = sqrt((af_params->m_l)/(af_params->kl))/10.0;
-        if (af_params->m_g != 0.0 &&
-	    dt_tol > sqrt((af_params->m_g)/(af_params->kg))/10.0)
-            dt_tol = sqrt((af_params->m_g)/(af_params->kg))/10.0;
-	if (dt > dt_tol)
-        {
-            n_tan = (int)(fr_dt/dt_tol);
-            dt = fr_dt/(double)n_tan;
-        }
-	geom_set.ks = af_params->ks;
-	geom_set.lambda_s = af_params->lambda_s;
-	geom_set.m_s = mass = af_params->m_s;
-	geom_set.kg = af_params->kg;
-	geom_set.lambda_g = af_params->lambda_g;
-	geom_set.m_g = af_params->m_g;
-	geom_set.kl = af_params->kl;
-	geom_set.lambda_l = af_params->lambda_l;
-	geom_set.m_l = af_params->m_l;
-	geom_set.front = newfr;
-	geom_set.dt = dt;
-	if (debugging("step_size"))
-	{
-	    (void) printf("n_tan = %d\n",n_tan);
-	    (void) printf("ks = %f  kl = %f\n",geom_set.ks,geom_set.kl);
-	    (void) printf("m_s = %f  m_l = %f\n",geom_set.m_s,geom_set.m_l);
-	    (void) printf("lambda_s = %f  lambda_l = %f\n",
-				geom_set.lambda_s,geom_set.lambda_l);
-	}
-	(void) printf("\nfr_dt = %f  dt_tol = %20.14f  dt = %20.14f\n",
-                                fr_dt,dt_tol,dt);
-        (void) printf("Number of interior sub-steps = %d\n\n",n_tan);
-
-	/* Assume there is only one closed boundary curve */
-	num_nodes = num_curves = 0;
-	for (nc = news->pos_curves; nc && *nc; ++nc)
-	{
-	    if (hsbdry_type(*nc) == FIXED_HSBDRY) continue;
-	    if (!pointer_in_list((POINTER)(*nc),num_curves,
-				(POINTER*)newc))
-	    {
-	    	newc[num_curves] = *nc;
-	    	num_curves++;
-	    }
-	}
-	for (nc = news->neg_curves; nc && *nc; ++nc)
-	{
-	    if (hsbdry_type(*nc) == FIXED_HSBDRY) continue;
-	    if (!pointer_in_list((POINTER)(*nc),num_curves,
-				(POINTER*)newc))
-	    {
-	    	newc[num_curves] = *nc;
-	    	num_curves++;
-	    }
-	}
-	for (i = 0; i < num_curves; ++i)
-	{
-	    if (!pointer_in_list((POINTER)newc[i]->start,num_nodes,
-				(POINTER*)newn))
-	    {
-		newn[num_nodes] = newc[i]->start;
-		num_nodes++;
-	    }
-	    if (is_closed_curve(newc[i])) continue;
-	    if (!pointer_in_list((POINTER)newc[i]->end,num_nodes,
-				(POINTER*)newn))
-	    {
-		newn[num_nodes] = newc[i]->end;
-		num_nodes++;
-	    }
-	}
-
-	num_pts = FT_NumOfSurfPoints(news);
-	if (size < num_pts)
-	{
-	    size = num_pts;
-	    if (v_old != NULL)
-	    {
-		FT_FreeThese(9,v_old,v_new,x_old,x_new,f_old,f_new,
-				v_mid,x_mid,f_mid);
-	    }
-	    FT_MatrixMemoryAlloc((POINTER*)&x_old,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&v_old,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&f_old,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&x_mid,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&v_mid,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&f_mid,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&x_new,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&v_new,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&f_new,size,3,sizeof(double));
-	}
-
-	count = 0;
-	compute_surf_accel(&geom_set,news,f_old,x_old,v_old,&count);
-	for (i = 0; i < num_curves; ++i)
-	{
-	    n0 = count;
-	    compute_curve_accel(&geom_set,newc[i],f_old,x_old,v_old,&count);
-	    adjust_for_curve_type(newc[i],n0,f_old,v_old,mass,g);
-	}
-	for (i = 0; i < num_nodes; ++i)
-	{
-	    n0 = count;
-	    compute_node_accel(&geom_set,newn[i],f_old,x_old,v_old,&count);
-	    adjust_for_cnode_type(newn[i],n0,f_old,v_old,mass,g);
-	}
-
-	for (n = 0; n < n_tan; ++n)
-	{
-	    for (i = 0; i < size; ++i)
-            for (j = 0; j < 3; ++j)
-            {
-		x_new[i][j] = x_old[i][j] + dt*v_old[i][j]/6.0;
-                v_new[i][j] = v_old[i][j] + dt*f_old[i][j]/6.0;
-                x_mid[i][j] = x_old[i][j] + 0.5*v_old[i][j]*dt;
-                v_mid[i][j] = v_old[i][j] + 0.5*f_old[i][j]*dt;
-            }
-	    count = 0;
-            assign_surf_field(news,x_mid,v_mid,&count);
-	    for (i = 0; i < num_curves; ++i)
-            	assign_curve_field(newc[i],x_mid,v_mid,&count);
-	    for (i = 0; i < num_nodes; ++i)
-            	assign_node_field(newn[i],x_mid,v_mid,&count);
-	    count = 0;
-	    compute_surf_accel(&geom_set,news,f_mid,x_mid,v_mid,&count);
-	    for (i = 0; i < num_curves; ++i)
-	    {
-		n0 = count;
-	    	compute_curve_accel(&geom_set,newc[i],f_mid,x_mid,v_mid,&count);
-	    	adjust_for_curve_type(newc[i],n0,f_mid,v_mid,mass,g);
-	    }
-	    for (i = 0; i < num_nodes; ++i)
-	    {
-		n0 = count;
-	    	compute_node_accel(&geom_set,newn[i],f_mid,x_mid,v_mid,&count);
-	    	adjust_for_cnode_type(newn[i],n0,f_old,v_old,mass,g);
-	    }
-
-	    for (i = 0; i < size; ++i)
-            for (j = 0; j < 3; ++j)
-            {
-		x_new[i][j] += dt*v_mid[i][j]/3.0;
-                v_new[i][j] += dt*f_mid[i][j]/3.0;
-                x_mid[i][j] = x_old[i][j] + 0.5*v_mid[i][j]*dt;
-                v_mid[i][j] = v_old[i][j] + 0.5*f_mid[i][j]*dt;
-            }
-	    count = 0;
-            assign_surf_field(news,x_mid,v_mid,&count);
-	    for (i = 0; i < num_curves; ++i)
-	    {
-            	assign_curve_field(newc[i],x_mid,v_mid,&count);
-	    }
-	    for (i = 0; i < num_nodes; ++i)
-            	assign_node_field(newn[i],x_mid,v_mid,&count);
-	    count = 0;
-	    compute_surf_accel(&geom_set,news,f_mid,x_mid,v_mid,&count);
-	    for (i = 0; i < num_curves; ++i)
-	    {
-		n0 = count;
-	    	compute_curve_accel(&geom_set,newc[i],f_mid,x_mid,v_mid,&count);
-	    	adjust_for_curve_type(newc[i],n0,f_mid,v_mid,mass,g);
-	    }
-	    for (i = 0; i < num_nodes; ++i)
-	    {
-		n0 = count;
-	    	compute_node_accel(&geom_set,newn[i],f_mid,x_mid,v_mid,&count);
-	    	adjust_for_cnode_type(newn[i],n0,f_old,v_old,mass,g);
-	    }
-
-	    for (i = 0; i < size; ++i)
-            for (j = 0; j < 3; ++j)
-            {
-		x_new[i][j] += dt*v_mid[i][j]/3.0;
-                v_new[i][j] += dt*f_mid[i][j]/3.0;
-                x_mid[i][j] = x_old[i][j] + v_mid[i][j]*dt;
-                v_mid[i][j] = v_old[i][j] + f_mid[i][j]*dt;
-            }
-	    count = 0;
-            assign_surf_field(news,x_mid,v_mid,&count);
-	    for (i = 0; i < num_curves; ++i)
-            	assign_curve_field(newc[i],x_mid,v_mid,&count);
-	    for (i = 0; i < num_nodes; ++i)
-            	assign_node_field(newn[i],x_mid,v_mid,&count);
-	    count = 0;
-	    compute_surf_accel(&geom_set,news,f_mid,x_mid,v_mid,&count);
-	    for (i = 0; i < num_curves; ++i)
-	    {
-		n0 = count;
-	    	compute_curve_accel(&geom_set,newc[i],f_mid,x_mid,v_mid,&count);
-	    	adjust_for_curve_type(newc[i],n0,f_mid,v_mid,mass,g);
-	    }
-	    for (i = 0; i < num_nodes; ++i)
-	    {
-		n0 = count;
-	    	compute_node_accel(&geom_set,newn[i],f_mid,x_mid,v_mid,&count);
-	    	adjust_for_cnode_type(newn[i],n0,f_old,v_old,mass,g);
-	    }
-
-	    for (i = 0; i < size; ++i)
-            for (j = 0; j < 3; ++j)
-            {
-		x_new[i][j] += dt*v_mid[i][j]/6.0;
-                v_new[i][j] += dt*f_mid[i][j]/6.0;
-            }
-	    count = 0;
-	    propagate_surface(&geom_set,news,x_new,&count);
-	    for (i = 0; i < num_curves; ++i)
-	    	propagate_curve(&geom_set,newc[i],x_new,&count);
-	    for (i = 0; i < num_nodes; ++i)
-	    	propagate_node(&geom_set,newn[i],x_new,&count);
-	    count = 0;
-            assign_surf_field(news,x_new,v_new,&count);
-	    for (i = 0; i < num_curves; ++i)
-            	assign_curve_field(newc[i],x_new,v_new,&count);
-	    for (i = 0; i < num_nodes; ++i)
-            	assign_node_field(newn[i],x_new,v_new,&count);
-
-	    if (n != n_tan-1)
-	    {
-	    	count = 0;
-	    	compute_surf_accel(&geom_set,news,f_old,x_old,v_old,&count);
-	    	for (i = 0; i < num_curves; ++i)
-		{
-		    n0 = count;
-	    	    compute_curve_accel(&geom_set,newc[i],f_old,x_old,
-						v_old,&count);
-	    	    adjust_for_curve_type(newc[i],n0,f_old,v_old,mass,g);
-		}
-	    	for (i = 0; i < num_nodes; ++i)
-		{
-		    n0 = count;
-	    	    compute_node_accel(&geom_set,newn[i],f_old,x_old,
-						v_old,&count);
-	    	    adjust_for_cnode_type(newn[i],n0,f_old,v_old,mass,g);
-	    	}
-	    }
-	}
-	stop_clock("legacy_fourth_order_elastic_surf_propagate");
-
-	if (debugging("trace"))
-	    (void) printf("Leaving "
-			"legacy_fourth_order_elastic_surf_propagate()\n");
-}	/* end fourth_order_elastic_surf_propagate */

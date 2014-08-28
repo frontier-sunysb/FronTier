@@ -621,6 +621,8 @@ EXPORT	void FT_SetGlobalIndex(
             ilower += n_dist[i-1];
             iupper += n_dist[i];
         }
+	intfc->max_point_gindex = iupper;
+	pp_global_lmax(&intfc->max_point_gindex,1);
 	reset_sort_status(intfc);
 	for (n = intfc->nodes; n && *n; ++n)
 	{

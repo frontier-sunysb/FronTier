@@ -159,6 +159,10 @@ $$ME/parachute/*.cpp \
 $$ME/parachute/Makefile.in \
 $$ME/parachute/input-*/* \
 $$ME/parachute/mrun* \
+$$ME/parachute2d/*.cpp \
+$$ME/parachute2d/Makefile.in \
+$$ME/parachute2d/in-* \
+$$ME/parachute2d/mrun* \
 $$ME/sprModel/*.cpp \
 $$ME/sprModel/Makefile.in \
 $$ME/sprModel/in-* \

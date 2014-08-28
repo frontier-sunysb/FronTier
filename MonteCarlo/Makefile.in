@@ -23,6 +23,6 @@ MonteCarlo: FT_libs MonteCarlo.h MonteCarlo.cpp
 -include ../devel-deps.inc
 
 clean:
-	rm -rf *.o wave
+	rm -rf *.o MonteCarlo
 tagsfile:
 	ctags *.cpp ../src/*/*.[chf] ../src/*/*/*.[chf]

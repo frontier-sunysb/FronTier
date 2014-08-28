@@ -31,15 +31,13 @@ static boolean is_pore(Front*,HYPER_SURF_ELEMENT*,double*);
 static void compute_total_canopy_force2d(Front*,double*,double*);
 static void compute_total_canopy_force3d(Front*,double*,double*);
 static void compute_center_of_mass_velo(PARACHUTE_SET*);
-static void set_geomset_velocity(PARACHUTE_SET*,double**);
 static void reduce_high_freq_vel(Front*,SURFACE*);
 static void smooth_vel(double*,POINT*,TRI*,SURFACE*);
 static boolean curve_in_pointer_list(CURVE*,CURVE**);
 static void set_string_impulse(PARACHUTE_SET*,SPRING_VERTEX*);
-static void set_vertex_impulse(PARACHUTE_SET*,SPRING_VERTEX*);
-static void setNodeVelocity(PARACHUTE_SET*,NODE*,double**,int*);
-static void setCurveVelocity(PARACHUTE_SET*,CURVE*,double**,int*);
-static void setSurfVelocity(PARACHUTE_SET*,SURFACE*,double**,int*);
+static void setNodeVelocity(PARACHUTE_SET*,NODE*,double**,SPRING_VERTEX*,int*);
+static void setCurveVelocity(PARACHUTE_SET*,CURVE*,double**,SPRING_VERTEX*,int*);
+static void setSurfVelocity(PARACHUTE_SET*,SURFACE*,double**,SPRING_VERTEX*,int*);
 
 #define 	MAX_NUM_RING1		30
 
@@ -246,46 +244,57 @@ static boolean is_pore(
 
 extern void fourth_order_parachute_propagate(
 	Front *fr,
-        PARACHUTE_SET *new_geom_set)
+        PARACHUTE_SET *geom_set)
 {
 	static int size = 0;
-	static double **x_pos,**v_pos;
 	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
 	int i,j,n,n_sub,num_pts;
 	double dt;
 	static SPRING_VERTEX *sv;
 	static boolean first = YES;
+	static POINT_SET **point_set;
+	static POINT_SET *point_set_store;
 	int dim = FT_Dimension();
+	long max_point_gindex = fr->interf->max_point_gindex;
 
 	start_clock("set_data");
-	n_sub = new_geom_set->n_sub;
-	dt = new_geom_set->dt;
+	n_sub = geom_set->n_sub;
+	dt = geom_set->dt;
 
 	if (debugging("trace"))
 	    (void) printf("Entering fourth_order_parachute_propagate()\n");
 
-	num_pts = new_geom_set->num_verts;
+	num_pts = geom_set->num_verts;
 
-	dt = new_geom_set->dt;
+	dt = geom_set->dt;
+	if (point_set == NULL)
+	{
+	    FT_VectorMemoryAlloc((POINTER*)&point_set,max_point_gindex,
+					sizeof(POINT_SET*));
+	    for (i = 0; i < max_point_gindex; ++i)
+		point_set[i] = NULL;
+	}
 	if (size < num_pts)
 	{
 	    size = num_pts;
-	    if (v_pos != NULL)
+	    if (sv != NULL)
 	    {
-		FT_FreeThese(3,sv,x_pos,v_pos);
+		FT_FreeThese(1,sv);
 	    }
-	    FT_VectorMemoryAlloc((POINTER*)&x_pos,size,sizeof(double*));
-	    FT_VectorMemoryAlloc((POINTER*)&v_pos,size,sizeof(double*));
 	    FT_VectorMemoryAlloc((POINTER*)&sv,size,sizeof(SPRING_VERTEX));
+	    FT_VectorMemoryAlloc((POINTER*)&point_set_store,size,
+					sizeof(POINT_SET));
+	    link_point_set(geom_set,point_set,point_set_store);
 	}
 
-	count_vertex_neighbors(new_geom_set,sv);
+	count_vertex_neighbors(geom_set,sv);
 	if (first)
 	{
 	    set_spring_vertex_memory(sv,size);
 	    first = NO;
 	}
-	set_vertex_neighbors(new_geom_set,x_pos,v_pos,sv);
+	new_set_vertex_neighbors(geom_set,sv,point_set);
+	get_point_set_from(geom_set,point_set);
 	stop_clock("set_data");
 
 	start_clock("spring_model");
@@ -294,18 +303,19 @@ extern void fourth_order_parachute_propagate(
         {
             if (debugging("trace"))
                 (void) printf("Enter gpu_spring_solver()\n");
-            gpu_spring_solver(sv,x_pos,v_pos,dim,size,n_sub,dt);
+            gpu_spring_solver(sv,dim,size,n_sub,dt);
             if (debugging("trace"))
                 (void) printf("Left gpu_spring_solver()\n");
         }
         else
 #endif
-        generic_spring_solver(sv,x_pos,v_pos,dim,size,n_sub,dt);
+        generic_spring_solver(sv,dim,size,n_sub,dt);
 	stop_clock("spring_model");
+	put_point_set_to(geom_set,point_set);
 
-	set_vertex_impulse(new_geom_set,sv);
-	set_geomset_velocity(new_geom_set,v_pos);
-	compute_center_of_mass_velo(new_geom_set);
+	set_vertex_impulse(geom_set,sv);
+	set_geomset_velocity(geom_set,sv);
+	compute_center_of_mass_velo(geom_set);
 
 	if (debugging("trace"))
 	    (void) printf("Leaving fourth_order_parachute_propagate()\n");
@@ -1761,29 +1771,10 @@ static void reduce_high_freq_vel(
 	FT_FreeThese(1,vv);
 }	/* end reduce_high_freq_vel */
 
-static void set_vertex_impulse(
-	PARACHUTE_SET *geom_set,
-	SPRING_VERTEX *sv)
-{
-	int i,n,ns,nc,nn;
-
-	ns = geom_set->num_surfs;
-	nc = geom_set->num_curves;
-	nn = geom_set->num_nodes;
-	n = 0;
-	for (i = 0; i < ns; ++i)
-	    set_surf_impulse(geom_set,geom_set->surfs[i],sv,&n);
-	for (i = 0; i < nc; ++i)
-	    set_curve_impulse(geom_set,geom_set->curves[i],sv,&n);
-	for (i = 0; i < nn; ++i)
-	    set_node_impulse(geom_set,geom_set->nodes[i],sv,&n);	
-
-}	/* end set_vertex_impulse */
-
 static void setSurfVelocity(
 	PARACHUTE_SET *geom_set,
 	SURFACE *surf,
-	double **v,
+	SPRING_VERTEX *sv,
 	int *n)
 {
 	int i,j;
@@ -1809,7 +1800,7 @@ static void setSurfVelocity(
 		if (sorted(p) || Boundary_point(p)) continue;
 		FT_NormalAtPoint(p,front,nor,NO_COMP);
 		FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		vel = v[*n];
+		vel = sv[*n].v;
 		nor_speed = scalar_product(vel,nor,3);
 		for (j = 0; j < 3; ++j)
 		{
@@ -1826,7 +1817,7 @@ static void setSurfVelocity(
 static void setCurveVelocity(
 	PARACHUTE_SET *geom_set,
 	CURVE *curve,
-	double **v,
+	SPRING_VERTEX *sv,
 	int *n)
 {
 	int i,j;
@@ -1851,7 +1842,7 @@ static void setCurveVelocity(
                     p->hs = hs = Hyper_surf((*btris)->surface);
                     FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
 		    FT_NormalAtPoint(p,front,nor,NO_COMP);
-		    vel = v[*n];
+		    vel = sv[*n].v;
 		    nor_speed = scalar_product(vel,nor,3);
                     for (j = 0; j < 3; ++j)
 		    	sl->vel[j] = sr->vel[j] = 
@@ -1864,7 +1855,7 @@ static void setCurveVelocity(
 static void setNodeVelocity(
 	PARACHUTE_SET *geom_set,
 	NODE *node,
-	double **v,
+	SPRING_VERTEX *sv,
 	int *n)
 {
 	int i,j;
@@ -1894,7 +1885,7 @@ static void setNodeVelocity(
                     p->hs = hs = Hyper_surf((*btris)->surface);
                     FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
 		    FT_NormalAtPoint(p,front,nor,NO_COMP);
-		    vel = v[*n];
+		    vel = sv[*n].v;
 		    nor_speed = scalar_product(vel,nor,3);
 		    if (max_speed < fabs(nor_speed)) 
 		    {
@@ -1921,7 +1912,7 @@ static void setNodeVelocity(
                     p->hs = hs = Hyper_surf((*btris)->surface);
                     FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
 		    FT_NormalAtPoint(p,front,nor,NO_COMP);
-		    vel = v[*n];
+		    vel = sv[*n].v;
 		    nor_speed = scalar_product(vel,nor,3);
 		    if (max_speed < fabs(nor_speed)) 
 		    {
@@ -1939,7 +1930,7 @@ static void setNodeVelocity(
 	{
 	    sl = (STATE*)left_state(node->posn);
             sr = (STATE*)right_state(node->posn);
-            vel = v[*n];
+	    vel = sv[*n].v;
             for (j = 0; j < 3; ++j)
             {
             	sl->vel[j] = vel[j];
@@ -1950,9 +1941,9 @@ static void setNodeVelocity(
 	(*n)++;
 }	/* end setNodeVelocity */
 
-static void set_geomset_velocity(
+extern void set_geomset_velocity(
 	PARACHUTE_SET *geom_set,
-	double **v)
+	SPRING_VERTEX *sv)
 {
 	int i,n,ns,nc,nn;
 
@@ -1961,11 +1952,11 @@ static void set_geomset_velocity(
 	nn = geom_set->num_nodes;
 	n = 0;
 	for (i = 0; i < ns; ++i)
-	    setSurfVelocity(geom_set,geom_set->surfs[i],v,&n);
+	    setSurfVelocity(geom_set,geom_set->surfs[i],sv,&n);
 	for (i = 0; i < nc; ++i)
-	    setCurveVelocity(geom_set,geom_set->curves[i],v,&n);
+	    setCurveVelocity(geom_set,geom_set->curves[i],sv,&n);
 	for (i = 0; i < nn; ++i)
-	    setNodeVelocity(geom_set,geom_set->nodes[i],v,&n);
+	    setNodeVelocity(geom_set,geom_set->nodes[i],sv,&n);
 
 }	/* end set_geomset_velocity */
 

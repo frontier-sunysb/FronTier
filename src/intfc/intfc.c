@@ -547,6 +547,7 @@ EXPORT INTERFACE *i_copy_interface(
 	new_intfc->e_comps = copy_e_comps(intfc);
 	new_intfc->default_comp = intfc->default_comp;
 	new_intfc->elliptic_comp = intfc->elliptic_comp;
+	new_intfc->max_point_gindex = intfc->max_point_gindex;
 	new_intfc->table->min_comp = intfc->table->min_comp;
 	new_intfc->table->max_comp = intfc->table->max_comp;
 	interface_reconstructed(new_intfc) = interface_reconstructed(intfc);

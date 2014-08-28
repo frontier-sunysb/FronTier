@@ -1,11 +1,10 @@
-/************************************************************************************
-FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
-Front Tracking is a numerical method for the solution of partial differential equations 
-whose solutions have discontinuities.  
-
+/***************************************************************
+FronTier is a set of libraries that implements differnt types of 
+Front Traking algorithms. Front Tracking is a numerical method for 
+the solution of partial differential equations whose solutions have 
+discontinuities.  
 
 Copyright (C) 1999 by The University at Stony Brook. 
- 
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,9 +18,8 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-******************************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+****************************************************************/
 
 
 #include <front/fdecs.h>		/* includes int.h, table.h */
@@ -58,7 +56,7 @@ EXPORT	void	resolve_collision(
 	printf("Entering resolve_collision()\n");
 	start_clock("intersection");
 	intersections(intfc,&cross,NO);
-	printf("cross = %d\n",cross);
+	printf("cross = %p\n",(void*)cross);
 	stop_clock("intersection");
 	if (cross == NULL) return;
 	/*
@@ -194,8 +192,9 @@ LOCAL void fabric_rigid_collision(
 	printf("Component after treatment:\n");
 	for (i = 0; i < num_pfs; ++i)
 	{
+	    COMPONENT comp;
 	    p = pf_list[i];
-	    COMPONENT comp = component_wrt_tri_cluster(Coords(p),sr,tr_list,
+	    comp = component_wrt_tri_cluster(Coords(p),sr,tr_list,
 				num_trs);
 	    printf("comp[%d] = %d\n",i,comp);
 	}
@@ -224,7 +223,7 @@ LOCAL void fabric_rigid_collision(
 	    p = pr_list[i];
 	    status = nearest_point_to_tri_cluster(Coords(p),int_comp,
                             sf,tf_list,num_tfs,&tri_on,&id,nearest_pt,nor);
-	    printf("tri_on = %d\n",tri_on);
+	    printf("tri_on = %p\n",(void*)tri_on);
 	    if (status == ONEDGE)
 		printf("ie = %d\n",id);
 	    else

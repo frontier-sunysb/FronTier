@@ -270,9 +270,6 @@ extern void fixed_length_tan_curve_propagate(Front*,Front*,INTERFACE*,
 extern void fourth_order_elastic_curve_propagate(Front*,Front*,INTERFACE*,
                                 CURVE*,CURVE*,double);
 extern void fourth_order_elastic_surf_propagate(Front*,double);
-extern void legacy_fourth_order_elastic_curve_propagate(Front*,Front*,
-				INTERFACE*,CURVE*,CURVE*,double);
-extern void legacy_fourth_order_elastic_surf_propagate(Front*,double);
 
 // afcnpy.cpp
 extern void compute_total_canopy_force(Front*,double*,double*);
@@ -306,25 +303,22 @@ extern void propagate_node(PARACHUTE_SET*,NODE*,double**,int*);
 extern boolean is_registered_point(SURFACE*,POINT*);
 
 // afsetd.cpp
-extern void count_node_neighbors(NODE*,SPRING_VERTEX*,int*);
-extern void count_curve_neighbors(CURVE*,SPRING_VERTEX*,int*);
-extern void count_surf_neighbors(SURFACE*,SPRING_VERTEX*,int*);
 extern void count_vertex_neighbors(PARACHUTE_SET*,SPRING_VERTEX*);
-extern void set_node_spring_vertex(PARACHUTE_SET*,NODE*,double**,double**,
-				SPRING_VERTEX*,int*);
-extern void set_curve_spring_vertex(PARACHUTE_SET*,CURVE*,double**,double**,
-				SPRING_VERTEX*,int*);
-extern void set_surf_spring_vertex(PARACHUTE_SET*,SURFACE*,double**,double**,
-				SPRING_VERTEX*,int*);
-extern void set_vertex_neighbors(PARACHUTE_SET*,double**,double**,
-				SPRING_VERTEX*);
 extern void set_spring_vertex_memory(SPRING_VERTEX*,int);
 extern void compute_spring_accel1(SPRING_VERTEX*,double*,int);
-extern void generic_spring_solver(SPRING_VERTEX*,double**,double**,int,int,int,
-				double);
-extern void set_surf_impulse(PARACHUTE_SET*,SURFACE*,SPRING_VERTEX*,int*);
-extern void set_curve_impulse(PARACHUTE_SET*,CURVE*,SPRING_VERTEX*,int*);
-extern void set_node_impulse(PARACHUTE_SET*,NODE*,SPRING_VERTEX*,int*);
+extern void generic_spring_solver(SPRING_VERTEX*,int,int,int,double);
+extern void set_vertex_impulse(PARACHUTE_SET*,SPRING_VERTEX*);
+extern void set_geomset_velocity(PARACHUTE_SET*,SPRING_VERTEX*);
+extern void link_point_set(PARACHUTE_SET*,POINT_SET**,POINT_SET*);
+extern void new_set_vertex_neighbors(PARACHUTE_SET*,SPRING_VERTEX*,POINT_SET**);
+extern void new_set_node_spring_vertex(PARACHUTE_SET*,NODE*,SPRING_VERTEX*,
+				int*,POINT_SET**);
+extern void new_set_curve_spring_vertex(PARACHUTE_SET*,CURVE*,SPRING_VERTEX*,
+				int*,POINT_SET**);
+extern void new_set_surf_spring_vertex(PARACHUTE_SET*,SURFACE*,SPRING_VERTEX*,
+				int*,POINT_SET**);
+extern void get_point_set_from(PARACHUTE_SET*,POINT_SET**);
+extern void put_point_set_to(PARACHUTE_SET*,POINT_SET**);
 
 // afvelo.cpp
 extern void setMotionParams(Front*);
@@ -333,6 +327,7 @@ extern void resetFrontVelocity(Front*);
 // afmodule.cpp
 extern void initParachuteDefault(Front*);
 extern void initParachuteModules(Front*);
+extern void init2DModules(Front*);
 
 // afdata.cpp
 extern void printAfExtraDada(Front*,char*);

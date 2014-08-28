@@ -954,8 +954,8 @@ LOCAL boolean add_matching_pt_to_hash_table(
 			ps = Coords(pls->p);
 		    }
 		}
-		(void) printf("Gindex(pla->p) = %d\n",Gindex(pla->p));
-		(void) printf("Gindex(pls->p) = %d\n",Gindex(pls->p));
+		(void) printf("Gindex(pla->p) = %ld\n",Gindex(pla->p));
+		(void) printf("Gindex(pls->p) = %ld\n",Gindex(pls->p));
 		print_general_vector("pa", pa, 3, "\n");
 		print_general_vector("ps", ps, 3, "\n");
 	    }

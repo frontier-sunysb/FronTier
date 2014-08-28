@@ -25,9 +25,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <airfoil.h>
 #include "solver.h"
 
+static void link_surf_point_set(PARACHUTE_SET*,SURFACE*,POINT_SET**,
+				POINT_SET*,int*);
+static void link_curve_point_set(PARACHUTE_SET*,CURVE*,POINT_SET**,
+				POINT_SET*,int*);
+static void link_node_point_set(PARACHUTE_SET*,NODE*,POINT_SET**,
+				POINT_SET*,int*);
+
+static void surf_get_point_set_from(SURFACE*,POINT_SET**);
+static void curve_get_point_set_from(CURVE*,POINT_SET**);
+static void node_get_point_set_from(NODE*,POINT_SET**);
+
+static void surf_put_point_set_to(SURFACE*,POINT_SET**);
+static void curve_put_point_set_to(CURVE*,POINT_SET**);
+static void node_put_point_set_to(NODE*,POINT_SET**);
+
+static void count_surf_neighbors(SURFACE*,SPRING_VERTEX*,int*);
+static void count_curve_neighbors(CURVE*,SPRING_VERTEX*,int*);
+static void count_node_neighbors(NODE*,SPRING_VERTEX*,int*);
+
+static void set_surf_impulse(PARACHUTE_SET*,SURFACE*,SPRING_VERTEX*,int*);
+static void set_curve_impulse(PARACHUTE_SET*,CURVE*,SPRING_VERTEX*,int*);
+static void set_node_impulse(PARACHUTE_SET*,NODE*,SPRING_VERTEX*,int*);
+
+static void get_point_value_from(POINT*p,POINT_SET**);
+static void put_point_value_to(POINT*p,POINT_SET**);
+
 #define 	MAX_NUM_RING1		30
 
-extern void count_node_neighbors(
+static void count_node_neighbors(
 	NODE *node,
 	SPRING_VERTEX *sv,
 	int *n)
@@ -44,7 +70,7 @@ extern void count_node_neighbors(
 	    num_nb++;
 	for (c = node->in_curves; c && *c; ++c)
 	    num_nb++;
-	node->posn->indx = *n;
+	sv[*n].ix = node->posn->indx = *n;
 	if (dim == 3)
 	{
 	    BOND_TRI **btris;
@@ -100,7 +126,7 @@ extern void count_node_neighbors(
 	(*n)++;
 }	/* end count_node_neighbors */
 
-extern void count_curve_neighbors(
+static void count_curve_neighbors(
 	CURVE *curve,
 	SPRING_VERTEX *sv,
 	int *n)
@@ -142,14 +168,14 @@ extern void count_curve_neighbors(
 			}
 		    }
 		}
-		p->indx = i;
+		sv[i].ix = p->indx = i;
 		i++;
 	    }
 	}
 	*n = i;
 }	/* end count_curve_neighbors */
 
-extern void count_surf_neighbors(
+static void count_surf_neighbors(
 	SURFACE *surf,
 	SPRING_VERTEX *sv,
 	int *n)
@@ -172,9 +198,9 @@ extern void count_surf_neighbors(
 		PointAndFirstRingTris(p,Hyper_surf_element(tri),
 			Hyper_surf(surf),&nt,tris);
 		sv[i].num_nb = nt;
-		sorted(p) = YES;
-		p->indx = i;
+		sv[i].ix = p->indx = i;
 	    	++i;
+		sorted(p) = YES;
 	    }
 	}
 	*n = i;
@@ -197,13 +223,404 @@ extern void set_spring_vertex_memory(
 	}
 }	/* end set_spring_vertex_memory */
 
-extern void set_node_spring_vertex(
+extern void compute_spring_accel1(
+	SPRING_VERTEX *sv,
+	double *f,
+	int dim)
+{
+	int i,k;
+	double len,vec[MAXD];
+
+	for (k = 0; k < dim; ++k)
+	    f[k] = 0.0;
+	for (i = 0; i < sv->num_nb; ++i)
+	{
+	    len = 0.0;
+	    for (k = 0; k < dim; ++k)
+	    {
+		vec[k] = sv->x_nb[i][k] - sv->x[k];
+		len += sqr(vec[k]);
+	    }
+	    len = sqrt(len);
+	    for (k = 0; k < dim; ++k)
+	    {
+		vec[k] /= len;
+		f[k] += sv->k[i]*((len - sv->len0[i])*vec[k])/sv->m;
+	    }
+	}
+	for (k = 0; k < dim; ++k)
+	    sv->f[k] = f[k]*sv->m;
+	for (k = 0; k < dim; ++k)
+	{
+	    f[k] += -sv->lambda*sv->v[k]/sv->m;
+	}
+}	/* end compute_spring_accel */
+
+extern void generic_spring_solver(
+	SPRING_VERTEX *sv,
+	int dim,
+	int size,
+	int n_loop,
+	double dt)
+{
+	static double **x_old,**x_new,**v_old,**v_new,**accel;
+	int i,j,n;
+	
+	if (debugging("trace"))
+	    (void) printf("Entering generic_spring_solver()\n");
+	if (x_old == NULL)
+	{
+	    FT_MatrixMemoryAlloc((POINTER*)&x_old,size,3,sizeof(double));
+            FT_MatrixMemoryAlloc((POINTER*)&v_old,size,3,sizeof(double));
+            FT_MatrixMemoryAlloc((POINTER*)&x_new,size,3,sizeof(double));
+            FT_MatrixMemoryAlloc((POINTER*)&v_new,size,3,sizeof(double));
+            FT_MatrixMemoryAlloc((POINTER*)&accel,size,3,sizeof(double));
+	}
+
+	for (i = 0; i < size; ++i)
+	{
+	    compute_spring_accel1(&sv[i],accel[i],dim);
+	}
+	for (i = 0; i < size; ++i)
+	for (j = 0; j < dim; ++j)
+	{
+	    x_old[i][j] = sv[i].x[j];
+	    v_old[i][j] = sv[i].v[j];
+	}
+	for (n = 0; n < n_loop; ++n)
+	{
+	    for (i = 0; i < size; ++i)
+	    for (j = 0; j < dim; ++j)
+	    {
+		x_new[i][j] = x_old[i][j] + dt*v_old[i][j]/6.0;
+                v_new[i][j] = v_old[i][j] + dt*accel[i][j]/6.0;
+	    	sv[i].x[j] = x_old[i][j] + 0.5*v_old[i][j]*dt;
+	    	sv[i].v[j] = v_old[i][j] + 0.5*accel[i][j]*dt;
+	    }
+
+	    for (i = 0; i < size; ++i)
+	    {
+		compute_spring_accel1(&sv[i],accel[i],dim);
+	    }
+	    for (i = 0; i < size; ++i)
+	    for (j = 0; j < dim; ++j)
+	    {
+		x_new[i][j] += dt*sv[i].v[j]/3.0;
+                v_new[i][j] += dt*accel[i][j]/3.0;
+	    	sv[i].x[j] = x_old[i][j] + 0.5*sv[i].v[j]*dt;
+	    	sv[i].v[j] = v_old[i][j] + 0.5*accel[i][j]*dt;
+	    }
+	
+	    for (i = 0; i < size; ++i)
+	    {
+		compute_spring_accel1(&sv[i],accel[i],dim);
+	    }
+	    for (i = 0; i < size; ++i)
+	    for (j = 0; j < dim; ++j)
+	    {
+		x_new[i][j] += dt*sv[i].v[j]/3.0;
+                v_new[i][j] += dt*accel[i][j]/3.0;
+	    	sv[i].x[j] = x_old[i][j] + sv[i].v[j]*dt;
+	    	sv[i].v[j] = v_old[i][j] + accel[i][j]*dt; 
+	    }
+
+	    for (i = 0; i < size; ++i)
+	    {
+		compute_spring_accel1(&sv[i],accel[i],dim);
+	    }
+	    for (i = 0; i < size; ++i)
+	    for (j = 0; j < dim; ++j)
+	    {
+		x_new[i][j] += dt*sv[i].v[j]/6.0;
+                v_new[i][j] += dt*accel[i][j]/6.0;
+	    }
+	    for (i = 0; i < size; ++i)
+            for (j = 0; j < 3; ++j)
+            {
+                x_new[i][j] += (sv[i].ext_impul[j]
+                                + 0.5*sv[i].ext_accel[j]*dt)*dt;
+                sv[i].ext_impul[j] += sv[i].ext_accel[j]*dt;
+            }
+	    for (i = 0; i < size; ++i)
+	    for (j = 0; j < dim; ++j)
+	    {
+		sv[i].x[j] = x_new[i][j];
+                sv[i].v[j] = v_new[i][j];
+	    }
+
+	    if (n != n_loop-1)
+	    {
+		for (i = 0; i < size; ++i)
+                for (j = 0; j < 3; ++j)
+                {
+                    x_old[i][j] = sv[i].x[j];
+                    v_old[i][j] = sv[i].v[j];
+                }
+	    	for (i = 0; i < size; ++i)
+		{
+		    compute_spring_accel1(&sv[i],accel[i],dim);
+		}
+	    }
+	}
+	if (debugging("trace"))
+	    (void) printf("Leaving generic_spring_solver()\n");
+}	/* end generic_spring_solver */
+
+extern void set_vertex_impulse(
+        PARACHUTE_SET *geom_set,
+        SPRING_VERTEX *sv)
+{
+        int i,n,ns,nc,nn;
+
+        ns = geom_set->num_surfs;
+        nc = geom_set->num_curves;
+        nn = geom_set->num_nodes;
+        n = 0;
+        for (i = 0; i < ns; ++i)
+            set_surf_impulse(geom_set,geom_set->surfs[i],sv,&n);
+        for (i = 0; i < nc; ++i)
+            set_curve_impulse(geom_set,geom_set->curves[i],sv,&n);
+        for (i = 0; i < nn; ++i)
+            set_node_impulse(geom_set,geom_set->nodes[i],sv,&n);
+
+}       /* end set_vertex_impulse */
+
+static void set_node_impulse(
 	PARACHUTE_SET *geom_set,
 	NODE *node,
-	double **x,
-	double **v,
 	SPRING_VERTEX *sv,
 	int *n)
+{
+	int i,dim;
+	STATE *sl,*sr;
+
+	dim = FT_Dimension();
+	sl = (STATE*)left_state(node->posn);
+	sr = (STATE*)right_state(node->posn);
+	for (i = 0; i < dim; ++i)
+	    sl->impulse[i] = sr->impulse[i] = sv[*n].ext_impul[i];
+	(*n)++;
+}	/* end set_node_impulse */
+
+static void set_curve_impulse(
+	PARACHUTE_SET *geom_set,
+	CURVE *curve,
+	SPRING_VERTEX *sv,
+	int *n)
+{
+	int i,j,dim;
+	STATE *sl,*sr;
+	BOND *b;
+
+	dim = FT_Dimension();
+
+	i = *n;
+	for (b = curve->first; b != curve->last; b = b->next)
+	{
+	    sl = (STATE*)left_state(b->end);
+	    sr = (STATE*)right_state(b->end);
+            for (j = 0; j < dim; ++j)
+            {
+	    	sl->impulse[j] = sr->impulse[j] = sv[i].ext_impul[j];
+	    }
+	    ++i;
+	}
+	*n = i;
+}	/* end set_curve_impulse */
+
+static void set_surf_impulse(
+	PARACHUTE_SET *geom_set,
+	SURFACE *surf,
+	SPRING_VERTEX *sv,
+	int *n)
+{
+	int i,j,k;
+	TRI *tri;
+	POINT *p;
+	HYPER_SURF *hs;
+	HYPER_SURF_ELEMENT *hse;
+	STATE *sl,*sr;
+
+	unsort_surf_point(surf);
+	hs = Hyper_surf(surf);
+	i = *n;
+	for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
+			tri = tri->next)
+	{
+	    hse = Hyper_surf_element(tri);
+	    for (j = 0; j < 3; ++j)
+	    {
+		p = Point_of_tri(tri)[j];
+		if (sorted(p) || Boundary_point(p)) continue;
+		sorted(p) = YES;
+		FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+            	for (k = 0; k < 3; ++k)
+            	{
+	    	    sl->impulse[k] = sr->impulse[k] = sv[i].ext_impul[k];
+	    	}
+	    	++i;
+	    }
+	}
+	*n = i;
+}	/* end set_surf_impulse */
+
+extern void count_vertex_neighbors(
+	PARACHUTE_SET *geom_set,
+	SPRING_VERTEX *sv)
+{
+	int i,n,ns,nc,nn;
+
+	if (debugging("canopy"))
+	    (void) printf("Entering count_vertex_neighbors()\n");
+
+	ns = geom_set->num_surfs;
+	nc = geom_set->num_curves;
+	nn = geom_set->num_nodes;
+	n = 0;
+	for (i = 0; i < ns; ++i)
+	    count_surf_neighbors(geom_set->surfs[i],sv,&n);
+	for (i = 0; i < nc; ++i)
+	    count_curve_neighbors(geom_set->curves[i],sv,&n);
+	for (i = 0; i < nn; ++i)
+	    count_node_neighbors(geom_set->nodes[i],sv,&n);	
+
+	if (debugging("canopy"))
+	    (void) printf("Leaving count_vertex_neighbors()\n");
+}	/* end  count_vertex_neighbors */
+
+extern void link_point_set(
+	PARACHUTE_SET *geom_set,
+	POINT_SET **point_set,
+	POINT_SET *point_set_store)
+{
+	int i,n,ns,nc,nn;
+
+	if (debugging("canopy"))
+	    (void) printf("Entering link_point_set()\n");
+
+	ns = geom_set->num_surfs;
+	nc = geom_set->num_curves;
+	nn = geom_set->num_nodes;
+	n = 0;
+	for (i = 0; i < ns; ++i)
+	    link_surf_point_set(geom_set,geom_set->surfs[i],point_set,
+				point_set_store,&n);
+	for (i = 0; i < nc; ++i)
+	    link_curve_point_set(geom_set,geom_set->curves[i],point_set,
+				point_set_store,&n);
+	for (i = 0; i < nn; ++i)
+	    link_node_point_set(geom_set,geom_set->nodes[i],point_set,
+				point_set_store,&n);
+
+	if (debugging("canopy"))
+	{
+	    (void) printf("Final n = %d\n",n);
+	    (void) printf("Leaving link_point_set()\n");
+	}
+}	/* end link_point_set */
+
+static void link_surf_point_set(
+	PARACHUTE_SET *geom_set,
+	SURFACE *surf,
+	POINT_SET **point_set,
+	POINT_SET *point_set_store,
+	int *n)
+{
+	TRI *tri;
+	POINT *p;
+	long gindex;
+	int i,j;
+
+	unsort_surf_point(surf);
+	i = *n;
+	surf_tri_loop(surf,tri)
+	{
+	    for (j = 0; j < 3; ++j)
+	    {
+		p = Point_of_tri(tri)[j];
+		if (sorted(p) || Boundary_point(p)) continue;
+		gindex = Gindex(p);
+		point_set[gindex] = point_set_store + i;
+		sorted(p) = YES;
+		i++;
+	    }
+	}
+	*n = i;
+}	/* end link_surf_point_set */
+
+static void link_curve_point_set(
+	PARACHUTE_SET *geom_set,
+	CURVE *curve,
+	POINT_SET **point_set,
+	POINT_SET *point_set_store,
+	int *n)
+{
+	BOND *b;
+	POINT *p;
+	long gindex;
+	int i = *n;
+
+	for (b = curve->first; b != curve->last; b = b->next)
+	{
+	    p = b->end;
+	    gindex = Gindex(p);
+	    point_set[gindex] = point_set_store + i;
+	    point_set[gindex]->gindex = gindex;
+	    i++;
+	}
+	*n = i;
+}	/* end link_curve_point_set */
+
+static void link_node_point_set(
+	PARACHUTE_SET *geom_set,
+	NODE *node,
+	POINT_SET **point_set,
+	POINT_SET *point_set_store,
+	int *n)
+{
+	long gindex;
+	POINT *p = node->posn;
+
+	gindex = Gindex(p);
+	point_set[gindex] = point_set_store + (*n);
+	point_set[gindex]->gindex = gindex;
+	(*n)++;
+}	/* end link_node_point_set */
+
+extern void new_set_vertex_neighbors(
+	PARACHUTE_SET *geom_set,
+	SPRING_VERTEX *sv,
+	POINT_SET **point_set)
+{
+	int i,n,ns,nc,nn;
+
+	if (debugging("canopy"))
+	    (void) printf("Entering set_vertex_neighbors()\n");
+
+	ns = geom_set->num_surfs;
+	nc = geom_set->num_curves;
+	nn = geom_set->num_nodes;
+	n = 0;
+	for (i = 0; i < ns; ++i)
+	    new_set_surf_spring_vertex(geom_set,geom_set->surfs[i],sv,&n,
+					point_set);
+	for (i = 0; i < nc; ++i)
+	    new_set_curve_spring_vertex(geom_set,geom_set->curves[i],sv,&n,
+					point_set);
+	for (i = 0; i < nn; ++i)
+	    new_set_node_spring_vertex(geom_set,geom_set->nodes[i],sv,&n,
+					point_set);
+
+	if (debugging("canopy"))
+	    (void) printf("Leaving set_vertex_neighbors()\n");
+}	/* end  new_set_vertex_neighbors */
+
+extern void new_set_node_spring_vertex(
+	PARACHUTE_SET *geom_set,
+	NODE *node,
+	SPRING_VERTEX *sv,
+	int *n,
+	POINT_SET **point_set)
 {
 	CURVE **c;
 	BOND *b;
@@ -222,6 +639,7 @@ extern void set_node_spring_vertex(
 	STATE *sl,*sr;
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
 	double *g = iFparams->gravity;
+	long gindex,gindex_nb;
 
 	if (dim == 3)
 	{
@@ -251,14 +669,16 @@ extern void set_node_spring_vertex(
             mass = geom_set->m_l;
 
 	nn = 0;
-	x[*n] = sv[*n].x = Coords(node->posn);
-	v[*n] = sv[*n].v = node->posn->vel;
-	sv[*n].f = node->posn->force;
+	gindex = Gindex(node->posn);
+	sv[*n].x = point_set[gindex]->x;
+	sv[*n].v = point_set[gindex]->v;
+	sv[*n].f = point_set[gindex]->f;
+	sv[*n].ext_impul = point_set[gindex]->impuls;
 	for (c = node->out_curves; c && *c; ++c)
 	{
 	    b = (*c)->first;
-	    sv[*n].x_nb[nn] = Coords(b->end);
-	    sv[*n].ix_nb[nn] = b->end->indx;
+	    gindex_nb = Gindex(b->end);
+	    sv[*n].x_nb[nn] = point_set[gindex_nb]->x;
 	    sv[*n].len0[nn] = bond_length0(b);
 	    sv[*n].m = mass;
 	    if (dim == 3)
@@ -283,8 +703,8 @@ extern void set_node_spring_vertex(
 	for (c = node->in_curves; c && *c; ++c)
 	{
 	    b = (*c)->last;
-	    sv[*n].x_nb[nn] = Coords(b->start);
-	    sv[*n].ix_nb[nn] = b->start->indx;
+	    gindex_nb = Gindex(b->start);
+	    sv[*n].x_nb[nn] = point_set[gindex_nb]->x;
 	    sv[*n].len0[nn] = bond_length0(b);
 	    sv[*n].m = mass;
 	    if (dim == 3)
@@ -353,7 +773,8 @@ extern void set_node_spring_vertex(
 			if (is_side_bdry(tri,side))
 			    continue;
 			p_nb = Point_of_tri(tri)[(side+1)%3];
-			sv[*n].x_nb[nn] = Coords(p_nb);
+			gindex_nb = Gindex(p_nb);
+			sv[*n].x_nb[nn] = point_set[gindex_nb]->x;
 			sv[*n].ix_nb[nn] = p_nb->indx;
 			sv[*n].k[nn] = ks;
 			if (is_fixed) sv[*n].k[nn] = 0.0;
@@ -377,27 +798,24 @@ extern void set_node_spring_vertex(
 	{
 	    sv[*n].lambda = lambda_l;
 	}
-	sl = (STATE*)left_state(node->posn);
 	if (dim == 3)
 	{
             for (i = 0; i < dim; ++i)
             {
 	    	sv[*n].ext_accel[i] = g[i];
-	    	sv[*n].ext_impul[i] = sl->impulse[i];
 	    }
 	    if (is_fixed) 
 	    	sv[*n].ext_accel[i] = 0;
 	}
 	(*n)++;
-}	/* end set_node_spring_vertex */
+}	/* end new_set_node_spring_vertex */
 
-extern void set_curve_spring_vertex(
+extern void new_set_curve_spring_vertex(
 	PARACHUTE_SET *geom_set,
 	CURVE *curve,
-	double **x,
-	double **v,
 	SPRING_VERTEX *sv,
-	int *n)
+	int *n,
+	POINT_SET **point_set)
 {
 	Front *front = geom_set->front;
 	int i,j,nn;
@@ -406,7 +824,7 @@ extern void set_curve_spring_vertex(
 	int dim = front->rect_grid->dim;
         IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
         double *g = iFparams->gravity;
-	STATE *sl;
+	long gindex,gindex_nb;
 
 	if (dim == 3)
 	{
@@ -445,11 +863,15 @@ extern void set_curve_spring_vertex(
 	i = *n;
 	for (b = curve->first; b != curve->last; b = b->next)
 	{
-	    x[i] = sv[i].x = Coords(b->end);
-	    v[i] = sv[i].v = b->end->vel;
-	    sv[i].f = b->end->force;
-	    sv[i].x_nb[0] = Coords(b->start);
-	    sv[i].x_nb[1] = Coords(b->next->end);
+	    gindex = Gindex(b->end);
+	    sv[i].x = point_set[gindex]->x;
+	    sv[i].v = point_set[gindex]->v;
+	    sv[i].f = point_set[gindex]->f;
+	    sv[i].ext_impul = point_set[gindex]->impuls;
+	    gindex_nb = Gindex(b->start);
+	    sv[i].x_nb[0] = point_set[gindex_nb]->x;
+	    gindex_nb = Gindex(b->next->end);
+	    sv[i].x_nb[1] = point_set[gindex_nb]->x;
 	    sv[i].ix_nb[0] = b->start->indx;
 	    sv[i].ix_nb[1] = b->next->end->indx;
 	    sv[i].len0[0] = bond_length0(b);
@@ -458,13 +880,11 @@ extern void set_curve_spring_vertex(
 	    sv[i].m = m_l;
 	    sv[i].num_nb = 2;
 	    sv[i].lambda = lambda_l;
-	    sl = (STATE*)left_state(b->end);
 	    if (dim == 3)
 	    {
             	for (j = 0; j < dim; ++j)
             	{
 	    	    sv[i].ext_accel[j] = g[j];
-	    	    sv[i].ext_impul[j] = sl->impulse[j];
 	    	}
 	    	if (hsbdry_type(curve) == FIXED_HSBDRY)
 	    	{
@@ -507,7 +927,8 @@ extern void set_curve_spring_vertex(
 				if (is_side_bdry(tris[j],side))
 				    continue;
 				p_nb = Point_of_tri(tris[j])[(side+1)%3];
-				sv[i].x_nb[nn] = Coords(p_nb);
+				gindex_nb = Gindex(p_nb);
+				sv[i].x_nb[nn] = point_set[gindex_nb]->x;
 				sv[i].ix_nb[nn] = p_nb->indx;
 				sv[i].k[nn] = ks;
 				sv[i].len0[nn] = tris[j]->side_length0[side];
@@ -521,15 +942,14 @@ extern void set_curve_spring_vertex(
 	    }
 	}
 	*n = i;
-}	/* end set_curve_spring_vertex */
+}	/* end new_set_curve_spring_vertex */
 
-extern void set_surf_spring_vertex(
+extern void new_set_surf_spring_vertex(
 	PARACHUTE_SET *geom_set,
 	SURFACE *surf,
-	double **x,
-	double **v,
 	SPRING_VERTEX *sv,
-	int *n)
+	int *n,
+	POINT_SET **point_set)
 {
 	Front *front = geom_set->front;
 	int i,j,k,l,nt;
@@ -546,6 +966,7 @@ extern void set_surf_spring_vertex(
 	STATE *sl,*sr;
 	HYPER_SURF_ELEMENT *hse;
         HYPER_SURF         *hs = Hyper_surf(surf);
+	long gindex,gindex_nb;
 
 	unsort_surf_point(surf);
 	i = *n;
@@ -562,17 +983,17 @@ extern void set_surf_spring_vertex(
 		sv[i].lambda = lambda_s;
 		if (is_stationary_point == YES)
 		    sv[i].lambda = 0.0;
-		FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
             	for (k = 0; k < dim; ++k)
             	{
 	    	    sv[i].ext_accel[k] = g[k];
-	    	    sv[i].ext_impul[k] = sl->impulse[k];
 		    if (is_stationary_point == YES)
 	    	    	sv[i].ext_accel[k] = 0.0;
 	    	}
-		x[i] = sv[i].x = Coords(p);
-		v[i] = sv[i].v = p->vel;
-		sv[i].f = p->force;
+		gindex = Gindex(p);
+		sv[i].x = point_set[gindex]->x;
+		sv[i].v = point_set[gindex]->v;
+		sv[i].f = point_set[gindex]->f;
+	    	sv[i].ext_impul = point_set[gindex]->impuls;
 		PointAndFirstRingTris(p,Hyper_surf_element(tri),
 				Hyper_surf(surf),&nt,tris);
 		sv[i].num_nb = nt;
@@ -581,7 +1002,8 @@ extern void set_surf_spring_vertex(
 		if (Point_of_tri(tris[k])[l] == p)
 		{
 		    p_nb = Point_of_tri(tris[k])[(l+1)%3];
-		    sv[i].x_nb[k] = Coords(p_nb);
+		    gindex_nb = Gindex(p_nb);
+		    sv[i].x_nb[k] = point_set[gindex_nb]->x;
 		    sv[i].ix_nb[k] = p_nb->indx;
 		    if (is_stationary_point == YES)
 		    	sv[i].k[k] = 0.0;
@@ -594,279 +1016,171 @@ extern void set_surf_spring_vertex(
 	    }
 	}
 	*n = i;
-}	/* end set_surf_spring_vertex */
+}	/* end new_set_surf_spring_vertex */
 
-extern void compute_spring_accel1(
-	SPRING_VERTEX *sv,
-	double *f,
-	int dim)
+static void get_point_value_from(
+	POINT *p,
+	POINT_SET **point_set)
 {
-	int i,k;
-	double len,vec[MAXD];
+	int i;
+	long gindex = Gindex(p);
+	STATE *state = (STATE*)left_state(p);
 
-	for (k = 0; k < dim; ++k)
-	    f[k] = 0.0;
-	for (i = 0; i < sv->num_nb; ++i)
+	for (i = 0; i < 3; ++i)
 	{
-	    len = 0.0;
-	    for (k = 0; k < dim; ++k)
-	    {
-		vec[k] = sv->x_nb[i][k] - sv->x[k];
-		len += sqr(vec[k]);
-	    }
-	    len = sqrt(len);
-	    for (k = 0; k < dim; ++k)
-	    {
-		vec[k] /= len;
-		f[k] += sv->k[i]*((len - sv->len0[i])*vec[k])/sv->m;
-	    }
+	    point_set[gindex]->x[i] = Coords(p)[i];
+	    point_set[gindex]->v[i] = p->vel[i];
+	    point_set[gindex]->f[i] = p->force[i];
+	    point_set[gindex]->impuls[i] = state->impulse[i];
 	}
-	for (k = 0; k < dim; ++k)
-	    sv->f[k] = f[k]*sv->m;
-	for (k = 0; k < dim; ++k)
-	{
-	    f[k] += -sv->lambda*sv->v[k]/sv->m;
-	}
-}	/* end compute_spring_accel */
-
-extern void generic_spring_solver(
-	SPRING_VERTEX *sv,
-	double **x_pos,
-	double **v_pos,
-	int dim,
-	int size,
-	int n_loop,
-	double dt)
-{
-	static double **x_old,**x_new,**v_old,**v_new,**accel;
-	int i,j,n;
+}	/* end get_point_value_from */
 	
-	if (debugging("trace"))
-	    (void) printf("Entering generic_spring_solver()\n");
-	if (x_old == NULL)
-	{
-	    FT_MatrixMemoryAlloc((POINTER*)&x_old,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&v_old,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&x_new,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&v_new,size,3,sizeof(double));
-            FT_MatrixMemoryAlloc((POINTER*)&accel,size,3,sizeof(double));
-	}
+static void put_point_value_to(
+	POINT *p,
+	POINT_SET **point_set)
+{
+	int i;
+	long gindex = Gindex(p);
+	STATE *state = (STATE*)left_state(p);
 
-	for (i = 0; i < size; ++i)
+	for (i = 0; i < 3; ++i)
 	{
-	    compute_spring_accel1(&sv[i],accel[i],dim);
+	    Coords(p)[i] = point_set[gindex]->x[i];
+	    p->vel[i] = point_set[gindex]->v[i];
+	    p->force[i] = point_set[gindex]->f[i];
+	    state->impulse[i] = point_set[gindex]->impuls[i];
 	}
-	for (i = 0; i < size; ++i)
-	for (j = 0; j < dim; ++j)
-	{
-	    x_old[i][j] = x_pos[i][j];
-	    v_old[i][j] = v_pos[i][j];
-	}
-	for (n = 0; n < n_loop; ++n)
-	{
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
-		x_new[i][j] = x_old[i][j] + dt*v_old[i][j]/6.0;
-                v_new[i][j] = v_old[i][j] + dt*accel[i][j]/6.0;
-	    	x_pos[i][j] = x_old[i][j] + 0.5*v_old[i][j]*dt;
-	    	v_pos[i][j] = v_old[i][j] + 0.5*accel[i][j]*dt;
-	    }
-
-	    for (i = 0; i < size; ++i)
-	    {
-		compute_spring_accel1(&sv[i],accel[i],dim);
-	    }
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
-		x_new[i][j] += dt*v_pos[i][j]/3.0;
-                v_new[i][j] += dt*accel[i][j]/3.0;
-	    	x_pos[i][j] = x_old[i][j] + 0.5*v_pos[i][j]*dt;
-	    	v_pos[i][j] = v_old[i][j] + 0.5*accel[i][j]*dt;
-	    }
+}	/* end put_point_value_to */
 	
-	    for (i = 0; i < size; ++i)
-	    {
-		compute_spring_accel1(&sv[i],accel[i],dim);
-	    }
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
-		x_new[i][j] += dt*v_pos[i][j]/3.0;
-                v_new[i][j] += dt*accel[i][j]/3.0;
-	    	x_pos[i][j] = x_old[i][j] + v_pos[i][j]*dt;
-	    	v_pos[i][j] = v_old[i][j] + accel[i][j]*dt; 
-	    }
-
-	    for (i = 0; i < size; ++i)
-	    {
-		compute_spring_accel1(&sv[i],accel[i],dim);
-	    }
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
-		x_new[i][j] += dt*v_pos[i][j]/6.0;
-                v_new[i][j] += dt*accel[i][j]/6.0;
-	    }
-	    for (i = 0; i < size; ++i)
-            for (j = 0; j < 3; ++j)
-            {
-                x_new[i][j] += (sv[i].ext_impul[j]
-                                + 0.5*sv[i].ext_accel[j]*dt)*dt;
-                sv[i].ext_impul[j] += sv[i].ext_accel[j]*dt;
-            }
-	    for (i = 0; i < size; ++i)
-	    for (j = 0; j < dim; ++j)
-	    {
-		x_pos[i][j] = x_new[i][j];
-                v_pos[i][j] = v_new[i][j];
-	    }
-
-	    if (n != n_loop-1)
-	    {
-		for (i = 0; i < size; ++i)
-                for (j = 0; j < 3; ++j)
-                {
-                    x_old[i][j] = x_pos[i][j];
-                    v_old[i][j] = v_pos[i][j];
-                }
-	    	for (i = 0; i < size; ++i)
-		{
-		    compute_spring_accel1(&sv[i],accel[i],dim);
-		}
-	    }
-	}
-	if (debugging("trace"))
-	    (void) printf("Leaving generic_spring_solver()\n");
-}	/* end generic_spring_solver */
-
-extern void set_node_impulse(
+extern void get_point_set_from(
 	PARACHUTE_SET *geom_set,
-	NODE *node,
-	SPRING_VERTEX *sv,
-	int *n)
+	POINT_SET **point_set)
 {
-	int i,dim;
-	STATE *sl,*sr;
+	int i,ns,nc,nn;
 
-	dim = FT_Dimension();
-	sl = (STATE*)left_state(node->posn);
-	sr = (STATE*)right_state(node->posn);
-	for (i = 0; i < dim; ++i)
-	    sl->impulse[i] = sr->impulse[i] = sv[*n].ext_impul[i];
-	(*n)++;
-}	/* end set_node_impulse */
+	if (debugging("canopy"))
+	    (void) printf("Entering get_point_set_from()\n");
 
-extern void set_curve_impulse(
+	ns = geom_set->num_surfs;
+	nc = geom_set->num_curves;
+	nn = geom_set->num_nodes;
+	for (i = 0; i < ns; ++i)
+	    surf_get_point_set_from(geom_set->surfs[i],point_set);
+	for (i = 0; i < nc; ++i)
+	    curve_get_point_set_from(geom_set->curves[i],point_set);
+	for (i = 0; i < nn; ++i)
+	    node_get_point_set_from(geom_set->nodes[i],point_set);
+
+	if (debugging("canopy"))
+	    (void) printf("Leaving get_point_set_from()\n");
+}	/* end  get_point_set_from */
+	
+extern void put_point_set_to(
 	PARACHUTE_SET *geom_set,
-	CURVE *curve,
-	SPRING_VERTEX *sv,
-	int *n)
+	POINT_SET **point_set)
 {
-	int i,j,dim;
-	STATE *sl,*sr;
-	BOND *b;
+	int i,ns,nc,nn;
 
-	dim = FT_Dimension();
+	if (debugging("canopy"))
+	    (void) printf("Entering put_point_set_to()\n");
 
-	i = *n;
-	for (b = curve->first; b != curve->last; b = b->next)
-	{
-	    sl = (STATE*)left_state(b->end);
-	    sr = (STATE*)right_state(b->end);
-            for (j = 0; j < dim; ++j)
-            {
-	    	sl->impulse[j] = sr->impulse[j] = sv[i].ext_impul[j];
-	    }
-	    ++i;
-	}
-	*n = i;
-}	/* end set_curve_impulse */
+	ns = geom_set->num_surfs;
+	nc = geom_set->num_curves;
+	nn = geom_set->num_nodes;
+	for (i = 0; i < ns; ++i)
+	    surf_put_point_set_to(geom_set->surfs[i],point_set);
+	for (i = 0; i < nc; ++i)
+	    curve_put_point_set_to(geom_set->curves[i],point_set);
+	for (i = 0; i < nn; ++i)
+	    node_put_point_set_to(geom_set->nodes[i],point_set);
 
-extern void set_surf_impulse(
-	PARACHUTE_SET *geom_set,
+	if (debugging("canopy"))
+	    (void) printf("Leaving put_point_set_to()\n");
+}	/* end  put_point_set_to */
+
+static void surf_get_point_set_from(
 	SURFACE *surf,
-	SPRING_VERTEX *sv,
-	int *n)
+	POINT_SET **point_set)
 {
-	int i,j,k;
 	TRI *tri;
 	POINT *p;
-	HYPER_SURF *hs;
-	HYPER_SURF_ELEMENT *hse;
-	STATE *sl,*sr;
+	int j;
 
 	unsort_surf_point(surf);
-	hs = Hyper_surf(surf);
-	i = *n;
-	for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
-			tri = tri->next)
+	surf_tri_loop(surf,tri)
 	{
-	    hse = Hyper_surf_element(tri);
 	    for (j = 0; j < 3; ++j)
 	    {
 		p = Point_of_tri(tri)[j];
 		if (sorted(p) || Boundary_point(p)) continue;
+		get_point_value_from(p,point_set);
 		sorted(p) = YES;
-		FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-            	for (k = 0; k < 3; ++k)
-            	{
-	    	    sl->impulse[k] = sr->impulse[k] = sv[i].ext_impul[k];
-	    	}
-	    	++i;
 	    }
 	}
-	*n = i;
-}	/* end set_surf_impulse */
+}	/* end surf_get_point_set_from */
 
-extern void count_vertex_neighbors(
-	PARACHUTE_SET *geom_set,
-	SPRING_VERTEX *sv)
+static void curve_get_point_set_from(
+	CURVE *curve,
+	POINT_SET **point_set)
 {
-	int i,n,ns,nc,nn;
+	BOND *b;
+	POINT *p;
 
-	if (debugging("canopy"))
-	    (void) printf("Entering count_vertex_neighbors()\n");
+	for (b = curve->first; b != curve->last; b = b->next)
+	{
+	    p = b->end;
+	    get_point_value_from(p,point_set);
+	}
+}	/* end curve_get_point_set_from */
 
-	ns = geom_set->num_surfs;
-	nc = geom_set->num_curves;
-	nn = geom_set->num_nodes;
-	n = 0;
-	for (i = 0; i < ns; ++i)
-	    count_surf_neighbors(geom_set->surfs[i],sv,&n);
-	for (i = 0; i < nc; ++i)
-	    count_curve_neighbors(geom_set->curves[i],sv,&n);
-	for (i = 0; i < nn; ++i)
-	    count_node_neighbors(geom_set->nodes[i],sv,&n);	
-
-	if (debugging("canopy"))
-	    (void) printf("Leaving count_vertex_neighbors()\n");
-}	/* end  count_vertex_neighbors */
-
-extern void set_vertex_neighbors(
-	PARACHUTE_SET *geom_set,
-	double **x,
-	double **v,
-	SPRING_VERTEX *sv)
+static void node_get_point_set_from(
+	NODE *node,
+	POINT_SET **point_set)
 {
-	int i,n,ns,nc,nn;
+	POINT *p = node->posn;
+	get_point_value_from(p,point_set);
+}	/* end node_get_point_set_from */
 
-	if (debugging("canopy"))
-	    (void) printf("Entering set_vertex_neighbors()\n");
+static void surf_put_point_set_to(
+	SURFACE *surf,
+	POINT_SET **point_set)
+{
+	TRI *tri;
+	POINT *p;
+	int j;
 
-	ns = geom_set->num_surfs;
-	nc = geom_set->num_curves;
-	nn = geom_set->num_nodes;
-	n = 0;
-	for (i = 0; i < ns; ++i)
-	    set_surf_spring_vertex(geom_set,geom_set->surfs[i],x,v,sv,&n);
-	for (i = 0; i < nc; ++i)
-	    set_curve_spring_vertex(geom_set,geom_set->curves[i],x,v,sv,&n);
-	for (i = 0; i < nn; ++i)
-	    set_node_spring_vertex(geom_set,geom_set->nodes[i],x,v,sv,&n);
+	unsort_surf_point(surf);
+	surf_tri_loop(surf,tri)
+	{
+	    for (j = 0; j < 3; ++j)
+	    {
+		p = Point_of_tri(tri)[j];
+		if (sorted(p) || Boundary_point(p)) continue;
+		put_point_value_to(p,point_set);
+		sorted(p) = YES;
+	    }
+	}
+}	/* end surf_put_point_set_to */
 
-	if (debugging("canopy"))
-	    (void) printf("Leaving set_vertex_neighbors()\n");
-}	/* end  set_vertex_neighbors */
+static void curve_put_point_set_to(
+	CURVE *curve,
+	POINT_SET **point_set)
+{
+	BOND *b;
+	POINT *p;
+
+	for (b = curve->first; b != curve->last; b = b->next)
+	{
+	    p = b->end;
+	    put_point_value_to(p,point_set);
+	}
+}	/* end curve_put_point_set_to */
+
+static void node_put_point_set_to(
+	NODE *node,
+	POINT_SET **point_set)
+{
+	POINT *p = node->posn;
+	put_point_value_to(p,point_set);
+}	/* end node_put_point_set_to */
 
