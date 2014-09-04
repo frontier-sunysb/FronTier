@@ -47,6 +47,10 @@ LOCAL	void	gview_plot_surfaces(INTERFACE*,RECT_GRID*,const double*,
 	                            const double*,boolean,
 				    const char*,const char*,
 				    boolean,SURFACE_COLOR,SURFACE_COLOR);
+LOCAL	void 	gview_plot_surfs_and_curves(INTERFACE*,RECT_GRID*,const double*,
+				    const double*,const char*,const char*,
+				    SURFACE_COLOR,SURFACE_COLOR,SURFACE_COLOR,
+				    int);
 LOCAL	void	gview_plot_color_scaled_surfaces(INTERFACE*,RECT_GRID*,
 				    const double*,const double*,boolean,
 				    const char*,const char*,
@@ -1188,6 +1192,9 @@ EXPORT void geomview_interface_plot(
 			    YES,pBLUE,pGREEN);
 
 	gview_plot_curves(intfc,BBL,BBU,dname,"curves",pYELLOW,1);
+
+	gview_plot_surfs_and_curves(intfc,gr,BBL,BBU,dname,"interior",
+			    pRED,pRED,pYELLOW,1);
 }		/*end geomview_interface_plot*/
 
 EXPORT void gview_plot_color_scaled_interface(
@@ -1441,6 +1448,8 @@ LOCAL	void	gview_plot_surfaces(
 			    plot_tri = plot_surf = YES;
 			    break;
 		        }
+			if (debugging("gview_full"))
+			    plot_tri = plot_surf = YES;
 		    }
 		    if (plot_tri)
 		    {
@@ -5447,3 +5456,199 @@ EXPORT void gview_plot_crossing_tris(
         (void) fprintf(file,"}\n");
 	fclose(file);
 }	/* end gview_plot_crossing_tris */
+
+LOCAL	void	gview_plot_surfs_and_curves(
+	INTERFACE     *intfc,
+	RECT_GRID     *gr,
+	const double  *BBL,
+	const double  *BBU,
+	const char    *dname,
+	const char    *name,
+	SURFACE_COLOR color1,
+	SURFACE_COLOR color2,
+	SURFACE_COLOR color3,
+	int	      width)
+{
+	FILE	          *file;
+	POINT             *p,*ps,*pe;
+	SURFACE	          **s;
+        CURVE             **c;
+	TRI	          *tri;
+        BOND              *b;
+	boolean           plot_surf,plot_tri,plot_bond;
+	double 	          D, intensity = .5;
+	double            L[MAXD],U[MAXD],tol[MAXD];
+	double	          *crds;
+	int	          num_surfs, num_tris, num_bonds, i, j, k, l;
+	int               npts, ntris, count = 0;
+	static const char *indent = "    ";
+	static double     *pts = NULL;
+	static int        *verts = NULL;
+	static int        alloc_len_verts = 0, alloc_len_pts = 0;
+	static char       *fname = NULL;
+	static size_t     fname_len = 0;
+
+	fname = get_list_file_name(fname,dname,name,&fname_len);
+
+	for (num_tris = 0, s = intfc->surfaces; s && *s; ++s)
+	{
+	    num_tris += (*s)->num_tri;
+	    for (tri=first_tri(*s); !at_end_of_tri_list(tri,*s); tri=tri->next)
+	    {
+	        for (k = 0; k < 3; ++k)
+		    Index_of_point(Point_of_tri(tri)[k]) = -1;
+	    }
+	}
+	
+	if (alloc_len_pts < 3*intfc->num_points)
+	{
+	    if (pts != NULL)
+		free(pts);
+	    alloc_len_pts = 3*intfc->num_points;
+	    uni_array(&pts,alloc_len_pts,FLOAT);
+	}
+	if (alloc_len_verts < 4*num_tris)
+	{
+	    if (verts != NULL)
+		free(verts);
+	    alloc_len_verts = 4*num_tris;
+	    uni_array(&verts,alloc_len_verts,INT);
+	}
+	for (i = 0; i < 3; i++)
+	{
+	    L[i] = gr->L[i] - 0.5*gr->h[i];
+	    U[i] = gr->U[i] + 0.5*gr->h[i];
+	    tol[i] = 0.00001*gr->h[i];
+	}
+
+        for (npts=0, ntris=0, num_surfs=0, s = intfc->surfaces; s && *s; ++s)
+	{
+	    	if (Boundary(*s))
+		    continue;
+		plot_surf = NO;
+	        for (tri = first_tri(*s); !at_end_of_tri_list(tri,*s); 
+		     tri = tri->next)
+	        {
+		    plot_tri = NO;
+		    for (k = 0; k < 3; ++k)
+		    {
+			crds = Coords(Point_of_tri(tri)[k]);
+	                for (l = 0; l < 3; ++l)
+			    if ((crds[l] < L[l] - tol[l]) || 
+			        (crds[l] > U[l] + tol[l]))
+				break;
+			if (l == 3) /* a point is inside the domain */
+			{
+			    plot_tri = plot_surf = YES;
+			    break;
+		        }
+			if (debugging("gview_full"))
+			    plot_tri = plot_surf = YES;
+		    }
+		    if (plot_tri)
+		    {
+			for (k = 0; k < 3; ++k)
+			{
+		            p = Point_of_tri(tri)[k];
+			    if (Index_of_point(p) == -1)
+			    {
+			        crds = Coords(p);
+	                        for (l = 0; l < 3; ++l)
+				    pts[3*npts+l] = crds[l];
+				Index_of_point(p) = npts++;
+			    }
+			    verts[4*ntris+k] = Index_of_point(p);
+			}
+			verts[4*ntris+3] = num_surfs;
+			++ntris;
+		    }
+		}
+		if (plot_surf == YES)
+		    ++num_surfs;
+	}
+	if (num_surfs == 0)
+	    return;
+
+	if ((file = fopen(fname,"w")) == NULL)
+	{
+	    (void) printf("WARNING in gview_plot_surfaces(), "
+	                  "can't open %s\n",fname);
+	    return;
+	}
+	(void) fprintf(file,"{ LIST\n");
+
+	gview_bounding_box(file,BBL,BBU,1,indent);
+
+	(void) fprintf(file,"%s{\n%s%sOFF\n%s%s%6d %6d %6d\n",indent,
+		       indent,indent,indent,indent,npts,ntris,0);
+	for (i = 0; i < npts; ++i)
+	{
+	    (void) fprintf(file,"%s%s%-9g %-9g %-9g\n",indent,indent,
+			   pts[3*i],pts[3*i+1],pts[3*i+2]);
+	}
+	D = (num_surfs == 1) ? 1.0 : 1/(num_surfs - 1.0);
+	for (j = 0; j < ntris; ++j)
+	{
+	    (void) fprintf(file,"%s%s%-4d %-4d %-4d %-4d ",indent,indent,
+			   3,verts[4*j],verts[4*j+1],verts[4*j+2]);
+	    write_interpolated_color(file,color1,color2,verts[4*j+3]/D,
+				     intensity);
+	}
+	(void) fprintf(file,"%s}\n",indent);
+
+        for (c = intfc->curves; c && *c; ++c)
+        {
+            num_bonds = (*c)->num_points - 1;
+            (void) fprintf(file,"%s{appearance{*linewidth %d}\n"
+			   "%s%sVECT\n%s%s%6d %6d %6d\n",
+			   indent,width,indent,indent,indent,indent,
+			   num_bonds,2*num_bonds,1);
+            /* may make for very long lines! */
+            (void) fprintf(file,"%s%s",indent,indent);
+            for (i = 0; i < num_bonds; ++i)
+            {
+                (void) fprintf(file,"2 ");
+            }
+            (void) fprintf(file,"\n");
+            (void) fprintf(file,"%s%s1 ",indent,indent);
+            for (i = 0; i < num_bonds - 1; ++i)
+            {
+                (void) fprintf(file,"0 ");
+            }
+            (void) fprintf(file,"\n");
+            for (b = (*c)->first; b; b = b->next)
+            {
+                ps = b->start;
+                pe = b->end;
+		plot_bond = YES;
+	        for (l = 0; l < 3; ++l)
+		{
+		    if ((Coords(ps)[l] < L[l] - tol[l]) ||
+		        (Coords(ps)[l] > U[l] + tol[l]))
+			break;
+		}
+		if (l == 3) plot_bond = YES;
+		else
+		{
+	            for (l = 0; l < 3; ++l)
+		    {
+		    	if ((Coords(pe)[l] < L[l] - tol[l]) ||
+		            (Coords(pe)[l] > U[l] + tol[l]))
+			    break;
+		    }
+		    if (l == 3) plot_bond = YES;
+		}
+		if (debugging("gview_full")) plot_bond = YES;
+		if (!plot_bond) continue;
+                (void) fprintf(file,"%s%s%-9g %-9g %-9g %-9g %-9g %-9g\n",
+			       indent,indent,Coords(ps)[0], Coords(ps)[1],
+			       Coords(ps)[2],Coords(pe)[0],Coords(pe)[1],
+			       Coords(pe)[2]);
+            }
+	    (void) fprintf(file,"%s%s",indent,indent);
+	    write_color(file,color3,0.0);
+            (void) fprintf(file,"%s}\n",indent);
+        }
+        (void) fprintf(file,"}\n");
+        fclose(file);
+}               /*end gview_plot_surfs_and_curves*/

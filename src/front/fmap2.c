@@ -19,7 +19,6 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-
 ****************************************************************/
 
 
@@ -1526,3 +1525,26 @@ EXPORT void FT_ResetDomainAndGrid(
                         front->interf->default_comp,eps);
         scatter_front(front);
 }	/* end FT_ResetDomainAndGrid */
+
+EXPORT	INTERFACE *FT_CollectHypersurfFromSubdomains(
+	Front *front,
+	int *owner,			/* Destination of collection */
+	int w_type)			/* Wave type of surface to collect */
+{
+	return collect_hyper_surface(front,owner,w_type);
+}	/* end FT_CollectHypersurfFromSubdomains */
+
+EXPORT	boolean FT_CoordsInSubdomain(
+	Front *front,
+	double *coords)			/* Testing coordinate */
+{
+	RECT_GRID *gr = front->rect_grid;
+	int i,dim = gr->dim;
+	for (i = 0; i < dim; ++i)
+	{
+	    if (coords[i] < gr->L[i]) return NO;
+	    if (coords[i] >= gr->U[i]) return NO;
+	}
+	return YES;
+}	/* end FT_CoordsInSubdomain */
+

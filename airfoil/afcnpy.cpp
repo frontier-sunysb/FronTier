@@ -257,12 +257,12 @@ extern void fourth_order_parachute_propagate(
 	int dim = FT_Dimension();
 	long max_point_gindex = fr->interf->max_point_gindex;
 
+	if (debugging("trace"))
+	    (void) printf("Entering fourth_order_parachute_propagate()\n");
+
 	start_clock("set_data");
 	n_sub = geom_set->n_sub;
 	dt = geom_set->dt;
-
-	if (debugging("trace"))
-	    (void) printf("Entering fourth_order_parachute_propagate()\n");
 
 	num_pts = geom_set->num_verts;
 

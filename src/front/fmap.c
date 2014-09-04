@@ -3577,18 +3577,6 @@ EXPORT void FT_ArrayOfSurfCurves(
 	    curves[n++] = *c;
 }	/* end FT_NumOfSurfCurves */
 
-EXPORT int FT_NumOfNodeCurves(
-	NODE *node)
-{
-	int n = 0;
-	CURVE **c;
-	for (c = node->in_curves; c && *c; ++c)
-	    ++n;
-	for (c = node->out_curves; c && *c; ++c)
-	    ++n;
-	return n;
-}	/* end FT_NumOfNodeCurves */
-
 EXPORT void FT_ArrayOfNodeCurves(
 	NODE *node,
 	CURVE **curves)
@@ -3797,19 +3785,6 @@ EXPORT  int FT_NumOfIntfcPoints(INTERFACE *intfc)
 }       /* end FT_NumOfIntfcPoints */
 
 /***********************************************************************
- *	FT_NumOfIntfcNodes()
- * return the number of the nodes in the given INTERFACE *intfc;
- ***********************************************************************/
-EXPORT	int FT_NumOfIntfcNodes(INTERFACE *intfc)
-{
-	NODE **n;
-        int num_nodes = 0;
-        for (n = intfc->nodes, num_nodes = 0; n && *n; ++n)
-            ++num_nodes;
-	return num_nodes;
-}	/* end NumOfIntfcNodes */
-
-/***********************************************************************
  *	FT_NumOfCurveBonds()
  * return the number of bonds in the given CURVE *c.
  ***********************************************************************/
@@ -3834,32 +3809,6 @@ EXPORT int FT_NumOfIntfcBonds(INTERFACE *intfc)
             num_bonds += FT_NumOfCurveBonds(*c);
         return num_bonds;
 }	/* end FT_NumOfIntfcBonds */
-
-/***********************************************************************
- *	FT_NumOfCurves()
- * return the number of curves in the given INTERFACE *intfc.
- ***********************************************************************/
-EXPORT  int FT_NumOfIntfcCurves(INTERFACE *intfc)
-{
-        CURVE **c;
-        int num_curves;
-        for (c = intfc->curves, num_curves = 0; c && *c; ++c)
-            ++num_curves;
-        return num_curves;
-}       /* end FT_NumOfIntfcCurves */
-
-/***********************************************************************
- *	FT_NumOfSurfaces()
- * return the number of surfaces in the given INTERFACE *intfc.
- ***********************************************************************/
-EXPORT  int FT_NumOfIntfcSurfaces(INTERFACE *intfc)
-{
-        SURFACE **s;
-        int num_surfs = 0;
-        for (s = intfc->surfaces; s && *s; ++s)
-            ++num_surfs;
-        return num_surfs;
-}       /* end FT_NumOfIntfcSurfaces */
 
 /**********************************************************************
  *	FT_NumOfSurfTris()

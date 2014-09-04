@@ -712,6 +712,7 @@ IMPORT	void	communicate_default_comp(Front*);
 IMPORT	void	strip_bdry_curves(INTERFACE*, int);
 IMPORT	void	cut_surface(SURFACE*,boolean (*func)(POINTER,double*),POINTER,boolean);
 IMPORT	void	install_hsbdry_on_surface(SURFACE*,int);
+IMPORT	void	open_surf_null_sides(SURFACE*,double*,double*,int,int);
 IMPORT	boolean	surfaces_matched(SURFACE*,SURFACE*);
 IMPORT  void    shift_interface(INTERFACE*,double,int);
 IMPORT	void	set_default_comp(boolean);
@@ -725,6 +726,10 @@ IMPORT  void    merge_curves(INTERFACE*,INTERFACE*);
 IMPORT  void    merge_btris(BOND*,BOND*,CURVE*,ORIENTATION,INTERFACE*);
 IMPORT  void    average_btris(TRI*,SURFACE*,TRI*,SURFACE*);
 	
+	/* fscat3d3.c*/
+IMPORT	boolean	f_intfc_communication3d3(Front*);
+IMPORT 	INTERFACE *collect_hyper_surface(Front*,int*,int);
+
 	/* fstate.c*/
 IMPORT	ConstantFlowRegion	*SetConstantFlowRegion(COMPONENT,Locstate,
 						       INTERFACE*);

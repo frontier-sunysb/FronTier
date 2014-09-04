@@ -67,7 +67,7 @@ EXPORT	CURVE **I_SplitCurve(
 	}
 	curve_bond_loop(curve,b)
 	{
-	    if (pt == b->start)
+	    if (pt == b->end)
 		return split_curve(pt,b,curve,ncomp,pcomp,ncomp,pcomp);
 	}
 	return NULL;
@@ -919,3 +919,46 @@ LOCAL boolean PointOnBond(
             return YES;
         return NO;
 }       /* end PointOnBond */
+
+/***********************************************************************
+*       Interface counting functions.                                  *
+***********************************************************************/
+
+EXPORT int I_NumOfIntfcCurves(INTERFACE *intfc)
+{
+	CURVE **c;
+        int num_curves; 
+        for (c = intfc->curves, num_curves = 0; c && *c; ++c)
+            ++num_curves;
+        return num_curves;
+}	/* end I_NumOfIntfcCurves */
+
+EXPORT  int I_NumOfIntfcNodes(INTERFACE *intfc)
+{
+        NODE **n;
+        int num_nodes = 0;
+        for (n = intfc->nodes, num_nodes = 0; n && *n; ++n)
+            ++num_nodes;
+        return num_nodes;
+}       /* end I_NumOfIntfcNodes */
+
+EXPORT  int I_NumOfIntfcSurfaces(INTERFACE *intfc)
+{
+        SURFACE **s;
+        int num_surfs = 0;
+        for (s = intfc->surfaces; s && *s; ++s)
+            ++num_surfs;
+        return num_surfs;
+}       /* end I_NumOfIntfcSurfaces */
+
+EXPORT int I_NumOfNodeCurves(
+        NODE *node)     
+{
+        int n = 0;      
+        CURVE **c;
+        for (c = node->in_curves; c && *c; ++c) 
+            ++n;
+        for (c = node->out_curves; c && *c; ++c)
+            ++n;
+        return n;
+}       /* end I_NumOfNodeCurves */

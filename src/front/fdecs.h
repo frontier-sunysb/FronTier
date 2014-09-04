@@ -1341,7 +1341,7 @@ struct _LEVEL_FUNC_PACK {
 	/* For point array initialization */
 	int num_points;
 	double **point_array;
-	boolean is_closed_curve;
+	boolean closed_curve;
 	/* For initialization by reading SDL file */
 	boolean read_sdl_input;
 	char *sdl_name;

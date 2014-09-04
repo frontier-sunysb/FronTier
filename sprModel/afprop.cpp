@@ -75,7 +75,7 @@ static SURFACE *canopy_of_string_node(NODE *n)
 	boolean canopy_found = NO;
 
 	canopy = NULL;
-	nc = FT_NumOfNodeCurves(n);
+	nc = I_NumOfNodeCurves(n);
 	FT_VectorMemoryAlloc((POINTER*)&curves,nc,sizeof(CURVE*));
 	FT_ArrayOfNodeCurves(n,curves);
 

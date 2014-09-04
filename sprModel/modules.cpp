@@ -500,5 +500,5 @@ static void cutToTriangle(
 	}
 
 	FT_FreeThese(1,insert_coords);
-}	/* end cutToRectangle */
+}	/* end cutToTriangle */
 

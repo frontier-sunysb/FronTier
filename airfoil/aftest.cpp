@@ -1684,6 +1684,23 @@ extern void fourth_order_elastic_surf_propagate(
 	static POINT_SET **point_set;
         static POINT_SET *point_set_store;
 	long max_point_gindex = newfr->interf->max_point_gindex;
+	int owner[MAXD];
+
+	(void) printf("Entering fourth_order_elastic_surf_propagate()\n");
+	if (pp_numnodes() > 1)
+        {
+            INTERFACE *elastic_intfc;
+            owner[0] = 0;
+            owner[1] = 0;
+            owner[2] = 0;
+            add_to_debug("collect_intfc");
+            elastic_intfc = FT_CollectHypersurfFromSubdomains(newfr,owner,
+                                ELASTIC_BOUNDARY);
+            printf("Parallel code needed!\n");
+            clean_up(0);
+        }	
+	if (debugging("trace"))
+	    (void) printf("Entering fourth_order_elastic_surf_propagate()\n");
 
 	start_clock("set_spring_model");
 	for (s = newfr->interf->surfaces; s && *s; ++s)
@@ -1694,10 +1711,6 @@ extern void fourth_order_elastic_surf_propagate(
 		break;
 	    }
 	}
-
-	if (debugging("trace"))
-	    (void) printf("Entering "
-			"fourth_order_elastic_surf_propagate()\n");
 
 	dt_tol = sqrt((af_params->m_s)/(af_params->ks))/10.0;
         if (af_params->m_l != 0.0 &&

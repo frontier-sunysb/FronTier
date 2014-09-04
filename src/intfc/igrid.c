@@ -493,6 +493,62 @@ EXPORT	void i_print_remap_values(void)
 	(void) printf("SPHERICAL %d]\n",SPHERICAL_REMAP);
 }		/*end i_print_remap_values*/
 
+/*	This function assign to merged_gr as the outer boundary of two
+*       merging grid gr1 and gr2, assuming merge_gr already has memory.
+*/
+	
+EXPORT void merge_rect_grids(
+	RECT_GRID *merged_gr,
+	RECT_GRID *gr1,
+	RECT_GRID *gr2)
+{
+	int i,dim = gr1->dim;	
+
+	merged_gr->Remap = gr1->Remap;
+	merged_gr->dim = gr1->dim;
+	for (i = 0; i < dim; ++i)
+	{
+	    merged_gr->GL[i] = gr1->GL[i];	/* global bound unchanged */
+	    merged_gr->GU[i] = gr1->GU[i];
+	    merged_gr->h[i] = gr1->h[i];
+	    merged_gr->edges[i] = NULL;
+	    merged_gr->centers[i] = NULL;
+	    merged_gr->dh[i] = NULL;
+	    merged_gr->variable_mesh[i] = NO;
+
+	    if (gr1->L[i] < gr2->L[i])
+	    {
+	    	merged_gr->L[i] = gr1->L[i];
+	    	merged_gr->VL[i] = gr1->VL[i];
+	    	merged_gr->lbuf[i] = gr1->lbuf[i];
+	    }
+	    else
+	    {
+	    	merged_gr->L[i] = gr2->L[i];
+	    	merged_gr->VL[i] = gr2->VL[i];
+	    	merged_gr->lbuf[i] = gr2->lbuf[i];
+	    }
+	    if (gr1->U[i] > gr2->U[i])
+	    {
+	    	merged_gr->U[i] = gr1->U[i];
+	    	merged_gr->VU[i] = gr1->VU[i];
+	    	merged_gr->ubuf[i] = gr1->ubuf[i];
+	    }
+	    else
+	    {
+	    	merged_gr->U[i] = gr2->U[i];
+	    	merged_gr->VU[i] = gr2->VU[i];
+	    	merged_gr->ubuf[i] = gr2->ubuf[i];
+	    }
+	    if (gr1->L[i] == gr2->U[i] || gr1->U[i] == gr2->L[i])
+		merged_gr->gmax[i] = gr1->gmax[i] + gr2->gmax[i];
+	    else
+		merged_gr->gmax[i] = irint((merged_gr->U[i] - merged_gr->L[i])
+					/merged_gr->h[i]);
+	}
+	merged_gr->glstore = NULL;
+	merged_gr->Remap.area = area_of_rect_grid(merged_gr);
+}	/* end merge_rect_grids */
 
 EXPORT void set_rect_grid(
 	const double *L,

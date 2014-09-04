@@ -470,6 +470,10 @@ LOCAL   void  check_bond_comp(
 {
 	if(b1->start != b2->start || b1->end != b2->end)
 	{
+	    printf("b1->start = %d  b2->start = %d\n",b1->start,b2->start);
+	    printf("b1->end   = %d  b2->end   = %d\n",b1->end,b2->end);
+	    printf("start gindex: %ld %ld\n",Gindex(b1->start),Gindex(b2->start));
+	    printf("end   gindex: %ld %ld\n",Gindex(b1->end),Gindex(b2->end));
 	    printf("ERROR: %s, bonds do not match.\n", msg);
 	    clean_up(ERROR);
 	}
@@ -620,6 +624,8 @@ merge_over_curve:
 		}
 		else
 		    b2 = b2->next;
+		/* TMP */
+		printf("merge_overlap_curve\n");
 		check_bond_comp("merge_overlap_curve", b1, b2);
 	    }
 
@@ -627,8 +633,6 @@ merge_over_curve:
 	    goto  merge_over_curve;
 	}
     }
-
-    /*printf("#merge_over af\n"); */
 }
 
 EXPORT   void  merge_curves(

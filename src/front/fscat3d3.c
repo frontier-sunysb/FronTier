@@ -65,6 +65,9 @@ LOCAL	void	clip_intfc_at_grid_bdry1(INTERFACE*);
 LOCAL	boolean	tri_bond_cross_line(TRI*,double,int);
 LOCAL	boolean	tri_bond_cross_test(TRI*,double,int);
 LOCAL	void	synchronize_tris_at_subdomain_bdry(TRI**,TRI**,int,P_LINK*,int);
+LOCAL 	INTERFACE *cut_intfc_to_wave_type(INTERFACE*,int);
+LOCAL 	void 	delete_surface_set(SURFACE*);
+
 
 LOCAL	double	tol1[MAXD]; /*TOLERANCE*/
 
@@ -198,7 +201,6 @@ EXPORT	boolean f_intfc_communication3d3(
 		    goto comm_exit;
 
 	    }	
-	    reset_intfc_num_points(intfc);
 	}
 
 	if (status == FUNCTION_SUCCEEDED)
@@ -206,8 +208,6 @@ EXPORT	boolean f_intfc_communication3d3(
 	    sep_common_pt_for_open_bdry(intfc);
 
 	    install_subdomain_bdry_curves(intfc);
-
-	    reset_intfc_num_points(intfc);
 	    if (DEBUG)
 	    {
 	    	(void) printf("Final intfc:\n");
@@ -266,27 +266,6 @@ LOCAL 	int append_adj_intfc_to_buffer3(
 
 	DEBUG_ENTER(append_adj_intfc_to_buffer3)
 
-	if (DEBUG)
-	{
-	    char dname[256];
-	    static int ntimes[3][2];
-	    static const char *strdir[3] = { "X", "Y", "Z" };
-	    static const char *strnb[2] = { "LOWER", "UPPER" };
-
-	    (void) sprintf(dname,"fscatter/"
-				 "append_adj_intfc_to_buffer3/Data%d-%s_%s/%s",
-			         ntimes[dir][nb],strdir[dir],strnb[nb],
-				 "intfc_gv");
-	    gview_plot_interface(dname,intfc);
-	    (void) sprintf(dname,"fscatter/"
-				 "append_adj_intfc_to_buffer3/Data%d-%s_%s/%s",
-			         ntimes[dir][nb],strdir[dir],strnb[nb],
-				 "adj_intfc_gv");
-	    gview_plot_interface(dname,adj_intfc);
-
-	    ++ntimes[dir][nb];
-	}
-
 	cur_intfc = current_interface();
 	set_current_interface(intfc);
 
@@ -305,22 +284,8 @@ LOCAL 	int append_adj_intfc_to_buffer3(
 	for (as = adj_intfc->surfaces; as && *as; ++as)
 	{
 	    corr_surf_found = NO;
-	    if (wave_type(*as) == FIRST_SCALAR_PHYSICS_WAVE_TYPE && 
-		debugging("step_out"))
-	    {    
-		add_to_debug("out_matching");
-	        printf("#out_mathcing\n");
-	    }
 	    for (s = intfc->surfaces; s && *s; ++s)
 	    {
-		/*
-		*  COMMENT -
-		*  The Hyper_surf_index() function is not
-		*  fully supported.  This will fail in the
-		*  presence of interface changes in topology
-		*  TODO: FULLY SUPPORT THIS OBJECT
-		*/
-                
 		/*  assume one neg and pos comp gives ONLY ONE surf */
 		if (surfaces_matched(*as,*s))
 		{
@@ -350,6 +315,7 @@ LOCAL 	int append_adj_intfc_to_buffer3(
 	}
 	
 	merge_curves(intfc,adj_intfc);
+	reset_intfc_num_points(intfc);
 	
 	set_current_interface(cur_intfc);
 	
@@ -488,8 +454,8 @@ LOCAL int append_buffer_surface3(
 	link_tri_list_to_surface(first_tri(surf),last_tri(adj_surf),surf);
 	
 	/* BEGIN curves in adj_surf should be added to surf. */
-	for(c=adj_surf->pos_curves; c && *c; c++)
-	    if(! delete_from_pointers(adj_surf, &(*c)->pos_surfaces))
+	for (c = adj_surf->pos_curves; c && *c; c++)
+	    if (!delete_from_pointers(adj_surf, &(*c)->pos_surfaces))
 	    {
 	        printf("ERROR: in append_buffer_surface3, "
 		       "adj_surf and pos_curves are not paired.\n");
@@ -498,8 +464,8 @@ LOCAL int append_buffer_surface3(
 	    else
 	        install_curve_in_surface_bdry(surf, *c, POSITIVE_ORIENTATION);
 
-	for(c=adj_surf->neg_curves; c && *c; c++)
-	    if(! delete_from_pointers(adj_surf, &(*c)->neg_surfaces))
+	for (c = adj_surf->neg_curves; c && *c; c++)
+	    if (!delete_from_pointers(adj_surf, &(*c)->neg_surfaces))
 	    {
 	        printf("ERROR: in append_buffer_surface3, "
 		       "adj_surf and neg_curves are not paired.\n");
@@ -1063,3 +1029,265 @@ LOCAL void clip_intfc_at_grid_bdry1(
 	DEBUG_LEAVE(clip_intfc_at_grid_bdry1)
 }		/*end clip_intfc_at_grid_bdry1*/
 
+EXPORT INTERFACE *collect_hyper_surface(
+	Front *fr,
+        int *owner,                     /* Destination of collection */
+        int w_type)
+{
+	PP_GRID *pp_grid = fr->pp_grid;
+	int 	*G = pp_grid->gmax;	
+	int	dim = FT_Dimension();
+	int 	dst_id,owner_id = domain_id(owner,G,dim);
+	int	myid = pp_mynode();
+	int	i,num_ids = pp_numnodes();
+	boolean      sav_copy;
+	INTERFACE *intfc = fr->interf;
+	INTERFACE *cut_intfc,*recv_intfc;
+	int myic[MAXD],ip[MAXD];
+	int imax = 0;
+	char fname[100];
+	RECT_GRID *gr,*recv_gr;
+	boolean status;
+
+	for (i = 0; i < dim; ++i)
+	    if (imax < G[i])  imax = G[i];
+	find_Cartesian_coordinates(myid,pp_grid,myic);
+
+	if (debugging("collect_intfc"))
+	{
+	    (void) printf("Entering collect_hyper_surface()\n");
+	    (void) printf("myid = %d  owner_id = %d\n",myid,owner_id);
+	    (void) printf("myic = (%d %d %d) owner = (%d %d %d)\n",myic[0],
+				myic[1],myic[2],owner[0],owner[1],owner[2]);
+	}
+
+	    /* prepare interface to send */
+	sav_copy = copy_intfc_states();
+        set_copy_intfc_states(YES);
+
+	cut_intfc = cut_intfc_to_wave_type(intfc,w_type);
+	gr = computational_grid(cut_intfc);
+
+	/* Patch in x-direction */
+	if (myic[0] != owner[0]) 
+	{
+	    ip[0] = owner[0];
+	    ip[1] = myic[1];
+	    ip[2] = myic[2];
+	    dst_id = domain_id(ip,G,dim);
+	    send_interface(cut_intfc,dst_id);
+	}
+	else if (myic[0] == owner[0])
+	{
+	    ip[1] = myic[1];
+	    ip[2] = myic[2];
+	    for (i = 1; i < G[0]; ++i)
+	    {
+		ip[0] = myic[0] + i;
+		if (ip[0] < G[0])
+		{
+	    	    dst_id = domain_id(ip,G,dim);
+		    recv_intfc = receive_interface(dst_id);
+		    status = buffer_extension3d3(cut_intfc,recv_intfc,
+					0,1,status);
+		    recv_gr = computational_grid(recv_intfc);
+		    merge_rect_grids(gr,gr,recv_gr);
+		    delete_interface(recv_intfc);
+		}
+		ip[0] = myic[0] - i;
+		if (ip[0] >= 0)
+		{
+	    	    dst_id = domain_id(ip,G,dim);
+		    recv_intfc = receive_interface(dst_id);
+		    status = buffer_extension3d3(cut_intfc,recv_intfc,
+					0,0,status);
+		    recv_gr = computational_grid(recv_intfc);
+		    merge_rect_grids(gr,gr,recv_gr);
+		    delete_interface(recv_intfc);
+		}
+	    }
+	}
+	pp_gsync();
+
+	/* Patch in y-direction */
+	if (myic[0] == owner[0] && myic[1] != owner[1]) 
+	{
+	    ip[0] = owner[0];
+	    ip[1] = owner[1];
+	    ip[2] = myic[2];
+	    dst_id = domain_id(ip,G,dim);
+	    send_interface(cut_intfc,dst_id);
+	}
+	else if (myic[0] == owner[0] && myic[1] == owner[1])
+	{
+	    ip[0] = owner[0];
+	    ip[2] = myic[2];
+	    for (i = 1; i < G[1]; ++i)
+	    {
+		ip[1] = myic[1] + i;
+		if (ip[1] < G[1])
+		{
+	    	    dst_id = domain_id(ip,G,dim);
+		    recv_intfc = receive_interface(dst_id);
+		    status = buffer_extension3d3(cut_intfc,recv_intfc,
+					1,1,status);
+		    recv_gr = computational_grid(recv_intfc);
+		    merge_rect_grids(gr,gr,recv_gr);
+		    delete_interface(recv_intfc);
+		}
+		ip[1] = myic[1] - i;
+		if (ip[1] >= 0)
+		{
+	    	    dst_id = domain_id(ip,G,dim);
+		    recv_intfc = receive_interface(dst_id);
+		    status = buffer_extension3d3(cut_intfc,recv_intfc,
+					1,0,status);
+		    recv_gr = computational_grid(recv_intfc);
+		    merge_rect_grids(gr,gr,recv_gr);
+		    delete_interface(recv_intfc);
+		}
+	    }
+	}
+	pp_gsync();
+
+	/* Patch in z-direction */
+	if (myic[0] == owner[0] && myic[1] == owner[1] && myic[2] != owner[2]) 
+	{
+	    ip[0] = owner[0];
+	    ip[1] = owner[1];
+	    ip[2] = owner[2];
+	    dst_id = domain_id(ip,G,dim);
+	    send_interface(cut_intfc,dst_id);
+	}
+	else if (myic[0] == owner[0] && myic[1] == owner[1] && 
+		 myic[2] == owner[2])
+	{
+	    ip[0] = owner[0];
+	    ip[1] = owner[1];
+	    for (i = 1; i < G[2]; ++i)
+	    {
+		ip[2] = myic[2] + i;
+		if (ip[2] < G[2])
+		{
+	    	    dst_id = domain_id(ip,G,dim);
+		    recv_intfc = receive_interface(dst_id);
+		    status = buffer_extension3d3(cut_intfc,recv_intfc,
+					2,1,status);
+		    recv_gr = computational_grid(recv_intfc);
+		    merge_rect_grids(gr,gr,recv_gr);
+		    delete_interface(recv_intfc);
+		}
+		ip[2] = myic[2] - i;
+		if (ip[2] >= 0)
+		{
+	    	    dst_id = domain_id(ip,G,dim);
+		    recv_intfc = receive_interface(dst_id);
+		    status = buffer_extension3d3(cut_intfc,recv_intfc,
+					2,0,status);
+		    recv_gr = computational_grid(recv_intfc);
+		    merge_rect_grids(gr,gr,recv_gr);
+		    delete_interface(recv_intfc);
+		}
+	    }
+	}
+	pp_gsync();
+	if (debugging("collect_intfc"))
+	{
+	    (void) printf("Leaving collect_hyper_surface()\n");
+	    sprintf(fname,"final-intfc.%d",myid);
+	    gview_plot_interface(fname,cut_intfc);
+	    (void) printf("Checking consistency:\n");
+	    consistent_interface(cut_intfc);
+	    (void) printf("Passed consistent_interface()\n");
+	}
+	if (myid == owner_id)
+	{
+	    install_subdomain_bdry_curves(cut_intfc);    
+	    return cut_intfc;
+	}
+	else
+	{
+	    delete_interface(cut_intfc);
+	    return NULL;
+	}
+}	/* end collect_hyper_surface */
+
+#define		MAX_DELETE	20
+
+LOCAL INTERFACE *cut_intfc_to_wave_type(
+	INTERFACE *intfc,
+	int w_type)
+{
+	INTERFACE *tmp_intfc = copy_interface(intfc);
+	SURFACE **s,*surfs_del[MAX_DELETE];
+	CURVE **c;
+	int i,dir,nb,num_delete = 0;
+	INTERFACE *cut_intfc;
+	RECT_GRID *gr = computational_grid(intfc);
+	int dim = gr->dim;
+	char fname[100];
+
+	intfc_surface_loop(tmp_intfc,s)
+	{
+	    if (wave_type(*s) != w_type)
+		surfs_del[num_delete++] = *s;
+	    else
+	    {
+		for (dir = 0; dir < dim; ++dir)
+		for (nb = 0; nb < 2; ++nb)
+		{
+		    open_surf_null_sides(*s,gr->L,gr->U,dir,nb);
+		}
+	    }
+	}
+	for (i = 0; i < num_delete; ++i)
+	    delete_surface_set(surfs_del[i]);
+
+	for (dir = 0; dir < dim; ++dir)
+	for (nb = 0; nb < 2; ++nb)
+	    open_null_bonds(tmp_intfc,gr->L,gr->U,dir,nb);
+
+	reset_intfc_num_points(tmp_intfc);
+	cut_intfc = copy_interface(tmp_intfc);
+	delete_interface(tmp_intfc);
+	return cut_intfc;
+}	/* end cut_intfc_to_wave_type */
+
+LOCAL void delete_surface_set(
+	SURFACE *surf)
+{
+	CURVE **c,**curves_del = NULL;
+	NODE **n,**nodes_del = NULL;
+
+	surf_pos_curve_loop(surf,c)
+	{
+	    unique_add_to_pointers((POINTER)*c,(POINTER**)&curves_del);
+	    unique_add_to_pointers((POINTER)(*c)->start,(POINTER**)&nodes_del);
+	    unique_add_to_pointers((POINTER)(*c)->end,(POINTER**)&nodes_del);
+	}
+	surf_neg_curve_loop(surf,c)
+	{
+	    unique_add_to_pointers((POINTER)*c,(POINTER**)&curves_del);
+	    unique_add_to_pointers((POINTER)(*c)->start,(POINTER**)&nodes_del);
+	    unique_add_to_pointers((POINTER)(*c)->end,(POINTER**)&nodes_del);
+	}
+	delete_surface(surf);
+	for (c = curves_del; c && *c; ++c)
+	{
+	    if ((*c)->pos_surfaces == NULL && (*c)->neg_surfaces == NULL)
+	    {
+		delete_curve(*c);
+		delete_from_pointers((POINTER)(*c),(POINTER**)&curves_del);
+		c--;
+	    }
+	}
+	for (n = nodes_del; n && *n; ++n)
+	{
+	    if ((*n)->in_curves == NULL && (*n)->out_curves == NULL)
+	    {
+		delete_node(*n);
+		delete_from_pointers((POINTER)(*n),(POINTER**)&nodes_del);
+		n--;
+	    }
+	}
+}	/* end delete_surface_set */

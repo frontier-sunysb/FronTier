@@ -69,6 +69,7 @@ LOCAL	boolean	match_two_tris(TRI*,TRI*);
 LOCAL	boolean	null_side_on_surface(SURFACE*,TRI**,int*);
 LOCAL	boolean	tri_cross_line(TRI*,double,int);
 LOCAL	boolean	tri_out_domain1(TRI*,double*,double*,int,int);
+LOCAL	boolean	bond_out_domain1(BOND*,double*,double*,int,int);
 LOCAL	int	append_adj_intfc_to_buffer1(INTERFACE*,INTERFACE*,
 					   RECT_GRID*,int,int);
 LOCAL	int	append_buffer_surface1(SURFACE*,SURFACE*,RECT_GRID*,int,int,
@@ -1861,6 +1862,7 @@ EXPORT void install_subdomain_bdry_curves(
 	    }
 	}
 	free_these(1,null_tris);
+	reset_intfc_num_points(intfc);
 
 	if (debugging("consistency"))
 	{
@@ -2409,7 +2411,7 @@ LOCAL int append_buffer_surface1(
 	    new_adj_surf = copy_buffer_surface(adj_surf,p_table,p_size);
 	    adj_surf = new_adj_surf;
 	}
-	else 
+	else if (debugging("match_tris"))
 	{
 	    printf("dir = %d  nb = %d\n",dir,nb);
 	    gview_plot_surface("surf_s",surf);
@@ -2983,8 +2985,9 @@ LOCAL	POINT_LIST	*set_point_list(
 }		/*end set_point_list*/
 
 /*copy surface as to s and replace the points in p_table in surface s.
-  It will also put the new generated points in p_table.
+  It will also put the newly generated points in p_table.
 */
+
 EXPORT	SURFACE *copy_buffer_surface(
 	SURFACE		*as,
 	P_LINK		*p_table,
@@ -3158,6 +3161,121 @@ EXPORT	NODE *matching_node(
 	return newn;
 }		/*end matching_node*/
 
+EXPORT void open_surf_null_sides(
+	SURFACE *surf,
+	double *L,
+	double *U,
+	int dir,
+	int nb)
+{
+	TRI *tri,*ntri;
+
+	ntri = NULL;
+	for (tri=first_tri(surf); !at_end_of_tri_list(tri,surf); tri=ntri)
+	{
+	    ntri = tri->next;
+	    /* bond with inside tri survives. */
+	    if (tri_out_domain1(tri,L,U,dir,nb) && 
+		tri_bond_test(tri,L,U,dir,nb))
+	    	remove_out_domain_tri(tri,surf);
+	}
+}	/* end open_surf_null_sides */
+
+EXPORT void open_null_bonds(
+	INTERFACE *intfc,
+	double *L,
+	double *U,
+	int dir,
+	int nb)
+{
+	CURVE **c,**curves;
+	BOND *b;
+	NODE *node;
+	int i,nc;
+
+	nc = I_NumOfIntfcCurves(intfc);
+	uni_array(&curves,2*nc,sizeof(CURVE*));
+
+start_open_bonds:
+	nc = 0;
+	intfc_curve_loop(intfc,c)
+	    curves[nc++] = *c;
+	for (i = 0; i < nc; ++i)
+	{
+	    curve_bond_loop(curves[i],b)
+	    {
+		if (!bond_out_domain1(b,L,U,dir,nb)) continue;
+		if (curves[i]->first == curves[i]->last)  /* only bond */
+		{
+		    delete_curve(curves[i]);
+		    delete_node(curves[i]->start);
+		    delete_node(curves[i]->end);
+		    goto start_open_bonds;
+		}
+		if (is_closed_curve(curves[i]))
+		{
+		    I_MoveNodeToPoint(b->start,curves[i]);	
+		    curves[i]->first = b->next;
+		    curves[i]->first->prev = NULL;
+		    node = make_node(b->end);
+		    change_node_of_curve(curves[i],POSITIVE_ORIENTATION,node);
+		    curves[i]->num_points--;
+		}
+		else if (b == curves[i]->first)
+		{
+		    curves[i]->first = b->next;
+		    curves[i]->first->prev = NULL;
+		    curves[i]->num_points--;
+		    if (I_NumOfNodeCurves(curves[i]->start) == 1)
+		    	curves[i]->start->posn = b->end;
+		    else
+		    {
+		    	node = make_node(b->end);
+			change_node_of_curve(curves[i],POSITIVE_ORIENTATION,
+							node);
+		    }
+		}
+		else if (b == curves[i]->last)
+		{
+		    curves[i]->last = b->prev;
+		    curves[i]->last->next = NULL;
+		    curves[i]->num_points--;
+		    if (I_NumOfNodeCurves(curves[i]->end) == 1)
+		    	curves[i]->end->posn = b->start;
+		    else
+		    {
+		    	node = make_node(b->start);
+			change_node_of_curve(curves[i],NEGATIVE_ORIENTATION,
+							node);
+		    }
+		}
+		else
+		{
+		    c = I_SplitCurve(b->start,curves[i]);
+		    if (b == c[0]->last)
+		    {
+			c[0]->last = b->prev;
+			c[0]->last->next = NULL;
+		    	node = make_node(b->start);
+		    	change_node_of_curve(c[0],NEGATIVE_ORIENTATION,node);
+		    	curves[i]->num_points--;
+			
+		    }
+		    else if (b == c[1]->first)
+		    {
+			c[1]->first = b->next;
+			c[1]->first->prev = NULL;
+		    	node = make_node(b->end);
+		    	change_node_of_curve(c[1],POSITIVE_ORIENTATION,node);
+		    	curves[i]->num_points--;
+		    }
+		    goto start_open_bonds;
+		}
+	    }		
+	}
+	free(curves);
+}	/* end open_curve_bonds */
+
 EXPORT void open_null_sides1(
 	INTERFACE	*intfc,
 	double		*L,
@@ -3187,25 +3305,20 @@ EXPORT void open_null_sides1(
 	    summarize_interface(dname,"before",intfc,XY_PLANE,
 				"open_null_sides1","before");
 	}
-	/*
-	if (!buffered_boundary_type(rect_boundary_type(intfc,dir,nb)))
-	{
-	    DEBUG_LEAVE(open_null_sides1)
-	    return;
-	}
-	*/
 
 	for (s = intfc->surfaces; s && *s; ++s)
 	{
+	    open_surf_null_sides(*s,L,U,dir,nb);
+		/*
 	    TRI *ntri = NULL;
 	    for (tri=first_tri(*s); !at_end_of_tri_list(tri,*s); tri=ntri)
 	    {
 		ntri = tri->next;
-	    	/* bond with inside tri survives. */
 		if (tri_out_domain1(tri,L,U,dir,nb) && 
 		    tri_bond_test(tri,L,U,dir,nb))
 	    	    remove_out_domain_tri(tri,*s);
 	    }
+		*/
 	}
 	for (s = intfc->surfaces; s && *s; ++s)
 	{
@@ -4690,3 +4803,35 @@ LOCAL	void merge_global_index(
 	    }
 	}
 }	/* end merge_global_index */
+
+LOCAL boolean bond_out_domain1(
+	BOND		*bond,
+	double		*L,
+	double		*U,
+	int		dir,
+	int		nb)
+{
+	POINT *ps,*pe;
+
+	if (Btris(bond) != NULL) return NO;	/* not a null bond */
+
+	ps = bond->start;	pe = bond->end;
+	if (the_point(ps) || the_point(pe))
+	    printf("Find the point in bond_out_domain1()\n");
+	if (nb == 0)
+	{
+	    if ((L[dir] - Coords(ps)[dir]) <= tol1[dir])
+	        return NO;
+	    if ((L[dir] - Coords(pe)[dir]) <= tol1[dir])
+	        return NO;
+	}
+	else
+	{
+	    if ((Coords(ps)[dir] - U[dir]) <= tol1[dir])
+	        return NO;
+	    if ((Coords(pe)[dir] - U[dir]) <= tol1[dir])
+	        return NO;
+	}
+	return YES;
+}	/* end bond_out_domain1 */
+

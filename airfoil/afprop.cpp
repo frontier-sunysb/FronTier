@@ -122,7 +122,7 @@ static SURFACE *canopy_of_string_node(NODE *n)
 	boolean canopy_found = NO;
 
 	canopy = NULL;
-	nc = FT_NumOfNodeCurves(n);
+	nc = I_NumOfNodeCurves(n);
 	FT_VectorMemoryAlloc((POINTER*)&curves,nc,sizeof(CURVE*));
 	FT_ArrayOfNodeCurves(n,curves);
 
@@ -175,27 +175,41 @@ extern void fourth_order_elastic_set_propagate(
 	Front           *newfr,
         double           fr_dt)
 {
-	static PARACHUTE_SET new_geom_set;
+	static PARACHUTE_SET geom_set;
 	AF_PARAMS *af_params = (AF_PARAMS*)newfr->extra2;
 	double dt,dt_tol;
 	int n_tan = af_params->n_tan;
+	int owner[MAXD];
 
+	(void) printf("Entering fourth_order_elastic_set_propagate()\n");
+	if (pp_numnodes() > 1)
+	{
+	    INTERFACE *elastic_intfc;
+            owner[0] = 0;
+            owner[1] = 0;
+            owner[2] = 0;
+	    add_to_debug("collect_intfc");
+            elastic_intfc = FT_CollectHypersurfFromSubdomains(newfr,owner,
+				ELASTIC_BOUNDARY);
+	    printf("Parallel code needed!\n");
+            clean_up(0);
+	}
 	if (debugging("trace"))
 	    (void) printf("Entering fourth_order_elastic_set_propagate()\n");
 
-	new_geom_set.front = newfr;
-	assembleParachuteSet(newfr,&new_geom_set,3);
+	geom_set.front = newfr;
+	assembleParachuteSet(newfr->interf,&geom_set,3);
 
 	/* Set parameters */
-	new_geom_set.ks = af_params->ks;
-        new_geom_set.lambda_s = af_params->lambda_s;
-        new_geom_set.m_s = af_params->m_s;
-        new_geom_set.kl = af_params->kl;
-        new_geom_set.lambda_l = af_params->lambda_l;
-        new_geom_set.m_l = af_params->m_l;
-        new_geom_set.kg = af_params->kg;
-        new_geom_set.lambda_g = af_params->lambda_g;
-        new_geom_set.m_g = af_params->m_g;
+	geom_set.ks = af_params->ks;
+        geom_set.lambda_s = af_params->lambda_s;
+        geom_set.m_s = af_params->m_s;
+        geom_set.kl = af_params->kl;
+        geom_set.lambda_l = af_params->lambda_l;
+        geom_set.m_l = af_params->m_l;
+        geom_set.kg = af_params->kg;
+        geom_set.lambda_g = af_params->lambda_g;
+        geom_set.m_g = af_params->m_g;
 	/* Set spring time step */
 	dt = fr_dt;
 	dt_tol = sqrt((af_params->m_s)/(af_params->ks))/10.0;
@@ -210,8 +224,8 @@ extern void fourth_order_elastic_set_propagate(
             n_tan = (int)(fr_dt/dt_tol);
             dt = fr_dt/(double)n_tan;
         }
-        new_geom_set.dt = dt;
-        new_geom_set.n_sub = n_tan;
+        geom_set.dt = dt;
+        geom_set.n_sub = n_tan;
 
 	if (debugging("step_size"))
         {
@@ -222,25 +236,25 @@ extern void fourth_order_elastic_set_propagate(
                 printf("Max front speed(%d) = %f\n",i,spfr[i]);
             (void) printf("Input surface parameters:\n");
             (void) printf("ks = %f  m_s = %f  lambda_s = %f\n",
-                        new_geom_set.ks,
-                        new_geom_set.m_s,
-                        new_geom_set.lambda_s);
+                        geom_set.ks,
+                        geom_set.m_s,
+                        geom_set.lambda_s);
             (void) printf("Input string parameters:\n");
             (void) printf("kl = %f  m_l = %f  lambda_l = %f\n",
-                        new_geom_set.kl,
-                        new_geom_set.m_l,
-                        new_geom_set.lambda_l);
+                        geom_set.kl,
+                        geom_set.m_l,
+                        geom_set.lambda_l);
             (void) printf("Input gore parameters:\n");
             (void) printf("kg = %f  m_g = %f  lambda_g = %f\n",
-                        new_geom_set.kg,
-                        new_geom_set.m_g,
-                        new_geom_set.lambda_g);
+                        geom_set.kg,
+                        geom_set.m_g,
+                        geom_set.lambda_g);
 	    (void) printf("\nfr_dt = %f  dt_tol = %20.14f  dt = %20.14f\n",
                                 fr_dt,dt_tol,dt);
             (void) printf("Number of interior sub-steps = %d\n\n",n_tan);
         }
 
-	fourth_order_parachute_propagate(newfr,&new_geom_set);
+	fourth_order_parachute_propagate(newfr,&geom_set);
 	
 	if (debugging("trace"))
 	    (void) printf("Leaving fourth_order_elastic_set_propagate()\n");
@@ -908,11 +922,10 @@ static void coating_mono_hyper_surf3d(
 }	/* end coating_mono_hyper_surf3d */
 
 extern void assembleParachuteSet(
-	Front *front,
+	INTERFACE *intfc,
 	PARACHUTE_SET *geom_set,
 	int num_layers)
 {
-	INTERFACE *intfc = front->interf;
 	SURFACE **s;
 	CURVE **c;
 	NODE **n;
@@ -921,7 +934,6 @@ extern void assembleParachuteSet(
 	CURVE **curves = geom_set->curves;
 	NODE **nodes = geom_set->nodes;
 
-	geom_set->front = front;
 	ns = nc = nn = 0;
 	/* Assemble canopy surfaces */
 	intfc_surface_loop(intfc,s)

@@ -254,7 +254,7 @@ static void map_output_interface(
 	sprintf(filename,"%s.ts%s",out_name,right_flush(step,5));
 	out_file = fopen(filename,"w");
 	
-	int num_curves = FT_NumOfIntfcCurves(intfc);
+	int num_curves = I_NumOfIntfcCurves(intfc);
 	int dim = Dimension(intfc);
 	int num_nodes = FT_NumOfIntfcNodes(intfc);
 	int num_bonds = FT_NumOfIntfcBonds(intfc);

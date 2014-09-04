@@ -863,15 +863,6 @@ extern "C" {
    IMPORT  void FT_ArrayOfCurvePoints(CURVE *curve,
 				POINT **point_array);
 
-/*! \fn int FT_NumOfNodeCurves(NODE *node)
- *  \ingroup QUERY
-    \brief This function count number of curves attached to the node,
-     including both in-curves and out curves.
-    \param node @b in	Pointer to a node of the front interface.
- */
-
-   IMPORT  int FT_NumOfNodeCurves(NODE *node);
-
 /*! \fn int FT_NumOfCurvePoints(CURVE *curve)
  *  \ingroup QUERY
     \brief This function count number of point on the curve including
@@ -897,14 +888,6 @@ extern "C" {
 
    IMPORT  int FT_NumOfIntfcPoints(INTERFACE *intfc);
 
-/*! \fn int FT_NumOfIntfcNodes(INTERFACE *intfc)
- *  \ingroup QUERY
-    \brief This function count number of node on the entire interface.
-    \param intfc @b in	Pointer to the interface of the front.
- */
-
-   IMPORT  int FT_NumOfIntfcNodes(INTERFACE *intfc);
-
 /*! \fn int FT_NumOfCurveBonds(CURVE *curve)
  *  \ingroup QUERY
     \brief This function count number of bond on a curve of the front.
@@ -921,24 +904,6 @@ extern "C" {
  */
 
    IMPORT  int FT_NumOfIntfcBonds(INTERFACE *intfc);
-
-/*! \fn int FT_NumOfIntfcCurves(INTERFACE *intfc)
- *  \ingroup QUERY
-    \brief This function count number of curves on the entire interface 
-     of the front.
-    \param intfc @b in	Pointer to the interface of the front.
- */
-
-   IMPORT  int FT_NumOfIntfcCurves(INTERFACE *intfc);
-
-/*! \fn int FT_NumOfIntfcSurfaces(INTERFACE *intfc)
- *  \ingroup QUERY
-    \brief This function count number of surfaces on the entire interface 
-     of the front.
-    \param intfc @b in	Pointer to the interface of the front.
- */
-
-   IMPORT  int FT_NumOfIntfcSurfaces(INTERFACE *intfc);
 
 /*! \fn int FT_NumOfIntfcTris(INTERFACE *intfc)
  *  \ingroup QUERY
@@ -1116,6 +1081,22 @@ extern "C" {
 				int *lbuf,
 				int *ubuf,
 				POINTER ijk_to_I);
+
+/*! \fn INTERFACE *FT_CollectHypersurfFromSubdomains(Front *front, int *owner, int w_type)
+ *  \ingroup PARALLEL
+    \brief This function collect pieces of surface given wave type and 
+     patch them to the surface in the owner subdomain. The owner subdomain
+     is given by its rectangular subdomain index owner[] = (ix,iy,iz).
+     The collected surfaces are packed in a interface structure.
+     The function return the interface if the collection is succsessful.
+     The function return NULL if the collection is not succsessful.
+    \param front @b inout	Pointer to Front.
+    \param owner @b in	Owner subdomain coordinates.
+    \param w_type @b in	Wave type of hypersurface to be collected.
+ */
+   IMPORT  INTERFACE *FT_CollectHypersurfFromSubdomains(Front* front,
+				int *owner,
+				int w_type);
 
 /*! \fn void FT_GetStatesAtPoint(POINT *p,  HYPER_SURF_ELEMENT *hse, HYPER_SURF *hs,  POINTER *sl, POINTER *sr)
  *  \ingroup FIELD
@@ -1691,6 +1672,16 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 	double *L,
         double *U,
         int *gmax);
+
+/*! \fn boolean FT_CoordsInSubdomain(Front *front, double *coords)
+ *  \ingroup PARALLEL
+    \brief This function test if the coordinate is inside my subdomain.
+     The function returns YES if it is in, otherwise it returns NO.
+    \param front @b in	Pointer to Front.
+    \param coords @b in	Testing coordinate.
+ */
+   IMPORT  boolean FT_CoordsInSubdomain(Front* front,
+				double *coords);
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }

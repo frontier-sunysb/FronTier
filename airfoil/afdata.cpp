@@ -749,7 +749,8 @@ static void bifurcateCanopyModification(
 	FT_VectorMemoryAlloc((POINTER*)&parachute_set,num_canopy,
 			sizeof(PARACHUTE_SET));
 	/* Get the original set */
-	assembleParachuteSet(front,&parachute_set[0],2);
+	parachute_set[0].front = front;
+	assembleParachuteSet(front->interf,&parachute_set[0],2);
 	for (i = 1; i < num_canopy; ++i)
 	{
 	    copyParachuteSet(parachute_set[0],&parachute_set[i]);

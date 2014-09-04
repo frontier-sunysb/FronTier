@@ -7,6 +7,7 @@
 /*! \defgroup CURVE      Curve Functions
 /*! \defgroup SURFACE    SURFACE Functions
 /*! \defgroup INTERFACE  INTERFACE Functions
+/*! \defgroup QUERY  	 QUERY Functions
  **/
 
 #include <intfc/int.h>
@@ -227,6 +228,42 @@ extern "C" {
    IMPORT  boolean I_SewSurface(SURFACE *surf,
 			double *crds_start,
 			double *crds_end);
+
+/*! \fn int I_NumOfIntfcCurves(INTERFACE *intfc)
+ *  \ingroup QUERY
+    \brief This function count number of curves in the interface
+     structure. It returns an integer for total number of curves.
+    \param intfc @b in   Pointer to the interface.
+ */
+
+   IMPORT  int I_NumOfIntfcCurves(INTERFACE *intfc);
+
+/*! \fn int I_NumOfIntfcSurfaces(INTERFACE *intfc)
+ *  \ingroup QUERY
+    \brief This function count number of surfaces in the interface
+     structure. It returns an integer for total number of surfaces.
+    \param intfc @b in   Pointer to the interface.
+ */
+
+   IMPORT  int I_NumOfIntfcSurfaces(INTERFACE *intfc);
+
+/*! \fn int I_NumOfIntfcNodes(INTERFACE *intfc)
+ *  \ingroup QUERY
+    \brief This function count number of nodes in the interface
+     structure. It returns an integer for total number of nodes.
+    \param intfc @b in   Pointer to the interface.
+ */
+
+   IMPORT  int I_NumOfIntfcNodes(INTERFACE *intfc);
+
+/*! \fn int I_NumOfNodeCurves(NODE *node)
+ *  \ingroup QUERY
+    \brief This function count number of curves attached to the node,
+     including both in-curves and out curves.
+    \param node @b in   Pointer to a node of the front interface.
+ */
+
+   IMPORT  int I_NumOfNodeCurves(NODE *node);
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }

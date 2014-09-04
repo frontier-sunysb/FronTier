@@ -251,6 +251,7 @@ EXPORT	void gview_plot_interface(
 {
 	if (intfc == NULL)
 	    return;
+	/* Linked to f_gview_plot_interface() */
 	(*i_user_interface(intfc)._gview_plot_interface)(dname,intfc);
 }		/*end gview_plot_interface*/
 

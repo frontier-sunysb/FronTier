@@ -260,9 +260,9 @@ EXPORT boolean the_tri(TRI *tri)
 	double tol = 1.0e-5;	/* vertices coords must have at least */
 				/* five digits after decimal points */
 
-	double p[3][3] = {{5.5, 5.5, 13.84375},
-			  {5.5, 5.5, 13.9375},
-			  {5.5, 5.55205072317067039, 13.890625}};
+	double p[3][3] = {{10.52394,10.61321,20.25264},
+			  {10.53335,10.52471,20.30917},
+			  {10.59807,10.57634,20.22635}};
 
 	/*return NO; */
 
@@ -447,7 +447,7 @@ EXPORT boolean the_bond(BOND *b)
 LOCAL boolean the_point_one(POINT *pt, double *p)
 {
 	int i;
-	double tol = 0.000001;	/* vertices coords must have at least */
+	double tol = 0.0001;	/* vertices coords must have at least */
 				/* five digits after decimal points */
 	int dim = current_interface()->dim;
 	
@@ -461,8 +461,8 @@ LOCAL boolean the_point_one(POINT *pt, double *p)
 
 EXPORT boolean the_point(POINT *pt)
 {
-	double	p1[3] = {11.868969, 5.8628397, 16};
-	double	p2[3] = {11.869, 5.86284, 16};
+	double	p1[3] = {10.5981, 10.5763, 20.2264};
+	double	p2[3] = {10.5981, 10.5763, 20.2264};
 
 	if(the_point_one(pt,p1) || the_point_one(pt,p2))
 	    return YES;

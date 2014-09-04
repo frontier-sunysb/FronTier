@@ -1849,11 +1849,11 @@ LOCAL   void FT_InitIntfc2d(
 	{
 	    double **point_array = level_func_pack->point_array;
 	    int num_points = level_func_pack->num_points;
-	    boolean is_closed_curve = level_func_pack->is_closed_curve;
+	    boolean closed_curve = level_func_pack->closed_curve;
 	    left_c = level_func_pack->neg_component;
 	    right_c = level_func_pack->pos_component;
 	    if (!make_array_curve(intfc,left_c,right_c,num_points,
-	    		point_array,is_closed_curve))
+	    		point_array,closed_curve))
             {
             	screen("make_array_curve() failed!\n");
             	clean_up(ERROR);
