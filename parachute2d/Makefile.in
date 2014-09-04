@@ -64,11 +64,11 @@ airfoil_gpu.o: ../airfoil/airfoil_gpu.cu ../airfoil/airfoil_gpu.cuh
 ifeq ($(USEGPU),no)
 parachute: ../iFluid/iFluid.h ../solver/solver.h ../airfoil/airfoil.h parachute.cpp afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o ../lib/libiF.a
 	${CXX} -c parachute.cpp $(incsloc) $(incs) ${Petsc_Include}
-	$(CXX) -o parachute parachute.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} -frounding-math -L/usr/lib64 -lgmp -lmpfr -lboost_thread-mt
+	$(CXX) -o parachute parachute.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} -frounding-math -L/usr/lib64 -lgmp -lmpfr
 else
 parachute: ../iFluid/iFluid.h ../solver/solver.h ../airfoil/airfoil.h parachute.cpp afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o ../lib/libiF.a airfoil_gpu.o
 	${CXX} -c parachute.cpp $(incsloc) $(incs) ${Petsc_Include}
-	$(CXX) -o parachute parachute.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o airfoil_gpu.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so -frounding-math -L/usr/lib64 -lgmp -lmpfr -lboost_thread-mt
+	$(CXX) -o parachute parachute.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o airfoil_gpu.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so -frounding-math -L/usr/lib64 -lgmp -lmpfr 
 endif
 
 

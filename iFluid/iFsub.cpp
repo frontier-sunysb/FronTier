@@ -115,7 +115,7 @@ extern double getStateMu(POINTER state)
 {
 	STATE *fstate = (STATE*)state;
 	return fstate->mu;
-}	/* end getStateZimp */
+}	/* end getStateMu */
 
 extern void read_iF_dirichlet_bdry_data(
 	char *inname,

@@ -138,7 +138,7 @@ void VCARTESIAN::setComponent(void)
                 cell_center[i].comp != top_comp[i])
             {
                 if (FT_FindNearestIntfcPointInRange(front,top_comp[i],coords,
-                                point,t,&hse,&hs,2))
+                                INCLUDE_BOUNDARIES,point,t,&hse,&hs,2))
                 {
                     if (!FrontNearestIntfcState(front,coords,top_comp[i],
                                 (POINTER)state))

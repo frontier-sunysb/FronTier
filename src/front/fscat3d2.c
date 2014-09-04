@@ -470,9 +470,12 @@ LOCAL   void  check_bond_comp(
 {
 	if(b1->start != b2->start || b1->end != b2->end)
 	{
-	    printf("b1->start = %d  b2->start = %d\n",b1->start,b2->start);
-	    printf("b1->end   = %d  b2->end   = %d\n",b1->end,b2->end);
-	    printf("start gindex: %ld %ld\n",Gindex(b1->start),Gindex(b2->start));
+	    printf("b1->start = %p  b2->start = %p\n",(void*)b1->start,
+				(void*)b2->start);
+	    printf("b1->end   = %p  b2->end   = %p\n",(void*)b1->end,
+				(void*)b2->end);
+	    printf("start gindex: %ld %ld\n",Gindex(b1->start),
+				Gindex(b2->start));
 	    printf("end   gindex: %ld %ld\n",Gindex(b1->end),Gindex(b2->end));
 	    printf("ERROR: %s, bonds do not match.\n", msg);
 	    clean_up(ERROR);

@@ -3207,7 +3207,7 @@ EXPORT	boolean	check_valid_point(
 	    plist[np++] = Point_of_tri(ptris[n])[Prev_m3(k)];
 	    if(np >= MAX_TRIS_IN_POINT)
 	    {
-		printf("ERROReck_valid_point ",
+		printf("ERROReck_valid_point "
 			"too many tris in one point.\n");
 		clean_up(ERROR);
 	    }

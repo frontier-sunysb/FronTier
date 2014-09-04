@@ -4,9 +4,7 @@ Front Traking algorithms. Front Tracking is a numerical method for
 the solution of partial differential equations whose solutions have 
 discontinuities.  
 
-
 Copyright (C) 1999 by The University at Stony Brook. 
- 
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -1972,14 +1970,15 @@ LIB_LOCAL void fprint_length0_on_curve(
 	(void) fprintf(file,"%-10s ","Bond");
 	for (btris = Btris(b), i = 0; btris && *btris; ++btris, ++i)
 	{
-	    (void) sprintf(s,"length0",i);
-	    (void) fprintf(file,"%-10s",s);
+	    (void) sprintf(s,"length0[%d]",i);
+	    (void) fprintf(file,"%-11s",s);
 	}
 	(void) fprintf(file,"\n");
 
 	for (b = curve->first; b; b = b->next)
 	{
-	    (void) fprintf(file,"%-10llu ",(long long unsigned int)bond_number(b,curve->interface));
+	    (void) fprintf(file,"%-10llu ",
+		(long long unsigned int)bond_number(b,curve->interface));
 	    (void) fprintf(file,"%- "FFMT" ",b->length0);
 	    (void) fprintf(file,"\n");
 	}

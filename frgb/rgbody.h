@@ -16,19 +16,6 @@ typedef enum _RG_PROB_TYPE RG_PROB_TYPE;
 
 /*	rgbody.c functions */
 
-struct _RG_PARAMS {
-	int dim;
-	double  total_mass;             /* Total mass */
-        double  moment_of_inertial;     /* Moment of inertial about the axis */
-        double  center_of_mass[MAXD];   /* Center of mass */
-        double  rotation_dir[MAXD];     /* Direction of rotation */
-        double  rotation_cen[MAXD];     /* Center of rotation */
-        double  cen_of_mass_velo[MAXD]; /* Center of mass velocity */
-        double  angular_velo;           /* Angular velocity of rotation */
-	MOTION_TYPE motion_type;
-};
-typedef struct _RG_PARAMS RG_PARAMS;
-
 void init_moving_bodies(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
 void ifluid_compute_force_and_torque(Front*,HYPER_SURF*,double,double*,
 			double*);

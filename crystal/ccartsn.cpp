@@ -216,7 +216,7 @@ void C_CARTESIAN::setInitialCondition(void)
 		    else
 		    {
 		    	if (FT_FindNearestIntfcPointInRange(front,c,coords,
-				ans,t,&hse,&hs,range))
+				INCLUDE_BOUNDARIES,ans,t,&hse,&hs,range))
 		    	{
 			    distance = 0.0;
 			    for (j = 0; j < dim; j++)

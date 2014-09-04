@@ -645,6 +645,12 @@ extern double getStateZvel(POINTER state)
 	return fstate->vel[2];
 }	/* end getStateZvel */
 
+extern double getStateMu(POINTER state)
+{
+	STATE *fstate = (STATE*)state;
+	return fstate->mu;
+}	/* end getStateMu */
+
 extern void fluid_print_front_states(
         FILE *outfile,
         Front *front)

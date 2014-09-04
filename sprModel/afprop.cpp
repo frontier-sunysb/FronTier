@@ -133,7 +133,7 @@ extern void fourth_order_elastic_set_propagate(
 	    (void) printf("Entering fourth_order_elastic_set_propagate()\n");
 
 	new_geom_set.front = newfr;
-	assembleParachuteSet(newfr,&new_geom_set,3);
+	assembleParachuteSet(newfr->interf,&new_geom_set,3);
 
 	/* Set parameters */
 	new_geom_set.ks = af_params->ks;
@@ -522,11 +522,10 @@ static void mono_curve_propagation(
 }	/* end mono_curve_propagation */
 
 extern void assembleParachuteSet(
-	Front *front,
+	INTERFACE *intfc,
 	PARACHUTE_SET *geom_set,
 	int num_layers)
 {
-	INTERFACE *intfc = front->interf;
 	SURFACE **s;
 	CURVE **c;
 	NODE **n;
