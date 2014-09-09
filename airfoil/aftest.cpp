@@ -40,7 +40,7 @@ static void adjust_for_node_type(NODE*,int,STRING_NODE_TYPE,double**,double**,
 				double,double,double*);
 static void adjust_for_curve_type(CURVE*,int,double**,double**,double,double*);
 static void adjust_for_cnode_type(NODE*,int,double**,double**,double,double*);
-static void propagate_curve(PARACHUTE_SET*,CURVE*,double**);
+static void propagate_curve(ELASTIC_SET*,CURVE*,double**);
 static void print_airfoil_stat2d(Front*,char*);
 static void print_airfoil_stat2d_1(Front*,char*);
 static void print_airfoil_stat2d_2(Front*,char*);
@@ -69,12 +69,12 @@ extern void second_order_elastic_curve_propagate(
 	int is,ie;
         double *g = af_params->gravity;
         double mass, payload = af_params->payload;
-        PARACHUTE_SET geom_set;
+        ELASTIC_SET geom_set;
         STRING_NODE_TYPE start_type = af_params->start_type;
         STRING_NODE_TYPE end_type = af_params->end_type;
-	void (*compute_node_accel)(PARACHUTE_SET*,NODE*,double**,
+	void (*compute_node_accel)(ELASTIC_SET*,NODE*,double**,
 				double**,double **,int*);
-	void (*compute_curve_accel)(PARACHUTE_SET*,CURVE*,double**,
+	void (*compute_curve_accel)(ELASTIC_SET*,CURVE*,double**,
 				double**,double **,int*);
 
 	switch (af_params->spring_model)
@@ -196,17 +196,17 @@ extern void second_order_elastic_surf_propagate(
 	int i,j,num_pts,count;
 	int n,n0,n_tan = af_params->n_tan;
 	double dt_tol,dt = fr_dt/(double)n_tan;
-	PARACHUTE_SET geom_set;
+	ELASTIC_SET geom_set;
 	CURVE **nc,*newc[MAX_SURF_CURVES];
 	SURFACE *news,**s;
 	NODE *newn[MAX_SURF_NODES];
 	int num_nodes,num_curves;	/* Numbers of nodes and curves */
 	boolean in_list;
-	void (*compute_node_accel)(PARACHUTE_SET*,NODE*,double**,
+	void (*compute_node_accel)(ELASTIC_SET*,NODE*,double**,
 				double**,double **,int*);
-	void (*compute_curve_accel)(PARACHUTE_SET*,CURVE*,double**,
+	void (*compute_curve_accel)(ELASTIC_SET*,CURVE*,double**,
 				double**,double **,int*);
-	void (*compute_surf_accel)(PARACHUTE_SET*,SURFACE*,double**,
+	void (*compute_surf_accel)(ELASTIC_SET*,SURFACE*,double**,
 				double**,double **,int*);
 
 	for (s = newfr->interf->surfaces; s && *s; ++s)
@@ -1476,12 +1476,12 @@ extern void fourth_order_elastic_curve_propagate(
 	int dim = fr->rect_grid->dim;
 	double *g = af_params->gravity;
 	double payload = af_params->payload;
-	PARACHUTE_SET geom_set;
+	ELASTIC_SET geom_set;
 	STRING_NODE_TYPE start_type = af_params->start_type;
 	STRING_NODE_TYPE end_type = af_params->end_type;
-	void (*compute_node_accel)(PARACHUTE_SET*,NODE*,double**,
+	void (*compute_node_accel)(ELASTIC_SET*,NODE*,double**,
 				double**,double **,int*);
-	void (*compute_curve_accel)(PARACHUTE_SET*,CURVE*,double**,
+	void (*compute_curve_accel)(ELASTIC_SET*,CURVE*,double**,
 				double**,double **,int*);
 	static SPRING_VERTEX *sv;
 	static boolean first = YES;
@@ -1540,7 +1540,7 @@ extern void fourth_order_elastic_curve_propagate(
 	    set_spring_vertex_memory(sv,size);
 	    first = NO;
 	}
-	new_set_vertex_neighbors(&geom_set,sv,point_set);
+	set_vertex_neighbors(&geom_set,sv,point_set);
         get_point_set_from(&geom_set,point_set);
 	set_special_node_type(newc->start,size-2,start_type,sv,mass,payload,g);
 	set_special_node_type(newc->end,size-1,end_type,sv,mass,payload,g);
@@ -1671,7 +1671,7 @@ extern void fourth_order_elastic_surf_propagate(
 	int i,j,num_pts,count;
 	int n,n_tan = af_params->n_tan;
 	double dt_tol,dt = fr_dt/(double)n_tan;
-	PARACHUTE_SET geom_set;
+	ELASTIC_SET geom_set;
 	CURVE **nc,*newc[MAX_SURF_CURVES];
 	SURFACE *news,**s;
 	NODE *newn[MAX_SURF_NODES];
@@ -1686,7 +1686,6 @@ extern void fourth_order_elastic_surf_propagate(
 	long max_point_gindex = newfr->interf->max_point_gindex;
 	int owner[MAXD];
 
-	(void) printf("Entering fourth_order_elastic_surf_propagate()\n");
 	if (pp_numnodes() > 1)
         {
             INTERFACE *elastic_intfc;
@@ -1818,7 +1817,7 @@ extern void fourth_order_elastic_surf_propagate(
 	    set_spring_vertex_memory(sv,size);
             first = NO;
 	}
-	new_set_vertex_neighbors(&geom_set,sv,point_set);
+	set_vertex_neighbors(&geom_set,sv,point_set);
         get_point_set_from(&geom_set,point_set);
 
 	stop_clock("set_spring_model");
@@ -1840,6 +1839,7 @@ extern void fourth_order_elastic_surf_propagate(
 #endif
 	    generic_spring_solver(sv,dim,size,n_tan,dt);
 
+	put_point_set_to(&geom_set,point_set);
 	set_vertex_impulse(&geom_set,sv);
 
 	stop_clock("spring_model");
@@ -1991,7 +1991,7 @@ static void adjust_for_node_type(
 }	/* end adjust_for_node_type */
 
 static void propagate_curve(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	CURVE *curve,
 	double **x)
 {

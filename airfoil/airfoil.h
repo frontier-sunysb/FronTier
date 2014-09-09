@@ -198,7 +198,7 @@ struct _REGISTERED_PTS {
 };
 typedef struct _REGISTERED_PTS REGISTERED_PTS;
 
-struct _PARACHUTE_SET{
+struct _ELASTIC_SET{
 	Front *front;
         NODE *load_node;
 	SURFACE *surfs[20];
@@ -221,7 +221,7 @@ struct _PARACHUTE_SET{
 	int n_sub;
 };
 
-typedef struct _PARACHUTE_SET PARACHUTE_SET;
+typedef struct _ELASTIC_SET ELASTIC_SET;
 
 void read_iFparams(char*,IF_PARAMS*);
 void read_movie_options(char*,IF_PARAMS*);
@@ -256,7 +256,7 @@ extern boolean is_gore_node(NODE*);
 extern boolean is_bdry_node(NODE*);
 extern boolean is_string_node(NODE*);
 extern double springCharTimeStep(Front*);	// spring characteristic time
-extern void assembleParachuteSet(INTERFACE*,PARACHUTE_SET*,int);
+extern void assembleParachuteSet(INTERFACE*,ELASTIC_SET*,int);
 
 // aftest.cpp
 extern void second_order_elastic_curve_propagate(Front*,Front*,INTERFACE*,
@@ -277,48 +277,49 @@ extern int airfoil_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
                                 double*);
 extern int af_find_state_at_crossing(Front*,int*,GRID_DIRECTION,
                         int,POINTER*,HYPER_SURF**,double*);
-extern void fourth_order_parachute_propagate(Front*,PARACHUTE_SET*);
+extern void fourth_order_parachute_propagate(Front*,ELASTIC_SET*);
 extern void assign_node_field(NODE*,double**,double**,int*);
 extern void assign_curve_field(CURVE*,double**,double**,int*);
 extern void assign_surf_field(SURFACE*,double**,double**,int*);
-extern void compute_surf_accel1(PARACHUTE_SET*,SURFACE*,double**,double**,
+extern void compute_surf_accel1(ELASTIC_SET*,SURFACE*,double**,double**,
 				double**,int*);
-extern void compute_surf_accel2(PARACHUTE_SET*,SURFACE*,double**,double**,
+extern void compute_surf_accel2(ELASTIC_SET*,SURFACE*,double**,double**,
 				double**,int*);
-extern void compute_curve_accel1(PARACHUTE_SET*,CURVE*,double**,double**,
+extern void compute_curve_accel1(ELASTIC_SET*,CURVE*,double**,double**,
 				double**,int*);
-extern void compute_node_accel1(PARACHUTE_SET*,NODE*,double**,double**,double**,
+extern void compute_node_accel1(ELASTIC_SET*,NODE*,double**,double**,double**,
 				int*);
-extern void compute_curve_accel2(PARACHUTE_SET*,CURVE*,double**,double**,
+extern void compute_curve_accel2(ELASTIC_SET*,CURVE*,double**,double**,
 				double**,int*);
-extern void compute_node_accel2(PARACHUTE_SET*,NODE*,double**,double**,double**,
+extern void compute_node_accel2(ELASTIC_SET*,NODE*,double**,double**,double**,
 				int*);
-extern void compute_curve_accel3(PARACHUTE_SET*,CURVE*,double**,double**,
+extern void compute_curve_accel3(ELASTIC_SET*,CURVE*,double**,double**,
 				double**,int*);
-extern void compute_node_accel3(PARACHUTE_SET*,NODE*,double**,double**,double**,
+extern void compute_node_accel3(ELASTIC_SET*,NODE*,double**,double**,double**,
 				int*);
-extern void propagate_surface(PARACHUTE_SET*,SURFACE*,double**,int*);
-extern void propagate_curve(PARACHUTE_SET*,CURVE*,double**,int*);
-extern void propagate_node(PARACHUTE_SET*,NODE*,double**,int*);
+extern void propagate_surface(ELASTIC_SET*,SURFACE*,double**,int*);
+extern void propagate_curve(ELASTIC_SET*,CURVE*,double**,int*);
+extern void propagate_node(ELASTIC_SET*,NODE*,double**,int*);
 extern boolean is_registered_point(SURFACE*,POINT*);
 
 // afsetd.cpp
-extern void count_vertex_neighbors(PARACHUTE_SET*,SPRING_VERTEX*);
+extern void count_vertex_neighbors(ELASTIC_SET*,SPRING_VERTEX*);
 extern void set_spring_vertex_memory(SPRING_VERTEX*,int);
 extern void compute_spring_accel1(SPRING_VERTEX*,double*,int);
 extern void generic_spring_solver(SPRING_VERTEX*,int,int,int,double);
-extern void set_vertex_impulse(PARACHUTE_SET*,SPRING_VERTEX*);
-extern void set_geomset_velocity(PARACHUTE_SET*,SPRING_VERTEX*);
-extern void link_point_set(PARACHUTE_SET*,POINT_SET**,POINT_SET*);
-extern void new_set_vertex_neighbors(PARACHUTE_SET*,SPRING_VERTEX*,POINT_SET**);
-extern void new_set_node_spring_vertex(PARACHUTE_SET*,NODE*,SPRING_VERTEX*,
+extern void set_vertex_impulse(ELASTIC_SET*,SPRING_VERTEX*);
+extern void set_geomset_velocity(ELASTIC_SET*,SPRING_VERTEX*);
+extern void link_point_set(ELASTIC_SET*,POINT_SET**,POINT_SET*);
+extern void set_vertex_neighbors(ELASTIC_SET*,SPRING_VERTEX*,POINT_SET**);
+extern void set_node_spring_vertex(ELASTIC_SET*,NODE*,SPRING_VERTEX*,
 				int*,POINT_SET**);
-extern void new_set_curve_spring_vertex(PARACHUTE_SET*,CURVE*,SPRING_VERTEX*,
+extern void set_curve_spring_vertex(ELASTIC_SET*,CURVE*,SPRING_VERTEX*,
 				int*,POINT_SET**);
-extern void new_set_surf_spring_vertex(PARACHUTE_SET*,SURFACE*,SPRING_VERTEX*,
+extern void set_surf_spring_vertex(ELASTIC_SET*,SURFACE*,SPRING_VERTEX*,
 				int*,POINT_SET**);
-extern void get_point_set_from(PARACHUTE_SET*,POINT_SET**);
-extern void put_point_set_to(PARACHUTE_SET*,POINT_SET**);
+extern void get_point_set_from(ELASTIC_SET*,POINT_SET**);
+extern void put_point_set_to(ELASTIC_SET*,POINT_SET**);
+extern void set_elastic_params(ELASTIC_SET*,double);
 
 // afvelo.cpp
 extern void setMotionParams(Front*);

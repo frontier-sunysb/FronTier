@@ -809,6 +809,16 @@ extern "C" {
 				int dir,
 				int side);
 
+/*! \fn boolean FT_FrontContainWaveType(Front *front, int w_type)
+ *  \ingroup QUERY
+    \brief This function tells if front contains hyper-surface of certain
+     type. It returns YES if it does, NO if it does not contain.
+    \param front @b in	Pointer the front.
+    \param w_type @b in Type of wave for the hyper-surface.
+ */
+
+   IMPORT  boolean FT_FrontContainWaveType(Front *front , int w_type);
+
 /*! \fn HYPER_SURF *FT_RectBoundaryHypSurf(INTERFACE *intfc, int wave_type, int dir, int side)
  *  \ingroup QUERY
     \brief This function looks for a boundary hyper surface (curve in 2D and
@@ -1300,8 +1310,7 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
  *  \ingroup INSERT
     \brief This function inserts a curve into the front with given
      array of points, if is_closed_curve is true, the curve is closed.
-    
-    \param front @b inout Pointer to the front in which surface is inserted.
+    \param front @b inout Pointer to the front in which curve is inserted.
     \param num_points @b in number of points in the given array.
     \param point_array @b in an array of point coordinates.
     \param neg_comp @b in index for negative side of the curve (inner side).
@@ -1366,6 +1375,23 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
  */
 
    IMPORT  void FT_MakeProjectileSurf(Front *front,double *center,double R,double r,double h,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf);
+
+/*! \fn CURVE *FT_MakeParametricCurve(Front *front, COMPONENT neg_comp, COMPONENT pos_comp, int w_type, boolean (*func)(POINTER,double,double*), POINTER func_params, int refinement_level, boolean is_closed)
+ *  \ingroup INSERT
+    \brief This function inserts a parametric curve into the front with given
+     information of its function, parameters, components, and wave type.
+    \param front @b inout Pointer to the front in which curve is inserted.
+    \param neg_comp @b in index for negative side of the curve (left side).
+    \param pos_comp @b in index for positive side of the curve (right side).
+    \param w_type @b in wave type of the curve.
+    \param func @b in parametric function for the curve.
+    \param func_params @b in anonymous pointer to parameters for the function.
+    \param refinement_level @b in refinement level on grid spacing.
+    \param is_closed @b in whether the curve is closed.
+ */
+
+   IMPORT  CURVE *FT_MakeParametricCurve(Front *front, COMPONENT neg_comp, COMPONENT pos_comp, int w_type, boolean (*func)(POINTER,double,double*), POINTER func_params, int refinement_level, boolean is_closed);
+
 
 /*! \fn void FT_RotateSurface(SURFACE *surf,double *center,double phi,double theta)
  *  \ingroup INSERT

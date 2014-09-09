@@ -619,6 +619,13 @@ typedef struct {
 
 } WING_CONSTR_PARAMS;
 
+typedef struct {
+	/* equation for line is a*x + b*y = c */
+	int dim;
+        double coords_start[MAXD];		
+        double coords_end[MAXD];
+} LINE_SEG_PARAMS;
+
  /* Geometry EXPORTED Function Declarations*/
 
 /*	geomutils.c*/

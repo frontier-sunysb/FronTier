@@ -27,8 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 static void naturalStressOfTri(TRI*,double);
 static void singleCanopyModification(Front*);
 static void bifurcateCanopyModification(Front*);
-static void copyParachuteSet(PARACHUTE_SET,PARACHUTE_SET*);
-static void rotateParachuteSet(PARACHUTE_SET*,double*,double,double);
+static void copyParachuteSet(ELASTIC_SET,ELASTIC_SET*);
+static void rotateParachuteSet(ELASTIC_SET*,double*,double,double);
 
 extern void printAfExtraDada(
 	Front *front,
@@ -732,7 +732,7 @@ static void bifurcateCanopyModification(
 	char *inname = InName(front);
 	FILE *infile = fopen(inname,"r");
 	char string[200],input_string[200];
-	PARACHUTE_SET *parachute_set;
+	ELASTIC_SET *parachute_set;
 	int num_canopy;
 	double disp[MAXD],center[MAXD];
 	double phi,theta;
@@ -747,7 +747,7 @@ static void bifurcateCanopyModification(
         fscanf(infile,"%d",&num_canopy);
         (void) printf("%d\n",num_canopy);
 	FT_VectorMemoryAlloc((POINTER*)&parachute_set,num_canopy,
-			sizeof(PARACHUTE_SET));
+			sizeof(ELASTIC_SET));
 	/* Get the original set */
 	parachute_set[0].front = front;
 	assembleParachuteSet(front->interf,&parachute_set[0],2);
@@ -819,8 +819,8 @@ static void bifurcateCanopyModification(
 }	/* end bifurcateCanopyModification */
 
 static void copyParachuteSet(
-	PARACHUTE_SET orig_set,
-	PARACHUTE_SET *copy_set)
+	ELASTIC_SET orig_set,
+	ELASTIC_SET *copy_set)
 {
 	int i,j,ns,nc,nn;
 	INTERFACE *cur_intfc = current_interface();
@@ -885,7 +885,7 @@ static void copyParachuteSet(
 }	/* end copyParachuteSet */
 
 static void rotateParachuteSet(
-	PARACHUTE_SET *parachute_set,
+	ELASTIC_SET *parachute_set,
 	double *center,
 	double phi,
 	double theta)

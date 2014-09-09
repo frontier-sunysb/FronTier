@@ -207,21 +207,29 @@ extern void setMotionParams(
                         "Enter density and viscosity of the fluid:");
             fscanf(infile,"%lf %lf",&iFparams->rho2,&iFparams->mu2);
             (void) printf("%f %f\n",iFparams->rho2,iFparams->mu2);
-            CursorAfterString(infile,"Enter surface tension:");
-            fscanf(infile,"%lf",&iFparams->surf_tension);
-            (void) printf("%f\n",iFparams->surf_tension);
+	    if (FT_FrontContainWaveType(front,CONTACT))
+	    {
+            	CursorAfterString(infile,"Enter surface tension:");
+            	fscanf(infile,"%lf",&iFparams->surf_tension);
+            	(void) printf("%f\n",iFparams->surf_tension);
+	    }
+	    if (FT_FrontContainWaveType(front,ELASTIC_BOUNDARY))
+	    {
+            	CursorAfterString(infile,"Enter porosity of canopy:");
+            	fscanf(infile,"%lf",&af_params->gamma);
+            	(void) printf("%f\n",af_params->gamma);
+            	CursorAfterString(infile,"Enter area density of canopy:");
+            	fscanf(infile,"%lf",&af_params->area_dens);
+            	(void) printf("%f\n",af_params->area_dens);
+	    }
             CursorAfterString(infile,"Enter factor of smoothing radius:");
             fscanf(infile,"%lf",&iFparams->smoothing_radius);
             (void) printf("%f\n",iFparams->smoothing_radius);
-            CursorAfterString(infile,"Enter porosity of canopy:");
-            fscanf(infile,"%lf",&af_params->gamma);
-            (void) printf("%f\n",af_params->gamma);
-            CursorAfterString(infile,"Enter area density of canopy:");
-            fscanf(infile,"%lf",&af_params->area_dens);
-            (void) printf("%f\n",af_params->area_dens);
             for (i = 0; i < dim; ++i)
 	    	iFparams->gravity[i] = af_params->gravity[i];
 	}
+	if (!FT_FrontContainWaveType(front,ELASTIC_BOUNDARY))
+	    return;
 	af_params->n_tan = 1;
 	CursorAfterString(infile,"Enter interior sub step number:");
 	fscanf(infile,"%d",&af_params->n_tan);

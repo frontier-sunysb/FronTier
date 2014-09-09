@@ -25,11 +25,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <airfoil.h>
 #include "solver.h"
 
-static void link_surf_point_set(PARACHUTE_SET*,SURFACE*,POINT_SET**,
+static void link_surf_point_set(ELASTIC_SET*,SURFACE*,POINT_SET**,
 				POINT_SET*,int*);
-static void link_curve_point_set(PARACHUTE_SET*,CURVE*,POINT_SET**,
+static void link_curve_point_set(ELASTIC_SET*,CURVE*,POINT_SET**,
 				POINT_SET*,int*);
-static void link_node_point_set(PARACHUTE_SET*,NODE*,POINT_SET**,
+static void link_node_point_set(ELASTIC_SET*,NODE*,POINT_SET**,
 				POINT_SET*,int*);
 
 static void surf_get_point_set_from(SURFACE*,POINT_SET**);
@@ -44,9 +44,9 @@ static void count_surf_neighbors(SURFACE*,SPRING_VERTEX*,int*);
 static void count_curve_neighbors(CURVE*,SPRING_VERTEX*,int*);
 static void count_node_neighbors(NODE*,SPRING_VERTEX*,int*);
 
-static void set_surf_impulse(PARACHUTE_SET*,SURFACE*,SPRING_VERTEX*,int*);
-static void set_curve_impulse(PARACHUTE_SET*,CURVE*,SPRING_VERTEX*,int*);
-static void set_node_impulse(PARACHUTE_SET*,NODE*,SPRING_VERTEX*,int*);
+static void set_surf_impulse(ELASTIC_SET*,SURFACE*,SPRING_VERTEX*,int*);
+static void set_curve_impulse(ELASTIC_SET*,CURVE*,SPRING_VERTEX*,int*);
+static void set_node_impulse(ELASTIC_SET*,NODE*,SPRING_VERTEX*,int*);
 
 static void get_point_value_from(POINT*p,POINT_SET**);
 static void put_point_value_to(POINT*p,POINT_SET**);
@@ -367,7 +367,7 @@ extern void generic_spring_solver(
 }	/* end generic_spring_solver */
 
 extern void set_vertex_impulse(
-        PARACHUTE_SET *geom_set,
+        ELASTIC_SET *geom_set,
         SPRING_VERTEX *sv)
 {
         int i,n,ns,nc,nn;
@@ -386,7 +386,7 @@ extern void set_vertex_impulse(
 }       /* end set_vertex_impulse */
 
 static void set_node_impulse(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	NODE *node,
 	SPRING_VERTEX *sv,
 	int *n)
@@ -403,7 +403,7 @@ static void set_node_impulse(
 }	/* end set_node_impulse */
 
 static void set_curve_impulse(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	CURVE *curve,
 	SPRING_VERTEX *sv,
 	int *n)
@@ -429,7 +429,7 @@ static void set_curve_impulse(
 }	/* end set_curve_impulse */
 
 static void set_surf_impulse(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	SURFACE *surf,
 	SPRING_VERTEX *sv,
 	int *n)
@@ -465,7 +465,7 @@ static void set_surf_impulse(
 }	/* end set_surf_impulse */
 
 extern void count_vertex_neighbors(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	SPRING_VERTEX *sv)
 {
 	int i,n,ns,nc,nn;
@@ -489,7 +489,7 @@ extern void count_vertex_neighbors(
 }	/* end  count_vertex_neighbors */
 
 extern void link_point_set(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	POINT_SET **point_set,
 	POINT_SET *point_set_store)
 {
@@ -520,7 +520,7 @@ extern void link_point_set(
 }	/* end link_point_set */
 
 static void link_surf_point_set(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	SURFACE *surf,
 	POINT_SET **point_set,
 	POINT_SET *point_set_store,
@@ -549,7 +549,7 @@ static void link_surf_point_set(
 }	/* end link_surf_point_set */
 
 static void link_curve_point_set(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	CURVE *curve,
 	POINT_SET **point_set,
 	POINT_SET *point_set_store,
@@ -572,7 +572,7 @@ static void link_curve_point_set(
 }	/* end link_curve_point_set */
 
 static void link_node_point_set(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	NODE *node,
 	POINT_SET **point_set,
 	POINT_SET *point_set_store,
@@ -587,8 +587,8 @@ static void link_node_point_set(
 	(*n)++;
 }	/* end link_node_point_set */
 
-extern void new_set_vertex_neighbors(
-	PARACHUTE_SET *geom_set,
+extern void set_vertex_neighbors(
+	ELASTIC_SET *geom_set,
 	SPRING_VERTEX *sv,
 	POINT_SET **point_set)
 {
@@ -602,21 +602,21 @@ extern void new_set_vertex_neighbors(
 	nn = geom_set->num_nodes;
 	n = 0;
 	for (i = 0; i < ns; ++i)
-	    new_set_surf_spring_vertex(geom_set,geom_set->surfs[i],sv,&n,
+	    set_surf_spring_vertex(geom_set,geom_set->surfs[i],sv,&n,
 					point_set);
 	for (i = 0; i < nc; ++i)
-	    new_set_curve_spring_vertex(geom_set,geom_set->curves[i],sv,&n,
+	    set_curve_spring_vertex(geom_set,geom_set->curves[i],sv,&n,
 					point_set);
 	for (i = 0; i < nn; ++i)
-	    new_set_node_spring_vertex(geom_set,geom_set->nodes[i],sv,&n,
+	    set_node_spring_vertex(geom_set,geom_set->nodes[i],sv,&n,
 					point_set);
 
 	if (debugging("canopy"))
 	    (void) printf("Leaving set_vertex_neighbors()\n");
-}	/* end  new_set_vertex_neighbors */
+}	/* end  set_vertex_neighbors */
 
-extern void new_set_node_spring_vertex(
-	PARACHUTE_SET *geom_set,
+extern void set_node_spring_vertex(
+	ELASTIC_SET *geom_set,
 	NODE *node,
 	SPRING_VERTEX *sv,
 	int *n,
@@ -808,10 +808,10 @@ extern void new_set_node_spring_vertex(
 	    	sv[*n].ext_accel[i] = 0;
 	}
 	(*n)++;
-}	/* end new_set_node_spring_vertex */
+}	/* end set_node_spring_vertex */
 
-extern void new_set_curve_spring_vertex(
-	PARACHUTE_SET *geom_set,
+extern void set_curve_spring_vertex(
+	ELASTIC_SET *geom_set,
 	CURVE *curve,
 	SPRING_VERTEX *sv,
 	int *n,
@@ -942,10 +942,10 @@ extern void new_set_curve_spring_vertex(
 	    }
 	}
 	*n = i;
-}	/* end new_set_curve_spring_vertex */
+}	/* end set_curve_spring_vertex */
 
-extern void new_set_surf_spring_vertex(
-	PARACHUTE_SET *geom_set,
+extern void set_surf_spring_vertex(
+	ELASTIC_SET *geom_set,
 	SURFACE *surf,
 	SPRING_VERTEX *sv,
 	int *n,
@@ -1016,7 +1016,7 @@ extern void new_set_surf_spring_vertex(
 	    }
 	}
 	*n = i;
-}	/* end new_set_surf_spring_vertex */
+}	/* end set_surf_spring_vertex */
 
 static void get_point_value_from(
 	POINT *p,
@@ -1053,7 +1053,7 @@ static void put_point_value_to(
 }	/* end put_point_value_to */
 	
 extern void get_point_set_from(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	POINT_SET **point_set)
 {
 	int i,ns,nc,nn;
@@ -1076,7 +1076,7 @@ extern void get_point_set_from(
 }	/* end  get_point_set_from */
 	
 extern void put_point_set_to(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	POINT_SET **point_set)
 {
 	int i,ns,nc,nn;
@@ -1184,3 +1184,40 @@ static void node_put_point_set_to(
 	put_point_value_to(p,point_set);
 }	/* end node_put_point_set_to */
 
+extern void set_elastic_params(
+	ELASTIC_SET *geom_set,
+	double fr_dt)
+{
+	Front *front = geom_set->front;
+	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
+	double dt,dt_tol;
+        int n_tan = af_params->n_tan;
+
+	/* Set elastic set kinetic parameters */
+        geom_set->ks = af_params->ks;
+        geom_set->lambda_s = af_params->lambda_s;
+        geom_set->m_s = af_params->m_s;
+        geom_set->kl = af_params->kl;
+        geom_set->lambda_l = af_params->lambda_l;
+        geom_set->m_l = af_params->m_l;
+        geom_set->kg = af_params->kg;
+        geom_set->lambda_g = af_params->lambda_g;
+        geom_set->m_g = af_params->m_g;
+
+	/* Set elastic set time step */
+        dt = fr_dt;
+        dt_tol = sqrt((af_params->m_s)/(af_params->ks))/10.0;
+        if (af_params->m_l != 0.0 &&
+            dt_tol > sqrt((af_params->m_l)/(af_params->kl))/10.0)
+            dt_tol = sqrt((af_params->m_l)/(af_params->kl))/10.0;
+        if (af_params->m_g != 0.0 &&
+            dt_tol > sqrt((af_params->m_g)/(af_params->kg))/10.0)
+            dt_tol = sqrt((af_params->m_g)/(af_params->kg))/10.0;
+        if (dt > dt_tol)
+        {
+            n_tan = (int)(fr_dt/dt_tol);
+            dt = fr_dt/(double)n_tan;
+        }
+        geom_set->dt = dt;
+        geom_set->n_sub = n_tan;
+}	/* end set_elastic_params */

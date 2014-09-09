@@ -4,9 +4,7 @@ Front Traking algorithms. Front Tracking is a numerical method for
 the solution of partial differential equations whose solutions 
 have discontinuities.  
 
-
 Copyright (C) 1999 by The University at Stony Brook. 
- 
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -21,7 +19,6 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-
 ****************************************************************/
 
 
@@ -3929,3 +3926,30 @@ LOCAL void sort_blk_cell(
 	    }
 	}
 }
+
+EXPORT	boolean FT_FrontContainWaveType(
+	Front *front,
+	int w_type)
+{
+	INTERFACE *intfc = front->interf;
+	int dim = FT_Dimension();
+	if (dim == 2)
+	{
+	    CURVE **c;
+	    intfc_curve_loop(intfc,c)
+	    {
+		if (wave_type(*c) == w_type)
+		    return YES;
+	    }
+	}
+	else if (dim == 3)
+	{
+	    SURFACE **s;
+	    intfc_surface_loop(intfc,s)
+	    {
+		if (wave_type(*s) == w_type)
+		    return YES;
+	    }
+	}
+	return NO;
+}	/* end FT_FrontContainContact */

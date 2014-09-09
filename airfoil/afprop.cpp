@@ -175,7 +175,7 @@ extern void fourth_order_elastic_set_propagate(
 	Front           *newfr,
         double           fr_dt)
 {
-	static PARACHUTE_SET geom_set;
+	static ELASTIC_SET geom_set;
 	AF_PARAMS *af_params = (AF_PARAMS*)newfr->extra2;
 	double dt,dt_tol;
 	int n_tan = af_params->n_tan;
@@ -199,33 +199,7 @@ extern void fourth_order_elastic_set_propagate(
 
 	geom_set.front = newfr;
 	assembleParachuteSet(newfr->interf,&geom_set,3);
-
-	/* Set parameters */
-	geom_set.ks = af_params->ks;
-        geom_set.lambda_s = af_params->lambda_s;
-        geom_set.m_s = af_params->m_s;
-        geom_set.kl = af_params->kl;
-        geom_set.lambda_l = af_params->lambda_l;
-        geom_set.m_l = af_params->m_l;
-        geom_set.kg = af_params->kg;
-        geom_set.lambda_g = af_params->lambda_g;
-        geom_set.m_g = af_params->m_g;
-	/* Set spring time step */
-	dt = fr_dt;
-	dt_tol = sqrt((af_params->m_s)/(af_params->ks))/10.0;
-        if (af_params->m_l != 0.0 &&
-            dt_tol > sqrt((af_params->m_l)/(af_params->kl))/10.0)
-            dt_tol = sqrt((af_params->m_l)/(af_params->kl))/10.0;
-        if (af_params->m_g != 0.0 &&
-            dt_tol > sqrt((af_params->m_g)/(af_params->kg))/10.0)
-            dt_tol = sqrt((af_params->m_g)/(af_params->kg))/10.0;
-	if (dt > dt_tol)
-        {
-            n_tan = (int)(fr_dt/dt_tol);
-            dt = fr_dt/(double)n_tan;
-        }
-        geom_set.dt = dt;
-        geom_set.n_sub = n_tan;
+	set_elastic_params(&geom_set,fr_dt);
 
 	if (debugging("step_size"))
         {
@@ -725,11 +699,7 @@ static void coating_mono_hyper_surf2d(
 	    }
 	}
 	if (immersed_curve == NULL)
-	{
-	    (void) printf("ERROR: In coating_mono_hyper_surf3d()"
-			 " no immersed_curve found!\n");
-	    clean_up(ERROR);
-	}
+	    return;
 
 	for (icoords[0] = 1; icoords[0] < top_gmax[0]; ++icoords[0])
 	for (icoords[1] = 1; icoords[1] < top_gmax[1]; ++icoords[1])
@@ -806,11 +776,7 @@ static void coating_mono_hyper_surf3d(
 	    }
 	}
 	if (immersed_surf == NULL)
-	{
-	    (void) printf("ERROR: In coating_mono_hyper_surf3d()"
-			 " No immersed_surf found!\n");
-	    clean_up(ERROR);
-	}
+	    return;
 
 	for (icoords[0] = 1; icoords[0] < top_gmax[0]; ++icoords[0])
 	for (icoords[1] = 1; icoords[1] < top_gmax[1]; ++icoords[1])
@@ -923,7 +889,7 @@ static void coating_mono_hyper_surf3d(
 
 extern void assembleParachuteSet(
 	INTERFACE *intfc,
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	int num_layers)
 {
 	SURFACE **s;

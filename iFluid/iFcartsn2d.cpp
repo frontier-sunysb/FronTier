@@ -260,8 +260,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	    div_U[index] = source[index];
 	    source[index] /= accum_dt;
 	    array[index] = phi[index];
-	    if (i == 13)
-		printf("source[%d] = %20.14f\n",j,source[index]);
 	}
 
 	if(debugging("step_size"))
@@ -315,8 +313,6 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	{
 	    index  = d_index2d(i,j,top_gmax);
 	    phi[index] = array[index];
-	    if (i == 13)
-		printf("phi[%d] = %20.14f\n",j,phi[index]);
 	}
 }	/* end computeProjectionSimple */
 

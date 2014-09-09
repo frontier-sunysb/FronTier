@@ -1548,3 +1548,143 @@ EXPORT	boolean FT_CoordsInSubdomain(
 	return YES;
 }	/* end FT_CoordsInSubdomain */
 
+LOCAL	boolean increment_parametric_function(
+	boolean (*func)(POINTER,double,double*),
+        POINTER func_params,
+	double	ds0,
+	double	*dt_next,
+	double	t,
+	double	*p0,
+	double	*p_next,
+	int 	dim)
+{
+	double ds;
+	double dt_min,dt_max,dt;
+	int    i,imax = 16;
+	double ds_min = 0.9*ds0;
+	double ds_max = 1.1*ds0;
+
+	dt = *dt_next;
+	if (dt <= 0.0)
+	{
+	    (void) printf("In increment_parametric_function():\n");
+	    (void) printf("Initial dt cannot be less or equal to zero\n");
+	    clean_up(ERROR);
+	}
+	(*func)(func_params,t+dt,p_next);
+	ds = distance_between_positions(p0,p_next,dim);
+	if (ds >= ds_min && ds <= ds_max) return YES;
+
+	if (ds < ds_min)
+	{
+	    dt_min = t + dt;
+	    for (i = 0; i < imax; ++i)
+	    {
+		dt *= 2.0;
+	    	(*func)(func_params,t+dt,p_next);
+	    	ds = distance_between_positions(p0,p_next,dim);
+		if (ds > ds_min) break;
+	    }
+	    if (i == imax) return NO;
+	    dt_max = t + dt;
+	}
+	else if (ds > ds_max)
+	{
+	    dt_max = t + dt;
+	    for (i = 0; i < imax; ++i)
+	    {
+		dt /= 2.0;
+	    	(*func)(func_params,t+dt,p_next);
+	    	ds = distance_between_positions(p0,p_next,dim);
+		if (ds < ds_max) break;
+	    }
+	    if (i == imax) return NO;
+	    dt_min = t + dt;
+	}
+	if (ds >= ds_min && ds <= ds_max) 
+	{
+	    *dt_next = dt;
+	    return YES;
+	}
+	for (i = 0; i < imax; ++i)
+	{
+	    dt = 0.5*(dt_max + dt_min);
+	    (*func)(func_params,t+dt,p_next);
+	    ds = distance_between_positions(p0,p_next,dim);
+	    if (ds > ds_max)
+		dt_max = dt;
+	    else if (ds < ds_min)
+		dt_min = dt;
+	    else
+		break;
+	}
+	if (i == imax) return NO;
+	else
+	{
+	    *dt_next = dt;
+	    return YES;
+	}
+}	/* end increment_parametric_function */
+
+EXPORT CURVE *FT_MakeParametricCurve(
+	Front	    *front,
+	COMPONENT   left_comp,
+	COMPONENT   right_comp,
+	int	    w_type,
+	boolean     (*func)(POINTER,double,double*),
+        POINTER     func_params,
+	int	    refinement_level,
+	boolean	    is_closed)
+{
+	INTERFACE *intfc = front->interf;
+	int     i,dim = FT_Dimension();
+	CURVE   *c;
+	int	num_points = 0;
+	double	**point_array = NULL;
+	double	dt,dt_min,dt_max;
+	double	t = 0.0;		/* parametric variable */
+	int 	max_num_pts = 400;
+	double	hmin,ds;
+	double	*p0,*p_next;
+
+	hmin = front->rect_grid->h[0];
+	for (i = 1; i < dim; ++i)
+	    if (hmin > front->rect_grid->h[i])
+		hmin = front->rect_grid->h[i];
+	ds = hmin/refinement_level; 	/* Average bond length */
+	dt = 1.0/400.0;	/* initial increment of parametric variable */
+
+	bi_array(&point_array,max_num_pts,MAXD,sizeof(double));
+	/* For all parametric functions, parametric variable must    */
+	/* start from 0 and end at 1. If not, needs to be normalized */
+	p0 = point_array[0];
+	(*func)(func_params,t,point_array[0]);
+	num_points++;
+	while (t + dt < 1.0)
+	{
+	    if (num_points >= max_num_pts) /* expand memory */
+	    {
+		free(point_array);
+		max_num_pts += 400;
+		bi_array(&point_array,max_num_pts,MAXD,sizeof(double));
+	    }
+	    p_next = point_array[num_points];
+	    if (!increment_parametric_function(func,func_params,ds,
+			&dt,t,p0,p_next,dim))
+	    {
+		(void) printf("ERROR in increment_parametric_function()\n");
+		(void) printf("Re-run and turn on parametric_curve\n");
+	    }
+	    t += dt;
+	    p0 = point_array[num_points];
+	    num_points++;
+	}
+
+	c = make_array_curve(intfc,left_comp,right_comp,num_points,
+			point_array,is_closed);
+
+	wave_type(c) = w_type;
+	if (point_array != NULL)
+	    free(point_array);
+	return c;
+}	/* end FT_MakeParametricCurve */

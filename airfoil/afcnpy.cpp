@@ -30,14 +30,14 @@ static void spring_force_at_point2(double*,POINT*,TRI*,SURFACE*,double);
 static boolean is_pore(Front*,HYPER_SURF_ELEMENT*,double*);
 static void compute_total_canopy_force2d(Front*,double*,double*);
 static void compute_total_canopy_force3d(Front*,double*,double*);
-static void compute_center_of_mass_velo(PARACHUTE_SET*);
+static void compute_center_of_mass_velo(ELASTIC_SET*);
 static void reduce_high_freq_vel(Front*,SURFACE*);
 static void smooth_vel(double*,POINT*,TRI*,SURFACE*);
 static boolean curve_in_pointer_list(CURVE*,CURVE**);
-static void set_string_impulse(PARACHUTE_SET*,SPRING_VERTEX*);
-static void setNodeVelocity(PARACHUTE_SET*,NODE*,double**,SPRING_VERTEX*,int*);
-static void setCurveVelocity(PARACHUTE_SET*,CURVE*,double**,SPRING_VERTEX*,int*);
-static void setSurfVelocity(PARACHUTE_SET*,SURFACE*,double**,SPRING_VERTEX*,int*);
+static void set_string_impulse(ELASTIC_SET*,SPRING_VERTEX*);
+static void setNodeVelocity(ELASTIC_SET*,NODE*,double**,SPRING_VERTEX*,int*);
+static void setCurveVelocity(ELASTIC_SET*,CURVE*,double**,SPRING_VERTEX*,int*);
+static void setSurfVelocity(ELASTIC_SET*,SURFACE*,double**,SPRING_VERTEX*,int*);
 
 #define 	MAX_NUM_RING1		30
 
@@ -244,7 +244,7 @@ static boolean is_pore(
 
 extern void fourth_order_parachute_propagate(
 	Front *fr,
-        PARACHUTE_SET *geom_set)
+        ELASTIC_SET *geom_set)
 {
 	static int size = 0;
 	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
@@ -287,13 +287,13 @@ extern void fourth_order_parachute_propagate(
 	    link_point_set(geom_set,point_set,point_set_store);
 	}
 
-	count_vertex_neighbors(geom_set,sv);
 	if (first)
 	{
+	    count_vertex_neighbors(geom_set,sv);
 	    set_spring_vertex_memory(sv,size);
+	    set_vertex_neighbors(geom_set,sv,point_set);
 	    first = NO;
 	}
-	new_set_vertex_neighbors(geom_set,sv,point_set);
 	get_point_set_from(geom_set,point_set);
 	stop_clock("set_data");
 
@@ -402,7 +402,7 @@ extern void assign_surf_field(
 }	/* end assign_surf_field */
 	
 extern void compute_surf_accel1(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	SURFACE *surf,
 	double **f,
 	double **x,
@@ -443,7 +443,7 @@ extern void compute_surf_accel1(
 }	/* end compute_surf_accel1 */
 
 extern void compute_curve_accel1(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	CURVE *curve,
 	double **f,
 	double **x,
@@ -563,7 +563,7 @@ extern void compute_curve_accel1(
 }	/* end compute_curve_accel1 */
 
 extern void compute_node_accel1(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	NODE *node,
 	double **f,
 	double **x,
@@ -741,7 +741,7 @@ extern void compute_node_accel1(
 }	/* end compute_node_accel1 */
 
 static void compute_center_of_mass_velo(
-	PARACHUTE_SET *geom_set)
+	ELASTIC_SET *geom_set)
 {
 	int i,j,n;
 	TRI *tri;
@@ -865,7 +865,7 @@ static void smooth_vel(
 }	/* end smooth_vel */
 
 extern void compute_node_accel2(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	NODE *node,
 	double **f,
 	double **x,
@@ -1037,7 +1037,7 @@ extern void compute_node_accel2(
 }	/* end compute_node_accel2 */
 
 extern void compute_curve_accel2(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	CURVE *curve,
 	double **f,
 	double **x,
@@ -1154,7 +1154,7 @@ extern void compute_curve_accel2(
 }	/* end compute_curve_accel2 */
 
 extern void compute_surf_accel2(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	SURFACE *surf,
 	double **f,
 	double **x,
@@ -1238,7 +1238,7 @@ static void spring_force_at_point2(
 }	/* end spring_force_at_point2 */
 
 extern void compute_node_accel3(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	NODE *node,
 	double **f,
 	double **x,
@@ -1411,7 +1411,7 @@ extern void compute_node_accel3(
 }	/* end compute_node_accel3 */
 
 extern void compute_curve_accel3(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	CURVE *curve,
 	double **f,
 	double **x,
@@ -1556,7 +1556,7 @@ extern boolean is_registered_point(
 }	/* end is_registered_point */
 
 extern void propagate_surface(
-        PARACHUTE_SET *geom_set,
+        ELASTIC_SET *geom_set,
         SURFACE *surf,
         double **x,
         int *n)
@@ -1607,7 +1607,7 @@ extern void propagate_surface(
 }       /* propagate_surface */
 
 extern void propagate_node(
-        PARACHUTE_SET *geom_set,
+        ELASTIC_SET *geom_set,
 	NODE *node,
         double **x,
         int *n)
@@ -1632,7 +1632,7 @@ extern void propagate_node(
 }	/* end propagate_node */
 
 extern void propagate_curve(
-        PARACHUTE_SET *geom_set,
+        ELASTIC_SET *geom_set,
 	CURVE *curve,
         double **x,
         int *n)
@@ -1772,7 +1772,7 @@ static void reduce_high_freq_vel(
 }	/* end reduce_high_freq_vel */
 
 static void setSurfVelocity(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	SURFACE *surf,
 	SPRING_VERTEX *sv,
 	int *n)
@@ -1815,7 +1815,7 @@ static void setSurfVelocity(
 }	/* end setSurfVelocity */
 
 static void setCurveVelocity(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	CURVE *curve,
 	SPRING_VERTEX *sv,
 	int *n)
@@ -1853,7 +1853,7 @@ static void setCurveVelocity(
 }	/* end setCurveVelocity */
 
 static void setNodeVelocity(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	NODE *node,
 	SPRING_VERTEX *sv,
 	int *n)
@@ -1942,7 +1942,7 @@ static void setNodeVelocity(
 }	/* end setNodeVelocity */
 
 extern void set_geomset_velocity(
-	PARACHUTE_SET *geom_set,
+	ELASTIC_SET *geom_set,
 	SPRING_VERTEX *sv)
 {
 	int i,n,ns,nc,nn;

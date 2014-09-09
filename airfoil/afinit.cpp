@@ -224,7 +224,7 @@ static void setInitialIntfcAF2d(
 	double x,y,phi,dx,dy,xL,yL,xU,yU,height;
 	double cen[2],rad[2],Amp,mu,phi0;
 
-        level_func_pack->is_closed_curve = NO;
+        level_func_pack->closed_curve = NO;
 	level_func_pack->neg_component = LIQUID_COMP2;
         level_func_pack->pos_component = LIQUID_COMP2;	
         level_func_pack->wave_type = ELASTIC_BOUNDARY;

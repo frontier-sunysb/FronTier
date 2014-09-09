@@ -31,6 +31,7 @@ static void MergeTwoIntfc(INTERFACE*,INTERFACE*);
 static void CopyNodeInfo(INTERFACE*,INTERFACE*);
 static void modifyCanopySet(FILE*,Front*,SURFACE*);
 static boolean curve_of_boundary_hs(CURVE*);
+static boolean line_seg_func(POINTER,double,double*);
 
 extern void init2DModules(Front *front)
 {
@@ -328,6 +329,7 @@ static void initRigidBody(
 	int i,dim = FT_Dimension();
 	int neg_comp,pos_comp;
 	CURVE *curve;
+	LINE_SEG_PARAMS line_params;
 
 	if (CursorAfterStringOpt(infile,"Enter yes to add rigid body:"))
 	{
@@ -338,8 +340,22 @@ static void initRigidBody(
 	}
 	else
 	    return;
+
+	w_type = MOVABLE_BODY_BOUNDARY;
+	(void) printf("Rigid body can be fixed (F) or Movable (M)\n");
+	(void) printf("The default is Movable (M)\n");
+	if (CursorAfterStringOpt(infile,"Type yes if the rigid body is fixed:"))
+	{
+	    fscanf(infile,"%s",string);
+	    (void) printf("%s\n",string);
+	    if (string[0] == 'y' || string[0] == 'Y')
+		w_type = NEUMANN_BOUNDARY;
+	}
+
 	(void) printf("Available type of rigid body include:\n");
 	(void) printf("\tCircle (c)\n");
+	(void) printf("\tLine segment (l)\n");
+	(void) printf("\tCirculer arc (a)\n");
 	CursorAfterString(infile,"Enter type of rigid body:");
 	fscanf(infile,"%s",string);
 	(void) printf("%s\n",string);
@@ -348,31 +364,65 @@ static void initRigidBody(
 	case 'c':
 	case 'C':
 	    CursorAfterString(infile,"Enter center of the circle:");
-	    fscanf(infile,"%lf %lf %lf",cen,cen+1,cen+2);
-	    (void) printf("%f %f %f\n",cen[0],cen[1],cen[2]);
+	    fscanf(infile,"%lf %lf",cen,cen+1);
+	    (void) printf("%f %f\n",cen[0],cen[1]);
 	    CursorAfterString(infile,"Enter radius of the circle:");
 	    fscanf(infile,"%lf",&radius);
 	    (void) printf("%f\n",radius);
 	    for (i = 0; i < dim; ++i) radii[i] = radius;
+	    neg_comp = SOLID_COMP;
+	    pos_comp = LIQUID_COMP2;
+	    FT_MakeEllipticCurve(front,cen,radii,neg_comp,pos_comp,w_type,
+				2.0,&curve);
+	    node_type(curve->start) = CLOSED_NODE;
+	    break;
+	case 'L':
+	case 'l':
+	    CursorAfterString(infile,"Enter start coordinate:");
+	    fscanf(infile,"%lf %lf",line_params.coords_start,
+				line_params.coords_start+1);
+	    (void) printf("%f %f\n",line_params.coords_start[0],
+				line_params.coords_start[1]);
+	    CursorAfterString(infile,"Enter end coordinate:");
+	    fscanf(infile,"%lf %lf",line_params.coords_end,
+				line_params.coords_end+1);
+	    (void) printf("%f %f\n",line_params.coords_end[0],
+				line_params.coords_end[1]);
+	    neg_comp = LIQUID_COMP2;
+	    pos_comp = LIQUID_COMP2;
+	    line_params.dim = 2;
+	    curve = FT_MakeParametricCurve(front,neg_comp,pos_comp,w_type,
+				line_seg_func,(POINTER)&line_params,2,NO);
+	    node_type(curve->start) = node_type(curve->end) = FIXED_NODE;
+	    break;
+	case 'A':
+	case 'a':
 	    break;
 	default:
 	    (void) printf("Unknow type of rigid body!\n");
 	    clean_up(ERROR);
 	}
-	(void) printf("Rigid body can be fixed (F) or Movable (M)\n");
-	(void) printf("The default is Movable (M)\n");
-	w_type = MOVABLE_BODY_BOUNDARY;
-	neg_comp = SOLID_COMP;
-	pos_comp = LIQUID_COMP2;
-	if (CursorAfterStringOpt(infile,"Type yes is the rigid body is fixed:"))
-	{
-	    fscanf(infile,"%s",string);
-	    (void) printf("%s\n",string);
-	    if (string[0] == 'y' || string[0] == 'Y')
-		w_type = NEUMANN_BOUNDARY;
-	}
-	FT_MakeEllipticCurve(front,cen,radii,neg_comp,pos_comp,w_type,
-				2.0,&curve);
-	node_type(curve->start) = CLOSED_NODE;
+
 	fclose(infile);
 }	/* end initRigidBody */
+
+static boolean line_seg_func(
+	POINTER params,
+	double t,
+	double *coords)
+{
+	LINE_SEG_PARAMS *l_params = (LINE_SEG_PARAMS*)params;
+	double *coords_start = l_params->coords_start;
+	double *coords_end = l_params->coords_end;
+	int i,dim = l_params->dim;
+
+	for (i = 0; i < dim; ++i)
+	{
+	    if (coords_end[i] == coords_start[i])
+		coords[i] = coords_start[i];
+	    else
+	    	coords[i] = coords_start[i] + 
+			t*(coords_end[i] - coords_start[i]);
+	}
+	return YES;
+}	/* end line_seg_func */
