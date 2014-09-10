@@ -217,6 +217,8 @@ struct _ELASTIC_SET{
 	double m_l;
 	double m_g;
 	int num_verts;		/* Total number of spring-mass points */
+	double fr_dt;
+	double dt_tol;
 	double dt;
 	int n_sub;
 };

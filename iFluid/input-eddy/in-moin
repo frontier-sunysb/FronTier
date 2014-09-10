@@ -1,0 +1,63 @@
+Domain limit in 0-th dimension: 0 1
+Domain limit in 1-th dimension: 0 4
+Computational grid: 50 200 
+Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
+Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
+Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
+Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
+
+Max time: 0.2
+Max step: 1 
+Print interval: 0.1
+Movie frame interval: 0.01
+CFL factor: 0.75
+Redistribution interval: 5
+
+Problem type can be
+	TWO_FLUID_BUBBLE
+	TWO_FLUID_RT
+	TWO_FLUID_KH
+	FLUID_SOLID_CIRCLE
+Enter problem type: FLUID_SOLID_CIRCLE
+Enter yes if the object is fixed: yes
+Projection type can be
+        SIMPLE
+        BELL_COLELLA
+        KIM_MOIN
+        PEROT_BOTELLA
+Enter projection type: SIMPLE
+Enter the center of the circle: 0.5 3.0
+Enter radius of the circle: 0.2
+Enter density and viscosity of the fluid: 1 0.016
+Enter yes to use eddy viscosity: yes
+Available tuebulence models are:
+	Baldwin-Lomax (B)
+	Moin (M)
+Enter turbulence model: M 
+Enter maximum distance for eddy viscosity: 0.1
+Enter gravity: 0.0 0.0
+Enter surface tension: 0.0
+Enter factor of smoothing radius: 1
+
+For lower boundary in 1-th dimension
+Enter type of Dirichlet boundary: FLOW_THROUGH
+For upper boundary in 1-th dimension
+Enter type of Dirichlet boundary: CONSTANT_STATE
+Enter velocity: 0 -10
+Enter pressure: 10
+
+Type y to make movie of pressure: y
+Type y to make movie of vorticity: y
+Type y to make movie of velocity: y
+Type y to make movie of viscosity: y
+
+Type y to make vector velocity field movie: y
+
+************Debugging options*****************
+
+Enter yes for debugging: yes
+Enter the debugging string: ttrace
+Enter the debugging string: tCLOCK
+Enter the debugging string: tstep_size
+Enter the debugging string: tPETSc 
+Enter the debugging string: tsample_velocity

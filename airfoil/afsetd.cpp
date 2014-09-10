@@ -1194,6 +1194,7 @@ extern void set_elastic_params(
         int n_tan = af_params->n_tan;
 
 	/* Set elastic set kinetic parameters */
+	geom_set->fr_dt = fr_dt;
         geom_set->ks = af_params->ks;
         geom_set->lambda_s = af_params->lambda_s;
         geom_set->m_s = af_params->m_s;
@@ -1213,6 +1214,7 @@ extern void set_elastic_params(
         if (af_params->m_g != 0.0 &&
             dt_tol > sqrt((af_params->m_g)/(af_params->kg))/10.0)
             dt_tol = sqrt((af_params->m_g)/(af_params->kg))/10.0;
+	geom_set->dt_tol = dt_tol;
         if (dt > dt_tol)
         {
             n_tan = (int)(fr_dt/dt_tol);

@@ -1146,6 +1146,10 @@ extern void read_iFparams(
 		case 'M':
 		    iFparams->eddy_visc_model = MOIN;
 		    break;
+		case 'S':
+		case 's':
+		    iFparams->eddy_visc_model = SMAGORINSKY;
+                    break;
 		default:
 		    (void) printf("Unknown eddy viscosity model!\n");
 		    clean_up(ERROR);

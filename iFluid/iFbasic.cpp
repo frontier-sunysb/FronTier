@@ -876,6 +876,7 @@ void Incompress_Solver_Smooth_Basis::initMovieVariables()
 		    FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
 				"visc",0,field->mu,getStateMu,
 				var_max,var_min);
+		    FT_AddVtkScalarMovieVariable(front,"VISC",field->mu);
 	    	}
 	    }
 	    break;
@@ -1472,7 +1473,7 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 	int range = (int)(m_smoothing_radius+1);
 	boolean first = YES;
 	if (iFparams->use_eddy_visc)
-	    range = FT_Max(range,(int)5*iFparams->ymax);
+	    range = FT_Max(range,(int)(5*iFparams->ymax/top_h[0]));
 
 	for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
@@ -1483,7 +1484,7 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 
 	    getRectangleCenter(index, center);
 	    status = FT_FindNearestIntfcPointInRange(front,comp,center,
-				INCLUDE_BOUNDARIES,point,t,&hse,&hs,range);
+				NO_BOUNDARIES,point,t,&hse,&hs,range);
 
 	    for (l = 0; l < dim; ++l) force[l] = 0.0;
 
@@ -1528,6 +1529,9 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 		    break;
 		case MOIN:
 		    mu[index] = computeMuOfMoinModel(icoords);
+		    break;
+		case SMAGORINSKY:
+		    mu[index] = computeMuofSmagorinskyModel(icoords); 
 		    break;
 		default:
 		    (void) printf("Unknown eddy viscosity model!\n");
@@ -2292,6 +2296,9 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
 		    break;
 		case MOIN:
 		    mu[index] = computeMuOfMoinModel(icoords);
+		    break;
+		case SMAGORINSKY:
+		    mu[index] = computeMuofSmagorinskyModel(icoords);
 		    break;
 		default:
 		    (void) printf("Unknown eddy viscosity model!\n");
@@ -3468,16 +3475,16 @@ double Incompress_Solver_Smooth_Basis::computeMuOfBaldwinLomax(
 {
 	int i,j,k,index;
 	COMPONENT comp;
-	double dudy = 1.0;
-	double vort = 2.8;
 	static double udif;
 	static double Fmax;
 	double speed, umax = -HUGE, umin = HUGE;
-	double mu_t, mu_in, mu_out, y_plus, l;
+	double vort, wmax = -HUGE;
+	double mu_t, mu_in, mu_out,l;
 	double rho = iFparams->rho2;
 	double nu = iFparams->mu2/rho;
 	double Fkleb, Fwake;
 	double ymax = iFparams->ymax;
+	vort = 50.0;
 
 	if (first == YES)
 	{
@@ -3493,8 +3500,10 @@ double Incompress_Solver_Smooth_Basis::computeMuOfBaldwinLomax(
             	    if (!ifluid_comp(comp)) continue;
 		    speed = sqrt(sqr(field->vel[0][index])+
 				sqr(field->vel[1][index]));
+		    vort = abs(field->vort[index]);
 		    umax = std::max(umax,speed);
 		    umin = std::min(umin,speed);
+		    wmax = std::max(wmax,vort);
 	    	}
 		break;
 	    case 3:	
@@ -3514,14 +3523,14 @@ double Incompress_Solver_Smooth_Basis::computeMuOfBaldwinLomax(
                 break;
 	    }
 	    udif = umax - umin;
-	    y_plus = ymax*sqrt(abs(dudy)/nu);
-	    Fmax = ymax*abs(vort)*(1-exp(-y_plus/26.0));
-	    printf("udif = %f  Fmax = %f\n",udif,Fmax);	
+	    vort = wmax;
+	    printf("maximum vort = %f\n",vort);
+	    Fmax = ymax*abs(vort);
 	}
 	index = d_index(icoords,top_gmax,dim);
-	y_plus = dist*sqrt(abs(dudy)/nu);
+	vort = field->vort[index];
 
-	l = 0.41*dist*(1.0-exp(-y_plus/26.0));
+	l = 0.41*dist;
 	mu_in = rho * l * l * abs(vort); 
 
 	Fwake = std::min(ymax*Fmax,0.25*ymax*sqr(udif)/Fmax);
@@ -3532,7 +3541,7 @@ double Incompress_Solver_Smooth_Basis::computeMuOfBaldwinLomax(
 	    mu_t = mu_in;
 	else
 	    mu_t = mu_out;
-	return mu_t + nu*rho;
+	return mu_t;
 }	/* end computeMuOfBaldwinLomax */
 
 static void initTestParams(Front *front)
@@ -3738,7 +3747,7 @@ double Incompress_Solver_Smooth_Basis::computeMuOfMoinModel(
 {
 	double nu_t, C_v = 0.07;
     	int i, j, k;
-    	int index[6];
+    	int index[6], index0;
     	double alpha[MAXD][MAXD] = {{0,0,0}, {0, 0, 0}, {0, 0, 0}};
     	double beta[MAXD][MAXD] = {{0,0,0}, {0, 0, 0}, {0, 0, 0}};
     	double sigma, B_beta, sum_alpha;
@@ -3749,12 +3758,15 @@ double Incompress_Solver_Smooth_Basis::computeMuOfMoinModel(
     	switch( dim )
     	{
 	    case 2:
+		index0   = d_index2d(icoords[0],icoords[1],top_gmax);
 	        index[0] = d_index2d(icoords[0]-1,icoords[1],top_gmax);
 	        index[1] = d_index2d(icoords[0]+1,icoords[1],top_gmax);
 	        index[2] = d_index2d(icoords[0],icoords[1]-1,top_gmax);
 	        index[3] = d_index2d(icoords[0],icoords[1]+1,top_gmax);
 	        break;
 	    case 3:
+	        index0   = d_index3d(icoords[0],icoords[1],icoords[2],
+					top_gmax); 
 	        index[0] = d_index3d(icoords[0]-1,icoords[1],icoords[2],
 					top_gmax); 
 	        index[1] = d_index3d(icoords[0]+1,icoords[1],icoords[2],
@@ -3793,5 +3805,51 @@ double Incompress_Solver_Smooth_Basis::computeMuOfMoinModel(
     	else
 	    sigma = sqrt( B_beta/sum_alpha );
     	nu_t = C_v*sigma;
-     	return nu_t;
+     	return nu_t * field->rho[index0];
 }	/* end computeMuOfMoinModel*/
+
+double Incompress_Solver_Smooth_Basis::computeMuofSmagorinskyModel(
+                int *icoords)
+{
+        double mu, delta, sum_S = 0, C_s = 0.15;
+        double S[MAXD][MAXD] = {{0,0,0}, {0,0,0}, {0,0,0}};
+        double alpha[MAXD][MAXD] = {{0,0,0}, {0, 0, 0}, {0, 0, 0}};
+        int i, j, index0, index[6];
+        double **vel = field->vel;
+        switch (dim)
+	{
+            case 2:
+            	delta = sqrt( top_h[0]*top_h[1] );
+                index0 = d_index2d(icoords[0], icoords[1], top_gmax);
+                index[0] = d_index2d(icoords[0]-1, icoords[1], top_gmax);
+                index[1] = d_index2d(icoords[0]+1, icoords[1], top_gmax);
+                index[2] = d_index2d(icoords[0], icoords[1]-1, top_gmax);
+                index[3] = d_index2d(icoords[0], icoords[1]+1, top_gmax);
+                break;
+            case 3:
+                delta = pow(top_h[0]*top_h[1]*top_h[2], 1.0/3);
+                index0 = d_index3d(icoords[0], icoords[1], icoords[2], top_gmax);
+                index[0] = d_index3d(icoords[0]-1, icoords[1], icoords[2], top_gmax);
+                index[1] = d_index3d(icoords[0]+1, icoords[1], icoords[2], top_gmax);
+                index[2] = d_index3d(icoords[0], icoords[1]-1, icoords[2], top_gmax);
+                index[3] = d_index3d(icoords[0], icoords[1]+1, icoords[2], top_gmax);
+                index[4] = d_index3d(icoords[0], icoords[1], icoords[2]-1, top_gmax);
+                index[5] = d_index3d(icoords[0], icoords[1], icoords[2]+1, top_gmax);
+                break;
+        }
+        for (i = 0; i < dim; ++i)
+        for (j = 0; j < dim; ++j)
+        {
+                alpha[i][j] = (vel[j][index[2*i+1]] - vel[j][index[2*i]])/(2*top_h[i]);
+        }
+        for (i = 0; i < dim; ++i)
+        for (j = 0; j < dim; ++j)
+        {
+                S[i][j] = 1.0/2*(alpha[i][j] + alpha[j][i]);
+                sum_S += S[i][j]*S[i][j];
+        }
+        sum_S = sqrt(2*sum_S);
+        mu = field->rho[index0]*sqr(C_s*delta)*sum_S;
+        return mu;
+}       /* end of computeMuofSmagorinskyModel */
+

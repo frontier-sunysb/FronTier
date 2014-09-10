@@ -258,6 +258,7 @@ LOCAL 	int append_adj_intfc_to_buffer3(
 {
 	INTERFACE	*cur_intfc;
 	SURFACE		**s, **as;
+	CURVE		**ac;
 	int		p_size;		/*Size of space allocated for p_table*/
 	static P_LINK	*p_table = NULL;/* Table of matching points on intfc
 					 * and adj_intfc*/
@@ -313,6 +314,9 @@ LOCAL 	int append_adj_intfc_to_buffer3(
 		Hyper_surf_index(surf) = Hyper_surf_index((*as));
 	    }
 	}
+	/* append curves not on surfaces */
+	for (ac = adj_intfc->curves; ac && *ac; ++ac)
+	    matching_curve(*ac,p_table,p_size); 
 	
 	merge_curves(intfc,adj_intfc);
 	reset_intfc_num_points(intfc);

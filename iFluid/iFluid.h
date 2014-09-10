@@ -99,7 +99,8 @@ typedef enum _DOMAIN_METHOD DOMAIN_METHOD;
 
 enum _EDDY_VISC {
 	BALDWIN_LOMAX		= 1,
-	MOIN
+	MOIN,
+	SMAGORINSKY
 };
 typedef enum _EDDY_VISC EDDY_VISC;
 
@@ -370,6 +371,7 @@ protected:
 	double computeDualMu(int*, double*);
 	double computeMuOfBaldwinLomax(int*, double, boolean);
 	double computeMuOfMoinModel(int*);
+	double computeMuofSmagorinskyModel(int*);
 	void   computeFieldPointGrad(int*, double*, double*);
 	void   computeDualFieldPointGrad(int*, double*, double*);
 	void   checkVelocityDiv(const char*);

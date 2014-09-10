@@ -1689,6 +1689,9 @@ LOCAL	boolean f_intfc_communication3d1(
 		    dst_id = domain_id(him,G,dim);
 		    if (dst_id != myid)
 			adj_intfc[(j+1)%2] = receive_interface(dst_id);
+		    char fname[100];
+		    sprintf(fname,"recv.%d",pp_mynode());
+		    gview_plot_interface(fname,adj_intfc[(j+1)%2]);
 		}
 
 	    }
@@ -2209,6 +2212,7 @@ LOCAL 	int append_adj_intfc_to_buffer1(
 {
 	INTERFACE	*cur_intfc;
 	SURFACE		**s, **as;
+	CURVE		**ac;
 	int		p_size;		/*Size of space allocated for p_table*/
 	static P_LINK	*p_table = NULL;/* Table of matching points on intfc
 					 * and adj_intfc*/
@@ -2299,6 +2303,9 @@ LOCAL 	int append_adj_intfc_to_buffer1(
 		Hyper_surf_index(surf) = Hyper_surf_index((*as));
 	    }
 	}
+	/* append curves not on surfaces */
+        for (ac = adj_intfc->curves; ac && *ac; ++ac)
+            matching_curve(*ac,p_table,p_size);
 	
 	merge_curves(intfc,adj_intfc);
 	
@@ -3487,6 +3494,12 @@ LOCAL void clip_intfc_at_grid_bdry1(
 	    for (nb = 0; nb < 2; ++nb)
 	    	open_null_sides1(intfc,L,U,dir,nb);
 	}
+	for (dir = 0; dir < dim; ++dir)
+	{
+            for (nb = 0; nb < 2; ++nb)
+            	open_null_bonds(intfc,L,U,dir,nb);
+	}
+
 	cut_out_curves_in_buffer(intfc);
 	reset_intfc_num_points(intfc);
 	set_current_interface(cur_intfc);
@@ -3980,6 +3993,7 @@ EXPORT	INTERFACE  *cut_buf_interface1(
 	}
 
 	open_null_sides1(tmp_intfc,L,U,dir,(nb+1)%2);
+	open_null_bonds(tmp_intfc,L,U,dir,(nb+1)%2);
 
 	/*
 	 * Split curves that have been disconnected from surfaces

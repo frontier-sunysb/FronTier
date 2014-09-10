@@ -989,6 +989,11 @@ LOCAL 	boolean append_adj_intfc_to_buffer2(
 		Hyper_surf_index(surf) = Hyper_surf_index((*as));
 	    }
 	}
+	/* append curves not on surfaces */
+	/*
+        for (ac = adj_intfc->curves; ac && *ac; ++ac)
+            matching_curve(*ac,p_table,p_size);
+	*/
 	
 	free(p_table);
 	

@@ -1960,3 +1960,131 @@ extern void set_geomset_velocity(
 
 }	/* end set_geomset_velocity */
 
+static void print_elastic_params(
+	Front *fr,
+	ELASTIC_SET geom_set)
+{
+	int i;
+	double *spfr = Spfr(fr);
+        printf("Before fourth_order_parachute_propagate()\n");
+        for (i = 0; i <= 3; ++i)
+            printf("Max front speed(%d) = %f\n",i,spfr[i]);
+        (void) printf("Input surface parameters:\n");
+        (void) printf("ks = %f  m_s = %f  lambda_s = %f\n",
+                    	geom_set.ks,
+                        geom_set.m_s,
+                        geom_set.lambda_s);
+        (void) printf("Input string parameters:\n");
+        (void) printf("kl = %f  m_l = %f  lambda_l = %f\n",
+                        geom_set.kl,
+                        geom_set.m_l,
+                        geom_set.lambda_l);
+        (void) printf("Input gore parameters:\n");
+        (void) printf("kg = %f  m_g = %f  lambda_g = %f\n",
+                        geom_set.kg,
+                        geom_set.m_g,
+                        geom_set.lambda_g);
+	(void) printf("\nfr_dt = %f  dt_tol = %20.14f  dt = %20.14f\n",
+                        geom_set.fr_dt,geom_set.dt_tol,geom_set.dt);
+        (void) printf("Number of interior sub-steps = %d\n\n",geom_set.n_sub);
+}	/* end print_elastic_params */
+
+extern void fourth_order_elastic_set_propagate(
+	Front           *fr,
+        double           fr_dt)
+{
+	static ELASTIC_SET geom_set;
+	static int size = 0;
+        AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
+        int i,j,n,n_sub,num_pts;
+        double dt;
+        static SPRING_VERTEX *sv;
+        static boolean first = YES;
+        static POINT_SET **point_set;
+        static POINT_SET *point_set_store;
+        int dim = FT_Dimension();
+        long max_point_gindex = fr->interf->max_point_gindex;
+	int owner[MAXD];
+
+	(void) printf("Entering fourth_order_elastic_set_propagate()\n");
+	if (pp_numnodes() > 1)
+	{
+	    INTERFACE *elastic_intfc;
+            owner[0] = 0;
+            owner[1] = 0;
+            owner[2] = 0;
+	    add_to_debug("collect_intfc");
+            elastic_intfc = FT_CollectHypersurfFromSubdomains(fr,owner,
+				ELASTIC_BOUNDARY);
+	    printf("Parallel code needed!\n");
+            clean_up(0);
+	}
+	if (debugging("trace"))
+	    (void) printf("Entering fourth_order_elastic_set_propagate()\n");
+
+	geom_set.front = fr;
+	assembleParachuteSet(fr->interf,&geom_set,3);
+	set_elastic_params(&geom_set,fr_dt);
+	if (debugging("step_size"))
+	    print_elastic_params(fr,geom_set);
+
+	start_clock("set_data");
+	n_sub = geom_set.n_sub;
+	dt = geom_set.dt;
+
+	num_pts = geom_set.num_verts;
+
+	dt = geom_set.dt;
+	if (point_set == NULL)
+	{
+	    FT_VectorMemoryAlloc((POINTER*)&point_set,max_point_gindex,
+					sizeof(POINT_SET*));
+	    for (i = 0; i < max_point_gindex; ++i)
+		point_set[i] = NULL;
+	}
+	if (size < num_pts)
+	{
+	    size = num_pts;
+	    if (sv != NULL)
+	    {
+		FT_FreeThese(1,sv);
+	    }
+	    FT_VectorMemoryAlloc((POINTER*)&sv,size,sizeof(SPRING_VERTEX));
+	    FT_VectorMemoryAlloc((POINTER*)&point_set_store,size,
+					sizeof(POINT_SET));
+	    link_point_set(&geom_set,point_set,point_set_store);
+	}
+
+	if (first)
+	{
+	    count_vertex_neighbors(&geom_set,sv);
+	    set_spring_vertex_memory(sv,size);
+	    set_vertex_neighbors(&geom_set,sv,point_set);
+	    first = NO;
+	}
+	get_point_set_from(&geom_set,point_set);
+	stop_clock("set_data");
+
+	start_clock("spring_model");
+#if defined(__GPU__)
+        if (af_params->use_gpu)
+        {
+            if (debugging("trace"))
+                (void) printf("Enter gpu_spring_solver()\n");
+            gpu_spring_solver(sv,dim,size,n_sub,dt);
+            if (debugging("trace"))
+                (void) printf("Left gpu_spring_solver()\n");
+        }
+        else
+#endif
+        generic_spring_solver(sv,dim,size,n_sub,dt);
+	stop_clock("spring_model");
+	put_point_set_to(&geom_set,point_set);
+
+	set_vertex_impulse(&geom_set,sv);
+	set_geomset_velocity(&geom_set,sv);
+	compute_center_of_mass_velo(&geom_set);
+	
+	if (debugging("trace"))
+	    (void) printf("Leaving fourth_order_elastic_set_propagate()\n");
+}	/* end fourth_order_elastic_set_propagate() */

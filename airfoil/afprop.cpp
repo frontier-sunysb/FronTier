@@ -171,69 +171,6 @@ extern void airfoil_point_propagate(
                                         dt,V);
 }       /* airfoil_point_propagate */
 
-extern void fourth_order_elastic_set_propagate(
-	Front           *newfr,
-        double           fr_dt)
-{
-	static ELASTIC_SET geom_set;
-	AF_PARAMS *af_params = (AF_PARAMS*)newfr->extra2;
-	double dt,dt_tol;
-	int n_tan = af_params->n_tan;
-	int owner[MAXD];
-
-	(void) printf("Entering fourth_order_elastic_set_propagate()\n");
-	if (pp_numnodes() > 1)
-	{
-	    INTERFACE *elastic_intfc;
-            owner[0] = 0;
-            owner[1] = 0;
-            owner[2] = 0;
-	    add_to_debug("collect_intfc");
-            elastic_intfc = FT_CollectHypersurfFromSubdomains(newfr,owner,
-				ELASTIC_BOUNDARY);
-	    printf("Parallel code needed!\n");
-            clean_up(0);
-	}
-	if (debugging("trace"))
-	    (void) printf("Entering fourth_order_elastic_set_propagate()\n");
-
-	geom_set.front = newfr;
-	assembleParachuteSet(newfr->interf,&geom_set,3);
-	set_elastic_params(&geom_set,fr_dt);
-
-	if (debugging("step_size"))
-        {
-	    int i;
-	    double *spfr = Spfr(newfr);
-            printf("Before fourth_order_parachute_propagate()\n");
-            for (i = 0; i <= 3; ++i)
-                printf("Max front speed(%d) = %f\n",i,spfr[i]);
-            (void) printf("Input surface parameters:\n");
-            (void) printf("ks = %f  m_s = %f  lambda_s = %f\n",
-                        geom_set.ks,
-                        geom_set.m_s,
-                        geom_set.lambda_s);
-            (void) printf("Input string parameters:\n");
-            (void) printf("kl = %f  m_l = %f  lambda_l = %f\n",
-                        geom_set.kl,
-                        geom_set.m_l,
-                        geom_set.lambda_l);
-            (void) printf("Input gore parameters:\n");
-            (void) printf("kg = %f  m_g = %f  lambda_g = %f\n",
-                        geom_set.kg,
-                        geom_set.m_g,
-                        geom_set.lambda_g);
-	    (void) printf("\nfr_dt = %f  dt_tol = %20.14f  dt = %20.14f\n",
-                                fr_dt,dt_tol,dt);
-            (void) printf("Number of interior sub-steps = %d\n\n",n_tan);
-        }
-
-	fourth_order_parachute_propagate(newfr,&geom_set);
-	
-	if (debugging("trace"))
-	    (void) printf("Leaving fourth_order_elastic_set_propagate()\n");
-}	/* end fourth_order_elastic_set_propagate() */
-
 extern void airfoil_curve_propagate(
         Front *front,
         POINTER wave,
