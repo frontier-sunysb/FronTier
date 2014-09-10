@@ -6,7 +6,7 @@ Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
 Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
 
-Max time: 12.0
+Max time: 6.0
 Print interval: 2
 Movie frame interval: 0.2
 
@@ -33,12 +33,13 @@ Enter number of canopy surfaces: 1
 Enter yes to add rigid body: yes
 Available type of rigid body include:
 	Circle (C)
-Enter type of rigid body: C
-Enter center of the circle: 6 1
-Enter radius of the circle: 2
+	Line segment (L)
+Enter type of rigid body: L
+Enter start coordinate: 3 0
+Enter end coordinate: 9 0
 Rigid body can be fixed (F) or Movable (M)
 The default is Movable (M)
-Type yes is the rigid body is fixed: yes
+Type yes if the rigid body is fixed: yes
 
 Entering yes to turn off fluid solver: no
 Enter gravity: 0 0
@@ -67,12 +68,10 @@ Enter yes for debugging: yes
 Enter the debugging string: tcoat_comp
 Enter the debugging string: tcanopy_struct
 Enter the debugging string: ttrace
-Enter the debugging string: opt_elastic_mesh
-Enter the debugging string: step_size
+Enter the debugging string: tstep_size
 Enter the debugging string: tCLOCK
 Enter the debugging string: tdirichlet_bdry
 Enter the debugging string: tflow_through
-Enter the debugging string: smooth_canopy_vel
 Enter the debugging string: sample_velocity
 Enter the sample line type: xy
 Enter the sample line coordinate: 6.0 6.0
