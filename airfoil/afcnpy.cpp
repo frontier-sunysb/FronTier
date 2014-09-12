@@ -241,86 +241,6 @@ static boolean is_pore(
 	return (Tri_index(tri) == 0) ? YES : NO;
 }	/* end is_pore */
 
-
-extern void fourth_order_parachute_propagate(
-	Front *fr,
-        ELASTIC_SET *geom_set)
-{
-	static int size = 0;
-	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
-	int i,j,n,n_sub,num_pts;
-	double dt;
-	static SPRING_VERTEX *sv;
-	static boolean first = YES;
-	static POINT_SET **point_set;
-	static POINT_SET *point_set_store;
-	int dim = FT_Dimension();
-	long max_point_gindex = fr->interf->max_point_gindex;
-
-	if (debugging("trace"))
-	    (void) printf("Entering fourth_order_parachute_propagate()\n");
-
-	start_clock("set_data");
-	n_sub = geom_set->n_sub;
-	dt = geom_set->dt;
-
-	num_pts = geom_set->num_verts;
-
-	dt = geom_set->dt;
-	if (point_set == NULL)
-	{
-	    FT_VectorMemoryAlloc((POINTER*)&point_set,max_point_gindex,
-					sizeof(POINT_SET*));
-	    for (i = 0; i < max_point_gindex; ++i)
-		point_set[i] = NULL;
-	}
-	if (size < num_pts)
-	{
-	    size = num_pts;
-	    if (sv != NULL)
-	    {
-		FT_FreeThese(1,sv);
-	    }
-	    FT_VectorMemoryAlloc((POINTER*)&sv,size,sizeof(SPRING_VERTEX));
-	    FT_VectorMemoryAlloc((POINTER*)&point_set_store,size,
-					sizeof(POINT_SET));
-	    link_point_set(geom_set,point_set,point_set_store);
-	}
-
-	if (first)
-	{
-	    count_vertex_neighbors(geom_set,sv);
-	    set_spring_vertex_memory(sv,size);
-	    set_vertex_neighbors(geom_set,sv,point_set);
-	    first = NO;
-	}
-	get_point_set_from(geom_set,point_set);
-	stop_clock("set_data");
-
-	start_clock("spring_model");
-#if defined(__GPU__)
-        if (af_params->use_gpu)
-        {
-            if (debugging("trace"))
-                (void) printf("Enter gpu_spring_solver()\n");
-            gpu_spring_solver(sv,dim,size,n_sub,dt);
-            if (debugging("trace"))
-                (void) printf("Left gpu_spring_solver()\n");
-        }
-        else
-#endif
-        generic_spring_solver(sv,dim,size,n_sub,dt);
-	stop_clock("spring_model");
-	put_point_set_to(geom_set,point_set);
-
-	set_vertex_impulse(geom_set,sv);
-	set_geomset_velocity(geom_set,sv);
-	compute_center_of_mass_velo(geom_set);
-
-	if (debugging("trace"))
-	    (void) printf("Leaving fourth_order_parachute_propagate()\n");
-}	/* end fourth_order_parachute_propagate */
-
 extern void assign_node_field(
 	NODE *node,
 	double **x,
@@ -1961,12 +1881,13 @@ extern void set_geomset_velocity(
 }	/* end set_geomset_velocity */
 
 static void print_elastic_params(
-	Front *fr,
 	ELASTIC_SET geom_set)
 {
 	int i;
-	double *spfr = Spfr(fr);
-        printf("Before fourth_order_parachute_propagate()\n");
+	double *spfr;
+	Front *fr = geom_set.front;
+
+	spfr = Spfr(fr);
         for (i = 0; i <= 3; ++i)
             printf("Max front speed(%d) = %f\n",i,spfr[i]);
         (void) printf("Input surface parameters:\n");
@@ -1984,9 +1905,8 @@ static void print_elastic_params(
                         geom_set.kg,
                         geom_set.m_g,
                         geom_set.lambda_g);
-	(void) printf("\nfr_dt = %f  dt_tol = %20.14f  dt = %20.14f\n",
-                        geom_set.fr_dt,geom_set.dt_tol,geom_set.dt);
-        (void) printf("Number of interior sub-steps = %d\n\n",geom_set.n_sub);
+	(void) printf("\ndt_tol = %20.14f  dt = %20.14f\n",
+                        geom_set.dt_tol,geom_set.dt);
 }	/* end print_elastic_params */
 
 extern void fourth_order_elastic_set_propagate(
@@ -1994,91 +1914,112 @@ extern void fourth_order_elastic_set_propagate(
         double           fr_dt)
 {
 	static ELASTIC_SET geom_set;
-	static int size = 0;
+	static int size = 0,owner_size;
         AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
-        int i,j,n,n_sub,num_pts;
+        int i,n_sub;
         double dt;
         static SPRING_VERTEX *sv;
         static boolean first = YES;
-        static POINT_SET **point_set;
-        static POINT_SET *point_set_store;
+        static GLOBAL_POINT **point_set;
+        static GLOBAL_POINT *point_set_store;
         int dim = FT_Dimension();
         long max_point_gindex = fr->interf->max_point_gindex;
 	int owner[MAXD];
+	int owner_id = af_params->node_id[0];
+        int myid = pp_mynode();
+        INTERFACE *elastic_intfc = NULL;
 
-	(void) printf("Entering fourth_order_elastic_set_propagate()\n");
-	if (pp_numnodes() > 1)
+	if (debugging("trace"))
+	    (void) printf("Entering fourth_order_elastic_set_propagate()\n");
+	geom_set.front = fr;
+
+	if (first)
+        {
+            set_elastic_params(&geom_set,fr_dt);
+            if (debugging("step_size"))
+                print_elastic_params(geom_set);
+        }
+        if (fr_dt > geom_set.dt_tol)
+        {
+            n_sub = (int)(fr_dt/geom_set.dt_tol);
+            dt = fr_dt/n_sub;
+        }
+	else
+        {
+            n_sub = af_params->n_sub;
+            dt = fr_dt/n_sub;
+        }
+	if (first)
 	{
-	    INTERFACE *elastic_intfc;
             owner[0] = 0;
             owner[1] = 0;
             owner[2] = 0;
-	    add_to_debug("collect_intfc");
-            elastic_intfc = FT_CollectHypersurfFromSubdomains(fr,owner,
-				ELASTIC_BOUNDARY);
-	    printf("Parallel code needed!\n");
-            clean_up(0);
-	}
-	if (debugging("trace"))
-	    (void) printf("Entering fourth_order_elastic_set_propagate()\n");
-
-	geom_set.front = fr;
-	assembleParachuteSet(fr->interf,&geom_set,3);
-	set_elastic_params(&geom_set,fr_dt);
-	if (debugging("step_size"))
-	    print_elastic_params(fr,geom_set);
-
-	start_clock("set_data");
-	n_sub = geom_set.n_sub;
-	dt = geom_set.dt;
-
-	num_pts = geom_set.num_verts;
-
-	dt = geom_set.dt;
-	if (point_set == NULL)
-	{
 	    FT_VectorMemoryAlloc((POINTER*)&point_set,max_point_gindex,
-					sizeof(POINT_SET*));
+					sizeof(GLOBAL_POINT*));
 	    for (i = 0; i < max_point_gindex; ++i)
 		point_set[i] = NULL;
-	}
-	if (size < num_pts)
-	{
-	    size = num_pts;
-	    if (sv != NULL)
-	    {
-		FT_FreeThese(1,sv);
-	    }
-	    FT_VectorMemoryAlloc((POINTER*)&sv,size,sizeof(SPRING_VERTEX));
-	    FT_VectorMemoryAlloc((POINTER*)&point_set_store,size,
-					sizeof(POINT_SET));
-	    link_point_set(&geom_set,point_set,point_set_store);
-	}
 
-	if (first)
-	{
-	    count_vertex_neighbors(&geom_set,sv);
-	    set_spring_vertex_memory(sv,size);
-	    set_vertex_neighbors(&geom_set,sv,point_set);
+	    if (pp_numnodes() > 1)
+            	elastic_intfc = FT_CollectHypersurfFromSubdomains(fr,owner,
+				ELASTIC_BOUNDARY);
+	    else
+		elastic_intfc = fr->interf;
+	    start_clock("set_data");
+	    if (myid == owner_id)
+            {
+		assembleParachuteSet(elastic_intfc,&geom_set);
+		owner_size = geom_set.num_verts;
+		FT_VectorMemoryAlloc((POINTER*)&point_set_store,owner_size,
+                                        sizeof(GLOBAL_POINT));
+                FT_VectorMemoryAlloc((POINTER*)&sv,owner_size,
+                                        sizeof(SPRING_VERTEX));
+		link_point_set(&geom_set,point_set,point_set_store);
+	    	count_vertex_neighbors(&geom_set,sv);
+	    	set_spring_vertex_memory(sv,owner_size);
+	    	set_vertex_neighbors(&geom_set,sv,point_set);
+		if (elastic_intfc != fr->interf)
+		    delete_interface(elastic_intfc);
+	    }
+	    stop_clock("set_data");
 	    first = NO;
 	}
-	get_point_set_from(&geom_set,point_set);
-	stop_clock("set_data");
 
-	start_clock("spring_model");
+	elastic_intfc = fr->interf;
+	assembleParachuteSet(elastic_intfc,&geom_set);
+	if (myid != owner_id && size < geom_set.num_verts)
+	{
+	    size = geom_set.num_verts;
+	    if (point_set_store != NULL)
+		FT_FreeThese(1,point_set_store);
+	    FT_VectorMemoryAlloc((POINTER*)&point_set_store,size,
+                                        sizeof(GLOBAL_POINT));
+	    link_point_set(&geom_set,point_set,point_set_store);
+	}
+	else
+	    size = owner_size;
+	
+
+	if (myid == owner_id)
+	{
+	    get_point_set_from(&geom_set,point_set);
+	/* Owner receive and patch point_set_store from other processors */
+
+	    start_clock("spring_model");
 #if defined(__GPU__)
-        if (af_params->use_gpu)
-        {
-            if (debugging("trace"))
-                (void) printf("Enter gpu_spring_solver()\n");
-            gpu_spring_solver(sv,dim,size,n_sub,dt);
-            if (debugging("trace"))
-                (void) printf("Left gpu_spring_solver()\n");
-        }
-        else
+            if (af_params->use_gpu)
+            {
+            	if (debugging("trace"))
+                    (void) printf("Enter gpu_spring_solver()\n");
+            	gpu_spring_solver(sv,dim,size,n_sub,dt);
+            	if (debugging("trace"))
+                    (void) printf("Left gpu_spring_solver()\n");
+            }
+            else
 #endif
-        generic_spring_solver(sv,dim,size,n_sub,dt);
-	stop_clock("spring_model");
+            	generic_spring_solver(sv,dim,size,n_sub,dt);
+	    stop_clock("spring_model");
+	}
+	/* Owner send and patch point_set_store from other processors */
 	put_point_set_to(&geom_set,point_set);
 
 	set_vertex_impulse(&geom_set,sv);

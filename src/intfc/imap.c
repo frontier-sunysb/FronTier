@@ -962,3 +962,15 @@ EXPORT int I_NumOfNodeCurves(
             ++n;
         return n;
 }       /* end I_NumOfNodeCurves */
+
+EXPORT int I_NumOfCurveSurfaces(
+        CURVE *curve)     
+{
+        int n = 0;      
+        SURFACE **s;
+        for (s = curve->pos_surfaces; s && *s; ++s) 
+            ++n;
+        for (s = curve->neg_surfaces; s && *s; ++s) 
+            ++n;
+        return n;
+}       /* end I_NumOfCurveSurfaces */

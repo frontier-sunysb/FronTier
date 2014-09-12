@@ -86,6 +86,9 @@ int main(int argc, char **argv)
             sprintf(restart_state_name,"%s-nd%s",restart_state_name,
 				right_flush(pp_mynode(),4));
 	}
+	af_params.num_np = 1;
+	FT_VectorMemoryAlloc((POINTER*)&af_params.node_id,1,sizeof(int));
+	af_params.node_id[0] = 0;
 
 	FT_ReadSpaceDomain(in_name,&f_basic);
 	FT_StartUp(&front,&f_basic);

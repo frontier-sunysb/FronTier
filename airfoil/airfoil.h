@@ -60,8 +60,6 @@ typedef struct _PERT_PARAMS PERT_PARAMS;
 
 typedef struct {
         int dim;
-        POINTER level_func_params;
-        NS_SCHEME num_scheme;
         SPRING_MODEL spring_model;
 	boolean no_fluid;
 	boolean is_parachute_system;
@@ -74,16 +72,8 @@ typedef struct {
 	STRING_NODE_TYPE start_type;
 	STRING_NODE_TYPE end_type;
 	double gore_len_fac;
-        double rho1;
-        double rho2;
-        double mu1;
-        double mu2;
-        double U1[MAXD];
-        double U2[MAXD];
         double gravity[MAXD];		/* gravitational force */
 	double payload;
-        double surf_tension;
-        double smoothing_radius;
 	double ks;			/* spring constant of surface */
 	double kl;			/* spring constant of string curves */
 	double kg;                      /* spring constant of gore curves */
@@ -98,13 +88,13 @@ typedef struct {
         double total_gore_mass;         /* Total mass of gore */
 	double gamma;			/* canopy porosity */
 	double area_dens;		/* canopy area density */
-	double min_len;
-	int    n_tan;			/* number of sub-steps for tan prop */
-	int    num_opt_round;		/* number of canopy optimizations 
-							rounds*/ 
+	int    n_sub;			/* number of sub-steps for tan prop */
+	int    num_opt_round;		/* number of mesh optimizations rounds*/
 	int    num_smooth_layers;	/* number of layer to smooth high
 					   frequency velocity */
-        IF_FIELD *field;
+	int    num_np;			/* number of master node to run spring
+					   model */
+	int    *node_id;		/* master node id */
 } AF_PARAMS;
 
 /*	airfoil.cpp functions */
@@ -217,10 +207,8 @@ struct _ELASTIC_SET{
 	double m_l;
 	double m_g;
 	int num_verts;		/* Total number of spring-mass points */
-	double fr_dt;
 	double dt_tol;
 	double dt;
-	int n_sub;
 };
 
 typedef struct _ELASTIC_SET ELASTIC_SET;
@@ -258,7 +246,7 @@ extern boolean is_gore_node(NODE*);
 extern boolean is_bdry_node(NODE*);
 extern boolean is_string_node(NODE*);
 extern double springCharTimeStep(Front*);	// spring characteristic time
-extern void assembleParachuteSet(INTERFACE*,ELASTIC_SET*,int);
+extern void assembleParachuteSet(INTERFACE*,ELASTIC_SET*);
 
 // aftest.cpp
 extern void second_order_elastic_curve_propagate(Front*,Front*,INTERFACE*,
@@ -279,7 +267,6 @@ extern int airfoil_velo(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
                                 double*);
 extern int af_find_state_at_crossing(Front*,int*,GRID_DIRECTION,
                         int,POINTER*,HYPER_SURF**,double*);
-extern void fourth_order_parachute_propagate(Front*,ELASTIC_SET*);
 extern void assign_node_field(NODE*,double**,double**,int*);
 extern void assign_curve_field(CURVE*,double**,double**,int*);
 extern void assign_surf_field(SURFACE*,double**,double**,int*);
@@ -311,17 +298,18 @@ extern void compute_spring_accel1(SPRING_VERTEX*,double*,int);
 extern void generic_spring_solver(SPRING_VERTEX*,int,int,int,double);
 extern void set_vertex_impulse(ELASTIC_SET*,SPRING_VERTEX*);
 extern void set_geomset_velocity(ELASTIC_SET*,SPRING_VERTEX*);
-extern void link_point_set(ELASTIC_SET*,POINT_SET**,POINT_SET*);
-extern void set_vertex_neighbors(ELASTIC_SET*,SPRING_VERTEX*,POINT_SET**);
+extern void link_point_set(ELASTIC_SET*,GLOBAL_POINT**,GLOBAL_POINT*);
+extern void set_vertex_neighbors(ELASTIC_SET*,SPRING_VERTEX*,GLOBAL_POINT**);
 extern void set_node_spring_vertex(ELASTIC_SET*,NODE*,SPRING_VERTEX*,
-				int*,POINT_SET**);
+				int*,GLOBAL_POINT**);
 extern void set_curve_spring_vertex(ELASTIC_SET*,CURVE*,SPRING_VERTEX*,
-				int*,POINT_SET**);
+				int*,GLOBAL_POINT**);
 extern void set_surf_spring_vertex(ELASTIC_SET*,SURFACE*,SPRING_VERTEX*,
-				int*,POINT_SET**);
-extern void get_point_set_from(ELASTIC_SET*,POINT_SET**);
-extern void put_point_set_to(ELASTIC_SET*,POINT_SET**);
+				int*,GLOBAL_POINT**);
+extern void get_point_set_from(ELASTIC_SET*,GLOBAL_POINT**);
+extern void put_point_set_to(ELASTIC_SET*,GLOBAL_POINT**);
 extern void set_elastic_params(ELASTIC_SET*,double);
+extern void merge_global_point_set(GLOBAL_POINT**,GLOBAL_POINT*,int);
 
 // afvelo.cpp
 extern void setMotionParams(Front*);

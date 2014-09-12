@@ -230,10 +230,10 @@ extern void setMotionParams(
 	}
 	if (!FT_FrontContainWaveType(front,ELASTIC_BOUNDARY))
 	    return;
-	af_params->n_tan = 1;
+	af_params->n_sub = 1;
 	CursorAfterString(infile,"Enter interior sub step number:");
-	fscanf(infile,"%d",&af_params->n_tan);
-	(void) printf("%d\n",af_params->n_tan);
+	fscanf(infile,"%d",&af_params->n_sub);
+	(void) printf("%d\n",af_params->n_sub);
         af_params->use_total_mass = NO;
         if (CursorAfterStringOpt(infile,"Enter yes to use total mass:"))
         {

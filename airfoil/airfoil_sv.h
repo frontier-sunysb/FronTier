@@ -18,13 +18,13 @@ struct _SPRING_VERTEX {
 };
 typedef struct _SPRING_VERTEX SPRING_VERTEX;
 
-struct _POINT_SET {
+struct _GLOBAL_POINT {
         double x[3];
         double v[3];
 	double f[3];
         double impuls[3];
         long gindex;
 };
-typedef struct _POINT_SET POINT_SET;
+typedef struct _GLOBAL_POINT GLOBAL_POINT;
 
 #endif

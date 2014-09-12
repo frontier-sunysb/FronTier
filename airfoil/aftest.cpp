@@ -63,8 +63,8 @@ extern void second_order_elastic_curve_propagate(
 	static double **x_old,**x_new,**v_old,**v_new,**f_old,**f_new;
 	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
 	int i,j,num_pts,count;
-	int n,n_tan = af_params->n_tan;
-	double dt_tol,dt = fr_dt/(double)n_tan;
+	int n,n_sub = af_params->n_sub;
+	double dt_tol,dt = fr_dt/(double)n_sub;
 	NODE *ns,*ne;
 	int is,ie;
         double *g = af_params->gravity;
@@ -105,8 +105,8 @@ extern void second_order_elastic_curve_propagate(
 	dt_tol = sqrt((af_params->m_l)/(af_params->kl))/10.0;
 	if (dt > dt_tol)
         {
-            n_tan = (int)(fr_dt/dt_tol);
-            dt = fr_dt/(double)n_tan;
+            n_sub = (int)(fr_dt/dt_tol);
+            dt = fr_dt/(double)n_sub;
         }
 
 	num_pts = FT_NumOfCurvePoints(oldc);
@@ -137,7 +137,7 @@ extern void second_order_elastic_curve_propagate(
         compute_curve_accel(&geom_set,newc,f_old,x_old,v_old,&count);
         compute_node_accel(&geom_set,ne,f_old,x_old,v_old,&count);
 
-	for (n = 0; n < n_tan; ++n)
+	for (n = 0; n < n_sub; ++n)
 	{
 	    adjust_for_node_type(ns,is,start_type,f_old,v_old,mass,payload,g);
             adjust_for_node_type(ne,ie,end_type,f_old,v_old,mass,payload,g);
@@ -170,7 +170,7 @@ extern void second_order_elastic_curve_propagate(
 	    assign_node_field(ns,x_new,v_new,&count);
 	    assign_curve_field(newc,x_new,v_new,&count);
 	    assign_node_field(ne,x_new,v_new,&count);
-	    if (n != n_tan-1)
+	    if (n != n_sub-1)
 	    {
 		count = 0;
                 compute_node_accel(&geom_set,ns,f_old,x_old,v_old,&count);
@@ -194,8 +194,8 @@ extern void second_order_elastic_surf_propagate(
         double *g = af_params->gravity;
 	double mass;
 	int i,j,num_pts,count;
-	int n,n0,n_tan = af_params->n_tan;
-	double dt_tol,dt = fr_dt/(double)n_tan;
+	int n,n0,n_sub = af_params->n_sub;
+	double dt_tol,dt = fr_dt/(double)n_sub;
 	ELASTIC_SET geom_set;
 	CURVE **nc,*newc[MAX_SURF_CURVES];
 	SURFACE *news,**s;
@@ -249,8 +249,8 @@ extern void second_order_elastic_surf_propagate(
             dt_tol = sqrt((af_params->m_g)/(af_params->kg))/10.0;
 	if (dt > dt_tol)
         {
-            n_tan = (int)(fr_dt/dt_tol);
-            dt = fr_dt/(double)n_tan;
+            n_sub = (int)(fr_dt/dt_tol);
+            dt = fr_dt/(double)n_sub;
         }
 	geom_set.ks = af_params->ks;
 	geom_set.lambda_s = af_params->lambda_s;
@@ -265,14 +265,14 @@ extern void second_order_elastic_surf_propagate(
 	geom_set.dt = dt;
 	if (debugging("step_size"))
 	{
-	    (void) printf("n_tan = %d\n",n_tan);
+	    (void) printf("n_sub = %d\n",n_sub);
 	    (void) printf("ks = %f  kl = %f\n",geom_set.ks,geom_set.kl);
 	    (void) printf("m_s = %f  m_l = %f\n",geom_set.m_s,geom_set.m_l);
 	    (void) printf("lambda_s = %f  lambda_l = %f\n",
 				geom_set.lambda_s,geom_set.lambda_l);
 	    (void) printf("fr_dt = %f  dt_tol = %20.14f  dt = %20.14f\n",
                                 fr_dt,dt_tol,dt);
-            (void) printf("Number of interior sub-steps = %d\n",n_tan);
+            (void) printf("Number of interior sub-steps = %d\n",n_sub);
 	}
 
 	/* Assume there is only one closed boundary curve */
@@ -345,7 +345,7 @@ extern void second_order_elastic_surf_propagate(
 	    adjust_for_cnode_type(newn[i],n0,f_old,v_old,mass,g);
 	}
 
-	for (n = 0; n < n_tan; ++n)
+	for (n = 0; n < n_sub; ++n)
 	{
 	    for (i = 0; i < size; ++i)
             for (j = 0; j < 3; ++j)
@@ -388,7 +388,7 @@ extern void second_order_elastic_surf_propagate(
 	    }
 	    for (i = 0; i < num_nodes; ++i)
             	assign_node_field(newn[i],x_new,v_new,&count);
-	    if (n != n_tan-1)
+	    if (n != n_sub-1)
 	    {
 	    	count = 0;
 	    	compute_surf_accel(&geom_set,news,f_old,x_old,v_old,&count);
@@ -559,7 +559,6 @@ static void set_equilibrium_mesh3d(
 	    }
 	    never_redistribute(Hyper_surf(surf)) = YES;
 	}
-	af_params->min_len = min_len;
 	printf("Original length:\n");
 	printf("min_len = %16.12f\n",min_len);
 	printf("max_len = %16.12f\n",max_len);
@@ -1471,8 +1470,8 @@ extern void fourth_order_elastic_curve_propagate(
 	AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
 	double mass;
 	int i,j,num_pts,count;
-	int n,n_tan = af_params->n_tan;
-	double dt_tol,dt = fr_dt/(double)n_tan;
+	int n,n_sub = af_params->n_sub;
+	double dt_tol,dt = fr_dt/(double)n_sub;
 	int dim = fr->rect_grid->dim;
 	double *g = af_params->gravity;
 	double payload = af_params->payload;
@@ -1485,8 +1484,9 @@ extern void fourth_order_elastic_curve_propagate(
 				double**,double **,int*);
 	static SPRING_VERTEX *sv;
 	static boolean first = YES;
-	static POINT_SET **point_set;
-        static POINT_SET *point_set_store;
+	static GLOBAL_POINT **point_set;
+        static GLOBAL_POINT *point_set_store;
+        static GLOBAL_POINT *local_point_store;
 	long max_point_gindex = fr->interf->max_point_gindex;
 
 	if (wave_type(newc) != ELASTIC_BOUNDARY)
@@ -1497,14 +1497,14 @@ extern void fourth_order_elastic_curve_propagate(
 	dt_tol = sqrt((af_params->m_l)/(af_params->kl))/10.0;
 	if (dt > dt_tol)
         {
-            n_tan = (int)(fr_dt/dt_tol);
-            dt = fr_dt/(double)n_tan;
+            n_sub = (int)(fr_dt/dt_tol);
+            dt = fr_dt/(double)n_sub;
         }
 
 	if (point_set == NULL)
         {
             FT_VectorMemoryAlloc((POINTER*)&point_set,max_point_gindex,
-                                        sizeof(POINT_SET*));
+                                        sizeof(GLOBAL_POINT*));
             for (i = 0; i < max_point_gindex; ++i)
                 point_set[i] = NULL;
         }
@@ -1524,8 +1524,10 @@ extern void fourth_order_elastic_curve_propagate(
 	    }
             FT_VectorMemoryAlloc((POINTER*)&sv,size,sizeof(SPRING_VERTEX));
 	    FT_VectorMemoryAlloc((POINTER*)&point_set_store,size,
-                                        sizeof(POINT_SET));
+                                        sizeof(GLOBAL_POINT));
             link_point_set(&geom_set,point_set,point_set_store);
+	    FT_VectorMemoryAlloc((POINTER*)&local_point_store,size,
+                                        sizeof(GLOBAL_POINT));
 	}
 
 	geom_set.front = fr;
@@ -1554,13 +1556,13 @@ extern void fourth_order_elastic_curve_propagate(
 	{
 	    if (debugging("trace"))
             	(void) printf("Enter gpu_spring_solver()\n");
-	    gpu_spring_solver(sv,dim,size,n_tan,dt);
+	    gpu_spring_solver(sv,dim,size,n_sub,dt);
 	    if (debugging("trace"))
             	(void) printf("Left gpu_spring_solver()\n");
 	}
 	else
 #endif
-	generic_spring_solver(sv,dim,size,n_tan,dt);
+	generic_spring_solver(sv,dim,size,n_sub,dt);
 
 	stop_clock("spring_model");
 	put_point_set_to(&geom_set,point_set);
@@ -1669,8 +1671,8 @@ extern void fourth_order_elastic_surf_propagate(
         double *g = af_params->gravity;
 	double mass;
 	int i,j,num_pts,count;
-	int n,n_tan = af_params->n_tan;
-	double dt_tol,dt = fr_dt/(double)n_tan;
+	int n,n_sub = af_params->n_sub;
+	double dt_tol,dt = fr_dt/(double)n_sub;
 	ELASTIC_SET geom_set;
 	CURVE **nc,*newc[MAX_SURF_CURVES];
 	SURFACE *news,**s;
@@ -1681,8 +1683,9 @@ extern void fourth_order_elastic_surf_propagate(
         static boolean first = YES;
 	int countc[100],countn[100];
 	int dim = newfr->rect_grid->dim;
-	static POINT_SET **point_set;
-        static POINT_SET *point_set_store;
+	static GLOBAL_POINT **point_set;
+        static GLOBAL_POINT *point_set_store;
+        static GLOBAL_POINT *local_point_store;
 	long max_point_gindex = newfr->interf->max_point_gindex;
 	int owner[MAXD];
 
@@ -1720,8 +1723,8 @@ extern void fourth_order_elastic_surf_propagate(
             dt_tol = sqrt((af_params->m_g)/(af_params->kg))/10.0;
 	if (dt > dt_tol)
         {
-            n_tan = (int)(fr_dt/dt_tol);
-            dt = fr_dt/(double)n_tan;
+            n_sub = (int)(fr_dt/dt_tol);
+            dt = fr_dt/(double)n_sub;
         }
 	geom_set.ks = af_params->ks;
 	geom_set.lambda_s = af_params->lambda_s;
@@ -1736,7 +1739,7 @@ extern void fourth_order_elastic_surf_propagate(
 	geom_set.dt = dt;
 	if (debugging("step_size"))
 	{
-	    (void) printf("n_tan = %d\n",n_tan);
+	    (void) printf("n_sub = %d\n",n_sub);
 	    (void) printf("ks = %f  kl = %f\n",geom_set.ks,geom_set.kl);
 	    (void) printf("m_s = %f  m_l = %f\n",geom_set.m_s,geom_set.m_l);
 	    (void) printf("lambda_s = %f  lambda_l = %f\n",
@@ -1744,7 +1747,7 @@ extern void fourth_order_elastic_surf_propagate(
 	}
 	(void) printf("\nfr_dt = %f  dt_tol = %20.14f  dt = %20.14f\n",
                                 fr_dt,dt_tol,dt);
-        (void) printf("Number of interior sub-steps = %d\n\n",n_tan);
+        (void) printf("Number of interior sub-steps = %d\n\n",n_sub);
 
 	/* Assume there is only one closed boundary curve */
 	num_nodes = num_curves = 0;
@@ -1796,7 +1799,7 @@ extern void fourth_order_elastic_surf_propagate(
 	if (point_set == NULL)
         {
             FT_VectorMemoryAlloc((POINTER*)&point_set,max_point_gindex,
-                                        sizeof(POINT_SET*));
+                                        sizeof(GLOBAL_POINT*));
             for (i = 0; i < max_point_gindex; ++i)
                 point_set[i] = NULL;
         }
@@ -1807,8 +1810,10 @@ extern void fourth_order_elastic_surf_propagate(
 		FT_FreeThese(1,sv);
 	    FT_VectorMemoryAlloc((POINTER*)&sv,size,sizeof(SPRING_VERTEX));
 	    FT_VectorMemoryAlloc((POINTER*)&point_set_store,size,
-                                        sizeof(POINT_SET));
+                                        sizeof(GLOBAL_POINT));
             link_point_set(&geom_set,point_set,point_set_store);
+	    FT_VectorMemoryAlloc((POINTER*)&local_point_store,size,
+                                        sizeof(GLOBAL_POINT));
 	}
 
 	count_vertex_neighbors(&geom_set,sv);
@@ -1831,13 +1836,13 @@ extern void fourth_order_elastic_surf_propagate(
 	{
 	    if (debugging("trace"))
             	(void) printf("Enter gpu_spring_solver()\n");
-	    gpu_spring_solver(sv,dim,size,n_tan,dt);
+	    gpu_spring_solver(sv,dim,size,n_sub,dt);
 	    if (debugging("trace"))
             	(void) printf("Left gpu_spring_solver()\n");
 	}
 	else
 #endif
-	    generic_spring_solver(sv,dim,size,n_tan,dt);
+	    generic_spring_solver(sv,dim,size,n_sub,dt);
 
 	put_point_set_to(&geom_set,point_set);
 	set_vertex_impulse(&geom_set,sv);

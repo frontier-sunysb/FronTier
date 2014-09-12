@@ -32,7 +32,7 @@ extern void gpu_spring_solver(
 	SPRING_VERTEX *sv,
 	int dim,
 	int size,
-	int n_tan,
+	int n_sub,
 	double dt)
 {
 	static SPRING_VERTEX *dev_sv;
@@ -159,7 +159,7 @@ extern void gpu_spring_solver(
 				dev_v_old,dev_v_pos,size,dim);
 	comp_spring_accel<<<NB,TPB>>>(dev_sv,dev_accel,size,dim);
 
-	for (n = 0; n < n_tan; ++n)
+	for (n = 0; n < n_sub; ++n)
         {
 	    RK_1<<<NB,TPB>>>(
 			dev_x_new,dev_v_new,dev_x_pos,dev_v_pos,
@@ -182,7 +182,7 @@ extern void gpu_spring_solver(
 	    Update_x_new<<<NB,TPB>>>(dev_sv,dev_x_new,dt,size,dim);
 	    pos_to_old<<<NB,TPB>>>(dev_x_pos,dev_x_new,
 			dev_v_pos,dev_v_new,size,dim);
-	    if (n != n_tan-1)
+	    if (n != n_sub-1)
             {
 		comp_spring_accel<<<NB,TPB>>>(dev_sv,dev_accel,size,dim);
 		

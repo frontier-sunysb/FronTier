@@ -259,11 +259,20 @@ extern "C" {
 /*! \fn int I_NumOfNodeCurves(NODE *node)
  *  \ingroup QUERY
     \brief This function count number of curves attached to the node,
-     including both in-curves and out curves.
+     including both in_curves and out_curves.
     \param node @b in   Pointer to a node of the front interface.
  */
 
    IMPORT  int I_NumOfNodeCurves(NODE *node);
+
+/*! \fn int I_NumOfCurveSurfaces(CURVE *curve)
+ *  \ingroup QUERY
+    \brief This function count number of surfaces attached to the curve,
+     including both pos_surfaces and neg_surfaces.
+    \param curve @b in   Pointer to a curve of the front interface.
+ */
+
+   IMPORT  int I_NumOfCurveSurfaces(CURVE *curve);
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }

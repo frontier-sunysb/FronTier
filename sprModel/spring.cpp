@@ -84,6 +84,7 @@ int main(int argc, char **argv)
 	FT_StartUp(&front,&f_basic);
 	FT_InitDebug(in_name);
 
+        front.extra1 = NULL;
         front.extra2 = (POINTER)&af_params;
 
 	level_func_pack.pos_component = LIQUID_COMP2;

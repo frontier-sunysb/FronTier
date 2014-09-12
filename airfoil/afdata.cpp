@@ -750,7 +750,7 @@ static void bifurcateCanopyModification(
 			sizeof(ELASTIC_SET));
 	/* Get the original set */
 	parachute_set[0].front = front;
-	assembleParachuteSet(front->interf,&parachute_set[0],2);
+	assembleParachuteSet(front->interf,&parachute_set[0]);
 	for (i = 1; i < num_canopy; ++i)
 	{
 	    copyParachuteSet(parachute_set[0],&parachute_set[i]);

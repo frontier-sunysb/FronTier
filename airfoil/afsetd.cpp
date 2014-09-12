@@ -25,20 +25,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <airfoil.h>
 #include "solver.h"
 
-static void link_surf_point_set(ELASTIC_SET*,SURFACE*,POINT_SET**,
-				POINT_SET*,int*);
-static void link_curve_point_set(ELASTIC_SET*,CURVE*,POINT_SET**,
-				POINT_SET*,int*);
-static void link_node_point_set(ELASTIC_SET*,NODE*,POINT_SET**,
-				POINT_SET*,int*);
+static void link_surf_point_set(ELASTIC_SET*,SURFACE*,GLOBAL_POINT**,
+				GLOBAL_POINT*,int*);
+static void link_curve_point_set(ELASTIC_SET*,CURVE*,GLOBAL_POINT**,
+				GLOBAL_POINT*,int*);
+static void link_node_point_set(ELASTIC_SET*,NODE*,GLOBAL_POINT**,
+				GLOBAL_POINT*,int*);
 
-static void surf_get_point_set_from(SURFACE*,POINT_SET**);
-static void curve_get_point_set_from(CURVE*,POINT_SET**);
-static void node_get_point_set_from(NODE*,POINT_SET**);
+static void surf_get_point_set_from(SURFACE*,GLOBAL_POINT**);
+static void curve_get_point_set_from(CURVE*,GLOBAL_POINT**);
+static void node_get_point_set_from(NODE*,GLOBAL_POINT**);
 
-static void surf_put_point_set_to(SURFACE*,POINT_SET**);
-static void curve_put_point_set_to(CURVE*,POINT_SET**);
-static void node_put_point_set_to(NODE*,POINT_SET**);
+static void surf_put_point_set_to(SURFACE*,GLOBAL_POINT**);
+static void curve_put_point_set_to(CURVE*,GLOBAL_POINT**);
+static void node_put_point_set_to(NODE*,GLOBAL_POINT**);
 
 static void count_surf_neighbors(SURFACE*,SPRING_VERTEX*,int*);
 static void count_curve_neighbors(CURVE*,SPRING_VERTEX*,int*);
@@ -48,8 +48,8 @@ static void set_surf_impulse(ELASTIC_SET*,SURFACE*,SPRING_VERTEX*,int*);
 static void set_curve_impulse(ELASTIC_SET*,CURVE*,SPRING_VERTEX*,int*);
 static void set_node_impulse(ELASTIC_SET*,NODE*,SPRING_VERTEX*,int*);
 
-static void get_point_value_from(POINT*p,POINT_SET**);
-static void put_point_value_to(POINT*p,POINT_SET**);
+static void get_point_value_from(POINT*,GLOBAL_POINT**);
+static void put_point_value_to(POINT*,GLOBAL_POINT**);
 
 #define 	MAX_NUM_RING1		30
 
@@ -490,8 +490,8 @@ extern void count_vertex_neighbors(
 
 extern void link_point_set(
 	ELASTIC_SET *geom_set,
-	POINT_SET **point_set,
-	POINT_SET *point_set_store)
+	GLOBAL_POINT **point_set,
+	GLOBAL_POINT *point_set_store)
 {
 	int i,n,ns,nc,nn;
 
@@ -522,8 +522,8 @@ extern void link_point_set(
 static void link_surf_point_set(
 	ELASTIC_SET *geom_set,
 	SURFACE *surf,
-	POINT_SET **point_set,
-	POINT_SET *point_set_store,
+	GLOBAL_POINT **point_set,
+	GLOBAL_POINT *point_set_store,
 	int *n)
 {
 	TRI *tri;
@@ -551,8 +551,8 @@ static void link_surf_point_set(
 static void link_curve_point_set(
 	ELASTIC_SET *geom_set,
 	CURVE *curve,
-	POINT_SET **point_set,
-	POINT_SET *point_set_store,
+	GLOBAL_POINT **point_set,
+	GLOBAL_POINT *point_set_store,
 	int *n)
 {
 	BOND *b;
@@ -574,8 +574,8 @@ static void link_curve_point_set(
 static void link_node_point_set(
 	ELASTIC_SET *geom_set,
 	NODE *node,
-	POINT_SET **point_set,
-	POINT_SET *point_set_store,
+	GLOBAL_POINT **point_set,
+	GLOBAL_POINT *point_set_store,
 	int *n)
 {
 	long gindex;
@@ -590,7 +590,7 @@ static void link_node_point_set(
 extern void set_vertex_neighbors(
 	ELASTIC_SET *geom_set,
 	SPRING_VERTEX *sv,
-	POINT_SET **point_set)
+	GLOBAL_POINT **point_set)
 {
 	int i,n,ns,nc,nn;
 
@@ -620,7 +620,7 @@ extern void set_node_spring_vertex(
 	NODE *node,
 	SPRING_VERTEX *sv,
 	int *n,
-	POINT_SET **point_set)
+	GLOBAL_POINT **point_set)
 {
 	CURVE **c;
 	BOND *b;
@@ -638,9 +638,13 @@ extern void set_node_spring_vertex(
 	boolean is_fixed = NO;
 	STATE *sl,*sr;
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
-	double *g = iFparams->gravity;
+	double *g;
 	long gindex,gindex_nb;
 
+	if (iFparams != NULL)
+ 	    g = iFparams->gravity;
+	else
+	    g == NULL;
 	if (dim == 3)
 	{
 	    AF_NODE_EXTRA *extra = (AF_NODE_EXTRA*)node->extra;
@@ -802,10 +806,11 @@ extern void set_node_spring_vertex(
 	{
             for (i = 0; i < dim; ++i)
             {
-	    	sv[*n].ext_accel[i] = g[i];
+		if (is_fixed || g == NULL)
+	    	    sv[*n].ext_accel[i] = 0;
+		else
+	    	    sv[*n].ext_accel[i] = g[i];
 	    }
-	    if (is_fixed) 
-	    	sv[*n].ext_accel[i] = 0;
 	}
 	(*n)++;
 }	/* end set_node_spring_vertex */
@@ -815,7 +820,7 @@ extern void set_curve_spring_vertex(
 	CURVE *curve,
 	SPRING_VERTEX *sv,
 	int *n,
-	POINT_SET **point_set)
+	GLOBAL_POINT **point_set)
 {
 	Front *front = geom_set->front;
 	int i,j,nn;
@@ -823,9 +828,13 @@ extern void set_curve_spring_vertex(
 	double kl,m_l,lambda_l;
 	int dim = front->rect_grid->dim;
         IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
-        double *g = iFparams->gravity;
+        double *g;
 	long gindex,gindex_nb;
 
+	if (iFparams != NULL)
+	    g = iFparams->gravity;
+	else
+	    g = NULL;
 	if (dim == 3)
 	{
 	    if (hsbdry_type(curve) == STRING_HSBDRY)
@@ -882,17 +891,16 @@ extern void set_curve_spring_vertex(
 	    sv[i].lambda = lambda_l;
 	    if (dim == 3)
 	    {
-            	for (j = 0; j < dim; ++j)
-            	{
-	    	    sv[i].ext_accel[j] = g[j];
-	    	}
-	    	if (hsbdry_type(curve) == FIXED_HSBDRY)
+	    	if (hsbdry_type(curve) == FIXED_HSBDRY || g == NULL)
 	    	{
             	    for (j = 0; j < dim; ++j)
-            	    {
 	    	    	sv[i].ext_accel[j] = 0;
-	    	    }
 	    	}
+		else
+		{
+            	    for (j = 0; j < dim; ++j)
+	    	    	sv[i].ext_accel[j] = g[j];
+		}
 	    }
 	    ++i;
 	}
@@ -949,7 +957,7 @@ extern void set_surf_spring_vertex(
 	SURFACE *surf,
 	SPRING_VERTEX *sv,
 	int *n,
-	POINT_SET **point_set)
+	GLOBAL_POINT **point_set)
 {
 	Front *front = geom_set->front;
 	int i,j,k,l,nt;
@@ -962,11 +970,15 @@ extern void set_surf_spring_vertex(
 	boolean is_stationary_point;
 	int dim = front->rect_grid->dim;
         IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
-        double *g = iFparams->gravity;
+        double *g;
 	STATE *sl,*sr;
 	HYPER_SURF_ELEMENT *hse;
         HYPER_SURF         *hs = Hyper_surf(surf);
 	long gindex,gindex_nb;
+
+	if (iFparams != NULL)
+ 	    g = iFparams->gravity;
+	else g = NULL;
 
 	unsort_surf_point(surf);
 	i = *n;
@@ -985,9 +997,10 @@ extern void set_surf_spring_vertex(
 		    sv[i].lambda = 0.0;
             	for (k = 0; k < dim; ++k)
             	{
-	    	    sv[i].ext_accel[k] = g[k];
-		    if (is_stationary_point == YES)
+		    if (is_stationary_point == YES || g == NULL)
 	    	    	sv[i].ext_accel[k] = 0.0;
+		    else
+			sv[i].ext_accel[k] = g[k];
 	    	}
 		gindex = Gindex(p);
 		sv[i].x = point_set[gindex]->x;
@@ -1020,12 +1033,13 @@ extern void set_surf_spring_vertex(
 
 static void get_point_value_from(
 	POINT *p,
-	POINT_SET **point_set)
+	GLOBAL_POINT **point_set)
 {
 	int i;
-	long gindex = Gindex(p);
 	STATE *state = (STATE*)left_state(p);
+	long gindex = Gindex(p);
 
+	point_set[gindex]->gindex = gindex;
 	for (i = 0; i < 3; ++i)
 	{
 	    point_set[gindex]->x[i] = Coords(p)[i];
@@ -1037,7 +1051,7 @@ static void get_point_value_from(
 	
 static void put_point_value_to(
 	POINT *p,
-	POINT_SET **point_set)
+	GLOBAL_POINT **point_set)
 {
 	int i;
 	long gindex = Gindex(p);
@@ -1054,7 +1068,7 @@ static void put_point_value_to(
 	
 extern void get_point_set_from(
 	ELASTIC_SET *geom_set,
-	POINT_SET **point_set)
+	GLOBAL_POINT **point_set)
 {
 	int i,ns,nc,nn;
 
@@ -1077,7 +1091,7 @@ extern void get_point_set_from(
 	
 extern void put_point_set_to(
 	ELASTIC_SET *geom_set,
-	POINT_SET **point_set)
+	GLOBAL_POINT **point_set)
 {
 	int i,ns,nc,nn;
 
@@ -1100,7 +1114,7 @@ extern void put_point_set_to(
 
 static void surf_get_point_set_from(
 	SURFACE *surf,
-	POINT_SET **point_set)
+	GLOBAL_POINT **point_set)
 {
 	TRI *tri;
 	POINT *p;
@@ -1121,7 +1135,7 @@ static void surf_get_point_set_from(
 
 static void curve_get_point_set_from(
 	CURVE *curve,
-	POINT_SET **point_set)
+	GLOBAL_POINT **point_set)
 {
 	BOND *b;
 	POINT *p;
@@ -1135,7 +1149,7 @@ static void curve_get_point_set_from(
 
 static void node_get_point_set_from(
 	NODE *node,
-	POINT_SET **point_set)
+	GLOBAL_POINT **point_set)
 {
 	POINT *p = node->posn;
 	get_point_value_from(p,point_set);
@@ -1143,7 +1157,7 @@ static void node_get_point_set_from(
 
 static void surf_put_point_set_to(
 	SURFACE *surf,
-	POINT_SET **point_set)
+	GLOBAL_POINT **point_set)
 {
 	TRI *tri;
 	POINT *p;
@@ -1164,7 +1178,7 @@ static void surf_put_point_set_to(
 
 static void curve_put_point_set_to(
 	CURVE *curve,
-	POINT_SET **point_set)
+	GLOBAL_POINT **point_set)
 {
 	BOND *b;
 	POINT *p;
@@ -1178,7 +1192,7 @@ static void curve_put_point_set_to(
 
 static void node_put_point_set_to(
 	NODE *node,
-	POINT_SET **point_set)
+	GLOBAL_POINT **point_set)
 {
 	POINT *p = node->posn;
 	put_point_value_to(p,point_set);
@@ -1190,11 +1204,9 @@ extern void set_elastic_params(
 {
 	Front *front = geom_set->front;
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
-	double dt,dt_tol;
-        int n_tan = af_params->n_tan;
+	double dt_tol;
 
 	/* Set elastic set kinetic parameters */
-	geom_set->fr_dt = fr_dt;
         geom_set->ks = af_params->ks;
         geom_set->lambda_s = af_params->lambda_s;
         geom_set->m_s = af_params->m_s;
@@ -1206,7 +1218,6 @@ extern void set_elastic_params(
         geom_set->m_g = af_params->m_g;
 
 	/* Set elastic set time step */
-        dt = fr_dt;
         dt_tol = sqrt((af_params->m_s)/(af_params->ks))/10.0;
         if (af_params->m_l != 0.0 &&
             dt_tol > sqrt((af_params->m_l)/(af_params->kl))/10.0)
@@ -1215,11 +1226,17 @@ extern void set_elastic_params(
             dt_tol > sqrt((af_params->m_g)/(af_params->kg))/10.0)
             dt_tol = sqrt((af_params->m_g)/(af_params->kg))/10.0;
 	geom_set->dt_tol = dt_tol;
-        if (dt > dt_tol)
-        {
-            n_tan = (int)(fr_dt/dt_tol);
-            dt = fr_dt/(double)n_tan;
-        }
-        geom_set->dt = dt;
-        geom_set->n_sub = n_tan;
 }	/* end set_elastic_params */
+
+extern void merge_global_point_set(
+	GLOBAL_POINT **point_set,
+	GLOBAL_POINT *gpoint_store,
+	int num_gpoint)
+{
+	int i,k,gindex;
+	for (i = 0; i < num_gpoint; ++i)
+	{
+	    gindex = gpoint_store[i].gindex;
+	    *point_set[gindex] = gpoint_store[i];
+	}
+}	/* end merge_global_point_set */

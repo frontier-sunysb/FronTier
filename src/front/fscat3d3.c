@@ -67,6 +67,9 @@ LOCAL	boolean	tri_bond_cross_test(TRI*,double,int);
 LOCAL	void	synchronize_tris_at_subdomain_bdry(TRI**,TRI**,int,P_LINK*,int);
 LOCAL 	INTERFACE *cut_intfc_to_wave_type(INTERFACE*,int);
 LOCAL 	void 	delete_surface_set(SURFACE*);
+LOCAL   boolean append_other_curves3(INTERFACE*,INTERFACE*,RECT_GRID*,int,int,
+                                      P_LINK*,int);
+LOCAL   boolean bond_match3(BOND*,BOND*);
 
 
 LOCAL	double	tol1[MAXD]; /*TOLERANCE*/
@@ -266,6 +269,11 @@ LOCAL 	int append_adj_intfc_to_buffer3(
 	boolean      	corr_surf_found;
 
 	DEBUG_ENTER(append_adj_intfc_to_buffer3)
+	if (debugging("append_curves"))
+        {
+            (void) printf("Entering append_adj_intfc_to_buffer1()\n");
+            (void) printf("Number of curves = %d\n",I_NumOfIntfcCurves(intfc));
+        }
 
 	cur_intfc = current_interface();
 	set_current_interface(intfc);
@@ -315,6 +323,7 @@ LOCAL 	int append_adj_intfc_to_buffer3(
 	    }
 	}
 	/* append curves not on surfaces */
+	append_other_curves3(intfc,adj_intfc,grid,dir,nb,p_table,p_size);
 	for (ac = adj_intfc->curves; ac && *ac; ++ac)
 	    matching_curve(*ac,p_table,p_size); 
 	
@@ -323,6 +332,11 @@ LOCAL 	int append_adj_intfc_to_buffer3(
 	
 	set_current_interface(cur_intfc);
 	
+	if (debugging("append_curves"))
+        {
+            (void) printf("Leaving append_adj_intfc_to_buffer3()\n");
+            (void) printf("Number of curves = %d\n",I_NumOfIntfcCurves(intfc));
+        }
 	DEBUG_LEAVE(append_adj_intfc_to_buffer3)
 	return YES;
 }		/*end append_adj_intfc_to_buffer3*/
@@ -1201,6 +1215,7 @@ EXPORT INTERFACE *collect_hyper_surface(
 	    sprintf(fname,"final-intfc.%d",myid);
 	    gview_plot_interface(fname,cut_intfc);
 	    (void) printf("Checking consistency:\n");
+	    null_sides_are_consistent();
 	    consistent_interface(cut_intfc);
 	    (void) printf("Passed consistent_interface()\n");
 	}
@@ -1295,3 +1310,114 @@ LOCAL void delete_surface_set(
 	    }
 	}
 }	/* end delete_surface_set */
+
+#define		MAX_NUM_OTHER_CURVES	500
+
+LOCAL boolean append_other_curves3(
+	INTERFACE *intfc,
+	INTERFACE *adj_intfc,
+	RECT_GRID *grid,
+	int dir,
+	int nb,
+	P_LINK *p_table,
+	int p_size)
+{
+	CURVE **cc;
+	CURVE *c[MAX_NUM_OTHER_CURVES];
+	CURVE *ac[MAX_NUM_OTHER_CURVES];
+	CURVE *mc[MAX_NUM_OTHER_CURVES];
+	int i,j,num_c,num_ac;
+	BOND *b,*ba;
+	boolean bond_matched;
+	POINT *p;
+
+	num_c = num_ac = 0;
+	for (cc = intfc->curves; cc && *cc; ++cc)
+	{
+	    if (I_NumOfCurveSurfaces(*cc) != 0)
+	    	continue;
+	    if (num_c >= MAX_NUM_OTHER_CURVES)
+	    {
+		printf("In append_other_curves1(): num_c = %d\n",num_c);
+		printf("MAX_NUM_OTHER_CURVES too small!\n");
+		clean_up(ERROR);
+	    }
+	    c[num_c++] = *cc;
+	}
+	for (cc = adj_intfc->curves; cc && *cc; ++cc)
+	{
+	    if (I_NumOfCurveSurfaces(*cc) != 0)
+	    	continue;
+	    if (num_ac >= MAX_NUM_OTHER_CURVES)
+	    {
+		printf("In append_other_curves1(): num_ac = %d\n",num_ac);
+		printf("MAX_NUM_OTHER_CURVES too small!\n");
+		clean_up(ERROR);
+	    }
+	    ac[num_ac++] = *cc;
+	}
+	for (i = 0; i < num_ac; ++i)
+	{
+	    mc[i] = NULL;
+	    for (j = 0; j < num_c; ++j)
+	    {
+		if (c[j] == NULL)	/* already matched */
+		    continue;
+	    	for (ba = ac[i]->first; ba != NULL; ba = ba->next)
+	    	{
+		    for (b = c[j]->first; b != NULL; b = b->next)
+		    {
+			bond_matched = NO;
+		    	if (bond_match3(b,ba))
+		    	{
+			    bond_matched = YES;
+			    p = (POINT*)find_from_hash_table((POINTER)ba->start,
+                                                p_table,p_size);
+			    if (p == NULL)
+				(void) add_to_hash_table((POINTER)ba->start,
+						(POINTER)b->start,
+                                                p_table,p_size);
+			    else if (p != b->start)
+			    {
+				printf("Bond start not from hashing table!\n");
+				clean_up(ERROR);
+			    }
+			    p = (POINT*)find_from_hash_table((POINTER)ba->end,
+                                                p_table,p_size);
+			    if (p == NULL)
+				(void) add_to_hash_table((POINTER)ba->end,
+						(POINTER)b->end,
+                                                p_table,p_size);
+			    else if (p != b->end)
+			    {
+				printf("Bond end not from hashing table!\n");
+				clean_up(ERROR);
+			    }
+			    mc[i] = c[j];
+		    	}
+			if (bond_matched) break;
+		    }
+	    	}	    
+		if (mc[i] != NULL) 
+		{
+		    c[j] = NULL;
+		    break;
+		}
+	    }
+	}
+}	/* end append_other_curves1 */
+
+LOCAL	boolean bond_match3(
+	BOND *b,
+	BOND *ba)
+{
+	int i;
+	for (i = 0; i < 3; ++i)
+	{
+	    if (fabs(Coords(b->start)[i] - Coords(ba->start)[i]) > tol1[i])
+		return NO;
+	    if (fabs(Coords(b->end)[i] - Coords(ba->end)[i]) > tol1[i])
+		return NO;
+	}
+	return YES;
+}	/* end bond_match3 */

@@ -826,8 +826,7 @@ static void coating_mono_hyper_surf3d(
 
 extern void assembleParachuteSet(
 	INTERFACE *intfc,
-	ELASTIC_SET *geom_set,
-	int num_layers)
+	ELASTIC_SET *geom_set)
 {
 	SURFACE **s;
 	CURVE **c;
@@ -836,6 +835,7 @@ extern void assembleParachuteSet(
 	SURFACE **surfs = geom_set->surfs;
 	CURVE **curves = geom_set->curves;
 	NODE **nodes = geom_set->nodes;
+	int num_layers = 3;
 
 	ns = nc = nn = 0;
 	/* Assemble canopy surfaces */
