@@ -498,10 +498,13 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 	    {
 		if (field != NULL)
 		{
-		    FT_FreeThese(15,field,array,source,diff_coeff,field->mu,
+		    FT_FreeThese(14,array,source,diff_coeff,field->mu,
 				field->rho,field->pres,field->phi,field->q,
 				field->div_U,field->vort,field->vel,
 				field->grad_q,field->f_surf,domain_status);
+		    if (debugging("field_var"))
+		    	FT_FreeThese(1,field->old_var);
+		    FT_FreeThese(1,field);
 		}
 		FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(IF_FIELD));
 		iFparams->field = field;
@@ -527,6 +530,11 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 	    	FT_MatrixMemoryAlloc((POINTER*)&field->f_surf,2,size,
 					sizeof(double));
 	    	FT_VectorMemoryAlloc((POINTER*)&domain_status,size,INT);
+		if (debugging("field_var"))
+		{
+	    	    FT_MatrixMemoryAlloc((POINTER*)&field->old_var,2,size,
+					sizeof(double));
+		}
 		current_size = size;
 	    }
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
@@ -767,6 +775,7 @@ void Incompress_Solver_Smooth_Basis::readFrontInteriorStates(char *restart_name)
 	}
 	fclose(infile);
 	computeGradientQ();
+	computeVelDivergence();
 	copyMeshStates();
 	setAdvectionDt();
 }

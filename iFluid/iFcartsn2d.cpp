@@ -50,6 +50,16 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeAdvection(void)
 	    index = d_index2d(i,j,top_gmax);
 	    rho[index] = field->rho[index];
 	}
+	if (debugging("field_var"))
+	{
+	    for (j = jmin; j <= jmax; j++)
+	    for (i = imin; i <= imax; i++)
+	    {
+	    	index = d_index2d(i,j,top_gmax);
+		field->old_var[0][index] = vel[0][index];
+		field->old_var[1][index] = vel[1][index];
+	    }
+	}
 	hyperb_solver.rho = rho;
 
 	hyperb_solver.obst_comp = SOLID_COMP;
@@ -93,6 +103,15 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeAdvection(void)
 	    if (vmin[1] > vel[1][index]) vmin[1] = vel[1][index];
 	    if (vmax[0] < vel[0][index]) vmax[0] = vel[0][index];
 	    if (vmax[1] < vel[1][index]) vmax[1] = vel[1][index];
+	}
+	if (debugging("field_var"))
+	{
+	    (void) printf("\nIn computeAdvection(), \n");
+	    (void) printf("one step increment for v[0]:\n");
+	    computeVarIncrement(field->old_var[0],vel[0],NO);
+	    (void) printf("one step increment for v[1]:\n");
+	    computeVarIncrement(field->old_var[1],vel[1],NO);
+	    (void) printf("\n");
 	}
         pp_global_max(&max_speed,1);
         pp_global_min(vmin,dim);
@@ -227,6 +246,15 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	    vmax[l] = -HUGE;
 	}
 
+	if (debugging("field_var"))
+	{
+	    for (j = jmin; j <= jmax; j++)
+	    for (i = imin; i <= imax; i++)
+	    {
+	    	index  = d_index2d(i,j,top_gmax);
+		field->old_var[0][index] = field->phi[index];
+	    }
+	}
 	/* Compute velocity divergence */
 	for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
@@ -249,6 +277,12 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 		}
 	    }
 	}
+	if (debugging("field_var"))
+	{
+	    (void) printf("\nCheck one step increment of div_U:\n");
+	    computeVarIncrement(field->div_U,source,NO);
+	    (void) printf("\n");
+	}
 	FT_ParallelExchGridArrayBuffer(source,front,NULL);
 	FT_ParallelExchGridArrayBuffer(diff_coeff,front,NULL);
 	for (j = 0; j <= top_gmax[1]; j++)
@@ -257,8 +291,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	    index  = d_index2d(i,j,top_gmax);
 	    if (!ifluid_comp(top_comp[index]))
 		continue;
-	    div_U[index] = source[index];
-	    source[index] /= accum_dt;
+	    source[index] = (source[index] - div_U[index])/accum_dt;
 	    array[index] = phi[index];
 	}
 
@@ -314,6 +347,14 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	    index  = d_index2d(i,j,top_gmax);
 	    phi[index] = array[index];
 	}
+	if (debugging("field_var"))
+	{
+	    printf("\nIn computeProjectionSimple()\n");
+	    printf("Check one step increment of phi:\n");
+	    computeVarIncrement(field->old_var[0],phi,NO);
+	    printf("\n");
+	    
+	}
 }	/* end computeProjectionSimple */
 
 void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocity(void)
@@ -337,13 +378,13 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocity(void)
             vmin[i] = HUGE;
             vmax[i] = -HUGE;
         }
-
 	for (j = 0; j <= top_gmax[1]; j++)
 	for (i = 0; i <= top_gmax[0]; i++)
 	{
 	    index  = d_index2d(i,j,top_gmax);
 	    array[index] = phi[index];
 	}
+
 	for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
 	{
@@ -387,6 +428,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocity(void)
 	    }
 	}
 	extractFlowThroughVelocity();
+	computeVelDivergence();
 
 	if (debugging("check_div"))
         {
@@ -628,6 +670,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 	    (void) printf("min_dt = %f  accum_dt = %f\n",min_dt,accum_dt);
 	if (accum_dt >= min_dt)
 	{
+	    //accum_dt = m_dt;
 	    start_clock("computeProjection");
 	    computeProjection();
 	    stop_clock("computeProjection");
@@ -747,6 +790,16 @@ void Incompress_Solver_Smooth_2D_Cartesian::
         size = iupper - ilower;
         FT_VectorMemoryAlloc((POINTER*)&x,size,sizeof(double));
 
+	if (debugging("field_var"))
+	{
+	    for (j = jmin; j <= jmax; j++)
+	    for (i = imin; i <= imax; i++)
+	    {
+	    	index = d_index2d(i,j,top_gmax);
+		field->old_var[0][index] = vel[0][index];
+		field->old_var[1][index] = vel[1][index];
+	    }
+	}
 	for (l = 0; l < dim; ++l)
 	{
             PETSc solver;
@@ -906,6 +959,15 @@ void Incompress_Solver_Smooth_2D_Cartesian::
         pp_global_min(vmin,dim);
         pp_global_max(vmax,dim);
 	stop_clock("computeDiffusionCN");
+	if (debugging("field_var"))
+	{
+	    (void) printf("\nIn computeDiffusionCN(), \n");
+	    (void) printf("one step increment for v[0]:\n");
+	    computeVarIncrement(field->old_var[0],vel[0],NO);
+	    (void) printf("one step increment for v[1]:\n");
+	    computeVarIncrement(field->old_var[1],vel[1],NO);
+	    (void) printf("\n");
+	}
 
         FT_FreeThese(1,x);
         if (debugging("trace"))
@@ -958,6 +1020,15 @@ void Incompress_Solver_Smooth_2D_Cartesian::computePressurePmIII(void)
 	double *q = field->q;
 	double *div_U = field->div_U;
 
+	if (debugging("field_var"))
+	{
+	    for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
+	    {
+            	index = d_index2d(i,j,top_gmax);
+		field->old_var[0][index] = pres[index];
+	    }
+	}
 	for (j = 0; j <= top_gmax[1]; j++)
         for (i = 0; i <= top_gmax[0]; i++)
 	{
@@ -966,6 +1037,12 @@ void Incompress_Solver_Smooth_2D_Cartesian::computePressurePmIII(void)
             pres[index] = phi[index] -
                         	accum_dt*mu0*div_U[index];
 	    q[index] = 0.0;
+	}
+	if (debugging("field_var"))
+	{
+	    (void) printf("\nCheck one step increment of Pressure:\n");
+	    computeVarIncrement(field->old_var[0],pres,NO);
+	    (void) printf("\n");
 	}
 }        /* end computePressurePmIII */
 
@@ -996,14 +1073,30 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeGradientQ(void)
 	int i,j,l,index;
 	double **grad_q = field->grad_q;
 	int icoords[MAXD];
-	double *q = field->q;
+	double *phi = field->phi;
 	double point_grad_q[MAXD];
 
+	if (debugging("field_var"))
+	{
+	    int comp;
+	    for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
+	    {
+	    	index = d_index2d(i,j,top_gmax);
+	    	comp = top_comp[index];
+	    	if (!ifluid_comp(comp))
+		    continue;
+	    	icoords[0] = i;
+	    	icoords[1] = j;
+		field->old_var[0][index] = field->grad_q[0][index];
+		field->old_var[1][index] = field->grad_q[1][index];
+	    }
+	}
 	for (j = 0; j < top_gmax[1]; ++j)
 	for (i = 0; i < top_gmax[0]; ++i)
 	{
 	    index = d_index2d(i,j,top_gmax);
-	    array[index] = q[index];
+	    array[index] = phi[index];
 	}
 	for (j = jmin; j <= jmax; j++)
 	for (i = imin; i <= imax; i++)
@@ -1030,6 +1123,15 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeGradientQ(void)
 	    	index = d_index2d(i,j,top_gmax);
 		grad_q[l][index] = array[index];
 	    }
+	}
+	if (debugging("field_var"))
+	{
+	    (void) printf("\nIn computeGradientQ(), \n");
+	    (void) printf("one step increment for grad_phi[0]:\n");
+	    computeVarIncrement(field->old_var[0],field->grad_q[0],NO);
+	    (void) printf("one step increment for grad_phi[1]:\n");
+	    computeVarIncrement(field->old_var[1],field->grad_q[1],NO);
+	    printf("\n");
 	}
 }	/* end computeGradientQ2d */
 
@@ -1853,3 +1955,71 @@ void Incompress_Solver_Smooth_2D_Cartesian::updateComponent(void)
 	    }
 	}
 }	/* end updateComponent */
+
+void Incompress_Solver_Smooth_2D_Cartesian::computeVarIncrement(
+	double *var_old,
+	double *var_new,
+	boolean use_dual_grid)
+{
+	int i,j,k,index,size;
+	double mag;
+	double Lnorm[3];
+
+	if (use_dual_grid)
+	{
+	    ;	// To add dual grid computation.
+	}
+	else
+	{
+	    Lnorm[0] = Lnorm[1] = Lnorm[2] = 0.0;
+	    size = (imax - imin + 1)*(jmax - jmin + 1);
+	    for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
+            {
+                index = d_index2d(i,j,top_gmax);
+		mag = fabs(var_new[index] - var_old[index]);
+		Lnorm[0] += mag;
+		Lnorm[1] += sqr(mag);
+		if (Lnorm[2] < mag)
+		{
+		    Lnorm[2] = mag;
+		}
+            }
+	    Lnorm[0] /= (imax - imin + 1)*(jmax - jmin + 1);
+	    Lnorm[1] = sqrt(Lnorm[1]/size);
+	    (void) printf("L-1 norm = %20.14f  L-1/dt = %20.14f\n",
+					Lnorm[0],Lnorm[0]/m_dt);
+	    (void) printf("L-2 norm = %20.14f  L-2/dt = %20.14f\n",
+					Lnorm[1],Lnorm[1]/m_dt);
+	    (void) printf("L-I norm = %20.14f  L-I/dt = %20.14f\n",
+					Lnorm[2],Lnorm[2]/m_dt);
+	    Lnorm[0] = 0.0;
+	    for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
+	    {
+		mag = fabs(var_new[index]);
+		Lnorm[0] += mag;
+	    }
+	    Lnorm[0] /= (imax - imin + 1)*(jmax - jmin + 1);
+	    (void) printf("L-1 norm of old variable = %20.14f\n",Lnorm[0]);
+	}
+}	/* end computeVarIncrement */	
+
+void Incompress_Solver_Smooth_2D_Cartesian::computeVelDivergence()
+{
+	double *div_U = field->div_U;
+	double **vel = field->vel;
+	int i,j,index,icoords[MAXD];
+
+	/* Compute velocity divergence */
+	for (j = jmin; j <= jmax; j++)
+        for (i = imin; i <= imax; i++)
+	{
+	    icoords[0] = i;
+	    icoords[1] = j;
+	    index  = d_index(icoords,top_gmax,dim);
+	    if (!ifluid_comp(top_comp[index]))
+		div_U[index] = 0.0;
+	    div_U[index] = computeFieldPointDiv(icoords,vel);
+	}
+}	/* end computeVelDivergence */

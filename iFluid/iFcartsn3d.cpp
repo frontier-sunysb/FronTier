@@ -2258,3 +2258,74 @@ void Incompress_Solver_Smooth_3D_Cartesian::updateComponent(void)
         }
 }	/* end updateComponent */
 
+void Incompress_Solver_Smooth_3D_Cartesian::computeVelDivergence()
+{
+	double *div_U = field->div_U;
+	double **vel = field->vel;
+	int i,j,k,index,icoords[MAXD];
+	double Lnorm[3];
+
+	/* Compute velocity divergence */
+	for (k = kmin; k <= kmax; k++)
+	for (j = jmin; j <= jmax; j++)
+        for (i = imin; i <= imax; i++)
+	{
+	    icoords[0] = i;
+	    icoords[1] = j;
+	    icoords[2] = k;
+	    index  = d_index(icoords,top_gmax,dim);
+	    if (!ifluid_comp(top_comp[index]))
+		div_U[index] = 0.0;
+	    div_U[index] = computeFieldPointDiv(icoords,vel);
+	}
+}	/* end computeVelDivergence */
+
+void Incompress_Solver_Smooth_3D_Cartesian::computeVarIncrement(
+	double *var_old,
+	double *var_new,
+	boolean use_dual_grid)
+{
+	int i,j,k,index,size;
+	double mag;
+	double Lnorm[3];
+
+	if (use_dual_grid)
+	{
+	    ;	// To add dual grid computation.
+	}
+	else
+	{
+	    Lnorm[0] = Lnorm[1] = Lnorm[2] = 0.0;
+	    size = (imax - imin + 1)*(jmax - jmin + 1)*(kmax - kmin + 1);
+	    for (k = kmin; k <= kmax; k++)
+	    for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+		mag = fabs(var_new[index] - var_old[index]);
+		Lnorm[0] += mag;
+		Lnorm[1] += sqr(mag);
+		if (Lnorm[2] < mag)
+		{
+		    Lnorm[2] = mag;
+		}
+            }
+	    Lnorm[0] /= size;
+	    Lnorm[1] = sqrt(Lnorm[1]/size);
+	    (void) printf("L-1 norm = %20.14f  L-1/dt = %20.14f\n",
+					Lnorm[0],Lnorm[0]/m_dt);
+	    (void) printf("L-2 norm = %20.14f  L-2/dt = %20.14f\n",
+					Lnorm[1],Lnorm[1]/m_dt);
+	    (void) printf("L-I norm = %20.14f  L-I/dt = %20.14f\n",
+					Lnorm[2],Lnorm[2]/m_dt);
+	    Lnorm[0] = 0.0;
+	    for (j = jmin; j <= jmax; j++)
+            for (i = imin; i <= imax; i++)
+	    {
+		mag = fabs(var_new[index]);
+		Lnorm[0] += mag;
+	    }
+	    Lnorm[0] /= size;
+	    (void) printf("L-1 norm of old variable = %20.14f\n",Lnorm[0]);
+	}
+}	/* end computeVarIncrement */	

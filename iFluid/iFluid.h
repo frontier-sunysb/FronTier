@@ -58,6 +58,7 @@ struct _IF_FIELD {
 	double *rho;
 	double **grad_q;
 	double **f_surf;		// Surface force (such as tension)
+	double **old_var;		// For debugging purpose
 
 	double *div_U;
 	double *d_phi;			/* Dual grid phi */
@@ -352,6 +353,7 @@ protected:
 
 	virtual void copyMeshStates(void) = 0;
 	virtual void computeGradientQ(void) = 0;
+	virtual void computeVelDivergence(void) = 0;
 	virtual void surfaceTension(double*, HYPER_SURF_ELEMENT*,
 		HYPER_SURF*, double*, double) = 0;
 
@@ -460,6 +462,8 @@ protected:
 	void computeSourceTerm(double *coords, double *source);
 	void surfaceTension(double*, HYPER_SURF_ELEMENT*, HYPER_SURF*, 
 				double*, double);
+	void computeVarIncrement(double*,double*,boolean);
+	void computeVelDivergence();
 	void updateComponent(void);
 
 	/***************   Low level computation functions  *************/
@@ -504,6 +508,8 @@ protected:
 	void computeSourceTerm(double *coords, double *source);
 	void surfaceTension(double*, HYPER_SURF_ELEMENT*, HYPER_SURF*, 
 				double*, double);
+	void computeVarIncrement(double*,double*,boolean);
+	void computeVelDivergence();
 };
 
 extern double getStatePres(POINTER);
