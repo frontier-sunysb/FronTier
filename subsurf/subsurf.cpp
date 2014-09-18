@@ -300,8 +300,7 @@ static  void subsurf_main_driver(
 	    printf("Passed second restart check()\n");
 
 	FT_TimeControlFilter(front);
-	(void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
-                        front->time,front->step,front->dt);
+	FT_PrintTimeStamp(front);
 
         for (;;)
         {
@@ -394,9 +393,7 @@ static  void subsurf_main_driver(
 
             if (FT_TimeLimitReached(front))
 	    {
-		(void) printf("\ntime = %20.14f   step = %5d   ",
-                                front->time,front->step);
-                (void) printf("next dt = %20.14f\n",front->dt);
+		FT_PrintTimeStamp(front);
 		if (dim == 1)
 		    plot_growth_data(out_name,growth_data,count);
                 break;
@@ -406,9 +403,7 @@ static  void subsurf_main_driver(
 	    /* Output section, next dt may be modified */
 
 	    FT_TimeControlFilter(front);
-
-	    (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
-                        front->time,front->step,front->dt);
+	    FT_PrintTimeStamp(front);
 
 	    if (debugging("step_size"))
 		printf("Time step from FrontOutputTimeControl(): %f\n",

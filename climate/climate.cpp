@@ -314,10 +314,6 @@ static  void melting_flow_driver(
 	    front->dt = FT_Min(front->dt,CFL*v_cartesian->m_dt);
 	    front->dt = FT_Min(front->dt,CFL*l_cartesian->max_dt);
 
-            printf("\ntime = %10.9f   step = %7d   dt = %10.9f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
-
 	    /*For checking the result*/
 	    //v_cartesian->checkField(); /*output variables to run-output*/
 	    //printf("Passed checkField()\n");
@@ -366,12 +362,14 @@ static  void melting_flow_driver(
 		if(eqn_params->prob_type == PARTICLE_TRACKING)
                     vtk_plot_scatter(front);
 	    	FT_AddMovieFrame(front,out_name,YES);
+	    	FT_PrintTimeStamp(front);
 		v_cartesian->recordField(out_name,"velocity");
                 break;
 	    }
 	    /* Output section, next dt may be modified */
 
 	    FT_TimeControlFilter(front);
+	    FT_PrintTimeStamp(front);
         }
 }       /* end melting_flow_driver */
 

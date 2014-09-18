@@ -175,9 +175,7 @@ static  void fluid_driver(
 	    FT_SetOutputCounter(front);
 
 	FT_TimeControlFilter(front);
-        printf("\ntime = %f   step = %5d   next dt = %f\n",
-                        front->time,front->step,front->dt);
-        fflush(stdout);
+	FT_PrintTimeStamp(front);
 
 	if (debugging("trace"))
 	{
@@ -230,17 +228,12 @@ static  void fluid_driver(
 
             if (FT_TimeLimitReached(front))
 	    {
-            	printf("\ntime = %f   step = %5d   next dt = %f\n",
-                        front->time,front->step,front->dt);
-            	fflush(stdout);
+		FT_PrintTimeStamp(front);
                 break;
 	    }
 
 	    FT_TimeControlFilter(front);
-
-            printf("\ntime = %f   step = %5d   next dt = %f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
+	    FT_PrintTimeStamp(front);
         }
 	if (debugging("trace")) printf("After time loop\n");
 }       /* end fluid_driver */

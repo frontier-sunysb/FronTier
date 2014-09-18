@@ -7,6 +7,7 @@ function parse_arguments {
         echo "Usage: $0 [-d] [-n] [-g] [--with-hdf]"
         echo
         echo "    -d          Enable debugging."
+        echo "    -e          Export version"
         echo "    -n          Just configure. Do not run make."
         echo "    -o2          Just configure. Do not run make."
         echo "    --with-gpu  Enable compilation with GPU."
@@ -23,6 +24,7 @@ function parse_arguments {
     WITHHDF=1
     WITHGD=1
     COPTS_GCC="-fopenmp"
+export BASECODE="no"
 
     for arg in $@ ; do
         if [[ "$arg" == "-d" ]]; then
@@ -35,6 +37,9 @@ function parse_arguments {
 	    CONF="$CONF --enable-itaps"
         elif [[ "$arg" == "--enable-imesh" ]]; then
 	    CONF="$CONF --enable-imesh"
+        elif [[ "$arg" == "-e" ]]; then
+	    CONF="$CONF --with-export"
+	    export BASECODE="yes"
         elif [[ "$arg" == "--with-gpu" ]]; then
             WITHGPU=1
         elif [[ "$arg" == "-o2" ]]; then

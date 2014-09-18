@@ -429,6 +429,14 @@ extern "C" {
 
    IMPORT  void FT_FreeFront(Front *front );
 
+/*! \fn void FT_FreeMainIntfc(Front *front)
+ *  \ingroup GRIDINTFC
+    \brief Delete and free space occupied by the primary interface of the front 
+    \param front @b inout	Pointer to Front.
+ */
+
+   IMPORT  void FT_FreeMainIntfc(Front *front );
+
 /*! \fn boolean FT_NormalAtGridCrossing(Front *front, int *icoords, GRID_DIRECTION dir, int comp, double *nor, HYPER_SURF **hs, double *crx_coords)
  *  \ingroup GRIDINTFC
     \brief Standing at grid icoords, looking to the direction dir, this
@@ -1708,6 +1716,15 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
  */
    IMPORT  boolean FT_CoordsInSubdomain(Front* front,
 				double *coords);
+
+/*! \fn void FT_PrintTimeStamp(Front *front)
+ *  \ingroup OUTPUT
+    \brief Output time information including current time, step and predicted
+     next time step size.
+    \param front @b in	Pointer to Front.
+ */
+
+   IMPORT  void FT_PrintTimeStamp(Front *front);
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }

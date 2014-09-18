@@ -133,6 +133,9 @@ static void initSpringModel3d(Front *front)
 	case 'X':
 	case 'x':
 	    cutToCross(infile,surf);
+	    gview_plot_interface("test",surf->interface);
+	    // Pending for debugging
+	    clean_up(0);
 	    break;
 	case 'W':
 	case 'w':

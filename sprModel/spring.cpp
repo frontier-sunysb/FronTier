@@ -158,8 +158,7 @@ static  void spring_driver(
 	    FT_SetOutputCounter(front);
 	}
 	FT_TimeControlFilter(front);
-        (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
-                        front->time,front->step,front->dt);
+	FT_PrintTimeStamp(front);
 	
         for (;;)
         {
@@ -202,20 +201,15 @@ static  void spring_driver(
 
             if (FT_TimeLimitReached(front))
 	    {
-            	(void) printf("\ntime = %20.14f   step = %5d   ",
-				front->time,front->step);
-		(void) printf("next dt = %20.14f\n",front->dt);
+		FT_PrintTimeStamp(front);
                 break;
 	    }
 
 	    /* Time and step control section */
 
 	    FT_TimeControlFilter(front);
+	    FT_PrintTimeStamp(front);
 	    print_storage("after time loop","trace");
-
-            (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
         }
         (void) delete_interface(front->interf);
 }       /* end spring_driver */

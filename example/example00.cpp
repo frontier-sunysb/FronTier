@@ -204,21 +204,21 @@ static  void test_propagate(
 
             FT_SetTimeStep(front);
 
-            printf("\ntime = %f   step = %5d   next dt = %f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
-
             if (FT_IsSaveTime(front))
                 FT_Save(front,out_name);
             if (FT_IsMovieFrameTime(front))
                 FT_AddMovieFrame(front,out_name,binary);
 
             if (FT_TimeLimitReached(front))
-                    break;
+	    {
+                FT_PrintTimeStamp(front);
+                break;
+	    }
 
 	    /* Output section, next dt may be modified */
 
 	    FT_TimeControlFilter(front);
+            FT_PrintTimeStamp(front);
         }
         (void) delete_interface(front->interf);
 }       /* end test_propagate */

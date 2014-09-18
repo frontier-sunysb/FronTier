@@ -164,8 +164,7 @@ int main(int argc, char **argv)
 
 	    /* Time and step control */
 	    FT_AddTimeStepToCounter(&front);
-	    (void) printf("\ntime = %20.14f   step = %5d   ",
-                        	front.time,front.step);
+	    FT_PrintTimeStamp(&front);
 
 	    /* Update boundary condition */
 	    for (i = 0; i < buffer_size; ++i)

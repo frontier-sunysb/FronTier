@@ -208,9 +208,7 @@ static  void finance_driver(
 	    FT_SetOutputCounter(front);
 
 	FT_TimeControlFilter(front);
-        (void) printf("\ntime = %f   step = %5d   next dt = %f\n",
-                        front->time,front->step,front->dt);
-        fflush(stdout);
+	FT_PrintTimeStamp(front);
 
 	(void) printf("CFL = %f\n",CFL);
 	(void) printf("Frequency_of_redistribution(front,GENERAL_WAVE) = %d\n",
@@ -252,14 +250,13 @@ static  void finance_driver(
 	    }
 
             if (FT_TimeLimitReached(front))
-                    break;
+	    {
+	    	FT_PrintTimeStamp(front);
+                break;
+	    }
 
 	    FT_TimeControlFilter(front);
-
-            printf("\ntime = %f   step = %5d   next dt = %f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
-
+	    FT_PrintTimeStamp(front);
         }
 }       /* end finance_driver */
 

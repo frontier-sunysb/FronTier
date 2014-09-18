@@ -291,7 +291,8 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	    index  = d_index2d(i,j,top_gmax);
 	    if (!ifluid_comp(top_comp[index]))
 		continue;
-	    source[index] = (source[index] - div_U[index])/accum_dt;
+	    //source[index] = (source[index] - div_U[index])/accum_dt;
+	    source[index] = (source[index])/accum_dt;
 	    array[index] = phi[index];
 	}
 

@@ -22,7 +22,7 @@ Enter initial shape of fixed area: rectangle
 Enter rectangle lower bounds: 0.4 0.4
 Enter rectangle upper bounds: 0.6 0.6
 Enter area velocity: 0 0 0.1
-Enter interior propagator: e
+Enter interior propagator: p
 Enter interior sub step number: 10
 
 Projection type can be

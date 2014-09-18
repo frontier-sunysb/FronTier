@@ -90,6 +90,9 @@ int main(int argc, char **argv)
             sprintf(restart_state_name,"%s-nd%s",restart_state_name,
 				right_flush(pp_mynode(),4));
 	}
+	af_params.num_np = 1;
+        FT_VectorMemoryAlloc((POINTER*)&af_params.node_id,1,sizeof(int));
+        af_params.node_id[0] = 0;
 
 	FT_ReadSpaceDomain(in_name,&f_basic);
 	FT_StartUp(&front,&f_basic);
@@ -238,8 +241,7 @@ static  void airfoil_driver(
 	    FT_SetOutputCounter(front);
 	}
 	FT_TimeControlFilter(front);
-        (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
-                        front->time,front->step,front->dt);
+	FT_PrintTimeStamp(front);
 	
         for (;;)
         {
@@ -313,9 +315,7 @@ static  void airfoil_driver(
 
             if (FT_TimeLimitReached(front))
 	    {
-            	(void) printf("\ntime = %20.14f   step = %5d   ",
-				front->time,front->step);
-		(void) printf("next dt = %20.14f\n",front->dt);
+		FT_PrintTimeStamp(front);
 	    	stop_clock("time_step");
                 break;
 	    }
@@ -325,9 +325,7 @@ static  void airfoil_driver(
 	    FT_TimeControlFilter(front);
 	    print_storage("after time loop","trace");
 
-            (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
+	    FT_PrintTimeStamp(front);
 	    stop_clock("time_step");
         }
         (void) delete_interface(front->interf);

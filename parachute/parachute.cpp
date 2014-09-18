@@ -218,8 +218,7 @@ static  void airfoil_driver(
 	    FT_SetOutputCounter(front);
 	}
 	FT_TimeControlFilter(front);
-        (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
-                        front->time,front->step,front->dt);
+	FT_PrintTimeStamp(front);
 	
         for (;;)
         {
@@ -283,9 +282,7 @@ static  void airfoil_driver(
 
             if (FT_TimeLimitReached(front))
 	    {
-            	(void) printf("\ntime = %20.14f   step = %5d   ",
-				front->time,front->step);
-		(void) printf("next dt = %20.14f\n",front->dt);
+		FT_PrintTimeStamp(front);
                 break;
 	    }
 
@@ -294,11 +291,10 @@ static  void airfoil_driver(
 	    FT_TimeControlFilter(front);
 	    print_storage("after time loop","trace");
 
-            (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
-                        front->time,front->step,front->dt);
+	    FT_PrintTimeStamp(front);
             fflush(stdout);
         }
-        (void) delete_interface(front->interf);
+        FT_FreeMainIntfc(front);
 }       /* end airfoil_driver */
 
 static void xgraph_front(

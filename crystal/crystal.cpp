@@ -265,6 +265,7 @@ static  void solute_main_driver(
 	    printf("Passed second restart check()\n");
 
 	FT_TimeControlFilter(front);
+	FT_PrintTimeStamp(front);
 
         for (;;)
         {
@@ -296,10 +297,6 @@ static  void solute_main_driver(
 	    front->dt = std::min(front->dt,CFL*c_cartesian.max_dt);
 	    if (debugging("step_size"))
                 printf("Time step from c_cartesian.max_dt(): %f\n",front->dt);
-
-            (void) printf("\ntime = %20.14f   step = %7d   dt = %20.14f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
 
             if (FT_IsSaveTime(front))
 	    {
@@ -348,6 +345,7 @@ static  void solute_main_driver(
 
             if (FT_TimeLimitReached(front))
 	    {
+	    	FT_PrintTimeStamp(front);
 		if (dim == 1)
 		    plot_growth_data(out_name,growth_data,count);
                 break;
@@ -357,6 +355,7 @@ static  void solute_main_driver(
 	    /* Output section, next dt may be modified */
 
 	    FT_TimeControlFilter(front);
+	    FT_PrintTimeStamp(front);
         }
 	if (s_params != NULL)
 	{

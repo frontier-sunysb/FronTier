@@ -562,6 +562,13 @@ EXPORT	void FT_FreeFront(
 	free_front(front);
 }	/* end FT_FreeFront */
 
+EXPORT  void FT_FreeMainIntfc(
+        Front *front)
+{
+	delete_interface(front->interf);
+        front->interf = NULL;
+}       /* end FT_FreeOldGridIntfc */
+
 EXPORT	void FT_ParallelExchIntfcBuffer(
 	Front *front)
 {

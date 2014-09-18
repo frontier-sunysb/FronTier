@@ -25,19 +25,20 @@ fi
 AC_ARG_ENABLE(linpak, [  --enable-linpak               Turns on the building and linking of the linpak library],[build_linpak=1],[build_linpak=0])
 
 ########################### BUILD GAS ##############################
-gasyesorno=" "
 pakyesorno=" "
 subgrid=" "
 rotsym=" "
-gastest=" "
 gascleann=" "
-AC_ARG_WITH(gas,[  --with-gas                 Compilation of the FronTier gas code ],[gasyesorno='cd gas   && $(MAKE) gas_all'  gascleann='cd gas  &&  $(MAKE)  clean' gastest="yes"],[gasyesorno=" " gastest="no"])
+basecode=" "
+AC_ARG_WITH(export,[  --with-export                 Compilation of the Basic FronTier++ code ],[basecode="yes"],[basecode="no"])
 
-AC_ARG_WITH(subgrid,[  --with-subgrid               Compilation of the FronTier gas code, with the fully conservative algorithm ],[gasyesorno='cd gas   && $(MAKE) gas_all' driveryesorno='cd driver && $(MAKE)' hypyesorno='cd hyp    && $(MAKE)' subgrid=" -DSUBGRID"],[])
-
-AC_ARG_WITH(combustion,[  --with-combustion              Support for the gas combustion code],[combus="yes"],[combus="no"])
-
-AC_ARG_WITH(rotsym,[  --with-rotsym                 Compilation of the FronTier gas code, with rotational symetry ],[gasyesorno='cd gas   && $(MAKE) gas_all' gascleann='cd gas  &&  $(MAKE) clean' rotsym='-DROTATIONAL_SYMMETRY'],[ rotsym=" "])
+if test "$basecode" = "yes"; then
+    echo "Base code"
+    AC_SUBST(BASECODE,${BASECODE})        
+else
+    echo "Full code"
+    AC_SUBST(BASECODE,${BASECODE})        
+fi
 
 AC_ARG_WITH(gd,[  --with-gd=PFX             Links with gd library for 1d post processing],[scriptotherlibsinc=" -L$withval/lib "${scriptotherlibs} scriptotherlibs="-lgd "${scriptotherlibs} gdincs=" -D__GD__ -I"${withval}"/include "],[gdincs=""])
 
@@ -62,8 +63,6 @@ else
     echo "HYPRE enabled"
     AC_SUBST(USEHYPRE,${USEHYPRE})        
 fi
-
-############################ END BUILD GAS ###########################
 
 ############################ Compiler Checks #########################
 AC_PROG_CC(gcc gcc295 cc)
@@ -109,12 +108,6 @@ AC_CHECK_FUNC(malloc,[malloc='yes'],[malloc='no'])
                 AC_MSG_ERROR([malloc cannot be found  please do something about this.])
                 fi
 
-#AC_CHECK_MEMBER([struct mallinfo.arena],[mallinfo='yes'],[mallinfo='no']) 
-#                if test $mallinfo = 'no'; then
-#                 systemincs=${systemincs}" -DNO_MALLINFO "
-#                fi
-
-
 #################################################
 ### TESTS TO BE PREFORMED FOR FRONTIER
 ################################################
@@ -153,19 +146,6 @@ if test $hdff5 = 'yes';then
         scriptotherlibsinc=${scriptotherlibsinc}" -L"${hdff5prefix}"/lib "
         scriptotherlibs=${scriptotherlibs}" -lhdf5"        
 
-fi
-
-AC_ARG_WITH(amr,[  --with-amr              Support generic AMR],[amrprefix=$withval amrr="yes"],[amrr="no"])
-if test $amrr = 'yes';then
-amrincs=" -DUSE_AMR "
-
-fi
-
-AC_ARG_WITH(overture,[  --with-overture              Support for the Overture AMR library],[testover="yes"],[testover="no"])
-
-
-if test $testover = 'yes';then
-AC_CHECK_LIB(libOverture.so,main,[libover="yes"],[libover="no"])
 fi
 
 AC_ARG_WITH(overture-prefix,[  --with-overture-prefix=PFX    Prefix where overture is installed],[testovertureprefix="yes" overtureprefix=$withval],[testovertureprefix="no"])
@@ -373,11 +353,6 @@ cppflagss=" "
 ######################################################
 ##### CHANGING VARIBLES BASED ON ABOVE TESTS AND INPUT
 #########################################################
-#combustion code
-
-if test $combus = 'yes';then
-physincs=${physincs}" -DCOMBUSTION_CODE"
-fi
 
 #  Generic MPI
 mpiincs=''
@@ -433,22 +408,12 @@ if test $testover =  'yes';then
 over="-DUSE_OVERTURE "
 fi
 
-#echo "gasyesorno=x${gasyesorno}x"
-echo "gastest="${gastest}
-if test  $gastest = yes; then
-        echo "LINPAK enabled because gas requires it."
-        build_linpak=0
-fi
 ###################################
 #end overture
  
 ftlibdubug=" "
 
 optimization=$optimization 
-
-gasdebug=" -DCHECK_FOR_BAD_STATES -DDEBUG_GRIEMANN -DDEBUG_MUSCL -DDEBUG_POINT_PROPAGATE -DDEBUG_W_SPEED -DFULL_PHYSICS -DMULTI_COMPONENT -DPHASE_CODE "
-
-
 
 ######################################################################
 ## The complete varibles as the are sent to thier parts of the code.
@@ -462,19 +427,6 @@ gasdebug=" -DCHECK_FOR_BAD_STATES -DDEBUG_GRIEMANN -DDEBUG_MUSCL -DDEBUG_POINT_P
 
 scriptftlibincs=" -I.. -I../util"${debug}${cppflagss}${amrincs}${hdfincs}${hdf5incs}${mpichincs}${overinc}${appinc}${ftlibdubug}${itapsd}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${ompincs}${gdincs}${gpuincs}${gslincs}${hypreincs}${subgrid}
 
-
-#included in all code in: gas/gbifur 
-#                          gas/gdecs 
-#                          gas/geos 
-#                          gas/ghyp 
-#                          gas/ginit 
-#                          gas/gintfc 
-#                          gas/gnode 
-#                          gas/gprop 
-#                          gas/gprt 
-#                          gas/gstate/
-
-scriptgasincs=" -I. -I../../gas -I../.. -I../../util "${hypreincs}${debug}${cppflagss}${mpichincs}${amrincs}${hdfincs}${hdf5incs}${overinc}${appinc}${gasdebug}${rotsym}${ftlibdubug}${fenv}${optimization}${over}${firix}${noname}${hdfinc}${systemincs}${physincs}${ompincs}${gasincs}${gdincs}${gpuincs}${gslincs}${hypreincs}${subgrid}
 
 #included in all code in: example and testfront 
 scriptexampleincs=${mpichincs}${amrincs}${hdfincs}${hdf5incs}${hdfinc}${systemincs}${ompincs}${gpuincs}${gslincs}${hypreincs}${subgrid}
@@ -495,16 +447,13 @@ AC_SUBST(headers, $headers)
 AC_SUBST(include_dirs, $include_dirs)
 
 # Substitute these changes in the makefile.ins
-AC_SUBST(gass,$gasyesorno)
 AC_SUBST(sn_ellip,$snyesorno)
-AC_SUBST(gasclean,$gascleann)
 AC_SUBST(debugg,$debug)
 AC_SUBST(tsttyesornoo,$tsttyesorno)
 AC_SUBST(FFLAGS,$flagsss)
 #AC_SUBST(f77ft,$F77)
 #AC_SUBST(f77ft,"gfortran")
 AC_SUBST(ftlibincs,$scriptftlibincs)
-AC_SUBST(gasincs,$scriptgasincs) 
 AC_SUBST(utilincs,$scriptutilincs)
 AC_SUBST(exampleincs,$scriptexampleincs)
 AC_SUBST(dutilincs,$scriptdutilincs)
@@ -514,8 +463,6 @@ AC_SUBST(otherlibsinc,$scriptotherlibsinc)
 AC_SUBST(randy,$RANLIB)
 AC_SUBST_FILE(ftbuild)
 ftbuild=./src/util/ftrules
-AC_SUBST_FILE(gasbuild)
-gasbuild=./src/util/gasrules
 AC_SUBST(build_linpak, ${build_linpak})
 
 
@@ -523,9 +470,7 @@ AC_SUBST(build_linpak, ${build_linpak})
 #AC_SUBST(AWK,"awk")
 # Write the makefiles
 
-
-
-if test $gastest = "no"; then
+if test $basecode = "no"; then
 filelist='Makefile 
 src/Makefile 
 src/util/Makefile 
@@ -564,78 +509,24 @@ devel-deps.inc
 iMesh-Defs.inc'
 fi
 
-if test $gastest = "yes"; then
+if test $basecode = "yes"; then
 filelist='Makefile 
 src/Makefile 
 src/util/Makefile 
-src/pak/Makefile 
-src/pak/odepack/Makefile 
-src/pak/dierckx/Makefile 
-src/pak/linpak/Makefile 
-src/pak/blas/Makefile 
-src/pak/sn_ellip/Makefile 
-src/driver/Makefile 
 src/front/Makefile 
-src/hyp/Makefile 
 src/intfc/Makefile 
-src/tri/Makefile 
-src/gas/Makefile 
-src/gas/gbifur/Makefile 
-src/gas/geos/Makefile 
-src/gas/ghyp/Makefile 
-src/gas/ginit/Makefile 
-src/gas/gintfc/Makefile 
-src/gas/gnode/Makefile 
-src/gas/gprop/Makefile 
-src/gas/gprt/Makefile 
-src/gas/gstate/Makefile 
+subsurf/Makefile
+crystal/Makefile
 example/Makefile
 example3d/Makefile
-iTaps/Makefile
 melting/Makefile
-finance/Makefile
-curvature/Makefile
-cell/Makefile
-pde/Makefile
-MonteCarlo/Makefile
-timeSeries/Makefile
 iFluid/Makefile
-frgb/Makefile
-climate/Makefile
-subsurf/Makefile
-airfoil/Makefile
-parachute/Makefile
-sprModel/Makefile
-crystal/Makefile
-poisson/Makefile
 cFluid/Makefile
-wings/Makefile
-cim/Makefile
-inverse/Makefile
 solver/Makefile
-weno/Makefile
-proj/Makefile
+src/pak/linpak/Makefile
+src/pak/blas/Makefile
 devel-deps.inc
 iMesh-Defs.inc'
-
-mkdir -p lib/${build_cpu}/gas
-mkdir -p src/pak/odepack/${build_cpu}
-mkdir -p src/pak/dierckx/${build_cpu}
-mkdir -p src/pak/blas/${build_cpu}
-mkdir -p src/pak/linpak/${build_cpu}
-mkdir -p src/driver/${build_cpu}
-mkdir -p src/gas/${build_cpu}
-mkdir -p src/gas/gbifur/${build_cpu}
-mkdir -p src/gas/geos/${build_cpu}
-mkdir -p src/gas/ghyp/${build_cpu}
-mkdir -p src/gas/ginit/${build_cpu}
-mkdir -p src/gas/gintfc/${build_cpu}
-mkdir -p src/gas/gnode/${build_cpu}
-mkdir -p src/gas/gprop/${build_cpu}
-mkdir -p src/gas/gprt/${build_cpu}
-mkdir -p src/gas/gstate/${build_cpu}
-mkdir -p src/hyp/${build_cpu}
-mkdir -p src/tri/${build_cpu}
 fi
 
 
@@ -656,8 +547,6 @@ echo   $F77
 echo "The util flags are:" $scriptutilincs
 echo
 echo "The dutil flags are:" $scriptdutilincs
-echo
-echo "The gas flags are:" $scriptgasincs
 echo
 echo "The front flags are:" $scriptftlibincs
 echo 

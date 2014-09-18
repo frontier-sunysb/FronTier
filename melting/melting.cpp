@@ -294,6 +294,7 @@ static  void melting_flow_driver(
 
 
 	FT_TimeControlFilter(front);
+	FT_PrintTimeStamp(front);
 
         for (;;)
         {
@@ -307,10 +308,6 @@ static  void melting_flow_driver(
 	    front->dt = FT_Min(front->dt,CFL*cartesian.m_dt);
 	    if (eqn_params->no_fluid == NO)
 	    	front->dt = FT_Min(front->dt,CFL*l_cartesian->max_dt);
-
-            printf("\ntime = %f   step = %7d   dt = %f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
 
             if (FT_IsSaveTime(front))
 	    {
@@ -354,12 +351,14 @@ static  void melting_flow_driver(
 	    {
 		if (dim == 1)
 		    plot_growth_data(out_name,growth_data,count);
+	    	FT_PrintTimeStamp(front);
 	    	FT_AddMovieFrame(front,out_name,YES);
                 break;
 	    }
 	    /* Output section, next dt may be modified */
 
 	    FT_TimeControlFilter(front);
+	    FT_PrintTimeStamp(front);
         }
 	if (pp_mynode() == 0 && dim != 1)
 	{

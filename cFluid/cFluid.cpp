@@ -209,8 +209,7 @@ static  void gas_driver(
 	    FT_SetOutputCounter(front);
 
 	FT_TimeControlFilter(front);
-	(void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
-                        front->time,front->step,front->dt);
+	FT_PrintTimeStamp(front);
 
 	if (debugging("trace"))
 	{
@@ -283,17 +282,13 @@ static  void gas_driver(
 		{
                     FT_AddMovieFrame(front,out_name,binary);
 		}
-		(void) printf("\ntime = %20.14f   step = %5d   ",
-                                front->time,front->step);
-                (void) printf("next dt = %20.14f\n",front->dt);
+		FT_PrintTimeStamp(front);
 	    	stop_clock("exit-output");
 	    	stop_clock("time_loop");
                 break;
 	    }
 	    FT_TimeControlFilter(front);
-	    (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
+	    FT_PrintTimeStamp(front);
 	    stop_clock("time_loop");
         }
 	if (FT_Dimension() == 1)

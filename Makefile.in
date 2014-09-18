@@ -2,6 +2,7 @@ build_cpu = @build_cpu@
 header_files = @headers@
 #include_dirs=include include/FronTier include/FronTier/front include/FronTier/util include/FronTier/intfc
 include_dirs=@include_dirs@
+BASECODE = @BASECODE@
 lib_only:
 	cd src && $(MAKE)
 	$(MAKE) incs 
@@ -28,37 +29,48 @@ all:
 	cd timeSeries && $(MAKE)
 	cd poisson && $(MAKE)
 	cd subsurf && $(MAKE)
+ifeq ($(BASECODE),no)
 clean:
-	cd src && $(MAKE) clean
-	cd example && $(MAKE) clean
-	cd example3d && $(MAKE) clean
-	cd iFluid && $(MAKE) clean
-	cd cFluid && $(MAKE) clean
-	cd wings && $(MAKE) clean
-	cd cim && $(MAKE) clean
-	cd inverse && $(MAKE) clean
-	cd airfoil && $(MAKE) clean
-	cd parachute && $(MAKE) clean
-	cd cell && $(MAKE) clean
-	cd crystal && $(MAKE) clean
-	cd curvature && $(MAKE) clean
-	cd finance && $(MAKE) clean
-	cd frgb && $(MAKE) clean
-	cd climate && $(MAKE) clean
-	cd melting && $(MAKE) clean
-	cd pde && $(MAKE) clean
-	cd MonteCarlo && $(MAKE) clean
-	cd timeSeries && $(MAKE) clean
-	cd poisson && $(MAKE) clean
-	cd subsurf && $(MAKE) clean
-	cd iTaps && $(MAKE) clean
+	-cd src && $(MAKE) clean
+	-cd example && $(MAKE) clean
+	-cd example3d && $(MAKE) clean
+	-cd iFluid && $(MAKE) clean
+	-cd cFluid && $(MAKE) clean
+	-cd wings && $(MAKE) clean
+	-cd cim && $(MAKE) clean
+	-cd inverse && $(MAKE) clean
+	-cd airfoil && $(MAKE) clean
+	-cd parachute && $(MAKE) clean
+	-cd cell && $(MAKE) clean
+	-cd crystal && $(MAKE) clean
+	-cd curvature && $(MAKE) clean
+	-cd finance && $(MAKE) clean
+	-cd frgb && $(MAKE) clean
+	-cd climate && $(MAKE) clean
+	-cd melting && $(MAKE) clean
+	-cd pde && $(MAKE) clean
+	-cd MonteCarlo && $(MAKE) clean
+	-cd timeSeries && $(MAKE) clean
+	-cd poisson && $(MAKE) clean
+	-cd subsurf && $(MAKE) clean
+	-cd iTaps && $(MAKE) clean
 	-cd lib/$(build_cpu)/; rm -rf gas *.a
 	-rm -rf incs
 	-rm -rf include
-
-export:
-	cd src/gas && $(MAKE) export
-
+else
+clean:
+	-cd src && $(MAKE) clean
+	-cd example && $(MAKE) clean
+	-cd example3d && $(MAKE) clean
+	-cd iFluid && $(MAKE) clean
+	-cd cFluid && $(MAKE) clean
+	-cd crystal && $(MAKE) clean
+	-cd melting && $(MAKE) clean
+	-cd subsurf && $(MAKE) clean
+	-cd lib/$(build_cpu)/; rm -rf *.a
+	-rm -rf incs
+	-rm -rf include
+endif
 diff:
 	cd src && $(MAKE) diff
 	-diff -r . $(diffdir) > DIFF
@@ -161,7 +173,6 @@ $$ME/parachute/input-*/* \
 $$ME/parachute/mrun* \
 $$ME/parachute2d/*.cpp \
 $$ME/parachute2d/Makefile.in \
-$$ME/parachute2d/in-* \
 $$ME/parachute2d/mrun* \
 $$ME/sprModel/*.cpp \
 $$ME/sprModel/Makefile.in \
@@ -268,3 +279,80 @@ $$ME/src/front/README \
 tar:
 	cd ./ && ME=`basename $$PWD` && cd .. && tar -cf "`date +FronTier++.%m_%d_%y.tar`" ${TARFLIST} && \
 	gzip "`date +FronTier++.%m_%d_%y.tar`" && mv `date +FronTier++.%m_%d_%y.tar`.gz $$ME/.
+
+BASETARFLIST = $$ME/README \
+$$ME/build \
+$$ME/install-sh \
+$$ME/config.status \
+$$ME/config.sub \
+$$ME/config.guess \
+$$ME/devel-deps.inc.in \
+$$ME/iMesh-Defs.inc.in \
+$$ME/configure.in \
+$$ME/src/util/mkdep.pl \
+$$ME/src/util/mkfiles.pl \
+$$ME/src/util/ftrules \
+$$ME/src/util/gasrules \
+$$ME/src/pak/Makefile.in \
+$$ME/src/pak/linpak/Makefile.in \
+$$ME/src/pak/linpak/*.f \
+$$ME/src/pak/blas/Makefile.in \
+$$ME/src/pak/blas/*.f \
+$$ME/configure.in \
+$$ME/Makefile.in \
+$$ME/src/Makefile.in \
+$$ME/example/*.cpp \
+$$ME/example/Makefile.in \
+$$ME/example/README \
+$$ME/example3d/*.cpp \
+$$ME/example3d/Makefile.in \
+$$ME/curvature/*.cpp \
+$$ME/curvature/*.h \
+$$ME/curvature/Makefile.in \
+$$ME/example3d/README \
+$$ME/subsurf/*.cpp \
+$$ME/subsurf/*.h \
+$$ME/subsurf/Makefile.in \
+$$ME/subsurf/in-* \
+$$ME/crystal/*.cpp \
+$$ME/crystal/*.h \
+$$ME/crystal/Makefile.in \
+$$ME/crystal/README \
+$$ME/crystal/in-* \
+$$ME/crystal/mrun* \
+$$ME/melting/*.cpp \
+$$ME/melting/*.h \
+$$ME/melting/Makefile.in \
+$$ME/melting/in-* \
+$$ME/melting/mrun* \
+$$ME/iFluid/*.cpp \
+$$ME/iFluid/*.h \
+$$ME/iFluid/Makefile.in \
+$$ME/iFluid/input-*/in-* \
+$$ME/iFluid/mrun* \
+$$ME/cFluid/*.cpp \
+$$ME/cFluid/*.h \
+$$ME/cFluid/Makefile.in \
+$$ME/cFluid/in-* \
+$$ME/cFluid/mrun* \
+$$ME/solver/*.cpp \
+$$ME/solver/*.h \
+$$ME/solver/Makefile.in \
+$$ME/src/intfc/*.c \
+$$ME/src/intfc/*.h  \
+$$ME/src/intfc/*.cu \
+$$ME/src/intfc/*.cuh  \
+$$ME/src/intfc/Makefile.in \
+$$ME/src/util/*.h \
+$$ME/src/util/*.c \
+$$ME/src/util/Makefile.in \
+$$ME/src/front/*.c \
+$$ME/src/front/*.h \
+$$ME/src/front/*.cu \
+$$ME/src/front/*.cuh \
+$$ME/src/front/Makefile.in \
+$$ME/src/front/README \
+
+base-tar:
+	cd ./ && ME=`basename $$PWD` && cd .. && tar -cf "`date +FronTier++-base.%m_%d_%y.tar`" ${BASETARFLIST} && \
+	gzip "`date +FronTier++-base.%m_%d_%y.tar`" && mv `date +FronTier++-base.%m_%d_%y.tar`.gz $$ME/.

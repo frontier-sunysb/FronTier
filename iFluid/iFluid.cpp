@@ -248,10 +248,6 @@ static  void ifluid_driver(
 	
             /* Output section */
 
-            (void) printf("\ntime = %20.14f   step = %5d   next dt = %20.14f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
-
             if (FT_IsSaveTime(front))
 	    {
             	FT_Save(front,out_name);
@@ -265,6 +261,7 @@ static  void ifluid_driver(
 
             if (FT_TimeLimitReached(front))
 	    {
+	    	FT_PrintTimeStamp(front);
 		if (debugging("CAUCHY_ERROR"))
                     l_cartesian->compareWithBaseSoln();
                 break;
@@ -277,6 +274,7 @@ static  void ifluid_driver(
 		print_storage(s,"trace");
 	    }
 	    FT_TimeControlFilter(front);
+	    FT_PrintTimeStamp(front);
 	    if (debugging("step_size"))
                 (void) printf("Time step from FT_TimeControlFilter(): %f\n",
                                         front->dt);

@@ -171,8 +171,7 @@ int main(int argc, char **argv)
 
 	    /* Time and step control */
 	    FT_AddTimeStepToCounter(&front);
-	    (void) printf("\ntime = %20.14f   step = %5d   ",
-                        	front.time,front.step);
+	    FT_PrintTimeStamp(&front);
 
 	    /* Movie frame */
 	    if (FT_IsMovieFrameTime(&front))

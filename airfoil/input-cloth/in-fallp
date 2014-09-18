@@ -20,7 +20,7 @@ Entering yes to turn off fluid solver: yes
 Enter velocity function: fp
 Enter initial fixed point coordinates: 0.5 0.5
 Enter point velocity: 0 0 0
-Enter interior propagator: e
+Enter interior propagator: p
 Enter interior sub step number: 10
 
 Projection type can be
