@@ -173,6 +173,7 @@ $$ME/parachute/input-*/* \
 $$ME/parachute/mrun* \
 $$ME/parachute2d/*.cpp \
 $$ME/parachute2d/Makefile.in \
+$$ME/parachute2d/input-*/* \
 $$ME/parachute2d/mrun* \
 $$ME/sprModel/*.cpp \
 $$ME/sprModel/Makefile.in \
