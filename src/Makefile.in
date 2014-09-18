@@ -2,7 +2,6 @@ CC=@CC@
 F77=@F77@
 all:
 	cd front  && $(MAKE)
-	@gass@ 
 	if [ @build_linpak@ -eq 1 ]; then cd pak/linpak && $(MAKE); fi
 	if [ @build_linpak@ -eq 1 ]; then cd pak/blas && $(MAKE); fi
 
@@ -10,7 +9,6 @@ clean:
 	cd util && $(MAKE) clean
 	cd front && $(MAKE) clean
 	cd intfc && $(MAKE) clean
-	@gasclean@
 	if [ @build_linpak@ -eq 1 ]; then cd pak/linpak && $(MAKE) clean; fi
 	if [ @build_linpak@ -eq 1 ]; then cd pak/blas && $(MAKE) clean; fi
 
