@@ -370,14 +370,11 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 	
         if(iFparams->if_buoyancy)
         {
-            double T0   = iFparams->ref_temp;
-            double* T = field->temperature;
-            int ic[MAXD],index;
-
+	    int ic[MAXD],index;
             rect_in_which(coords,ic,top_grid);
             index = d_index(ic,top_gmax,dim);
             for (i = 0; i < dim; ++i)
-                source[i] = iFparams->gravity[i]*(T[index] - T0)/T0;
+                source[i] = field->ext_accel[i][index];
         }
         else
         {
@@ -2033,7 +2030,7 @@ static int parab_find_state_at_crossing(
 void Incompress_Solver_Smooth_3D_Cartesian::setParallelVelocity(void)
 {
         FILE *infile;
-        int i,j,k,l,index,G_index;
+        int i,j,id,k,l,index,G_index;
         char fname[100];
         COMPONENT comp;
         double coords[MAXD];
@@ -2043,52 +2040,89 @@ void Incompress_Solver_Smooth_3D_Cartesian::setParallelVelocity(void)
 
         int G_icoords[MAXD],pp_icoords[MAXD],icoords[MAXD];
         int local_gmax[MAXD], global_gmax[MAXD];
-        int G_size;
+        int G_size, L_size;
         PP_GRID *pp_grid = front->pp_grid;
         double *local_L = pp_grid->Zoom_grid.L;
         double *local_U = pp_grid->Zoom_grid.U;
-        double *U_buff,*V_buff,*W_buff;
+        double *GU_buff,*GV_buff, *GW_buff, *U_buff, *V_buff, *W_buff;
 
         for (i = 0; i < dim; i++)
         {
             global_gmax[i] = pp_grid->Global_grid.gmax[i]-1;
             local_gmax[i] = pp_grid->Zoom_grid.gmax[i]-1;
         }
+        FT_MakeGridIntfc(front);
+        setDomain();
         G_size = 1;
+        L_size = 1;
         for (i = 0; i < dim; i++)
         {
             G_size = G_size * (global_gmax[i]+1);
-            pp_icoords[i] = floor(local_L[i]/(local_U[i]-local_L[i]));
+            L_size = L_size * (top_gmax[i]+1);
         }
-        uni_array(&U_buff,G_size,sizeof(double));
-        uni_array(&V_buff,G_size,sizeof(double));
-        uni_array(&W_buff,G_size,sizeof(double));
+        uni_array(&U_buff,L_size,sizeof(double));
+        uni_array(&V_buff,L_size,sizeof(double));
+        uni_array(&W_buff,L_size,sizeof(double));
         if (myid == 0)
         {
-            sprintf(fname,"./vel3d");
-            infile = fopen(fname,"r");
+            uni_array(&GU_buff,G_size,sizeof(double));
+            uni_array(&GV_buff,G_size,sizeof(double));
+            uni_array(&GW_buff,G_size,sizeof(double));
 
-            for (i = 0; i < G_size; i++)
+	    if (getInitialState != NULL)
+                (*setInitialVelocity)(comp,pp_grid->Global_grid.gmax,
+				   GU_buff,GV_buff,GW_buff,
+				   dim,iFparams);
+            for (id = 0; id < numprocs; id++)
             {
-                fscanf(infile,"%lf %lf %lf",&U_buff[i],&V_buff[i],&W_buff[i]);
+                find_Cartesian_coordinates(id,pp_grid,pp_icoords);
+                for (k = kmin; k <= kmax; ++k)
+                for (j = jmin; j <= jmax; ++j)
+                for (i = imin; i <= imax; ++i)
+                {
+                    icoords[0] = i;
+                    icoords[1] = j;
+		    icoords[2] = k;
+                    G_icoords[0] = pp_icoords[0]*(local_gmax[0]+1)+icoords[0]-imin;
+                    G_icoords[1] = pp_icoords[1]*(local_gmax[1]+1)+icoords[1]-jmin;
+                    G_icoords[2] = pp_icoords[2]*(local_gmax[2]+1)+icoords[2]-kmin;
+                    G_index = d_index(G_icoords,global_gmax,dim);
+                    index = d_index(icoords,top_gmax,dim);
+                    U_buff[index] = GU_buff[G_index];
+                    V_buff[index] = GV_buff[G_index];
+                    W_buff[index] = GW_buff[G_index];
+                }
+                if (id == 0)
+                {
+                    for (i = 0; i < L_size; i++)
+                    {
+                        field->vel[0][i] = U_buff[i];
+                        field->vel[1][i] = V_buff[i];
+                        field->vel[2][i] = W_buff[i];
+                    }
+                }
+                else
+                {
+                    pp_send(1,(POINTER)(U_buff),sizeof(double)*L_size,id);
+                    pp_send(2,(POINTER)(V_buff),sizeof(double)*L_size,id);
+                    pp_send(3,(POINTER)(W_buff),sizeof(double)*L_size,id);
+                }
             }
-            fclose(infile);
-            for (i = 1; i < numprocs; i++)
-            {
-                pp_send(1,(POINTER)U_buff,sizeof(double)*G_size,i);
-                pp_send(2,(POINTER)V_buff,sizeof(double)*G_size,i);
-                pp_send(3,(POINTER)W_buff,sizeof(double)*G_size,i);
-            }
+            FT_FreeThese(3,GU_buff,GV_buff,GW_buff);
         }
         else
         {
-            pp_recv(1,0,(POINTER)U_buff,sizeof(double)*G_size);
-            pp_recv(2,0,(POINTER)V_buff,sizeof(double)*G_size);
-            pp_recv(3,0,(POINTER)W_buff,sizeof(double)*G_size);
+            pp_recv(1,0,(POINTER)(U_buff),sizeof(double)*L_size);
+            pp_recv(2,0,(POINTER)(V_buff),sizeof(double)*L_size);
+            pp_recv(3,0,(POINTER)(W_buff),sizeof(double)*L_size);
+            for (i = 0; i < L_size; i++)
+            {
+                field->vel[0][i] = U_buff[i];
+                field->vel[1][i] = V_buff[i];
+                field->vel[2][i] = W_buff[i];
+            }
         }
 
-        FT_MakeGridIntfc(front);
-        setDomain();
 
         m_rho[0] = iFparams->rho1;
         m_rho[1] = iFparams->rho2;
@@ -2106,22 +2140,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::setParallelVelocity(void)
                 mu_min = std::min(mu_min,m_mu[i]);
                 rho_min = std::min(rho_min,m_rho[i]);
             }
-        }
-        for (k = kmin; k <= kmax; ++k)
-        for (j = jmin; j <= jmax; ++j)
-        for (i = imin; i <= imax; ++i)
-        {
-            icoords[0] = i;
-            icoords[1] = j;
-            icoords[2] = k;
-            G_icoords[0] = pp_icoords[0]*(local_gmax[0]+1)+icoords[0]-imin;
-            G_icoords[1] = pp_icoords[1]*(local_gmax[1]+1)+icoords[1]-jmin;
-            G_icoords[2] = pp_icoords[2]*(local_gmax[2]+1)+icoords[2]-kmin;
-            G_index = d_index(G_icoords,global_gmax,dim);
-            index = d_index(icoords,top_gmax,dim);
-            field->vel[0][index] = U_buff[G_index];
-            field->vel[1][index] = V_buff[G_index];
-            field->vel[2][index] = W_buff[G_index];
         }
         FT_FreeThese(3,U_buff,V_buff,W_buff);
 

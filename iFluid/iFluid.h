@@ -63,6 +63,7 @@ struct _IF_FIELD {
 	double *div_U;
 	double *d_phi;			/* Dual grid phi */
 	double *nu_t;			/* Turbulent viscosity */
+	double **ext_accel;		/*external forcing from other field*/
 };
 typedef struct _IF_FIELD IF_FIELD;
 
@@ -144,6 +145,7 @@ typedef struct {
 	double	ymax;	   	/* Maximum distance in Baldwin-Lomax model */
 	char base_dir_name[200];
         int base_step;
+	boolean scalar_field; /*include scalar field or not*/
 } IF_PARAMS;
 
 struct _FLOW_THROUGH_PARAMS {
@@ -247,7 +249,10 @@ public:
 	//Initialization of States
 	void (*getInitialState) (COMPONENT,double*,IF_FIELD*,int,int,
 				IF_PARAMS*);
-	int (*findStateAtCrossing)(Front*,int*,GRID_DIRECTION,int,
+	/*set initial velocity with one function, no loop needed*/
+	void (*setInitialVelocity)(COMPONENT,int*,double*,double*,double*,
+                                int,IF_PARAMS*);
+ 	int (*findStateAtCrossing)(Front*,int*,GRID_DIRECTION,int,
 				POINTER*,HYPER_SURF**,double*);
 	int (*findStateAtCGCrossing)(Front*,int*,GRID_DIRECTION,int,
 				POINTER*,HYPER_SURF**,double*);
