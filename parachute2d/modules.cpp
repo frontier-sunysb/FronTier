@@ -25,21 +25,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <airfoil.h>
 #include <math.h>
 
-/*
-typedef struct {
-	int dim;
-        double coords_start[MAXD];		
-        double coords_end[MAXD];
-	double h;
-} ARC_PARAMS;
-*/
-
 typedef struct {
         int dim;
         double cen[MAXD];
 	double ang[MAXD];
         double rad;
 } ARC_PARAMS;
+
 
 
 static void initSingleModule(Front*);
@@ -345,8 +337,9 @@ static void initRigidBody(
 	char string[100];
 	double cen[MAXD];
 	double radius,radii[MAXD];
+	double num,len,dist,k;
 	int w_type, x_type;
-	int i,dim = FT_Dimension();
+	int i, dim = FT_Dimension();
 	int neg_comp,pos_comp;
 	CURVE *curve;
 	LINE_SEG_PARAMS line_params;
@@ -374,11 +367,12 @@ static void initRigidBody(
 	}
 
 	(void) printf("Available type of rigid body include:\n");
-	(void) printf("\tCircle (c)\n");
-	(void) printf("\tLine segment (l)\n");
-	(void) printf("\tCircular arc (a)\n");
-	(void) printf("\tTwo arcs (t) \n");
-	(void) printf("\tTwo segments (s)\n");
+	(void) printf("\tCircle        (c)\n");
+	(void) printf("\tLine segment  (l)\n");
+	(void) printf("\tLine segments (n)\n");
+	(void) printf("\tCircular arc  (a)\n");
+	(void) printf("\tTwo arcs      (t)\n");
+	(void) printf("\tTwo segments  (s)\n");
 
 	CursorAfterString(infile,"Enter type of rigid body:");
 	fscanf(infile,"%s",string);
@@ -419,6 +413,36 @@ static void initRigidBody(
 				line_seg_func,(POINTER)&line_params,2,NO);
 	    node_type(curve->start) = node_type(curve->end) = FIXED_NODE;
 	    break;
+	case 'N':
+        case 'n':
+            CursorAfterString(infile,"Enter number of segments:");
+            fscanf(infile,"%lf",&num);
+            (void) printf("%f\n",num);
+            CursorAfterString(infile,"Enter length of segments:");
+            fscanf(infile,"%lf",&len);
+            (void) printf("%f\n",len);
+            CursorAfterString(infile,"Enter distance between segments:");
+            fscanf(infile,"%lf",&dist);
+	    (void) printf("%f\n",dist);
+            CursorAfterString(infile,
+				"Enter start coordinates for first segment:");
+            fscanf(infile,"%lf %lf",line_params.coords_start,
+                                line_params.coords_start+1);
+            (void) printf("%f %f\n",line_params.coords_start[0],
+                                line_params.coords_start[1]);
+	    for (k = 0; k < num; k++)
+	    {
+	    	line_params.coords_end[0] =  line_params.coords_start[0] + len;
+	    	line_params.coords_end[1] = line_params.coords_start[1];
+            	neg_comp = LIQUID_COMP2;
+            	pos_comp = LIQUID_COMP2;
+            	line_params.dim = 2;
+            	curve = FT_MakeParametricCurve(front,neg_comp,pos_comp,w_type,
+                                line_seg_func,(POINTER)&line_params,2,NO);
+            	node_type(curve->start) = node_type(curve->end) = FIXED_NODE;
+	    	line_params.coords_start[0] = line_params.coords_end[0] + dist;            
+            }
+	    break;
 	case 'A':
         case 'a':
             CursorAfterString(infile,"Enter center coordinates:");
@@ -447,7 +471,7 @@ static void initRigidBody(
             CursorAfterString(infile,
 				"Enter start coordinates of first segment:");
             fscanf(infile,"%lf %lf",line_params.coords_start,
-                                line_params.coords_start+1);
+				line_params.coords_start+1);
             (void) printf("%f %f\n",line_params.coords_start[0],
                                 line_params.coords_start[1]);
             CursorAfterString(infile,"Enter end coordinates of first segment:");
@@ -544,14 +568,13 @@ static boolean line_seg_func(
 	double *coords_start = l_params->coords_start;
 	double *coords_end = l_params->coords_end;
 	int i,dim = l_params->dim;
-
 	for (i = 0; i < dim; ++i)
 	{
 	    if (coords_end[i] == coords_start[i])
 		coords[i] = coords_start[i];
 	    else
-	    	coords[i] = coords_start[i] + t*(coords_end[i] - coords_start[i]);
-	    
+	    	coords[i] = coords_start[i] + t*(coords_end[i] - 
+				coords_start[i]);
 	}
 	return YES;
 }	/* end line_seg_func */
