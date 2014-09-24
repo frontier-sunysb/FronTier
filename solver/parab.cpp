@@ -65,22 +65,6 @@ void PARABOLIC_SOLVER::solve2d(
 
         size = iupper - ilower;
 
-	var_min = HUGE;
-	var_max = -HUGE;
-	for (i = imin; i <= imax; ++i)
-	for (j = jmin; j <= jmax; ++j)
-	{
-	    ic = d_index2d(i,j,top_gmax);
-	    comp = top_comp[ic];
-	    if (comp != soln_comp) continue;
-	    if (var_in[ic] < var_min) var_min = var_in[ic];
-	    if (var_in[ic] > var_max) var_max = var_in[ic];
-	}
-	if (var_max - var_min < 0.1) 
-	    var_min -= 0.01;
-	else
-	    var_min -= 0.1*(var_max - var_min);
-
 	solver.Create(ilower, iupper-1, 5, 5);
 	for (i = imin; i <= imax; ++i)
 	for (j = jmin; j <= jmax; ++j)
@@ -92,7 +76,7 @@ void PARABOLIC_SOLVER::solve2d(
 	    I = ij_to_I[i][j];
 	    if (comp != soln_comp) 
 	    	continue;
-	    rhs = var_in[ic] - var_min;
+	    rhs = var_in[ic];
 	    coeff = 1.0;
 	    for (l = 0; l < dim; ++l) v[l] = 0.0;
 	    if (a != NULL)
@@ -136,14 +120,14 @@ void PARABOLIC_SOLVER::solve2d(
                             strcmp(boundary_state_function_name(hs),
                             "flowThroughBoundaryState") == 0)
 			{
-			    C_nb = var_in[ic] - var_min;
+			    C_nb = var_in[ic];
 			    if (m == 0) coeff -= eta;
                             else coeff += eta;
 			}
 			else
 			{
                             coeff += lambda;
-			    C_nb = (*getStateVarFunc)(state) - var_min;
+			    C_nb = (*getStateVarFunc)(state);
 			    rhs -= coeff_nb*C_nb;
                             if (m == 0) rhs += eta*C_nb;
                             else rhs -= eta*C_nb;
@@ -182,7 +166,7 @@ void PARABOLIC_SOLVER::solve2d(
 	    ic = d_index(icoords,top_gmax,dim);
 	    comp = top_comp[ic];
 	    if (comp == soln_comp)
-	    	array[ic] = x[I-ilower] + var_min;
+	    	array[ic] = x[I-ilower];
 	    else if (comp == obst_comp)
                 array[ic] = var_obst;
 	}
@@ -190,9 +174,7 @@ void PARABOLIC_SOLVER::solve2d(
         for (i = 0; i <= top_gmax[0]; ++i)
         for (j = 0; j <= top_gmax[1]; ++j)
         {
-	    icoords[0] = i;
-	    icoords[1] = j;
-	    ic = d_index(icoords,top_gmax,dim);
+	    ic = d_index2d(i,j,top_gmax);
             var_out[ic] = array[ic];
 	}
 	FT_FreeThese(1,x);
@@ -275,21 +257,6 @@ void PARABOLIC_SOLVER::solve1d(
 
         size = iupper - ilower;
 
-	var_min = HUGE;
-	var_max = -HUGE;
-	for (i = imin; i <= imax; ++i)
-	{
-	    ic = d_index1d(i,top_gmax);
-	    comp = top_comp[ic];
-	    if (comp != soln_comp) continue;
-	    if (var_in[ic] < var_min) var_min = var_in[ic];
-	    if (var_in[ic] > var_max) var_max = var_in[ic];
-	}
-	if (var_max - var_min < 0.1)
-            var_min -= 0.01;
-        else
-            var_min -= 0.1*(var_max - var_min);
-
 	solver.Create(ilower, iupper-1, 3, 3);
 	for (i = imin; i <= imax; ++i)
 	{
@@ -299,7 +266,7 @@ void PARABOLIC_SOLVER::solve1d(
 	    I = i_to_I[i];
 	    if (comp != soln_comp) 
 	    	continue;
-	    rhs = var_in[ic] - var_min;
+	    rhs = var_in[ic];
 	    coeff = 1.0;
 	    for (l = 0; l < dim; ++l)
 	    {
@@ -333,11 +300,11 @@ void PARABOLIC_SOLVER::solve1d(
                             boundary_state_function(hs) &&
                             strcmp(boundary_state_function_name(hs),
                             "flowThroughBoundaryState") == 0)
-                            C_nb = var_in[ic] - var_min;
+                            C_nb = var_in[ic];
                         else
 			{
                             coeff += lambda;
-                            C_nb = (*getStateVarFunc)(state) - var_min;
+                            C_nb = (*getStateVarFunc)(state);
                             rhs -= coeff_nb*C_nb;
 			}
 		    }
@@ -372,7 +339,7 @@ void PARABOLIC_SOLVER::solve1d(
 	    ic = d_index(icoords,top_gmax,dim);
 	    comp = top_comp[ic];
 	    if (comp == soln_comp)
-	    	array[ic] = x[I-ilower] + var_min;
+	    	array[ic] = x[I-ilower];
 	    else if (comp == obst_comp)
                 array[ic] = var_obst;
 	}
@@ -414,23 +381,6 @@ void PARABOLIC_SOLVER::solve3d(
 
         size = iupper - ilower;
 
-	var_min = HUGE;
-	var_max = -HUGE;
-	for (i = imin; i <= imax; ++i)
-	for (j = jmin; j <= jmax; ++j)
-	for (k = kmin; k <= kmax; ++k)
-	{
-	    ic = d_index3d(i,j,k,top_gmax);
-	    comp = top_comp[ic];
-	    if (comp != soln_comp) continue;
-	    if (var_in[ic] < var_min) var_min = var_in[ic];
-	    if (var_in[ic] > var_max) var_max = var_in[ic];
-	}
-	if (var_max - var_min < 0.1)
-            var_min -= 0.01;
-        else
-            var_min -= 0.1*(var_max - var_min);
-
 	solver.Create(ilower, iupper-1, 7, 7);
 	for (i = imin; i <= imax; ++i)
 	for (j = jmin; j <= jmax; ++j)
@@ -444,7 +394,7 @@ void PARABOLIC_SOLVER::solve3d(
 	    I = ijk_to_I[i][j][k];
 	    if (comp != soln_comp) 
 	    	continue;
-	    rhs = var_in[ic] - var_min;
+	    rhs = var_in[ic];
 	    coeff = 1.0;
 	    for (l = 0; l < dim; ++l) v[l] = 0.0;
 	    if (a != NULL)
@@ -490,14 +440,14 @@ void PARABOLIC_SOLVER::solve3d(
                             strcmp(boundary_state_function_name(hs),
                             "flowThroughBoundaryState") == 0)
 			{
-                            C_nb = var_in[ic] - var_min;
+                            C_nb = var_in[ic];
 			    if (m == 0) coeff -= eta;
                             else coeff += eta;
 			}
                         else
 			{
 			    coeff += lambda;
-                            C_nb = (*getStateVarFunc)(state) - var_min;
+                            C_nb = (*getStateVarFunc)(state);
 			    rhs -= coeff_nb*C_nb;
 			    if (m == 0) rhs += eta*C_nb;
                             else rhs -= eta*C_nb;
@@ -537,7 +487,7 @@ void PARABOLIC_SOLVER::solve3d(
 	    ic = d_index(icoords,top_gmax,dim);
 	    comp = top_comp[ic];
 	    if (comp == soln_comp)
-	    	array[ic] = x[I-ilower] + var_min;
+	    	array[ic] = x[I-ilower];
 	    else if (comp == obst_comp)
                 array[ic] = var_obst;
 	}
@@ -546,10 +496,7 @@ void PARABOLIC_SOLVER::solve3d(
         for (j = 0; j <= top_gmax[1]; ++j)
         for (k = 0; k <= top_gmax[2]; ++k)
         {
-	    icoords[0] = i;
-	    icoords[1] = j;
-	    icoords[2] = k;
-	    ic = d_index(icoords,top_gmax,dim);
+	    ic = d_index3d(i,j,k,top_gmax);
 	    var_out[ic] = array[ic];
 	}
 	FT_FreeThese(1,x);
@@ -662,8 +609,9 @@ double PARABOLIC_SOLVER::checkSolver(
 		    else
 		    	coefs[m] = nu[id0]*sub_dt;
 		    w[0] = array[id0];
-		    w[1] = (*getStateVarFunc)(intfc_state) - var_min;
-		    printf("intfc_state = %20.14f\n",w[1]);
+		    w[1] = (*getStateVarFunc)(intfc_state);
+	    	    if (print_details)
+		    	printf("intfc_state = %20.14f\n",w[1]);
 		    break;
 		default:
 		    (void) printf("Side %d Unknown BOUNDARY\n",m);
@@ -683,7 +631,7 @@ double PARABOLIC_SOLVER::checkSolver(
 	}
 	if (source != NULL)
 	    rhs = source[id0];
-	rhs = array[id0] - (var_in[id0] - var_min);
+	rhs = array[id0] - (var_in[id0]);
 	if (print_details)
 	{
 	    double error;

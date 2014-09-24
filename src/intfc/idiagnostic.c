@@ -461,8 +461,8 @@ LOCAL boolean the_point_one(POINT *pt, double *p)
 
 EXPORT boolean the_point(POINT *pt)
 {
-	double	p1[3] = {10.5981, 10.5763, 20.2264};
-	double	p2[3] = {10.5981, 10.5763, 20.2264};
+	double	p1[3] = {0.496094, 0.496094, 0.519222};
+	double	p2[3] = {0.496094, 0.496094, 0.519222};
 
 	if(the_point_one(pt,p1) || the_point_one(pt,p2))
 	    return YES;

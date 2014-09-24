@@ -2067,14 +2067,29 @@ EXPORT	void show_line_components3d(
 		k = seg_index3d(ipn[0],ipn[1],ipn[2],dir,gmax);
 		nc = T->seg_crx_count[k];
 		if (nc == 0)
-		    printf("%2d ",comp[d_index(ipn,gmax,3)]);
+		{
+		    if (comp[d_index(ipn,gmax,3)] == NO_COMP)
+		    	printf("N ");
+		    else
+		    	printf("%d ",comp[d_index(ipn,gmax,3)]);
+		}
 		else if (nc == 1)
-		    printf("%2d|",comp[d_index(ipn,gmax,3)]);
+		{
+		    if (comp[d_index(ipn,gmax,3)] == NO_COMP)
+		    	printf("N|");
+		    else
+		    	printf("%d|",comp[d_index(ipn,gmax,3)]);
+		}
 		else
-		    printf("%2d*",comp[d_index(ipn,gmax,3)]);
+		{
+		    if (comp[d_index(ipn,gmax,3)] == NO_COMP)
+		    	printf("N*");
+		    else
+		    	printf("%d*",comp[d_index(ipn,gmax,3)]);
+		}
 	    }
 	    else
-		printf("%2d ",comp[d_index(ipn,gmax,3)]);
+		printf("%d ",comp[d_index(ipn,gmax,3)]);
 	}
 	printf("\n");
 }
@@ -2127,41 +2142,41 @@ LOCAL	void show_grid_components3d(
 	{
 	    for (ix = smin[0]; ix <= smax[0]; ++ix)
 	    {
-		printf("\n\t\tix = %d\n\n",ix);
-	    	for (iy = smin[1]; iy <= smax[1]; ++iy)
+		(void) printf("\n\t\tix = %d\n\n",ix);
+		for (iz = smin[2]; iz <= smax[2]; ++iz)
 		{
-		    for (iz = smin[2]; iz <= smax[2]; ++iz)
+	    	    for (iy = smin[1]; iy <= smax[1]; ++iy)
 		    {
-			if (iz != smax[2])
+			if (iy != smax[1])
 			{
-			    k = seg_index3d(ix,iy,iz,UPPER,gmax);
+			    k = seg_index3d(ix,iy,iz,NORTH,gmax);
 			    nc = T->seg_crx_count[k];
 			    if (nc == 0)
-		    	        printf("%2d ",comp[d_index3d(ix,iy,iz,gmax)]);
+		    	        printf("%d ",comp[d_index3d(ix,iy,iz,gmax)]);
 		    	    else if (nc == 1)
-		    	        printf("%2d|",comp[d_index3d(ix,iy,iz,gmax)]);
+		    	        printf("%d|",comp[d_index3d(ix,iy,iz,gmax)]);
 			    else
-		    	        printf("%2d*",comp[d_index3d(ix,iy,iz,gmax)]);
+		    	        printf("%d*",comp[d_index3d(ix,iy,iz,gmax)]);
 			}
 			else
-			    printf("%2d ",comp[d_index3d(ix,iy,iz,gmax)]);
+			    printf("%d ",comp[d_index3d(ix,iy,iz,gmax)]);
 		    }
 		    printf("\n");
-		    if(iy == smax[1])    
+		    if(iz == smax[2])    
 		    {
 		        printf("\n");
 		        continue;
 		    }
-		    for (iz = smin[2]; iz <= smax[2]; ++iz)
+		    for (iy = smin[1]; iy <= smax[1]; ++iy)
 		    {
-			k = seg_index3d(ix,iy,iz,NORTH,gmax);
+			k = seg_index3d(ix,iy,iz,UPPER,gmax);
 			nc = T->seg_crx_count[k];
 			if (nc == 0)
-		    	    printf("   ");
+		    	    printf("  ");
 		    	else if (nc == 1)
-		    	    printf(" - ");
+		    	    printf("- ");
 		    	else 
-		    	    printf(" * ");
+		    	    printf("* ");
 		    }
 		    printf("\n");
 		}
@@ -2171,41 +2186,41 @@ LOCAL	void show_grid_components3d(
 	{
 	    for (iy = smin[1]; iy <= smax[1]; ++iy)
 	    {
-		printf("\n\t\tiy = %d\n\n",iy);
-		for (iz = smin[2]; iz <= smax[2]; ++iz)
+		(void) printf("\n\t\tiy = %d\n\n",iy);
+	    	for (ix = smin[0]; ix <= smax[0]; ++ix)
 		{
-	    	    for (ix = smin[0]; ix <= smax[0]; ++ix)
+		    for (iz = smin[2]; iz <= smax[2]; ++iz)
 		    {
-			if (ix != smax[0])
+			if (iz != smax[2])
 			{
-			    k = seg_index3d(ix,iy,iz,EAST,gmax);
+			    k = seg_index3d(ix,iy,iz,UPPER,gmax);
 			    nc = T->seg_crx_count[k];
 			    if (nc == 0)
-		    	        printf("%2d ",comp[d_index3d(ix,iy,iz,gmax)]);
+		    	        printf("%d ",comp[d_index3d(ix,iy,iz,gmax)]);
 		    	    else if (nc == 1)
-		    	        printf("%2d|",comp[d_index3d(ix,iy,iz,gmax)]);
+		    	        printf("%d|",comp[d_index3d(ix,iy,iz,gmax)]);
 		    	    else
-		    	        printf("%2d*",comp[d_index3d(ix,iy,iz,gmax)]);
+		    	        printf("%d*",comp[d_index3d(ix,iy,iz,gmax)]);
 			}
 			else
-			    printf("%2d ",comp[d_index3d(ix,iy,iz,gmax)]);
+			    printf("%d ",comp[d_index3d(ix,iy,iz,gmax)]);
 		    }
 		    printf("\n");
-		    if(iz == smax[2])    
+		    if(ix == smax[0])    
 		    {
 		        printf("\n");
 		        continue;
 		    }
-	    	    for (ix = smin[0]; ix <= smax[0]; ++ix)
+	    	    for (iz = smin[2]; iz <= smax[2]; ++iz)
 		    {
-			k = seg_index3d(ix,iy,iz,UPPER,gmax);
+			k = seg_index3d(ix,iy,iz,EAST,gmax);
 			nc = T->seg_crx_count[k];
 			if (nc == 0)
-		    	    printf("   ");
+		    	    printf("  ");
 		    	else if (nc == 1)
-		    	    printf(" - ");
+		    	    printf("- ");
 		    	else
-		    	    printf(" * ");
+		    	    printf("* ");
 		    }
 		    printf("\n");
 		}
@@ -2215,41 +2230,41 @@ LOCAL	void show_grid_components3d(
 	{
 	    for (iz = smin[2]; iz <= smax[2]; ++iz)
 	    {
-		printf("\n\t\tiz = %d\n\n",iz);
-	    	for (ix = smin[0]; ix <= smax[0]; ++ix)
+		(void) printf("\n\t\tiz = %d\n\n",iz);
+	    	for (iy = smin[1]; iy <= smax[1]; ++iy)
 		{
-	    	    for (iy = smin[1]; iy <= smax[1]; ++iy)
+	    	    for (ix = smin[0]; ix <= smax[0]; ++ix)
 		    {
-			if (iy != smax[1])
+			if (ix != smax[0])
 			{
-			    k = seg_index3d(ix,iy,iz,NORTH,gmax);
+			    k = seg_index3d(ix,iy,iz,EAST,gmax);
 			    nc = T->seg_crx_count[k];
 			    if (nc == 0)
-		    	        printf("%2d ",comp[d_index3d(ix,iy,iz,gmax)]);
+		    	        printf("%d ",comp[d_index3d(ix,iy,iz,gmax)]);
 		    	    else if (nc == 1)
-		    	        printf("%2d|",comp[d_index3d(ix,iy,iz,gmax)]);
+		    	        printf("%d|",comp[d_index3d(ix,iy,iz,gmax)]);
 		    	    else
-		    	        printf("%2d*",comp[d_index3d(ix,iy,iz,gmax)]);
+		    	        printf("%d*",comp[d_index3d(ix,iy,iz,gmax)]);
 			}
 			else
-			    printf("%2d ",comp[d_index3d(ix,iy,iz,gmax)]);
+			    printf("%d ",comp[d_index3d(ix,iy,iz,gmax)]);
 		    }
 		    printf("\n");
-		    if(ix == smax[0])    
+		    if(iy == smax[1])    
 		    {
 		        printf("\n");
 		        continue;
 		    }
-	    	    for (iy = smin[1]; iy <= smax[1]; ++iy)
+	    	    for (ix = smin[0]; ix <= smax[0]; ++ix)
 		    {
-			k = seg_index3d(ix,iy,iz,EAST,gmax);
+			k = seg_index3d(ix,iy,iz,NORTH,gmax);
 			nc = T->seg_crx_count[k];
 			if (nc == 0)
-		    	    printf("   ");
+		    	    printf("  ");
 		    	else if (nc == 1)
-		    	    printf(" - ");
+		    	    printf("- ");
 			else
-		    	    printf(" * ");
+		    	    printf("* ");
 		    }
 		    printf("\n");
 		}

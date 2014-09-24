@@ -174,6 +174,7 @@ IMPORT  PP_GRID *set_pp_grid(INIT_DATA*,RECT_GRID*);
 
 /*	isub.c*/
 IMPORT  const char *grid_direction_name(GRID_DIRECTION);
+IMPORT  int grid_direction_idir(GRID_DIRECTION);
 IMPORT  void    init_seg_crx_lists(INTERFACE*,int,int);
 IMPORT	BDRY_SIDE rect_bdry_side_for_curve(int*,int*,CURVE*,RECT_GRID*);
 IMPORT	P_LINK	*add_to_hash_table(POINTER,POINTER,P_LINK*,int);

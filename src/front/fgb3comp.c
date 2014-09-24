@@ -2240,8 +2240,14 @@ EXPORT	boolean	fill_comp_from_prev_intfc(
 	double	       h = min3(gr->h[0], gr->h[1], gr->h[2]), pt[3];
 
 
-	if(prev_interface(intfc) == NULL)
+	if (debugging("trace"))
+	    (void) printf("Entering fill_comp_from_prev_intfc()\n");
+	if (prev_interface(intfc) == NULL)
+	{
+	    if (debugging("trace"))
+	        (void) printf("Entering fill_comp_from_prev_intfc()\n");
 	    return NO;
+	}
 
 	/*interface in previous time step */
 	prev_intfc = prev_interface(intfc);
@@ -2266,6 +2272,8 @@ EXPORT	boolean	fill_comp_from_prev_intfc(
 		}
 	    }
 	}
+	if (debugging("trace"))
+	    (void) printf("Leaving fill_comp_from_prev_intfc()\n");
 
 	return YES;
 }

@@ -415,4 +415,3 @@ void solute_print_front_states(
         }
 
 }	/* end solute_print_front_states */
-

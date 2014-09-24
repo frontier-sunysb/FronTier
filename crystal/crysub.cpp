@@ -195,7 +195,6 @@ static  void dirichlet_point_propagate(
         return;
 }       /* dirichlet_point_propagate */
 
-
 static  void reaction_point_propagate(
         Front *front,
         POINTER wave,

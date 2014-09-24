@@ -9,8 +9,8 @@ Upper boundary in 1-th dimension: NEUMANN_BOUNDARY
 Lower boundary in 2-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 2-th dimension: DIRICHLET_BOUNDARY
 
-Max time: 10.0
-Max step: 100000
+Max time: 1.0
+Max step: 2000
 Print interval: 0.1
 Movie frame interval: 0.1
 CFL factor: 0.5
@@ -18,7 +18,7 @@ Redistribution interval: 100000
 Type yes to turn off auto-redistribution: y
 Entering yes to turn off fluid solver: yes
 Enter velocity function: zero_velo
-Enter interior propagator: e
+Enter interior propagator: p
 Enter interior sub step number: 10
 
 Projection type can be

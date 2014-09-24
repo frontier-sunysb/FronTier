@@ -3093,6 +3093,25 @@ EXPORT  const char *grid_direction_name(
         return "UNKNOWN";
 }               /*end grid_direction_name*/
 
+EXPORT  int grid_direction_idir(
+        GRID_DIRECTION dir)
+{
+        switch (dir)
+        {
+        case EAST:
+        case WEST:
+	    return 0;
+        case NORTH:
+        case SOUTH:
+	    return 1;
+        case LOWER:
+        case UPPER:
+	    return 2;
+        }
+        return -1;
+}               /*end grid_direction_name*/
+
+
 
 EXPORT	const char *crossing_direction_name(
 	CROSSING_DIRECTION dir)

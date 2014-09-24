@@ -626,11 +626,11 @@ LOCAL	int set_send_buffer_limits(
 	if (side == 0)
 	{
 	    bmin[dir] = lbuf[dir];
-	    bmax[dir] = lbuf[dir] + ubuf[dir];
+	    bmax[dir] = lbuf[dir] + lbuf[dir];
 	}
 	else
 	{
-	    bmin[dir] = gmax[dir] - lbuf[dir] - ubuf[dir] + 1;
+	    bmin[dir] = gmax[dir] - 2*ubuf[dir] + 1;
 	    bmax[dir] = gmax[dir] - ubuf[dir] + 1;
 	}
 	len = 1;
@@ -1394,7 +1394,7 @@ EXPORT 	void scatter_cell_index(
 		for (k = 1; k < dim; ++k)
 		    size *= (gmax[(i+k)%dim] + lbuf[(i+k)%dim] + 
 				ubuf[(i+k)%dim]);
-		size = (j == 0) ? size*ubuf[i] : size*lbuf[i];
+		size = (j == 0) ? size*lbuf[i] : size*ubuf[i];
 
 	    	if (rect_boundary_type(intfc,i,j) == SUBDOMAIN_BOUNDARY)
 		{
@@ -1513,7 +1513,7 @@ LOCAL 	void pack_index_in_dir3d(
 	imax = gmax[0] + lbuf[0] + ubuf[0];
 	jmax = gmax[1] + lbuf[1] + ubuf[1];
 	kmax = gmax[2] + lbuf[2] + ubuf[2];
-	m = (nb == 0) ? ubuf[dir] : lbuf[dir];
+	m = (nb == 0) ? lbuf[dir] : ubuf[dir];
 
 	switch (dir)
 	{
@@ -1533,7 +1533,7 @@ LOCAL 	void pack_index_in_dir3d(
 		for (k = 0; k < kmax; ++k)
 		for (i = 0; i < m; ++i)
 		{
-		    bfs[index++] = IJK_to_I[gmax[0]+lbuf[0]-lbuf[0]+i][j][k];
+		    bfs[index++] = IJK_to_I[gmax[0]+lbuf[0]-ubuf[0]+i][j][k];
 		}
 	    }
 	    break;
@@ -1553,7 +1553,7 @@ LOCAL 	void pack_index_in_dir3d(
 		for (k = 0; k < kmax; ++k)
 		for (j = 0; j < m; ++j)
 		{
-		    bfs[index++] = IJK_to_I[i][gmax[1]+lbuf[1]-lbuf[1]+j][k];
+		    bfs[index++] = IJK_to_I[i][gmax[1]+lbuf[1]-ubuf[1]+j][k];
 		}
 	    }
 	    break;
@@ -1573,7 +1573,7 @@ LOCAL 	void pack_index_in_dir3d(
 		for (j = 0; j < jmax; ++j)
 		for (k = 0; k < m; ++k)
 		{
-		    bfs[index++] = IJK_to_I[i][j][gmax[2]+lbuf[2]-lbuf[2]+k];
+		    bfs[index++] = IJK_to_I[i][j][gmax[2]+lbuf[2]-ubuf[2]+k];
 		}
 	    }
 	}
@@ -1761,7 +1761,7 @@ LOCAL 	void pack_index_in_dir2d(
 	    switch(nb)
 	    {
 	    case 0:
-		m = ubuf[0];
+		m = lbuf[0];
 	    	for (i = 0; i < imax; ++i)
 		{
 		    for (j = 0; j < m; ++j)
@@ -1771,11 +1771,13 @@ LOCAL 	void pack_index_in_dir2d(
 		}
 		break;
 	    case 1:
-		m = lbuf[0];
+		m = ubuf[0];
 	    	for (i = 0; i < imax; ++i)
 		{
 		    for (j = 0; j < m; ++j)
-		    	bfs[m*i+j] = IJK_to_I[gmax[0]+lbuf[0]-lbuf[0]+j][i];
+		    {
+		    	bfs[m*i+j] = IJK_to_I[gmax[0]+lbuf[0]-ubuf[0]+j][i];
+		    }
 		}
 	    }
 	}
@@ -1785,19 +1787,23 @@ LOCAL 	void pack_index_in_dir2d(
 	    switch(nb)
 	    {
 	    case 0:
-		m = ubuf[1];
-	    	for (i = 0; i < imax; ++i)
-		{
-		    for (j = 0; j < m; ++j)
-		    	bfs[m*i+j] = IJK_to_I[i][j+lbuf[1]];
-		}
-		break;
-	    case 1:
 		m = lbuf[1];
 	    	for (i = 0; i < imax; ++i)
 		{
 		    for (j = 0; j < m; ++j)
-		    	bfs[m*i+j] = IJK_to_I[i][gmax[1]+lbuf[1]-lbuf[1]+j];
+		    {
+		    	bfs[m*i+j] = IJK_to_I[i][j+lbuf[1]];
+		    }
+		}
+		break;
+	    case 1:
+		m = ubuf[1];
+	    	for (i = 0; i < imax; ++i)
+		{
+		    for (j = 0; j < m; ++j)
+		    {
+		    	bfs[m*i+j] = IJK_to_I[i][gmax[1]+lbuf[1]-ubuf[1]+j];
+		    }
 		}
 	    }
 	}
@@ -1825,7 +1831,9 @@ LOCAL 	void unpack_index_in_dir2d(
 	    	for (i = 0; i < imax; ++i)
 		{
 		    for (j = 0; j < m; ++j)
+		    {
 		    	IJK_to_I[j][i] = bfr[m*i+j];
+		    }
 		}
 		break;
 	    case 1:
@@ -1833,7 +1841,9 @@ LOCAL 	void unpack_index_in_dir2d(
 	    	for (i = 0; i < imax; ++i)
 		{
 		    for (j = 0; j < m; ++j)
+		    {
 		    	IJK_to_I[gmax[0]+lbuf[0]+j][i] = bfr[m*i+j];
+		    }
 		}
 	    }
 	}
@@ -1847,7 +1857,9 @@ LOCAL 	void unpack_index_in_dir2d(
 	    	for (i = 0; i < imax; ++i)
 		{
 		    for (j = 0; j < m; ++j)
+		    {
 		    	IJK_to_I[i][j] = bfr[m*i+j];
+		    }
 		}
 		break;
 	    case 1:
@@ -1855,7 +1867,9 @@ LOCAL 	void unpack_index_in_dir2d(
 	    	for (i = 0; i < imax; ++i)
 		{
 		    for (j = 0; j < m; ++j)
+		    {
 		    	IJK_to_I[i][gmax[1]+lbuf[1]+j] = bfr[m*i+j];
+		    }
 		}
 	    }
 	}

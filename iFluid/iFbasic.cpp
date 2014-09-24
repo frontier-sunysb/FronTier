@@ -1484,6 +1484,9 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 	if (iFparams->use_eddy_visc)
 	    range = FT_Max(range,(int)(5*iFparams->ymax/top_h[0]));
 
+	double max_mu,min_mu;
+	max_mu = -HUGE;
+	min_mu = HUGE;
 	for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
 	{
@@ -1557,6 +1560,8 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 		    rho[index] = m_rho[1];
 		    break;
 		}
+		if (mu[index] > max_mu) max_mu = mu[index];
+		if (mu[index] < min_mu) min_mu = mu[index];
 	    }
 	    else
 	    {
@@ -1573,6 +1578,8 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 		}
 	    }
 	}
+	printf("min_mu = %20.14f\n",min_mu);
+	printf("max_mu = %20.14f\n",max_mu);
 	for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
 	{	

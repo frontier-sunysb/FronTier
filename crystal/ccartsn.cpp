@@ -285,6 +285,8 @@ void C_CARTESIAN::setIndexMap(void)
 	switch (dim)
 	{
 	case 1:
+	    for (i = 0; i <= top_gmax[0]; i++)
+		i_to_I[i] = -1;
 	    for (i = imin; i <= imax; i++)
 	    {
 		ic = d_index1d(i,top_gmax);
@@ -293,12 +295,13 @@ void C_CARTESIAN::setIndexMap(void)
 	    	    i_to_I[i] = index + ilower;
 	    	    index++;
 		}
-		else
-		    i_to_I[i] = -1;
 	    }
 	    FT_ParallelExchCellIndex(front,llbuf,uubuf,(POINTER)i_to_I);
 	    break;
 	case 2:
+	    for (i = 0; i <= top_gmax[0]; i++)
+	    for (j = 0; j <= top_gmax[1]; j++)
+		ij_to_I[i][j] = -1;
 	    for (i = imin; i <= imax; i++)
 	    for (j = jmin; j <= jmax; j++)
 	    {
@@ -308,12 +311,14 @@ void C_CARTESIAN::setIndexMap(void)
 	    	    ij_to_I[i][j] = index + ilower;
 	    	    index++;
 		}
-		else
-		    ij_to_I[i][j] = -1;
 	    }
 	    FT_ParallelExchCellIndex(front,llbuf,uubuf,(POINTER)ij_to_I);
 	    break;
 	case 3:
+	    for (i = 0; i <= top_gmax[0]; i++)
+	    for (j = 0; j <= top_gmax[1]; j++)
+	    for (k = 0; k <= top_gmax[2]; k++)
+		ijk_to_I[i][j][k] = -1;
 	    for (i = imin; i <= imax; i++)
 	    for (j = jmin; j <= jmax; j++)
 	    for (k = kmin; k <= kmax; k++)
@@ -324,8 +329,6 @@ void C_CARTESIAN::setIndexMap(void)
 	    	    ijk_to_I[i][j][k] = index + ilower;
 	    	    index++;
 		}
-		else
-		    ijk_to_I[i][j][k] = -1;
 	    }
 	    FT_ParallelExchCellIndex(front,llbuf,uubuf,(POINTER)ijk_to_I);
 	    break;

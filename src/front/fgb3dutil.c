@@ -110,7 +110,7 @@ LOCAL void print_comp_along_grid_line(int*,int*,GRID_DIRECTION,struct Table*,
 LOCAL boolean reset_segment(int*,int*,int*,GRID_DIRECTION,COMPONENT*,int*,int*,
 				int*);
 LOCAL boolean remove_unphy_pair(int*,GRID_DIRECTION,struct Table *,int*,int*,
-				int*,int*,int**);
+				int*,int*,int**,double*);
 LOCAL void enforce_single_crossing(int*,int*,GRID_DIRECTION,struct Table*,
 				int*,int*,int*);
 
@@ -167,8 +167,8 @@ EXPORT 	boolean reconstruct_intfc3d_in_box_lgb(
 	double		*h = gr.h;
 	double		***area,***vol_frac;
 
-	DEBUG_ENTER(reconstruct_intfc3d_in_box_lgb)
-
+	if (debugging("trace"))
+	    (void) printf("Entering reconstruct_intfc3d_in_box_lgb()\n");
 	/* Save sample to debug comp/crx along a grid line 
 	{
 	    int ip1[MAXD],ip2[MAXD];
@@ -413,7 +413,8 @@ EXPORT 	boolean reconstruct_intfc3d_in_box_lgb(
 	free_these(4, blk_mem, blk_mem_store,
 		blk_info.surfs, blk_info.cur_tris);
 
-	DEBUG_LEAVE(reconstruct_intfc3d_in_box_lgb)
+	if (debugging("trace"))
+	    (void) printf("Leaving reconstruct_intfc3d_in_box_lgb()\n");
 	return FUNCTION_SUCCEEDED;
 }	/* end reconstruct_intfc3d_in_box_lgb */
 
@@ -450,7 +451,8 @@ EXPORT 	boolean reconstruct_intfc3d_in_box(
 	static CURVE    **new_c=NULL;
 	static int      tnc, *n_c = NULL;
 	
-	DEBUG_ENTER(reconstruct_intfc3d_in_box)
+	if (debugging("trace"))
+	    (void) printf("Entering reconstruct_intfc3d_in_box()\n");
         
 	sgmax[0] = smax[0]-smin[0];
         sgmax[1] = smax[1]-smin[1];
@@ -861,7 +863,8 @@ redo_delete_s:
 	free_these(5, blk_mem, blk_mem_store,
 	    blk_info.surfs, blk_info.cur_tris, blk_info.curves);
 	
-	DEBUG_LEAVE(reconstruct_crx_intfc3d)
+	if (debugging("trace"))
+	    (void) printf("Leaving reconstruct_intfc3d_in_box()\n");
 	return FUNCTION_SUCCEEDED;
 }	/* end reconstruct_intfc3d_in_box */
 
@@ -1351,7 +1354,8 @@ EXPORT	void fill_physical_comps(
 	boolean		status;
 	RECT_GRID	gr = topological_grid(intfc);
 
-	DEBUG_ENTER(fill_physical_comps)
+	if (debugging("trace"))
+	    (void) printf("Entering fill_physical_comps()\n");
 	
 	L = gr.L;
 	h = gr.h;
@@ -1366,7 +1370,8 @@ EXPORT	void fill_physical_comps(
 	    	        comp[d_index3d(ip[0],ip[1],ip[2],gmax)] 
 				= intfc->default_comp;
 	    
-	    DEBUG_LEAVE(fill_physical_comps)
+	    if (debugging("trace"))
+	    	(void) printf("Leaving fill_physical_comps()\n");
 	    return;
 	}
 	for (ip[2] = smin[2]; ip[2] <= smax[2]; ++ip[2])
@@ -1454,7 +1459,8 @@ EXPORT	void fill_physical_comps(
 	        printf("After first check: status = %d\n",status);
 	        show_grid_components(smin,smax,2,intfc);
 	    }
-	    DEBUG_LEAVE(fill_physical_comps)
+	    if (debugging("trace"))
+	    	(void) printf("Leaving fill_physical_comps()\n");
 	    return;
 	}
 	for (ip[2] = smin[2]; ip[2] <= smax[2]; ++ip[2])
@@ -1534,7 +1540,8 @@ EXPORT	void fill_physical_comps(
 	        printf("After second check: status = %d\n",status);
 	        show_grid_components(smin,smax,2,intfc);
 	    }
-	    DEBUG_LEAVE(fill_physical_comps)
+	    if (debugging("trace"))
+	    	(void) printf("Leaving fill_physical_comps()\n");
 	    return;
 	}
 	for (ip[1] = smin[1]; ip[1] <= smax[1]; ++ip[1])
@@ -1594,7 +1601,8 @@ EXPORT	void fill_physical_comps(
 		}
 	    }
 	}
-	DEBUG_LEAVE(fill_physical_comps)
+	if (debugging("trace"))
+	    (void) printf("Leaving fill_physical_comps()\n");
 	return;
 }	/* end fill_physical_comps */
 
@@ -1710,6 +1718,8 @@ EXPORT	void remove_unphysical_crxings(
 
 	/* remove unphysical crossings */
 
+	if (debugging("trace"))
+	    (void) printf("Entering remove_unphysical_crxings()\n");
 	*num_ip = 0;
 	unset_comp_along_grid_line(intfc,smin,smax,gmax,2);
 	for (ix = smin[0]; ix <= smax[0]; ++ix)
@@ -1726,26 +1736,32 @@ EXPORT	void remove_unphysical_crxings(
 		    if (c == NO_COMP)
 			continue;
 		    
-		    if(debugging("rm_crx"))
+		    /* Only release it when debugging line removal
+		    if(debugging("rm_crx_z"))
 		    {
 			show_line_components3d(ip,smin,smax,2,intfc);
-			remove_from_debug("rm_crx");
 		    }
-
+		    */
 		    rm_unphy_crx_along_grid_line(intfc,smin,smax,
 			             gmax,ip,LOWER,crx_type,num_ip,ips);
 		    step = rm_unphy_crx_along_grid_line(intfc,smin,smax,
 				     gmax,ip,UPPER,crx_type,num_ip,ips);
 		    iz += step;
-		    if(debugging("rm_crx"))
+		    /* Only release it when debugging line removal
+		    if(debugging("rm_crx_z"))
+		    {
 			show_line_components3d(ip,smin,smax,2,intfc);
+		    }
+		    */
 		}
-		remove_from_debug("rm_crx");
 	    }
 	}
 	
-	if(debugging("rm_crx"))
-	    show_grid_components(smin,smax,2,intfc);
+	if(debugging("rm_crx_z"))
+	{
+	    (void) printf("Component-crossing after z-sweep:\n");
+	    show_grid_components(smin,smax,1,intfc);
+	}
 
 	unset_comp_along_grid_line(intfc,smin,smax,gmax,1);
 	for (iz = smin[2]; iz <= smax[2]; ++iz)
@@ -1763,15 +1779,30 @@ EXPORT	void remove_unphysical_crxings(
 
 		    rm_unphy_crx_along_grid_line(intfc,smin,smax,
 			             gmax,ip,SOUTH,crx_type,num_ip,ips);
+		    /* Only release it when debugging line removal
+		    if(debugging("rm_crx_y"))
+		    {
+			show_line_components3d(ip,smin,smax,1,intfc);
+		    }
+		    */
 		    step = rm_unphy_crx_along_grid_line(intfc,smin,smax,
 			             gmax,ip,NORTH,crx_type,num_ip,ips);
+		    /* Only release it when debugging line removal
+		    if(debugging("rm_crx_y"))
+		    {
+			show_line_components3d(ip,smin,smax,1,intfc);
+		    }
+		    */
 		    iy += step;
 		}
 	    }
 	}
 
-	if(debugging("rm_crx"))
-	    show_grid_components(smin,smax,2,intfc);
+	if (debugging("rm_crx_y"))
+	{
+	    (void) printf("Component-crossing after y-sweep:\n");
+	    show_grid_components(smin,smax,0,intfc);
+	}
 
 
 	unset_comp_along_grid_line(intfc,smin,smax,gmax,0);
@@ -1787,14 +1818,42 @@ EXPORT	void remove_unphysical_crxings(
 	            c = comp[d_index3d(ix,iy,iz,gmax)];
 		    if (c == NO_COMP)
 			continue;
+		    /* Only release it when debugging line removal
+		    if(debugging("rm_crx_x"))
+		    {
+			(void) printf("Before removal:\n");
+			show_line_components3d(ip,smin,smax,0,intfc);
+		    }
+		    */
 		    rm_unphy_crx_along_grid_line(intfc,smin,smax,
 				       	gmax,ip,WEST,crx_type,num_ip,ips);
+		    /* Only release it when debugging line removal
+		    if(debugging("rm_crx_x"))
+		    {
+			(void) printf("After forward removal:\n");
+			show_line_components3d(ip,smin,smax,0,intfc);
+		    }
+		    */
 		    step = rm_unphy_crx_along_grid_line(intfc,smin,smax,
 					gmax,ip,EAST,crx_type,num_ip,ips);
+		    /* Only release it when debugging line removal
+		    if(debugging("rm_crx_x"))
+		    {
+			(void) printf("After backward removal:\n");
+			show_line_components3d(ip,smin,smax,0,intfc);
+		    }
+		    */
 		    ix += step;
 		}
 	    }
 	}
+	if(debugging("rm_crx_x") || debugging("rm_crx"))
+	{
+	    (void) printf("Component-crossing after x-sweep (final):\n");
+	    show_grid_components(smin,smax,2,intfc);
+	}
+	if (debugging("trace"))
+	    (void) printf("Leaving remove_unphysical_crxings()\n");
 }	/* end remove_unphysical_crxings */
 
 EXPORT	boolean next_ip_in_dir(
@@ -2202,6 +2261,8 @@ EXPORT	void adjust_crossings(
 	Table	       *T = table_of_interface(intfc);
 	int		*gmax = gr->gmax;
 
+	if (debugging("trace"))
+	    (void) printf("Entering adjust_crossings()\n");
 	for (iz = smin[2]; iz <= smax[2]; ++iz)
 	{
 	    ip[2] = iz;
@@ -2232,6 +2293,8 @@ EXPORT	void adjust_crossings(
 	        }
 	    }
 	}
+	if (debugging("trace"))
+	    (void) printf("Leaving adjust_crossings()\n");
 }		/*end adjust_crossings */
 
 	
@@ -3474,6 +3537,7 @@ LOCAL	int	rm_unphy_crx_along_grid_line(
 	int	  i,k,nc,list,l,step;
 	int count = 0;
 	int ip_start[MAXD],ip_end[MAXD],ip_sub[MAXD];
+	double *h = computational_grid(intfc)->h;
 
 	if (debugging("seg_comp"))
 	    (void) printf("Entering rm_unphy_crx_along_grid_line()\n");
@@ -3504,7 +3568,7 @@ LOCAL	int	rm_unphy_crx_along_grid_line(
 	    if (step < fabs(ip[i] - ip_end[i])) 
 		step = fabs(ip[i] - ip_end[i]);
 	}
-	while (remove_unphy_pair(ip_start,dir,T,gmax,smin,smax,num_ip,ips))
+	while (remove_unphy_pair(ip_start,dir,T,gmax,smin,smax,num_ip,ips,h))
 	{
 	    count++;
 	    if (!reset_segment(ip,ip_start,ip_sub,dir,comp,gmax,smin,smax))
@@ -5218,7 +5282,7 @@ LOCAL	void print_comp_along_grid_line(
 	    crx = next_crossing(ip,gmax,dir,T,crx);
 	    if (crx != NULL)
 	    {
-		printf("crx = %d\n",crx->crx_num);
+		printf("crx = %p\n",(POINTER)crx);
 		printf("crx comp_of_this_side =    %d\n",
 				comp_of_this_side(crx,dir));
 		printf("crx comp_of_next_side =    %d\n",
@@ -5286,18 +5350,23 @@ LOCAL boolean remove_unphy_pair(
 	int *smin,
 	int *smax,
 	int *num_ip,
-	int **ips)
+	int **ips,
+	double *h)
 {
 	COMPONENT *comp = T->components;
 	COMPONENT c1,c2;
 	int i,ip1[MAXD],ip2[MAXD];
 	int ip_crx1[MAXD],ip_crx2[MAXD];
+	int ip_crx11[MAXD],ip_crx22[MAXD];
 	int ic1,ic2;
         GRID_DIRECTION opp_dir;
 	CRXING	  *crx1,*crx2,*crx2_prev;
+	CRXING	*crx11,*crx22;
 	int k,nc,num_crx;
 	int count = 0;
 	boolean status = NO;
+	int idir = grid_direction_idir(dir);
+	double scaled_dist;
 
 	opp_dir = opposite_direction(dir);
 	for (i = 0; i < 3; ++i)
@@ -5394,7 +5463,7 @@ LOCAL boolean remove_unphy_pair(
 	    if (crx1 == NULL)
 	    {
 		next_ip_in_dir(ip1,dir,ip1,smin,smax);
-		if (ip1[0] == ip2[0] && ip1[1] == ip2[1] && ip1[2] == ip2[2])
+		if (ip1[idir] == ip2[idir])
 		{
 		    ic1 = d_index(ip1,gmax,3);
 		    comp[ic1] = c1;
@@ -5417,6 +5486,34 @@ LOCAL boolean remove_unphy_pair(
 		}
 	    }
 	}
+	if (crx1 != NULL)
+	{
+	    crx11 = crx1;
+	    for (i = 0; i < 3; ++i) ip_crx11[i] = ip_crx1[i];
+	    while ((crx11 = next_crossing(ip_crx1,gmax,dir,T,crx11)) 
+		  		!= NULL)
+	    {
+		if (comp_of_next_side(crx1,dir) == 
+				comp_of_this_side(crx11,dir))
+		    break;
+	    }
+	    if (crx11 == NULL)
+	    {
+		next_ip_in_dir(ip_crx1,dir,ip_crx11,smin,smax);
+	    	while ((crx11 = next_crossing(ip_crx11,gmax,dir,T,crx11)) 
+		  		!= NULL)
+	    	{
+		    if (comp_of_next_side(crx1,dir) == 
+				comp_of_this_side(crx11,dir))
+		    	break;
+	    	}
+	    }
+	    if (crx11 == NULL)
+	    {
+		(void) printf("In remove_unphy_pair(), cannot find crx11!\n");
+		clean_up(ERROR);
+	    }
+	}
 	for (i = 0; i < 3; ++i)
 	    ip1[i] = ip[i];
 	while (count < 10000)
@@ -5427,7 +5524,7 @@ LOCAL boolean remove_unphy_pair(
 	    if (crx2 == NULL)
 	    {
 		next_ip_in_dir(ip2,opp_dir,ip2,smin,smax);
-		if (ip1[0] == ip2[0] && ip1[1] == ip2[1] && ip1[2] == ip2[2])
+		if (ip1[idir] == ip2[idir])
 		{
 		    ic2 = d_index(ip2,gmax,3);
 		    comp[ic2] = c2;
@@ -5451,6 +5548,34 @@ LOCAL boolean remove_unphy_pair(
 		    c2 = comp_of_next_side(crx2,opp_dir);
 	    }
 	}
+	if (crx2 != NULL)
+	{
+	    crx22 = crx2;
+	    for (i = 0; i < 3; ++i) ip_crx22[i] = ip_crx2[i];
+	    while ((crx22 = next_crossing(ip_crx2,gmax,opp_dir,T,crx22)) 
+		  		!= NULL)
+	    {
+		if (comp_of_this_side(crx2,dir) == 
+				comp_of_next_side(crx22,dir))
+		    break;
+	    }
+	    if (crx22 == NULL)
+	    {
+		next_ip_in_dir(ip_crx2,opp_dir,ip_crx22,smin,smax);
+	    	while ((crx22 = next_crossing(ip_crx22,gmax,opp_dir,T,crx22)) 
+		  		!= NULL)
+	    	{
+		    if (comp_of_this_side(crx2,dir) == 
+				comp_of_next_side(crx22,dir))
+		    	break;
+	    	}
+	    }
+	    if (crx22 == NULL)
+	    {
+		(void) printf("In remove_unphy_pair(), cannot find crx22!\n");
+		clean_up(ERROR);
+	    }
+	}
 	if (crx1 == NULL && crx2 == NULL)
 	    return NO;
 	else if (crx1 == NULL || crx2 == NULL)
@@ -5465,26 +5590,92 @@ LOCAL boolean remove_unphy_pair(
 	}
 	if (debugging("seg_comp"))
 	{
-	    (void) printf("remove crx1 = %d\n",crx1->crx_num);
-	    (void) printf("remove crx2 = %d\n",crx2->crx_num);
+	    (void) printf("remove crx1 = %p\n",(POINTER)crx1);
+	    (void) printf("remove crx2 = %p\n",(POINTER)crx2);
+	    (void) printf("remove crx11 = %p\n",(POINTER)crx11);
+	    (void) printf("remove crx22 = %p\n",(POINTER)crx22);
 	}
-	remove_crossing(crx1,ip_crx1,dir,gmax,T);
-	for (i = 0; i < 3; ++i)
-	    ips[*num_ip][i] = ip_crx1[i];
-	++(*num_ip);
-	next_ip_in_dir(ip_crx1,dir,ip_crx1,smin,smax);
-	for (i = 0; i < 3; ++i)
-	    ips[*num_ip][i] = ip_crx1[i];
-	++(*num_ip);
+	if (crx11 == crx2 && crx22 == crx1)
+	{
+	    scaled_dist = fabs(Coords(crx1->pt)[idir] - 
+			Coords(crx2->pt)[idir])/h[idir];
+	    if (scaled_dist >= 1.0)
+	    {
+	    	(void) printf("Scaled distance between crx1 and crx2 ");
+		(void) printf("is too large: %f\n",scaled_dist);
+	    	clean_up(ERROR);
+	    }
+	    remove_crossing(crx1,ip_crx1,dir,gmax,T);
+	    for (i = 0; i < 3; ++i)
+	    	ips[*num_ip][i] = ip_crx1[i];
+	    ++(*num_ip);
+	    next_ip_in_dir(ip_crx1,dir,ip_crx1,smin,smax);
+	    for (i = 0; i < 3; ++i)
+	    	ips[*num_ip][i] = ip_crx1[i];
+	    ++(*num_ip);
 
-	remove_crossing(crx2,ip_crx2,opp_dir,gmax,T);
-	for (i = 0; i < 3; ++i)
-	    ips[*num_ip][i] = ip_crx2[i];
-	++(*num_ip);
-	next_ip_in_dir(ip_crx2,opp_dir,ip_crx2,smin,smax);
-	for (i = 0; i < 3; ++i)
-	    ips[*num_ip][i] = ip_crx2[i];
-	++(*num_ip);
+	    remove_crossing(crx2,ip_crx2,opp_dir,gmax,T);
+	    for (i = 0; i < 3; ++i)
+	    	ips[*num_ip][i] = ip_crx2[i];
+	    ++(*num_ip);
+	    next_ip_in_dir(ip_crx2,opp_dir,ip_crx2,smin,smax);
+	    for (i = 0; i < 3; ++i)
+	    	ips[*num_ip][i] = ip_crx2[i];
+	    ++(*num_ip);
+	}
+	else if (crx11 != crx2 && crx22 != crx1)
+	{
+	    scaled_dist = fabs(Coords(crx1->pt)[idir] - 
+			Coords(crx11->pt)[idir])/h[idir];
+	    if (scaled_dist >= 1.0)
+	    {
+	    	(void) printf("Scaled distance between crx1 and crx11 ");
+		(void) printf("is too large: %f\n",scaled_dist);
+	    }
+	    remove_crossing(crx1,ip_crx1,dir,gmax,T);
+	    remove_crossing(crx11,ip_crx11,dir,gmax,T);
+	    for (i = 0; i < 3; ++i)
+	    	ips[*num_ip][i] = ip_crx1[i];
+	    ++(*num_ip);
+	    next_ip_in_dir(ip_crx1,dir,ip_crx1,smin,smax);
+	    for (i = 0; i < 3; ++i)
+	    	ips[*num_ip][i] = ip_crx1[i];
+	    ++(*num_ip);
+	    next_ip_in_dir(ip_crx11,dir,ip_crx11,smin,smax);
+	    for (i = 0; i < 3; ++i)
+	    	ips[*num_ip][i] = ip_crx11[i];
+	    ++(*num_ip);
+
+	    scaled_dist = fabs(Coords(crx2->pt)[idir] - 
+			Coords(crx22->pt)[idir])/h[idir];
+	    if (scaled_dist >= 1.0)
+	    {
+	    	(void) printf("Scaled distance between crx2 and crx22 ");
+		(void) printf("is too large: %f\n",scaled_dist);
+	    }
+	    remove_crossing(crx2,ip_crx2,opp_dir,gmax,T);
+	    remove_crossing(crx22,ip_crx22,opp_dir,gmax,T);
+	    for (i = 0; i < 3; ++i)
+	    	ips[*num_ip][i] = ip_crx2[i];
+	    ++(*num_ip);
+	    next_ip_in_dir(ip_crx2,opp_dir,ip_crx2,smin,smax);
+	    for (i = 0; i < 3; ++i)
+	    	ips[*num_ip][i] = ip_crx2[i];
+	    ++(*num_ip);
+	    next_ip_in_dir(ip_crx22,opp_dir,ip_crx22,smin,smax);
+	    for (i = 0; i < 3; ++i)
+	    	ips[*num_ip][i] = ip_crx22[i];
+	    ++(*num_ip);
+	}
+	else
+	{
+	    (void) printf("In remove_unphy_pair(), confused crxing:\n");
+	    (void) printf("crx1 = %p  crx22 = %p\n",
+				(POINTER)crx1,(POINTER)crx22);
+	    (void) printf("crx2 = %p  crx11 = %p\n",
+				(POINTER)crx2,(POINTER)crx11);
+	    clean_up(ERROR);
+	}
 
 	if (debugging("seg_comp"))
 	{

@@ -195,7 +195,6 @@ public:
         void initMovieVariables(void);
 	void setInitialCondition(void);
 
-	//void checkStates();
 	void sampleStates(SAMPLE);
 
 	// parallelization related functions

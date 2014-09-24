@@ -23,6 +23,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 #include <iFluid.h>
 #include <airfoil.h>
+#include <math.h>
+
+/*
+typedef struct {
+	int dim;
+        double coords_start[MAXD];		
+        double coords_end[MAXD];
+	double h;
+} ARC_PARAMS;
+*/
+
+typedef struct {
+        int dim;
+        double cen[MAXD];
+	double ang[MAXD];
+        double rad;
+} ARC_PARAMS;
+
 
 static void initSingleModule(Front*);
 static void initMultiModule(Front*,int);
@@ -32,6 +50,8 @@ static void CopyNodeInfo(INTERFACE*,INTERFACE*);
 static void modifyCanopySet(FILE*,Front*,SURFACE*);
 static boolean curve_of_boundary_hs(CURVE*);
 static boolean line_seg_func(POINTER,double,double*);
+static boolean arc_func(POINTER,double,double*);
+
 
 extern void init2DModules(Front *front)
 {
@@ -325,11 +345,12 @@ static void initRigidBody(
 	char string[100];
 	double cen[MAXD];
 	double radius,radii[MAXD];
-	int w_type;
+	int w_type, x_type;
 	int i,dim = FT_Dimension();
 	int neg_comp,pos_comp;
 	CURVE *curve;
 	LINE_SEG_PARAMS line_params;
+	ARC_PARAMS arc_params;
 
 	if (CursorAfterStringOpt(infile,"Enter yes to add rigid body:"))
 	{
@@ -355,7 +376,10 @@ static void initRigidBody(
 	(void) printf("Available type of rigid body include:\n");
 	(void) printf("\tCircle (c)\n");
 	(void) printf("\tLine segment (l)\n");
-	(void) printf("\tCirculer arc (a)\n");
+	(void) printf("\tCircular arc (a)\n");
+	(void) printf("\tTwo arcs (t) \n");
+	(void) printf("\tTwo segments (s)\n");
+
 	CursorAfterString(infile,"Enter type of rigid body:");
 	fscanf(infile,"%s",string);
 	(void) printf("%s\n",string);
@@ -396,8 +420,113 @@ static void initRigidBody(
 	    node_type(curve->start) = node_type(curve->end) = FIXED_NODE;
 	    break;
 	case 'A':
-	case 'a':
-	    break;
+        case 'a':
+            CursorAfterString(infile,"Enter center coordinates:");
+            fscanf(infile,"%lf %lf",arc_params.cen,
+                                arc_params.cen+1);
+            (void) printf("%f %f\n",arc_params.cen[0],
+                                arc_params.cen[1]);
+            CursorAfterString(infile,"Enter radius:");
+            fscanf(infile,"%lf",&(arc_params.rad));
+            (void) printf("%f\n",arc_params.rad);
+	    CursorAfterString(infile,"Enter start end angles in degrees:");
+            fscanf(infile,"%lf %lf",arc_params.ang,
+                                arc_params.ang+1);
+            (void) printf("%f %f\n",arc_params.ang[0],
+                                arc_params.ang[1]);
+
+            neg_comp = LIQUID_COMP2;
+            pos_comp = LIQUID_COMP2;
+            arc_params.dim = 3;
+            curve = FT_MakeParametricCurve(front,neg_comp,pos_comp,w_type,
+                                arc_func,(POINTER)&arc_params,3,NO);
+            node_type(curve->start) = node_type(curve->end) = FIXED_NODE;
+            break;
+	case 'S':
+        case 's':
+            CursorAfterString(infile,
+				"Enter start coordinates of first segment:");
+            fscanf(infile,"%lf %lf",line_params.coords_start,
+                                line_params.coords_start+1);
+            (void) printf("%f %f\n",line_params.coords_start[0],
+                                line_params.coords_start[1]);
+            CursorAfterString(infile,"Enter end coordinates of first segment:");
+            fscanf(infile,"%lf %lf",line_params.coords_end,
+                                line_params.coords_end+1);
+            (void) printf("%f %f\n",line_params.coords_end[0],
+                                line_params.coords_end[1]);
+            neg_comp = LIQUID_COMP2;
+            pos_comp = LIQUID_COMP2;
+            line_params.dim = 2;
+            curve = FT_MakeParametricCurve(front,neg_comp,pos_comp,w_type,
+                                line_seg_func,(POINTER)&line_params,2,NO);
+            node_type(curve->start) = node_type(curve->end) = FIXED_NODE;
+
+            CursorAfterString(infile,
+				"Enter start coordinates of second segment:");
+            fscanf(infile,"%lf %lf",line_params.coords_start,
+                                line_params.coords_start+1);
+            (void) printf("%f %f\n",line_params.coords_start[0],
+                                line_params.coords_start[1]);
+            CursorAfterString(infile,
+				"Enter end coordinates of second segment:");
+            fscanf(infile,"%lf %lf",line_params.coords_end,
+                                line_params.coords_end+1);
+            (void) printf("%f %f\n",line_params.coords_end[0],
+                                line_params.coords_end[1]);
+            neg_comp = LIQUID_COMP2;
+            pos_comp = LIQUID_COMP2;
+            line_params.dim = 2;
+            curve = FT_MakeParametricCurve(front,neg_comp,pos_comp,w_type,
+                                line_seg_func,(POINTER)&line_params,2,NO);
+            node_type(curve->start) = node_type(curve->end) = FIXED_NODE;
+            break;
+	case 'T':
+        case 't':
+            CursorAfterString(infile,"Enter center coordinates for first arc:");
+            fscanf(infile,"%lf %lf",arc_params.cen,
+                                arc_params.cen+1);
+            (void) printf("%f %f\n",arc_params.cen[0],
+                                arc_params.cen[1]);
+            CursorAfterString(infile,"Enter radius for first arc:");
+            fscanf(infile,"%lf",&(arc_params.rad));
+            (void) printf("%f\n",arc_params.rad);
+            CursorAfterString(infile,"Enter start end angles for first arc:");
+            fscanf(infile,"%lf %lf",arc_params.ang,
+                                arc_params.ang+1);
+            (void) printf("%f %f\n",arc_params.ang[0],
+                                arc_params.ang[1]);
+	    
+	    neg_comp = LIQUID_COMP2;
+            pos_comp = LIQUID_COMP2;
+            arc_params.dim = 3;
+            curve = FT_MakeParametricCurve(front,neg_comp,pos_comp,w_type,
+                                arc_func,(POINTER)&arc_params,3,NO);
+            node_type(curve->start) = node_type(curve->end) = FIXED_NODE;
+		
+	    CursorAfterString(infile,
+				"Enter center coordinates for second arc:");
+            fscanf(infile,"%lf %lf",arc_params.cen,
+                                arc_params.cen+1);
+            (void) printf("%f %f\n",arc_params.cen[0],
+                                arc_params.cen[1]);
+	    CursorAfterString(infile,"Enter radius for second arc:");
+            fscanf(infile,"%lf",&(arc_params.rad));
+            (void) printf("%f\n",arc_params.rad);
+            CursorAfterString(infile,"Enter start end angles for second arc:");
+            fscanf(infile,"%lf %lf",arc_params.ang,
+                                arc_params.ang+1);
+            (void) printf("%f %f\n",arc_params.ang[0],
+                                arc_params.ang[1]);
+
+            neg_comp = LIQUID_COMP2;
+            pos_comp = LIQUID_COMP2;
+            arc_params.dim = 3;
+            curve = FT_MakeParametricCurve(front,neg_comp,pos_comp,w_type,
+                                arc_func,(POINTER)&arc_params,3,NO);
+            node_type(curve->start) = node_type(curve->end) = FIXED_NODE;
+            break;
+
 	default:
 	    (void) printf("Unknow type of rigid body!\n");
 	    clean_up(ERROR);
@@ -421,8 +550,29 @@ static boolean line_seg_func(
 	    if (coords_end[i] == coords_start[i])
 		coords[i] = coords_start[i];
 	    else
-	    	coords[i] = coords_start[i] + 
-			t*(coords_end[i] - coords_start[i]);
+	    	coords[i] = coords_start[i] + t*(coords_end[i] - coords_start[i]);
+	    
 	}
 	return YES;
 }	/* end line_seg_func */
+
+
+static boolean arc_func(
+        POINTER params,
+        double t,
+        double *coords)
+{
+        ARC_PARAMS *l_params = (ARC_PARAMS*)params;
+        double *cen = l_params->cen;
+        double ang[2];
+        double rad = l_params->rad;
+        int i,dim = l_params->dim;
+	
+	ang[0] = PI*l_params->ang[0]/180;
+	ang[1] = PI*l_params->ang[1]/180;
+        coords[0] = cen[0] + rad*cos(ang[1] - ang[1]*t*(ang[1]-ang[0])/ang[1]);
+        coords[1] = cen[1] + rad*sin(ang[1] - ang[1]*t*(ang[1]-ang[0])/ang[1]);
+        return YES;
+}       /* end arc_func */
+
+

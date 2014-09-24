@@ -665,7 +665,8 @@ EXPORT	boolean	repair_intfc_at_crossings3d(
 	RECT_GRID Dual_grid, *comp_grid = front->rect_grid;
 	RECT_GRID gr_save = topological_grid(intfc);
 
-	DEBUG_ENTER(repair_intfc_at_crossings3d)
+	if (debugging("trace"))
+	    (void) printf("Entering repair_intfc_at_crossings3d()\n");
 
 	set_dual_grid(&Dual_grid,comp_grid);
 	set_size_of_intfc_state(sizest);
@@ -715,7 +716,8 @@ EXPORT	boolean	repair_intfc_at_crossings3d(
 	
 	delete_interface(intfc);
 	print_storage("After copy_interface","crx_store");
-	DEBUG_LEAVE(repair_intfc_at_crossings3d)
+	if (debugging("trace"))
+	    (void) printf("Leaving repair_intfc_at_crossings3d()\n");
 	return YES;
 }	/*end repair_intfc_at_crossings3d*/
 
