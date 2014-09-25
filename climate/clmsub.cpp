@@ -1,10 +1,11 @@
-/***************************************************************
-FronTier is a set of libraries that implements differnt types of 
-Front Traking algorithms. Front Tracking is a numerical method for 
-the solution of partial differential equations whose solutions have 
-discontinuities.  
+/************************************************************************************
+FronTier is a set of libraries that implements differnt types of Front Traking algorithms.
+Front Tracking is a numerical method for the solution of partial differential equations 
+whose solutions have discontinuities.  
+
 
 Copyright (C) 1999 by The University at Stony Brook. 
+ 
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -18,341 +19,21 @@ Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-****************************************************************/
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+******************************************************************************/
 
 
 #include <iFluid.h>
 #include "climate.h"
 #include <time.h>
         /*  Function Declarations */
-static void neumann_point_propagate(Front*,POINTER,POINT*,POINT*,
-                        HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
-static void dirichlet_point_propagate(Front*,POINTER,POINT*,POINT*,
-                        HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
-static void contact_point_propagate(Front*,POINTER,POINT*,POINT*,
-                        HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void rand_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 static void Taylor_Green_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
-static void Fourier_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
-static  void compute_ice_particle_force2d_velo(Front*,HYPER_SURF*,double,double*,double*);
-static  void compute_ice_particle_force3d_velo(Front*,HYPER_SURF*,double,double*,double*);
-static  void compute_ice_particle_force2d_pres(Front*,HYPER_SURF*,double,double*,double*);
-static  void compute_ice_particle_force3d_pres(Front*,HYPER_SURF*,double,double*,double*);
-static boolean force_on_hse(HYPER_SURF_ELEMENT*,HYPER_SURF*,RECT_GRID*,double*,
-                                        double*,double*,boolean);
-static boolean force_on_hse2d(HYPER_SURF_ELEMENT*,HYPER_SURF*,RECT_GRID*,
-                                        double*,double*,double*,boolean);
-static boolean force_on_hse3d(HYPER_SURF_ELEMENT*,HYPER_SURF*,RECT_GRID*,
-                                        double*,double*,double*,boolean);
+static void Fourier_state(COMPONENT,int*,double*,double*,double*,
+			int,IF_PARAMS*);
 static double intrp_between(double,double,double,double,double);
-static double compute_supersat_3d(Front*,SURFACE*);
-static double compute_supersat_2d(Front*,CURVE*);
-static boolean supersat_on_hse(HYPER_SURF_ELEMENT*,HYPER_SURF*,
-			RECT_GRID*,double*,boolean);
-static boolean supersat_on_hse2d(HYPER_SURF_ELEMENT*,HYPER_SURF*,
-			RECT_GRID*,double*,boolean);
-static boolean supersat_on_hse3d(HYPER_SURF_ELEMENT*,HYPER_SURF*,
-			RECT_GRID*,double*,boolean);
-
-static  void neumann_point_propagate(
-        Front *front,
-        POINTER wave,
-        POINT *oldp,
-        POINT *newp,
-        HYPER_SURF_ELEMENT *oldhse,
-        HYPER_SURF         *oldhs,
-        double              dt,
-        double              *V)
-{
-        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
-        double vel[MAXD],s;
-        int i, dim = front->rect_grid->dim;
-        double dn,*h = front->rect_grid->h;
-        double *m_pre = iFparams->field->pres;
-        double *m_vor = iFparams->field->vort;
-        double nor[MAXD],tan[MAXD],p1[MAXD];
-        double *p0 = Coords(oldp);
-        STATE *oldst,*newst;
-        POINTER sl,sr;
-        COMPONENT comp;
-
-        FT_GetStatesAtPoint(oldp,oldhse,oldhs,&sl,&sr);
-        if (ifluid_comp(negative_component(oldhs)))
-        {
-            comp = negative_component(oldhs);
-            oldst = (STATE*)sl;
-            newst = (STATE*)left_state(newp);
-        }
-        else if (ifluid_comp(positive_component(oldhs)))
-        {
-            comp = positive_component(oldhs);
-            oldst = (STATE*)sr;
-            newst = (STATE*)right_state(newp);
-        }
-        FT_NormalAtPoint(oldp,front,nor,comp);
-
-        dn = grid_size_in_direction(nor,h,dim);
-        for (i = 0; i < dim; ++i)
-            p1[i] = p0[i] + nor[i]*dn;
-        tan[0] = -nor[1];       tan[1] = nor[0];
-
-	if (wave_type(oldhs) == MOVABLE_BODY_BOUNDARY)
-        {
-            double omega_dt,crds_com[MAXD];
-            omega_dt = angular_velo(oldhs)*dt;
-            for (i = 0; i < dim; ++i)
-            {
-                vel[i] = center_of_mass_velo(oldhs)[i];
-                crds_com[i] = Coords(oldp)[i] +dt*vel[i] -
-                        center_of_mass(oldhs)[i];
-            }
-            vel[0] += -angular_velo(oldhs)*crds_com[1]*cos(omega_dt) -
-                     angular_velo(oldhs)*crds_com[0]*sin(omega_dt);
-            vel[1] +=  angular_velo(oldhs)*crds_com[0]*cos(omega_dt) -
-                     angular_velo(oldhs)*crds_com[1]*sin(omega_dt);
-        }
-        else
-        {
-            for (i = 0; i < dim; ++i)
-                vel[i] = 0.0;
-        }
-        for (i = 0; i < dim; ++i)
-        {
-            Coords(newp)[i] = Coords(newp)[i] + dt*vel[i];
-            newst->vel[i] = vel[i];
-            FT_RecordMaxFrontSpeed(i,fabs(vel[i]),NULL,Coords(newp),front);
-        }
-        FT_IntrpStateVarAtCoords(front,comp,p1,m_pre,
-                        getStatePres,&newst->pres,&oldst->pres);
-        if (dim == 2)
-        {
-            FT_IntrpStateVarAtCoords(front,comp,p1,m_vor,
-                        getStateVort,&newst->vort,&oldst->vort);
-        }
-        s = mag_vector(vel,dim);
-        FT_RecordMaxFrontSpeed(dim,s,NULL,Coords(newp),front);
-        return;
-}       /* end neumann_point_propagate */
-
-static  void dirichlet_point_propagate(
-        Front *front,
-        POINTER wave,
-        POINT *oldp,
-        POINT *newp,
-        HYPER_SURF_ELEMENT *oldhse,
-        HYPER_SURF         *oldhs,
-        double              dt,
-        double              *V)
-{
-        double speed;
-        int i, dim = front->rect_grid->dim;
-        STATE *newst;
-        STATE *bstate;
-        FLOW_THROUGH_PARAMS ft_params;
-        COMPONENT comp;
-
-        if (debugging("dirichlet_bdry"))
-        {
-            printf("Entering dirichlet_point_propagate()\n");
-            print_general_vector("oldp:  ",Coords(oldp),dim,"\n");
-        }
-
-        if (ifluid_comp(negative_component(oldhs)))
-        {
-            newst = (STATE*)left_state(newp);
-            comp = negative_component(oldhs);
-        }
-        else if (ifluid_comp(positive_component(oldhs)))
-        {
-            newst = (STATE*)right_state(newp);
-            comp = positive_component(oldhs);
-        }
-        if (newst == NULL) return;      // node point
-	
-	if (boundary_state(oldhs) != NULL)
-        {
-            bstate = (STATE*)boundary_state(oldhs);
-            for (i = 0; i < dim; ++i)
-            {
-                newst->vel[i] = bstate->vel[i];
-                FT_RecordMaxFrontSpeed(i,fabs(newst->vel[i]),NULL,Coords(newp),
-                                        front);
-            }
-            speed = mag_vector(newst->vel,dim);
-            FT_RecordMaxFrontSpeed(dim,speed,NULL,Coords(newp),front);
-            newst->pres = bstate->pres;
-            newst->vort = 0.0;
-
-            if (debugging("dirichlet_bdry"))
-            {
-                printf("Preset boundary state:\n");
-                print_general_vector("Velocity: ",newst->vel,dim,"\n");
-                printf("Pressure: %f\n",newst->pres);
-                printf("Vorticity: %f\n",newst->vort);
-            }
-        }
-        else if (boundary_state_function(oldhs))
-        {
-            ft_params.oldp = oldp;
-            ft_params.comp = comp;
-            (*boundary_state_function(oldhs))(Coords(oldp),oldhs,front,
-                        (POINTER)&ft_params,(POINTER)newst);
-	}
-        if (debugging("dirichlet_bdry"))
-            printf("Leaving dirichlet_point_propagate()\n");
-        return;
-}       /* end dirichlet_point_propagate */
-
-static  void contact_point_propagate(
-        Front *front,
-        POINTER wave,
-        POINT *oldp,
-        POINT *newp,
-        HYPER_SURF_ELEMENT *oldhse,
-        HYPER_SURF         *oldhs,
-        double              dt,
-        double              *V)
-{
-        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
-        double vel[MAXD],s;
-        int i, dim = front->rect_grid->dim;
-        double *m_pre = iFparams->field->pres;
-        double *m_vor = iFparams->field->vort;
-        double *p0;
-        STATE *oldst,*newst;
-        POINTER sl,sr;
-        double pres,vort;
-
-        (*front->vfunc)(front->vparams,front,oldp,oldhse,oldhs,vel);
-        for (i = 0; i < dim; ++i)
-        {
-            Coords(newp)[i] = Coords(newp)[i] + dt*vel[i];
-            FT_RecordMaxFrontSpeed(i,fabs(vel[i]),NULL,Coords(newp),front);
-        }
-
-        FT_GetStatesAtPoint(oldp,oldhse,oldhs,&sl,&sr);
-        oldst = (STATE*)sl;
-        p0 = Coords(newp);
-        FT_IntrpStateVarAtCoords(front,-1,p0,m_pre,getStatePres,&pres,
-                                &oldst->pres);
-        FT_IntrpStateVarAtCoords(front,-1,p0,m_vor,getStateVort,&vort,
-                                &oldst->vort);
-
-        newst = (STATE*)left_state(newp);
-        newst->vort = vort;
-        newst->pres = pres;
-        for (i = 0; i < dim; ++i)
-            newst->vel[i] = vel[i];
-        newst = (STATE*)right_state(newp);
-        newst->vort = vort;
-        newst->pres = pres;
-        for (i = 0; i < dim; ++i)
-            newst->vel[i] = vel[i];
-
-        s = mag_vector(vel,dim);
-        FT_RecordMaxFrontSpeed(dim,s,NULL,Coords(newp),front);
-}       /* end contact_point_propagate */
-
-void read_melt_dirichlet_bdry_data(
-        char *inname,
-        Front *front,
-        F_BASIC_DATA f_basic)
-{
-        char msg[100],s[100];
-        int i,k,dim = front->rect_grid->dim;
-        FILE *infile = fopen(inname,"r");
-        STATE state;
-        HYPER_SURF *hs;
-        int i_surf;
-
-        for (i = 0; i < dim; ++i)
-        {
-            if (f_basic.boundary[i][0] == DIRICHLET_BOUNDARY)
-            {
-                hs = NULL;
-                i_surf = 2*i;
-                if (rect_boundary_type(front->interf,i,0) == DIRICHLET_BOUNDARY)
-                    hs = FT_RectBoundaryHypSurf(front->interf,DIRICHLET_BOUNDARY,
-                                        i,0);
-                sprintf(msg,"For lower boundary in %d-th dimension",i);
-                CursorAfterString(infile,msg);
-                (void) printf("\n");
-                CursorAfterString(infile,"Enter type of Dirichlet boundary:");
-                fscanf(infile,"%s",s);
-                (void) printf("%s\n",s);
-                switch (s[0])
-                {
-                case 'c':                       // Constant state
-                case 'C':
-                    CursorAfterString(infile,"Enter velocity:");
-                    for (k = 0; k < dim; ++k)
-                    {
-                        fscanf(infile,"%lf",&state.vel[k]);
-                        (void) printf("%f ",state.vel[k]);
-                    }
-		    (void) printf("\n");
-                    CursorAfterString(infile,"Enter pressure:");
-                    fscanf(infile,"%lf",&state.pres);
-                    (void) printf("%f\n",state.pres);
-                    CursorAfterString(infile,"Enter fluid temperature:");
-                    fscanf(infile,"%lf",&state.temperature);
-                    (void) printf("%f\n",state.temperature);
-                    FT_InsertDirichletBoundary(front,NULL,NULL,NULL,
-                                (POINTER)&state,hs,i_surf);
-                    break;
-		case 'f':                       // Flow through state
-                case 'F':
-                    FT_InsertDirichletBoundary(front,melt_flowThroughBoundaryState,
-                                "flowThroughBoundaryState",NULL,NULL,hs,i_surf);
-                    break;
-                }
-            }
-	    if (f_basic.boundary[i][1] == DIRICHLET_BOUNDARY)
-            {
-                hs = NULL;
-                i_surf = 2*i + 1;
-                if (rect_boundary_type(front->interf,i,1) == DIRICHLET_BOUNDARY)
-		    hs = FT_RectBoundaryHypSurf(front->interf,DIRICHLET_BOUNDARY,
-                                                i,1);
-                sprintf(msg,"For upper boundary in %d-th dimension",i);
-                CursorAfterString(infile,msg);
-                (void) printf("\n");
-                CursorAfterString(infile,"Enter type of Dirichlet boundary:");
-                fscanf(infile,"%s",s);
-                (void) printf("%s\n",s);
-                switch (s[0])
-                {
-                case 'c':                       // Constant state
-                case 'C':
-                    CursorAfterString(infile,"Enter velocity:");
-                    for (k = 0; k < dim; ++k)
-                    {
-                        fscanf(infile,"%lf ",&state.vel[k]);
-                        (void) printf("%f ",state.vel[k]);
-                    }
-                    (void) printf("\n");
-                    CursorAfterString(infile,"Enter pressure:");
-                    fscanf(infile,"%lf",&state.pres);
-                    (void) printf("%f\n",state.pres);
-                    CursorAfterString(infile,"Enter fluid temperature:");
-                    fscanf(infile,"%lf",&state.temperature);
-                    (void) printf("%f\n",state.temperature);
-                    FT_InsertDirichletBoundary(front,NULL,NULL,NULL,
-                                (POINTER)&state,hs,i_surf);
-                    break;
-                case 'f':                       // Flow through state
-                case 'F':
-                    FT_InsertDirichletBoundary(front,melt_flowThroughBoundaryState,
-                                "flowThroughBoundaryState",NULL,NULL,hs,i_surf);
-                    break;
-                }
-            }
-	}
-        fclose(infile);
-}       /* end read_melt_dirichlet_bdry_data */
-
 static double (*getStateVel[MAXD])(POINTER) = {getStateXvel,getStateYvel,
                                         getStateZvel};
 
@@ -534,6 +215,79 @@ extern void melt_flowThroughBoundaryState(
         }
 }       /*end melt_flowThroughBoundaryState */
 
+static void vFourier_state(
+            COMPONENT* c,
+            double* coords,
+            PHASE_FIELD* field,
+            int index,
+            int dim,
+            PARAMS* eqn_params)
+{
+	double qs, qe, qmax;
+	qs = eqn_params->qs; qe = eqn_params->qv0;
+        qmax = qs * 1.02;
+	if (field->vel[0][index] > 0)
+	    field->vapor[index] = qmax;
+	else
+	    field->vapor[index] = qe;
+}
+
+static void lr_state(
+	    COMPONENT* c,
+	    double* coords,
+	    PHASE_FIELD* field,
+	    int index,
+	    int dim,
+	    PARAMS* eqn_params)
+{
+	double qs, qe, qmax;
+
+	qs = eqn_params->qs; qe = eqn_params->qv0;
+	qmax = qs * 1.02;
+	field->vapor[index] = (qmax - qe)
+			      * exp(-2000*pow(coords[0] - 0.5,6))+qe;
+}
+
+static void tb_state(
+	    COMPONENT* c,
+	    double* coords,
+	    PHASE_FIELD* field,
+	    int index,
+	    int dim,
+	    PARAMS* eqn_params)
+{
+	double qs, qe, qmax;
+	
+	qs = eqn_params->qs; qe = eqn_params->qv0;
+	qmax = qs * 1.02;
+	field->vapor[index] = (qmax - qe)
+			      * exp(-2000*pow(coords[dim-1] - 0.5,6))+qe;
+}
+
+void init_vapor_state_func(
+	Front *front,
+        VCARTESIAN *vcartesian)
+{
+        PARAMS *eqn_params = (PARAMS*)front->extra2;
+        switch(eqn_params->init_vapor_state)
+        {
+	    case TB_STATE:
+		vcartesian->getInitialState = tb_state;
+	        break;
+	    case LR_STATE:
+		vcartesian->getInitialState = lr_state;
+	        break;
+	    case FOURIER_STATE:
+		vcartesian->getInitialState = vFourier_state;
+		break;
+            default:
+		printf("State %d is not implemented\n",
+			eqn_params->init_vapor_state);
+		clean_up(ERROR);
+		break;
+        }
+}	/* end init_fluid_state_func */
+   
 void init_fluid_state_func(
 	Front *front,
         Incompress_Solver_Smooth_Basis *l_cartesian)
@@ -550,10 +304,93 @@ void init_fluid_state_func(
 	    case ZERO_STATE:
 		l_cartesian->getInitialState = zero_state;
 	        break;
+	    case FOURIER_STATE:
+		l_cartesian->setInitialVelocity = Fourier_state;
             default:
                 l_cartesian->getInitialState = zero_state;
         }
 }	/* end init_fluid_state_func */
+
+/*Fourier_state*/
+/*only used in setParallelVelocity, no for-loops needed*/
+static void Fourier_state(
+	COMPONENT comp,
+	int *N,
+	double *vel_x,
+	double *vel_y,
+	double *vel_z,
+	int dim,
+	IF_PARAMS *iFparams)
+{
+	int gmax[MAXD], i, j, k, Nr, index;
+	fftw_complex *U;
+	double wn, phi, L = 1.0, U_max = 0.0;
+	Nr = 1;
+	for (i = 0; i < dim; i++)
+	{
+	    gmax[i] = N[i];
+	    Nr *= N[i];
+	}
+	gmax[dim-1] = N[dim-1]/2 + 1; 
+	U = new fftw_complex[Nr];
+	
+	switch (dim)
+	{
+	    case 2:
+		for (i = 0; i < gmax[0]; i++)
+		for (j = 0; j < gmax[1]; j++)
+		{
+		    index = j + gmax[1] * i; /*row major format*/
+		    if ((i*i + j*j) > 4)
+		    {
+			U[index][0] = U[index][1] = 0.0;
+		 	continue;
+		    }
+		    wn = (2*M_PI/L)*sqrt(i*i+j*j);
+		    phi  = (double)rand() / (RAND_MAX + 1.0);
+		    U[index][0] = wn*wn*exp(-wn*wn/pow(2*M_PI*4.7568/L,2))
+                                 * cos(2*M_PI*phi);
+                    U[index][1] = wn*wn*exp(-wn*wn/pow(2*M_PI*4.7568/L,2))
+                                 * sin(2*M_PI*phi);
+		}
+	 	break;
+	    case 3:
+                for (k = 0; k < gmax[2]; k++)
+                for (j = 0; j < gmax[1]; j++)
+		for (i = 0; i < gmax[0]; i++)
+                {
+                    index = k + gmax[2]*(j + gmax[1]*i); /*row major format*/ 
+                    if ((i*i + j*j + k*k) > 4)
+                    {
+                        U[index][0] = U[index][1] = 0.0;
+                        continue;
+                    }
+                    wn = (2*M_PI/L)*sqrt(i*i+j*j+k*k);
+                    phi  = (double)rand() / (RAND_MAX + 1.0);
+		    printf("phi = %f\n",phi);
+                    U[index][0] = wn*wn*exp(-wn*wn/pow(2*M_PI*4.7568/L,2))
+                                 * cos(2*M_PI*phi);
+                    U[index][1] = wn*wn*exp(-wn*wn/pow(2*M_PI*4.7568/L,2))
+                                 * sin(2*M_PI*phi);
+                }
+                break;
+	    default:
+		printf("Dim can only be 2 and 3, unknown dim = %d!\n",dim);
+		clean_up(ERROR);
+	}
+	fftnd(U,dim,N,-1);
+	for (i = 0; i < Nr; i++)
+	   U_max = FT_Max(U_max,fabs(U[i][0]));
+
+	iFparams->Amplitute = 0.2;
+	for (i = 0; i < Nr; i++)
+	{
+	    vel_y[i] = vel_x[i] = U[i][0]/U_max * iFparams->Amplitute;
+	    if (dim == 3)
+	        vel_z[i] = U[i][0]/U_max * iFparams->Amplitute;
+	}
+}
+/*end Fourier_state*/
 
 static void Taylor_Green_state(
         COMPONENT comp,
@@ -564,20 +401,22 @@ static void Taylor_Green_state(
         IF_PARAMS *iFparams)
 {
 	int i;
-	double tcoords[MAXD];
+	double tcoords[MAXD], a[MAXD] = {2*PI, 2*PI, 2*PI}, A[MAXD] = {1., -1., 0.};
 	double **vel = field->vel;
-	for (i = 0; i < dim; i++)
-	    tcoords[i] = 2*PI*coords[i] - PI;
 	switch (dim)
 	{
 	    case 2:
-	        vel[0][index] = sin(tcoords[0]) * cos(tcoords[1]);
-	        vel[1][index] = -cos(tcoords[0]) * sin(tcoords[1]);
+		for (i = 0; i < dim; i++)
+	    	    tcoords[i] = coords[i];
+	        vel[0][index] = A[0]*sin(tcoords[0]) * cos(tcoords[1]);
+	        vel[1][index] = A[1]*cos(tcoords[0]) * sin(tcoords[1]);
 		break;
 	    case 3:
-		vel[0][index] = sin(tcoords[0])*cos(tcoords[1])*cos(tcoords[2]);
-		vel[1][index] = -cos(tcoords[0])*sin(tcoords[1])*cos(tcoords[2]);
-		vel[2][index] = 0;
+		for (i = 0; i < dim; i++)
+	    	    tcoords[i] = a[i] * coords[i];
+		vel[0][index] = A[0]*cos(tcoords[0])*sin(tcoords[1])*sin(tcoords[2]);
+		vel[1][index] = A[1]*sin(tcoords[0])*cos(tcoords[1])*sin(tcoords[2]);
+		vel[2][index] = A[2]*sin(tcoords[0])*sin(tcoords[1])*cos(tcoords[2]);
 		break;
 	    default:
 		printf("Unknown dim = %d\n",dim);
@@ -621,501 +460,6 @@ static void zero_state(
         field->pres[index] = 0.0;
 }       /* end zero_state */
 
-extern double jumpEpsGradDotNorm(
-        POINTER params,
-        int D,
-        double *N,
-        double *P)
-{
-        printf("Entering jumpEpsGradDotNorm(), to be written\n");
-        clean_up(0);
-}       /* end jumpEpsGradDotNorm */
-
-extern double jumpT(
-        POINTER params,
-        int D,
-        double *P)
-{
-        return 0.0;
-}       /* end jumpT */
-
-extern double jumpGradDotTan(
-        POINTER params,
-        int D,
-        int i,
-        double *N,
-        double *P)
-{
-        return 0.0;
-}       /* end jumpGradDotTan */
-
-extern  void compute_ice_particle_force(
-        Front *fr,
-        HYPER_SURF *hs,
-        double dt,
-        double *force,
-        double *torque)
-{
-        switch (fr->rect_grid->dim)
-        {
-        case 2:
-            return compute_ice_particle_force2d_velo(fr,hs,dt,force,torque);
-        case 3:
-            return compute_ice_particle_force3d_velo(fr,hs,dt,force,torque);
-        }
-}       /* end compute_ice_particle_force */
-
-static  void compute_ice_particle_force2d_pres(
-        Front *fr,
-        HYPER_SURF *hs,
-        double dt,
-        double *force,
-        double *torque)
-{
-        RECT_GRID *gr = computational_grid(fr->interf);
-        double f[MAXD],rr[MAXD];
-        double t,pres;
-        double area[MAXD],posn[MAXD];
-        BOND *b;
-        boolean pos_side;
-        int i,dim = gr->dim;
-        IF_PARAMS *iFparams = (IF_PARAMS*)fr->extra1;
-        double *gravity = iFparams->gravity;
-        CURVE *curve = Curve_of_hs(hs);
-
-        if (debugging("rigid_body"))
-            (void) printf("Entering compute_ice_particle_force2d()\n");
-
-        if (ifluid_comp(negative_component(curve)))
-            pos_side = NO;
-        else
-            pos_side = YES;
-
-        for (i = 0; i < dim; ++i)
-        {
-            force[i] = 0.0;
-        }
-        *torque = 0.0;
-        for (b = curve->first; b != NULL; b = b->next)
-        {
-            if (force_on_hse(Hyper_surf_element(b),Hyper_surf(curve),gr,
-                        &pres,area,posn,pos_side))
-            {
-                for (i = 0; i < dim; ++i)
-                {
-                    f[i] = pres*area[i];
-                    rr[i] = 0.5*(Coords(b->start)[i] + Coords(b->end)[i])
-                                - rotation_center(curve)[i];
-                    force[i] += f[i];
-                }
-		printf("posn:(%f,%f), area=(%f,%f), pres=%f\n",posn[0],posn[1],area[0],area[1],pres);
-                Cross2d(rr,f,t);
-                *torque += t;
-            }
-        }
-         /* Add gravity to the total force */
-        if (motion_type(curve) != ROTATION)
-        {
-            for (i = 0; i < dim; ++i)
-                force[i] += gravity[i]*total_mass(curve);
-        }
-        if (debugging("rigid_body"))
-        {
-            (void) printf("Leaving compute_ice_particle_force2d()\n");
-            (void) printf("total_force = %f %f\n",force[0],force[1]);
-            (void) printf("torque = %f\n",*torque);
-        }
-}
-
-#define         MAX_TRI_FOR_INTEGRAL            100
-
-static  void compute_ice_particle_force3d_pres(
-        Front *fr,
-        HYPER_SURF *hs,
-        double dt,
-        double *force,
-        double *torque)
-{
-        RECT_GRID *gr = computational_grid(fr->interf);
-        double *L = gr->L;
-        double *U = gr->U;
-        double f[MAXD];
-        double pres;
-        double area[MAXD],posn[MAXD];
-        double tri_center[MAXD];
-        TRI *tri;
-        POINT *p;
-        boolean pos_side;
-        int i,j,dim = gr->dim;
-        IF_PARAMS *iFparams = (IF_PARAMS*)fr->extra1;
-        double *gravity = iFparams->gravity;
-        SURFACE *surface = Surface_of_hs(hs);
-        boolean out_domain_tri;
-
-        if (ifluid_comp(negative_component(surface)))
-            pos_side = NO;
-        else
-            pos_side = YES;
-
-        for (i = 0; i < dim; ++i)
-        {
-            force[i] = 0.0;
-            torque[i] = 0.0;
-        }
-        for (tri = first_tri(surface); !at_end_of_tri_list(tri,surface);
-                        tri = tri->next)
-        {
-            out_domain_tri = NO;
-            for (i = 0; i < dim; ++i)
-                tri_center[i] = 0;
-            for (j = 0; j < 3; ++j)
-            {
-                p = Point_of_tri(tri)[j];
-                for (i = 0; i < dim; ++i)
-                    tri_center[i] += Coords(p)[i];
-            }
-            for (i = 0; i < dim; ++i)
-            {
-                tri_center[i] /= 3.0;
-                if (tri_center[i] <= L[i] || tri_center[i] > U[i])
-                    out_domain_tri = YES;
-            }
-            if (out_domain_tri == YES)
-            {
-                continue;
-            }
-
-            if (force_on_hse(Hyper_surf_element(tri),Hyper_surf(surface),gr,
-                        &pres,area,posn,pos_side))
-            {
-                for (i = 0; i < dim; ++i)
-                {
-                    f[i] = pres*area[i];
-                    force[i] += f[i];
-                }
-            }
-        }
-         /* Add gravity to the total force */
-        if (motion_type(surface) != ROTATION)
-        {
-            for (i = 0; i < dim; ++i)
-                force[i] += gravity[i]*total_mass(surface);
-        }
-        if (debugging("rigid_body"))
-        {
-            printf("In compute_ice_particle_force3d()\n");
-            printf("body_index = %d\n",body_index(hs));
-            printf("total_force = %f %f %f\n\n",force[0],force[1],force[2]);
-        }
-}
-
-static  void compute_ice_particle_force2d_velo(
-        Front *fr,
-        HYPER_SURF *hs,
-        double dt,
-        double *force,
-        double *torque)
-{
-        RECT_GRID *gr = FT_GridIntfcTopGrid(fr);
-        int *gmax = FT_GridIntfcTopGmax(fr);
-        double cvel,*coords;
-        int i,index,dim = gr->dim;
-	int ic[MAXD];
-        IF_PARAMS *iFparams = (IF_PARAMS*)fr->extra1;
-        double **vel = iFparams->field->vel;
-        double *gravity = iFparams->gravity;
-        PARAMS *eqn_params = (PARAMS*)fr->extra2;
-        CURVE *curve = Curve_of_hs(hs);
-	BOND  *b;
-	POINT *p;
-
-        /*For computing finite respone time*/
-        double R        = spherical_radius(curve);/*droplet radius*/
-        double rho_l    = eqn_params->rho_l;/*water droplet density*/
-        double rho_0    = iFparams->rho2;/*fluid density*/
-        double mu       = iFparams->mu2;/*viscosity*/
-        double tau_p    = 2 * rho_l*R*R/(9*rho_0*mu);/*response time*/
-
-        if (debugging("rigid_body"))
-            (void) printf("Entering compute_ice_particle_force2d()\n");
-
-        for (i = 0; i < dim; ++i)
-        {
-            force[i] = 0.0;
-        }
-        *torque = 0.0;
-
-	int max_index;
-	double max_vel = 0;
-	double vel_mag;
-	for (b = curve->first; b != NULL; b=b->next)
-	{
-	    p = b->end;
-	    rect_in_which(Coords(p),ic,gr);
-	    index = d_index(ic,gmax,dim);
-	    vel_mag = sqr(vel[0][index])+sqr(vel[1][index]);
-	    if(vel_mag > max_vel && vel_mag < HUGE)
-	    {
-		max_vel = vel_mag;
-		max_index = index;
-	    }
-	}
-	
-        for(i = 0; i < dim; ++i)
-        {
-            cvel   = center_of_mass_velo(curve)[i];
-            force[i]   = (vel[i][max_index]-cvel)/tau_p
-			  + gravity[i];
-            force[i]  *= total_mass(curve);
-        }
-        if (debugging("rigid_body"))
-        {
-            (void) printf("Leaving compute_ice_particle_force2d()\n");
-            (void) printf("body_index = %d\n",body_index(hs));
-            (void) printf("Flow velo:[%f,%f]\n",vel[0][max_index],vel[1][max_index]);
-            (void) printf("cent velo:[%f,%f]\n",center_of_mass_velo(curve)[0],
-                                                center_of_mass_velo(curve)[1]);
-        }
-}       /* end compute_ice_particle_force2d */
-
-static  void compute_ice_particle_force3d_velo(
-        Front *fr,
-        HYPER_SURF *hs,
-        double dt,
-        double *force,
-        double *torque)
-{
-        RECT_GRID *gr = FT_GridIntfcTopGrid(fr);
-        int *gmax = FT_GridIntfcTopGmax(fr);
-        double cvel,center[MAXD];
-	int ic[MAXD];
-        int i,index,dim = gr->dim;
-        IF_PARAMS *iFparams = (IF_PARAMS*)fr->extra1;
-        double **vel = iFparams->field->vel;
-        PARAMS *eqn_params = (PARAMS*)fr->extra2;
-        double *gravity = iFparams->gravity;
-        SURFACE *surface = Surface_of_hs(hs);
-	TRI *tri;
-	POINT *p;
-
-        /*For computing finite respone time*/
-        double R = spherical_radius(surface);/*droplet radius*/
-        double rho_l    = eqn_params->rho_l;/*water droplet density*/
-        double rho_0      = iFparams->rho2;/*fluid density*/
-        double mu       = iFparams->mu2;/*viscosity*/
-        double tau_p    = 2 * rho_l*R*R/(9*rho_0*mu);/*response time*/
-
-        if (debugging("rigid_body"))
-            (void) printf("Entering compute_ice_particle_force2d()\n");
-
-        for (i = 0; i < dim; ++i)
-        {
-            force[i] = 0.0;
-        }
-        *torque = 0.0;
-
-        int max_index;
-        double max_vel = 0;
-	double vel_mag;
-	for(tri = first_tri(surface); !at_end_of_tri_list(tri,surface);
-                        tri = tri->next)
-        {
-	    for(i = 0; i < 3; ++i)
-	    {
-	        p = Point_of_tri(tri)[i];
-                rect_in_which(Coords(p),ic,gr);
-                index = d_index(ic,gmax,dim);
-		vel_mag = sqr(vel[0][index])+sqr(vel[1][index]) 
-                                     +sqr(vel[2][index]);
-                if(vel_mag > max_vel && vel_mag < HUGE)
-                {
-                    max_vel = vel_mag;
-                    max_index = index;
-                }
-	    }
-        }
-
-        /*get information for center of mass*/
-        for(i = 0; i < dim; ++i)
-        {
-            force[i]   = (vel[i][max_index]-cvel)/tau_p
-                         + gravity[i];
-            force[i]  *= total_mass(surface);
-        }
-        if (debugging("rigid_body"))
-        {
-            printf("In compute_ice_particle_force3d()\n");
-            (void) printf("body_index = %d\n",body_index(hs));
-            (void) printf("Flow velo:[%f,%f,%f] at point(%f,%f,%f)\n",
-			vel[0][max_index],vel[1][max_index],vel[2][max_index],
-			Coords(p)[0],Coords(p)[1],Coords(p)[2]);
-            (void) printf("cent velo:[%f,%f,%f]\n",center_of_mass_velo(surface)[0],
-                                                   center_of_mass_velo(surface)[1],
-                                                   center_of_mass_velo(surface)[2]);
-        }
-}       /* end compute_ice_particle_force3d */
-
-static boolean force_on_hse(
-        HYPER_SURF_ELEMENT *hse,        /* Bond (2D) or tri (3D) */
-        HYPER_SURF *hs,                 /* Curve (2D) or surface (3D) */
-        RECT_GRID *gr,                  /* Rectangular grid */
-        double *pres,           /* Average pressure */
-        double *area,           /* Area as a vector, pointing onto body */
-        double *posn,           /* Position of the pressure */
-        boolean pos_side)       /* Is the body on the positive side of hs? */
-{
-        int dim = gr->dim;
-        switch (dim)
-        {
-        case 2:
-            return force_on_hse2d(hse,hs,gr,pres,area,posn,pos_side);
-        case 3:
-            return force_on_hse3d(hse,hs,gr,pres,area,posn,pos_side);
-        default:
-            return NO;
-        }
-
-}       /* end force_on_hse */
-
-static boolean force_on_hse2d(
-        HYPER_SURF_ELEMENT *hse,
-        HYPER_SURF *hs,
-        RECT_GRID *gr,
-        double *pres,
-        double *area,
-        double *posn,
-        boolean pos_side)
-{
-        double crds1[MAXD],crds2[MAXD];
-        double p1,p2;
-	double v1[MAXD],V2[MAXD];
-        Locstate s1,s2;
-        BOND *b = Bond_of_hse(hse);
-        CURVE *c = Curve_of_hs(hs);
-        double *L = gr->L;
-        double *U = gr->U;
-        int i;
-
-        /* Get pressure at two end points of the bond */
-        if (b->start == c->start->posn)
-            s1 = pos_side ? right_start_state(c) : left_start_state(c);
-        else
-            s1 = pos_side ? right_state(b->start) : left_state(b->start);
-        if (b->end == c->end->posn)
-            s2 = pos_side ? right_end_state(c) : left_end_state(c);
-        else
-            s2 = pos_side ? right_state(b->end) : left_state(b->end);
-
-        p1 = getStatePres(s1);  p2 = getStatePres(s2);
-	
-        for (i = 0; i < 2; ++i)
-        {
-            crds1[i] = Coords(b->start)[i];
-            crds2[i] = Coords(b->end)[i];
-        }
-        /* Cut and interpolate if one end is outside the domain */
-        for (i = 0; i < 2; ++i)
-        {
-            if (crds1[i] <= L[i])
-            {
-                if (crds2[i] <= L[i]) return NO; /*both ends out*/
-                else
-                {
-                    crds1[(i+1)%2] = intrp_between(crds1[i],crds2[i],L[i],
-                                crds1[(i+1)%2],crds2[(i+1)%2]);
-                    p1 = intrp_between(crds1[i],crds2[i],L[i],p1,p2);
-                    crds1[i] = L[i];
-                }
-            }
-            if (crds1[i] >= U[i])
-            {
-                if (crds2[i] >= U[i]) return NO; /* both ends out*/
-                else
-                {
-                    crds1[(i+1)%2] = intrp_between(crds1[i],crds2[i],U[i],
-                                crds1[(i+1)%2],crds2[(i+1)%2]);
-                    p1 = intrp_between(crds1[i],crds2[i],U[i],p1,p2);
-                    crds1[i] = U[i];
-                }
-            }
-        }
-        for (i = 0; i < 2; ++i)
-        {
-            if (crds2[i] <= L[i])
-            {
-                if (crds1[i] <= L[i]) return NO; // both ends out
-                else
-                {
-                    crds2[(i+1)%2] = intrp_between(crds1[i],crds2[i],L[i],
-                                crds1[(i+1)%2],crds2[(i+1)%2]);
-                    p2 = intrp_between(crds1[i],crds2[i],L[i],p1,p2);
-                    crds2[i] = L[i];
-                }
-            }
-            if (crds2[i] >= U[i])
-            {
-                if (crds1[i] >= U[i]) return NO; // both ends out
-                else
-                {
-                    crds2[(i+1)%2] = intrp_between(crds1[i],crds2[i],U[i],
-                                crds1[(i+1)%2],crds2[(i+1)%2]);
-                    p2 = intrp_between(crds1[i],crds2[i],U[i],p1,p2);
-                    crds2[i] = U[i];
-                }
-            }
-        }
-
-
-        area[0] = fabs(crds1[1] - crds2[1]);
-        area[1] = fabs(crds1[0] - crds2[0]);
-	if(crds2[1] > crds1[1])
-	    area[0] *= -1;
-	if(crds2[0] < crds1[0])
-	    area[1] *= -1;
-        *pres = 0.5*(p1 + p2);
-        posn[0] = 0.5*(crds1[0] + crds2[0]);
-        posn[1] = 0.5*(crds1[1] + crds2[1]);
-        return YES;
-}       /* end force_on_hse2d */
-
-static boolean force_on_hse3d(
-        HYPER_SURF_ELEMENT *hse,
-        HYPER_SURF *hs,
-        RECT_GRID *gr,
-        double *pres,
-        double *area,
-        double *posn,
-        boolean pos_side)
-{
-        TRI *t = Tri_of_hse(hse);
-        POINT *point;
-        Locstate sl,sr;
-        int i,j,dim = gr->dim;
-
-        *pres = 0.0;
-        for (i = 0; i < 3; ++i)
-            posn[i] = 0.0;
-        for (i = 0; i < 3; ++i)
-        {
-            point = Point_of_tri(t)[i];
-            for (j = 0; j < dim; ++j)
-                posn[j] += Coords(point)[j];
-            FT_GetStatesAtPoint(point,hse,hs,&sl,&sr);
-            if (pos_side)
-                *pres += getStatePres(sr);
-            else
-                *pres += getStatePres(sl);
-        }
-        *pres /= 3.0;
-        for (i = 0; i < dim; ++i)
-        {
-            area[i] = pos_side ? -Tri_normal(t)[i] : Tri_normal(t)[i];
-            posn[i] /= 3.0;
-        }
-        /* Need to treat subdomain boundary */
-        return YES;
-}       /* end force_on_hse3d */
-
 static double intrp_between(
         double x1,
         double x2,
@@ -1148,20 +492,20 @@ LOCAL   PARTICLE* cut_buf_particle(
 	int 	  i,j;
         PARAMS*   eqn_params = (PARAMS*)front->extra2;
         int       num_drops = eqn_params->num_drops;
-	double    *L,*U,*GL,*GU, T;
+	double    *ZL,*ZU,*GL,*GU, T;
 	static    PARTICLE* buf_particle;
 	static    int max_size = 0;
-	RECT_GRID *gr = front->rect_grid;
 	RECT_GRID *G_gr = &(front->pp_grid->Global_grid);
-	L = gr->L;    U = gr->U;
+	RECT_GRID *Z_gr = &(front->pp_grid->Zoom_grid);
 	GL = G_gr->L; GU = G_gr->U;
+	ZL = Z_gr->L; ZU = Z_gr->U;
 	/*count number of particles in buffer*/
 	buf_size = 0;
 	for (i = 0; i < eqn_params->num_drops; i++)
 	{
-                if (side == 0 && particle_array[i].center[dir] < L[dir])
+                if (side == 0 && particle_array[i].center[dir] < ZL[dir])
                      buf_size++;     
-                if (side == 1 && particle_array[i].center[dir] > U[dir])
+                if (side == 1 && particle_array[i].center[dir] > ZU[dir])
                      buf_size++;
 	}
 	/*allocate memory for buf_particle*/
@@ -1175,8 +519,8 @@ LOCAL   PARTICLE* cut_buf_particle(
 	j = 0;
 	for (i = 0; i < eqn_params->num_drops; i++)
 	{
-		if ((side == 0 && particle_array[i].center[dir] < L[dir]) ||
-		    (side == 1 && particle_array[i].center[dir] > U[dir]))
+		if ((side == 0 && particle_array[i].center[dir] < ZL[dir]) ||
+		    (side == 1 && particle_array[i].center[dir] > ZU[dir]))
 		{
 		    /*modify coords if position out of global domain*/
 		    if (side == 0 && particle_array[i].center[dir] < GL[dir])
@@ -1230,15 +574,7 @@ LOCAL  PARTICLE *receive_particle(int src_id,int &buf_size)
             FT_VectorMemoryAlloc((POINTER*)&adj_particle,buf_size,sizeof(PARTICLE));	
 	}
 	pp_recv(array_id(myid),src_id,(POINTER)adj_particle,sizeof(PARTICLE)*buf_size);
-	if (debugging("particles"))
-	{
-	    for (i = 0; i < buf_size; i++)
-	        printf("drop[%d], cent = [%f,%f,%f], flag = %d\n",
-			i,adj_particle[i].center[0],
-			  adj_particle[i].center[1],
-			  adj_particle[i].center[2],
-			  adj_particle[i].flag);
-	}
+
 	return adj_particle;
 }
 
@@ -1358,7 +694,7 @@ LOCAL  void ParallelExchParticle(PARTICLE** particle_array,Front *front)
 	return;	
 }
 
-extern void ParticlePropagate(Front *fr)
+extern void ParticlePropagate(Front *fr,MACRO *macro)
 {
 	if (debugging("trace"))
 	    printf("Entering ParticlePropage()\n");
@@ -1388,7 +724,7 @@ extern void ParticlePropagate(Front *fr)
 	double R_max = 0;
 	double R_min = HUGE;
 	double w = 2*PI/5.0;
-
+	
 	for (i = 0; i < eqn_params->num_drops; i++)
 	{
             /*computing finite respone time*/
@@ -1407,8 +743,16 @@ extern void ParticlePropagate(Front *fr)
 	    index = d_index(ic,gmax,dim);
 	    cvel = particle_array[i].vel;
 	    /*compute radius for particle[i]*/
-	    s = supersat[index];
-	    delta_R = R*R+2*eqn_params->K*s*dt;
+	    if(eqn_params->if_macroscopic == YES)
+		s = macro->getSupersat();
+	    else
+	        s = supersat[index];
+
+	    if (eqn_params->if_condensation == YES)
+	        delta_R = R*R+2*eqn_params->K*s*dt;
+	    else
+	        delta_R = R*R;
+
 	    if(delta_R < 0)
 		R = 0;
 	    else
@@ -1420,13 +764,16 @@ extern void ParticlePropagate(Front *fr)
 		R_max = R;
 	    if(R < R_min)
 		R_min = R;
-
 	    /*compute velocity for particle[i] with implicit method*/
 	    for(j = 0; j < dim; ++j)
             {
 		/*compute velocity*/
-		cvel[j] += vel[j][index]/tau_p + gravity[j];
-		cvel[j] /= (1+1/tau_p); 
+		if (eqn_params->if_sedimentation == YES) 
+		    cvel[j] += (vel[j][index]/tau_p + gravity[j])*dt;
+		else
+		    cvel[j] += vel[j][index]/tau_p*dt;
+
+		cvel[j] /= (1+dt/tau_p); 
 
 	  	/*compute center of particle[i]*/
 		center[j] += cvel[j]*dt;
@@ -1474,205 +821,41 @@ extern void ParticlePropagate(Front *fr)
 	printf("max radius = %20.14f, min radius = %20.14f\n",R_max,R_min);
 }
 
-extern void CondensationPreAdvance(Front *fr)
+extern void setParticleGlobalIndex(PARTICLE* particle_array, int size)
 {
-        INTERFACE *intfc = fr->interf;
-	PARAMS *eqn_params = (PARAMS*)fr->extra2;
-        CURVE **c;
-        SURFACE **s;
-	double cond_speed;
-	double avg_supersat;
-        switch (fr->rect_grid->dim)
-        {
-        case 2:
-            for (c = intfc->curves; c && *c; ++c)
-            {
-                if(wave_type(*c) == ICE_PARTICLE_BOUNDARY)
-                {
-		    compute_supersat_2d(fr,*c);
-		    /*update radius*/
-                    avg_supersat = f_hyper_surf(*c)->_surface_tension;
-                    cond_speed = eqn_params->K*avg_supersat
-                                        /spherical_radius(*c);
-                    spherical_radius(*c) += cond_speed * (fr->dt);
-		    /*update mass*/
-		    total_mass(*c) = eqn_params->rho_l*PI*4.0/3.0*
-				spherical_radius(*c)*spherical_radius(*c)*
-				spherical_radius(*c);
-		}
-            }
-	    break;
-        case 3:
-            for (s = intfc->surfaces; s && *s; ++s)
-            {
-                if(wave_type(*s) == ICE_PARTICLE_BOUNDARY)
-                {
-		    compute_supersat_3d(fr,*s);
-                    /*update radius*/
-		    avg_supersat = f_hyper_surf(*s)->_surface_tension;
-		    cond_speed = eqn_params->K*avg_supersat
-					/spherical_radius(*s);
-		    spherical_radius(*s) += cond_speed * (fr->dt);
-		    /*update total mass*/
-                    total_mass(*s) = eqn_params->rho_l*PI*4.0/3.0*
-                                spherical_radius(*s)*spherical_radius(*s)*
-                                spherical_radius(*s);
-		    printf("Radius=%19.18f, average supersat=%f, condensation speed=%f\n",
-			    spherical_radius(*s),avg_supersat,cond_speed);
-		}
-            }
-	    break;
-	default:
-	    printf("Unkown dim = %i\n",fr->rect_grid->dim);
-	    clean_up(ERROR);
-        }
-}
-
-static double compute_supersat_3d(Front *fr,SURFACE *surf)
-{
-        RECT_GRID *gr = computational_grid(fr->interf);
-        double avg_supersat,supersat;
-        TRI *tri;
-        boolean pos_side;
-        int count,i,dim = gr->dim;
-        PARAMS *eqn_params = (PARAMS*)fr->extra2;
-
-        if(negative_component(surf) == LIQUID_COMP2)
-            pos_side = NO;
-        else
-            pos_side = YES;
-        avg_supersat = 0;
-        count =0;
-        for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf);
-			tri = tri->next)
-        {
-            if(supersat_on_hse(Hyper_surf_element(tri),Hyper_surf(surf),gr,
-                        &supersat,pos_side))
-            {
-                avg_supersat += supersat;
-                count ++;
-            }
-        }
-        if(count != 0)
-            avg_supersat = avg_supersat/count;
-        else
-            printf("WARNING: no supersat found\n");
-        /*use _surface_tension as a temporary space*/
-        f_hyper_surf(surf)->_surface_tension = avg_supersat;
-}
-
-static double compute_supersat_2d(Front *fr,CURVE *curve)
-{
-        RECT_GRID *gr = computational_grid(fr->interf);
-        double avg_supersat,supersat;
-        BOND *b;
-        boolean pos_side;
-        int count,i,dim = gr->dim;
-        PARAMS *eqn_params = (PARAMS*)fr->extra2;
-
-        if(negative_component(curve) == LIQUID_COMP2)
-            pos_side = NO;
-        else
-            pos_side = YES;
-        avg_supersat = 0;
-        count =0;
-        for (b = curve->first; b!=NULL; b=b->next)
-        {
-            if(supersat_on_hse(Hyper_surf_element(b),Hyper_surf(curve),gr,
-                        &supersat,pos_side))
-            {
-                avg_supersat += supersat;
-                count ++;
-            }
-        }
-        if(count != 0)
-            avg_supersat = avg_supersat/count;
-        else
-            printf("WARNING: no supersat found\n");
-	/*use _surface_tension as a temporary space*/
-        f_hyper_surf(curve)->_surface_tension = avg_supersat;
-}
-
-static boolean supersat_on_hse(
-        HYPER_SURF_ELEMENT *hse,
-        HYPER_SURF *hs,
-        RECT_GRID *gr,
-        double *supersat,
-        boolean pos_side)
-{
-        int dim = gr->dim;
-        switch (dim)
-        {
-        case 2:
-            return supersat_on_hse2d(hse,hs,gr,supersat,pos_side);
-        case 3:
-            return supersat_on_hse3d(hse,hs,gr,supersat,pos_side);
-        default:
-            return NO;
-        }
-}
-
-static boolean supersat_on_hse3d(
-        HYPER_SURF_ELEMENT *hse,
-        HYPER_SURF *hs,
-        RECT_GRID *gr,
-        double *supersat,
-        boolean pos_side)
-{
-        double crds1[MAXD], crds2[MAXD];
-        double sup1,sup2;
-        Locstate s1,s2;
-	POINTER sl,sr;
-        SURFACE *s = Surface_of_hs(hs);
-        TRI  *t = Tri_of_hse(hse);
-	POINT *point;
-	int i,dim = gr->dim;
-
-	*supersat = 0;
-	for (i = 0; i < 3; ++i)
+	int i,Gstart = 0;
+	int num_nodes = pp_numnodes();
+	int myid = pp_mynode();
+	int *n_drops;
+	static boolean first = YES;
+	if (first)
 	{
-	    point = Point_of_tri(t)[i];
-	    FT_GetStatesAtPoint(point,hse,hs,&sl,&sr);
-	    if(pos_side)
-		*supersat += getStateSuper(sr);
-	    else 
-		*supersat += getStateSuper(sl);
+	    first = NO;
+            FT_VectorMemoryAlloc((POINTER*)&n_drops,num_nodes,sizeof(int));
 	}
-	*supersat /= 3.0;
-        return YES;
+	for (i = 0; i < num_nodes; i++) n_drops[i] = 0;
+	n_drops[myid] = size;
+	pp_gsync();
+	pp_global_imax(n_drops,num_nodes);
+	
+	Gstart = 0;
+	for (i = 0; i < myid; i++)
+	    Gstart += n_drops[i];
+	for (i = 0; i < size; i++)
+	    particle_array[i].Gindex = (Gstart + i);
+	if (debugging("Gindex"))
+	{
+	    printf("In setParticleGlobalIndex()\n");
+	    printf("%d number of particles in the subdomain %d\n",
+		    size, myid);
+	    printf("Particle index starts and ends= [%d, %d]\n",
+		    particle_array[0].Gindex,particle_array[size-1].Gindex);
+	    printf("Number of particles in each subdomain:\n");
+	    for (i = 0; i < num_nodes;i++)
+		printf("%d ",n_drops[i]);
+	    printf("\n%d particles before this subdomain\n",Gstart);
+	}
 }
-
-static boolean supersat_on_hse2d(
-        HYPER_SURF_ELEMENT *hse,
-        HYPER_SURF *hs,
-        RECT_GRID *gr,
-        double *supersat,
-        boolean pos_side)
-{
-        double crds1[MAXD], crds2[MAXD];
-        double sup1,sup2;
-        int i;
-        Locstate s1,s2;
-        CURVE *c = Curve_of_hs(hs);
-        BOND  *b = Bond_of_hse(hse);
-
-        if (b->start == c->start->posn)
-            s1 = pos_side ? right_start_state(c) : left_start_state(c);
-        else
-            s1 = pos_side ? right_state(b->start) : left_state(b->start);
-        if (b->end == c->end->posn)
-            s2 = pos_side ? right_end_state(c) : left_end_state(c);
-        else
-            s2 = pos_side ? right_state(b->end) : left_state(b->end);
-        sup1 = getStateSuper(s1); sup2 = getStateSuper(s2);
-        for (i = 0; i < 2; ++i)
-        {
-            crds1[i] = Coords(b->start)[i];
-            crds2[i] = Coords(b->end)[i];
-        }
-        *supersat = 0.5*(sup1+sup2);
-        return YES;
-}       /*end supersat_on_hse2d*/
 
 extern void printDropletsStates(Front* front, char* outname)
 {
@@ -1820,16 +1003,21 @@ extern void vtk_plot_scatter(Front* front)
 extern void vtk_plot_sample_traj(Front* front)
 {
         PARAMS* eqn_params = (PARAMS*)front->extra2;
-        int dim = front->rect_grid->dim;
+	RECT_GRID *rect_grid = front->rect_grid;
+        int dim = rect_grid->dim;
         int i, j;
-        double *coords;
+        double *coords,max_dist;
         char *outname = OutName(front);
         char fname[256];
         FILE* file;
+	boolean ignore_this;
 	/*static array for preserving trajectory*/
 	static double traj[MAXD][MAX_STEP];
 	static int step = 0;
+	int max_step = step;
 
+	if (pp_numnodes() > 1)
+	    return;
 	for(i = 0; i < dim; i++)
 	{
 	    traj[i][step] = eqn_params->particle_array[0].center[i];
@@ -1846,7 +1034,7 @@ extern void vtk_plot_sample_traj(Front* front)
             printf("Cannot create directory %s\n",fname);
             clean_up(ERROR);
         }
-	sprintf(fname,"%s/sample_particle.vtk",fname);
+	sprintf(fname,"%s/trajectory.vtk",fname);
         file = fopen(fname,"w");
         fprintf(file,"# vtk DataFile Version 3.0\n");
         fprintf(file,"%s\n","sample_particles");
@@ -1862,13 +1050,36 @@ extern void vtk_plot_sample_traj(Front* front)
             else if (dim == 3)
                 fprintf(file,"%f %f %f\n",traj[0][i],traj[1][i],traj[2][i]);
 	}
-	fprintf(file,"CELLS %d %d\n",step,3*step);
+        for (i = 0; i < step; i++)
+        {
+            ignore_this = NO;
+            for (j = 0; j < dim; j++)
+            {
+                max_dist =  sqr(traj[j][i]-traj[j][i+1]);
+                max_dist -= 0.5*sqr(rect_grid->U[j]-rect_grid->L[j]);
+                if (max_dist > 0)
+                    ignore_this = YES;
+            }
+            if (ignore_this == YES )
+                max_step--;
+        }
+	fprintf(file,"CELLS %d %d\n",max_step,3*max_step);
 	for (i = 0; i < step; i++)
 	{
+	    ignore_this = NO;
+	    for (j = 0; j < dim; j++)
+	    {
+		max_dist =  sqr(traj[j][i]-traj[j][i+1]);
+		max_dist -= 0.5*sqr(rect_grid->U[j]-rect_grid->L[j]);
+		if (max_dist > 0)
+		    ignore_this = YES;	
+	    }
+	    if (ignore_this == YES )
+		continue;
 	    fprintf(file,"2 %d %d\n",i,i+1);
 	}
-	fprintf(file,"CELL_TYPES %d\n",step);
-	for (i = 0; i < step; i++)
+	fprintf(file,"CELL_TYPES %d\n",max_step);
+	for (i = 0; i < max_step; i++)
         {
             fprintf(file,"3\n");
         }
@@ -1878,45 +1089,47 @@ extern void vtk_plot_sample_traj(Front* front)
 /*********************End Plot Function***********************************/
 
 /********************Statistics Functions*******************************/
-extern void Deviation(PARTICLE* particle_array,int num_drops,double &Rm,double &Dev)
+extern void Deviation(double* array,int size,double &Mean,double &Var)
 {
         int i,nzeros;
         nzeros = 0;
-        Rm = 0;
-        for (i = 0; i < num_drops; i++)
+        Mean = 0;
+        for (i = 0; i < size; i++)
         {
-            if(particle_array[i].radius != 0)
+            if(array[i] != 0)
             {
                 nzeros++;
-                Rm += particle_array[i].radius;
+                Mean += array[i];
             }
         }
 #if defined(__MPI__)
+	pp_gsync();
         pp_global_isum(&nzeros,1);
-        pp_global_sum(&Rm,1);
+        pp_global_sum(&Mean,1);
 #endif
-        Rm /= nzeros;
+        Mean /= nzeros;
 
-        Dev = 0;
-        for (i = 0; i < num_drops; i++)
+        Var = 0;
+        for (i = 0; i < size; i++)
         {
-            if(particle_array[i].radius != 0)
+            if(array[i] != 0)
             {
-                Dev += sqr(particle_array[i].radius-Rm);
+                Var += sqr(array[i]-Mean);
             }
         }
 #if defined(__MPI__)
-        pp_global_sum(&Dev,1);
+	pp_gsync();
+        pp_global_sum(&Var,1);
 #endif
-        Dev /= nzeros;
+        Var /= nzeros;
         return;
 }
 
 extern double* ComputePDF(
 	double *array, 
 	int size, 
-	double bin_size,
-	int &num_bins,
+	double &bin_size,
+	int num_bins,
 	double &var_min,
 	double &var_max)
 {
@@ -1930,7 +1143,6 @@ extern double* ComputePDF(
 	
 	if (debugging("trace"))
 	    printf("Entering computePDF\n");
-	pp_gsync();
 	for (i = 0; i < size; i++)
 	{
 	    if (array[i] < var_min)	    
@@ -1939,10 +1151,14 @@ extern double* ComputePDF(
 		var_max = array[i];
 	}
 
+#if defined(__MPI__)
+	pp_gsync();
 	pp_global_max(&var_max,1);	
 	pp_global_min(&var_min,1);	
 
-	num_bins = ceil((var_max - var_min)/bin_size);
+#endif
+	bin_size = (var_max - var_min)/num_bins;
+	//num_bins = ceil((var_max - var_min)/bin_size);
 	if (num_bins > max_bin_num)
 	{
 	    max_bin_num = num_bins;
@@ -1962,24 +1178,30 @@ extern double* ComputePDF(
 		PDF[j] = 0.0;
 
 	for (i = 0; i < size; i++)
-	for (j = 0; j < num_bins; j++)
 	{
-	    if (array[i] >= var_min+j*bin_size && array[i] < var_min+(j+1)*bin_size)
+	    if (array[i] == 0)
+		continue;
+	    for (j = 0; j < num_bins; j++)
 	    {
-		PDF[j] += 1.0;
-		break;
+	        if (array[i] >= var_min+j*bin_size &&
+		    array[i] < var_min+(j+1)*bin_size)
+	        {
+		    PDF[j] += 1.0;
+		    break;
+	        }
 	    }
 	}
-	
+#if defined(__MPI__)	
+	pp_gsync();
 	pp_global_sum(PDF,num_bins);
- 
+ #endif
 	total_num = 0;
 	/*normalize PDF*/
 	for (j = 0; j < num_bins; j++)
 	    total_num += PDF[j];
 
 	for (j = 0; j < num_bins; j++)
-	    PDF[j] = double(PDF[j])/double(total_num);
+	    PDF[j] = double(PDF[j])/(bin_size*double(total_num));
 	if (debugging("trace"))
 	    printf("Leaving computePDF\n");
 	return PDF;

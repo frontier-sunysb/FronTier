@@ -1,26 +1,3 @@
-/***************************************************************
-FronTier is a set of libraries that implements differnt types of 
-Front Traking algorithms. Front Tracking is a numerical method for 
-the solution of partial differential equations whose solutions have 
-discontinuities.  
-
-Copyright (C) 1999 by The University at Stony Brook. 
-
-This library is free software; you can redistribute it and/or
-modify it under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation; either
-version 2.1 of the License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public
-License along with this library; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-****************************************************************/
-
 /*******************************************************************
  * 		VCARTESIAN.c
  *******************************************************************/
@@ -194,6 +171,7 @@ void VCARTESIAN::setInitialCondition(void)
         HYPER_SURF *hs;
         HYPER_SURF_ELEMENT *hse;
 	STATE *sl,*sr;
+	PARAMS* eqn_params = (PARAMS*)front->extra2;
 	int c;
 	
 	short unsigned int seed[3] = {2,72,7172};
@@ -209,7 +187,7 @@ void VCARTESIAN::setInitialCondition(void)
         while (next_point(intfc,&p,&hse,&hs))
         {
 	    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-            sl->vapor = sr->vapor = 0;
+            sl->vapor = sr->vapor = eqn_params->qv0;
         }
 
 	// cell_center
@@ -220,21 +198,31 @@ void VCARTESIAN::setInitialCondition(void)
 	}
 	for (i = 0; i < cell_center.size(); i++)
 	{
+	    getRectangleCenter(i,coords);
 	    c = top_comp[i];
 	    if (c == LIQUID_COMP2)
-	    	field->vapor[i] = gauss_center_limit((POINTER)&gauss_params,seed);
-		//field->vapor[i] = 3.2;
+	    {
+		if (eqn_params->init_vapor_state == RAND_STATE)
+	    	    field->vapor[i] = gauss_center_limit(
+				      (POINTER)&gauss_params,seed);
+		else if (eqn_params->init_vapor_state == CONST_STATE)
+		    field->vapor[i] = eqn_params->qv0;
+		else
+		    getInitialState(&c,coords,field,i,dim,eqn_params);
+	    }
 	    else if (c == SOLID_COMP)
 	    	field->vapor[i] = 0;
 	    else
-	    	field->vapor[i] = 3.2;
+	    	field->vapor[i] = eqn_params->qv0;
 	}
+	FT_ParallelExchGridArrayBuffer(field->vapor,front,NULL);
 }	/* end setInitialCondition */
+
 
 void VCARTESIAN::setParallelVapor(void)
 {
         FILE *infile;
-        int i,j,k,l,index,G_index;
+        int i,j,id,k,l,index,G_index;
         char fname[100];
         COMPONENT comp;
         double coords[MAXD];
@@ -243,150 +231,95 @@ void VCARTESIAN::setParallelVapor(void)
         int numprocs = pp_numnodes();
 
         int G_icoords[MAXD],pp_icoords[MAXD],icoords[MAXD];
-	int local_gmax[MAXD], global_gmax[MAXD];
-        int G_size;
+        int local_gmax[MAXD], global_gmax[MAXD];
+        int G_size, L_size;
         PP_GRID *pp_grid = front->pp_grid;
         double *local_L = pp_grid->Zoom_grid.L;
         double *local_U = pp_grid->Zoom_grid.U;
-        double *V_buff;
-
+        double *GV_buff, *V_buff;
+	
         for (i = 0; i < dim; i++)
         {
             global_gmax[i] = pp_grid->Global_grid.gmax[i]-1;
             local_gmax[i] = pp_grid->Zoom_grid.gmax[i]-1;
         }
-
+        FT_MakeGridIntfc(front);
+        setDomain();
         G_size = 1;
+        L_size = 1;
         for (i = 0; i < dim; i++)
         {
             G_size = G_size * (global_gmax[i]+1);
-            pp_icoords[i] = floor(local_L[i]/(local_U[i]-local_L[i]));
+            L_size = L_size * (top_gmax[i]+1);
         }
-        uni_array(&V_buff,G_size,sizeof(double));
-
+        uni_array(&V_buff,L_size,sizeof(double));
         if (myid == 0)
         {
-            sprintf(fname,"./vapor3d");
-            infile = fopen(fname,"r");
-
-            for (i = 0; i < G_size; i++)
+            uni_array(&GV_buff,G_size,sizeof(double));
+	    /*setInitialVapor(front,LIQUID_COMP,GV_buff);*/
+	    /*Please set GV_buff before sending out*/
+            for (id = 0; id < numprocs; id++)
             {
-                fscanf(infile,"%lf",&V_buff[i]);
+                find_Cartesian_coordinates(id,pp_grid,pp_icoords);
+		switch (dim)
+		{
+		    case 2:
+                	for (j = jmin; j <= jmax; ++j)
+                	for (i = imin; i <= imax; ++i)
+                	{
+                    	    icoords[0] = i;
+                    	    icoords[1] = j;
+                    	    G_icoords[0] = pp_icoords[0]*(local_gmax[0]+1)+icoords[0]-imin;
+                    	    G_icoords[1] = pp_icoords[1]*(local_gmax[1]+1)+icoords[1]-jmin;
+                    	    G_index = d_index(G_icoords,global_gmax,dim);
+                    	    index = d_index(icoords,top_gmax,dim);
+                    	    V_buff[index] = GV_buff[G_index];
+                	}
+			break;
+		    case 3:
+			for (k = kmin; k <= kmax; ++k)
+                	for (j = jmin; j <= jmax; ++j)
+                	for (i = imin; i <= imax; ++i)
+                	{
+                    	    icoords[0] = i;
+                    	    icoords[1] = j;
+                    	    icoords[2] = k;
+                    	    G_icoords[0] = pp_icoords[0]*(local_gmax[0]+1)+icoords[0]-imin;
+                    	    G_icoords[1] = pp_icoords[1]*(local_gmax[1]+1)+icoords[1]-jmin;
+                    	    G_icoords[2] = pp_icoords[2]*(local_gmax[2]+1)+icoords[2]-kmin;
+                    	    G_index = d_index(G_icoords,global_gmax,dim);
+                    	    index = d_index(icoords,top_gmax,dim);
+                    	    V_buff[index] = GV_buff[G_index];
+                	}
+			break;
+            	    Default:
+                  	printf("Unknown dim = %d\n",dim);
+                	clean_up(ERROR);
+		}
+                if (id == 0)
+                {
+                    for (i = 0; i < L_size; i++)
+                        field->vapor[i] = V_buff[i];
+                }
+                else
+                {
+                    pp_send(1,(POINTER)(V_buff),sizeof(double)*L_size,id);
+                }
             }
-            fclose(infile);
-            for (i = 1; i < numprocs; i++)
-            {
-                pp_send(1,(POINTER)V_buff,sizeof(double)*G_size,i);
-            }
+            FT_FreeThese(1,GV_buff);
         }
         else
         {
-            pp_recv(1,0,(POINTER)V_buff,sizeof(double)*G_size);
+            pp_recv(1,0,(POINTER)(V_buff),sizeof(double)*L_size);
+            for (i = 0; i < L_size; i++)
+            {
+                field->vapor[i] = V_buff[i];
+            }
         }
-        FT_MakeGridIntfc(front);
-        setDomain();
 
-	switch(dim)
-	{
-	    case 2:
-        	for (j = jmin; j <= jmax; ++j)
-        	for (i = imin; i <= imax; ++i)
-        	{
-            	    icoords[0] = i;
-            	    icoords[1] = j;
-            	    G_icoords[0] = pp_icoords[0]*(local_gmax[0]+1)+icoords[0]-imin;
-            	    G_icoords[1] = pp_icoords[1]*(local_gmax[1]+1)+icoords[1]-jmin;
-            	    G_index = d_index(G_icoords,global_gmax,dim);
-            	    index = d_index(icoords,top_gmax,dim);
-            	    field->vapor[index] = V_buff[G_index];
-        	}
-		break;
-	    case 3:
-                for (k = kmin; k <= kmax; ++k)
-                for (j = jmin; j <= jmax; ++j)
-                for (i = imin; i <= imax; ++i)
-                {
-                    icoords[0] = i;
-                    icoords[1] = j;
-                    icoords[2] = k;
-                    G_icoords[0] = pp_icoords[0]*(local_gmax[0]+1)+icoords[0]-imin;
-                    G_icoords[1] = pp_icoords[1]*(local_gmax[1]+1)+icoords[1]-jmin;
-                    G_icoords[2] = pp_icoords[2]*(local_gmax[2]+1)+icoords[2]-kmin;
-                    G_index = d_index(G_icoords,global_gmax,dim);
-                    index = d_index(icoords,top_gmax,dim);
-                    field->vapor[index] = V_buff[G_index];
-                }
-                break;
-	    Default:
-		printf("Unknown dim = %d\n",dim);
-		clean_up(ERROR);
-	}
         FT_FreeThese(1,V_buff);
+        setAdvectionDt();
 }
-
-void VCARTESIAN::setInitialVapor(void)
-{
-	int i,j,k,index;
-	double coords[MAXD];
-	INTERFACE *intfc = front->interf;
-	POINT *p;
-        HYPER_SURF *hs;
-        HYPER_SURF_ELEMENT *hse;
-	STATE *sl,*sr;
-	int c;
-	char fname[100];
-	FILE *infile;
-	
-	short unsigned int seed[3] = {2,72,7172};
-        GAUSS_PARAMS gauss_params;
-        gauss_params.mu = 3.2;
-        gauss_params.sigma = 0.2;
-
-	FT_MakeGridIntfc(front);
-        setDomain();
-
-	/* Initialize states at the interface */
-        next_point(intfc,NULL,NULL,NULL);
-        while (next_point(intfc,&p,&hse,&hs))
-        {
-	    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-            sl->vapor = sr->vapor = 0;
-        }
-
-	// cell_center
-	for (i = 0; i < cell_center.size(); i++)
-	{
-	    field->vapor[i] = 0;
-	    field->supersat[i] = 0;
-	}
-	switch(dim)
-	{
-	    case 2: 
-        	sprintf(fname,"./vapor2d");
-        	infile = fopen(fname,"r");
-        	for (j = jmin; j <= jmax; ++j)
-        	for (i = imin; i <= imax; ++i)
-        	{
-            	    index = d_index2d(i,j,top_gmax);
-            	    fscanf(infile,"%lf",&field->vapor[index]);
-        	}
-		break;
-	    case 3: 
-		sprintf(fname,"./vapor3d");
-                infile = fopen(fname,"r");
-		for (k = kmin; k <= kmax; ++k)
-                for (j = jmin; j <= jmax; ++j)
-                for (i = imin; i <= imax; ++i)
-                {
-                    index = d_index3d(i,j,k,top_gmax);
-                    fscanf(infile,"%lf",&field->vapor[index]);
-                }
-                break;
-	    default:
-		printf("Unknown dim = %d\n",dim);
-		clean_up(ERROR);
-	}
-}	/* end setInitialVapor */
 
 void VCARTESIAN::setIndexMap(COMPONENT sub_comp)
 {
@@ -509,7 +442,6 @@ void VCARTESIAN::computeAdvection()
 	        else if (eqn_params->num_scheme == CRANK_NICOLSON)
 	    	    computeAdvectionCN(sub_comp[i]);
 	}
-	printf("End solving advection\n\n");
 }
 
 void VCARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
@@ -805,79 +737,7 @@ void VCARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 
 void VCARTESIAN::computeAdvectionCim()
 {
-	//static CIM_PARAB_SOLVER parab_solver(*front);
-	static CIM_PARAB_SOLVER parab_solver(*front);
-	int i,j,k,index;
-
-	printf("Entering computeAdvectionCim()\n");
-	printf("m_dt = %f  min_dt = %f\n",m_dt,min_dt);
-	/*
-	if (m_dt < min_dt)
-	    return computeAdvectionExplicit(sub_comp);
-	*/
-
-	if (debugging("trace")) printf("Entering computeAdvectionCim()\n");
-	start_clock("computeAdvectionCim");
-	setGlobalIndex(NO_COMP);
-	setIndexMap(NO_COMP);
-
-	switch(dim)
-        {
-        case 1:
-            parab_solver.i_to_I = i_to_I;
-            parab_solver.I_to_i = I_to_i;
-	    for (i = imin; i <= imax; ++i)
-	    {
-		index = d_index1d(i,top_gmax);
-		source[index] = -field->vapor[index]/m_dt;
-	    }
-            break;
-        case 2:
-            parab_solver.ij_to_I = ij_to_I;
-            parab_solver.I_to_ij = I_to_ij;
-	    for (j = jmin; j <= jmax; ++j)
-	    for (i = imin; i <= imax; ++i)
-	    {
-		index = d_index2d(i,j,top_gmax);
-		source[index] = -field->vapor[index]/m_dt;
-	    }
-            break;
-        case 3:
-            parab_solver.ijk_to_I = ijk_to_I;
-            parab_solver.I_to_ijk = I_to_ijk;
-	    for (k = kmin; k <= kmax; ++k)
-	    for (j = jmin; j <= jmax; ++j)
-	    for (i = imin; i <= imax; ++i)
-	    {
-		index = d_index3d(i,j,k,top_gmax);
-		source[index] = -field->vapor[index]/m_dt;
-	    }
-            break;
-        }
-	printf("Assigning class variables\n");
-	parab_solver.w_type = ICE_PARTICLE_BOUNDARY;
-	parab_solver.neg_comp = SOLID_COMP;
-        parab_solver.pos_comp = LIQUID_COMP2;
-        parab_solver.source = source;
-	parab_solver.solutionJump = jumpT;
-	parab_solver.gradJumpDotN = jumpEpsGradDotNorm;
-        parab_solver.gradJumpDotT = jumpGradDotTan;
-        parab_solver.diff_coeff[0] = eqn_params->D;
-        parab_solver.diff_coeff[1] = eqn_params->D;
-	parab_solver.jparams = (POINTER)eqn_params;
-	parab_solver.findStateAtCrossing = find_state_at_crossing;
-	parab_solver.getStateVar = getStateVapor;
-        parab_solver.assignStateVar = assignStateTemperature;
-	parab_solver.ilower = ilower;
-        parab_solver.iupper = iupper;
-        parab_solver.soln = field->vapor;
-        parab_solver.size = iupper - ilower;
-	parab_solver.solve_front_state = YES;
-        parab_solver.set_solver_domain();
-        parab_solver.solve(field->vapor);
-
-	stop_clock("computeAdvectionCim");
-	if (debugging("trace")) printf("Leaving computeAdvectionCim()\n");
+	printf("computeAdvectionCim() to be implemented\n");
 	clean_up(0);
 	return;
 }	/* end computeAdvectionImplicit */
@@ -973,8 +833,6 @@ void VCARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
 // 		computeSourceTerm();
 void VCARTESIAN::solve(double dt)
 {
-	printf("solving adv-diff equation\n");
-
 	if (debugging("trace")) printf("Entering solve()\n");
 	m_dt = dt;
 	start_clock("solve");
@@ -1009,11 +867,46 @@ void VCARTESIAN::solve(double dt)
 
 void VCARTESIAN::computeSupersat()
 {	
-	int i,j,k, index;
+	int i,j,k,size,index;
 	double *temp  = eqn_params->field->temperature;
 	double *vapor  = eqn_params->field->vapor;
 	double sat_vap_pre, sat_vap_rat;
 	double *super = eqn_params->field->supersat;
+
+	/*compute coeffecient for condensation*/
+        double Lh, Rv, Rd, rhoL, Kc, es, D, Cp, ksi;
+        double T,p;
+        double A;
+	/*see instructions in climate.h*/
+        Lh = eqn_params->Lh;
+        Rv = eqn_params->Rv;
+        Rd = eqn_params->Rd;
+        rhoL = eqn_params->rho_l;
+        Kc = eqn_params->Kc;
+        D = eqn_params->D;
+        ksi = Rd/Rv;
+
+        T = 0;
+        p = 0;
+	for (index = 0; index < comp_size; index++)
+        {
+            T += field->temperature[index];
+            p += field->pres[index];
+        }
+	size = comp_size;
+#if defined(__MPI)
+	pp_gsync();
+        pp_global_sum(&T,1);
+        pp_global_sum(&p,1);
+        pp_global_isum(&size,1);
+#endif
+        T /= size;
+        p /= size;
+
+        es = 611.2*exp(17.67*(T-273.15)/(T-29.65));
+        eqn_params->K = 1/((Lh/(Rv*T)-1)*Lh*rhoL/(Kc*T)+rhoL*Rv*T/(D*es));
+	printf("Condensation coeffecient = %e\n",eqn_params->K);
+
 	switch(dim)
 	{
 	    case 2:
@@ -1050,7 +943,8 @@ void VCARTESIAN::computeSupersat()
                         super[index] = vapor[index]/sat_vap_rat - 1;
 		    if(eqn_params->field->pres[index] == 0)
 			super[index] = 0;
-                } 
+                }
+		printf("sat_vap_rat = %f\n",sat_vap_rat); 
 		break;
 	}
 }
@@ -1838,6 +1732,41 @@ void VCARTESIAN::vtk_plot3d(
         fclose(outfile);
 }       /* end vtk_plot_vapor3d */
 
+void VCARTESIAN::recordClusteringIndex()
+{
+	double Mean, Var, CL, sigma, CSL;
+	static boolean first = YES;
+	FILE *file;
+	char fname[100];
+	char *out_name = front->out_name;
+	double *array = field->drops;
+	int size = comp_size;
+	sprintf(fname,"%s/cluster",out_name);
+	if (first)
+	{
+	    if(pp_mynode() == 0)
+	    {
+	        file = fopen(fname,"w");
+	        fprintf(file,"%%Clustering Index\n");
+	        fprintf(file,"%%CL	sigma	CSL = CL/sigma\n");
+	        fclose(file);
+	    }
+	    first = NO;
+	}
+	Deviation(array,size,Mean,Var);
+	CL = Var/Mean - 1.0;
+	printf("Mean = %f Variance = %f CL = %f\n",Mean,Var,CL);
+	sigma = sqrt(2.0/(size));
+	CSL = CL/sigma;
+	if(pp_mynode() == 0)
+	{
+	    file = fopen(fname,"a");
+	    fprintf(file,"%f    %e    %f\n",CL,sigma,CSL);
+	    fclose(file);
+	}
+	return;
+}
+
 double VCARTESIAN::computeReactTimeScale(double R0, double S0, int N)
 {
 	PARAMS *eqn_params = (PARAMS*)front->extra2;
@@ -1848,13 +1777,13 @@ double VCARTESIAN::computeReactTimeScale(double R0, double S0, int N)
 	double Lh, Rv, Rd, rhoL, K, es, D, Cp, ksi;
 	double T, p;  
 	double A, B;
-	Lh = 2500000.0;
-	Rv = 461.5;
-	Rd = 287.0;
-	rhoL = 1000.0;
-	K = 0.0238;
-	D = 0.0000216;
-	Cp = 1005.0;
+	Lh = eqn_params->Lh;
+	Rv = eqn_params->Rv;
+	Rd = eqn_params->Rd;
+	rhoL = eqn_params->rho_l;
+	K = eqn_params->Kc;
+	D = eqn_params->D;
+	Cp = eqn_params->Cp;
 	ksi = Rd/Rv;
 
 	T = 0;
@@ -1870,9 +1799,10 @@ double VCARTESIAN::computeReactTimeScale(double R0, double S0, int N)
 	    p += field->pres[index];
 	}
 #if defined(__MPI)
-	pp_golbal_sum(T,1);
-	pp_global_sum(p,1);
-	pp_global_isum(size,1);
+	pp_gsync();
+	pp_global_sum(&T,1);
+	pp_global_sum(&p,1);
+	pp_global_isum(&size,1);
 #endif
 	T /= size;
 	p /= size;
@@ -1926,8 +1856,18 @@ void VCARTESIAN::recordMixingLine()
 		 - front->pp_grid->Global_grid.L[0];
 	double ReduceBuff[8];
 
+	static int max_array_size = 0;
+	static double* radius_array;
+
 	if (debugging("trace"))
 	    printf("Entering record mixing line\n");
+        if (eqn_params->num_drops > max_array_size)
+        {
+            max_array_size = eqn_params->num_drops;
+            free_these(1,radius_array);
+            FT_VectorMemoryAlloc((POINTER*)&radius_array,max_array_size,FLOAT);
+        }
+
 	if (3 != dim)
 	    return;
 	double a3 = 1.0;
@@ -1947,7 +1887,7 @@ void VCARTESIAN::recordMixingLine()
         {
 	    size++;
             ic = d_index3d(i,j,k,top_gmax);
-	    if (field->drops[ic] == 0)
+	    if (field->supersat[ic] < 0)
 	    {
    	        avg_supersat += field->supersat[ic];
 		count ++;
@@ -1977,7 +1917,7 @@ void VCARTESIAN::recordMixingLine()
 		Sij[l][m]  = 0.5*(vel[l][I_nb[m][1]]-vel[l][I_nb[m][0]])/top_h[m];
 		Sij[l][m] += 0.5*(vel[m][I_nb[l][1]]-vel[m][I_nb[l][0]])/top_h[l];
 	    }
-	    /*compute dissipation rate using: 2*mu*Sij^2*/ 
+	    /*compute dissipation rate using: 0.5*mu*Sij^2*/ 
             for(l = 0; l < dim; ++l)
             for(m = 0; m < dim; ++m)
 	    {
@@ -1991,6 +1931,7 @@ void VCARTESIAN::recordMixingLine()
 	nzeros = 0;
 	for (i = 0; i < eqn_params->num_drops; i++)
 	{   
+	    radius_array[i] = particle_array[i].radius;
 	    if (particle_array[i].radius != 0)
 		nzeros ++;
 	    rv += pow(particle_array[i].radius,3.0);
@@ -2006,8 +1947,8 @@ void VCARTESIAN::recordMixingLine()
 	ReduceBuff[5] = avg_supersat;
 	ReduceBuff[6] = size;
 	ReduceBuff[7] = count;
-	pp_global_sum(ReduceBuff,8);
 	pp_gsync();
+	pp_global_sum(ReduceBuff,8);
 	rv = ReduceBuff[0];
 	r0 = ReduceBuff[1];
 	nzeros    = (int)ReduceBuff[2];
@@ -2023,9 +1964,10 @@ void VCARTESIAN::recordMixingLine()
 	avg_supersat /= count;
 	/*compute t_mix*/
 	t_mix = pow(L*L/DspRat,1.0/3.0);
+	printf("avg_supersat = %f, count = %d\n",avg_supersat,count);
 
 	/*compute mean value and deviation of radius distribution*/
-	Deviation(particle_array,eqn_params->num_drops,rm,Dev);
+	Deviation(radius_array,eqn_params->num_drops,rm,Dev);
 	if (avg_supersat < 0)
 	{
 	    t_evap  = sqr(rm)/(-eqn_params->K*avg_supersat);
@@ -2034,7 +1976,7 @@ void VCARTESIAN::recordMixingLine()
 	else
 	{
 	    t_evap = HUGE;
-	    t_react = HUGE;
+	    t_react = 0;
 	}
 	if (myid != 0) /*Post analysis is only done by the master processor*/
 	    return; /*return if processor id is slaver processor*/
@@ -2058,7 +2000,7 @@ void VCARTESIAN::recordMixingLine()
 
             sprintf(fname,"%s/transition",out_name);
             file = fopen(fname,"w");
-            fprintf(file,"%%epsilon    eta    t_react    NL\n");
+            fprintf(file,"%%time    epsilon    eta    t_react    NL\n");
             fclose(file);
 	    first = NO;
 	    return;
@@ -2078,8 +2020,8 @@ void VCARTESIAN::recordMixingLine()
         file = fopen(fname,"a");
 	eta = pow(pow(mu,3.0)/DspRat,0.25);
 	NL = pow(DspRat,0.5)*pow(t_react,1.5)/eta;
-	fprintf(file,"%15.14f  %15.14f  %15.14f  %15.14f\n",
-		DspRat,eta,t_react,NL);
+	fprintf(file,"%f  %15.14f  %15.14f  %15.14f  %15.14f\n",
+		front->time,DspRat,eta,t_react,NL);
 	fclose(file);
 	if (debugging("trace"))
 	    printf("Leaving record mixing line\n");
@@ -2551,6 +2493,24 @@ void VCARTESIAN::checkField()
                 }
         }
 	
+	count = 0;
+        for(j = 0; j < comp_size; j++)
+        {
+		if(field->drops[j] != prev)
+                {
+		    printf("%s[%d] = %20.14f\n",
+                        "drops",j,
+                        field->drops[j]);
+		    prev = field->drops[j];
+		    count++;
+		}
+		if(count > 20)
+                {
+                    printf("......\n");
+                    break;
+                }
+        }
+
 	int s_count = 0, l_count = 0, o_count = 0;
 	if (dim == 2)
 	{
@@ -2624,18 +2584,114 @@ void VCARTESIAN::checkField()
 	}
 }
 
+
 void VCARTESIAN::recordField(char *outname, const char *varname)
+{
+	int i, j, k, index;
+	FILE* outfile;
+	char filename[256];
+	double **vel = field->vel;
+	
+        sprintf(filename, "%s/record-%s",outname,varname);
+        if (!create_directory(filename,NO))
+        {
+            printf("Cannot create directory %s\n",filename);
+            clean_up(ERROR);
+        }
+	pp_gsync();
+
+	if (pp_numnodes() > 1)
+	{
+	    sprintf(filename, "%s/record-%s-nd%03d",filename,varname,pp_mynode());
+	    create_directory(filename,YES);
+	}
+        sprintf(filename,"%s/%s-%4.2f",filename,varname,front->time);
+        outfile = fopen(filename,"w");
+        switch (dim)
+        {
+            case 2:
+                for (j = jmin; j <= jmax; j++)
+                for (i = imin; i <= imax; i++)
+                {
+                    index = d_index2d(i,j,top_gmax);
+		    if(strcmp(varname,"vapor") == 0)
+                        fprintf(outfile,"%f\n",field->vapor[index]);
+		    else if(strcmp(varname,"supersat") == 0)
+			fprintf(outfile,"%f\n",field->supersat[index]);
+		    else if(strcmp(varname,"temperature") == 0)
+			fprintf(outfile,"%f\n",field->temperature[index]);
+		    else if(strcmp(varname,"mrad") == 0)
+			fprintf(outfile,"%15.14f\n",field->mrad[index]);
+		    else if(strcmp(varname,"velocity") == 0)
+			fprintf(outfile,"%f  %f\n",vel[0][index],vel[1][index]);
+		    else
+			printf("WARNING: Unknown field: %s\n",varname);
+			
+                }
+                break;
+
+                case 3:
+                for (k = kmin; k <= kmax; k++)
+                for (j = jmin; j <= jmax; j++)
+                for (i = imin; i <= imax; i++)
+                {
+		    index = d_index3d(i,j,k,top_gmax);
+                    if(strcmp(varname,"vapor") == 0)
+                        fprintf(outfile,"%f\n",field->vapor[index]);
+                    else if(strcmp(varname,"supersat") == 0)
+                        fprintf(outfile,"%f\n",field->supersat[index]);
+                    else if(strcmp(varname,"temperature") == 0)
+                        fprintf(outfile,"%f\n",field->temperature[index]);
+                    else if(strcmp(varname,"mrad") == 0)
+                        fprintf(outfile,"%15.14f\n",field->mrad[index]);
+                    else if(strcmp(varname,"velocity") == 0)
+                        fprintf(outfile,"%f  %f  %f\n",
+                            vel[0][index],vel[1][index],vel[2][index]);
+                    else
+                        printf("WARNING: Unknown field: %s\n",varname);
+                }
+                break;
+        }
+	fclose(outfile);
+	return;
+}
+
+void VCARTESIAN::recordPDF(char *outname, const char *varname)
 {
 	int i,j,k,index;
 	FILE *outfile;
+	FILE *superfile;
+	char supername[256];
 	char filename[256];
 	double *PDF;
 	double bin_size,mid_bin;
 	double var_min,var_max;
-	int num_bins;
+	double mean_super,var_super;
+	double **vel = field->vel;
+	int num_bins = 100;
+
+	if(strcmp(varname,"all") == 0)
+	{
+	    recordPDF(outname,"vapor");
+	    recordPDF(outname,"supersat");
+	    recordPDF(outname,"temperature");
+	    recordPDF(outname,"velocity");
+	    recordPDF(outname,"numdensity");
+	    recordPDF(outname,"cloud");
+	    return;
+	}
+
+	if (strcmp(varname,"velocity") == 0)
+	{
+	    recordPDF(outname,"xvel");
+	    recordPDF(outname,"yvel");
+	    if (dim == 3)
+		recordPDF(outname,"zvel");	
+	    return;
+	}
 	if (pp_mynode() == 0)
 	{
-            sprintf(filename, "%s/record-%s",outname,varname);
+            sprintf(filename, "%s/PDF-%s",outname,varname);
 
             if (!create_directory(filename,NO))
             {
@@ -2647,51 +2703,44 @@ void VCARTESIAN::recordField(char *outname, const char *varname)
 	}
         if(strcmp(varname,"temperature") == 0)
 	{
-	    bin_size = 1e-7;
 	    PDF = ComputePDF(field->temperature,comp_size,bin_size,num_bins,var_min,var_max);
 	}
         else if(strcmp(varname,"vapor") == 0)
 	{
-	    bin_size = 0.005;
 	    PDF = ComputePDF(field->vapor,comp_size,bin_size,num_bins,var_min,var_max);
 	}
         else if(strcmp(varname,"supersat") == 0)
 	{
-	    bin_size = 0.001;
 	    PDF = ComputePDF(field->supersat,comp_size,bin_size,num_bins,var_min,var_max);
-	}
-        else if(strcmp(varname,"velocity") == 0)
-	{
-	    switch(dim)
-	    {
-		case 2:
-            	    for (j = jmin; j <= jmax; j++)
-           	    for (i = imin; i <= imax; i++)
-		    {
-			index = d_index2d(i,j,top_gmax);
-			if (pp_mynode() == 0)
-			    fprintf(outfile,"%f  %f\n",
-			    field->vel[0][index],field->vel[1][index]);
-		    }	
-		    break;
-		case 3:
-          	    for (k = kmin; k <= kmax; k++)
-               	    for (j = jmin; j <= jmax; j++)
-              	    for (i = imin; i <= imax; i++) 
-		    {
-			index = d_index3d(i,j,k,top_gmax);
-			if (pp_mynode() == 0)
-                            fprintf(outfile,"%f  %f  %f\n",
-			    field->vel[0][index],field->vel[1][index],field->vel[2][index]);
-		    }
-		    break;
-		default:
-		    printf("Unknown dim = %d\n",dim);
-		    clean_up(ERROR);
-	    }
+	    Deviation(field->supersat,comp_size,mean_super,var_super);
 	    if (pp_mynode() == 0)
-               fclose(outfile);
-	    return;
+	    {
+	        sprintf(supername, "%s/supersat",outname);
+	        superfile = fopen(supername,"a");
+		fprintf(superfile,"%f  %15.14f  %15.14f\n",front->time,mean_super,var_super);
+		fclose(superfile);
+	    }
+	}
+	else if (strcmp(varname,"numdensity") == 0)
+	{
+	    recordClusteringIndex();
+	    PDF = ComputePDF(field->drops,comp_size,bin_size,num_bins,var_min,var_max);
+	}
+	 else if(strcmp(varname,"cloud") == 0)
+	{
+	    PDF = ComputePDF(field->cloud,comp_size,bin_size,num_bins,var_min,var_max);
+	}
+        else if(strcmp(varname,"xvel") == 0)
+	{
+	    PDF = ComputePDF(field->vel[0],comp_size,bin_size,num_bins,var_min,var_max);
+	}
+        else if(strcmp(varname,"yvel") == 0)
+	{
+	    PDF = ComputePDF(field->vel[1],comp_size,bin_size,num_bins,var_min,var_max);
+	}
+        else if(strcmp(varname,"zvel") == 0)
+	{
+	    PDF = ComputePDF(field->vel[2],comp_size,bin_size,num_bins,var_min,var_max);
 	}
 	else
 	{
@@ -2856,9 +2905,8 @@ void VCARTESIAN::recordWaterBalance()
 	ReduceBuff[4] = num_drops;
 	ReduceBuff[5] = liquid_mass;
 	ReduceBuff[6] = liquid_mass0;
-	pp_global_sum(ReduceBuff,7);
-	printf("sync in water balance\n");
 	pp_gsync();
+	pp_global_sum(ReduceBuff,7);
 	for (i = 0; i < 3; i++)
 	    water_balance[i+1] = ReduceBuff[i];
 	nzeros = (int)ReduceBuff[3];
@@ -2867,6 +2915,11 @@ void VCARTESIAN::recordWaterBalance()
 	liquid_mass0 = ReduceBuff[6];
 #endif 
 
+	if (!eqn_params->no_droplets && nzeros == 0)
+	{
+	     printf("No droplets included\n");
+	     front->time_limit_reached = YES;
+	}
 	if(liquid_mass != liquid_mass0)
 	{
 	    alpha = (log(double(nzeros)/double(num_drops)))
@@ -2884,30 +2937,6 @@ void VCARTESIAN::recordWaterBalance()
 	    fprintf(file,"%20.19f\n",alpha);	
 	    fclose(file);
 	}
-}
-
-void VCARTESIAN::recordSampleRadius()
-{
-	int i,j;
-        char fname[256];
-        FILE *file;
-	static boolean first = YES;
-
-	if (pp_mynode() != 0)
-	    return;
-        sprintf(fname,"%s/sample_radius.m",front->out_name);
-        file = fopen(fname,"a");
-	if (first)
-	{
-            fprintf(file,"%%sample_radius vs. time\n");
-            fprintf(file,"%%time radius\n");
-	    first = NO;
-	}
-	PARAMS* eqn_params = (PARAMS*)front->extra2;
-	PARTICLE* particle_array = eqn_params->particle_array;
-        fprintf(file,"%f  %20.19f\n",front->time,
-                         particle_array[0].radius);
-	fclose(file);
 }
 
 void VCARTESIAN::setDomain()
@@ -2935,6 +2964,9 @@ void VCARTESIAN::setDomain()
 	for (i = 1; i < dim; ++i)
 	    if (hmin > top_h[i]) hmin = top_h[i];
 
+	if (field == NULL)
+	    FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(PHASE_FIELD));
+
 	switch (dim)
 	{
 	case 1:
@@ -2946,6 +2978,8 @@ void VCARTESIAN::setDomain()
                 FT_VectorMemoryAlloc((POINTER*)&field->vapor,comp_size,
 			FLOAT);
 		FT_VectorMemoryAlloc((POINTER*)&field->supersat,comp_size,
+			FLOAT);
+		FT_VectorMemoryAlloc((POINTER*)&field->mrad,comp_size,
 			FLOAT);
                 first = NO;
             }	
@@ -2961,10 +2995,16 @@ void VCARTESIAN::setDomain()
                 FT_VectorMemoryAlloc((POINTER*)&source,comp_size,FLOAT);
 	    	FT_VectorMemoryAlloc((POINTER*)&field->vapor,
 			comp_size,FLOAT);
+	    	FT_VectorMemoryAlloc((POINTER*)&field->cloud,
+			comp_size,FLOAT);
                 FT_VectorMemoryAlloc((POINTER*)&field->supersat,comp_size,
+                        FLOAT);
+                FT_VectorMemoryAlloc((POINTER*)&field->mrad,comp_size,
                         FLOAT);
                 FT_VectorMemoryAlloc((POINTER*)&field->drops,comp_size,
                         FLOAT);
+                FT_MatrixMemoryAlloc((POINTER*)&field->ext_accel,2,comp_size,
+                                        FLOAT);
 	    	first = NO;
 	    }
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
@@ -2981,10 +3021,16 @@ void VCARTESIAN::setDomain()
                 FT_VectorMemoryAlloc((POINTER*)&source,comp_size,FLOAT);
 	    	FT_VectorMemoryAlloc((POINTER*)&field->vapor,
 			comp_size,FLOAT);
+	    	FT_VectorMemoryAlloc((POINTER*)&field->cloud,
+			comp_size,FLOAT);
                 FT_VectorMemoryAlloc((POINTER*)&field->supersat,comp_size,
+                        FLOAT);
+                FT_VectorMemoryAlloc((POINTER*)&field->mrad,comp_size,
                         FLOAT);
                 FT_VectorMemoryAlloc((POINTER*)&field->drops,comp_size,
                         FLOAT);
+                FT_MatrixMemoryAlloc((POINTER*)&field->ext_accel,3,comp_size,
+                                        FLOAT);
 	    	first = NO;
 	    }
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
@@ -3000,6 +3046,7 @@ void VCARTESIAN::setDomain()
 
 void VCARTESIAN::initMovieVariables()
 {
+	PARAMS *params = (PARAMS*)front->extra2;
 	if (dim == 2)
 	{	
  	    FT_AddHdfMovieVariable(front,NO,YES,SOLID_COMP,
@@ -3008,6 +3055,20 @@ void VCARTESIAN::initMovieVariables()
 	    FT_AddHdfMovieVariable(front,NO,YES,SOLID_COMP,
                                 "supersat",0,field->supersat,
 				getStateSuper,0,0);
+	    FT_AddHdfMovieVariable(front,NO,YES,SOLID_COMP,
+                                "cloud",0,field->cloud,
+				getStateSuper,0,0);
+            if (params->movie_option->plot_particles == YES)
+                FT_AddVtkScalarMovieVariable(front,"Cloud",field->cloud);
+
+	}
+	else
+	{
+	    /* Added for vtk movie of scalar field */
+            if (params->movie_option->plot_vapor == YES)
+            	FT_AddVtkScalarMovieVariable(front,"Vapor",field->vapor);
+            if (params->movie_option->plot_particles == YES)
+                FT_AddVtkScalarMovieVariable(front,"Cloud",field->cloud);
 	}
         if (debugging("trace"))
             printf("Leaving initMovieVariables()\n");
@@ -3077,7 +3138,7 @@ void VCARTESIAN::recordRadius(char *out_name)
 	}
 	for (i = 0; i < eqn_params->num_drops; i++)
 	    radius_array[i] = eqn_params->particle_array[i].radius;
-	bin_size = 1e-8;
+	bin_num = 100;
 	PDF = ComputePDF(radius_array,eqn_params->num_drops,bin_size,bin_num,min_radius,max_radius);
 	printf("max_radius = %e, min_radius = %e, %d drops contained, %d bins used\n",
 		max_radius, min_radius, eqn_params->num_drops,bin_num);
@@ -3094,23 +3155,289 @@ void VCARTESIAN::recordRadius(char *out_name)
 	    printf("Leaving record radius\n");
 }
 
+void VCARTESIAN::recordSampleParticles()
+{
+	int i, j, index;
+	int ic[MAXD];
+	PARAMS* eqn_params = (PARAMS*)front->extra2;
+        PARTICLE* particle_array = eqn_params->particle_array;
+	double *coords, Supersat, W, Radius;
+	static boolean first = YES;
+	FILE *file;
+	char fname[100];
+
+	/*For random choice samples*/
+	UNIFORM_PARAMS uniform_params;
+	unsigned short int xsubi[3];
+	int SampleNum = 2000, num_drops = eqn_params->num_drops;
+	static int *SampleIndex;
+	double x;
+
+	if (pp_numnodes() > 1)
+	    return;
+	
+	uniform_params.a = 0.0;
+	uniform_params.b = num_drops;
+	xsubi[0] = 10;
+	xsubi[1] = 100;
+	xsubi[2] = 1000;
+	if (first)
+	{
+	    first = NO;
+	    FT_VectorMemoryAlloc((POINTER*)&SampleIndex,SampleNum,sizeof(int));
+	    for (i = 0; i < SampleNum; i++)
+	        SampleIndex[i] = 0;
+	    if (pp_mynode() == 0)
+	    for (i = 0; i < SampleNum; i++)
+	    {
+		x = dist_uniform((POINTER)&uniform_params,xsubi);
+		SampleIndex[i] = round(x);
+	    }
+	    pp_global_imax(SampleIndex,pp_numnodes());
+	}
+	if (debugging("trace"))
+            printf("Entering record sample radius\n");
+	
+	if (pp_mynode() == 0)
+        {
+            sprintf(fname,"%s/record-sample",OutName(front));
+            if (!create_directory(fname,NO))
+            {
+                printf("Cannot create directory %s\n",fname);
+                clean_up(ERROR);
+            }
+            sprintf(fname,"%s/particle-%f",fname,front->time);
+        }
+        file = fopen(fname,"w");
+	for (j = 0; j < SampleNum; j++)
+        {
+	    i = SampleIndex[j];
+            coords = particle_array[i].center;
+            rect_in_which(coords,ic,top_grid);
+            index = d_index(ic,top_gmax,dim);
+	    W = field->vel[dim-1][index];
+	    Supersat = field->supersat[index];
+	    Radius = particle_array[i].radius;
+	    fprintf(file,"%d  %f  %15.14f  %f  %f\n",
+		    particle_array[i].Gindex,front->time,Radius,Supersat,W);
+	}
+	fclose(file);
+}
+
+void VCARTESIAN::initPresetParticles()
+{
+	int i,j,k,l,id;
+	int index,count,G_count,num_drops;
+	GAUSS_PARAMS gauss_params;
+	UNIFORM_PARAMS uniform_params;
+	double r_bar, sigma, x;
+	unsigned short int xsubi[3];
+	double cL[MAXD]; /*bound of a grid cell*/
+	char msg[200];
+	char *inname = InName(front);
+	FILE *infile = fopen(inname,"r");
+	double *supersat = field->supersat;
+	PARAMS *eqn_params  = (PARAMS*)front->extra2;
+	PARTICLE* particle_array = eqn_params->particle_array;
+	if (particle_array != NULL)
+	    FT_FreeThese(1,particle_array);
+
+	CursorAfterString(infile,"Enter number of water drops:");
+        fscanf(infile,"%d",&num_drops);
+        (void) printf("%d\n",num_drops);
+        eqn_params->num_drops = num_drops;
+
+        sprintf(msg,"Enter mean radius of water drop:");
+        CursorAfterString(infile,msg);
+        fscanf(infile,"%lf",&r_bar);
+        (void) printf("%f\n",r_bar);
+        sprintf(msg,"Enter standard deviation of radius:");
+        CursorAfterString(infile,msg);
+        fscanf(infile,"%lf",&sigma);
+        (void) printf("%f\n",sigma);	
+	fclose(infile);
+       	xsubi[0] = 10;
+       	xsubi[1] = 100;
+       	xsubi[2] = 1000;
+
+       	gauss_params.mu = r_bar;
+       	gauss_params.sigma = sigma;
+       	uniform_params.a = 0.0;
+       	uniform_params.b = 1.0;
+
+	for (i = 0; i < comp_size; i++)
+		field->drops[i] = 0;
+	count = 0;
+	switch (dim)
+	{
+	    case 2:
+            	for (j = jmin; j <= jmax; j++)
+		for (i = imin; i <= imax; i++)
+		{
+		    index = d_index2d(i,j,top_gmax); 
+		    if(supersat[index] >= 0)
+			count ++;	
+		}
+		G_count = count;
+
+#if defined(__MPI__)
+		pp_gsync();
+		pp_global_isum(&G_count,1);
+#endif
+		printf("Cloud number = %d\n",G_count);
+		if (G_count != 0)
+		    num_drops = eqn_params->num_drops/G_count;/*num_drops in a cell*/
+		else
+		{
+		    printf("No droplets in the domain!\n");
+		    clean_up(ERROR);
+		}
+		eqn_params->num_drops = num_drops*count;
+		FT_VectorMemoryAlloc((POINTER*)&particle_array,
+                                      eqn_params->num_drops,sizeof(PARTICLE));
+		count = 0;
+                for (j = jmin; j <= jmax; j++)
+                for (i = imin; i <= imax; i++)
+                {
+                    index = d_index2d(i,j,top_gmax);
+                    if (supersat[index] < 0)
+                        continue;
+                    cL[0] = top_L[0] + i*top_h[0];
+                    cL[1] = top_L[1] + j*top_h[1];
+		    for (l = 0; l < num_drops; l++)
+		    {
+			for (id = 0; id < dim; ++id)
+			{
+			    x = dist_uniform((POINTER)&uniform_params,xsubi);
+			    particle_array[l+count].center[id] = cL[id]+x*top_h[id];
+			    particle_array[l+count].vel[id] = 0.0;
+			}
+			particle_array[l+count].radius = gauss_center_limit((POINTER)&gauss_params,xsubi);
+			particle_array[l+count].R0 = particle_array[l].radius;
+			particle_array[l+count].flag = YES;
+			particle_array[l+count].rho = eqn_params->rho_l;
+		    }
+		    count += num_drops;
+		    field->drops[index] = num_drops;
+                }
+	    	break;
+	    case 3:
+	    	for (k = kmin; k <= kmax; k++)
+            	for (j = jmin; j <= jmax; j++)
+		for (i = imin; i <= imax; i++)
+		{
+		    index = d_index3d(i,j,k,top_gmax);
+		    if (supersat[index] >= 0)
+			count ++;
+		}
+		G_count = count;
+#if defined(__MPI__)
+		pp_gsync();
+		pp_global_isum(&G_count,1);
+#endif
+		printf("Cloud number = %d\n",G_count);
+		num_drops = eqn_params->num_drops/G_count;/*num_drops in a cell*/
+		if(eqn_params->num_drops < G_count)
+			num_drops = 1;
+		eqn_params->num_drops = num_drops*count;
+		FT_VectorMemoryAlloc((POINTER*)&particle_array,
+                                      eqn_params->num_drops,sizeof(PARTICLE));
+		count = 0;
+                for (k = kmin; k <= kmax; k++)
+                for (j = jmin; j <= jmax; j++)
+                for (i = imin; i <= imax; i++)
+                {
+                    index = d_index3d(i,j,k,top_gmax);
+                    if (supersat[index] < 0)
+                        continue;
+		    cL[0] = top_L[0] + i*top_h[0];
+		    cL[1] = top_L[1] + j*top_h[1];
+		    cL[2] = top_L[2] + k*top_h[2]; 
+		    for (l = 0; l < num_drops; l++)
+		    {
+			for (id = 0; id < dim; ++id)
+			{
+			    x = dist_uniform((POINTER)&uniform_params,xsubi);
+			    particle_array[l+count].center[id] = cL[id]+x*top_h[id];
+			    particle_array[l+count].vel[id] = 0.0;
+			}
+			particle_array[l+count].radius = gauss_center_limit((POINTER)&gauss_params,xsubi);
+			particle_array[l+count].R0 = particle_array[l].radius;
+			particle_array[l+count].flag = YES;
+			particle_array[l+count].rho = eqn_params->rho_l;
+		    }
+		    count += num_drops;
+		    field->drops[index] = num_drops;
+                }
+	
+		break;
+	    default:
+		printf("Unknow dim = %d\n",dim);
+		clean_up(ERROR);
+	}
+	setParticleGlobalIndex(particle_array,eqn_params->num_drops);
+	eqn_params->particle_array = particle_array;
+	computeSource();
+}
+
+static void computeFluctuation(Front* front, double **ext_accel, int size, int dim)
+{
+	int i, j;
+	FILE* outfile;
+	char filename[256]; 
+	double mean_buoyancy[MAXD] = {0.0, 0.0, 0.0};
+	for (i = 0; i < size; i++)
+	for (j = 0; j < dim; j++)
+	{
+	    mean_buoyancy[j] += ext_accel[j][i];
+	}
+	
+	/*find mean buoyancy*/
+	pp_gsync();
+	pp_global_sum(mean_buoyancy,3);
+	for (j = 0; j < dim; j++)
+	    mean_buoyancy[j] /= (pp_numnodes()*size);
+	if (pp_mynode() == 0)
+        {
+            sprintf(filename,"%s/buoyancy",OutName(front));
+            outfile = fopen(filename,"a");
+            fprintf(outfile,"%f  %15.14f\n",
+		    front->time,mean_buoyancy[dim-1]);
+            fclose(outfile);
+        }
+	/*remove mean buoyancy to obtain neutral buoyancy*/
+	for (i = 0; i < size; i++)
+        {
+            ext_accel[0][i] = 0.0;
+            ext_accel[dim-2][i] = 0.0;
+            ext_accel[dim-1][i] -= mean_buoyancy[dim-1];
+        }
+}
+
 void VCARTESIAN::computeSource()
 {
 	/*compute condensation rate*/
 	/*this is a source term for vapor mixing ratio equation*/
-        int i, index, size, num_drops;
+        int i, j, index, size, num_drops;
         int ic[MAXD];
         PARAMS* eqn_params = (PARAMS*)front->extra2;
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
         PARTICLE* particle_array = eqn_params->particle_array;
         num_drops = eqn_params->num_drops;
 	double *supersat = eqn_params->field->supersat;
+	double *T = eqn_params->field->temperature;
+	double *qv = eqn_params->field->vapor;
+	double *qc = eqn_params->field->cloud;
+	double T0 = eqn_params->T0;
+	double q0 = eqn_params->qv0;
         static boolean first = YES;
         double *coords;
 	/*for computing the coefficient*/
 	double rho_0 = iFparams->rho2;
 	double a3 = 1.0;
 	double coeff;
+
+	static double maxsource = -HUGE, minsource = HUGE;
 
 	for(i = 0; i < dim; i++)
 	    a3 *= top_h[i];
@@ -3119,8 +3446,12 @@ void VCARTESIAN::computeSource()
         {
 	    source[i] = 0.0;
 	    field->drops[i] = 0;
+	    field->cloud[i] = 0.0;
+	    field->mrad[i] = 0.0;
 	}
-	
+	/*caculate num_drops in each cell: drops[index]*/
+	/*compute source term for vapor equation: source[index]*/
+	/*compute cloud water mixing ratio: qc[index]*/
         for (i = 0; i < num_drops; i++)
         {
             coords = particle_array[i].center;
@@ -3130,7 +3461,29 @@ void VCARTESIAN::computeSource()
 					       / (rho_0 * a3);
 	    source[index] += -1000.0 * coeff * supersat[index]
 				     * particle_array[i].radius;
-	    field->drops[index] += 1;
+	    if (particle_array[i].radius != 0)
+	    {
+	        field->drops[index] += 1;
+		field->mrad[index] += particle_array[i].radius;
+		qc[index] += (4.0/3.0)*PI
+				    *   pow(particle_array[i].radius,3)
+				    *   particle_array[i].rho
+				    /   (a3 * rho_0);
+	    }
         }
+	/*compute mean radius in a cell*/
+	for (index = 0; index < comp_size; index++)
+	{
+		if (field->drops[index] != 0)
+		    field->mrad[index] /= field->drops[index];
+	}
+	/*compute source for Navier Stokes equation:ext_accel[dim][index]*/
+	for (index = 0; index < comp_size; index++)
+	for (j = 0; j < dim; j++)
+	{
+	    field->ext_accel[j][index] = -iFparams->gravity[j]
+	     *((T[index]-T0)/T0 + 0.608 * 0.001 * (qv[index] - q0) - qc[index]);
+   	}
+	/*remove mean value to obtain neutral buoyancy*/
+	computeFluctuation(front,field->ext_accel,comp_size,dim);
 }
-

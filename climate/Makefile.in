@@ -7,7 +7,7 @@ incs =  @ftlibincs@
 libincs = @otherlibsinc@
 libs = @otherlibs@
 build_cpu = @build_cpu@
-incsloc = -I. -I../iFluid -I../solver -I../include
+incsloc = -I. -I../iFluid -I../solver -I../include -I/export/home/zhengg/fftw/include
 
 PETSC = yes
 PETSC_ARCH=@PETSC_ARCH@
@@ -65,9 +65,12 @@ iFsub.o : ../iFluid/iFluid.h ../iFluid/iFsub.cpp
 clminit.o : climate.h ../iFluid/iFluid.h clminit.cpp
 	${CXX} -c clminit.cpp $(incsloc) $(incs) ${Petsc_Include}
 
-climate: ../iFluid/iFluid.h climate.h climate.cpp iFsub.o clmsub.o clminit.o mcartsn.o clmprop.o vcartsn.o ../lib/libiF.a
+fft.o : fft.cpp
+	${CXX} -c fft.cpp -I/export/home/zhengg/fftw/include
+
+climate: ../iFluid/iFluid.h climate.h climate.cpp iFsub.o clmsub.o clminit.o mcartsn.o clmprop.o vcartsn.o ../lib/libiF.a fft.o
 	${CXX} -c climate.cpp $(incsloc) $(incs) ${Petsc_Include}
-	$(CXX) -o climate climate.o clmsub.o iFsub.o mcartsn.o vcartsn.o clmprop.o clminit.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
+	$(CXX) -o climate climate.o clmsub.o fft.o iFsub.o mcartsn.o vcartsn.o clmprop.o clminit.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} -L/export/home/zhengg/fftw/lib -lfftw3
 
 ../lib/libiF.a: solver.o hyperb.o parab.o cim_parab.o ellip.o cim_ellip.o dual_ellip.o iFbasic.o iFcartsn2d.o iFcartsn3d.o
 	$(AR) cru libiF.a $^

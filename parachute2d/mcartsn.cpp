@@ -6,9 +6,9 @@
       
 */
 
-#include <iFluid.h>
+#include "iFluid.h"
+#include "mcartsn.h"
 #include "solver.h"
-#include "climate.h"
 
 static int find_state_at_crossing(Front*,int*,GRID_DIRECTION,int,
                                 POINTER*,HYPER_SURF**,double*);
@@ -180,6 +180,34 @@ void CARTESIAN::setComponent(void)
         }
 }	/* end setComponent */
 
+static double getInitialState(double* coords,PARAMS* params)
+{
+	short unsigned int seed[3] = {2,72,7172};
+        GAUSS_PARAMS gauss_params;
+        gauss_params.mu = params->T0;
+        gauss_params.sigma = 2.0;
+	switch(params->init_state)
+	{
+	case CONST_STATE:
+		return params->T0;
+	case RAND_STATE:
+		return gauss_center_limit((POINTER)&gauss_params,seed);
+	case STEP_STATE:
+		if (coords[0] > params->x0)
+		    return params->T0;
+		else
+		    return 0.0;
+	case SHOCK_STATE:
+		if (coords[1] < params->x0 && 
+		    coords[1] > (params->x0-0.5))
+		    return params->T0;
+		else
+		    return 0.0;
+	case ZERO_STATE:
+		return 0.0;
+	}
+}
+
 void CARTESIAN::setInitialCondition(void)
 {
 	int i;
@@ -210,8 +238,9 @@ void CARTESIAN::setInitialCondition(void)
 	for (i = 0; i < cell_center.size(); i++)
 	{
 	    c = top_comp[i];
+	    getRectangleCenter(i,coords);
 	    if (c == LIQUID_COMP2)
-	    	field->temperature[i] = eqn_params->T0;
+	    	field->temperature[i] = getInitialState(coords,eqn_params);
 	    else if (c == SOLID_COMP)
 	    	field->temperature[i] = eqn_params->T0;
 	    else
@@ -320,9 +349,6 @@ void CARTESIAN::computeAdvection()
 	int i;
 	COMPONENT sub_comp[2];
 
-	if (eqn_params->num_scheme == UNSPLIT_IMPLICIT_CIM)
-	    return computeAdvectionCim();
-
 	sub_comp[0] = SOLID_COMP;
 	sub_comp[1] = LIQUID_COMP2;
 	
@@ -333,14 +359,7 @@ void CARTESIAN::computeAdvection()
                     continue;
 	    setGlobalIndex(sub_comp[i]);
 	   /* diffusivity is set explicitly */
-	    if (eqn_params->num_scheme == UNSPLIT_EXPLICIT)
-	    	computeAdvectionExplicit(sub_comp[i]);
-	    else if (eqn_params->num_scheme == UNSPLIT_EXPLICIT_CIM)
-	    	computeAdvectionExplicitCim(sub_comp[i]);
-	    else if (eqn_params->num_scheme == UNSPLIT_IMPLICIT)
-	    	computeAdvectionImplicit(sub_comp[i]);
-	    else if (eqn_params->num_scheme == CRANK_NICOLSON)
-	    	computeAdvectionCN(sub_comp[i]);
+	   computeAdvectionCN(sub_comp[i]);
 	}
 }
 
@@ -361,6 +380,11 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
         double *Temp = field->temperature;
         double v[MAXD];
         double eta;
+	/*For boundary state*/
+	HYPER_SURF *hs;
+	POINTER intfc_state;
+	INTERFACE* grid_intfc = front->grid_intfc;
+	double coords[MAXD];
 
         start_clock("computeAdvectionCN");
         if (debugging("trace")) printf("Entering computeAdvectionCN()\n");
@@ -406,7 +430,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
                         I_nb = i_to_I[ipn[0]];
                         coeff_nb = -0.5*lambda;
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateVapor,
+                                icoords,dir[l][m],comp,getStateTemp,
                                 &T_nb,crx_coords);
                         if (!fr_crx_grid_seg)
                         {
@@ -459,23 +483,31 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
                         icn = d_index2d(ipn[0],ipn[1],top_gmax);
                         I_nb = ij_to_I[ipn[0]][ipn[1]];
                         coeff_nb = -0.5*lambda;
-                        fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateVapor,
-                                &T_nb,crx_coords);
-                        if (!fr_crx_grid_seg)
+                        /*fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
+                                icoords,dir[l][m],comp,getStateTemp,
+                                &T_nb,crx_coords);*/
+			fr_crx_grid_seg = FT_StateStructAtGridCrossing(front,
+				grid_intfc,icoords,dir[l][m],comp,
+				&intfc_state,&hs,crx_coords);
+                        if (!fr_crx_grid_seg) 
                         {
                             solver.Add_A(I,I_nb,coeff_nb);
                             T_nb = Temp[icn];
-                            rhs -= -0.5*lambda*(T_nb - T0);
+                            rhs += 0.5*lambda*(T_nb - T0);
                             if(v[l] > 0 && m == 0)
                                 rhs += eta * (T_nb - T0);
                             if(v[l] < 0 && m == 1)
                                 rhs += eta * (T0 - T_nb);
                         }
-                        else
-                        {
-                            rhs -= -0.5*lambda*(2.0*T_nb - T0);
-                        }
+			else if (wave_type(hs) == NEUMANN_BOUNDARY)
+			{
+			    T_nb = Temp[ic];
+			    solver.Add_A(I,I,coeff_nb);
+			}
+			else
+			{
+                           rhs -= -0.5*lambda*(2.0*T_nb - T0);
+			}
                     }
                 }
                 solver.Add_A(I,I,coeff);
@@ -519,7 +551,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
                         I_nb = ijk_to_I[ipn[0]][ipn[1]][ipn[2]];
                         coeff_nb = -0.5*lambda;
                         fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateVapor,
+                                icoords,dir[l][m],comp,getStateTemp,
                                 &T_nb,crx_coords);
                         if (!fr_crx_grid_seg)
                         {
@@ -531,6 +563,11 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
                             if(v[l] < 0 && m == 1)
                                 rhs += eta * (T0 - T_nb);
                         }
+			else if (wave_type(hs) == NEUMANN_BOUNDARY)
+			{
+			    T_nb = Temp[ic];
+			    solver.Add_A(I,I,coeff_nb);
+			}
                         else
                         {
                             rhs -= coeff_nb*(2.0*T_nb - T0);
@@ -636,6 +673,16 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
             }
             break;
         }
+	/*plot temperature profile*/
+	FILE* outfile;
+	outfile = fopen("temperature","w");
+	for (i = imin; i <= imax; ++i)
+	{
+	    j = (jmax + jmin)/2;
+	    ic = d_index2d(i,j,top_gmax);
+	    fprintf(outfile,"%f\n",Temp[ic]);
+	}
+	fclose(outfile);
         stop_clock("scatter_data");
         FT_FreeThese(1,x);
 
@@ -643,96 +690,6 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
         stop_clock("computeAdvectionCN");
 }       /* end computeAdvectionCN */
     
-void CARTESIAN::computeAdvectionCim()
-{
-	printf("computeAdvectionCim() to be implemented\n");
-	clean_up(0);
-	return;
-}	/* end computeAdvectionImplicit */
-
-void CARTESIAN::computeAdvectionImplicit(COMPONENT sub_comp)
-{
-	static PARABOLIC_SOLVER parab_solver(*front);
-	static double *soln;
-	int i,j,k,index;
-	static boolean first = YES;
-        
-
-	if (soln == NULL)
-            FT_VectorMemoryAlloc((POINTER*)&soln,comp_size,FLOAT);
-
-	if (debugging("trace")) printf("Entering computeAdvectionImplicit()\n");
-	start_clock("computeAdvectionImplicit");
-	setIndexMap(sub_comp);
-	parab_solver.soln_comp = sub_comp;
-        parab_solver.obst_comp = ERROR_COMP;
-        parab_solver.var = field->temperature;
-        parab_solver.soln = soln;
-        parab_solver.getStateVarFunc = getStateTemperature;
-        parab_solver.findStateAtCrossing = find_state_at_crossing;
-        parab_solver.source = source;
-        parab_solver.D = eqn_params->D;
-        parab_solver.order = eqn_params->pde_order;
-        parab_solver.ilower = ilower;
-        parab_solver.iupper = iupper;
-        parab_solver.dt = m_dt;
-	parab_solver.first = first;
-        parab_solver.set_solver_domain();
-	first = NO;
-
-	if (sub_comp == LIQUID_COMP2)
-	    parab_solver.a = eqn_params->field->vel;
-	else
-	    parab_solver.a = NULL;
-
-	switch(dim)
-        {
-        case 1:
-            parab_solver.i_to_I = i_to_I;
-            break;
-        case 2:
-            parab_solver.ij_to_I = ij_to_I;
-            break;
-        case 3:
-            parab_solver.ijk_to_I = ijk_to_I;
-            break;
-        }
-
-        parab_solver.runge_kutta();
-	switch(dim)
-        {
-        case 1:
-	    for (i = 0; i <= top_gmax[0]; ++i)
-	    {
-	    	index = d_index1d(i,top_gmax);
-	    	if (top_comp[index] == sub_comp)
-		    field->temperature[index] = soln[index];
-	    }
-            break;
-        case 2:
-	    for (i = 0; i <= top_gmax[0]; ++i)
-	    for (j = 0; j <= top_gmax[1]; ++j)
-	    {
-	    	index = d_index2d(i,j,top_gmax);
-	    	if (top_comp[index] == sub_comp)
-		    field->temperature[index] = soln[index];
-	    }
-            break;
-        case 3:
-	    for (i = 0; i <= top_gmax[0]; ++i)
-	    for (j = 0; j <= top_gmax[1]; ++j)
-	    for (k = 0; k <= top_gmax[2]; ++k)
-	    {
-	    	index = d_index3d(i,j,k,top_gmax);
-	    	if (top_comp[index] == sub_comp)
-		    field->temperature[index] = soln[index];
-	    }
-            break;
-        }
-	stop_clock("computeAdvectionImplicit");
-	if (debugging("trace")) printf("Leaving computeAdvectionImplicit()\n");
-	return;
-}	/* end computeAdvectionImplicit */
 
 // for initial condition: 
 // 		setInitialCondition();	
@@ -751,10 +708,7 @@ void CARTESIAN::solve(double dt)
 	setComponent();
 	if (debugging("trace")) printf("Passing setComponent()\n");
 
-        if(eqn_params->prob_type == PARTICLE_TRACKING)
-            computeSource();
-        else
-            source = NULL;
+        computeSource();
         if (debugging("trace")) printf("Passing computeSource()\n");
 
 	computeAdvection();
@@ -780,7 +734,6 @@ void CARTESIAN::setAdvectionDt()
 	if (first)
 	{
 	    first = NO;
-	    eqn_params = (PARAMS*)front->extra2;
 	    Dl = eqn_params->D;
 	    Ds = eqn_params->D;
 	    D = std::max(Dl,Ds);
@@ -789,17 +742,14 @@ void CARTESIAN::setAdvectionDt()
 	    min_dt = 0.1*sqr(hmin)/D/(double)dim;
 	}
 
-	if (eqn_params->num_scheme == UNSPLIT_EXPLICIT ||
-	    eqn_params->num_scheme == UNSPLIT_EXPLICIT_CIM)
-	    m_dt = m_dt_expl;
-	else
-	{
-	    // For smooth transition to implicit step
-	    double tstep = (double)front->step;
-	    double smooth_factor; 
-	    smooth_factor = 1.0/(1.0 + sqr(tstep/20.0));
-	    m_dt = m_dt_impl - (m_dt_impl - m_dt_expl)*smooth_factor;
-	}
+	// For smooth transition to implicit step
+	double tstep = (double)front->step;
+	double smooth_factor; 
+	smooth_factor = 1.0/(1.0 + sqr(tstep/20.0));
+	m_dt = m_dt_impl - (m_dt_impl - m_dt_expl)*smooth_factor;
+	/* For Crank Nicolson scheme*/
+	m_dt = m_dt_expl;
+
 	if (debugging("trace"))
 	{
 	    printf("In setAdvectionDt: m_dt = %24.18g min_dt = %f\n",
@@ -969,7 +919,6 @@ void CARTESIAN::makeGridIntfc()
 	dim = grid_intfc->dim;
 	T = table_of_interface(grid_intfc);
 	top_comp = T->components;
-	eqn_params = (PARAMS*)front->extra2;
 	hmin = top_h[0];
 	for (i = 1; i < dim; ++i)
 	    if (hmin > top_h[i]) hmin = top_h[i];
@@ -986,7 +935,6 @@ void CARTESIAN::makeGridIntfc()
 	    imin = (lbuf[0] == 0) ? 1 : lbuf[0];
 	    imax = (ubuf[0] == 0) ? top_gmax[0] - 1 : top_gmax[0] - ubuf[0];
 	    eqn_params->field->temperature = temperature;
-	    eqn_params = (PARAMS*)front->extra2;
 	    break;
 	case 2:
 	    if (first)
@@ -1638,7 +1586,7 @@ void CARTESIAN::pointExplicitCimSolver(
 		    temperature_nb[m] = Temp[icn];
                 }
 		else
-		    temperature_nb[m] = getStateTemperature((POINTER)state);
+		    temperature_nb[m] = getStateTemp((POINTER)state);
 
 		if (!fr_crx_grid_seg) 
 		{
@@ -1675,316 +1623,6 @@ void CARTESIAN::pointExplicitCimSolver(
         }
 }	/* end pointExplicitCimSolver */
 
-void CARTESIAN::computeAdvectionExplicitCim(COMPONENT sub_comp)
-{
-	int i,j,k,l,m,ic,icn,icoords[MAXD],nc;
-	int gmin[MAXD],ipn[MAXD],ipn2[MAXD];
-	int index0;
-	double coords[MAXD],crx_coords[MAXD];
-	double temperature,temperature_nb[2],dgrad[MAXD],grad_plus[MAXD],
-	       grad_minus[MAXD];
-	double coef;
-	COMPONENT comp;
-	boolean fr_crx_grid_seg;
-	const GRID_DIRECTION dir[3][2] = 
-		{{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
-	double *Temp = field->temperature;
-	double v[MAXD],**vel,v_plus[MAXD],v_minus[MAXD];
-
-	start_clock("computeAdvectionExplicitCim");
-
-	coef = eqn_params->D*m_dt;
-	vel = eqn_params->field->vel;
-
-	for (i = 0; i < dim; ++i) gmin[i] = 0;
-
-	switch (dim)
-	{
-        case 1:
-            for (i = imin; i <= imax; ++i)
-            {
-                icoords[0] = i;
-		pointExplicitCimSolver(icoords,sub_comp);
-            }
-            break;
-	case 2:
-	    for (j = jmin; j <= jmax; ++j)
-	    for (i = imin; i <= imax; ++i)
-	    {
-	    	icoords[0] = i;
-	    	icoords[1] = j;
-		pointExplicitCimSolver(icoords,sub_comp);
-	    }
-	    break;
-	case 3:
-	    for (k = kmin; k <= kmax; ++k)
-	    for (j = jmin; j <= jmax; ++j)
-	    for (i = imin; i <= imax; ++i)
-	    {
-	    	icoords[0] = i;
-	    	icoords[1] = j;
-	    	icoords[2] = k;
-		pointExplicitCimSolver(icoords,sub_comp);
-	    }
-	    break;
-	}
-	scatMeshArray();
-	switch (dim)
-	{
-        case 1:
-            for (i = 0; i <= top_gmax[0]; ++i)
-            {
-		ic = d_index1d(i,top_gmax);
-	    	comp = top_comp[ic];
-		if (comp == sub_comp)
-		    Temp[ic] = array[ic];
-	    }
-	    break;
-        case 2:
-            for (i = 0; i <= top_gmax[0]; ++i)
-            for (j = 0; j <= top_gmax[1]; ++j)
-            {
-		ic = d_index2d(i,j,top_gmax);
-	    	comp = top_comp[ic];
-		if (comp == sub_comp)
-		    Temp[ic] = array[ic];
-	    }
-	    break;
-        case 3:
-            for (i = 0; i <= top_gmax[0]; ++i)
-            for (j = 0; j <= top_gmax[1]; ++j)
-            for (k = 0; k <= top_gmax[2]; ++k)
-            {
-		ic = d_index3d(i,j,k,top_gmax);
-	    	comp = top_comp[ic];
-		if (comp == sub_comp)
-		    Temp[ic] = array[ic];
-	    }
-	    break;
-	}
-
-	stop_clock("computeAdvectionExplicitCim");
-}	/* computeAdvectionExplicit */
-void CARTESIAN::computeAdvectionExplicit(COMPONENT sub_comp)
-{
-	int i,j,k,l,m,ic,icn,icoords[MAXD],nc;
-	int gmin[MAXD],ipn[MAXD];
-	int index0;
-	double coords[MAXD],crx_coords[MAXD];
-	double temperature,temperature_nb[2],dgrad[MAXD],grad_plus[MAXD],
-	       grad_minus[MAXD];
-	double coef;
-	COMPONENT comp;
-	boolean fr_crx_grid_seg;
-	const GRID_DIRECTION dir[3][2] = 
-		{{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
-	double *Temp = field->temperature;
-	double v[MAXD],**vel,v_plus[MAXD],v_minus[MAXD];
-
-	start_clock("computeAdvectionExplicit");
-
-	coef = eqn_params->D*m_dt;
-	vel = eqn_params->field->vel;
-
-	for (i = 0; i < dim; ++i) gmin[i] = 0;
-
-	switch (dim)
-	{
-        case 1:
-            for (i = imin; i <= imax; ++i)
-            {
-                icoords[0] = i;
-                ic = d_index1d(i,top_gmax);
-                comp = top_comp[ic];
-                if (comp != sub_comp)
-                     continue;
-                array[ic] = temperature = Temp[ic];
-		for (l = 0; l < dim; ++l)
-		{
-		    v[l] = 0.0;
-		    v_plus[l] = 0.0;
-		    v_minus[l] = 0.0;
-		}
-		if (sub_comp == LIQUID_COMP2 && vel != NULL)
-		{
-		    for (l = 0; l < dim; ++l)
-		    {
-			v[l] = vel[l][ic];
-			v_plus[l] = std::max(0.0,v[l]);
-			v_minus[l] = std::min(0.0,v[l]);
-		    }
-		}	
-                for (l = 0; l < dim; ++l)
-                {
-                    dgrad[l] = 0.0;
-		    grad_plus[l] = 0.0;
-		    grad_minus[l] = 0.0;
-                    for (m = 0; m < 2; ++m)
-                    {
-                        fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateTemperature,
-                                &temperature_nb[m],crx_coords);
-                        if (!fr_crx_grid_seg)
-                        {
-                             next_ip_in_dir(icoords,dir[l][m],ipn,gmin,
-							top_gmax);
-                             icn = d_index1d(ipn[0],top_gmax);
-			     temperature_nb[m] = Temp[icn];
-                        }
-                        dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
-                    }
-		    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
-		    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
-                    array[ic] += coef*dgrad[l]/top_h[l]-m_dt*
-			(v_plus[l]*grad_minus[l]+ v_minus[l]*grad_plus[l]);
-                }
-            }
-            break;
-	case 2:
-	    for (j = jmin; j <= jmax; ++j)
-	    for (i = imin; i <= imax; ++i)
-	    {
-	    	icoords[0] = i;
-	    	icoords[1] = j;
-	    	ic = d_index2d(i,j,top_gmax);
-	    	comp = top_comp[ic];
-	    	if (comp != sub_comp) 
-	    	    continue;
-                array[ic] = temperature = Temp[ic];
-		for (l = 0; l < dim; ++l)
-                {
-                    v[l] = 0.0;
-                    v_plus[l] = 0.0;
-                    v_minus[l] = 0.0;
-                }
-                if (sub_comp == LIQUID_COMP2 && vel != NULL)
-                {
-                    for (l = 0; l < dim; ++l)
-                    {
-                        v[l] = vel[l][ic];
-                        v_plus[l] = std::max(0.0,v[l]);
-                        v_minus[l] = std::min(0.0,v[l]);
-                    }
-                } 
-		for (l = 0; l < dim; ++l)
-		{
-	            dgrad[l] = 0.0;
-		    grad_plus[l] = 0.0;
-                    grad_minus[l] = 0.0;
-
-                    for (m = 0; m < 2; ++m)
-                    {
-                        fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateTemperature,
-                                &temperature_nb[m],crx_coords);
-                        if (!fr_crx_grid_seg)
-                        {
-                            next_ip_in_dir(icoords,dir[l][m],ipn,gmin,top_gmax);
-                            icn = d_index2d(ipn[0],ipn[1],top_gmax);
-			    temperature_nb[m] = Temp[icn];
-                        }
-                        dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
-                    }
-		    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
-		    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
-		    array[ic] += coef*dgrad[l]/top_h[l] - m_dt*
-			(v_plus[l]*grad_minus[l]+ v_minus[l]*grad_plus[l]);
-		}
-	    }
-	    break;
-	case 3:
-	    for (k = kmin; k <= kmax; ++k)
-	    for (j = jmin; j <= jmax; ++j)
-	    for (i = imin; i <= imax; ++i)
-	    {
-	    	icoords[0] = i;
-	    	icoords[1] = j;
-	    	icoords[2] = k;
-	    	ic = d_index3d(i,j,k,top_gmax);
-	    	comp = top_comp[ic];
-	    	if (comp != sub_comp) 
-	    	    continue;
-                array[ic] = temperature = Temp[ic];
-		for (l = 0; l < dim; ++l)
-                {
-                    v[l] = 0.0;
-                    v_plus[l] = 0.0;
-                    v_minus[l] = 0.0;
-                }
-                if (sub_comp == LIQUID_COMP2 && vel != NULL)
-                {
-                    for (l = 0; l < dim; ++l)
-                    {
-                        v[l] = vel[l][ic];
-                        v_plus[l] = std::max(0.0,v[l]);
-                        v_minus[l] = std::min(0.0,v[l]);
-                    }
-                }
-		for (l = 0; l < dim; ++l)
-		{
-	            dgrad[l] = 0.0;
-		    grad_plus[l] = 0.0;
-                    grad_minus[l] = 0.0;
-
-                    for (m = 0; m < 2; ++m)
-                    {
-                        fr_crx_grid_seg = FT_StateVarAtGridCrossing(front,
-                                icoords,dir[l][m],comp,getStateTemperature,
-                                &temperature_nb[m],crx_coords);
-                        if (!fr_crx_grid_seg)
-                        {
-                            next_ip_in_dir(icoords,dir[l][m],ipn,gmin,top_gmax);
-                            icn = d_index3d(ipn[0],ipn[1],ipn[2],top_gmax);
-                	    temperature_nb[m] = Temp[icn];
-                        }
-                        dgrad[l] += (temperature_nb[m] - temperature)/top_h[l];
-                    }
-		    grad_plus[l] = (temperature_nb[1] - temperature)/top_h[l];
-		    grad_minus[l] = (temperature - temperature_nb[0])/top_h[l];
-		    array[ic] += coef*dgrad[l]/top_h[l] - m_dt*
-			(v_plus[l]*grad_minus[l]+ v_minus[l]*grad_plus[l]);
-		}
-	    }
-	    break;
-	}
-	scatMeshArray();
-	switch (dim)
-	{
-        case 1:
-            for (i = 0; i <= top_gmax[0]; ++i)
-            {
-		ic = d_index1d(i,top_gmax);
-	    	comp = top_comp[ic];
-		if (comp == sub_comp)
-		    Temp[ic] = array[ic];
-	    }
-	    break;
-        case 2:
-            for (i = 0; i <= top_gmax[0]; ++i)
-            for (j = 0; j <= top_gmax[1]; ++j)
-            {
-		ic = d_index2d(i,j,top_gmax);
-	    	comp = top_comp[ic];
-		if (comp == sub_comp)
-		    Temp[ic] = array[ic];
-	    }
-	    break;
-        case 3:
-            for (i = 0; i <= top_gmax[0]; ++i)
-            for (j = 0; j <= top_gmax[1]; ++j)
-            for (k = 0; k <= top_gmax[2]; ++k)
-            {
-		ic = d_index3d(i,j,k,top_gmax);
-	    	comp = top_comp[ic];
-		if (comp == sub_comp)
-		    Temp[ic] = array[ic];
-	    }
-	    break;
-	}
-
-	stop_clock("computeAdvectionExplicit");
-}	/* computeAdvectionExplicit */
-
 void CARTESIAN::setDomain()
 {
 	static boolean first = YES;
@@ -2005,13 +1643,12 @@ void CARTESIAN::setDomain()
 	dim = grid_intfc->dim;
 	T = table_of_interface(grid_intfc);
 	top_comp = T->components;
-	eqn_params = (PARAMS*)front->extra2;
 	hmin = top_h[0];
 	for (i = 1; i < dim; ++i)
 	    if (hmin > top_h[i]) hmin = top_h[i];
 
 	if (field == NULL)
-	    FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(PHASE_FIELD));
+	    FT_ScalarMemoryAlloc((POINTER*)&field,sizeof(IF_FIELD));
 	switch (dim)
 	{
 	case 1:
@@ -2067,18 +1704,16 @@ void CARTESIAN::setDomain()
 
 void CARTESIAN::initMovieVariables()
 {
-	PARAMS* params = (PARAMS*)front->extra2;
 	if(dim == 2)
 	{
 	    FT_AddHdfMovieVariable(front,NO,YES,SOLID_COMP,
                                 "temperature",0,field->temperature,
-				getStateTemperature,0,0);
+				getStateTemp,0,0);
 	}
 	else
         {
             /* Added for vtk movie of scalar field */
-            if (params->movie_option->plot_temperature)
-                FT_AddVtkScalarMovieVariable(front,"temperature",field->temperature);
+            FT_AddVtkScalarMovieVariable(front,"temperature",field->temperature);
         }
 
         if (debugging("trace"))
@@ -2117,39 +1752,68 @@ static int find_state_at_crossing(
 
 void CARTESIAN::computeSource()
 {
-        /*compute condensation rate*/
-        /*this is a source term for vapor mixing ratio equation*/
-        int i, index, size, num_drops;
-        int ic[MAXD];
-        PARAMS* eqn_params = (PARAMS*)front->extra2;
-        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
-        PARTICLE* particle_array = eqn_params->particle_array;
-        num_drops = eqn_params->num_drops;
-        double *supersat = eqn_params->field->supersat;
-        static boolean first = YES;
-        double *coords;
-        /*for computing the coefficient*/
-        double rho_0 = iFparams->rho2;
-        double a3 = 1.0;
-        double coeff;
-	double L = eqn_params->Lh;
-	double cp = eqn_params->Cp;
-
-        for(i = 0; i < dim; i++)
-            a3 *= top_h[i];
-
-        for (i = 0; i < comp_size; i++)
-            source[i] = 0.0;
-
-        for (i = 0; i < num_drops; i++)
-        {
-            coords = particle_array[i].center;
-            rect_in_which(coords,ic,top_grid);
-            index = d_index(ic,top_gmax,dim);
-            coeff = 4.0*PI*particle_array[i].rho * eqn_params->K
-                                               / (rho_0 * a3);
-            source[index] += L/cp * coeff * supersat[index]
-                                  * particle_array[i].radius;
-        }
+	return;
 }
                                     
+extern double getStateTemp(POINTER state)
+{
+        STATE *fstate = (STATE*)state;
+        return fstate->temperature;
+}       /* end getStatetemp */
+
+
+/*temperature reading parameters*/
+extern void read_params(
+	char *inname,
+	PARAMS *eqn_params)
+{
+	char string[100];
+	FILE* infile;
+	infile = fopen(inname,"r");
+	CursorAfterString(infile,"Enter initial temperature[K]:");
+	fscanf(infile,"%lf",&eqn_params->T0);
+	(void) printf("%f\n",eqn_params->T0);
+
+	CursorAfterString(infile,"Enter molecular diffusivities:");
+	fscanf(infile,"%lf",&eqn_params->D);
+	(void) printf("%f\n",eqn_params->D);
+
+	CursorAfterString(infile,"Enter initial state:");
+        fscanf(infile,"%s",string);
+        (void) printf("%s\n",string);
+	
+	switch (string[0])
+	{
+	case 'C':
+	case 'c':
+	    eqn_params->init_state = CONST_STATE;
+	    break;
+	case 'R':
+	case 'r':
+	    eqn_params->init_state = RAND_STATE;
+	    break;
+	case 'S':
+	case 's':
+	    if (string[1] == 'T' || string[1] == 't')
+	    {
+	        eqn_params->init_state = STEP_STATE;
+	        CursorAfterString(infile,"Enter position of discontinuity:");
+        	fscanf(infile,"%lf",&eqn_params->x0);
+        	(void) printf("%f\n",eqn_params->x0);
+	    }
+	    else if (string[1] == 'H' || string[1] == 'h')
+	    {
+	        eqn_params->init_state = SHOCK_STATE;
+	        CursorAfterString(infile,"Enter position of discontinuity:");
+        	fscanf(infile,"%lf",&eqn_params->x0);
+        	(void) printf("%f\n",eqn_params->x0);
+	    }
+	    break;
+	case 'Z':
+	case 'z':
+	    eqn_params->init_state = ZERO_STATE;
+	    break;
+	}
+	fclose(infile);
+	return;
+}

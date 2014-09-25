@@ -23,9 +23,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 #include <iFluid.h>
 #include <airfoil.h>
+#include "mcartsn.h"
 
 	/*  Function Declarations */
-static void airfoil_driver(Front*,Incompress_Solver_Smooth_Basis*);
+static void airfoil_driver(Front*,CARTESIAN*,Incompress_Solver_Smooth_Basis*);
 static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
@@ -48,6 +49,7 @@ int main(int argc, char **argv)
 	static LEVEL_FUNC_PACK level_func_pack;
 	static IF_PARAMS iFparams;
 	static AF_PARAMS af_params;
+	static PARAMS eqn_params;
 
 	FT_Init(argc,argv,&f_basic);
 	f_basic.dim = 2;
@@ -88,9 +90,20 @@ int main(int argc, char **argv)
 	FT_InitDebug(in_name);
 
         iFparams.dim = f_basic.dim;
+	eqn_params.dim = f_basic.dim;
+	
         front.extra1 = (POINTER)&iFparams;
         front.extra2 = (POINTER)&af_params;
         read_iFparams(in_name,&iFparams);
+
+
+	/* Initialize solver for scalar field*/
+        CARTESIAN *t_cartesian = new CARTESIAN(front);
+        if (!iFparams.scalar_field)
+            delete t_cartesian;
+        else
+            read_params(in_name,&eqn_params);
+	t_cartesian->eqn_params = &eqn_params;
 	initParachuteDefault(&front);
 
 	level_func_pack.pos_component = LIQUID_COMP2;
@@ -125,6 +138,11 @@ int main(int argc, char **argv)
 	if (debugging("sample_velocity"))
             l_cartesian->initSampleVelocity(in_name);
 
+	/*hook field between scalar solver and iFluid solver*/
+        t_cartesian->field = iFparams.field;
+        if (iFparams.scalar_field)
+            t_cartesian->initMesh();
+
         if (RestartRun)
 	{
 	    if (ReSetTime)
@@ -144,35 +162,48 @@ int main(int argc, char **argv)
 	    else
 	    {
             	l_cartesian->readFrontInteriorStates(restart_state_name);
+		if (iFparams.scalar_field)
+                t_cartesian->readFrontInteriorState(restart_state_name);
 	    	readAfExtraDada(&front,restart_state_name);
 	    }
 	}
         else
 	{
             l_cartesian->setInitialCondition();
+	    if (iFparams.scalar_field)
+                t_cartesian->setInitialCondition();
 	}
 
 	FT_SetGlobalIndex(&front);
 	static_mesh(front.interf) = YES;
         l_cartesian->initMovieVariables();
+
+	if (iFparams.scalar_field)
+            t_cartesian->initMovieVariables();
 	    
 	if (!RestartRun || ReSetTime)
 	    resetFrontVelocity(&front);
 
 	/* Propagate the front */
 
-	airfoil_driver(&front,l_cartesian);
+	if (iFparams.scalar_field)
+	    airfoil_driver(&front,t_cartesian,l_cartesian);
+	else
+	    airfoil_driver(&front,NULL,l_cartesian);
 
 	clean_up(0);
 }
 
 static  void airfoil_driver(
         Front *front,
+	CARTESIAN *t_cartesian,
 	Incompress_Solver_Smooth_Basis *l_cartesian)
 {
         double CFL;
         int  dim = front->rect_grid->dim;
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
+	IF_PARAMS *iFparams;
+        iFparams = (IF_PARAMS*)front->extra1;
 
         CFL = Time_step_factor(front);
 	Tracking_algorithm(front) = STRUCTURE_TRACKING;
@@ -200,6 +231,12 @@ static  void airfoil_driver(
 	    {
             	l_cartesian->solve(front->dt);
 	    }
+
+	    if (debugging("trace")) printf("Calling scalar solve()\n");
+            if (iFparams->scalar_field)
+                t_cartesian->solve(front->dt);
+            if (debugging("trace")) printf("Passed scalar solve()\n");
+
 	    print_airfoil_stat(front,out_name);
 
             FT_SetOutputCounter(front);
@@ -235,6 +272,12 @@ static  void airfoil_driver(
 	    }
 	    else
 		l_cartesian->max_dt = HUGE;
+
+	    if (debugging("trace")) printf("Calling scalar solve()\n");
+            if (iFparams->scalar_field)
+                t_cartesian->solve(front->dt);
+            if (debugging("trace")) printf("Passed scalar solve()\n");
+
 	    if (debugging("trace"))
             {
                 (void) printf("After solve()\n");

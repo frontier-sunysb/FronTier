@@ -9,6 +9,7 @@
  **********************************************************************/
 
 #include <FronTier.h>
+#include <fftw3.h>
 #include <vector>
 #include <petscksp.h>
 #include <assert.h>
@@ -19,12 +20,9 @@
 		(comp) == LIQUID_COMP2 ? SOLID_COMP : LIQUID_COMP2
 
 enum _CL_PROB_TYPE {
-	BUOYANCY_TEST,
-	CLIMATE,
-	CHANNEL_TEST,
-	ENTRAINMENT,
-	RANDOM_FIELD,
-	PARTICLE_TRACKING
+	PARTICLE_TRACKING = 1,
+	ENTRAINMENT = 1,
+	RANDOM_FIELD
 };
 typedef enum _CL_PROB_TYPE CL_PROB_TYPE;
 
@@ -39,19 +37,26 @@ typedef enum _NUM_SCHEME NUM_SCHEME;
 
 enum _INIT_STATE{
 	ZERO_STATE = 1,
+	CONST_STATE,
 	RAND_STATE,
 	TAYLOR_STATE,
-	PRESET_STATE
+	PRESET_STATE,
+	FOURIER_STATE,
+	LR_STATE, /*left and right state*/
+	TB_STATE  /*top and bottom state*/
 };
 typedef enum _INIT_STATE INIT_STATE;
 
 struct _PHASE_FIELD {
         double *temperature;
 	double *vapor;
+	double *cloud;
 	double *supersat;
 	double *pres;
-	double *drops;
+	double *mrad;  /*mean radius in a cell*/
+	double *drops; /*number of droplets in a cell*/
         double **vel;
+	double **ext_accel;
 };
 typedef struct _PHASE_FIELD PHASE_FIELD;
 
@@ -61,6 +66,7 @@ struct _MOVIE_OPTION {
         boolean plot_velo;
         boolean plot_temperature;
 	boolean plot_vapor;
+	boolean plot_particles;
         boolean plot_cross_section[MAXD];  /* 3D 0: yz; 1: zx; 2: xy */
 };
 typedef struct _MOVIE_OPTION MOVIE_OPTION;
@@ -80,22 +86,30 @@ struct _PARAMS {
         int dim;
 	NUM_SCHEME num_scheme;
 	INIT_STATE init_state;
+	INIT_STATE init_vapor_state;
+	INIT_STATE init_drop_state;
 	PHASE_FIELD *field;
 	MOVIE_OPTION *movie_option;
 	int pde_order;
 	int num_phases;
 	int num_drops;
-        double *Ti;    /* melting temperature at the interface */
-	double *T0;	/* Ambient temperature of the phase */
+	double T0;/*initial temperature */
+	double qv0;/*initial vapor mixing ratio*/
+	double qs; /*saturated vapor mixing ratio*/
 	double D;    /*molecular diffusivities of the temperature*/
-	double min_temperature;
-	double max_temperature;
 	double rho_l; /*density of water droplet*/
+	double Lh;/*laten heat*/
+	double Rv;/*individual gas constant for water vapor*/
+	double Rd;/*individual gas constant for dry air*/
+	double Kc;/*coefficient of thermal conductivity of air*/
+	double Cp;/*specific heat with pressure held constant*/
 	double K; /*coefficient for condensation*/
 	double L[MAXD];
 	double U[MAXD]; /*subdomain for particles*/
 	boolean no_droplets;
-	boolean droplets_fixed;
+	boolean if_condensation;
+	boolean if_sedimentation;
+	boolean if_macroscopic;
 	CL_PROB_TYPE prob_type;
 	PARTICLE *particle_array;
 };
@@ -232,6 +246,7 @@ public:
 	void oneDimPlot(char*);
 	void xgraphOneDimPlot(char*);
 	void initMovieVariables();
+	void augmentMovieVariables(const char*);
 	void vtk_plot_temperature2d(char*);
         void vtk_plot3d(const char*);
 
@@ -362,11 +377,15 @@ public:
 	void oneDimPlot(char*);
 	void xgraphOneDimPlot(char*);
 	void initMovieVariables();
+	void augmentMovieVariables(const char*);
 	void checkOutput();
 	void checkField();
 	void recordField(char *, const char *);
+	void recordPDF(char *, const char *);
 	void recordRadius(char *);
 	void recordMixingLine();
+	void recordClusteringIndex();
+	void recordSampleParticles();
         void vtk_plot3d(const char*,double*);
 
 	// Extra movie functions
@@ -381,8 +400,9 @@ public:
 
 	// physics calculation
 	void setInitialCondition(void);
-	void setInitialVapor(void);
+	void (*getInitialState)(COMPONENT*,double*,PHASE_FIELD*,int,int,PARAMS*);
 	void setParallelVapor(void);
+	void initPresetParticles();
 
 	void setIndexMap(COMPONENT);
 		// for compProjWithSmoothProperty(), 
@@ -419,28 +439,56 @@ public:
 	void recordTKE();
 };
 
+class MACRO{
+	Front *front;
+	PARAMS *params;
+	double T; /*Macro temperature*/
+	double Q; /*Macro vapor mixing ratio*/
+	double Cd; /*Macro Condensation rate*/
+	double P; /*Macro pressure*/
+	double S; /*Macro supersaturation*/
+	double Wm; /*Mean vertical velocity*/
+	double rho0; /*density for ambient air*/
+	double Gamma; /*dry-adiabatic lapse rate*/
+	int dim;
+public: 
+	~MACRO();
+	MACRO(Front &front);
+	void computeCondRate();
+	void computeTemp();
+	void computeVapor();
+	void computeSupersat();
+	void computePressure();
+	void solve();
+	void output();
+	void ParticleShift();
+	void initMovieVariables();
+	double getSupersat();
+	double getVapor();
+	double getPressure();
+	double getTemp();
+	void   setW(double);
+};
+
 extern void readPhaseParams(Front*);
 extern void initPhaseIntfc(char*,int,LEVEL_FUNC_PACK*,PARAMS*);
-extern void melting_point_propagate(Front*,POINTER,POINT*,POINT*,
-                    HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
 extern void read_crt_dirichlet_bdry_data(char*,Front*,F_BASIC_DATA);
 extern void read_melt_dirichlet_bdry_data(char*,Front*,F_BASIC_DATA);
 extern void melt_flowThroughBoundaryState(double*,HYPER_SURF*,Front*,
 			POINTER,POINTER);
 extern void read_fluid_params(Front*);
-extern void init_fluid_state_func(Front*,Incompress_Solver_Smooth_Basis*);		
+extern void init_fluid_state_func(Front*,Incompress_Solver_Smooth_Basis*);	
+extern void init_vapor_state_func(Front*,VCARTESIAN*);	
 extern void assignStateTemperature(double,POINTER);
 extern void assignStateVapor(double,POINTER);
 extern double getStateTemperature(POINTER);
 extern double getStateVapor(POINTER);
 extern double getStateSuper(POINTER);
-extern double jumpT(POINTER,int,double*);
-extern double jumpEpsGradDotNorm(POINTER,int,double*,double*);
-extern double jumpGradDotTan(POINTER,int,int,double*,double*);
 extern void initWaterDrops(Front*);
 extern void compute_ice_particle_force(Front*,HYPER_SURF*,double, double*, double*);
 extern void CondensationPreAdvance(Front*);
-extern void ParticlePropagate(Front*);
+extern void ParticlePropagate(Front*,MACRO*);
+extern void setParticleGlobalIndex(PARTICLE*,int);
 extern void read_CL_prob_type(Front*);
 extern void readWaterDropsParams(Front*,char*);
 extern void printDropletsStates(Front*,char*);
@@ -449,5 +497,6 @@ extern void gv_plot_scatter(Front*);
 extern void vtk_plot_scatter(Front*);
 extern void vtk_plot_sample_traj(Front*);
 /*Statistics functions*/
-extern void  Deviation(PARTICLE*,int,double&,double&);
-extern double* ComputePDF(double*,int,double,int&,double&,double&);
+extern void  Deviation(double*,int,double&,double&);
+extern double* ComputePDF(double*,int,double&,int,double&,double&);
+extern bool  fftnd(fftw_complex*, int, int*,int);
