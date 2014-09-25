@@ -1777,6 +1777,13 @@ EXPORT	void remove_unphysical_crxings(
 		    if (c == NO_COMP)
 			continue;
 
+		    /* Only release it when debugging line removal
+		    if(debugging("rm_crx_y"))
+		    {
+			(void) printf("Before removal:\n");
+			show_line_components3d(ip,smin,smax,1,intfc);
+		    }
+		    */
 		    rm_unphy_crx_along_grid_line(intfc,smin,smax,
 			             gmax,ip,SOUTH,crx_type,num_ip,ips);
 		    /* Only release it when debugging line removal
@@ -5061,7 +5068,10 @@ LOCAL void unset_comp_along_grid_line(
 		ic = d_index3d(ip[0],ip[1],ip[2],gmax);
 		if (crx->lcomp != comp[ic])
 		{
-		    comp[ic] = NO_COMP;
+		    if (crx->lcomp == exterior_component(intfc))
+		    	comp[ic] = crx->lcomp;
+		    else
+		    	comp[ic] = NO_COMP;
 		    while (next_ip_in_dir(ip,opp_dir,ipn,smin,smax))
 		    {
 			ll = seg_index3d(ip[0],ip[1],ip[2],opp_dir,gmax);
@@ -5070,7 +5080,12 @@ LOCAL void unset_comp_along_grid_line(
 			if (nnc != 0) break;
 		    	ic = d_index3d(ipn[0],ipn[1],ipn[2],gmax);
 		    	if (comp[ic] != crx->lcomp)
-			    comp[ic] = NO_COMP;
+			{
+		    	    if (crx->lcomp == exterior_component(intfc))
+		    		comp[ic] = crx->lcomp;
+		    	    else
+		    		comp[ic] = NO_COMP;
+			}
 			for (ii = 0; ii < 3; ++ii)
 			    ip[ii] = ipn[ii];
 		    }
@@ -5080,7 +5095,10 @@ LOCAL void unset_comp_along_grid_line(
 		    ll = seg_index3d(i,j,k,opp_dir,gmax);
                     nnc = T->seg_crx_count[ll];
 		    if (nnc != 0)
-		    	comp[ic] = NO_COMP;
+		    {
+			if (comp[ic] != exterior_component(intfc))
+		    	    comp[ic] = NO_COMP;
+		    }
 		}
 		ip[0] = i; ip[1] = j; ip[2] = k;
 		list = T->seg_crx_lists[l][nc-1];
@@ -5089,7 +5107,10 @@ LOCAL void unset_comp_along_grid_line(
 		ic = d_index3d(ip[0],ip[1],ip[2],gmax);
 		if (crx->ucomp != comp[ic])
 		{
-		    comp[ic] = NO_COMP;
+		    if (crx->ucomp == exterior_component(intfc))
+		    	comp[ic] = crx->ucomp;
+		    else
+		    	comp[ic] = NO_COMP;
 		    while (next_ip_in_dir(ip,dir,ipn,smin,smax))
 		    {
 			ll = seg_index3d(ip[0],ip[1],ip[2],dir,gmax);
@@ -5098,7 +5119,12 @@ LOCAL void unset_comp_along_grid_line(
 			if (nnc != 0) break;
 		    	ic = d_index3d(ipn[0],ipn[1],ipn[2],gmax);
 		    	if (comp[ic] != crx->ucomp)
-			    comp[ic] = NO_COMP;
+			{
+		    	    if (crx->ucomp == exterior_component(intfc))
+		    		comp[ic] = crx->ucomp;
+		    	    else
+		    		comp[ic] = NO_COMP;
+			}
 			for (ii = 0; ii < 3; ++ii)
 			    ip[ii] = ipn[ii];
 		    }
@@ -5113,7 +5139,12 @@ LOCAL void unset_comp_along_grid_line(
 		    ic = d_index3d(ip[0],ip[1],ip[2],gmax);
 		    icn = d_index3d(ipn[0],ipn[1],ipn[2],gmax);
 		    if (comp[ic] != comp[icn])
-		    	comp[ic] = comp[icn] = NO_COMP;
+		    {
+			if (comp[ic] != exterior_component(intfc))
+		    	    comp[ic] = NO_COMP;
+			if (comp[icn] != exterior_component(intfc))
+		    	    comp[icn] = NO_COMP;
+		    }
 		}
 	    }
 	}
@@ -5486,6 +5517,8 @@ LOCAL boolean remove_unphy_pair(
 		}
 	    }
 	}
+	if (debugging("seg_comp"))
+	    printf("crx1 = %p\n",(POINTER)crx1);
 	if (crx1 != NULL)
 	{
 	    crx11 = crx1;
@@ -5548,6 +5581,8 @@ LOCAL boolean remove_unphy_pair(
 		    c2 = comp_of_next_side(crx2,opp_dir);
 	    }
 	}
+	if (debugging("seg_comp"))
+	    printf("crx2 = %p\n",(POINTER)crx2);
 	if (crx2 != NULL)
 	{
 	    crx22 = crx2;

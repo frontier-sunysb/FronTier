@@ -193,10 +193,9 @@ void G_CARTESIAN::setComponent(void)
 
 		dens[i] = state->dens;
 		pres[i] = state->pres;
-		//engy[i] = state->engy;
+		engy[i] = state->engy;
 		for (j = 0; j < dim; ++j)
 		    momn[j][i] = state->momn[j];
-		engy[i] = EosEnergy(state);
 	    }
 	    cell_center[i].comp = top_comp[i];
 	}

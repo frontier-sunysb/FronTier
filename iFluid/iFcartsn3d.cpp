@@ -401,27 +401,6 @@ void Incompress_Solver_Smooth_3D_Cartesian::solve(double dt)
 	setComponent();
 	if (iFparams->num_scheme.ellip_method == DUAL_ELLIP)
 	    updateComponent();
-/*
-printf("test vel comp\n");
-for (int k = kmin; k <= kmax; ++k)
-for (int j = jmin; j <= jmax; ++j)
-for (int i = imin; i <= imax; ++i)
-{
-int index = d_index3d(i,j,k,top_gmax);
-if (!ifluid_comp(top_comp[index]))
-printf("%d %d %d\n",i,j,k);
-}
-printf("test pres comp\n");
-for (int k = ckmin; k <= ckmax; ++k)
-for (int j = cjmin; j <= cjmax; ++j)
-for (int i = cimin; i <= cimax; ++i)
-{
-int index = d_index3d(i,j,k,ctop_gmax);
-if (!ifluid_comp(ctop_comp[index]))
-printf("%d %d %d\n",i,j,k);
-}
-clean_up(0);
-*/
 	if (debugging("trace"))
 	    printf("Passed setComponent()\n");
 

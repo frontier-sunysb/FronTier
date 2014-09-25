@@ -586,6 +586,7 @@ static  void neumann_point_propagate(
 	    newst = (STATE*)right_state(newp);
 	}
 	FT_NormalAtPoint(oldp,front,nor,comp);
+	newst->dim = dim;
 
 	dn = grid_size_in_direction(nor,h,dim);
 	for (i = 0; i < dim; ++i)
@@ -623,12 +624,12 @@ static  void neumann_point_propagate(
 	FT_IntrpStateVarAtCoords(front,comp,p1,m_engy,
 			getStateEngy,&newst->engy,&oldst->engy);
         newst->eos = oldst->eos;
-	newst->pres = EosPressure(newst);
 	for (i = 0; i < dim; ++i)
 	{
 	    newst->vel[i] = vel[i];
 	    newst->momn[i] = newst->dens*vel[i];
 	}
+	newst->pres = EosPressure(newst);
 	s = mag_vector(vel,dim);
 	FT_RecordMaxFrontSpeed(dim,s,NULL,Coords(newp),front);
 	set_state_max_speed(front,newst,Coords(newp));
