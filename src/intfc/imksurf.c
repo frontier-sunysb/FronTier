@@ -4928,9 +4928,9 @@ EXPORT boolean xoss_constr_func(
 	double *U2 = cross_constr_params->U2;
 
 	if ((L1[0] < coords[0] && coords[0] < U1[0]) &&
-	    (L1[1] < coords[1] && coords[1] < U1[1]))
+	    (L1[1] <= coords[1] && coords[1] <= U1[1]))
 		return YES;
-	if ((L2[0] < coords[0] && coords[0] < U2[0]) &&
+	if ((L2[0] <= coords[0] && coords[0] <= U2[0]) &&
 	    (L2[1] < coords[1] && coords[1] < U2[1]))
 		return YES;
 	return NO;
