@@ -126,7 +126,7 @@ static void makeXgraphPlot(
 	sprintf(xname,"%s/soln-%d.xg",out_name,l);
 	xfile = fopen(xname,"w");
 	fprintf(xfile,"color=%s\n","red");
-	fprintf(xfile,"\"time = %6.3f\"\n",time);
+	fprintf(xfile,"thickness = 2.0\n");
 	for (i = 0; i < N; ++i)
 	    	fprintf(xfile,"%f %f\n",x[i],u[i]);
 	fclose(xfile);
@@ -629,7 +629,8 @@ static void goMonteCarlo(
 	    {
 	    	sprintf(xname,"%s/stock-%d.xg",out_name,i);
 	    	xfile = fopen(xname,"w");
-	    	fprintf(xfile,"\"stock price vs. time\"\n");
+	    	fprintf(xfile,"color = %s\n",xcolor[(i+1)%max_color]);
+	    	fprintf(xfile,"thickness = 1.5\n");
 	    	fprintf(xfile,"%f %f\n",time[0],S);
 	    }
 	    for (n = 1; n <= N; ++n)
@@ -696,38 +697,56 @@ static void goMonteCarlo(
 	}
 	sprintf(xname,"%s/stock-ave.xg",out_name);
 	xfile = fopen(xname,"w");
-	fprintf(xfile,"\"ave price vs. time\"\n");
+	fprintf(xfile,"color = %s\n",xcolor[0]);
+	fprintf(xfile,"thickness = 3.0\n");
 	for (n = 0; n <= N; ++n)
 	    fprintf(xfile,"%f %f\n",time[n],S_ave[n]);
-	fprintf(xfile,"\n\n\"68 lb vs. time\"\n");
+	fprintf(xfile,"Next\n");
+	fprintf(xfile,"color = %s\n",xcolor[0]);
+	fprintf(xfile,"thickness = 2.0\n");
 	for (n = 0; n <= N; ++n)
 	    fprintf(xfile,"%f %f\n",time[n],S_ave[n]-sample_S[n]);
-	fprintf(xfile,"\n\n\"68 ub vs. time\"\n");
+	fprintf(xfile,"Next\n");
+	fprintf(xfile,"color = %s\n",xcolor[0]);
+	fprintf(xfile,"thickness = 2.0\n");
 	for (n = 0; n <= N; ++n)
 	    fprintf(xfile,"%f %f\n",time[n],S_ave[n]+sample_S[n]);
-	fprintf(xfile,"\n\n\"95 lb vs. time\"\n");
+	fprintf(xfile,"Next\n");
+	fprintf(xfile,"color = %s\n",xcolor[0]);
+	fprintf(xfile,"thickness = 2.0\n");
 	for (n = 0; n <= N; ++n)
 	    fprintf(xfile,"%f %f\n",time[n],S_ave[n]-2.0*sample_S[n]);
-	fprintf(xfile,"\n\n\"95 ub vs. time\"\n");
+	fprintf(xfile,"Next\n");
+	fprintf(xfile,"color = %s\n",xcolor[0]);
+	fprintf(xfile,"thickness = 2.0\n");
 	for (n = 0; n <= N; ++n)
 	    fprintf(xfile,"%f %f\n",time[n],S_ave[n]+2.0*sample_S[n]);
 	fclose(xfile);
 
 	sprintf(xname,"%s/gb-stock-ave.xg",out_name);
 	xfile = fopen(xname,"w");
-	fprintf(xfile,"\"ave price vs. time\"\n");
+	fprintf(xfile,"color = %s\n",xcolor[max_color-1]);
+	fprintf(xfile,"thickness = 3.0\n");
 	for (n = 0; n <= N; ++n)
 	    fprintf(xfile,"%f %f\n",time[n],GS_ave[n]);
-	fprintf(xfile,"\n\n\"68 lb vs. time\"\n");
+	fprintf(xfile,"Next\n");
+	fprintf(xfile,"color = %s\n",xcolor[max_color-1]);
+	fprintf(xfile,"thickness = 2.0\n");
 	for (n = 0; n <= N; ++n)
 	    fprintf(xfile,"%f %f\n",time[n],GS_ave[n]-sample_GS[n]);
-	fprintf(xfile,"\n\n\"68 ub vs. time\"\n");
+	fprintf(xfile,"Next\n");
+	fprintf(xfile,"color = %s\n",xcolor[max_color-1]);
+	fprintf(xfile,"thickness = 2.0\n");
 	for (n = 0; n <= N; ++n)
 	    fprintf(xfile,"%f %f\n",time[n],GS_ave[n]+sample_GS[n]);
-	fprintf(xfile,"\n\n\"95 lb vs. time\"\n");
+	fprintf(xfile,"Next\n");
+	fprintf(xfile,"color = %s\n",xcolor[max_color-1]);
+	fprintf(xfile,"thickness = 2.0\n");
 	for (n = 0; n <= N; ++n)
 	    fprintf(xfile,"%f %f\n",time[n],GS_ave[n]-2.0*sample_GS[n]);
-	fprintf(xfile,"\n\n\"95 ub vs. time\"\n");
+	fprintf(xfile,"Next\n");
+	fprintf(xfile,"color = %s\n",xcolor[max_color-1]);
+	fprintf(xfile,"thickness = 2.0\n");
 	for (n = 0; n <= N; ++n)
 	    fprintf(xfile,"%f %f\n",time[n],GS_ave[n]+2.0*sample_GS[n]);
 	fclose(xfile);
@@ -736,38 +755,57 @@ static void goMonteCarlo(
 	{
 	    sprintf(xname,"%s/call-ave.xg",out_name);
 	    xfile = fopen(xname,"w");
-	    	fprintf(xfile,"\"ave price vs. time\"\n");
+	    fprintf(xfile,"Next\n");
+	    fprintf(xfile,"color = navy\n");
+	    fprintf(xfile,"thickness = 3.0\n");
 	    for (n = 0; n <= N; ++n)
 	    	fprintf(xfile,"%f %f\n",time[n],C[n]);
-	    fprintf(xfile,"\n\n\"68 lb vs. time\"\n");
+	    fprintf(xfile,"Next\n");
+	    fprintf(xfile,"color = navy\n");
+	    fprintf(xfile,"thickness = 2.0\n");
 	    for (n = 0; n <= N; ++n)
 	    	fprintf(xfile,"%f %f\n",time[n],C[n]-sample_C[n]);
-	    fprintf(xfile,"\n\n\"68 ub vs. time\"\n");
+	    fprintf(xfile,"Next\n");
+	    fprintf(xfile,"color = navy\n");
+	    fprintf(xfile,"thickness = 2.0\n");
 	    for (n = 0; n <= N; ++n)
 	    	fprintf(xfile,"%f %f\n",time[n],C[n]+sample_C[n]);
-	    fprintf(xfile,"\n\n\"95 lb vs. time\"\n");
+	    fprintf(xfile,"Next\n");
+	    fprintf(xfile,"color = navy\n");
+	    fprintf(xfile,"thickness = 2.0\n");
 	    for (n = 0; n <= N; ++n)
 	    	fprintf(xfile,"%f %f\n",time[n],C[n]-2.0*sample_C[n]);
-	    fprintf(xfile,"\n\n\"95 ub vs. time\"\n");
+	    fprintf(xfile,"Next\n");
+	    fprintf(xfile,"color = navy\n");
+	    fprintf(xfile,"thickness = 2.0\n");
 	    for (n = 0; n <= N; ++n)
 	    	fprintf(xfile,"%f %f\n",time[n],C[n]+2.0*sample_C[n]);
 	    fclose(xfile);
 
 	    sprintf(xname,"%s/put-ave.xg",out_name);
 	    xfile = fopen(xname,"w");
-	    	fprintf(xfile,"\"ave price vs. time\"\n");
+	    fprintf(xfile,"color = orange\n");
+	    fprintf(xfile,"thickness = 3.0\n");
 	    for (n = 0; n <= N; ++n)
 	    	fprintf(xfile,"%f %f\n",time[n],P[n]);
-	    fprintf(xfile,"\n\n\"68 lb vs. time\"\n");
+	    fprintf(xfile,"Next\n");
+	    fprintf(xfile,"color = orange\n");
+	    fprintf(xfile,"thickness = 2.0\n");
 	    for (n = 0; n <= N; ++n)
 	    	fprintf(xfile,"%f %f\n",time[n],P[n]-sample_P[n]);
-	    fprintf(xfile,"\n\n\"68 ub vs. time\"\n");
+	    fprintf(xfile,"Next\n");
+	    fprintf(xfile,"color = orange\n");
+	    fprintf(xfile,"thickness = 2.0\n");
 	    for (n = 0; n <= N; ++n)
 	    	fprintf(xfile,"%f %f\n",time[n],P[n]+sample_P[n]);
-	    fprintf(xfile,"\n\n\"95 lb vs. time\"\n");
+	    fprintf(xfile,"Next\n");
+	    fprintf(xfile,"color = orange\n");
+	    fprintf(xfile,"thickness = 2.0\n");
 	    for (n = 0; n <= N; ++n)
 	    	fprintf(xfile,"%f %f\n",time[n],P[n]-2.0*sample_P[n]);
-	    fprintf(xfile,"\n\n\"95 ub vs. time\"\n");
+	    fprintf(xfile,"Next\n");
+	    fprintf(xfile,"color = orange\n");
+	    fprintf(xfile,"thickness = 2.0\n");
 	    for (n = 0; n <= N; ++n)
 	    	fprintf(xfile,"%f %f\n",time[n],P[n]+2.0*sample_P[n]);
 	    fclose(xfile);
@@ -775,7 +813,8 @@ static void goMonteCarlo(
 
 	sprintf(xname,"%s/savings.xg",out_name);
 	xfile = fopen(xname,"w");
-	fprintf(xfile,"\"savings vs. time\"\n");
+	fprintf(xfile,"color = %s\n",xcolor[max_color/2]);
+	fprintf(xfile,"thickness = 3.0\n");
 	for (n = 0; n <= N; ++n)
 	    fprintf(xfile,"%f %f\n",time[n],S_bank[n]);
 	fclose(xfile);

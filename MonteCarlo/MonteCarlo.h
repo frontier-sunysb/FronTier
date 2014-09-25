@@ -56,4 +56,22 @@ struct _PARAMS {
 };
 typedef struct _PARAMS PARAMS;
 
+#define		max_color		13
+
+const char *xcolor[20] = {
+	"red",
+	"violet",
+	"cyan",
+	"blue",
+	"yellow",
+	"orange",
+	"green",
+	"aqua",
+	"pink",
+	"dark-gray",
+	"navy",
+	"gold",
+	"fuchsia"};
+	
+
 #endif
