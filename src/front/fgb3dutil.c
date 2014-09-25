@@ -109,7 +109,7 @@ LOCAL void print_comp_along_grid_line(int*,int*,GRID_DIRECTION,struct Table*,
 				int*,int*,int*);
 LOCAL boolean reset_segment(int*,int*,int*,GRID_DIRECTION,COMPONENT*,int*,int*,
 				int*);
-LOCAL boolean remove_unphy_pair(int*,GRID_DIRECTION,struct Table *,int*,int*,
+LOCAL boolean remove_unphy_pair(int*,GRID_DIRECTION,INTERFACE*,int*,int*,
 				int*,int*,int**,double*);
 LOCAL void enforce_single_crossing(int*,int*,GRID_DIRECTION,struct Table*,
 				int*,int*,int*);
@@ -1826,8 +1826,9 @@ EXPORT	void remove_unphysical_crxings(
 		    if (c == NO_COMP)
 			continue;
 		    /* Only release it when debugging line removal
-		    if(debugging("rm_crx_x"))
+		    if(debugging("rm_crx_x") && iy == 38 && iz == 51)
 		    {
+			add_to_debug("seg_comp");
 			(void) printf("Before removal:\n");
 			show_line_components3d(ip,smin,smax,0,intfc);
 		    }
@@ -1835,7 +1836,7 @@ EXPORT	void remove_unphysical_crxings(
 		    rm_unphy_crx_along_grid_line(intfc,smin,smax,
 				       	gmax,ip,WEST,crx_type,num_ip,ips);
 		    /* Only release it when debugging line removal
-		    if(debugging("rm_crx_x"))
+		    if(debugging("rm_crx_x") && iy == 38 && iz == 51)
 		    {
 			(void) printf("After forward removal:\n");
 			show_line_components3d(ip,smin,smax,0,intfc);
@@ -1844,6 +1845,8 @@ EXPORT	void remove_unphysical_crxings(
 		    step = rm_unphy_crx_along_grid_line(intfc,smin,smax,
 					gmax,ip,EAST,crx_type,num_ip,ips);
 		    /* Only release it when debugging line removal
+		    if(debugging("rm_crx_x") && iy == 38 && iz == 51)
+			remove_from_debug("seg_comp");
 		    if(debugging("rm_crx_x"))
 		    {
 			(void) printf("After backward removal:\n");
@@ -1854,7 +1857,7 @@ EXPORT	void remove_unphysical_crxings(
 		}
 	    }
 	}
-	if(debugging("rm_crx_x") || debugging("rm_crx"))
+	if (debugging("rm_crx_x") || debugging("rm_crx"))
 	{
 	    (void) printf("Component-crossing after x-sweep (final):\n");
 	    show_grid_components(smin,smax,2,intfc);
@@ -3575,7 +3578,8 @@ LOCAL	int	rm_unphy_crx_along_grid_line(
 	    if (step < fabs(ip[i] - ip_end[i])) 
 		step = fabs(ip[i] - ip_end[i]);
 	}
-	while (remove_unphy_pair(ip_start,dir,T,gmax,smin,smax,num_ip,ips,h))
+	while (remove_unphy_pair(ip_start,dir,intfc,gmax,smin,smax,
+				num_ip,ips,h))
 	{
 	    count++;
 	    if (!reset_segment(ip,ip_start,ip_sub,dir,comp,gmax,smin,smax))
@@ -5373,10 +5377,97 @@ LOCAL boolean reset_segment(
 	return status;
 }	/* reset_segment */
 	
+LOCAL boolean is_subdomain_end(
+	int *ip,
+	int *gmax,
+	GRID_DIRECTION dir,
+	INTERFACE *intfc)
+{
+	switch (dir)
+	{
+	case WEST:
+	    if (ip[0] == 0 && 
+		rect_boundary_type(intfc,0,0) == SUBDOMAIN_BOUNDARY)
+		return YES;
+	    else
+		return NO;
+	case EAST:
+	    if (ip[0] == gmax[0] && 
+		rect_boundary_type(intfc,0,1) == SUBDOMAIN_BOUNDARY)
+		return YES;
+	    else
+		return NO;
+	case SOUTH:
+	    if (ip[1] == 0 && 
+		rect_boundary_type(intfc,1,0) == SUBDOMAIN_BOUNDARY)
+		return YES;
+	    else
+		return NO;
+	case NORTH:
+	    if (ip[1] == gmax[1] && 
+		rect_boundary_type(intfc,1,1) == SUBDOMAIN_BOUNDARY)
+		return YES;
+	    else
+		return NO;
+	    break;
+	case LOWER:
+	    if (ip[2] == 0 && 
+		rect_boundary_type(intfc,2,0) == SUBDOMAIN_BOUNDARY)
+		return YES;
+	    else
+		return NO;
+	case UPPER:
+	    if (ip[2] == gmax[2] && 
+		rect_boundary_type(intfc,2,1) == SUBDOMAIN_BOUNDARY)
+		return YES;
+	    else
+		return NO;
+	default:
+	    (void) printf("Unknow direction in is_subdomain_end()\n");
+	    clean_up(ERROR);
+	}
+}	/* end is_subdomain_end */
+
+LOCAL boolean is_last_crossing(
+	struct Table *T,
+	CRXING *crx,
+	GRID_DIRECTION dir,
+	int *ip,
+	int *gmax)
+{
+	int i,nc,k,list;
+        CRXING *last_crx;
+	int idir = grid_direction_idir(dir);
+
+	k = seg_index3d(ip[0],ip[1],ip[2],dir,gmax);
+        nc = T->seg_crx_count[k];
+	if (nc == 0) return NO;
+	switch (dir)
+	{
+	case WEST:
+	case SOUTH:
+	case LOWER:
+	    if (ip[idir] != 1)
+		return NO;
+	    list = T->seg_crx_lists[k][0];
+	    break;
+	    
+	case EAST:
+	case NORTH:
+	case UPPER:
+	    if (ip[idir] != gmax[idir]-1) 
+		return NO;
+	    list = T->seg_crx_lists[k][nc-1];
+	    break;
+	}
+	last_crx = &(T->crx_store[list]);
+	return (crx == last_crx) ? YES : NO;
+}	/* end is_last_crossing */
+
 LOCAL boolean remove_unphy_pair(
         int *ip,
         GRID_DIRECTION dir,
-        struct Table *T,
+	INTERFACE *intfc,
 	int *gmax,
 	int *smin,
 	int *smax,
@@ -5384,6 +5475,7 @@ LOCAL boolean remove_unphy_pair(
 	int **ips,
 	double *h)
 {
+        struct Table *T = table_of_interface(intfc);
 	COMPONENT *comp = T->components;
 	COMPONENT c1,c2;
 	int i,ip1[MAXD],ip2[MAXD];
@@ -5395,9 +5487,10 @@ LOCAL boolean remove_unphy_pair(
 	CRXING	*crx11,*crx22;
 	int k,nc,num_crx;
 	int count = 0;
-	boolean status = NO;
 	int idir = grid_direction_idir(dir);
 	double scaled_dist;
+	boolean status = NO;
+	boolean is_subdomain_bdry_case = NO;
 
 	opp_dir = opposite_direction(dir);
 	for (i = 0; i < 3; ++i)
@@ -5463,7 +5556,9 @@ LOCAL boolean remove_unphy_pair(
 	}
 	if ((c1 == c2 && num_crx%2 != 0) || (c1 != c2 && num_crx%2 == 0))
 	{
-	    if (c1 != T->ext_comp && c2 != T->ext_comp)
+	    is_subdomain_bdry_case = is_subdomain_end(ip2,gmax,dir,intfc);
+	    if (c1 != T->ext_comp && c2 != T->ext_comp &&
+		!is_subdomain_bdry_case)
 	    {
 	    	(void) printf("In segment: (%d %d %d)-->(%d %d %d):\n",
 			ip[0],ip[1],ip[2],ip2[0],ip2[1],ip2[2]);
@@ -5543,8 +5638,25 @@ LOCAL boolean remove_unphy_pair(
 	    }
 	    if (crx11 == NULL)
 	    {
-		(void) printf("In remove_unphy_pair(), cannot find crx11!\n");
-		clean_up(ERROR);
+		if (is_subdomain_bdry_case && 
+		    is_last_crossing(T,crx1,dir,ip_crx1,gmax))
+		{
+	    	    remove_crossing(crx1,ip_crx1,dir,gmax,T);
+	    	    for (i = 0; i < 3; ++i)
+	    		ips[*num_ip][i] = ip_crx1[i];
+	    	    ++(*num_ip);
+	    	    next_ip_in_dir(ip_crx1,dir,ip_crx1,smin,smax);
+	    	    for (i = 0; i < 3; ++i)
+	    		ips[*num_ip][i] = ip_crx1[i];
+	    	    ++(*num_ip);
+		    return YES;
+		}
+		else
+		{
+		    (void) printf("In remove_unphy_pair(), "
+				  "cannot find crx11!\n");
+		    clean_up(ERROR);
+		}
 	    }
 	}
 	for (i = 0; i < 3; ++i)
