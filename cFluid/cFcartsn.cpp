@@ -4909,8 +4909,8 @@ void G_CARTESIAN::setNeumannStates(
 	    /* Interpolate the state at the reflected point */
 	    FT_IntrpStateVarAtCoords(front,comp,coords_ref,
 		m_vst->dens,getStateDens,&st_tmp.dens,&m_vst->dens[index]);
-	    FT_IntrpStateVarAtCoords(front,comp,coords_ref,
-		m_vst->engy,getStateEngy,&st_tmp.engy,&m_vst->engy[index]);
+//	    FT_IntrpStateVarAtCoords(front,comp,coords_ref,
+//		m_vst->engy,getStateEngy,&st_tmp.engy,&m_vst->engy[index]);
 	    FT_IntrpStateVarAtCoords(front,comp,coords_ref,
 		m_vst->pres,getStatePres,&st_tmp.pres,&m_vst->pres[index]);
 	    FT_IntrpStateVarAtCoords(front,comp,coords_ref,
@@ -4939,8 +4939,7 @@ void G_CARTESIAN::setNeumannStates(
 		st_tmp.momn[j] = v[j]*st_tmp.dens;
 	    }
 
-	    st_tmp.pres = EosPressure(&st_tmp);
-	    if (st_tmp.pres < min_pres) st_tmp.pres = min_pres;
+//	    st_tmp.pres = EosPressure(&st_tmp);
 	    st_tmp.engy = EosEnergy(&st_tmp);
 
 	    if (nb == 0)

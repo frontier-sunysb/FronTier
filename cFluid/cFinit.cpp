@@ -1090,34 +1090,41 @@ void G_CARTESIAN::initProjectileIntfc(
 			front->interf,neg_comp,pos_comp,func,func_params,
 			MOVABLE_BODY_BOUNDARY,&num_segs);
 
-        CursorAfterString(infile,"Enter the gun open position:");
-        fscanf(infile,"%lf",&gun_length);
-        (void) printf("%f\n",gun_length);
-        CursorAfterString(infile,"Enter the gun wall thickness:");
-        fscanf(infile,"%lf",&gun_thickness);
-        (void) printf("%f\n",gun_thickness);
-	gun_thickness -= 0.5*gap;
+	char string[100];
+	CursorAfterString(infile,"Enter yes if there is gun:");
+	fscanf(infile,"%s",string);
+        (void) printf("%s\n",string);
+	if (string[0] == 'Y' || string[0] == 'y')
+	{
+            CursorAfterString(infile,"Enter the gun open position:");
+            fscanf(infile,"%lf",&gun_length);
+            (void) printf("%f\n",gun_length);
+            CursorAfterString(infile,"Enter the gun wall thickness:");
+            fscanf(infile,"%lf",&gun_thickness);
+            (void) printf("%f\n",gun_thickness);
+	    gun_thickness -= 0.5*gap;
 
-	rparams->x0 = rgr->L[0] - rgr->h[0];
-	rparams->y0 = proj_params->cen[1] + 
-		(proj_params->R + gap);
-	rparams->a = gun_length*2.0;
-	rparams->b = gun_thickness;
+	    rparams->x0 = rgr->L[0] - rgr->h[0];
+	    rparams->y0 = proj_params->cen[1] + 
+			(proj_params->R + gap);
+	    rparams->a = gun_length*2.0;
+	    rparams->b = gun_thickness;
 
-	func = rectangle_func;
-	func_params = (POINTER)rparams;
+	    func = rectangle_func;
+	    func_params = (POINTER)rparams;
 
-	neg_comp = SOLID_COMP;
-	pos_comp = GAS_COMP1;
-	wall = (CURVE**)FT_CreateLevelHyperSurfs(front->rect_grid,front->interf,
+	    neg_comp = SOLID_COMP;
+	    pos_comp = GAS_COMP1;
+	    wall = (CURVE**)FT_CreateLevelHyperSurfs(front->rect_grid,front->interf,
                     	neg_comp,pos_comp,func,func_params,NEUMANN_BOUNDARY,
 			&num_segs);
 
-	rparams->y0 = proj_params->cen[1] - 
-		(proj_params->R + gap) - gun_thickness;
-	wall = (CURVE**)FT_CreateLevelHyperSurfs(front->rect_grid,front->interf,
+	    rparams->y0 = proj_params->cen[1] - 
+			(proj_params->R + gap) - gun_thickness;
+	    wall = (CURVE**)FT_CreateLevelHyperSurfs(front->rect_grid,front->interf,
                     	neg_comp,pos_comp,func,func_params,NEUMANN_BOUNDARY,
 			&num_segs);
+	}
 
 	level_func_pack->func = NULL;
 	level_func_pack->point_array = NULL;

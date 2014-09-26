@@ -22,6 +22,8 @@ USEGPU = @USEGPU@
 
 parachute : @devel@ ../lib/libiF.a
 
+mcartsn.o: ../iFluid/iFluid.h mcartsn.cpp
+	${CXX} -c mcartsn.cpp $(incsloc) $(incs) ${Petsc_Include}
 iFbasic.o  : ../iFluid/iFluid.h ../iFluid/iFbasic.cpp
 	${CXX} -c ../iFluid/iFbasic.cpp $(incsloc) $(incs) ${Petsc_Include}
 iFcartsn2d.o : ../iFluid/iFluid.h ../solver/solver.h ../iFluid/iFcartsn2d.cpp
@@ -62,13 +64,13 @@ airfoil_gpu.o: ../airfoil/airfoil_gpu.cu ../airfoil/airfoil_gpu.cuh
 	nvcc -arch sm_20 -c -I. -I../include ../airfoil/airfoil_gpu.cu
 
 ifeq ($(USEGPU),no)
-parachute: ../iFluid/iFluid.h ../solver/solver.h ../airfoil/airfoil.h parachute.cpp afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o ../lib/libiF.a
+parachute: ../iFluid/iFluid.h ../solver/solver.h ../airfoil/airfoil.h parachute.cpp mcartsn.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o ../lib/libiF.a
 	${CXX} -c parachute.cpp $(incsloc) $(incs) ${Petsc_Include}
-	$(CXX) -o parachute parachute.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} -frounding-math -L/usr/lib64 -lgmp -lmpfr
+	$(CXX) -o parachute mcartsn.o parachute.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} -frounding-math -L/usr/lib64 -lgmp -lmpfr
 else
-parachute: ../iFluid/iFluid.h ../solver/solver.h ../airfoil/airfoil.h parachute.cpp afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o ../lib/libiF.a airfoil_gpu.o
+parachute: mcartsn.h ../iFluid/iFluid.h ../solver/solver.h ../airfoil/airfoil.h parachute.cpp mcartsn.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o ../lib/libiF.a airfoil_gpu.o
 	${CXX} -c parachute.cpp $(incsloc) $(incs) ${Petsc_Include}
-	$(CXX) -o parachute parachute.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o airfoil_gpu.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so -frounding-math -L/usr/lib64 -lgmp -lmpfr 
+	$(CXX) -o parachute mcartsn.o parachute.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o airfoil_gpu.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so -frounding-math -L/usr/lib64 -lgmp -lmpfr 
 endif
 
 
