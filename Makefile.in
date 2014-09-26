@@ -184,6 +184,7 @@ $$ME/crystal/*.h \
 $$ME/crystal/Makefile.in \
 $$ME/crystal/README \
 $$ME/crystal/in-* \
+$$ME/crystal/input-*/* \
 $$ME/crystal/mrun* \
 $$ME/melting/*.cpp \
 $$ME/melting/*.h \
