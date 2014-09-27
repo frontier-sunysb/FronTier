@@ -235,7 +235,7 @@ $$ME/frgb/mrun* \
 $$ME/climate/*.cpp \
 $$ME/climate/*.h \
 $$ME/climate/Makefile.in \
-$$ME/climate/in-* \
+$$ME/climate/input-*/* \
 $$ME/climate/mrun* \
 $$ME/README \
 $$ME/finance/*.cpp \
