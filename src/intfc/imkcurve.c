@@ -1342,11 +1342,14 @@ EXPORT double triangle_func(
 
         dist0 = (x2[1]-x1[1])*(x1[0]-x3[0])-(x1[1]-x3[1])*(x2[0]-x1[0]);
         dist0 = fabs(dist0);
-        dist1 = ((x2[1]-x1[1])*(x1[0]-coords[0])-(x1[1]-coords[1])*(x2[0]-x1[0]));
+        dist1 = ((x2[1]-x1[1])*(x1[0]-coords[0])-(x1[1]-
+				coords[1])*(x2[0]-x1[0]));
         dist1 = fabs(dist1);
-        dist2 = ((x2[1]-x3[1])*(x3[0]-coords[0])-(x3[1]-coords[1])*(x2[0]-x3[0]));
+        dist2 = ((x2[1]-x3[1])*(x3[0]-coords[0])-(x3[1]-
+				coords[1])*(x2[0]-x3[0]));
         dist2 = fabs(dist2);
-        dist3 = ((x3[1]-x1[1])*(x1[0]-coords[0])-(x1[1]-coords[1])*(x3[0]-x1[0]));
+        dist3 = ((x3[1]-x1[1])*(x1[0]-coords[0])-(x1[1]-
+				coords[1])*(x3[0]-x1[0]));
         dist3 = fabs(dist3);
         dd = dist1+dist2+dist3-dist0;
 
@@ -1359,6 +1362,50 @@ EXPORT double triangle_func(
         }
 
 }       /* end triangle_func  JD*/
+
+/* 	This function make sure rectangle boundary is not on grid lines.
+ *  	If it does, shift the boundary outward for tolerance of 1.0e-5*h
+*/
+EXPORT void adjust_rectangle_params(
+	RECTANGLE_PARAMS *rparams,
+	RECT_GRID *rgr)
+{
+	int ix,iy;	
+	double *L = rgr->L;
+        double *h = rgr->h;
+	double tol[2];
+	double x0,y0,a,b;
+	tol[0] = 1.0e-5*h[0];
+	tol[1] = 1.0e-5*h[1];
+	x0 = rparams->x0;
+	y0 = rparams->y0;
+	a = rparams->a;
+	b = rparams->b;
+
+	ix = irint((rparams->x0 - L[0])/h[0]);
+	if (fabs(rparams->x0 - (L[0]+ix*h[0])) < tol[0])
+	{
+	    x0 -= tol[0];
+	    a += tol[0];
+	}
+	ix = irint((rparams->x0 + rparams->a - L[0])/h[0]);
+	if (fabs(rparams->x0 + rparams->a - (L[0]+ix*h[0])) < tol[0])
+	    a += tol[0];
+
+	iy = irint((rparams->y0 - L[1])/h[1]);
+	if (fabs(rparams->y0 - (L[1]+iy*h[1])) < tol[1])
+	{
+	    y0 -= tol[1];
+	    b += tol[1];
+	}
+	iy = irint((rparams->y0 + rparams->b - L[1])/h[1]);
+	if (fabs(rparams->y0 + rparams->b - (L[1]+iy*h[1])) < tol[1])
+	    b += tol[1];
+	rparams->x0 = x0;
+	rparams->y0 = y0;
+	rparams->a = a;
+	rparams->b = b;
+}	/* end adjust_rect_params */
 
 EXPORT double rectangle_func(
         POINTER func_params,

@@ -52,6 +52,7 @@ int main(int argc, char **argv)
 	static EQN_PARAMS eqn_params;
 	int i;
 	RG_PARAMS rgb_params;
+        char test_name[100];
 
 	G_CARTESIAN	g_cartesian(front);
 
@@ -125,7 +126,6 @@ int main(int argc, char **argv)
                 (void) printf("Passed FT_InitIntfc()\n");
 	    if (debugging("init_intfc"))
 	    {
-                char test_name[100];
                 switch (f_basic.dim)
                 {
                 case 2:

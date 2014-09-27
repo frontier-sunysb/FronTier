@@ -843,8 +843,22 @@ EXPORT	boolean FT_IntrpStateVarAtCoords(
 
 	if (!rect_in_which(coords,icoords,gr))
 	{
-	    *ans = 0.0;
-	    return NO;
+	    if (debugging("the_pt"))
+		printf("rect_in_which() failed\n");
+	    if (default_ans != NULL)
+	    {
+	    	if (debugging("the_pt"))
+		    printf("Using default interpolate\n");
+	    	*ans = *default_ans;
+		return YES;
+	    }
+	    else
+	    {
+	    	if (debugging("the_pt"))
+		    printf("return NO\n");
+	    	*ans = 0.0;
+	    	return NO;
+	    }
 	}
 	collect_cell_ptst(blk_cell,icoords,coords,comp,front,grid_array,
 				get_state);

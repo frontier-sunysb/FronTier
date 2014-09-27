@@ -807,6 +807,7 @@ IMPORT  double  cuboid_func(POINTER,double*);
 IMPORT  double  cylinder_func(POINTER,double*);
 IMPORT  double  cone_func(POINTER,double*);
 IMPORT  double  tetrahedron_func(POINTER,double*);
+IMPORT  void  	adjust_rectangle_params(RECTANGLE_PARAMS*,RECT_GRID*);
 
 /*      imksurf.c */
 IMPORT  boolean 	make_bdry_surfaces(INTERFACE*,RECT_GRID*);

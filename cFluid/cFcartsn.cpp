@@ -3597,6 +3597,9 @@ void G_CARTESIAN::appendGhostBuffer(
 	int		ind3[3][3] = {{0,1,2},{1,2,0},{2,0,1}};
 	int 		ic_next[MAXD];
 	INTERFACE	*grid_intfc = front->grid_intfc;
+	static int count = 0;
+	count++;
+	boolean Debug = NO;
 
 	if (debugging("append_buffer"))
 		printf("Entering appendGhostBuffer()\n");
@@ -3641,10 +3644,10 @@ void G_CARTESIAN::appendGhostBuffer(
 			ldir[idir],comp,(POINTER*)&state,&hs,crx_coords))
 		    {
 		    	(void) printf("In appendGhostBuffer()\n");
-		    	(void) printf("ERROR: No crossing found!\n");
-		    	(void) print_int_vector("icoords=", ic_next,3,"\n");
+		    	(void) printf("ERROR case 0: No crossing found!\n");
+		    	(void) print_int_vector("icoords=", ic_next,dim,"\n");
 		    	(void) printf("direction: %s side %d\n",
-		           		grid_direction_name(rdir[idir]), nb);
+		           		grid_direction_name(ldir[idir]), nb);
 		    	clean_up(ERROR);
 		    }
 		    switch (wave_type(hs))
@@ -3726,8 +3729,8 @@ void G_CARTESIAN::appendGhostBuffer(
 			rdir[idir],comp,(POINTER*)&state,&hs,crx_coords))
 		    {
 		    	(void) printf("In appendGhostBuffer()\n");
-		    	(void) printf("ERROR: No crossing found!\n");
-		    	(void) print_int_vector("icoords=",ic_next,3,"\n");
+		    	(void) printf("ERROR case 1: No crossing found!\n");
+		    	(void) print_int_vector("icoords=",ic_next,dim,"\n");
 		    	(void) printf("direction: %s side %d\n",
 		            	grid_direction_name(rdir[idir]), nb);
 		    	clean_up(ERROR);
@@ -4909,8 +4912,6 @@ void G_CARTESIAN::setNeumannStates(
 	    /* Interpolate the state at the reflected point */
 	    FT_IntrpStateVarAtCoords(front,comp,coords_ref,
 		m_vst->dens,getStateDens,&st_tmp.dens,&m_vst->dens[index]);
-//	    FT_IntrpStateVarAtCoords(front,comp,coords_ref,
-//		m_vst->engy,getStateEngy,&st_tmp.engy,&m_vst->engy[index]);
 	    FT_IntrpStateVarAtCoords(front,comp,coords_ref,
 		m_vst->pres,getStatePres,&st_tmp.pres,&m_vst->pres[index]);
 	    FT_IntrpStateVarAtCoords(front,comp,coords_ref,
@@ -4939,7 +4940,6 @@ void G_CARTESIAN::setNeumannStates(
 		st_tmp.momn[j] = v[j]*st_tmp.dens;
 	    }
 
-//	    st_tmp.pres = EosPressure(&st_tmp);
 	    st_tmp.engy = EosEnergy(&st_tmp);
 
 	    if (nb == 0)
@@ -4966,6 +4966,7 @@ void G_CARTESIAN::setNeumannStates(
 		if (debugging("crx_reflection"))
 		{
 	            sprintf(fname,"intfc-%d-%d",count,i);
+	            sprintf(fname,"intfc-xx");
 	            xgraph_2d_reflection(fname,front->grid_intfc,coords,
 				crx_coords,coords_ref,nor);
 		}
