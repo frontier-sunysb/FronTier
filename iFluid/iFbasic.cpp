@@ -3533,7 +3533,6 @@ double Incompress_Solver_Smooth_Basis::computeMuOfBaldwinLomax(
 	    }
 	    udif = umax - umin;
 	    vort = wmax;
-	    printf("maximum vort = %f\n",vort);
 	    Fmax = ymax*abs(vort);
 	}
 	index = d_index(icoords,top_gmax,dim);

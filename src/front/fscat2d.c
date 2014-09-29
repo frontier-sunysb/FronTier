@@ -138,6 +138,7 @@ LOCAL	void	set_interior_node_flags(NODE*,boolean,int);
 LOCAL 	boolean 	delete_double_cut_curves(INTERFACE*);
 LOCAL 	boolean 	seal_cut_node_curves(CURVE*,INTERFACE*);
 LOCAL 	boolean 	separated_nodes(NODE*,NODE*,INTERFACE*);
+LOCAL	boolean 	is_interior_end_node(NODE*);
 
 
 /* THIS "set_none_local" is exclusively used in cut_interface()
@@ -312,6 +313,13 @@ EXPORT boolean f_intfc_communication2d(
 	}
 	status = delete_double_cut_curves(intfc);
 	status = pp_min_status(status);
+	/*
+	char fname[100];
+	sprintf(fname,"test2d-%d.xg",pp_mynode());
+	xgraph_2d_intfc(fname,intfc);
+	print_interface(intfc);
+	clean_up(0);
+	*/
 	if (status == FUNCTION_FAILED)
 	{
 	    (void) printf("First call of check_for_cut_nodes() failed\n");
@@ -1242,13 +1250,20 @@ EXPORT	void	cut_interface(
 		 * reason for resetting SUBDOMAIN_NODE below.
 		 */
 
+		printf("node into this: %f %f\n",Coords(c->start->posn)[0],
+				Coords(c->start->posn)[1]);
 		if (save_interior)
 		{
-		    set_interior_node_flags(c->start,clip,dir);
-		    if (node_type(c->start) == SUBDOMAIN_NODE)
-			node_type(c->start) = ERROR;
-		    if (adj_bond_cross[cr_index])
-			set_adj_bond_cross_node(c->start);
+		    if (!is_interior_end_node(c->start))
+		    {
+		    	set_interior_node_flags(c->start,clip,dir);
+		    	if (node_type(c->start) == SUBDOMAIN_NODE)
+			    node_type(c->start) = ERROR;
+		    	if (adj_bond_cross[cr_index])
+			    set_adj_bond_cross_node(c->start);
+		    }
+		    else
+			clear_node_flags(c->start);
 		}
 		else
 		{
@@ -1261,11 +1276,16 @@ EXPORT	void	cut_interface(
 
 	    	if (save_interior)
 	    	{
-	    	    set_interior_node_flags(c->end,clip,dir);
-	    	    if (node_type(c->end) == SUBDOMAIN_NODE)
-	    		node_type(c->end) = ERROR;
-	    	    if (adj_bond_cross[cr_index])
-	    		set_adj_bond_cross_node(c->end);
+		    if (!is_interior_end_node(c->end))
+		    {
+	    	    	set_interior_node_flags(c->end,clip,dir);
+	    	    	if (node_type(c->end) == SUBDOMAIN_NODE)
+	    		    node_type(c->end) = ERROR;
+	    	    	if (adj_bond_cross[cr_index])
+	    		    set_adj_bond_cross_node(c->end);
+		    }
+		    else
+			clear_node_flags(c->end);
 	    	}
 	    	else
 	    	{
@@ -1339,7 +1359,9 @@ EXPORT	void	cut_interface(
 	    if ((node_type(*n) != ERROR) && is_cut_node(*n) &&
 	        (node_type(*n) < FIRST_PHYSICS_NODE_TYPE) &&
 	        (num_curves_at_node(*n,NULL,NULL) <= 1))
+	    {
 	    	node_type(*n) = ERROR;
+	    }
 	}
 
 	DEBUG_INTERFACE("Interface at end of cut_interface()",intfc);
@@ -3678,7 +3700,8 @@ LOCAL	void print_overlap(
 LOCAL void print_node_flags(
 	NODE		*n)
 {
-	(void) printf("Node %3llu boundary %5d  ",(long long unsigned int)node_number(n),Boundary(n));
+	(void) printf("Node %3llu boundary %5d  ",
+			(long long unsigned int)node_number(n),Boundary(n));
 	if (is_bdry(n))
 	    (void) printf("BDRY ");
 	else
@@ -3732,13 +3755,13 @@ EXPORT  void    clip_interface_with_rect(
         DEBUG_INTERFACE("Interface into clip_interface_with_rect()",intfc);
 
         /* Interface cross with left rectangle boundary */
-        interface_intersection_segment(intfc, 0, 0, L[0], L[1], U[1], force_clip);
+        interface_intersection_segment(intfc,0,0,L[0],L[1],U[1],force_clip);
         /* Interface cross with right rectangle boundary */
-        interface_intersection_segment(intfc, 0, 1, U[0], L[1], U[1], force_clip);
+        interface_intersection_segment(intfc,0,1,U[0],L[1],U[1],force_clip);
         /* Interface cross with lower rectangle boundary */
-        interface_intersection_segment(intfc, 1, 0, L[1], L[0], U[0], force_clip);
+        interface_intersection_segment(intfc,1,0,L[1],L[0],U[0],force_clip);
         /* Interface cross with upper rectangle boundary */
-        interface_intersection_segment(intfc, 1, 1, U[1], L[0], U[0], force_clip);
+        interface_intersection_segment(intfc,1,1,U[1],L[0],U[0],force_clip);
 
         delete_curves_inside_rect(intfc, L, U);
 
@@ -4765,3 +4788,9 @@ LOCAL boolean separated_nodes(
 	return NO;
 }	/* end separated_nodes */
 
+LOCAL	boolean is_interior_end_node(NODE *n)
+{
+	if (is_bdry(n)) return NO;
+	if (I_NumOfNodeCurves(n) > 1) return NO;
+	return YES;
+}	/* end is_interior_end_node */
