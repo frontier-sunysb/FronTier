@@ -193,13 +193,7 @@ extern void read_iF_dirichlet_bdry_data(
 		    break;
 		case 's':			// Split state
 		case 'S':
-		    SPLIT_STATE_PARAMS *sparams;
 		    get_split_state_params(front,infile,&func_params);
-		    sparams = (SPLIT_STATE_PARAMS*)func_params;
-		    state = &sparams->left_state;
-		    state->phi = getPhiFromPres(front,state->pres);
-		    state = &sparams->right_state;
-		    state->phi = getPhiFromPres(front,state->pres);
 		    FT_InsertDirichletBoundary(front,iF_splitBoundaryState,
 					"iF_splitBoundaryState",
 					func_params,NULL,hs,i_surf);
@@ -257,13 +251,7 @@ extern void read_iF_dirichlet_bdry_data(
 		    break;
 		case 's':			// Split state
 		case 'S':
-		    SPLIT_STATE_PARAMS *sparams;
 		    get_split_state_params(front,infile,&func_params);
-		    sparams = (SPLIT_STATE_PARAMS*)func_params;
-		    state = &sparams->left_state;
-		    state->phi = getPhiFromPres(front,state->pres);
-		    state = &sparams->right_state;
-		    state->phi = getPhiFromPres(front,state->pres);
 		    FT_InsertDirichletBoundary(front,iF_splitBoundaryState,
 					"iF_splitBoundaryState",
 					func_params,NULL,hs,i_surf);
