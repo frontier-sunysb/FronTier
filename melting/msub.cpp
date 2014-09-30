@@ -651,6 +651,12 @@ extern double getStateMu(POINTER state)
 	return fstate->mu;
 }	/* end getStateMu */
 
+extern double getStateTemp(POINTER state)
+{
+	STATE *fstate = (STATE*)state;
+	return fstate->temperature;
+}	/* end getStateTemp */
+
 extern void fluid_print_front_states(
         FILE *outfile,
         Front *front)

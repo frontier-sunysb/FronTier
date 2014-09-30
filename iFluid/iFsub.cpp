@@ -117,6 +117,12 @@ extern double getStateMu(POINTER state)
 	return fstate->mu;
 }	/* end getStateMu */
 
+extern double getStateTemp(POINTER state)
+{
+	STATE *fstate = (STATE*)state;
+	return fstate->temperature;
+}	/* end getStateMTemp */
+
 extern void read_iF_dirichlet_bdry_data(
 	char *inname,
 	Front *front,

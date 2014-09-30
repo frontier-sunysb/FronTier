@@ -528,6 +528,7 @@ extern double getStateYimp(POINTER);
 extern double getStateZimp(POINTER);
 extern double getStateComp(POINTER);
 extern double getStateMu(POINTER);
+extern double getStateTemp(POINTER);
 extern double getPressure(Front*,double*,double*);
 extern double getPhiFromPres(Front*,double);
 extern double burger_flux(double,double,double);

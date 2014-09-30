@@ -1755,13 +1755,6 @@ void CARTESIAN::computeSource()
 	return;
 }
                                     
-extern double getStateTemp(POINTER state)
-{
-        STATE *fstate = (STATE*)state;
-        return fstate->temperature;
-}       /* end getStatetemp */
-
-
 /*temperature reading parameters*/
 extern void read_params(
 	char *inname,
