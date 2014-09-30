@@ -1043,6 +1043,17 @@ void HYPERB_SOLVER::setDirichletStates(
 	  }
 	  else if (boundary_state_function(hs) &&
               strcmp(boundary_state_function_name(hs),
+              "iF_splitBoundaryState") == 0)
+	  {
+	    for (k = istart; k <= nrad; ++k)
+	    {
+		for (j = 0; j < dim; j++)
+		    vst->vel[j][nrad-k] = (*getStateVel[j])(state);
+		vst->rho[nrad-k] = rho_of_comp(comp);
+	    }
+	  }
+	  else if (boundary_state_function(hs) &&
+              strcmp(boundary_state_function_name(hs),
 	      "flowThroughBoundaryState") == 0)
 	  {
 	    //flow through bdry

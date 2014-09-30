@@ -382,7 +382,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
         double eta;
 	/*For boundary state*/
 	HYPER_SURF *hs;
-	POINTER intfc_state;
+	STATE *intfc_state;
 	INTERFACE* grid_intfc = front->grid_intfc;
 	double coords[MAXD];
 
@@ -488,7 +488,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
                                 &T_nb,crx_coords);*/
 			fr_crx_grid_seg = FT_StateStructAtGridCrossing(front,
 				grid_intfc,icoords,dir[l][m],comp,
-				&intfc_state,&hs,crx_coords);
+				(POINTER*)&intfc_state,&hs,crx_coords);
                         if (!fr_crx_grid_seg) 
                         {
                             solver.Add_A(I,I_nb,coeff_nb);
@@ -506,7 +506,8 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 			}
 			else
 			{
-                           rhs -= -0.5*lambda*(2.0*T_nb - T0);
+			    T_nb = intfc_state->temperature;
+                            rhs -= -0.5*lambda*(2.0*T_nb - T0);
 			}
                     }
                 }
@@ -1704,17 +1705,17 @@ void CARTESIAN::setDomain()
 
 void CARTESIAN::initMovieVariables()
 {
-	if(dim == 2)
+	switch (dim)
 	{
-	    FT_AddHdfMovieVariable(front,NO,YES,SOLID_COMP,
-                                "temperature",0,field->temperature,
-				getStateTemp,0,0);
-	}
-	else
-        {
+	case 2:
+	    FT_AddHdfMovieVariable(front,NO,YES,SOLID_COMP,"temp",0,
+				field->temperature,getStateTemp,0,0);
+	    break;
+	case 3:
             /* Added for vtk movie of scalar field */
-            FT_AddVtkScalarMovieVariable(front,"temperature",field->temperature);
-        }
+            FT_AddVtkScalarMovieVariable(front,"temp",field->temperature);
+	    break;
+	}
 
         if (debugging("trace"))
             printf("Leaving initMovieVariables()\n");

@@ -37,7 +37,9 @@ static void iF_flowThroughBoundaryState2d(double*,HYPER_SURF*,Front*,POINTER,
         		POINTER);
 static void iF_flowThroughBoundaryState3d(double*,HYPER_SURF*,Front*,POINTER,
         		POINTER);
+static void iF_splitBoundaryState(double*,HYPER_SURF*,Front*,POINTER,POINTER);
 static void get_time_dependent_params(int,FILE*,POINTER*);
+static void get_split_state_params(Front*,FILE*,POINTER*);
 static void addToEnergyFlux(RECT_GRID*,HYPER_SURF*,double*,double*,int,int,
 			boolean);
 
@@ -136,6 +138,11 @@ extern void read_iF_dirichlet_bdry_data(
 	HYPER_SURF *hs;
 	int i_surf;
 
+	(void) printf("Available type of Dirichlet boundary include: \n");
+	(void) printf("\tConstant state (C)\n");
+	(void) printf("\tFlow through (F)\n");
+	(void) printf("\tTime dependent (T)\n");
+	(void) printf("\tSplit state (S)\n");
 	for (i = 0; i < dim; ++i)
 	{
 	    if (f_basic.boundary[i][0] == DIRICHLET_BOUNDARY)
@@ -143,8 +150,8 @@ extern void read_iF_dirichlet_bdry_data(
 		hs = NULL;
 		i_surf = 2*i;
 	        if (rect_boundary_type(front->interf,i,0) == DIRICHLET_BOUNDARY)
-		    hs = FT_RectBoundaryHypSurf(front->interf,DIRICHLET_BOUNDARY,
-					i,0);
+		    hs = FT_RectBoundaryHypSurf(front->interf,
+					DIRICHLET_BOUNDARY,i,0);
 		sprintf(msg,"For lower boundary in %d-th dimension",i);
 		CursorAfterString(infile,msg);
 		(void) printf("\n");
@@ -172,15 +179,29 @@ extern void read_iF_dirichlet_bdry_data(
 		    break;
 		case 'f':			// Flow through state
 		case 'F':
-		    FT_InsertDirichletBoundary(front,iF_flowThroughBoundaryState,
+		    FT_InsertDirichletBoundary(front,
+					iF_flowThroughBoundaryState,
 					"flowThroughBoundaryState",NULL,
 					NULL,hs,i_surf);
 		    break;
-		case 't':			// Flow through state
+		case 't':			// Time dependent state
 		case 'T':
 		    get_time_dependent_params(dim,infile,&func_params);
 		    FT_InsertDirichletBoundary(front,iF_timeDependBoundaryState,
 					"iF_timeDependBoundaryState",
+					func_params,NULL,hs,i_surf);
+		    break;
+		case 's':			// Split state
+		case 'S':
+		    SPLIT_STATE_PARAMS *sparams;
+		    get_split_state_params(front,infile,&func_params);
+		    sparams = (SPLIT_STATE_PARAMS*)func_params;
+		    state = &sparams->left_state;
+		    state->phi = getPhiFromPres(front,state->pres);
+		    state = &sparams->right_state;
+		    state->phi = getPhiFromPres(front,state->pres);
+		    FT_InsertDirichletBoundary(front,iF_splitBoundaryState,
+					"iF_splitBoundaryState",
 					func_params,NULL,hs,i_surf);
 		    break;
 		default:
@@ -192,8 +213,9 @@ extern void read_iF_dirichlet_bdry_data(
 	    {
 		hs = NULL;
 		i_surf = 2*i + 1;
-                if (rect_boundary_type(front->interf,i,1) == DIRICHLET_BOUNDARY)                    hs = FT_RectBoundaryHypSurf(front->interf,DIRICHLET_BOUNDARY,
-                                                i,1);
+                if (rect_boundary_type(front->interf,i,1) == DIRICHLET_BOUNDARY)
+		    hs = FT_RectBoundaryHypSurf(front->interf,
+					DIRICHLET_BOUNDARY,i,1);
 		sprintf(msg,"For upper boundary in %d-th dimension",i);
 		CursorAfterString(infile,msg);
 		(void) printf("\n");
@@ -221,15 +243,29 @@ extern void read_iF_dirichlet_bdry_data(
 		    break;
 		case 'f':			// Flow through state
 		case 'F':
-		    FT_InsertDirichletBoundary(front,iF_flowThroughBoundaryState,
+		    FT_InsertDirichletBoundary(front,
+					iF_flowThroughBoundaryState,
 					"flowThroughBoundaryState",NULL,
 					NULL,hs,i_surf);
 		    break;
-		case 't':			// Flow through state
+		case 't':			// Time dependent state
 		case 'T':
 		    get_time_dependent_params(dim,infile,&func_params);
 		    FT_InsertDirichletBoundary(front,iF_timeDependBoundaryState,
 					"iF_timeDependBoundaryState",
+					func_params,NULL,hs,i_surf);
+		    break;
+		case 's':			// Split state
+		case 'S':
+		    SPLIT_STATE_PARAMS *sparams;
+		    get_split_state_params(front,infile,&func_params);
+		    sparams = (SPLIT_STATE_PARAMS*)func_params;
+		    state = &sparams->left_state;
+		    state->phi = getPhiFromPres(front,state->pres);
+		    state = &sparams->right_state;
+		    state->phi = getPhiFromPres(front,state->pres);
+		    FT_InsertDirichletBoundary(front,iF_splitBoundaryState,
+					"iF_splitBoundaryState",
 					func_params,NULL,hs,i_surf);
 		    break;
 		default:
@@ -257,6 +293,23 @@ extern void restart_set_dirichlet_bdry_function(Front *front)
             	bstate->_boundary_state_function = iF_flowThroughBoundaryState;
 	}
 }	/* end restart_set_dirichlet_bdry_function */
+
+static void iF_splitBoundaryState(
+        double          *p0,
+        HYPER_SURF      *hs,
+        Front           *front,
+        POINTER         params,
+        POINTER         state)
+{
+	SPLIT_STATE_PARAMS *sparams = (SPLIT_STATE_PARAMS*)params;
+	STATE *iF_state = (STATE*)state;
+	int dir = sparams->dir;
+
+	if (p0[dir] < sparams->split_coord)
+	    *iF_state =  sparams->left_state;
+	else
+	    *iF_state =  sparams->right_state;
+}	/* end iF_splitBoundaryState */
 
 extern void iF_timeDependBoundaryState(
         double          *p0,
@@ -785,6 +838,14 @@ static  void dirichlet_point_propagate(
 	    	(*boundary_state_function(oldhs))(Coords(oldp),oldhs,front,
 			(POINTER)td_params,(POINTER)newst);	
 	    }
+	    else if (strcmp(boundary_state_function_name(oldhs),
+		       "iF_splitBoundaryState") == 0)
+	    {
+		SPLIT_STATE_PARAMS *sparams = (SPLIT_STATE_PARAMS*)
+				boundary_state_function_params(oldhs);
+	    	(*boundary_state_function(oldhs))(Coords(oldp),oldhs,front,
+			(POINTER)sparams,(POINTER)newst);	
+	    }
             for (i = 0; i < dim; ++i)
 		FT_RecordMaxFrontSpeed(i,fabs(newst->vel[i]),NULL,Coords(newp),
 					front);
@@ -1171,7 +1232,14 @@ extern void read_iFparams(
             }
             (void) printf("\n");
         }
-
+	iFparams->scalar_field = NO;
+        if (CursorAfterStringOpt(infile,"Enter yes to consider scalar field:"))
+        {
+            fscanf(infile,"%s",string);
+            (void) printf("%s\n",string);
+            if (string[0] == 'y' || string[0] == 'Y')
+                iFparams->scalar_field = YES;
+        }
 	fclose(infile);
 }	/* end read_iFparams */
 
@@ -1195,6 +1263,66 @@ extern boolean isDirichletPresetBdry(
 	    return NO;
 	return YES;
 }	/* end isDirichletPresetBdry */
+
+static void get_split_state_params(
+	Front *front,
+	FILE *infile,
+	POINTER *params)
+{
+	static SPLIT_STATE_PARAMS *split_st_params;
+	char string[100];
+	int k;
+	int dim = FT_Dimension();
+
+	FT_ScalarMemoryAlloc((POINTER*)&split_st_params,
+                        sizeof(SPLIT_STATE_PARAMS));
+	*params = (POINTER)split_st_params;
+
+	CursorAfterString(infile,"Enter direction of split:");
+	fscanf(infile,"%d",&split_st_params->dir);
+	(void) printf(" %d\n",split_st_params->dir);
+	CursorAfterString(infile,"Enter coordinate of split:");
+	fscanf(infile,"%lf",&split_st_params->split_coord);
+	(void) printf(" %lf\n",split_st_params->split_coord);
+
+	CursorAfterString(infile,"For the left state");
+	CursorAfterString(infile,"Enter velocity: ");
+	for (k = 0; k < dim; ++k)
+	{
+	    fscanf(infile,"%lf",&split_st_params->left_state.vel[k]);
+	    (void) printf("%f ",&split_st_params->left_state.vel[k]);
+	}
+	(void) printf("\n");
+	CursorAfterString(infile,"Enter pressure:");
+	fscanf(infile,"%lf",&split_st_params->left_state.pres);
+	(void) printf("%f\n",split_st_params->left_state.pres);
+	if (CursorAfterStringOpt(infile,"Enter temperature:"))
+	{
+	    fscanf(infile,"%lf",&split_st_params->left_state.temperature);
+	    (void) printf("%f\n",split_st_params->left_state.temperature);
+	}
+	split_st_params->left_state.phi = getPhiFromPres(front,
+			split_st_params->left_state.pres);
+
+	CursorAfterString(infile,"For the right state");
+	CursorAfterString(infile,"Enter velocity: ");
+	for (k = 0; k < dim; ++k)
+	{
+	    fscanf(infile,"%lf",&split_st_params->right_state.vel[k]);
+	    (void) printf("%f ",&split_st_params->right_state.vel[k]);
+	}
+	(void) printf("\n");
+	CursorAfterString(infile,"Enter pressure:");
+	fscanf(infile,"%lf",&split_st_params->right_state.pres);
+	(void) printf("%f\n",split_st_params->right_state.pres);
+	if (CursorAfterStringOpt(infile,"Enter temperature:"))
+	{
+	    fscanf(infile,"%lf",&split_st_params->right_state.temperature);
+	    (void) printf("%f\n",split_st_params->right_state.temperature);
+	}
+	split_st_params->right_state.phi = getPhiFromPres(front,
+			split_st_params->right_state.pres);
+}	/* end get_split_state_params */
 
 static void get_time_dependent_params(
 	int dim,

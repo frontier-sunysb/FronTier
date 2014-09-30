@@ -172,6 +172,14 @@ struct _TIME_DEPENDENT_PARAMS {
 };
 typedef struct _TIME_DEPENDENT_PARAMS TIME_DEPENDENT_PARAMS;
 
+struct _SPLIT_STATE_PARAMS {
+	int dir;
+	double split_coord;
+	STATE left_state;
+	STATE right_state;
+};
+typedef struct _SPLIT_STATE_PARAMS SPLIT_STATE_PARAMS;
+
 struct _RG_PARAMS {
         int dim;
         double  total_mass;             /* Total mass */

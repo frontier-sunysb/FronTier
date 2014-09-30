@@ -888,27 +888,6 @@ void Incompress_Solver_Smooth_Basis::initMovieVariables()
 		    FT_AddVtkScalarMovieVariable(front,"VISC",field->mu);
 	    	}
 	    }
-	    if (CursorAfterStringOpt(infile,
-		"Type y to make movie of temperature:"))
-	    {
-            	fscanf(infile,"%s",string);
-            	(void) printf("%s\n",string);
-            	if (string[0] == 'Y' || string[0] == 'y')
-	    	{
-		    if (set_bound)
-		    {
-		        CursorAfterString(infile,
-				"Enter min and max temperature:");
-                        fscanf(infile,"%lf %lf",&var_min,&var_max);
-                        (void) printf("%f %f\n",var_min,var_max);
-		    }
-		    FT_AddHdfMovieVariable(front,set_bound,YES,SOLID_COMP,
-				"temp",0,field->temperature,getStateTemp,
-				var_max,var_min);
-		    FT_AddVtkScalarMovieVariable(front,"TEMP",
-				field->temperature);
-	    	}
-	    }
 	    break;
 	case 3:
 	    CursorAfterString(infile,"Type y to make yz cross section movie:");
@@ -3219,6 +3198,10 @@ extern int ifluid_find_state_at_crossing(
 	if (wave_type(*hs) == DIRICHLET_BOUNDARY) 
 	{
 	    if (boundary_state(*hs))
+	    	return CONST_V_PDE_BOUNDARY;
+	    else if (boundary_state_function(*hs) &&
+		strcmp(boundary_state_function_name(*hs),
+		"iF_splitBoundaryState") == 0)
 	    	return CONST_V_PDE_BOUNDARY;
 	    else
 	    	return CONST_P_PDE_BOUNDARY;
