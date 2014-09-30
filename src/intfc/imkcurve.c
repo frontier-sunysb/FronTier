@@ -1787,7 +1787,7 @@ extern double seed_func(
         double *coords)
 {
         SEED_PARAMS *s_params = (SEED_PARAMS*)func_params;
-        double dist_min, hdist_min, dist, theta;
+        double dist_min, hdist_min, dist, theta, phi;
 	double **floor_cen    = s_params->floor_center;
 	double **ceiling_cen  = s_params->ceiling_center;
 	double **space_cen    = s_params->space_center;
@@ -1798,7 +1798,8 @@ extern double seed_func(
 	boolean add_space_seed_pert = s_params->add_space_seed_pert;
 	double nu = s_params->nu;
 	double amp = s_params->amp;
-	double phase = s_params->phase*2.0*PI/360.0;
+	double phase = s_params->phase*PI/180.0;
+	double xy_dist;
 	int i,j,i_min;
 	int dim = s_params->dim;
 	PROXIMITY closest;
@@ -1811,9 +1812,13 @@ extern double seed_func(
 	    for (i = 0; i < num_space_seeds; ++i)
 	    {
 	    	dist = 0.0;
+		xy_dist = 0.0;
 	    	for (j = 0; j < dim; ++j)
 		    dist += sqr(coords[j]-space_cen[i][j]);
 	    	dist = sqrt(dist);
+	    	for (j = 0; j < dim-1; ++j)
+		    xy_dist += sqr(coords[j]-space_cen[i][j]);
+	    	xy_dist = sqrt(xy_dist);
 	    	if (dist <= dist_min)
 	    	{
 		    dist_min = dist;
@@ -1863,19 +1868,37 @@ extern double seed_func(
 	switch (closest)
 	{
 	case SPACE:
-	    if (dim == 2 && add_space_seed_pert) 
+	    if (add_space_seed_pert)
 	    {
-            	theta = asin(fabs(coords[1]-space_cen[i_min][1])/dist_min);
-	    	if (coords[0]-space_cen[i_min][0] < 0 && 
-		    coords[1]-space_cen[i_min][1] > 0)
-	    	    theta = PI - theta;
-	    	else if (coords[0]-space_cen[i_min][0] < 0 && 
-		    coords[1]-space_cen[i_min][1] < 0)
-	    	    theta = PI + theta;
-	    	else if (coords[0]-space_cen[i_min][0] > 0 && 
-		    coords[1]-space_cen[i_min][1] < 0)
-	    	    theta = 2*PI - theta;
-	    	radius -= amp*sin(nu*theta + phase);
+	    	if (dim == 2) 
+	    	{
+            	    theta = asin(fabs(coords[1]-space_cen[i_min][1])/dist_min);
+	    	    if (coords[0]-space_cen[i_min][0] < 0 && 
+		        coords[1]-space_cen[i_min][1] > 0)
+	    	        theta = PI - theta;
+	    	    else if (coords[0]-space_cen[i_min][0] < 0 && 
+		        coords[1]-space_cen[i_min][1] < 0)
+	    	        theta = PI + theta;
+	    	    else if (coords[0]-space_cen[i_min][0] > 0 && 
+		        coords[1]-space_cen[i_min][1] < 0)
+	    	        theta = 2*PI - theta;
+	    	    radius -= amp*sin(nu*theta + phase);
+	        }
+		else if (dim == 3)
+		{
+            	    theta = asin(fabs(coords[1]-space_cen[i_min][1])/xy_dist);
+	    	    if (coords[0]-space_cen[i_min][0] < 0 && 
+		        coords[1]-space_cen[i_min][1] > 0)
+	    	        theta = PI - theta;
+	    	    else if (coords[0]-space_cen[i_min][0] < 0 && 
+		        coords[1]-space_cen[i_min][1] < 0)
+	    	        theta = PI + theta;
+	    	    else if (coords[0]-space_cen[i_min][0] > 0 && 
+		        coords[1]-space_cen[i_min][1] < 0)
+	    	        theta = 2*PI - theta;
+		    phi = acos((coords[2]-space_cen[i_min][2])/dist_min); 
+		    radius -= amp*sin(nu*theta+phase)*sin(phi);
+		}
 	    }
 	    return dist_min - radius;
 	case FLOOR:
