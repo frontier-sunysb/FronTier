@@ -193,13 +193,13 @@ static double getInitialState(double* coords,PARAMS* params)
 	case RAND_STATE:
 		return gauss_center_limit((POINTER)&gauss_params,seed);
 	case STEP_STATE:
-		if (coords[0] > params->x0)
-		    return params->T0;
+		if (coords[params->dir] > params->x0)
+		    return params->Tr;
 		else
-		    return 0.0;
+		    return params->Tl;
 	case SHOCK_STATE:
-		if (coords[1] < params->x0 && 
-		    coords[1] > (params->x0-0.5))
+		if (coords[params->dir] < params->x0 && 
+		    coords[params->dir] > (params->x0-0.5))
 		    return params->T0;
 		else
 		    return 0.0;
@@ -504,10 +504,24 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 			    T_nb = Temp[ic];
 			    solver.Add_A(I,I,coeff_nb);
 			}
-			else
+			else if (wave_type(hs) == DIRICHLET_BOUNDARY)
 			{
-			    T_nb = intfc_state->temperature;
-                            rhs -= -0.5*lambda*(2.0*T_nb - T0);
+
+			    if (strcmp(boundary_state_function_name(hs),
+                            "flowThroughBoundaryState") == 0)
+                                rhs += 0.5*lambda*(2.0*T_nb - T0);
+			    else
+			    {
+			        T_nb = intfc_state->temperature;
+			        if (T_nb != eqn_params->Tl && 
+				    T_nb != eqn_params->Tr)
+				    T_nb = eqn_params->Tl;
+                                if(v[l] > 0 && m == 0)
+                                    rhs += eta * (T_nb - T0);
+                                if(v[l] < 0 && m == 1)
+                                    rhs += eta * (T0 - T_nb);
+                                rhs += 0.5*lambda*(2.0*T_nb - T0);
+			    }
 			}
                     }
                 }
@@ -676,7 +690,7 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
         }
 	/*plot temperature profile*/
 	FILE* outfile;
-	outfile = fopen("temperature","w");
+	outfile = fopen("temperature-x","w");
 	for (i = imin; i <= imax; ++i)
 	{
 	    j = (jmax + jmin)/2;
@@ -684,6 +698,15 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
 	    fprintf(outfile,"%f\n",Temp[ic]);
 	}
 	fclose(outfile);
+	outfile = fopen("temperature-y","w");
+	for (j = jmin; j <= jmax; ++j)
+	{
+	    i = imax-4;
+	    ic = d_index2d(i,j,top_gmax);
+	    fprintf(outfile,"%f\n",Temp[ic]);
+	}
+	fclose(outfile);
+
         stop_clock("scatter_data");
         FT_FreeThese(1,x);
 
@@ -1764,9 +1787,6 @@ extern void read_params(
 	char string[100];
 	FILE* infile;
 	infile = fopen(inname,"r");
-	CursorAfterString(infile,"Enter initial temperature[K]:");
-	fscanf(infile,"%lf",&eqn_params->T0);
-	(void) printf("%f\n",eqn_params->T0);
 
 	CursorAfterString(infile,"Enter molecular diffusivities:");
 	fscanf(infile,"%lf",&eqn_params->D);
@@ -1781,26 +1801,52 @@ extern void read_params(
 	case 'C':
 	case 'c':
 	    eqn_params->init_state = CONST_STATE;
+	    CursorAfterString(infile,"Enter initial temperature:");
+	    fscanf(infile,"%lf",&eqn_params->T0);
+	    (void) printf("%f\n",eqn_params->T0);
 	    break;
 	case 'R':
 	case 'r':
 	    eqn_params->init_state = RAND_STATE;
+	    CursorAfterString(infile,"Enter mean temperature:");
+	    fscanf(infile,"%lf",&eqn_params->T0);
+	    (void) printf("%f\n",eqn_params->T0);
 	    break;
 	case 'S':
 	case 's':
 	    if (string[1] == 'T' || string[1] == 't')
 	    {
 	        eqn_params->init_state = STEP_STATE;
-	        CursorAfterString(infile,"Enter position of discontinuity:");
+	        CursorAfterString(infile,"Enter direction of step:");
+        	fscanf(infile,"%d",&eqn_params->dir);
+        	(void) printf("%d\n",eqn_params->dir);
+
+	        CursorAfterString(infile,"Enter position of step:");
         	fscanf(infile,"%lf",&eqn_params->x0);
         	(void) printf("%f\n",eqn_params->x0);
+
+	        CursorAfterString(infile,"Enter left temperature:");
+        	fscanf(infile,"%lf",&eqn_params->Tl);
+        	(void) printf("%f\n",eqn_params->Tl);
+
+	        CursorAfterString(infile,"Enter right temperature:");
+        	fscanf(infile,"%lf",&eqn_params->Tr);
+        	(void) printf("%f\n",eqn_params->Tr);
 	    }
 	    else if (string[1] == 'H' || string[1] == 'h')
 	    {
 	        eqn_params->init_state = SHOCK_STATE;
-	        CursorAfterString(infile,"Enter position of discontinuity:");
+	        CursorAfterString(infile,"Enter direction of step:");
+        	fscanf(infile,"%d",&eqn_params->dir);
+        	(void) printf("%d\n",eqn_params->dir);
+
+	        CursorAfterString(infile,"Enter position of step:");
         	fscanf(infile,"%lf",&eqn_params->x0);
         	(void) printf("%f\n",eqn_params->x0);
+
+	        CursorAfterString(infile,"Enter initial temperature:");
+	        fscanf(infile,"%lf",&eqn_params->T0);
+	        (void) printf("%f\n",eqn_params->T0);
 	    }
 	    break;
 	case 'Z':

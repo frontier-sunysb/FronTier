@@ -1,24 +1,26 @@
 Domain limit in 0-th dimension: -2 26
 Domain limit in 1-th dimension: -6 22
-Computational grid: 200 200
+Computational grid: 100 100 
 Lower boundary in 0-th dimension: NEUMANN_BOUNDARY
 Upper boundary in 0-th dimension: NEUMANN_BOUNDARY
 Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
 
-Max time: 1.0
+Max time: 5.0
 Print interval: 2
 Movie frame interval: 0.1
-Max step: 1000
+Max step: 10000 
 CFL factor: 0.5
 Redistribution interval: 10000000
 Type yes to turn off auto-redistribution: y
 
 Enter yes to consider scalar field: yes
-Enter initial temperature[K]: 270.00
-Enter molecular diffusivities: 0.01
+Enter molecular diffusivities: 0.5 
 Enter initial state: STEP_STATE
-Enter position of discontinuity: 12.0
+Enter direction of step: 0 
+Enter position of step: 12.0
+Enter left temperature: 0
+Enter right temperature: 1
 
 Projection type can be
         SIMPLE
@@ -71,11 +73,11 @@ Enter coordinate of split: 12
 For the left state
 Enter velocity: 0 3
 Enter pressure: 0
-Enter temperature: 0
+Enter temperature: 0 
 For the right state
 Enter velocity: 0 3
 Enter pressure: 0
-Enter temperature: 270
+Enter temperature: 1 
 For upper boundary in 1-th dimension
 Enter type of Dirichlet boundary: FLOW_THROUGH
 

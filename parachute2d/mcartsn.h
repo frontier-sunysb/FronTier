@@ -19,7 +19,10 @@ struct _PARAMS {
 	IF_FIELD *field;
 	double x0; /*place of discontinuity*/
 	double T0;/*initial temperature */
+	double Tl;/*initial left temperature */
+	double Tr;/*initial right temperature */
 	double D;    /*molecular diffusivities of the temperature*/
+	int dir; /*direction of step*/
 };
 typedef struct _PARAMS PARAMS;
 

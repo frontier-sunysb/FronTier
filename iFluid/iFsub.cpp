@@ -1271,14 +1271,14 @@ static void get_split_state_params(
 	(void) printf(" %d\n",split_st_params->dir);
 	CursorAfterString(infile,"Enter coordinate of split:");
 	fscanf(infile,"%lf",&split_st_params->split_coord);
-	(void) printf(" %lf\n",split_st_params->split_coord);
+	(void) printf(" %f\n",split_st_params->split_coord);
 
 	CursorAfterString(infile,"For the left state");
 	CursorAfterString(infile,"Enter velocity: ");
 	for (k = 0; k < dim; ++k)
 	{
 	    fscanf(infile,"%lf",&split_st_params->left_state.vel[k]);
-	    (void) printf("%f ",&split_st_params->left_state.vel[k]);
+	    (void) printf("%f ",split_st_params->left_state.vel[k]);
 	}
 	(void) printf("\n");
 	CursorAfterString(infile,"Enter pressure:");
@@ -1297,7 +1297,7 @@ static void get_split_state_params(
 	for (k = 0; k < dim; ++k)
 	{
 	    fscanf(infile,"%lf",&split_st_params->right_state.vel[k]);
-	    (void) printf("%f ",&split_st_params->right_state.vel[k]);
+	    (void) printf("%f ",split_st_params->right_state.vel[k]);
 	}
 	(void) printf("\n");
 	CursorAfterString(infile,"Enter pressure:");
