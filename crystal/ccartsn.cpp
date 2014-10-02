@@ -1034,6 +1034,16 @@ void C_CARTESIAN::initMovieVariables()
                                 "solute",0,field->solute,getStateSolute,
                                 var_max,var_min);
 		FT_AddVtkScalarMovieVariable(front,"solute",field->solute);
+		front->vtk_movie_var->plot_band = NO;
+	        if (CursorAfterStringOpt(infile,"Type y to add band on vtk:"))
+		{
+		    fscanf(infile,"%s",string);
+		    (void) printf("%s\n",string); 
+		    if (string[0] == 'Y' || string[0] == 'y')
+		    {
+		    	front->vtk_movie_var->plot_band = YES;
+		    }
+		}
 	    }
 	    break;
 	case 3:
@@ -1092,7 +1102,7 @@ void C_CARTESIAN::initMovieVariables()
 void C_CARTESIAN::printFrontInteriorStates(char *out_name)
 {
 	int i,j,k,index;
-	char filename[512];
+	char filename[256];
 	FILE *outfile;
 	double *solute = field->solute;
 

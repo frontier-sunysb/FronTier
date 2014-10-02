@@ -488,6 +488,7 @@ struct _VTK_MOVIE_VAR {
 	char **scalar_var_name;
 	double **scalar_var;
 	boolean plot_intfc_var;
+	boolean plot_band;
 	char *intfc_var_name;
 };
 typedef struct _VTK_MOVIE_VAR VTK_MOVIE_VAR;

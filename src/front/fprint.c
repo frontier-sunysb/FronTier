@@ -1228,22 +1228,33 @@ LOCAL	void show_front_vtk(
 					front->time,front->step);
 	if (first == YES)
 	{
-	    sprintf(fname,"%s/intfc.visit",vdirname);
+	    sprintf(fname,"%s/intfc",vdirname);
+	    if (pp_numnodes() > 1)
+	    {
+		sprintf(fname,"%s-nd%d",fname,pp_mynode());
+	    }
+	    sprintf(fname,"%s.visit",fname);
+
 	    intfc_file = fopen(fname,"w");
 	    if (dim == 3)
 	    {
-	    	sprintf(fname,"%s/curves.visit",vdirname);
+	    	sprintf(fname,"%s/curves",vdirname);
+	    	if (pp_numnodes() > 1)
+	    	{
+		    sprintf(fname,"%s-nd%d",fname,pp_mynode());
+	    	}
+	    	sprintf(fname,"%s.visit",fname);
 	    	curve_file = fopen(fname,"w");
 		sprintf(prefix,"3d-");
 	    }
 	    else
 		sprintf(prefix,"2d-");
 	}
-	fprintf(intfc_file,"%s/%sintfc.vtk\n",sdirname,prefix);
+	fprintf(intfc_file,"%s/%sintfc.vtk\n",dirname,prefix);
 	fflush(intfc_file);
 	if (dim == 3)
 	{
-	    fprintf(curve_file,"%s/%scurves.vtk\n",sdirname,prefix);
+	    fprintf(curve_file,"%s/%scurves.vtk\n",dirname,prefix);
 	    fflush(curve_file);
 	}
 	if (front->vtk_movie_var != NULL)
@@ -1272,10 +1283,15 @@ LOCAL	void show_front_vtk(
 	    	vtk_plot_vector_field(dirname,front,i);
 		if (first == YES)
 		{
-	    	    sprintf(fname,"%s/%s.visit",vdirname,vnames[i]);
+	    	    sprintf(fname,"%s/%s",vdirname,vnames[i]);
+	    	    if (pp_numnodes() > 1)
+	    	    {
+		    	sprintf(fname,"%s-nd%d",fname,pp_mynode());
+	    	    }
+	    	    sprintf(fname,"%s.visit",fname);
 		    vfiles[i] = fopen(fname,"w");
 		}
-	    	fprintf(vfiles[i],"%s/%s.vtk\n",sdirname,vnames[i]);
+	    	fprintf(vfiles[i],"%s/%s.vtk\n",dirname,vnames[i]);
 	    	fflush(vfiles[i]);
 	    }
 	    for (i = 0; i < vtk_movie_var->num_scalar_var; ++i)
@@ -1283,10 +1299,15 @@ LOCAL	void show_front_vtk(
 	    	vtk_plot_scalar_field(dirname,front,i);
 		if (first == YES)
 		{
-	    	    sprintf(fname,"%s/%s.visit",vdirname,snames[i]);
+	    	    sprintf(fname,"%s/%s",vdirname,snames[i]);
+	    	    if (pp_numnodes() > 1)
+	    	    {
+		    	sprintf(fname,"%s-nd%d",fname,pp_mynode());
+	    	    }
+	    	    sprintf(fname,"%s.visit",fname);
 		    sfiles[i] = fopen(fname,"w");
 		}
-	    	fprintf(sfiles[i],"%s/%s.vtk\n",sdirname,snames[i]);
+	    	fprintf(sfiles[i],"%s/%s.vtk\n",dirname,snames[i]);
 	    	fflush(sfiles[i]);
 	    }
 	    if (vtk_movie_var->plot_intfc_var == YES);
@@ -1294,10 +1315,15 @@ LOCAL	void show_front_vtk(
 		vtk_plot_intfc_color(dirname,front);
 		if (first == YES)
 		{
-	    	    sprintf(fname,"%s/%s.visit",vdirname,cname);
+	    	    sprintf(fname,"%s/%s",vdirname,cname);
+	    	    if (pp_numnodes() > 1)
+	    	    {
+		    	sprintf(fname,"%s-nd%d",fname,pp_mynode());
+	    	    }
+	    	    sprintf(fname,"%s.visit",fname);
 		    cfiles = fopen(fname,"w");
 		}
-	    	fprintf(cfiles,"%s/%s.vtk\n",sdirname,cname);
+	    	fprintf(cfiles,"%s/%s.vtk\n",dirname,cname);
 	    	fflush(cfiles);
 	    }
 	}
@@ -1501,7 +1527,7 @@ LOCAL   void xgraph_plot_var(
         double *h = rg->h;
         int i,index0;
         static double *x,*c;
-	char fname[512];
+	char fname[100];
 	FILE *xfile;
 	POINT *p;
         HYPER_SURF *hs;
@@ -1635,7 +1661,6 @@ EXPORT  void show_front_output(
 	show_front_xg(front,out_name);
 	show_front_hdf(front,out_name);
 	show_front_gv(front,out_name);
-	
 	show_front_vtk(front,out_name,print_in_binary);	
 	show_front_sdl(front,out_name);
 }       /* end show_front_output */
@@ -3900,12 +3925,21 @@ LOCAL void vtk_plot_scalar_field2d(
         double          *top_L = front->pp_grid->Zoom_grid.L;
 
         int kmin,kmax,jmin,jmax,imin,imax;
-        imin = (lbuf[0] == 0) ? 1 : lbuf[0];
-        jmin = (lbuf[1] == 0) ? 1 : lbuf[1];
-        imax = (ubuf[0] == 0) ? top_gmax[0] - 1 : top_gmax[0] - ubuf[0];
-        jmax = (ubuf[1] == 0) ? top_gmax[1] - 1 : top_gmax[1] - ubuf[1];
 
-
+	if (vtk_movie_var->plot_band)
+	{
+            imin = (lbuf[0] == 0) ? 1 : lbuf[0];
+            jmin = (lbuf[1] == 0) ? 1 : lbuf[1];
+            imax = (ubuf[0] == 0) ? top_gmax[0] - 1 : top_gmax[0] - ubuf[0];
+            jmax = (ubuf[1] == 0) ? top_gmax[1] - 1 : top_gmax[1] - ubuf[1];
+	}
+	else
+	{
+            imin = (lbuf[0] == 0) ? 1 : lbuf[0] - 1;
+            jmin = (lbuf[1] == 0) ? 1 : lbuf[1] - 1;
+            imax = (ubuf[0] == 0) ? top_gmax[0] - 1 : top_gmax[0] - ubuf[0] + 1;
+            jmax = (ubuf[1] == 0) ? top_gmax[1] - 1 : top_gmax[1] - ubuf[1] + 1;
+	}
         sprintf(filename, "%s/vtk/vtk.ts%s",OutName(front),
                 right_flush(front->step,7));
         if (pp_numnodes() > 1)
@@ -3930,10 +3964,10 @@ LOCAL void vtk_plot_scalar_field2d(
         fprintf(outfile,"DIMENSIONS  %d  %d  %d\n",pointsx,pointsy,pointsz);
         fprintf(outfile,"X_COORDINATES    %d float\n",pointsx);
         for (i = imin; i <= imax; i++)
-                fprintf(outfile,"%f\n",top_L[0]+(i-imin)*top_h[0]);
+                fprintf(outfile,"%f\n",top_L[0]+(i-imin+0.5)*top_h[0]);
         fprintf(outfile,"Y_COORDINATES    %d float\n",pointsy);
         for (i = jmin; i <= jmax; i++)
-                fprintf(outfile,"%f\n",top_L[1]+(i-jmin)*top_h[1]);
+                fprintf(outfile,"%f\n",top_L[1]+(i-jmin+0.5)*top_h[1]);
         fprintf(outfile,"Z_COORDINATES    %d float\n",pointsz);
                 fprintf(outfile,"%f\n",0.0);
 
