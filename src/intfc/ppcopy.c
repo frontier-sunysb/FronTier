@@ -199,14 +199,9 @@ EXPORT	void i_send_interface(
 	{
 	    top = ChunkTop(chunk);
 	    total_size += ChunkSize(intfc);
-	    if (total_size >= 16000000)
-	    {
-		(void) printf("Red alert: may need to change MSG_BUF_SIZE!\n");
-		fflush(stdout);
-	    }
+	    EnsureSufficientMessageBufferSize((int)(total_size*1.1));
 	    pp_send(chunk_id(i)+tag_shf,(POINTER)top,ChunkSize(intfc),dst_id);
 	}
-	printf("In i_send_interface(): total_size = %d\n",(int)total_size);
 	DEBUG_LEAVE(i_send_interface)
 }		/*end i_send_interface*/
 

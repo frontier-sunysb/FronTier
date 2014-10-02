@@ -245,12 +245,36 @@ EXPORT	void	set_MSG_BUF_SIZE(
 #endif /* defined(__MPI__) */
 }		/*end MSG_BUF_SIZE*/
 
+#if defined(__MPI__)
+static	byte	*msg_buf = NULL;
+#endif /* defined(__MPI__) */
+
 /*ARGSUSED*/
 EXPORT	void	EnsureSufficientMessageBufferSize(
 	size_t	min_MSG_BUF_SIZE)
 {
 #if defined(__MPI__)
-	MSG_BUF_SIZE = max(MSG_BUF_SIZE,min_MSG_BUF_SIZE);
+	int size;
+	int mpi_return_status;
+
+	if (min_MSG_BUF_SIZE < MSG_BUF_SIZE) return;
+	else if (msg_buf != NULL)
+	{
+	    MPI_Buffer_detach(msg_buf,&size);
+	    free(msg_buf);
+	}
+	MSG_BUF_SIZE = min_MSG_BUF_SIZE;
+	uni_array(&msg_buf,MSG_BUF_SIZE,sizeof(byte));
+	mpi_return_status = MPI_Buffer_attach(msg_buf,(int)MSG_BUF_SIZE);
+	(void) printf("In expansion call to u_pp_send(), ");
+	(void) printf("setting the buffer size to %lu bytes.\n",MSG_BUF_SIZE);
+	if (mpi_return_status != MPI_SUCCESS)
+	{
+	    screen("ERROR in u_pp_send(), "
+	    	       "MPI_Buffer_attach failed, "
+	    	       "mpi_return_status = %d\n",mpi_return_status);
+	    clean_up(ERROR);
+	}
 #endif /* defined(__MPI__) */
 }		/*end EnsureSufficientMessageBufferSize*/
 
@@ -264,7 +288,6 @@ EXPORT	void	u_pp_send(
 	int	   line)
 {
 #if defined(__MPI__)
-	static	byte	*msg_buf = NULL;
 	int	mpi_return_status;
 #endif /* defined(__MPI__) */
 
