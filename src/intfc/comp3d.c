@@ -1190,7 +1190,8 @@ LIB_LOCAL boolean long_nearest_interface_point3d(
 	int		i;
 	int		dim = intfc->dim;
 
-	printf("#long_nearest_interface_point3d is called\n");
+	if (debugging("efficiency"))
+	    (void) printf("#long_nearest_interface_point3d is called\n");
 	
 	/* Find Closest Point on Front: */
 	Closest.tri = NULL;

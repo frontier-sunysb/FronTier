@@ -1738,8 +1738,11 @@ EXPORT	void remove_unphysical_crxings(
 		    
 		    /* Only release it when debugging line removal
 		    if(debugging("rm_crx_z"))
+		    if (ix == 71 && iy == 39)
 		    {
+			(void) printf("Before z removal:\n");
 			show_line_components3d(ip,smin,smax,2,intfc);
+			add_to_debug("seg_comp");
 		    }
 		    */
 		    rm_unphy_crx_along_grid_line(intfc,smin,smax,
@@ -1749,8 +1752,11 @@ EXPORT	void remove_unphysical_crxings(
 		    iz += step;
 		    /* Only release it when debugging line removal
 		    if(debugging("rm_crx_z"))
+		    if (ix == 71 && iy == 39)
 		    {
+			(void) printf("After z removal:\n");
 			show_line_components3d(ip,smin,smax,2,intfc);
+			remove_from_debug("seg_comp");
 		    }
 		    */
 		}
@@ -1811,7 +1817,6 @@ EXPORT	void remove_unphysical_crxings(
 	    show_grid_components(smin,smax,0,intfc);
 	}
 
-
 	unset_comp_along_grid_line(intfc,smin,smax,gmax,0);
 	for (iy = smin[1]; iy <= smax[1]; ++iy)
 	{
@@ -1827,6 +1832,7 @@ EXPORT	void remove_unphysical_crxings(
 			continue;
 		    /* Only release it when debugging line removal
 		    if(debugging("rm_crx_x") && iy == 38 && iz == 51)
+		    if(iy == 39 && iz == 77)
 		    {
 			add_to_debug("seg_comp");
 			(void) printf("Before removal:\n");
@@ -1852,6 +1858,8 @@ EXPORT	void remove_unphysical_crxings(
 			(void) printf("After backward removal:\n");
 			show_line_components3d(ip,smin,smax,0,intfc);
 		    }
+		    if(iy == 39 && iz == 77)
+			remove_from_debug("seg_comp");
 		    */
 		    ix += step;
 		}
@@ -3556,7 +3564,6 @@ LOCAL	int	rm_unphy_crx_along_grid_line(
 	    if (debugging("seg_comp"))
 	    {
 	    	(void) printf("Final segment:\n");
-	    	printf("step = %d\n",step);
 	    	printf("ip     = %d %d %d\n",ip[0],ip[1],ip[2]);
 	    	printf("ip_end = %d %d %d\n",ip_end[0],ip_end[1],ip_end[2]);
 	    	print_comp_along_grid_line(ip,ip_end,dir,T,gmax,smin,smax);
@@ -5040,10 +5047,14 @@ LOCAL void unset_comp_along_grid_line(
 	Table	  *T = table_of_interface(intfc);
 	COMPONENT *comp = T->components;
 	GRID_DIRECTION dir,opp_dir;
-	int i,j,k,l,list,ic,nc,ip[MAXD],ipn[MAXD];
+	int i,j,k,l,list,ic,nc,ip[MAXD],ipn[MAXD],ip2[MAXD];
 	int ii,ll,nnc;
 	CRXING *crx;
+	int iadd[MAXD];
 
+	for (i = 0; i < 3; ++i)
+	    iadd[i] = 1;
+	iadd[idir] = 0;
 	switch (idir)
 	{
 	case 0:
@@ -5058,9 +5069,9 @@ LOCAL void unset_comp_along_grid_line(
 	    dir = UPPER;
 	    opp_dir = LOWER;
 	}
-	for (k = smin[2]; k < smax[2]; ++k)
-	for (j = smin[1]; j < smax[1]; ++j)
-	for (i = smin[0]; i < smax[0]; ++i)
+	for (k = smin[2]; k < smax[2] + iadd[2]; ++k)
+	for (j = smin[1]; j < smax[1] + iadd[1]; ++j)
+	for (i = smin[0]; i < smax[0] + iadd[0]; ++i)
 	{
 	    l = seg_index3d(i,j,k,dir,gmax);
 	    nc = T->seg_crx_count[l];
