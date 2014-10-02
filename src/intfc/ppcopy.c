@@ -142,6 +142,7 @@ EXPORT	void i_send_interface(
 	int		i;
 	int		nchunks;
 	CURVE		**c;
+	size_t		total_size = 0;
 
 	DEBUG_ENTER(i_send_interface)
 	if (exists_interface(intfc) != YES)
@@ -170,6 +171,7 @@ EXPORT	void i_send_interface(
 
 	/* send out the interface table */
 
+	total_size += sizeof(struct Table);
 	pp_send(TABLE_ID+tag_shf,(POINTER) intfc->table,
 			sizeof(struct Table),dst_id);
 
@@ -185,6 +187,7 @@ EXPORT	void i_send_interface(
 			chunk = chunk->next, i++)
 	    top_addr[i] = (POINTER) ChunkTop(chunk);
 
+	total_size += sizeof(nchunks*sizeof(POINTER));
 	pp_send(CHUNK_ADDR_ID+tag_shf,(POINTER)top_addr,
 			nchunks*sizeof(POINTER),dst_id);
 	free(top_addr);
@@ -195,8 +198,15 @@ EXPORT	void i_send_interface(
 						chunk = chunk->next, i++)
 	{
 	    top = ChunkTop(chunk);
+	    total_size += ChunkSize(intfc);
+	    if (total_size >= 16000000)
+	    {
+		(void) printf("Red alert: may need to change MSG_BUF_SIZE!\n");
+		fflush(stdout);
+	    }
 	    pp_send(chunk_id(i)+tag_shf,(POINTER)top,ChunkSize(intfc),dst_id);
 	}
+	printf("In i_send_interface(): total_size = %d\n",(int)total_size);
 	DEBUG_LEAVE(i_send_interface)
 }		/*end i_send_interface*/
 

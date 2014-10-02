@@ -1785,9 +1785,11 @@ EXPORT	void remove_unphysical_crxings(
 
 		    /* Only release it when debugging line removal
 		    if(debugging("rm_crx_y"))
+		    if (ix == 40 && iz == 94)
 		    {
 			(void) printf("Before removal:\n");
 			show_line_components3d(ip,smin,smax,1,intfc);
+			add_to_debug("seg_comp");
 		    }
 		    */
 		    rm_unphy_crx_along_grid_line(intfc,smin,smax,
@@ -1802,8 +1804,10 @@ EXPORT	void remove_unphysical_crxings(
 			             gmax,ip,NORTH,crx_type,num_ip,ips);
 		    /* Only release it when debugging line removal
 		    if(debugging("rm_crx_y"))
+		    if (ix == 40 && iz == 94)
 		    {
 			show_line_components3d(ip,smin,smax,1,intfc);
+			remove_from_debug("seg_comp");
 		    }
 		    */
 		    iy += step;
@@ -5537,6 +5541,8 @@ LOCAL boolean remove_unphy_pair(
 	    }
 	    ic2 = d_index(ip2,gmax,3);
 	    c2 = comp[ic2];
+	    if (debugging("seg_comp"))
+		printf("ip2 = %d %d %d  c2 = %d\n",ip2[0],ip2[1],ip2[2],c2);
 	    if (c2 != NO_COMP)
 		break;
 	    for (i = 0; i < 3; ++i)
@@ -5649,6 +5655,9 @@ LOCAL boolean remove_unphy_pair(
 	    }
 	    if (crx11 == NULL)
 	    {
+	    	next_ip_in_dir(ip_crx1,dir,ip_crx11,smin,smax);
+	    	is_subdomain_bdry_case = is_subdomain_end(ip_crx11,gmax,dir,
+					intfc);
 		if (is_subdomain_bdry_case && 
 		    is_last_crossing(T,crx1,dir,ip_crx1,gmax))
 		{
@@ -5656,7 +5665,10 @@ LOCAL boolean remove_unphy_pair(
 	    	    for (i = 0; i < 3; ++i)
 	    		ips[*num_ip][i] = ip_crx1[i];
 	    	    ++(*num_ip);
-	    	    next_ip_in_dir(ip_crx1,dir,ip_crx1,smin,smax);
+	    	    ic2 = d_index(ip_crx1,gmax,3);
+		    c2 = comp[ic2];
+	    	    ic2 = d_index(ip_crx11,gmax,3);
+		    comp[ic2] = c2;
 	    	    for (i = 0; i < 3; ++i)
 	    		ips[*num_ip][i] = ip_crx1[i];
 	    	    ++(*num_ip);

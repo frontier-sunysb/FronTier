@@ -233,7 +233,7 @@ EXPORT	int	pp_numnodes(void)
 */
 
 #if defined(__MPI__)
-LOCAL	size_t MSG_BUF_SIZE = 8000000;
+LOCAL	size_t MSG_BUF_SIZE = 16000000;
 #endif /* defined(__MPI__) */
 
 /*ARGSUSED*/

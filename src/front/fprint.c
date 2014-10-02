@@ -1151,7 +1151,7 @@ EXPORT void print_front_output(
 	char *out_name)
 {
 	FILE *out_file;
-	char intfc_name[200],comp_name[200];
+	char intfc_name[512],comp_name[512];
 	int step = front->step;
 	int dim = front->rect_grid->dim;
 	int numnodes = pp_numnodes();
@@ -1186,16 +1186,16 @@ LOCAL	void show_front_vtk(
         char *out_name,
         boolean print_in_binary)
 {
-	char dirname[256];
-	char vdirname[256];
-	char sdirname[256];
+	char dirname[512];
+	char vdirname[512];
+	char sdirname[512];
         int step = front->step; 
 	int dim = front->rect_grid->dim;
 	static boolean first = YES;
 	static FILE *intfc_file;
 	static FILE *curve_file;
 	static char prefix[100];
-	char fname[256];
+	char fname[512];
 
 	if (dim == 1) return;
 
@@ -1308,7 +1308,7 @@ LOCAL	void show_front_hdf(
 	Front *front,
         char *out_name)
 {
-	char dirname[256];
+	char dirname[512];
         int step = front->step; 
 	static boolean first = YES;
 	int dim = front->rect_grid->dim;
@@ -1367,7 +1367,7 @@ LOCAL	void show_front_gv(
 	Front *front,
         char *out_name)
 {
-	char dirname[256];
+	char dirname[512];
         int step = front->step; 
 	int dim = front->rect_grid->dim;
 	static boolean first = YES;
@@ -1418,7 +1418,7 @@ EXPORT	void gview_var2d_on_top_grid(
 	Front *front,
         char *out_name)
 {
-	char dirname[256];
+	char dirname[512];
         int step = front->step; 
 	int dim = front->rect_grid->dim;
 
@@ -1450,7 +1450,7 @@ LOCAL	void show_front_xg(
 	Front *front,
         char *out_name)
 {
-	char dirname[256];
+	char dirname[512];
         int dim = front->rect_grid->dim;
 	static boolean first = YES;
 	HDF_MOVIE_VAR *hdf_movie_var = front->hdf_movie_var;
@@ -1501,7 +1501,7 @@ LOCAL   void xgraph_plot_var(
         double *h = rg->h;
         int i,index0;
         static double *x,*c;
-	char fname[100];
+	char fname[512];
 	FILE *xfile;
 	POINT *p;
         HYPER_SURF *hs;
@@ -1583,7 +1583,7 @@ LOCAL	void show_front_gd(
 	Front *front,
         char *out_name)
 {
-	char dirname[256];
+	char dirname[512];
         int dim = front->rect_grid->dim;
 	static boolean first = YES;
 
@@ -1610,7 +1610,7 @@ LOCAL	void show_front_sdl(
 	Front *front,
         char *out_name)
 {
-	char dirname[256];
+	char dirname[512];
 	int step = front->step;
 
 	if (!front->print_sdl_file)
@@ -3640,7 +3640,7 @@ LOCAL	void gd_plot_var(
         static double *x,*c;
         char movie_caption[100];
         char time_label[100];
-        char gd_name[200];
+        char gd_name[512];
         static double xmin,xmax,cmin[MAX_COUNT],cmax[MAX_COUNT];
 	double height;
 	POINT *p;
@@ -3882,7 +3882,7 @@ LOCAL void vtk_plot_scalar_field2d(
         char *varname = vtk_movie_var->scalar_var_name[n];
 
         int i,j,k,index;
-        char dirname[256],filename[256];
+        char dirname[512],filename[512];
         FILE *outfile;
         double m_coords[MAXD],coord_x,coord_y,coord_z;
         int pointsx,pointsy,pointsz,num_points,num_cells,num_cell_list;
@@ -3960,7 +3960,7 @@ LOCAL void vtk_plot_scalar_field3d(
         char *varname = vtk_movie_var->scalar_var_name[n];
 
         int i,j,k,index;
-        char dirname[256],filename[256];
+        char dirname[512],filename[512];
         FILE *outfile;
         double m_coords[MAXD],coord_x,coord_y,coord_z;
         int pointsx,pointsy,pointsz,num_points,num_cells,num_cell_list;

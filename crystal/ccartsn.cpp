@@ -1092,7 +1092,7 @@ void C_CARTESIAN::initMovieVariables()
 void C_CARTESIAN::printFrontInteriorStates(char *out_name)
 {
 	int i,j,k,index;
-	char filename[256];
+	char filename[512];
 	FILE *outfile;
 	double *solute = field->solute;
 

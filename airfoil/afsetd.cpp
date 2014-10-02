@@ -541,6 +541,7 @@ static void link_surf_point_set(
 		if (sorted(p) || Boundary_point(p)) continue;
 		gindex = Gindex(p);
 		point_set[gindex] = point_set_store + i;
+	    	point_set[gindex]->gindex = gindex;
 		sorted(p) = YES;
 		i++;
 	    }
