@@ -1835,8 +1835,7 @@ EXPORT	void remove_unphysical_crxings(
 		    if (c == NO_COMP)
 			continue;
 		    /* Only release it when debugging line removal
-		    if(debugging("rm_crx_x") && iy == 38 && iz == 51)
-		    if(iy == 39 && iz == 77)
+		    if(iy == 240 && iz == 20)
 		    {
 			add_to_debug("seg_comp");
 			(void) printf("Before removal:\n");
@@ -1846,7 +1845,7 @@ EXPORT	void remove_unphysical_crxings(
 		    rm_unphy_crx_along_grid_line(intfc,smin,smax,
 				       	gmax,ip,WEST,crx_type,num_ip,ips);
 		    /* Only release it when debugging line removal
-		    if(debugging("rm_crx_x") && iy == 38 && iz == 51)
+		    if(iy == 240 && iz == 20)
 		    {
 			(void) printf("After forward removal:\n");
 			show_line_components3d(ip,smin,smax,0,intfc);
@@ -1855,15 +1854,12 @@ EXPORT	void remove_unphysical_crxings(
 		    step = rm_unphy_crx_along_grid_line(intfc,smin,smax,
 					gmax,ip,EAST,crx_type,num_ip,ips);
 		    /* Only release it when debugging line removal
-		    if(debugging("rm_crx_x") && iy == 38 && iz == 51)
-			remove_from_debug("seg_comp");
-		    if(debugging("rm_crx_x"))
+		    if(iy == 240 && iz == 20)
 		    {
+			remove_from_debug("seg_comp");
 			(void) printf("After backward removal:\n");
 			show_line_components3d(ip,smin,smax,0,intfc);
 		    }
-		    if(iy == 39 && iz == 77)
-			remove_from_debug("seg_comp");
 		    */
 		    ix += step;
 		}
@@ -5498,7 +5494,7 @@ LOCAL boolean remove_unphy_pair(
 	int ip_crx11[MAXD],ip_crx22[MAXD];
 	int ic1,ic2;
         GRID_DIRECTION opp_dir;
-	CRXING	  *crx1,*crx2,*crx2_prev;
+	CRXING	*crx1,*crx2,*crx2_prev;
 	CRXING	*crx11,*crx22;
 	int k,nc,num_crx;
 	int count = 0;
@@ -5665,12 +5661,21 @@ LOCAL boolean remove_unphy_pair(
 	    	    for (i = 0; i < 3; ++i)
 	    		ips[*num_ip][i] = ip_crx1[i];
 	    	    ++(*num_ip);
-	    	    ic2 = d_index(ip_crx1,gmax,3);
-		    c2 = comp[ic2];
-	    	    ic2 = d_index(ip_crx11,gmax,3);
-		    comp[ic2] = c2;
+	    	    crx1 = next_crossing(ip_crx1,gmax,dir,T,NULL);
+		    if (crx1 == NULL)
+		    {
+	    	    	ic1 = d_index(ip_crx1,gmax,3);
+	    	    	ic2 = d_index(ip_crx11,gmax,3);
+		    	comp[ic2] = comp[ic1];
+		    }
+		    else
+		    {
+	    	    	ic2 = d_index(ip_crx11,gmax,3);
+	    		while ((crx1 = next_crossing(ip_crx1,gmax,dir,T,crx1)))
+		    	    comp[ic2] = comp_of_next_side(crx1,dir);
+		    }
 	    	    for (i = 0; i < 3; ++i)
-	    		ips[*num_ip][i] = ip_crx1[i];
+	    		ips[*num_ip][i] = ip_crx11[i];
 	    	    ++(*num_ip);
 		    return YES;
 		}

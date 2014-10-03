@@ -4971,12 +4971,12 @@ EXPORT boolean cross_constr_func(
 	counter1 = counter2 = 0;
 	for (i = 0; i < dim-1; ++i)
         {
-            if (coords[i] > L[i] && coords[i] < U[i])
+            if (coords[i] >= L[i] && coords[i] <= U[i])
 		counter1++;
         }
 	for (i = 0; i < dim-1; ++i)
 	{
-	    if (coords[i] > LL[i] && coords[i] < UU[i])
+	    if (coords[i] >= LL[i] && coords[i] <= UU[i])
 		counter2++;
 	}
 	if (counter1 == 2 || counter2 == 2)

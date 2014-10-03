@@ -142,7 +142,7 @@ EXPORT	void i_send_interface(
 	int		i;
 	int		nchunks;
 	CURVE		**c;
-	size_t		total_size = 0;
+	size_t		total_size;
 
 	DEBUG_ENTER(i_send_interface)
 	if (exists_interface(intfc) != YES)
@@ -169,15 +169,17 @@ EXPORT	void i_send_interface(
 	        reorder_curve_link_list(*c);
 	}
 
+	/* count the number of chunks and send this number out */
+	nchunks = intfc->table->num_chunks;
+
 	/* send out the interface table */
 
-	total_size += sizeof(struct Table);
+	total_size = sizeof(struct Table) + sizeof(nchunks*sizeof(POINTER)) +
+	    			nchunks*ChunkSize(intfc);
+	EnsureSufficientMessageBufferSize((int)(total_size*1.1));
+				;
 	pp_send(TABLE_ID+tag_shf,(POINTER) intfc->table,
 			sizeof(struct Table),dst_id);
-
-	/* count the number of chunks and send this number out */
-
-	nchunks = intfc->table->num_chunks;
 
 	/* send an array with the old chunk addresses */
 
@@ -187,7 +189,6 @@ EXPORT	void i_send_interface(
 			chunk = chunk->next, i++)
 	    top_addr[i] = (POINTER) ChunkTop(chunk);
 
-	total_size += sizeof(nchunks*sizeof(POINTER));
 	pp_send(CHUNK_ADDR_ID+tag_shf,(POINTER)top_addr,
 			nchunks*sizeof(POINTER),dst_id);
 	free(top_addr);
@@ -198,8 +199,6 @@ EXPORT	void i_send_interface(
 						chunk = chunk->next, i++)
 	{
 	    top = ChunkTop(chunk);
-	    total_size += ChunkSize(intfc);
-	    EnsureSufficientMessageBufferSize((int)(total_size*1.1));
 	    pp_send(chunk_id(i)+tag_shf,(POINTER)top,ChunkSize(intfc),dst_id);
 	}
 	DEBUG_LEAVE(i_send_interface)
