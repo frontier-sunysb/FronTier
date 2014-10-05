@@ -1303,6 +1303,7 @@ EXPORT void check_global_index(
 		(void) printf("Unassigned global index at point: (%f %f %f)\n",
 				Coords(points[i])[0],Coords(points[i])[1],
 				Coords(points[i])[2]);
+		continue;
 	    }
 	    iv = 0;
 	    gpts[iv++] = points[i];
@@ -1310,16 +1311,17 @@ EXPORT void check_global_index(
 	    {
 		if (Gindex(points[j]) == Gindex(points[i]))
 		    gpts[iv++] = points[j];
-		if (iv > 9)
+		if (iv > 8)
 		{
 		    int k;
 		    (void) printf("WARNING in check_global_index():\n");
 		    (void) printf("More than 8 points have same Gindex\n");
-		    for (k = 0; k < iv; ++iv)
-			(void) printf("gpts[%d]: (%f %f %f)\n",k,
+		    for (k = 0; k < iv; ++k)
+		    {
+			(void) printf("gpts[%d]: (%f %f %f) Gindex = %d\n",k,
 				Coords(gpts[k])[0],Coords(gpts[k])[1],
-				Coords(gpts[k])[2]);
-		    
+				Coords(gpts[k])[2],Gindex(gpts[k]));
+		    }
 		}
 	    }
 	}

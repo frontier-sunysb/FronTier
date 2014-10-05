@@ -93,8 +93,9 @@ LOCAL	COMPONENT buffer_component(INTERFACE*,int,int);
 LOCAL  void    test_curve_link(CURVE *);
 LOCAL   double   *constr_position(double*,double*,
                         boolean (*constr_func)(POINTER,double*),POINTER);
-LOCAL	void merge_global_index(TRI**,int,RECT_GRID*,int,int,
-			P_LINK*,int);
+LOCAL	void merge_gindex_of_tris(TRI**,int,RECT_GRID*,int,int,P_LINK*,int);
+LOCAL	void merge_gindex_of_curve(CURVE*,RECT_GRID*,int,int,P_LINK*,int);
+LOCAL	void merge_point_pair_gindex(POINT*,POINT*,RECT_GRID*,int,int);
 LOCAL	boolean bond_match1(BOND*,BOND*);
 
 LOCAL	double	tol1[MAXD]; /*TOLERANCE*/
@@ -2311,7 +2312,10 @@ LOCAL 	int append_adj_intfc_to_buffer1(
 	append_other_curves1(intfc,adj_intfc,grid,dir,nb,p_table,p_size);
 	/* append curves not on surfaces */
         for (ac = adj_intfc->curves; ac && *ac; ++ac)
+	{
             matching_curve(*ac,p_table,p_size);
+	    merge_gindex_of_curve(*ac,grid,dir,nb,p_table,p_size);
+	}
 	
 	merge_curves(intfc,adj_intfc);
 	
@@ -2425,7 +2429,7 @@ LOCAL int append_buffer_surface1(
 	if (add_matching_pt_to_hash_table(tris_s,tris_a,ns,na,surf,
 		      adj_surf,p_table,p_size))
 	{
-	    merge_global_index(tris_a,na,grid,dir,nb,p_table,p_size);
+	    merge_gindex_of_tris(tris_a,na,grid,dir,nb,p_table,p_size);
 	    new_adj_surf = copy_buffer_surface(adj_surf,p_table,p_size);
 	    adj_surf = new_adj_surf;
 	}
@@ -4787,7 +4791,34 @@ LOCAL	void incremental_alloc_tris(
 	*tris = new_tris;
 }	/* end incremental_alloc_tri */
 
-LOCAL	void merge_global_index(
+LOCAL	void merge_point_pair_gindex(
+	POINT *ps,		/* local point */
+	POINT *pa,		/* adjacent point */
+	RECT_GRID *grid,	/* computational grid */
+        int dir,
+        int nb)
+{
+	double *L = grid->L;
+	double *U = grid->U;
+	if (Gindex(ps) == -1 && Gindex(pa) == -1)
+	    return;		/* global index not assigned */
+	if (nb == 0)
+	{
+	    if (Coords(pa)[dir] < L[dir])
+		Gindex(ps) = Gindex(pa);
+	    else
+		Gindex(pa) = Gindex(ps);
+	}
+	else
+	{
+	    if (Coords(pa)[dir] >= U[dir])
+		Gindex(ps) = Gindex(pa);
+	    else
+		Gindex(pa) = Gindex(ps);
+	}
+}	/* end merge_point_pair_gindex */
+
+LOCAL	void merge_gindex_of_tris(
 	TRI **tris_a,
 	int na,
 	RECT_GRID *grid,
@@ -4809,25 +4840,10 @@ LOCAL	void merge_global_index(
 	    {
 		pa = Point_of_tri(t)[j];
 		ps = (POINT*)find_from_hash_table((POINTER)pa,p_table,p_size);
-		if (Gindex(pa) == -1 && Gindex(ps) == -1)
-		    continue;
-		if (nb == 0)
-		{
-		    if (Coords(pa)[dir] < L[dir])
-			Gindex(ps) = Gindex(pa);
-		    else
-			Gindex(pa) = Gindex(ps);
-		}
-		else
-		{
-		    if (Coords(pa)[dir] >= U[dir])
-			Gindex(ps) = Gindex(pa);
-		    else
-			Gindex(pa) = Gindex(ps);
-		}
+		merge_point_pair_gindex(ps,pa,grid,dir,nb);
 	    }
 	}
-}	/* end merge_global_index */
+}	/* end merge_gindex_of_tris */
 
 LOCAL boolean bond_out_domain1(
 	BOND		*bond,
@@ -4968,3 +4984,38 @@ LOCAL	boolean bond_match1(
 	}
 	return YES;
 }	/* end bond_match1 */
+
+LOCAL	void merge_gindex_of_curve(
+	CURVE *ac,
+	RECT_GRID *grid,
+	int dir,
+	int nb,
+	P_LINK *p_table,
+	int p_size)
+{
+	POINT *ps,*pa;
+	BOND *b;
+
+	pa = ac->first->start;
+	ps = (POINT*)find_from_hash_table((POINTER)pa,p_table,p_size);
+	if (ps == NULL)
+	{
+	    (void) printf("ERROR in merge_gindex_of_curve()\n");
+	    (void) printf("Cannot find ps from hash table!\n");
+	    clean_up(ERROR);
+	}
+	merge_point_pair_gindex(ps,pa,grid,dir,nb);
+
+	curve_bond_loop(ac,b)
+	{
+	    pa = b->end;
+	    ps = (POINT*)find_from_hash_table((POINTER)pa,p_table,p_size);
+	    if (ps == NULL)
+	    {
+	    	(void) printf("ERROR in merge_gindex_of_curve()\n");
+	    	(void) printf("Cannot find ps from hash table!\n");
+	    	clean_up(ERROR);
+	    }
+	    merge_point_pair_gindex(ps,pa,grid,dir,nb);
+	}
+}	/* end merge_gindex_of_curve */

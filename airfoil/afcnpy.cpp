@@ -1914,19 +1914,22 @@ extern void fourth_order_elastic_set_propagate(
         double           fr_dt)
 {
 	static ELASTIC_SET geom_set;
-	static int size = 0,owner_size;
+	static int size = 0,owner_size,client_size;
+	static int *client_size_old, *client_size_new;
         AF_PARAMS *af_params = (AF_PARAMS*)fr->extra2;
-        int i,n_sub;
+        int i,j,k,n_sub;
         double dt;
         static SPRING_VERTEX *sv;
         static boolean first = YES;
         static GLOBAL_POINT **point_set;
         static GLOBAL_POINT *point_set_store;
+	static GLOBAL_POINT **client_point_set_store;
         int dim = FT_Dimension();
         long max_point_gindex = fr->interf->max_point_gindex;
 	int owner[MAXD];
 	int owner_id = af_params->node_id[0];
         int myid = pp_mynode();
+	int gindex;
         INTERFACE *elastic_intfc = NULL;
 
 	if (debugging("trace"))
@@ -1967,6 +1970,15 @@ extern void fourth_order_elastic_set_propagate(
 	    start_clock("set_data");
 	    if (myid == owner_id)
             {
+		FT_VectorMemoryAlloc((POINTER*)&client_size_old,pp_numnodes(),
+                                        sizeof(int));
+                FT_VectorMemoryAlloc((POINTER*)&client_size_new,pp_numnodes(),
+                                        sizeof(int));
+                FT_VectorMemoryAlloc((POINTER*)&client_point_set_store,
+                                        pp_numnodes(),sizeof(GLOBAL_POINT*));
+                for (i = 0; i < pp_numnodes(); i++)
+                    client_size_old[i] = client_size_new[i] = 0;
+
 		assembleParachuteSet(elastic_intfc,&geom_set);
 		owner_size = geom_set.num_verts;
 		FT_VectorMemoryAlloc((POINTER*)&point_set_store,owner_size,
@@ -1986,23 +1998,54 @@ extern void fourth_order_elastic_set_propagate(
 
 	elastic_intfc = fr->interf;
 	assembleParachuteSet(elastic_intfc,&geom_set);
-	if (myid != owner_id && size < geom_set.num_verts)
+	if (myid != owner_id)
 	{
-	    size = geom_set.num_verts;
-	    if (point_set_store != NULL)
-		FT_FreeThese(1,point_set_store);
-	    FT_VectorMemoryAlloc((POINTER*)&point_set_store,size,
+	    client_size = geom_set.num_verts;
+	    if (size < client_size)
+	    {
+	    	size = client_size;
+	    	if (point_set_store != NULL)
+		{
+		    FT_FreeThese(2,point_set_store,sv);
+		}
+	    	FT_VectorMemoryAlloc((POINTER*)&point_set_store,size,
                                         sizeof(GLOBAL_POINT));
+                FT_VectorMemoryAlloc((POINTER*)&sv,size,sizeof(SPRING_VERTEX));
+	    }
+	    for (i = 0; i < max_point_gindex; ++i)
+                point_set[i] = NULL;
 	    link_point_set(&geom_set,point_set,point_set_store);
+	    count_vertex_neighbors(&geom_set,sv);
+	    set_spring_vertex_memory(sv,client_size);
+	    set_vertex_neighbors(&geom_set,sv,point_set);
+	    get_point_set_from(&geom_set,point_set);
+	    pp_send(1,&(client_size),sizeof(int),owner_id);
+            pp_send(2,point_set_store,client_size*sizeof(GLOBAL_POINT),
+					owner_id);
 	}
 	else
 	    size = owner_size;
-	
 
 	if (myid == owner_id)
 	{
 	    get_point_set_from(&geom_set,point_set);
-	/* Owner receive and patch point_set_store from other processors */
+	    for (i = 0; i < pp_numnodes(); i++)
+	    {
+		if (i == myid) continue;
+		pp_recv(1,i,client_size_new+i,sizeof(int));
+		if (client_size_new[i] > client_size_old[i])
+		{
+		    client_size_old[i] = client_size_new[i];
+		    if (client_point_set_store[i] != NULL)
+		    	FT_FreeThese(1,client_point_set_store[i]);
+	    	    FT_VectorMemoryAlloc((POINTER*)&client_point_set_store[i],
+				client_size_new[i], sizeof(GLOBAL_POINT));
+		}
+		pp_recv(2,i,client_point_set_store[i],
+		    client_size_new[i]*sizeof(GLOBAL_POINT));
+		copy_from_client_point_set(point_set,client_point_set_store[i],
+					client_size_new[i]);
+	    } 
 
 	    start_clock("spring_model");
 #if defined(__GPU__)
@@ -2018,7 +2061,21 @@ extern void fourth_order_elastic_set_propagate(
 #endif
             	generic_spring_solver(sv,dim,size,n_sub,dt);
 	    stop_clock("spring_model");
+
+	    for (i = 0; i < pp_numnodes(); i++)
+	    {
+		if (i == myid) continue;
+		copy_to_client_point_set(point_set,client_point_set_store[i],
+					client_size_new[i]);
+		pp_send(3,client_point_set_store[i],
+                        client_size_new[i]*sizeof(GLOBAL_POINT),i);
+	    }
 	}
+	if (myid != owner_id)
+        {
+            pp_recv(3,owner_id,point_set_store,
+				client_size*sizeof(GLOBAL_POINT));
+        }
 	/* Owner send and patch point_set_store from other processors */
 	put_point_set_to(&geom_set,point_set);
 

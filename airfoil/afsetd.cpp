@@ -1089,7 +1089,7 @@ extern void get_point_set_from(
 	if (debugging("canopy"))
 	    (void) printf("Leaving get_point_set_from()\n");
 }	/* end  get_point_set_from */
-	
+
 extern void put_point_set_to(
 	ELASTIC_SET *geom_set,
 	GLOBAL_POINT **point_set)
@@ -1328,3 +1328,43 @@ extern void assembleParachuteSet(
 	    if (is_load_node(nodes[i]))
 		geom_set->load_node = nodes[i];
 }	/* end assembleParachuteSet */
+
+extern void copy_from_client_point_set(
+	GLOBAL_POINT **point_set,
+	GLOBAL_POINT *client_point_set,
+	int client_size)
+{
+	int j,k;
+	long gindex;
+	for (j = 0; j < client_size; j++)
+        {
+            gindex = client_point_set[j].gindex;
+            for (k = 0; k < 3; k++)
+            {
+                point_set[gindex]->x[k] = client_point_set[j].x[k];
+                point_set[gindex]->v[k] = client_point_set[j].v[k];
+                point_set[gindex]->f[k] = client_point_set[j].f[k];
+                point_set[gindex]->impuls[k] = client_point_set[j].impuls[k];
+            }
+        }
+}	/* end copy_from_client_point_set */
+
+extern void copy_to_client_point_set(
+	GLOBAL_POINT **point_set,
+	GLOBAL_POINT *client_point_set,
+	int client_size)
+{
+	int j,k;
+	long gindex;
+	for (j = 0; j < client_size; j++)
+        {
+            gindex = client_point_set[j].gindex;
+            for (k = 0; k < 3; k++)
+            {
+                client_point_set[j].x[k] = point_set[gindex]->x[k];
+                client_point_set[j].v[k] = point_set[gindex]->v[k];
+                client_point_set[j].f[k] = point_set[gindex]->f[k];
+                client_point_set[j].impuls[k] = point_set[gindex]->impuls[k];
+            }
+        }
+}	/* end copy_to_client_point_set */
