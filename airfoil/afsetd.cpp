@@ -1326,6 +1326,7 @@ extern void assembleParachuteSet(
 	for (i = 0; i < nc; ++i)
 	    geom_set->num_verts += I_NumOfCurveInteriorPoints(curves[i]);
 	geom_set->num_verts += nn;
+	geom_set->load_node = NULL;
 	for (i = 0; i < nn; ++i)
 	    if (is_load_node(nodes[i]))
 	    {

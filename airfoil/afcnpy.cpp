@@ -682,40 +682,40 @@ static void compute_center_of_mass_velo(
 
 	for (n = 0; n < geom_set->num_surfs; ++n)
 	{
-	  canopy = geom_set->surfs[n];
-	  for (j = 0; j < 3; ++j)
-	    vcan[j] = 0.0;
-	  area = mass_canopy = 0.0;
-	  surf_tri_loop(canopy,tri)
-	  {
+	    canopy = geom_set->surfs[n];
+	    for (j = 0; j < 3; ++j)
+	    	vcan[j] = 0.0;
+	    area = mass_canopy = 0.0;
+	    surf_tri_loop(canopy,tri)
+	    {
+	    	for (j = 0; j < 3; ++j)
+	    	{
+		    vt[j] = 0.0;
+		    xt[j] = 0.0;
+	    	}
+	    	for (i = 0; i < 3; ++i)
+	    	{
+		    p = Point_of_tri(tri)[i];
+		    state = (STATE*)left_state(p);
+		    for (j = 0; j < 3; ++j)
+		    {
+		    	vt[j] += state->vel[j]/3.0;
+		    	xt[j] += Coords(p)[j]/3.0;
+		    }
+	    	}
+	    	for (j = 0; j < 3; ++j)
+	    	{
+		    vcan[j] += vt[j]*tri_area(tri);
+		    xcan[j] += xt[j]*tri_area(tri);
+	    	}
+	    	area += tri_area(tri);
+	    }
+	    mass_canopy += area_dens*area;
 	    for (j = 0; j < 3; ++j)
 	    {
-		vt[j] = 0.0;
-		xt[j] = 0.0;
+	    	vcan[j] /= area;
+	    	xcan[j] /= area;
 	    }
-	    for (i = 0; i < 3; ++i)
-	    {
-		p = Point_of_tri(tri)[i];
-		state = (STATE*)left_state(p);
-		for (j = 0; j < 3; ++j)
-		{
-		    vt[j] += state->vel[j]/3.0;
-		    xt[j] += Coords(p)[j]/3.0;
-		}
-	    }
-	    for (j = 0; j < 3; ++j)
-	    {
-		vcan[j] += vt[j]*tri_area(tri);
-		xcan[j] += xt[j]*tri_area(tri);
-	    }
-	    area += tri_area(tri);
-	  }
-	  mass_canopy += area_dens*area;
-	  for (j = 0; j < 3; ++j)
-	  {
-	    vcan[j] /= area;
-	    xcan[j] /= area;
-	  }
 
 	    if (NULL != geom_set->load_node)
 	    {
