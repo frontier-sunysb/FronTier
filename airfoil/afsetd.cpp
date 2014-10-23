@@ -1426,7 +1426,7 @@ static void reorder_string_curves(NODE *node)
 		nb_points[j] = p_tmp;
 	    }	
 	}
-	for (i = 0; i < num_curves-1; ++i)
+	for (i = 0; i < num_curves; ++i)
 	{
 	    if (string_curves[i]->end == node)
 		add_to_pointers(string_curves[i],&node->in_curves);
