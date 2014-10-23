@@ -1890,7 +1890,9 @@ static void initCrossPlaneEdge(
 	char string[100];
 	double *cen;
 	int i,num_canopy;
+	static double **point_array;
 
+	FT_MatrixMemoryAlloc((POINTER*)&point_array,12,MAXD,sizeof(double));
 	num_canopy = level_func_pack->num_mono_hs;
 	rect_constr_params.dim = 3;
 	level_func_pack->constr_params = (POINTER)&rect_constr_params;
@@ -1905,6 +1907,40 @@ static void initCrossPlaneEdge(
 			&rect_constr_params.U[1],&rect_constr_params.U[2]);
 	(void) printf("%f %f %f\n",rect_constr_params.U[0],
 			rect_constr_params.U[1],rect_constr_params.U[2]);
+
+	for (i = 0; i < 12; ++i)
+	    point_array[i][2] = rect_constr_params.L[2];
+	point_array[0][0] = rect_constr_params.L[0];
+	point_array[0][1] = rect_constr_params.L[1];
+	point_array[1][0] = rect_constr_params.L[0];
+	point_array[1][1] = rect_constr_params.U[0];
+	point_array[2][0] = rect_constr_params.L[0];
+	point_array[2][1] = rect_constr_params.U[1];
+
+	point_array[3][0] = rect_constr_params.L[1];
+	point_array[3][1] = rect_constr_params.L[0];
+	point_array[4][0] = rect_constr_params.L[1];
+	point_array[4][1] = rect_constr_params.U[0];
+	point_array[5][0] = rect_constr_params.L[1];
+	point_array[5][1] = rect_constr_params.U[1];
+
+	point_array[6][0] = rect_constr_params.U[0];
+	point_array[6][1] = rect_constr_params.U[1];
+	point_array[7][0] = rect_constr_params.U[0];
+	point_array[7][1] = rect_constr_params.L[0];
+	point_array[8][0] = rect_constr_params.U[0];
+	point_array[8][1] = rect_constr_params.L[1];
+
+	point_array[9][0] = rect_constr_params.U[1];
+	point_array[9][1] = rect_constr_params.U[0];
+	point_array[10][0] = rect_constr_params.U[1];
+	point_array[10][1] = rect_constr_params.L[0];
+	point_array[11][0] = rect_constr_params.U[1];
+	point_array[11][1] = rect_constr_params.L[1];
+
+	level_func_pack->point_array = point_array;
+	level_func_pack->num_points = 12;
+	level_func_pack->direction = 2;
 
 	CursorAfterString(infile,"Enter yes to attach strings to canopy:");
 	fscanf(infile,"%s",string);
@@ -1951,7 +1987,9 @@ static void initRectangularPlaneEdge(
 	char string[100];
 	double *cen;
 	int i,num_canopy;
+	static double **point_array;
 
+	FT_MatrixMemoryAlloc((POINTER*)&point_array,4,MAXD,sizeof(double));
 	num_canopy = level_func_pack->num_mono_hs;
 	rect_constr_params.dim = 3;
 	level_func_pack->constr_params = (POINTER)&rect_constr_params;
@@ -1966,6 +2004,21 @@ static void initRectangularPlaneEdge(
 			&rect_constr_params.U[1],&rect_constr_params.U[2]);
 	(void) printf("%f %f %f\n",rect_constr_params.U[0],
 			rect_constr_params.U[1],rect_constr_params.U[2]);
+
+	for (i = 0; i < 4; ++i)
+	    point_array[i][2] = rect_constr_params.L[2];
+	point_array[0][0] = rect_constr_params.L[0];
+	point_array[0][1] = rect_constr_params.L[1];
+	point_array[1][0] = rect_constr_params.L[0];
+	point_array[1][1] = rect_constr_params.U[1];
+	point_array[2][0] = rect_constr_params.U[0];
+	point_array[2][1] = rect_constr_params.L[1];
+	point_array[3][0] = rect_constr_params.U[0];
+	point_array[3][1] = rect_constr_params.U[1];
+	level_func_pack->point_array = point_array;
+	level_func_pack->num_points = 4;
+	level_func_pack->direction = 2;
+
 	if (CursorAfterStringOpt(infile,
 			"Enter yes to change canopy boundary:"))
 	{

@@ -310,7 +310,8 @@ extern void get_point_set_from(ELASTIC_SET*,GLOBAL_POINT**);
 extern void put_point_set_to(ELASTIC_SET*,GLOBAL_POINT**);
 extern void set_elastic_params(ELASTIC_SET*,double);
 extern void merge_global_point_set(GLOBAL_POINT**,GLOBAL_POINT*,int);
-extern void copy_from_client_point_set(GLOBAL_POINT**,GLOBAL_POINT*,int);
+extern void copy_from_client_point_set(GLOBAL_POINT**,GLOBAL_POINT*,int,
+				double*,double*);
 extern void copy_to_client_point_set(GLOBAL_POINT**,GLOBAL_POINT*,int);
 
 // afvelo.cpp

@@ -463,6 +463,7 @@ IMPORT 	void 	print_blk_tri(BLK_TRI*);
 IMPORT	void 	print_bond(BOND*);
 IMPORT  void 	points_of_interface(INTERFACE*);
 IMPORT	boolean	the_tri(TRI*);
+IMPORT	boolean	the_tri_with_gindex(TRI*);
 IMPORT	boolean	the_side(TRI*);
 IMPORT	boolean	the_BOND(BOND*);
 IMPORT	boolean	the_point(POINT*);

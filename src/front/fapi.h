@@ -1053,6 +1053,21 @@ extern "C" {
    				Front* front ,
 				int* symmetry);
 
+/*! \fn void FT_ParallelExchGridVectorArrayBuffer(double **vec_grid_array, Front *front)
+ *  \ingroup PARALLEL
+    \brief This is a parallel communication function for a vector double array
+     on the expanded dual grid of the grid_intfc in front. It will cut 
+     the old buffer parts of the array and patch it with new buffer parts 
+     received from other subdomains or periodically shifted sides. This is a 
+     synchronous function and must be called synchronously by every processor.
+     Reflection of vector at the RLECTION_BOUNDARY is considered.
+    \param vec_grid_array @b inout A vector double array of variable on expanded duel grid.
+    \param front @b in	Pointer to Front.
+ */
+   IMPORT  void FT_ParallelExchGridVectorArrayBuffer(
+				double **vec_grid_array ,
+   				Front* front);
+
 /*! \fn void FT_ParallelExchCompGridArrayBuffer(double *grid_array, Front *front, int *symmetry)
  *  \ingroup PARALLEL
     \brief This is a parallel communication function for a double array

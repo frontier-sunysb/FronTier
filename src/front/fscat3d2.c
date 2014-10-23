@@ -71,6 +71,7 @@ LOCAL   boolean  seal_closed_curve(CURVE*, int);
 LOCAL   void  set_btri_on_bond(BOND*,CURVE*);
 LOCAL   void  check_bond_comp(const char*, BOND*, BOND*);
 LOCAL   void  merge_overlap_curves(INTERFACE*,INTERFACE*);
+LOCAL  	void  merge_overlap_nodes(INTERFACE*);
 LOCAL	boolean is_buffer_curve(CURVE*,INTERFACE*);
 
 LOCAL	double	ltol[3];/*LINE TOLERANCE*/
@@ -427,25 +428,26 @@ LOCAL   boolean  seal_closed_curve(CURVE *c, int n)
 	    }
 	    return YES;
 	}
-
 	return NO;
 }
 
-LOCAL   BOND * find_match_bond(
+LOCAL   BOND *find_match_bond(
 	BOND *b, 
 	CURVE *c)
 {
 	BOND    *b1;
 
-	for(b1=c->first; b1; b1=b1->next )
-	    if(b1->start == b->start && b1->end == b->end)
+	for (b1 = c->first; b1; b1 = b1->next)
+	{
+	    if (b1->start == b->start && b1->end == b->end)
 	        return b1;
-	    else  if(b1->start == b->end && b1->end == b->start)
+	    else if (b1->start == b->end && b1->end == b->start)
 	    {
 	        printf("ERROR: find_match_bond, ");
 		printf("try to merge reverse order curve.\n");
 		clean_up(ERROR);
 	    }
+	}
 	return NULL;
 }
 
@@ -460,8 +462,7 @@ LOCAL   void  set_btri_on_bond(
 	    (*bt)->curve = c;
 	    (*bt)->surface = (*bt)->tri->surf;
 	}
-
-}
+}	/* end set_btri_on_bond */
 
 LOCAL   void  check_bond_comp(
 	const char    	*msg,
@@ -522,7 +523,8 @@ EXPORT   void merge_btris(
 		    }
 	        if(!found)
 		{
-		    bt = link_tri_to_bond(NULL,(*btris)->tri,(*btris)->surface,b2,curve);
+		    bt = link_tri_to_bond(NULL,(*btris)->tri,
+				(*btris)->surface,b2,curve);
 		    assign_btri_states(bt, *btris);
 		}
 	    }
@@ -544,15 +546,14 @@ EXPORT   void merge_btris(
 	        b1 = b1->next;
 	        b2 = b2->next;
 	    }
-
 	}
 	
 	if(b1 != NULL)
 	{
-	    printf("ERROR merge_btris, merged curve is longer, need to be preprocessed.\n");
+	    printf("ERROR merge_btris, merged curve is longer, "
+		   "need to be preprocessed.\n");
 	    clean_up(ERROR);
 	}
-	
 	return;
 }
 
@@ -564,9 +565,6 @@ LOCAL  void  merge_overlap_curves(
 	BOND      *b1, *b2;
 	BOND_TRI  **btris, **btris1, *bt;
 	int       found;
-
-
-    /*printf("#merge_over bf\n"); */
 
 merge_over_curve:
     for (c = intfc->curves; c && *c; c++)
@@ -587,7 +585,8 @@ merge_over_curve:
  	    
 	    if(is_closed_curve(*c) && is_closed_curve(*curve))
 	    {
-	        printf("ERROR: merge two closed curve, need to update the code.\n");
+	        printf("ERROR: merge two closed curve, need to "
+		       "update the code.\n");
 		clean_up(ERROR);
 	    }
 	   
@@ -606,7 +605,8 @@ merge_over_curve:
 			}
 		    if(!found)
 		    {
-		        bt = link_tri_to_bond(NULL,(*btris)->tri,(*btris)->surface,b2,*curve);
+		        bt = link_tri_to_bond(NULL,(*btris)->tri,
+					(*btris)->surface,b2,*curve);
 		        assign_btri_states(bt, *btris);
 		    }
 		}
@@ -621,32 +621,80 @@ merge_over_curve:
 		        b2 = (*curve)->first;
 		    else
 		    {
-		        printf("ERROR: merge_overlap_curve, curves do not match.\n");
+		        printf("ERROR: merge_overlap_curve, "
+			       "curves do not match.\n");
 			clean_up(ERROR);
 		    }
 		}
 		else
 		    b2 = b2->next;
-		/* TMP */
-		printf("merge_overlap_curve\n");
 		check_bond_comp("merge_overlap_curve", b1, b2);
 	    }
-
 	    delete_curve(*c);
 	    goto  merge_over_curve;
 	}
     }
 }
 
+#define		MAX_CURVE_LIST		500
+
+LOCAL  void  merge_overlap_nodes(	
+	INTERFACE *intfc)
+{
+	int i,j,num_nodes = I_NumOfIntfcNodes(intfc);
+	boolean *node_merged;
+	NODE **n,**node_list,*n1,*n2;
+	CURVE **c,*c_list[MAX_CURVE_LIST];
+	int k,nc;
+
+	uni_array(&node_merged,num_nodes,sizeof(boolean));
+	uni_array(&node_list,num_nodes,sizeof(NODE*));
+	for (i = 0; i < num_nodes; ++i)
+	    node_merged[i] = NO;
+	i = 0;
+	intfc_node_loop(intfc,n)
+	{
+	    node_list[i++] = *n;
+	}
+	for (i = 0; i < num_nodes-1; ++i)
+	{
+	    if (node_merged[i]) continue;
+	    n1 = node_list[i];
+	    node_merged[i] = YES;
+	    for (j = i+1; j < num_nodes; ++j)
+	    {
+	    	n2 = node_list[j];
+		if (n1->posn != n2->posn) continue;
+	    	if (node_merged[j]) continue;
+	    	node_merged[j] = YES;
+		nc = 0;
+		node_in_curve_loop(n2,c)
+		    c_list[nc++] = *c;
+		for (k = 0; k < nc; ++k)
+		{
+		    change_node_of_curve(c_list[k],NEGATIVE_ORIENTATION,n1);
+		}
+		nc = 0;
+		node_out_curve_loop(n2,c)
+		    c_list[nc++] = *c;
+		for (k = 0; k < nc; ++k)
+		{
+		    change_node_of_curve(c_list[k],POSITIVE_ORIENTATION,n1);
+		}
+	    }
+	}
+	free_these(2,node_merged,node_list);
+}	/* end merge_overlap_nodes */
+
 EXPORT   void  merge_curves(
 	INTERFACE *intfc,
 	INTERFACE *adj_intfc)
 {
-	CURVE     **c, **curve;
+	CURVE     **c,**curve;
 	SURFACE	  *surf;
-	BOND      *b, *b1, *b2, *bc, *bo;
+	BOND      *b,*b1,*b2,*bc,*bo;
 	BOND_TRI  **bt;
-	NODE      **n;
+	NODE      **n,**nodes;
 	int       found_node;
 	boolean	  first_match,last_match;
  
@@ -659,21 +707,21 @@ merge_curve:
 	    if (is_buffer_curve(*c,adj_intfc))
 		continue;
 
-	    for(curve=intfc->curves; curve && *curve; curve++) 	
+	    for (curve = intfc->curves; curve && *curve; curve++) 	
 	    {
-		if(is_closed_curve(*curve) || *curve == *c)
+		if (is_closed_curve(*curve) || *curve == *c)
 		    continue;
        
 		/* find merged curve in the head of the curve */
 		first_match = last_match = NO;
 		bo = (*c)->first;
-		bc = find_match_bond(bo, *curve);
+		bc = find_match_bond(bo,*curve);
 		if (bc != NULL)
 		    first_match = YES;
 		else
 		{
 		    bo = (*c)->last;
-		    bc = find_match_bond(bo, *curve);
+		    bc = find_match_bond(bo,*curve);
 		    if (bc != NULL)
 			last_match = YES;
 		}
@@ -720,7 +768,8 @@ merge_curve:
 		else if (last_match)
 		{
 		    /*check if c is included in curve, b1 \in c, b2 \in curve */
-		    for(b2 = bc, b1=bo; b2 && b1; b2 = b2->prev, b1 = b1->prev)
+		    for (b2 = bc, b1 = bo; b2 && b1; 
+			 b2 = b2->prev, b1 = b1->prev)
 			check_bond_comp("merge_curves", b1, b2);
 		    if(b1 == NULL)
 		    continue;
@@ -762,9 +811,8 @@ merge_curve:
 	for (c = intfc->curves; c && *c; c++)
 	    (*c)->num_points = num_points_on_curve(*c);
 
-	/*printf("#merge_curve after\n"); */
 	merge_overlap_curves(intfc,adj_intfc);
-	/*printf("#merge_overlap_curves after\n"); */
+	merge_overlap_nodes(intfc);
 	
 	/* delete the nodes which have no curve related */
 	for (n = intfc->nodes; n && *n; ++n)

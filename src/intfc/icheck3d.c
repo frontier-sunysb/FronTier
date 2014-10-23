@@ -21,7 +21,6 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ****************************************************************/
 
-
 /*
 *				icheck3d.c:
 *
@@ -550,7 +549,8 @@ LOCAL	boolean	check_curve3d(
 	if (c->interface != intfc)
 	{
 	    (void) printf("%s c->interface (%llu) != intfc (%llu)\n",
-			  warn,(long long unsigned int)interface_number(c->interface),
+			  warn,(long long unsigned int)
+			  interface_number(c->interface),
 			  (long long unsigned int)interface_number(intfc));
 	    status = NO;
 	}
@@ -558,22 +558,24 @@ LOCAL	boolean	check_curve3d(
 	if (!pointer_is_in_array(c,ns->out_curves))
 	{
 	    (void) printf("%s curve in not in start node (%llu) "
-			  "out_curves\n",warn,(long long unsigned int)node_number(ns));
+			  "out_curves\n",warn,
+			  (long long unsigned int)node_number(ns));
 	    status = NO;
 	}
 	ne = c->end;
 	if (!pointer_is_in_array(c,ne->in_curves))
 	{
 	    (void) printf("%s curve in not in end node (%llu) "
-			  "in_curves\n",warn,(long long unsigned int)node_number(ne));
+			  "in_curves\n",warn,
+			  (long long unsigned int)node_number(ne));
 	    status = NO;
 	}
 	if (ns->posn != c->first->start)
 	{
 	    (void) printf("%s ns->posn != c->first->start\n"
 			  "c->first->start = %llu, "
-			  "ns = %llu, ns->posn = %llu\n",
-			  warn,(long long unsigned int)point_number(c->first->start),
+			  "ns = %llu, ns->posn = %llu\n",warn,
+			  (long long unsigned int)point_number(c->first->start),
 			  (long long unsigned int)node_number(ns),
 			  (long long unsigned int)point_number(ns->posn));
 	    status = NO;
@@ -582,8 +584,8 @@ LOCAL	boolean	check_curve3d(
 	{
 	    (void) printf("%s ne->posn != c->last->end\n"
 			  "c->last->end = %llu, "
-			  "ne = %llu, ne->posn = %llu\n",
-			  warn,(long long unsigned int)point_number(c->last->end),
+			  "ne = %llu, ne->posn = %llu\n",warn,
+			  (long long unsigned int)point_number(c->last->end),
 			  (long long unsigned int)node_number(ne),
 			  (long long unsigned int)point_number(ne->posn));
 
@@ -612,14 +614,15 @@ LOCAL	boolean	check_curve3d(
 	{
 	    (void) printf("%s c->first->start = %llu is not a "
 			  "boundary point\n",
-			  warn,(long long unsigned int)point_number(c->first->start));
+			  warn,(long long unsigned int)
+			  point_number(c->first->start));
 	    status = NO;
 	}
 	if (!Boundary_point(c->last->end))
 	{
 	    (void) printf("%s c->last->end = %llu is not a "
-			  "boundary point\n",
-			  warn,(long long unsigned int)point_number(c->last->end));
+			  "boundary point\n",warn,
+			  (long long unsigned int)point_number(c->last->end));
 	    status = NO;
 	}
 	for (ss = c->pos_surfaces; ss && *ss; ++ss)
@@ -675,7 +678,8 @@ LOCAL	boolean	check_curve3d(
 	        (void) printf("%s bond pair (%llu -> %llu) point pointers "
 			      "inconsistent\n",
 			      warn,(long long unsigned int)bond_number(b,intfc),
-			      (long long unsigned int)bond_number(b->next,intfc));
+			      (long long unsigned int)
+			      bond_number(b->next,intfc));
 		print_bond(b);
 		print_bond(b->next);
 	        status = NO;
@@ -683,16 +687,16 @@ LOCAL	boolean	check_curve3d(
 	    if (!Boundary_point(b->start))
 	    {
 	        (void) printf("%s b->start = %llu is not a "
-			      "boundary point\n",
-			      warn,(long long unsigned int)point_number(b->start));
+			      "boundary point\n",warn,
+			      (long long unsigned int)point_number(b->start));
 		print_bond(b);
 	        status = NO;
 	    }
 	    if (!Boundary_point(b->end))
 	    {
 	        (void) printf("%s b->end = %llu is not a "
-			      "boundary point\n",
-			      warn,(long long unsigned int)point_number(b->end));
+			      "boundary point\n",warn,
+			      (long long unsigned int)point_number(b->end));
 		print_bond(b);
 	        status = NO;
 	    }
@@ -705,8 +709,10 @@ LOCAL	boolean	check_curve3d(
 	            (void) printf("%s inconsistent surface numbers on "
 				  "bond tri\n",warn);
 		    (void) printf("surface = %llu surface[%d] = %llu\n",
-				  (long long unsigned int)surface_number((*bts)->surface),i,
-				  (long long unsigned int)surface_number(bts0[i]->surface));
+				  (long long unsigned int)
+				  surface_number((*bts)->surface),i,
+				  (long long unsigned int)
+				  surface_number(bts0[i]->surface));
 		    (void) printf("orient = %s orient[%d] = %s\n",
 				  orientation_name((*bts)->orient),i,
 				  orientation_name(bts0[i]->orient));
@@ -726,15 +732,18 @@ LOCAL	boolean	check_curve3d(
 		if ((*bts)->curve != c)
 		{
 		    (void) printf("%s bond tri curve field (%llu) != c\n",
-				  warn,(long long unsigned int)curve_number((*bts)->curve));
+				  warn,(long long unsigned int)
+				  curve_number((*bts)->curve));
 		    print_bond(b);
 		    status = NO;
 		}
 		if ((*bts)->bond != b)
 		{
 		    (void) printf("%s bond tri bond field (%llu) != b (%llu)\n",
-				  warn,(long long unsigned int)bond_number((*bts)->bond,intfc),
-				  (long long unsigned int)bond_number(b,intfc));
+				  warn,(long long unsigned int)
+				  bond_number((*bts)->bond,intfc),
+				  (long long unsigned int)
+				  bond_number(b,intfc));
 		    print_bond(b);
 		    status = NO;
 		}
@@ -744,7 +753,8 @@ LOCAL	boolean	check_curve3d(
 		{
 		    (void) printf("%s bond tri surface field (%llu)"
 				  "!= Surface_of_tri(tri) (%llu)\n",
-				  warn,(long long unsigned int)surface_number((*bts)->surface),
+				  warn,(long long unsigned int)
+				  surface_number((*bts)->surface),
 				  (long long unsigned int)surface_number(s));
 		    print_bond(b);
 		    status = NO;
@@ -783,8 +793,9 @@ LOCAL	boolean	check_curve3d(
 	                if (!pointer_is_in_array(c,s->pos_curves))
 	                {
 	                    (void) printf("%s curve in not s->pos_curves "
-					  " s = %llu\n",
-			                  warn,(long long unsigned int)surface_number(s));
+					  " s = %llu\n",warn,
+					  (long long unsigned int)
+					  surface_number(s));
 		            print_bond(b);
 		            print_tri(tri,intfc);
 	                    status = NO;
@@ -792,8 +803,9 @@ LOCAL	boolean	check_curve3d(
 	                if (!pointer_is_in_array(s,c->pos_surfaces))
 	                {
 	                    (void) printf("%s surface in not c->pos_surfaces "
-					  " s = %llu\n",
-			                  warn,(long long unsigned int)surface_number(s));
+					  " s = %llu\n",warn,
+					  (long long unsigned int)
+					  surface_number(s));
 		            print_bond(b);
 		            print_tri(tri,intfc);
 	                    status = NO;
@@ -804,7 +816,8 @@ LOCAL	boolean	check_curve3d(
 	                {
 	                    (void) printf("%s curve in not s->neg_curves "
 					  " s = %llu\n",
-			                  warn,(long long unsigned int)surface_number(s));
+			                  warn,(long long unsigned int)
+					  surface_number(s));
 		            print_bond(b);
 		            print_tri(tri,intfc);
 	                    status = NO;
@@ -813,7 +826,8 @@ LOCAL	boolean	check_curve3d(
 	                {
 	                    (void) printf("%s surface in not c->neg_surfaces "
 					  " s = %llu\n",
-			                  warn,(long long unsigned int)surface_number(s));
+			                  warn,(long long unsigned int)
+					  surface_number(s));
 		            print_bond(b);
 		            print_tri(tri,intfc);
 	                    status = NO;
@@ -1318,7 +1332,7 @@ EXPORT void check_global_index(
 		    (void) printf("More than 8 points have same Gindex\n");
 		    for (k = 0; k < iv; ++k)
 		    {
-			(void) printf("gpts[%d]: (%f %f %f) Gindex = %d\n",k,
+			(void) printf("gpts[%d]: (%f %f %f) Gindex = %ld\n",k,
 				Coords(gpts[k])[0],Coords(gpts[k])[1],
 				Coords(gpts[k])[2],Gindex(gpts[k]));
 		    }

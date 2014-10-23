@@ -112,6 +112,7 @@ int main(int argc, char **argv)
             	    clean_up(ERROR);
 		gview_plot_interface("ginit",front.interf);
 	    }
+	    FT_SetGlobalIndex(&front);
 	}
 	else
 	{
@@ -158,7 +159,6 @@ int main(int argc, char **argv)
             l_cartesian->setInitialCondition();
 	}
 
-	FT_SetGlobalIndex(&front);
 	static_mesh(front.interf) = YES;
         l_cartesian->initMovieVariables();
 	initMovieStress(in_name,&front);
@@ -207,7 +207,8 @@ static  void airfoil_driver(
 	    {
             	l_cartesian->solve(front->dt);
 	    }
-	    print_airfoil_stat(front,out_name);
+	    if (pp_numnodes() == 1)	// parallel code needed
+	    	print_airfoil_stat(front,out_name);
 
             FT_SetOutputCounter(front);
 	    FT_SetTimeStep(front);
@@ -219,6 +220,13 @@ static  void airfoil_driver(
 	}
 	FT_TimeControlFilter(front);
 	FT_PrintTimeStamp(front);
+	if (FT_TimeLimitReached(front)) // For restart debugging 
+	{
+	    FT_Save(front,out_name);
+            l_cartesian->printFrontInteriorStates(out_name);
+	    printAfExtraDada(front,out_name);
+	    return;
+	}
 	
         for (;;)
         {
@@ -266,7 +274,8 @@ static  void airfoil_driver(
 
 	    /* Output section */
 
-	    print_airfoil_stat(front,out_name);
+	    if (pp_numnodes() == 1) // parallel code needed
+	    	print_airfoil_stat(front,out_name);
 
             if (FT_IsSaveTime(front))
 	    {

@@ -51,6 +51,8 @@ static void set_node_impulse(ELASTIC_SET*,NODE*,SPRING_VERTEX*,int*);
 static void get_point_value_from(POINT*,GLOBAL_POINT**);
 static void put_point_value_to(POINT*,GLOBAL_POINT**);
 
+static void reorder_string_curves(NODE*);
+
 #define 	MAX_NUM_RING1		30
 
 static void count_node_neighbors(
@@ -1326,19 +1328,31 @@ extern void assembleParachuteSet(
 	geom_set->num_verts += nn;
 	for (i = 0; i < nn; ++i)
 	    if (is_load_node(nodes[i]))
+	    {
 		geom_set->load_node = nodes[i];
+		reorder_string_curves(nodes[i]);
+	    }
 }	/* end assembleParachuteSet */
 
 extern void copy_from_client_point_set(
 	GLOBAL_POINT **point_set,
 	GLOBAL_POINT *client_point_set,
-	int client_size)
+	int client_size,
+	double *client_L,
+	double *client_U)
 {
 	int j,k;
 	long gindex;
 	for (j = 0; j < client_size; j++)
         {
             gindex = client_point_set[j].gindex;
+            for (k = 0; k < 3; k++)
+	    {
+	    	if (client_point_set[j].x[k] < client_L[k] ||
+		    client_point_set[j].x[k] >= client_U[k])
+		    break;
+	    }
+	    if (k < 3) continue;
             for (k = 0; k < 3; k++)
             {
                 point_set[gindex]->x[k] = client_point_set[j].x[k];
@@ -1368,3 +1382,55 @@ extern void copy_to_client_point_set(
             }
         }
 }	/* end copy_to_client_point_set */
+
+static void reorder_string_curves(NODE *node)
+{
+	CURVE **c,**string_curves,*c_tmp;
+	int i,j,num_curves;
+	POINT **nb_points,*p_tmp;
+
+	num_curves = I_NumOfNodeCurves(node);
+	FT_VectorMemoryAlloc((POINTER*)&string_curves,num_curves,
+				sizeof(CURVE*));
+	FT_VectorMemoryAlloc((POINTER*)&nb_points,num_curves,
+				sizeof(POINT*));
+	i = 0;	
+	node_in_curve_loop(node,c)
+	{
+	    string_curves[i] = *c;
+	    nb_points[i++] = (*c)->last->start;
+	}
+	node_out_curve_loop(node,c)
+	{
+	    string_curves[i] = *c;
+	    nb_points[i++] = (*c)->first->end;
+	}
+	for (i = 0; i < num_curves; ++i)
+	{
+	    if (string_curves[i]->end == node)
+		delete_from_pointers(string_curves[i],&node->in_curves);
+	    if (string_curves[i]->start == node)
+		delete_from_pointers(string_curves[i],&node->out_curves);
+	}
+	for (i = 0; i < num_curves-1; ++i)
+	for (j = i+1; j < num_curves; ++j)
+	{
+	    if (Gindex(nb_points[i]) > Gindex(nb_points[j]))
+	    {
+		c_tmp = string_curves[i];
+		string_curves[i] = string_curves[j];
+		string_curves[j] = c_tmp;
+		p_tmp = nb_points[i];
+		nb_points[i] = nb_points[j];
+		nb_points[j] = p_tmp;
+	    }	
+	}
+	for (i = 0; i < num_curves-1; ++i)
+	{
+	    if (string_curves[i]->end == node)
+		add_to_pointers(string_curves[i],&node->in_curves);
+	    if (string_curves[i]->start == node)
+		add_to_pointers(string_curves[i],&node->out_curves);
+	}
+	FT_FreeThese(2,string_curves,nb_points);
+}	/* end reorder_string_curves */

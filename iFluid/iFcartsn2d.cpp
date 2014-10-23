@@ -412,22 +412,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocity(void)
 		if (vmax[l] < vel[l][index]) vmax[l] = vel[l][index];
 	    }
 	}
-	for (k = 0; k < 2; ++k)
-	{
-	    for (j = jmin; j <= jmax; j++)
-            for (i = imin; i <= imax; i++)
-	    {	
-	    	index  = d_index2d(i,j,top_gmax);
-	    	array[index] = vel[k][index];
-	    }
-	    scatMeshArray();
-	    for (j = 0; j <= top_gmax[1]; j++)
-	    for (i = 0; i <= top_gmax[0]; i++)
-	    {	
-	    	index  = d_index2d(i,j,top_gmax);
-	    	vel[k][index] = array[index];
-	    }
-	}
+	FT_ParallelExchGridVectorArrayBuffer(vel,front);
 	extractFlowThroughVelocity();
 	computeVelDivergence();
 
@@ -558,12 +543,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeNewVelocityDual(void)
             if (speed > max_speed) max_speed = speed;
 	}
 
-	for (l = 0; l < dim; ++l)
-	{
-	    symmetry[0] = symmetry[1] = symmetry[2] = EVEN;
-	    symmetry[l] = ODD;
-	    FT_ParallelExchGridArrayBuffer(vel[l],front,symmetry);
-	}
+	FT_ParallelExchGridVectorArrayBuffer(vel,front);
 
         if (debugging("check_div"))
 	    checkVelocityDiv("Before extractFlowThroughVelocity()");
@@ -924,20 +904,12 @@ void Incompress_Solver_Smooth_2D_Cartesian::
                 I = ij_to_I[i][j];
                 index = d_index2d(i,j,top_gmax);
                 if (I >= 0)
-                    array[index] = x[I-ilower];
+                    vel[l][index] = x[I-ilower];
                 else
-                    array[index] = 0.0;
-            }
-            scatMeshArray();
-            for (j = 0; j <= top_gmax[1]; j++)
-            for (i = 0; i <= top_gmax[0]; i++)
-            {
-                I = ij_to_I[i][j];
-                index  = d_index2d(i,j,top_gmax);
-		if (I > 0)
-                    vel[l][index] = array[index];
+                    vel[l][index] = 0.0;
             }
         }
+	FT_ParallelExchGridVectorArrayBuffer(vel,front);
 	max_speed = 0.0;
 	vmin[0] = vmin[1] = HUGE;
 	vmax[0] = vmax[1] = -HUGE;
@@ -1106,22 +1078,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeGradientQ(void)
 	    for (l = 0; l < dim; ++l)
 	    	grad_q[l][index] = point_grad_q[l];
 	}
-	for (l = 0; l < dim; ++l)
-	{
-	    for (j = jmin; j <= jmax; j++)
-	    for (i = imin; i <= imax; i++)
-	    {
-	    	index = d_index2d(i,j,top_gmax);
-		array[index] = grad_q[l][index];
-	    }
-	    scatMeshArray();
-	    for (j = 0; j <= top_gmax[1]; j++)
-	    for (i = 0; i <= top_gmax[0]; i++)
-	    {
-	    	index = d_index2d(i,j,top_gmax);
-		grad_q[l][index] = array[index];
-	    }
-	}
+	FT_ParallelExchGridVectorArrayBuffer(grad_q,front);
 	if (debugging("field_var"))
 	{
 	    (void) printf("\nIn computeGradientQ(), \n");
@@ -1577,18 +1534,12 @@ void Incompress_Solver_Smooth_2D_Cartesian::
                 I = ij_to_I[i][j];
                 index = d_index2d(i,j,top_gmax);
                 if (I >= 0)
-                    array[index] = x[I-ilower];
+                    vel[l][index] = x[I-ilower];
                 else
-                    array[index] = 0.0;
+                    vel[l][index] = 0.0;
             }
-            scatMeshArray();
-            for (j = 0; j <= top_gmax[1]; j++)
-            for (i = 0; i <= top_gmax[0]; i++)
-            {
-                index  = d_index2d(i,j,top_gmax);
-                vel[l][index] = array[index];
-            }
-        }
+	}
+	FT_ParallelExchGridVectorArrayBuffer(vel,front);
         for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
         {
@@ -1814,18 +1765,12 @@ void Incompress_Solver_Smooth_2D_Cartesian::
                 I = ij_to_I[i][j];
                 index = d_index2d(i,j,top_gmax);
                 if (I >= 0)
-                    array[index] = x[I-ilower];
+                    vel[l][index] = x[I-ilower];
                 else
-                    array[index] = 0.0;
+                    vel[l][index] = 0.0;
             }
-            scatMeshArray();
-            for (j = 0; j <= top_gmax[1]; j++)
-            for (i = 0; i <= top_gmax[0]; i++)
-            {
-                index  = d_index2d(i,j,top_gmax);
-                vel[l][index] = array[index];
-            }
-        }
+	}
+	FT_ParallelExchGridVectorArrayBuffer(vel,front);
         for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
 	{

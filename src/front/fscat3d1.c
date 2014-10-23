@@ -192,7 +192,7 @@ void    construct_reflect_bdry(
         int          i, j, k;
         int          dim = intfc->dim;
         boolean         status;
-        static double nors[] = {  1.0,  0.0,  0.0,
+        static double nors[] = { 1.0,  0.0,  0.0,
                                  0.0,  1.0,  0.0,
                                  0.0,  0.0,  1.0,
                                 -1.0,  0.0,  0.0,
@@ -216,7 +216,7 @@ void    construct_reflect_bdry(
 
                 set_open_bdry_flag(NO);
 
-                clip_intfc_in_dir(intfc, i, j);
+                clip_intfc_in_dir(intfc,i,j);
                 buf_intfc = cut_buf_interface1(intfc,i,j,me,him);
 
                 nor = nors + 3*i + 9*j;
@@ -226,42 +226,27 @@ void    construct_reflect_bdry(
 
                 if(debugging("cut_ref"))
                 {
-                    cut_intfc_along_bdry(i, j, intfc);
-                    cut_intfc_along_bdry(i, j, buf_intfc);
+                    cut_intfc_along_bdry(i,j,intfc);
+                    cut_intfc_along_bdry(i,j,buf_intfc);
 
-                    flag_buffer_tris(i, j, intfc);
+                    flag_buffer_tris(i,j,intfc);
                     printf("#cut_ref  buf_intfc\n");
-                    flag_buffer_tris(i, j, buf_intfc);
-
+                    flag_buffer_tris(i,j,buf_intfc);
                 }
                 else
                 {
-                    cut_buffer_tris_from_intfc(intfc, i, j);
-                    cut_buffer_tris_from_intfc(buf_intfc, i, j);
+                    cut_buffer_tris_from_intfc(intfc,i,j);
+                    cut_buffer_tris_from_intfc(buf_intfc,i,j);
                 }
 
-                    if(i == 0 && j ==0 && pp_mynode() == 44 && NO)
-                    {
-                        printf("#cut_ref -1\n");
+                sep_common_pt_for_ref_bdry(intfc,i,j);
+                sep_common_pt_for_ref_bdry(buf_intfc,i,j);
 
-                        null_sides_are_consistent();
-                        check_print_intfc("After cut_buf buf", "intfc", 'g',
-                                          intfc, 1, -1, YES);
+                reflect_interface(buf_intfc,p,nor);
+                reflect_curves_on_intfc(buf_intfc,p,nor);
 
-                        null_sides_are_consistent();
-                        check_print_intfc("After cut_buf buf", "cut_intfc_buf", 'g',
-                                          buf_intfc, 1, -1, YES);
-                    }
-
-
-                sep_common_pt_for_ref_bdry(intfc, i, j);
-                sep_common_pt_for_ref_bdry(buf_intfc, i, j);
-
-                reflect_interface(buf_intfc, p, nor);
-                reflect_curves_on_intfc(buf_intfc, p, nor);
-
-                make_ref_strip(p, nor, intfc);
-                make_ref_strip(p, nor, buf_intfc);
+                make_ref_strip(p,nor,intfc);
+                make_ref_strip(p,nor,buf_intfc);
 
                 set_current_interface(intfc);
 
@@ -274,7 +259,7 @@ void    construct_reflect_bdry(
                 {
                     (void) printf("WARNING in construct_reflect_bdry "
                               "buffer_extension3d1 failed for "
-                              "i = %d, j = %d \n", i, j);
+                              "i = %d, j = %d \n",i,j);
                     clean_up(ERROR);
                 }
 
@@ -289,21 +274,20 @@ void    construct_reflect_bdry(
                         --s;
                     }
                 }
-                if(intfc->surfaces != NULL && *(intfc->surfaces) == NULL)
+                if (intfc->surfaces != NULL && *(intfc->surfaces) == NULL)
                     intfc->surfaces = NULL;
-                if(intfc->surfaces == NULL)
+                if (intfc->surfaces == NULL)
                 {
-                    printf("no tris, exit construct_reflect_bdry.\n");
+                    if(debugging("cut_ref"))
+                    	(void) printf("no tri, exit construct_reflect_bdry.\n");
                     goto exit_ref;
                 }
 
             }   /*for j=0, 1, two direction communication.*/
             reset_intfc_num_points(intfc);
         }
-
 exit_ref:
         set_open_bdry_flag(NO);
-
         set_current_interface(cur_intfc);
         DEBUG_LEAVE(construct_reflect_bdry)
 }
@@ -1555,12 +1539,6 @@ int cut_buffer_tris(
 			}
 		    }
 		}
-
-		if(the_tri(tri))
-		{
-		    printf("#the_tri found\n");
-		    print_tri(tri, surf->interface);
-		}
 	    }
 
 	    p = Point_of_tri(tri);
@@ -1603,7 +1581,7 @@ LOCAL	boolean f_intfc_communication3d1(
 	int	     *G;
 	int	     i, j, k;
 	int	     dim = intfc->dim;
-	static double nors[] = {  1.0,  0.0,  0.0,
+	static double nors[] = { 1.0,  0.0,  0.0,
 			         0.0,  1.0,  0.0,
 			         0.0,  0.0,  1.0,
 			        -1.0,  0.0,  0.0,
@@ -1670,7 +1648,6 @@ LOCAL	boolean f_intfc_communication3d1(
 		    else
 		        adj_intfc[(j+1)%2] = buf_intfc;
 		}
-                /*
 		else if (rect_boundary_type(intfc,i,j) == REFLECTION_BOUNDARY)
 		{
 		    nor = nors + 3*i + 9*j;
@@ -1681,12 +1658,13 @@ LOCAL	boolean f_intfc_communication3d1(
 		    reflect_interface(buf_intfc,p,nor);
 		    adj_intfc[j] = buf_intfc;
 		}
-                */
+                /*
                 else if (rect_boundary_type(intfc,i,j) == REFLECTION_BOUNDARY)
                 {
                     adj_intfc[j] = NULL;
                     set_current_interface(intfc);
                 }
+                */
 		if (rect_boundary_type(intfc,i,(j+1)%2) == SUBDOMAIN_BOUNDARY)
 		{
 		    him[i] = (me[i] - 2*j + 1 + G[i])%G[i];
@@ -2536,16 +2514,6 @@ LOCAL	void	synchronize_tris_at_subdomain_bdry(
 						               p_table,p_size);
 			    if (p2 == ps[2])
 			    {
-				/*
-			        if(the_tri(ta))
-				{
-				    printf("#sync tris  \n");
-				    print_tri(ts, ts->surf->interface);
-				    print_tri(ta, ta->surf->interface);
-				    add_to_debug("ts_tst");
-				}
-				*/
-
 			        rotate_triangle(ts,(3-id)%3);
 				
 				if(debugging("ts_tst"))
@@ -3199,7 +3167,9 @@ EXPORT void open_surf_null_sides(
 	    /* bond with inside tri survives. */
 	    if (tri_out_domain1(tri,L,U,dir,nb) && 
 		tri_bond_test(tri,L,U,dir,nb))
+	    {
 	    	remove_out_domain_tri(tri,surf);
+	    }
 	}
 }	/* end open_surf_null_sides */
 
@@ -3216,7 +3186,7 @@ EXPORT void open_null_bonds(
 	int i,nc;
 
 	nc = I_NumOfIntfcCurves(intfc);
-	uni_array(&curves,2*nc,sizeof(CURVE*));
+	uni_array(&curves,3*nc,sizeof(CURVE*));
 
 start_open_bonds:
 	nc = 0;
@@ -3328,19 +3298,10 @@ EXPORT void open_null_sides1(
 				"open_null_sides1","before");
 	}
 
+	set_floating_point_tolerance1(computational_grid(intfc)->h);
 	for (s = intfc->surfaces; s && *s; ++s)
 	{
 	    open_surf_null_sides(*s,L,U,dir,nb);
-		/*
-	    TRI *ntri = NULL;
-	    for (tri=first_tri(*s); !at_end_of_tri_list(tri,*s); tri=ntri)
-	    {
-		ntri = tri->next;
-		if (tri_out_domain1(tri,L,U,dir,nb) && 
-		    tri_bond_test(tri,L,U,dir,nb))
-	    	    remove_out_domain_tri(tri,*s);
-	    }
-		*/
 	}
 	for (s = intfc->surfaces; s && *s; ++s)
 	{
@@ -3423,17 +3384,17 @@ LOCAL boolean tri_bond_out_domain(
 	int		dir,
 	int		nb)
 {
-int		i;
-BOND		*b;
-BOND_TRI	**btris;
+	int		i;
+	BOND		*b;
+	BOND_TRI	**btris;
 
-	for(i=0; i<3; i++)
+	for (i = 0; i < 3; i++)
 	{
-	    if(!is_side_bdry(tri, i))
+	    if (!is_side_bdry(tri,i))
 	        continue;
-	    b = Bond_on_side(tri, i);
-	    for(btris = Btris(b); btris && *btris; btris++)
-	        if(!tri_out_domain1((*btris)->tri, L, U, dir, nb))
+	    b = Bond_on_side(tri,i);
+	    for (btris = Btris(b); btris && *btris; btris++)
+	        if (!tri_out_domain1((*btris)->tri,L,U,dir,nb))
 		    return NO;
 	}
 	return YES;
@@ -3446,29 +3407,21 @@ LOCAL boolean tri_bond_test(
 	int		dir,
 	int		nb)
 {
-int	i, j, n;
-TRI	**tris;
-POINT	*p;
+	int	i, n;
+	TRI	**tris;
+	POINT	*p;
 
-	if(!tri_bond_out_domain(tri,L,U,dir,nb))
-	    return NO;
-	j = 0;
-	for(i=0; i<3; i++)
+	for (i = 0; i < 3; i++)
 	{
-	    if(Boundary_point(Point_of_tri(tri)[i]))
+	    if (Boundary_point(Point_of_tri(tri)[i]))
 	    {
 	        p = Point_of_tri(tri)[i];
-	        j++;
+		n = set_tri_list_around_point(p,tri,&tris,tri->surf->interface);
+		if (!tri_bond_out_domain(tris[0],L,U,dir,nb) &&
+	   	    !tri_bond_out_domain(tris[n-1],L,U,dir,nb))
+		    return NO;
 	    }
 	}
-
-	if(j != 1)
-	    return YES;
-	n = set_tri_list_around_point(p, tri, &tris, tri->surf->interface);
-	
-	if(!tri_bond_out_domain(tris[0],L,U,dir,nb)  &&
-	   !tri_bond_out_domain(tris[n-1],L,U,dir,nb) )
-	    return NO;
 	return YES;
 }
 
@@ -4289,7 +4242,8 @@ EXPORT void install_subdomain_bdry_curves_prev(
 	{
 	    while (null_side_on_surface(*s,&start_tri,&start_side))
 	    {
-		find_null_side_loop(intfc,start_tri,start_side,&tri_start,&side_start);
+		find_null_side_loop(intfc,start_tri,start_side,&tri_start,
+					&side_start);
 		p = ps = Point_of_tri(tri_start)[side_start];
 		if ((ns = node_of_point(ps,intfc)) == NULL)
 	    	    ns = make_node(ps);
@@ -4487,15 +4441,21 @@ EXPORT	void cut_surface(
 	INTERFACE *intfc = surf->interface;
 	TRI *tri,*ntri;
 	POINT *p;
-	double *p1,*p2,*pc;
-	int i,j,dim = intfc->dim;
+	double *p1,*p2,*pc,pt[MAXD];
+	int i,j,k,l,nside,dim = intfc->dim;
 	double distance;
 	double tol = 1e-5*MIN_SC_SEP(intfc);
+	boolean p1_constr,p2_constr,pt_constr;
+	TRI **tris;
+	int num_tris;
+	int count = 0;
 
 	if (force_clip)
 	{
 	    set_current_interface(surf->interface);
 
+top_of_loop:
+	    count++;
 	    for (tri=first_tri(surf); !at_end_of_tri_list(tri,surf); 
 				tri=tri->next)
 	    	for (i = 0; i < 3; ++i)
@@ -4506,53 +4466,119 @@ EXPORT	void cut_surface(
 	    {
 	    	for (i = 0; i < 3; ++i)
 		{
-		    if (sorted(Point_of_tri(tri)[i]) ||
+		    if (sorted(Point_of_tri(tri)[i]) &&
 			sorted(Point_of_tri(tri)[(i+1)%3]))
 			continue;
 		    p1 = Coords(Point_of_tri(tri)[i]);
 		    p2 = Coords(Point_of_tri(tri)[(i+1)%3]);
-		    if ((constr_func(func_params,p1) && 
-			!constr_func(func_params,p2)) ||
-		        (constr_func(func_params,p2) && 
-			!constr_func(func_params,p1)))
+		    p1_constr = constr_func(func_params,p1);
+		    p2_constr = constr_func(func_params,p2);
+		    if ((p1_constr && !p2_constr) ||
+		        (p2_constr && !p1_constr))
 		    {
 			pc = constr_position(p1,p2,constr_func,func_params);
-			distance = distance_between_positions(pc,p1,dim);
-			if (distance < tol)
+                        distance = distance_between_positions(pc,p1,dim);
+                        if (distance < tol)
+                        {
+                            for (j = 0; j < dim; ++j)
+                                p1[j] = pc[j];
+                            sorted(Point_of_tri(tri)[i]) = YES;
+                            continue;
+                        }
+                        distance = distance_between_positions(pc,p2,dim);
+                        if (distance < tol)
+                        {
+                            for (j = 0; j < dim; ++j)
+                                p2[j] = pc[j];
+                            sorted(Point_of_tri(tri)[(i+1)%3]) = YES;
+                            continue;
+                        }
+                        p = Point(pc);
+                        insert_point_in_tri_side(p,i,tri,surf);
+                        sorted(p) = YES;  
+		    }
+		    else
+		    {
+			for (k = 1; k <= 10; ++k)
 			{
 			    for (j = 0; j < dim; ++j)
-				p1[j] = pc[j];
-			    sorted(Point_of_tri(tri)[i]) = YES;
-					/*use flag sorted for new point*/
-			    continue;
+				pt[j] = p1[j] + k*(p2[j] - p1[j])/10.0;
+		    	    pt_constr = constr_func(func_params,pt);
+			    if (pt_constr == p1_constr) continue;
+
+			    pc = constr_position(p1,pt,constr_func,func_params);
+                            distance = distance_between_positions(pc,p1,dim);
+                            if (distance < tol)
+                            {
+                            	for (j = 0; j < dim; ++j)
+                                    p1[j] = pc[j];
+				p = Point_of_tri(tri)[i];
+                        	sorted(p) = YES;  
+                            }
+			    else
+			    {
+                        	p = Point(pc);
+                        	insert_point_in_tri_side(p,i,tri,surf);
+                        	sorted(p) = YES;  
+			    }
+			    ntri = NULL;
+			    num_tris = set_tri_list_around_point(p,tri,
+							&tris,intfc);
+			    for (l = 0; l < num_tris; ++l)
+			    {
+				for (j = 0; j < 3; ++j)
+				{
+				    if ((Point_of_tri(tris[l])[j] == p &&
+					Coords(Point_of_tri(tris[l])[(j+1)%3]) 
+						== p2) ||
+					(Point_of_tri(tris[l])[(j+1)%3] == p &&
+					Coords(Point_of_tri(tris[l])[j]) == p2))
+				    {
+					ntri = tris[l];
+					nside = j;
+					break;
+				    }
+				}
+			    }
+			    if (ntri == NULL) 
+			    {
+				(void) printf("In cut_surface(): ");
+				(void) printf("cannot find tri of p2\n");
+				clean_up(ERROR);
+			    }
+			    pc = constr_position(p2,pt,constr_func,func_params);
+                            distance = distance_between_positions(pc,p2,dim);
+                            if (distance < tol)
+                            {
+                            	for (j = 0; j < dim; ++j)
+                                    p2[j] = pc[j];
+				sorted(p) = YES;
+                            }
+			    else
+			    {
+                        	p = Point(pc);
+                        	insert_point_in_tri_side(p,nside,ntri,surf);
+                        	sorted(p) = YES;  
+			    }
+			    break;
 			}
-			distance = distance_between_positions(pc,p2,dim);
-			if (distance < tol)
-			{
-			    for (j = 0; j < dim; ++j)
-				p2[j] = pc[j];
-			    sorted(Point_of_tri(tri)[(i+1)%3]) = YES; 
-					/*use flag sorted for new point*/
-			    continue;
-			}
-			p = Point(pc);
-			insert_point_in_tri_side(p,i,tri,surf);
-			sorted(p) = YES;  /*use flag sorted for new point*/
 		    }
 		}
 	    }
+	    if (count < 4) goto top_of_loop;
 	}
 	for (tri=first_tri(surf); !at_end_of_tri_list(tri,surf); tri=ntri)
 	{
 	    ntri = tri->next;
 	    for (i = 0; i < 3; ++i)
 	    {
-		p = Point_of_tri(tri)[i];
-		if (!constr_func(func_params,Coords(p)))
-		{
-		    remove_out_domain_tri(tri,surf);
-		    break;
-		}
+		pc[i] = (Coords(Point_of_tri(tri)[0])[i] +
+                         Coords(Point_of_tri(tri)[1])[i] +
+                         Coords(Point_of_tri(tri)[2])[i])/3.0;
+	    }
+	    if (!constr_func(func_params,pc))
+	    {
+		remove_out_domain_tri(tri,surf);
 	    }
 	}
 }	/* end cut_surface */

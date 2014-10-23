@@ -2170,8 +2170,6 @@ LOCAL	void find_nearest_tri_pair(
 }	/* end find_nearest_tri_pair */
 
 
-boolean the_tri1(TRI *);
-
 LOCAL	void find_nearest_tri_pair_new(
 	TRI **in_tris,
 	int *num_in_tris,
@@ -2231,13 +2229,6 @@ LOCAL	void find_nearest_tri_pair_new(
 				po1 = Coords(Point_of_tri(
 					out_tris[i])[Next_m3(j)]);
 				
-				if(debugging("new_tris") && the_tri1(in_tris[k]))
-				{
-				    printf("#in_tri check\n");
-				    print_tri(in_tris[k], intfc);
-
-				}
-
 				if (!point_in_crx_tri(pi,crx_tris[m]) &&
 				   !point_in_crx_tri(pi1,crx_tris[m]))
 				    continue;

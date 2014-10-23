@@ -91,8 +91,8 @@ extern void printAfExtraDada(
 	    	sr = (STATE*)right_state(p);
             	for (i = 0; i < dim; ++i)
                     fprintf(outfile,"%24.18g ",p->vel[i]);
-            	fprintf(outfile,"%24.18g %24.18g\n",sl->pres,sr->pres);
 	    	fprintf(outfile,"\n");
+            	fprintf(outfile,"%24.18g %24.18g\n",sl->pres,sr->pres);
             	for (i = 0; i < dim; ++i)
                     fprintf(outfile,"%24.18g ",sl->impulse[i]);
 	    	fprintf(outfile,"\n");
@@ -144,6 +144,25 @@ extern void printAfExtraDada(
                 fprintf(outfile,"af_node_type = %d\n",n_params->af_node_type);
 	    }
 	}
+	fprintf(outfile,"\nGlobal index of points\n");
+	next_point(intfc,NULL,NULL,NULL);
+        while (next_point(intfc,&p,&hse,&hs))
+            fprintf(outfile,"%ld\n",Gindex(p));
+	for (c = intfc->curves; c && *c; ++c)
+	{
+	    b = (*c)->first;	p = b->start;
+            fprintf(outfile,"%ld\n",Gindex(p));
+	    for (b = (*c)->first; b != NULL; b = b->next)
+	    {
+		p = b->end;
+            	fprintf(outfile,"%ld\n",Gindex(p));
+	    }
+	}
+	for (n = intfc->nodes; n && *n; ++n)
+	{
+	    p = (*n)->posn;
+            fprintf(outfile,"%ld\n",Gindex(p));
+	}
 	fclose(outfile);
 }	/* end printAfExtraDada */
 
@@ -163,6 +182,7 @@ extern void readAfExtraDada(
 	NODE **n;
 	BOND *b;
 	char string[100];
+	long max_point_gindex = 0;
 
         sprintf(filename,"%s-afdata",restart_name);
         infile = fopen(filename,"r");
@@ -249,12 +269,49 @@ extern void readAfExtraDada(
 	    AF_NODE_EXTRA *n_params;
 	    fgetstring(infile,"node extra:");
             fscanf(infile,"%s",string);
-	    if (string[0] == 'n') continue;
+	    if (string[0] == 'n') 
+	    {
+	    	(*n)->extra = NULL;
+		continue;
+	    }
 	    FT_ScalarMemoryAlloc((POINTER*)&n_params,sizeof(AF_NODE_EXTRA));
 	    fgetstring(infile,"af_node_type =");
             fscanf(infile,"%d",(int*)&n_params->af_node_type);
 	    (*n)->extra = (POINTER)n_params;
 	}
+	if (fgetstring(infile,"Global index of points") == FUNCTION_FAILED)
+	    return;		/* to make old files still runable */
+	next_point(intfc,NULL,NULL,NULL);
+        while (next_point(intfc,&p,&hse,&hs))
+	{
+            fscanf(infile,"%ld",&Gindex(p));
+	    if (max_point_gindex < Gindex(p))
+		max_point_gindex = Gindex(p);
+	}
+	for (c = intfc->curves; c && *c; ++c)
+	{
+	    b = (*c)->first;	p = b->start;
+            fscanf(infile,"%ld",&Gindex(p));
+	    if (max_point_gindex < Gindex(p))
+		max_point_gindex = Gindex(p);
+	    for (b = (*c)->first; b != NULL; b = b->next)
+	    {
+		p = b->end;
+            	fscanf(infile,"%ld",&Gindex(p));
+	    	if (max_point_gindex < Gindex(p))
+		    max_point_gindex = Gindex(p);
+	    }
+	}
+	for (n = intfc->nodes; n && *n; ++n)
+	{
+	    p = (*n)->posn;
+            fscanf(infile,"%ld",&Gindex(p));
+	    if (max_point_gindex < Gindex(p))
+		max_point_gindex = Gindex(p);
+	}
+	max_point_gindex++;
+	pp_global_lmax(&max_point_gindex,1);
+	intfc->max_point_gindex = max_point_gindex;
 }	/* end readAfExtraDada */
 
 extern void printHyperSurfQuality(

@@ -1731,7 +1731,7 @@ static void setSurfVelocity(
 		(*n)++;
 	    }
 	}
-	reduce_high_freq_vel(front,surf);
+	//reduce_high_freq_vel(front,surf);
 }	/* end setSurfVelocity */
 
 static void setCurveVelocity(
@@ -1856,7 +1856,6 @@ static void setNodeVelocity(
             	sl->vel[j] = vel[j];
             	sr->vel[j] = vel[j];
             }
-	    printf("Setting load node velocity\n");
 	}
 	(*n)++;
 }	/* end setNodeVelocity */
@@ -1931,6 +1930,9 @@ extern void fourth_order_elastic_set_propagate(
         int myid = pp_mynode();
 	int gindex;
         INTERFACE *elastic_intfc = NULL;
+	double *L = fr->rect_grid->L;
+	double *U = fr->rect_grid->U;
+	double client_L[MAXD],client_U[MAXD];
 
 	if (debugging("trace"))
 	    (void) printf("Entering fourth_order_elastic_set_propagate()\n");
@@ -2019,6 +2021,8 @@ extern void fourth_order_elastic_set_propagate(
 	    set_spring_vertex_memory(sv,client_size);
 	    set_vertex_neighbors(&geom_set,sv,point_set);
 	    get_point_set_from(&geom_set,point_set);
+	    pp_send(5,L,MAXD*sizeof(double),owner_id);
+	    pp_send(6,U,MAXD*sizeof(double),owner_id);
 	    pp_send(1,&(client_size),sizeof(int),owner_id);
             pp_send(2,point_set_store,client_size*sizeof(GLOBAL_POINT),
 					owner_id);
@@ -2032,6 +2036,8 @@ extern void fourth_order_elastic_set_propagate(
 	    for (i = 0; i < pp_numnodes(); i++)
 	    {
 		if (i == myid) continue;
+		pp_recv(5,i,client_L,MAXD*sizeof(double));
+		pp_recv(6,i,client_U,MAXD*sizeof(double));
 		pp_recv(1,i,client_size_new+i,sizeof(int));
 		if (client_size_new[i] > client_size_old[i])
 		{
@@ -2044,7 +2050,7 @@ extern void fourth_order_elastic_set_propagate(
 		pp_recv(2,i,client_point_set_store[i],
 		    client_size_new[i]*sizeof(GLOBAL_POINT));
 		copy_from_client_point_set(point_set,client_point_set_store[i],
-					client_size_new[i]);
+				client_size_new[i],client_L,client_U);
 	    } 
 
 	    start_clock("spring_model");
@@ -2066,7 +2072,7 @@ extern void fourth_order_elastic_set_propagate(
 	    {
 		if (i == myid) continue;
 		copy_to_client_point_set(point_set,client_point_set_store[i],
-					client_size_new[i]);
+				client_size_new[i]);
 		pp_send(3,client_point_set_store[i],
                         client_size_new[i]*sizeof(GLOBAL_POINT),i);
 	    }
@@ -2082,7 +2088,7 @@ extern void fourth_order_elastic_set_propagate(
 	set_vertex_impulse(&geom_set,sv);
 	set_geomset_velocity(&geom_set,sv);
 	compute_center_of_mass_velo(&geom_set);
-	
+
 	if (debugging("trace"))
 	    (void) printf("Leaving fourth_order_elastic_set_propagate()\n");
 }	/* end fourth_order_elastic_set_propagate() */

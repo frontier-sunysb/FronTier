@@ -2154,7 +2154,7 @@ static void record_stretching_length(
 	int dir;
 	CURVE **c,*c1,*c2;
 	static FILE *lfile;
-	char lname[200];
+	char lname[512];
 	C_PARAMS *c_params;
 	POINT *p1,*p2;
 	double length;

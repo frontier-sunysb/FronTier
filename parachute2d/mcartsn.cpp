@@ -284,8 +284,8 @@ void CARTESIAN::setIndexMap(COMPONENT sub_comp)
 	index = 0;
 	for (i = 0; i < dim; ++i)
 	{
-	    llbuf[i] = lbuf[i] != 0 ? lbuf[0] : 1;
-	    uubuf[i] = ubuf[i] != 0 ? ubuf[0] : 1;
+	    llbuf[i] = (lbuf[i] != 0) ? lbuf[i] : 1;
+	    uubuf[i] = (ubuf[i] != 0) ? ubuf[i] : 1;
 	}
 	switch (dim)
 	{

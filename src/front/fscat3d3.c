@@ -67,10 +67,10 @@ LOCAL	boolean	tri_bond_cross_test(TRI*,double,int);
 LOCAL	void	synchronize_tris_at_subdomain_bdry(TRI**,TRI**,int,P_LINK*,int);
 LOCAL 	INTERFACE *cut_intfc_to_wave_type(INTERFACE*,int);
 LOCAL 	void 	delete_surface_set(SURFACE*);
-LOCAL   boolean append_other_curves3(INTERFACE*,INTERFACE*,RECT_GRID*,int,int,
-                                      P_LINK*,int);
+LOCAL   boolean append_other_curves3(INTERFACE*,INTERFACE*,P_LINK*,int);
 LOCAL   boolean bond_match3(BOND*,BOND*);
-
+LOCAL   void merge_overlap_nodes(INTERFACE*);
+LOCAL	void print_unmatched_tris(TRI**,TRI**,int,int);
 
 LOCAL	double	tol1[MAXD]; /*TOLERANCE*/
 
@@ -323,10 +323,11 @@ LOCAL 	int append_adj_intfc_to_buffer3(
 	    }
 	}
 	/* append curves not on surfaces */
-	append_other_curves3(intfc,adj_intfc,grid,dir,nb,p_table,p_size);
+	append_other_curves3(intfc,adj_intfc,p_table,p_size);
 	for (ac = adj_intfc->curves; ac && *ac; ++ac)
+	{
 	    matching_curve(*ac,p_table,p_size); 
-	
+	}
 	merge_curves(intfc,adj_intfc);
 	reset_intfc_num_points(intfc);
 	
@@ -432,7 +433,14 @@ LOCAL int append_buffer_surface3(
 	{
 	    if (tri_cross_line(tri,crx_coord,dir) == YES ||
 		tri_bond_cross_test(tri,crx_coord,dir) == YES)
+	    {
 		tris_a[na++] = tri;
+	    }
+	}
+	if (ns != na)
+	{
+	    print_unmatched_tris(tris_s,tris_a,ns,na);
+	    clean_up(ERROR);
 	}
 
 	/* Add matching points to the hashing table p_table */
@@ -630,25 +638,17 @@ LOCAL boolean tri_bond_cross_test(
 	TRI	**tris;
 	POINT	*p;
 
-	if(tri_bond_cross_line(tri,crx_coord,dir))
-	    return YES;
-	j = 0;
-	for(i=0; i<3; i++)
+	for(i = 0; i < 3; i++)
 	{
 	    if(Boundary_point(Point_of_tri(tri)[i]))
 	    {
 	        p = Point_of_tri(tri)[i];
-	        j++;
+		n = set_tri_list_around_point(p,tri,&tris,tri->surf->interface);
+		if (tri_bond_cross_line(tris[0],crx_coord,dir) && 
+	   	    tri_bond_cross_line(tris[n-1],crx_coord,dir))
+	    	    return YES;
 	    }
 	}
-
-	if(j != 1)
-	    return NO;
-	n = set_tri_list_around_point(p, tri, &tris, tri->surf->interface);
-	
-	if(tri_bond_cross_line(tris[0],crx_coord,dir) && 
-	   tri_bond_cross_line(tris[n-1],crx_coord,dir) )
-	    return YES;
 	return NO;
 }
 
@@ -1041,7 +1041,10 @@ LOCAL void clip_intfc_at_grid_bdry1(
 	    for (nb = 0; nb < 2; ++nb)
 	    	open_null_sides1(intfc,L,U,dir,nb);
 	}
-	cut_out_curves_in_buffer(intfc);
+	for (dir = 0; dir < dim; ++dir)
+        for (nb = 0; nb < 2; ++nb)
+            open_null_bonds(intfc,L,U,dir,nb);
+	
 	reset_intfc_num_points(intfc);
 	set_current_interface(cur_intfc);
 	DEBUG_LEAVE(clip_intfc_at_grid_bdry1)
@@ -1316,16 +1319,12 @@ LOCAL void delete_surface_set(
 LOCAL boolean append_other_curves3(
 	INTERFACE *intfc,
 	INTERFACE *adj_intfc,
-	RECT_GRID *grid,
-	int dir,
-	int nb,
 	P_LINK *p_table,
 	int p_size)
 {
 	CURVE **cc;
 	CURVE *c[MAX_NUM_OTHER_CURVES];
 	CURVE *ac[MAX_NUM_OTHER_CURVES];
-	CURVE *mc[MAX_NUM_OTHER_CURVES];
 	int i,j,num_c,num_ac;
 	BOND *b,*ba;
 	boolean bond_matched;
@@ -1358,7 +1357,6 @@ LOCAL boolean append_other_curves3(
 	}
 	for (i = 0; i < num_ac; ++i)
 	{
-	    mc[i] = NULL;
 	    for (j = 0; j < num_c; ++j)
 	    {
 		if (c[j] == NULL)	/* already matched */
@@ -1393,16 +1391,10 @@ LOCAL boolean append_other_curves3(
 				printf("Bond end not from hashing table!\n");
 				clean_up(ERROR);
 			    }
-			    mc[i] = c[j];
 		    	}
 			if (bond_matched) break;
 		    }
 	    	}	    
-		if (mc[i] != NULL) 
-		{
-		    c[j] = NULL;
-		    break;
-		}
 	    }
 	}
 }	/* end append_other_curves1 */
@@ -1421,3 +1413,137 @@ LOCAL	boolean bond_match3(
 	}
 	return YES;
 }	/* end bond_match3 */
+
+LOCAL  void  merge_overlap_nodes(	
+	INTERFACE *intfc)
+{
+	int i,j,num_nodes = I_NumOfIntfcNodes(intfc);
+	boolean *node_merged;
+	NODE **n,**node_list,*n1,*n2;
+	CURVE **c;
+
+	uni_array(&node_merged,num_nodes,sizeof(boolean));
+	uni_array(&node_list,num_nodes,sizeof(NODE*));
+	for (i = 0; i < num_nodes; ++i)
+	    node_merged[i] = NO;
+	i = 0;
+	intfc_node_loop(intfc,n)
+	{
+	    node_list[i++] = *n;
+	}
+	for (i = 0; i < num_nodes-1; ++i)
+	{
+	    if (node_merged[i]) continue;
+	    n1 = node_list[i];
+	    node_merged[i] = YES;
+	    for (j = i+1; j < num_nodes; ++j)
+	    {
+	    	n2 = node_list[j];
+		if (n1->posn != n2->posn) continue;
+	    	if (node_merged[j]) continue;
+		/*
+		printf("merging i = %d  j = %d\n",i,j);
+		printf("p1 = %d  p2 = %d\n",n1->posn,n2->posn);
+		printf("p1 = %f %f %f\n",Coords(n1->posn)[0],
+				Coords(n1->posn)[1],Coords(n1->posn)[2]);
+		printf("Node n1:\n");
+		print_node(n1);
+		printf("Node n2:\n");
+		print_node(n2);
+		*/
+	    	node_merged[j] = YES;
+		node_in_curve_loop(n2,c)
+		{
+		    change_node_of_curve(*c,NEGATIVE_ORIENTATION,n1);
+		}
+		node_out_curve_loop(n2,c)
+		{
+		    change_node_of_curve(*c,POSITIVE_ORIENTATION,n1);
+		}
+	    }
+	}
+}	/* end merge_overlap_nodes */
+
+LOCAL	void print_unmatched_tris(
+	TRI **tris_s,
+	TRI **tris_a,
+	int ns,
+	int na)
+{
+	int i,j,k;
+	long gindex_s[3],gindex_a[3];
+	boolean match_found;
+
+	(void) printf("Number of local tris = %d\n",ns);
+	(void) printf("Number of adj   tris = %d\n",na);
+	if (ns > na)
+	{
+	    for (i = 0; i < ns; ++i)
+	    {
+		match_found = NO;
+		for (k = 0; k < 3; ++k)	
+		    gindex_s[k] = Gindex(Point_of_tri(tris_s[i])[k]);
+		for (j = 0; j < na; ++j)
+		{
+		    for (k = 0; k < 3; ++k)	
+		    	gindex_a[k] = Gindex(Point_of_tri(tris_a[j])[k]);
+		    for (k = 0; k < 3; ++k)	
+		    {
+			if (gindex_s[0] == gindex_a[k%3] &&
+			    gindex_s[1] == gindex_a[(k+1)%3] &&
+			    gindex_s[2] == gindex_a[(k+2)%3])
+			{
+			    match_found = YES;
+			    break;
+			}
+		    }
+		    if (match_found) break;
+		}
+		if (match_found == NO)
+		{
+		    (void) printf("Unmatched local tri:\n");
+		    (void) printf("Global indices: %ld %ld %ld\n",
+				Gindex(Point_of_tri(tris_s[i])[0]),
+				Gindex(Point_of_tri(tris_s[i])[1]),
+				Gindex(Point_of_tri(tris_s[i])[2]));
+		    (void) printf("Coordinates:\n");
+		    print_tri_coords(tris_s[i]);
+		}
+	    }
+	}
+	else
+	{
+	    for (i = 0; i < na; ++i)
+	    {
+		match_found = NO;
+		for (k = 0; k < 3; ++k)	
+		    gindex_a[k] = Gindex(Point_of_tri(tris_a[i])[k]);
+		for (j = 0; j < ns; ++j)
+		{
+		    for (k = 0; k < 3; ++k)	
+		    	gindex_s[k] = Gindex(Point_of_tri(tris_s[j])[k]);
+		    for (k = 0; k < 3; ++k)	
+		    {
+			if (gindex_s[0] == gindex_a[k%3] &&
+			    gindex_s[1] == gindex_a[(k+1)%3] &&
+			    gindex_s[2] == gindex_a[(k+2)%3])
+			{
+			    match_found = YES;
+			    break;
+			}
+		    }
+		    if (match_found) break;
+		}
+		if (match_found == NO)
+		{
+		    (void) printf("Unmatched adj tri:\n");
+		    (void) printf("Global indices: %ld %ld %ld\n",
+				Gindex(Point_of_tri(tris_a[i])[0]),
+				Gindex(Point_of_tri(tris_a[i])[1]),
+				Gindex(Point_of_tri(tris_a[i])[2]));
+		    (void) printf("Coordinates:\n");
+		    print_tri_coords(tris_a[i]);
+		}
+	    }
+	}
+}	/* end print_unmatched_tris */

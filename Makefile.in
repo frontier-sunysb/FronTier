@@ -172,6 +172,7 @@ $$ME/parachute/Makefile.in \
 $$ME/parachute/input-*/* \
 $$ME/parachute/mrun* \
 $$ME/parachute2d/*.cpp \
+$$ME/parachute2d/*.h \
 $$ME/parachute2d/Makefile.in \
 $$ME/parachute2d/input-*/* \
 $$ME/parachute2d/mrun* \

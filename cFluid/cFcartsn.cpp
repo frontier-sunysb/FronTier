@@ -746,6 +746,7 @@ void G_CARTESIAN::solve(double dt)
 	    printf("Entering solve()\n");
 	start_clock("solve");
 	setDomain();
+	scatMeshStates();
 
 	setComponent();
 	
@@ -923,7 +924,8 @@ void G_CARTESIAN::setDomain()
 	static boolean first = YES;
 	INTERFACE *grid_intfc;
 	Table *T;
-	int i,size;
+	int i,j,k;
+	static int size;
 
 	grid_intfc = front->grid_intfc;
 	top_grid = &topological_grid(grid_intfc);
@@ -987,6 +989,14 @@ void G_CARTESIAN::setDomain()
 	    field.pres = eqn_params->pres;
 	    field.momn = eqn_params->mom;
 	    field.vel = eqn_params->vel;
+	}
+	for (i = 0; i < size; ++i)
+	for (j = 0; j < 2; ++j)
+	{
+	    eqn_params->Gdens[j][i] = 0.0;
+	    eqn_params->Gpres[j][i] = 0.0;
+	    for (k = 0; k < dim; ++k)
+		eqn_params->Gvel[j][k][i] = 0.0;
 	}
 }
 
@@ -2622,9 +2632,15 @@ void G_CARTESIAN::scatMeshVst(SWEEP *m_vst)
 {
 	int i,j,k,l,index;
 
+	FT_ParallelExchGridArrayBuffer(m_vst->dens,front,NULL);
+	FT_ParallelExchGridArrayBuffer(m_vst->engy,front,NULL);
+	FT_ParallelExchGridArrayBuffer(m_vst->pres,front,NULL);
+	FT_ParallelExchGridVectorArrayBuffer(m_vst->momn,front);
+	/*
 	switch (dim)
 	{
 	case 1:
+
 	    for (i = imin[0]; i <= imax[0]; ++i)
 	    {
 		index = d_index1d(i,top_gmax);
@@ -2795,6 +2811,7 @@ void G_CARTESIAN::scatMeshVst(SWEEP *m_vst)
 	    	}
 	    }
 	}
+	*/
 }	/* end scatMeshStates */
 
 void G_CARTESIAN::copyMeshVst(
@@ -4746,7 +4763,7 @@ void G_CARTESIAN::get_ghost_state(
 		aghst.icoords[1] = j;
 		aghst.icoords[2] = k;
 		// hardcoded the stencil size to 4.... 
-		if(withinStencilLen(aghst.icoords, 3) )
+		if(withinStencilLen(aghst.icoords, 1) )
 		{
 		    fillThese.push_back(aghst);
 		}
@@ -5192,7 +5209,7 @@ bool G_CARTESIAN::withinStencilLen( int *icrds, int stencil )
         int kend = std::min(top_gmax[2],icrds[2]+stencil);
 
         int index  =  d_index(icrds,top_gmax,dim);
-        int mycomp =  top_comp[index];
+        int mycomp =  cell_center[index].comp;
 
         int i,j,k;
         if (dim == 2)
@@ -5203,7 +5220,7 @@ bool G_CARTESIAN::withinStencilLen( int *icrds, int stencil )
                 int ic[3];
                 ic[0] = i; ic[1] = j; ic[2] = 0;
                 index  =  d_index(ic,top_gmax,dim);
-                if(mycomp != top_comp[index])
+                if(mycomp != cell_center[index].comp)
                     return true;
             }
             return NO;
@@ -5217,7 +5234,7 @@ bool G_CARTESIAN::withinStencilLen( int *icrds, int stencil )
                 int ic[3];
                 ic[0] = i; ic[1] = j; ic[2] = k;
                 index  =  d_index(ic,top_gmax,dim);
-                if(mycomp != top_comp[index])
+                if(mycomp != cell_center[index].comp)
                     return true;
 	    }
             return NO;

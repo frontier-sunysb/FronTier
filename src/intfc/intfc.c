@@ -1133,7 +1133,8 @@ LOCAL	CURVE *read_print_curve(
 	                  "can't find curve header\n");
 	    return NULL;
 	}
-	if (fscanf(file,"%llu:",(long long unsigned int *)(iaddr->curves + c_index)) != 1)
+	if (fscanf(file,"%llu:",
+		(long long unsigned int *)(iaddr->curves + c_index)) != 1)
 	{
 	    (void) printf("WARNING in read_print_curve(), "
 	                  "can't read curve address as printed\n");
@@ -1195,9 +1196,11 @@ LOCAL	CURVE *read_print_curve(
 	    (void) printf("WARNING in read_print_curve(), can't find "
 	                  "ns, num_nodes = %d, c_index = %d, "
 			  "ns[c_index] = %llu\n",
-			  iaddr->num_nodes,c_index,(long long unsigned int)iaddr->ns[c_index]);
+			  iaddr->num_nodes,c_index,
+			  (long long unsigned int)iaddr->ns[c_index]);
 	    for (i = 0; i < iaddr->num_nodes; ++i)
-	        (void) printf("\tnodes[%d] = %llu\n",i,(long long unsigned int)iaddr->nodes[i]);
+	        (void) printf("\tnodes[%d] = %llu\n",i,
+			  (long long unsigned int)iaddr->nodes[i]);
 	    return NULL;
 	}
 
@@ -1215,9 +1218,11 @@ LOCAL	CURVE *read_print_curve(
 	    (void) printf("WARNING in read_print_curve(), can't find "
 	                  "ne, num_nodes = %d, c_index = %d, "
 			  "ne[c_index] = %llu\n",
-			  iaddr->num_nodes,c_index,(long long unsigned int)iaddr->ne[c_index]);
+			  iaddr->num_nodes,c_index,
+			  (long long unsigned int)iaddr->ne[c_index]);
 	    for (i = 0; i < iaddr->num_nodes; ++i)
-	        (void) printf("\tnodes[%d] = %llu\n",i,(long long unsigned int)iaddr->nodes[i]);
+	        (void) printf("\tnodes[%d] = %llu\n",i,
+			  (long long unsigned int)iaddr->nodes[i]);
 	    return NULL;
 	}
 	curve = make_curve(left,right,ns,ne);

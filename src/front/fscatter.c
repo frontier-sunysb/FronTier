@@ -524,6 +524,128 @@ EXPORT void scatter_top_grid_float_array(
 	}
 }	/* end scatter_top_grid_float_array */
 
+EXPORT void scatter_top_grid_vec_float_array(
+	GRID_TYPE grid_type,
+	double **vec_array,
+	Front *front)
+{
+	INTERFACE *intfc;
+	PP_GRID	*pp_grid = front->pp_grid;
+	int dim = FT_Dimension();
+	static byte *storage;
+	int i,j,k,l,dir,side,len;
+	int bmin[3],bmax[3];
+	int myid,dst_id,*G;
+	int me[3],him[3];
+	RECT_GRID *comp_grid,*top_grid;
+	int lbuf[MAXD],ubuf[MAXD],*gmax;
+	static int max_buf = 0;
+	static int storage_size = 0;
+	static int min_gmax;
+	int size;
+	int array_symmetry;
+	double *array;
+
+	myid = pp_mynode();
+	G = pp_grid->gmax;
+	find_Cartesian_coordinates(myid,pp_grid,me);
+
+	switch (grid_type)
+	{
+	case DUAL_GRID:
+	    intfc = front->grid_intfc;
+	    break;
+	case COMP_GRID:
+	    intfc = front->comp_grid_intfc;
+	    break;
+	default:
+	    intfc = NULL;
+	}
+	if (intfc == NULL)
+	{
+	    (void) printf("In scatter_top_grid_float_array():\n");
+	    (void) printf("Unknown grid_type or no grid_intfc\n");
+	    clean_up(ERROR);
+	}
+
+	comp_grid = computational_grid(intfc);
+	top_grid = &topological_grid(intfc);
+	gmax = top_grid->gmax;
+	for (i = 0; i < dim; ++i)
+	{
+	    lbuf[i] = comp_grid->lbuf[i];
+	    ubuf[i] = comp_grid->ubuf[i];
+	    if (rect_boundary_type(intfc,i,0) == SUBDOMAIN_BOUNDARY &&
+		grid_type == COMP_GRID)
+	    	lbuf[i] += 1;
+	}
+
+	min_gmax = gmax[0];
+	for (i = 0; i < dim; i++)
+	{
+	    if (lbuf[i] > max_buf)
+		max_buf = lbuf[i];
+	    if (ubuf[i] > max_buf)
+		max_buf = ubuf[i];
+	    if (min_gmax > gmax[i])
+		min_gmax = gmax[i];
+	}
+	size = max_buf*FLOAT;
+	for (i = 0; i < dim; i++)
+	    size *= (gmax[i] + 1);
+	size /= (min_gmax + 1);
+	if (size > storage_size)
+	{
+	    if (storage != NULL)
+		free_these(1,storage);
+	    storage_size = size;
+	    uni_array(&storage,storage_size,sizeof(byte));
+	}
+
+	for (l = 0; l < dim; ++l)
+	{
+	  array = vec_array[l];
+	  for (dir = 0; dir < dim; ++dir)
+	  {
+	    for (side = 0; side < 2; ++side)
+	    {
+		for (k = 0; k < dim; ++k)
+		    him[k] = me[k];
+	    	if (rect_boundary_type(intfc,dir,side) == SUBDOMAIN_BOUNDARY)
+		{
+		    him[dir] = (me[dir] + 2*side - 1 + G[dir])%G[dir];
+		    dst_id = domain_id(him,G,dim);
+	    	    len = set_send_buffer_limits(dim,bmin,bmax,dir,side,lbuf,
+		    			ubuf,gmax);
+		    bundle_array_buffer(dim,bmin,bmax,gmax,array,
+		    			storage);
+		    if (dst_id != myid)
+		    	pp_send(array_id(0),storage,len,dst_id);
+		}
+                else if (rect_boundary_type(intfc,dir,side) ==
+                                REFLECTION_BOUNDARY)
+                {
+		    array_symmetry = (l == dir) ? ODD : EVEN;
+                    reflect_array_buffer(dim,dir,side,gmax,lbuf,ubuf,array,
+					array_symmetry);
+                }
+		if (rect_boundary_type(intfc,dir,(side+1)%2) ==
+					SUBDOMAIN_BOUNDARY)
+		{
+		    him[dir] = (me[dir] - 2*side + 1 + G[dir])%G[dir];
+		    dst_id = domain_id(him,G,dim);
+	    	    len = set_recv_buffer_limits(dim,bmin,bmax,dir,(side+1)%2,
+		    			lbuf,ubuf,gmax);
+		    if (dst_id != myid)
+		    	pp_recv(array_id(0),dst_id,storage,len);
+		    unbundle_array_buffer(dim,bmin,bmax,gmax,array,
+		    			storage);
+		}
+	    }
+	  }
+	}
+}	/* end scatter_top_grid_vec_float_array */
+
 LOCAL	void bundle_array_buffer(
 	int dim,
 	int *bmin,

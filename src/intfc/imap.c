@@ -974,3 +974,10 @@ EXPORT int I_NumOfCurveSurfaces(
             ++n;
         return n;
 }       /* end I_NumOfCurveSurfaces */
+
+EXPORT int I_ComponentAtCoords(
+	double *coords,
+	INTERFACE *intfc)
+{
+	return component(coords,intfc);
+}	/* end I_ComponentAtCoords */

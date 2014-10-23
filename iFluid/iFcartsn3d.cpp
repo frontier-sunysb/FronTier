@@ -196,24 +196,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocity(void)
                 if (vmax[l] < vel[l][index]) vmax[l] = vel[l][index];
             }
 	}
-	for (l = 0; l < 3; ++l)
-	{
-	    for (k = kmin; k <= kmax; k++)
-	    for (j = jmin; j <= jmax; j++)
-            for (i = imin; i <= imax; i++)
-	    {	
-	    	index  = d_index3d(i,j,k,top_gmax);
-	    	array[index] = vel[l][index];
-	    }
-	    scatMeshArray();
-	    for (k = 0; k <= top_gmax[2]; k++)
-	    for (j = 0; j <= top_gmax[1]; j++)
-	    for (i = 0; i <= top_gmax[0]; i++)
-	    {	
-	    	index  = d_index3d(i,j,k,top_gmax);
-	    	vel[l][index] = array[index];
-	    }
-	}
+	FT_ParallelExchGridVectorArrayBuffer(vel,front);
 	if (debugging("step_size"))
 	{
 	    (void) printf("Max gradient phi = %f  occuring at: %d %d %d\n",
@@ -345,12 +328,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeNewVelocityDual(void)
             if (speed > max_speed) max_speed = speed;
 	}
 
-	for (l = 0; l < dim; ++l)
-	{
-	    symmetry[0] = symmetry[1] = symmetry[2] = EVEN;
-	    symmetry[l] = ODD;
-	    FT_ParallelExchGridArrayBuffer(vel[l],front,symmetry);
-	}
+	FT_ParallelExchGridVectorArrayBuffer(vel,front);
 
         if (debugging("check_div"))
 	    checkVelocityDiv("Before extractFlowThroughVelocity()");
@@ -679,22 +657,12 @@ void Incompress_Solver_Smooth_3D_Cartesian::
                 I = ijk_to_I[i][j][k];
                 index = d_index3d(i,j,k,top_gmax);
                 if (I >= 0)
-                    array[index] = x[I-ilower];
+                    vel[l][index] = x[I-ilower];
                 else
-                    array[index] = 0.0;
-            }
-
-            scatMeshArray();
-	    for (k = 0; k <= top_gmax[2]; k++)
-            for (j = 0; j <= top_gmax[1]; j++)
-            for (i = 0; i <= top_gmax[0]; i++)
-            {
-                index  = d_index3d(i,j,k,top_gmax);
-                I = ijk_to_I[i][j][k];
-                if (I >= 0)
-                    vel[l][index] = array[index];
+                    vel[l][index] = 0.0;
             }
         }
+	FT_ParallelExchGridVectorArrayBuffer(vel,front);
 
 	max_speed = 0.0;
 	for (i = 0; i < 3; ++i)
@@ -865,22 +833,8 @@ void Incompress_Solver_Smooth_3D_Cartesian::
                     max_speed = speed;
 	    	}
             }
-	    for (k = kmin; k <= kmax; k++)
-            for (j = jmin; j <= jmax; j++)
-            for (i = imin; i <= imax; i++)
-            {
-                index  = d_index3d(i,j,k,top_gmax);
-                array[index] = vel[l][index];
-            }
-            scatMeshArray();
-	    for (k = 0; k <= top_gmax[2]; k++)
-            for (j = 0; j <= top_gmax[1]; j++)
-            for (i = 0; i <= top_gmax[0]; i++)
-            {
-                index  = d_index3d(i,j,k,top_gmax);
-                vel[l][index] = array[index];
-            }
-        }
+	}
+	FT_ParallelExchGridVectorArrayBuffer(vel,front);
 	for (k = kmin; k <= kmax; k++)
         for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
@@ -1089,23 +1043,8 @@ void Incompress_Solver_Smooth_3D_Cartesian::
                     max_speed = speed;
 	    	}
             }
-
-	    for (k = kmin; k <= kmax; k++)
-            for (j = jmin; j <= jmax; j++)
-            for (i = imin; i <= imax; i++)
-            {
-                index  = d_index3d(i,j,k,top_gmax);
-                array[index] = vel[l][index];
-            }
-            scatMeshArray();
-	    for (k = 0; k <= top_gmax[2]; k++)
-            for (j = 0; j <= top_gmax[1]; j++)
-            for (i = 0; i <= top_gmax[0]; i++)
-            {
-                index  = d_index3d(i,j,k,top_gmax);
-                vel[l][index] = array[index];
-            }
-        }
+	}
+	FT_ParallelExchGridVectorArrayBuffer(vel,front);
 	for (k = kmin; k <= kmax; k++)
         for (j = jmin; j <= jmax; j++)
         for (i = imin; i <= imax; i++)
@@ -1299,24 +1238,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeGradientQ(void)
 	    for (l = 0; l < dim; ++l)
 		grad_q[l][index] = point_grad_q[l];
 	}
-	for (l = 0; l < dim; ++l)
-	{
-	    for (k = kmin; k <= kmax; k++)
-	    for (j = jmin; j <= jmax; j++)
-	    for (i = imin; i <= imax; i++)
-	    {
-	    	index = d_index3d(i,j,k,top_gmax);
-		array[index] = grad_q[l][index];
-	    }
-	    scatMeshArray();
-	    for (k = 0; k <= top_gmax[2]; k++)
-	    for (j = 0; j <= top_gmax[1]; j++)
-	    for (i = 0; i <= top_gmax[0]; i++)
-	    {
-	    	index = d_index3d(i,j,k,top_gmax);
-		grad_q[l][index] = array[index];
-	    }
-	}
+	FT_ParallelExchGridVectorArrayBuffer(grad_q,front);
 }	/* end computeGradientQ */
 
 #define		MAX_TRI_FOR_INTEGRAL		100

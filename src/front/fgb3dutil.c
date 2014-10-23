@@ -113,6 +113,7 @@ LOCAL boolean remove_unphy_pair(int*,GRID_DIRECTION,INTERFACE*,int*,int*,
 				int*,int*,int**,double*);
 LOCAL void enforce_single_crossing(int*,int*,GRID_DIRECTION,struct Table*,
 				int*,int*,int*);
+LOCAL boolean is_subdomain_end(int*,int*,GRID_DIRECTION,INTERFACE*);
 
 LOCAL   void   check_curve_connect(CURVE*, SURFACE*);
 void   print_edge_crossings(int *, int*, INTERFACE *);
@@ -1737,8 +1738,7 @@ EXPORT	void remove_unphysical_crxings(
 			continue;
 		    
 		    /* Only release it when debugging line removal
-		    if(debugging("rm_crx_z"))
-		    if (ix == 71 && iy == 39)
+		    if (ix == 57 && iy == 12)
 		    {
 			(void) printf("Before z removal:\n");
 			show_line_components3d(ip,smin,smax,2,intfc);
@@ -1751,8 +1751,7 @@ EXPORT	void remove_unphysical_crxings(
 				     gmax,ip,UPPER,crx_type,num_ip,ips);
 		    iz += step;
 		    /* Only release it when debugging line removal
-		    if(debugging("rm_crx_z"))
-		    if (ix == 71 && iy == 39)
+		    if (ix == 57 && iy == 12)
 		    {
 			(void) printf("After z removal:\n");
 			show_line_components3d(ip,smin,smax,2,intfc);
@@ -3609,6 +3608,11 @@ LOCAL	int	rm_unphy_crx_along_grid_line(
 	}
 	if (crx_type == SINGLE)
 	{
+	    if (debugging("seg_comp"))
+	    {
+	    	(void) printf("Before enforce_single_crossing():\n");
+	    	print_comp_along_grid_line(ip,ip_end,dir,T,gmax,smin,smax);
+	    }
 	    enforce_single_crossing(ip,ip_end,dir,T,gmax,smin,smax);	
 	    if (debugging("seg_comp"))
 	    {
@@ -5105,6 +5109,10 @@ LOCAL void unset_comp_along_grid_line(
 			    ip[ii] = ipn[ii];
 		    }
 		}
+		else if (is_subdomain_end(ip,gmax,opp_dir,intfc))
+		{
+		    comp[ic] = NO_COMP;
+		}
 		else
 		{
 		    ll = seg_index3d(i,j,k,opp_dir,gmax);
@@ -5143,6 +5151,10 @@ LOCAL void unset_comp_along_grid_line(
 			for (ii = 0; ii < 3; ++ii)
 			    ip[ii] = ipn[ii];
 		    }
+		}
+		else if (is_subdomain_end(ip,gmax,dir,intfc))
+		{
+		    comp[ic] = NO_COMP;
 		}
 	    }
 	    else
@@ -5316,12 +5328,14 @@ LOCAL	void print_comp_along_grid_line(
 	COMPONENT c1 = comp[ic1];
 	CRXING *crx;
 	int ip[MAXD];
+	int idir = idir_of_dir(dir);
 
 	printf("In print_comp_along_grid_line() dir = %s\n",
 			grid_direction_name(dir));
 	crx = NULL;
 	for (i = 0; i < 3; ++i) ip[i] = ip1[i];
 	printf("\nstart ip = %d %d %d comp = %d\n",ip[0],ip[1],ip[2],c1);
+	if (ip1[idir] == ip2[idir]) return;
 	while (count < 1000)
 	{
 	    count++;

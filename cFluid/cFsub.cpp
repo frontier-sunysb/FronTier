@@ -771,6 +771,7 @@ static  void contact_point_propagate(
 	newst = (STATE*)left_state(newp);
 	oldst = (STATE*)sl;
 	*newst = *oldst;
+	newst->dim = dim;
 	newst->eos = &eos[negative_component(oldhs)];
 	FT_NearestRectGridVarInRange(front,negative_component(oldhs),p0,
 			m_dens,2,&default_var);
@@ -794,6 +795,7 @@ static  void contact_point_propagate(
 	newst = (STATE*)right_state(newp);
 	oldst = (STATE*)sr;
 	*newst = *oldst;
+	newst->dim = dim;
 	newst->eos = &eos[positive_component(oldhs)];
 	FT_NearestRectGridVarInRange(front,negative_component(oldhs),p0,
 			m_dens,2,&default_var);

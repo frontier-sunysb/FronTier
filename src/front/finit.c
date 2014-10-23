@@ -2007,8 +2007,11 @@ LOCAL   void FT_InitIntfc3d(
 		    screen("make_level_surface() failed!\n");
 		    clean_up(ERROR);
 	    	}
-	    	cut_surface(surf,level_func_pack->constr_func,
-			level_func_pack->constr_params,YES);
+		FT_CutSurfBdry(surf,level_func_pack->constr_func,
+                        level_func_pack->constr_params,
+                        level_func_pack->point_array,
+                        level_func_pack->num_points,
+                        level_func_pack->direction);
 	    	install_hsbdry_on_surface(surf,MONO_COMP_HSBDRY);
 	    	negative_component(surf) = positive_component(surf);
 	    	if (level_func_pack->attach_string == YES)

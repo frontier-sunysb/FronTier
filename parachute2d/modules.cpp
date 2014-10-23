@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 #include <iFluid.h>
 #include <airfoil.h>
-#include <math.h>
 
 typedef struct {
         int dim;
@@ -337,9 +336,9 @@ static void initRigidBody(
 	char string[100];
 	double cen[MAXD];
 	double radius,radii[MAXD];
-	double num,len,dist,k;
+	double len,dist;
 	int w_type, x_type;
-	int i, dim = FT_Dimension();
+	int i, num, k, dim = FT_Dimension();
 	int neg_comp,pos_comp;
 	CURVE *curve;
 	LINE_SEG_PARAMS line_params;
@@ -416,8 +415,8 @@ static void initRigidBody(
 	case 'N':
         case 'n':
             CursorAfterString(infile,"Enter number of segments:");
-            fscanf(infile,"%lf",&num);
-            (void) printf("%f\n",num);
+            fscanf(infile,"%d",&num);
+            (void) printf("%d\n",num);
             CursorAfterString(infile,"Enter length of segments:");
             fscanf(infile,"%lf",&len);
             (void) printf("%f\n",len);
@@ -598,4 +597,46 @@ static boolean arc_func(
         return YES;
 }       /* end arc_func */
 
+extern void initInnerBoundary(
+	Front *front,
+	LEVEL_FUNC_PACK *level_func_pack)
+{
+	char string[100];
+	FILE *infile = fopen(InName(front),"r");
+	double cen[MAXD],R;
+	static CIRCLE_PARAMS circle_params;
 
+	if (!CursorAfterStringOpt(infile,"Enter yes to add inner boundary: "))
+	    return;
+	fscanf(infile,"%s",string);
+	(void) printf("%s\n",string);
+	if (string[0] != 'y' && string[0] != 'Y')
+	    return;
+
+	level_func_pack->pos_component = SOLID_COMP;
+	level_func_pack->neg_component = LIQUID_COMP2;
+	(void) printf("Available inner boundary types are\n");
+	(void) printf("\tCircle (c)\n");
+	CursorAfterString(infile,"Entering inner boundary type: ");
+	fscanf(infile,"%s",string);
+	(void) printf("%s\n",string);
+	switch(string[0])
+	{
+	case 'c':
+	case 'C':
+	    circle_params.dim = 2;
+	    CursorAfterString(infile,"Entering center of the circle: ");
+	    fscanf(infile,"%lf %lf",circle_params.cen,circle_params.cen+1);
+	    (void) printf("%f %f\n",circle_params.cen[0],circle_params.cen[1]);
+	    CursorAfterString(infile,"Entering radius of the circle: ");
+	    fscanf(infile,"%lf",&circle_params.R);
+	    (void) printf("%f\n",circle_params.R);
+	    level_func_pack->func_params = (POINTER)&circle_params;
+	    level_func_pack->func = level_circle_func;
+	    level_func_pack->wave_type = NEUMANN_BOUNDARY;
+	    break;
+	default:
+	    (void) printf("Unknown inner boundary type\n");
+	    clean_up(ERROR);
+	}
+}	/* end initInnerBoundary */

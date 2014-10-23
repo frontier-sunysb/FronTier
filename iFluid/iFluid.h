@@ -560,4 +560,5 @@ extern void prompt_for_rigid_body_params(int,char*,RG_PARAMS*);
 extern void set_rgbody_params(RG_PARAMS,HYPER_SURF*);
 extern void ifluid_compute_force_and_torque(Front*,HYPER_SURF*,double,double*,
                         double*);
+extern void initInnerBoundary(Front*,LEVEL_FUNC_PACK*);
 #endif

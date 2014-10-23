@@ -154,7 +154,6 @@ EXPORT boolean link_neighbor_null_side_tris(
 			       " the side of tri2 is not null.\n");
 			clean_up(ERROR);
 		    }
-
 		    return YES;
 		}
 	    }

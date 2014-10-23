@@ -99,7 +99,7 @@ LIB_LOCAL	void	i_reflect_interface2d(
 	    reflect_curve(*c,p,nor);
 }		/*end i_reflect_interface2d*/
 
-LIB_LOCAL	void	i_reflect_interface3d(
+LIB_LOCAL void i_reflect_interface3d(
 	INTERFACE*	intfc,	/* interface to be reflected */
 	double*		p,	/* point on reflection plane */
 	double*		nor)	/* plane normal */
@@ -108,7 +108,7 @@ LIB_LOCAL	void	i_reflect_interface3d(
 
 	/* TODO: add 3D node and curve reflection */
 
-	next_point(intfc,NULL,NULL,NULL); /* reset sort point status */
+	reset_sort_status(intfc);
         for (s = intfc->surfaces; s && *s; ++s)
             reflect_surface(*s,p,nor);
 }		/*end i_reflect_interface3d*/
@@ -141,7 +141,7 @@ EXPORT	void	i_reflect_curve(
 }		/*end i_reflect_curve*/
 
 /*ARGSUSED*/
-EXPORT	void	i_reflect_surface(
+EXPORT	void i_reflect_surface(
 	SURFACE*	s,/* surface to be reflected */
 	double*		p,	/* point on reflection plane */
 	double*		nor)	/* plane normal */
@@ -175,7 +175,6 @@ EXPORT	void	i_reflect_surface(
             bdry20 = is_side20_a_bond(tri) ? YES : NO;
             set_12_bdry(Boundary_tri(tri),bdry20);
             set_20_bdry(Boundary_tri(tri),bdry12);
-
         }
 }		/*end i_reflect_surface*/
 

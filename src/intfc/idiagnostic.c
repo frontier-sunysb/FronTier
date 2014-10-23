@@ -249,10 +249,21 @@ EXPORT boolean the_tri_rot(TRI *tri)
 	return NO;
 }	/* end the_tri */
 
-boolean the_tri1(TRI *);
-EXPORT boolean the_tri1(TRI *tri)
+EXPORT boolean the_tri_with_gindex(TRI *tri)
 {
-}
+	long gindex[3] = {2614, 13, 11546};
+	int i,j;
+	for (i = 0; i < 3; ++i)
+	{
+	    for (j = 0; j < 3; ++j)
+	    {
+		if (Gindex(Point_of_tri(tri)[i]) == gindex[j])
+		    break;
+	    }
+	    if (j == 3) return NO;
+	}
+	return YES;
+}	/* end the_tri_with_gindex */
 
 EXPORT boolean the_tri(TRI *tri)
 {
@@ -302,8 +313,10 @@ EXPORT boolean the_side(TRI  *tri)
 
 	for(i=0; i<3; i++)
 	{
-	    if((check_pt(Coords(p[i]), p1) && check_pt(Coords(p[Next_m3(i)]), p2))  ||
-	        (check_pt(Coords(p[i]), p2) && check_pt(Coords(p[Next_m3(i)]), p1)) )
+	    if ((check_pt(Coords(p[i]),p1) && 
+		 check_pt(Coords(p[Next_m3(i)]),p2)) ||
+	        (check_pt(Coords(p[i]),p2) && 
+		 check_pt(Coords(p[Next_m3(i)]),p1)))
 		return YES;
 	}
 	return NO;
@@ -327,8 +340,8 @@ EXPORT void print_tri_coords(TRI* tri)
 	for (i = 0; i < 3; i++)
 	{
 	    p = Point_of_tri(tri)[i];
-	    printf("%f %f %f\n",Coords(p)[0],Coords(p)[1],Coords(p)[2]);
-	    /*print_general_vector("p= ", Coords(p), 3, "\n"); */
+	    printf("%20.14f %20.14f %20.14f\n",Coords(p)[0],Coords(p)[1],
+					Coords(p)[2]);
 	}
 }	/* end print_tri_coords */
 

@@ -109,6 +109,7 @@ int main(int argc, char **argv)
 	level_func_pack.pos_component = LIQUID_COMP2;
 	if (!RestartRun)
 	{
+	    initInnerBoundary(&front,&level_func_pack);
 	    FT_InitIntfc(&front,&level_func_pack);
 	    read_iF_dirichlet_bdry_data(in_name,&front,f_basic);
 	    init2DModules(&front);

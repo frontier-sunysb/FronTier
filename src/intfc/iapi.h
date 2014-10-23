@@ -274,6 +274,18 @@ extern "C" {
 
    IMPORT  int I_NumOfCurveSurfaces(CURVE *curve);
 
+/*! \fn int I_ComponentAtCoords(double *coords,INTERFACE *intfc)
+ *  \ingroup QUERY
+    \brief This function is a topological function which returns
+     the component index at the input coordinates.
+    \param coords @b in   Double array of coordinates.
+    \param intfc @b in   Pointer to the interface.
+ */
+
+   IMPORT  int I_ComponentAtCoords(
+			double *coords,
+			INTERFACE *intfc);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif

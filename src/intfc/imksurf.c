@@ -4967,7 +4967,7 @@ EXPORT boolean cross_constr_func(
 
 	LL[0] = L[1]; LL[1] = L[0]; LL[2] = L[2];
 	UU[0] = U[1]; UU[1] = U[0]; UU[2] = U[2];
-
+	
 	counter1 = counter2 = 0;
 	for (i = 0; i < dim-1; ++i)
         {

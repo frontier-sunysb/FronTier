@@ -407,7 +407,7 @@ void Incompress_Solver_Smooth_Basis::getNearestInterfacePoint(
 int Incompress_Solver_Smooth_Basis::getComponent(
 	double *p)
 {
-	return component(p,front->interf);
+	return I_ComponentAtCoords(p,front->interf);
 }
 
 int Incompress_Solver_Smooth_Basis::getComponent(
@@ -588,11 +588,6 @@ void Incompress_Solver_Smooth_Basis::setDomain()
 	}
 	if (iFparams->num_scheme.ellip_method == DUAL_ELLIP)
 	    setDualDomain();
-}
-
-void Incompress_Solver_Smooth_Basis::scatMeshArray()
-{
-	FT_ParallelExchGridArrayBuffer(array,front,NULL);
 }
 
 void Incompress_Solver_Smooth_Basis::setGlobalIndex()
@@ -1573,48 +1568,9 @@ void Incompress_Solver_Smooth_2D_Basis::setSmoothedProperties(void)
 		}
 	    }
 	}
-	for (j = jmin; j <= jmax; j++)
-        for (i = imin; i <= imax; i++)
-	{	
-	    index  = d_index2d(i,j,top_gmax);
-	    array[index] = mu[index];
-	}
-	scatMeshArray();
-	for (j = 0; j <= top_gmax[1]; j++)
-	for (i = 0; i <= top_gmax[0]; i++)
-	{	
-	    index  = d_index2d(i,j,top_gmax);
-	    mu[index] = array[index];
-	}
-	for (j = jmin; j <= jmax; j++)
-        for (i = imin; i <= imax; i++)
-	{
-	    index  = d_index2d(i,j,top_gmax);
-	    array[index] = rho[index];
-	}
-	scatMeshArray();
-	for (j = 0; j <= top_gmax[1]; j++)
-	for (i = 0; i <= top_gmax[0]; i++)
-	{
-	    index  = d_index2d(i,j,top_gmax);
-	    rho[index] = array[index];
-	}
-	for (l = 0; l < dim; ++l)
-	{
-	    for (j = jmin; j <= jmax; j++)
-            for (i = imin; i <= imax; i++)
-	    {
-	    	index  = d_index2d(i,j,top_gmax);
-	    	array[index] = f_surf[l][index];
-	    }
-	    scatMeshArray();
-	    for (j = 0; j <= top_gmax[1]; j++)
-	    for (i = 0; i <= top_gmax[0]; i++)
-	    {
-	    	index  = d_index2d(i,j,top_gmax);
-	    	f_surf[l][index] = array[index];
-	    }
-	}
+	FT_ParallelExchGridArrayBuffer(mu,front,NULL);
+	FT_ParallelExchGridArrayBuffer(rho,front,NULL);
+	FT_ParallelExchGridVectorArrayBuffer(f_surf,front);
 }	/* end setSmoothedProperties2d */
 
 //-------------------------------------------------------------------------------
@@ -2341,54 +2297,9 @@ void Incompress_Solver_Smooth_3D_Basis::setSmoothedProperties(void)
 	    }
 	}
 
-	for (k = kmin; k <= kmax; k++)
-	for (j = jmin; j <= jmax; j++)
-        for (i = imin; i <= imax; i++)
-	{	
-	    index  = d_index3d(i,j,k,top_gmax);
-	    array[index] = mu[index];
-	}
-	scatMeshArray();
-	for (k = 0; k <= top_gmax[2]; k++)
-	for (j = 0; j <= top_gmax[1]; j++)
-	for (i = 0; i <= top_gmax[0]; i++)
-	{	
-	    index  = d_index3d(i,j,k,top_gmax);
-	    mu[index] = array[index];
-	}
-	for (k = kmin; k <= kmax; k++)
-	for (j = jmin; j <= jmax; j++)
-        for (i = imin; i <= imax; i++)
-	{
-	    index  = d_index3d(i,j,k,top_gmax);
-	    array[index] = rho[index];
-	}
-	scatMeshArray();
-	for (k = 0; k <= top_gmax[2]; k++)
-	for (j = 0; j <= top_gmax[1]; j++)
-	for (i = 0; i <= top_gmax[0]; i++)
-	{
-	    index  = d_index3d(i,j,k,top_gmax);
-	    rho[index] = array[index];
-	}
-	for (l = 0; l < dim; ++l)
-	{
-	    for (k = kmin; k <= kmax; k++)
-	    for (j = jmin; j <= jmax; j++)
-            for (i = imin; i <= imax; i++)
-	    {
-	    	index  = d_index3d(i,j,k,top_gmax);
-	    	array[index] = f_surf[l][index];
-	    }
-	    scatMeshArray();
-	    for (k = 0; k <= top_gmax[2]; k++)
-	    for (j = 0; j <= top_gmax[1]; j++)
-	    for (i = 0; i <= top_gmax[0]; i++)
-	    {
-	    	index  = d_index3d(i,j,k,top_gmax);
-	    	f_surf[l][index] = array[index];
-	    }
-	}
+	FT_ParallelExchGridArrayBuffer(mu,front,NULL);
+	FT_ParallelExchGridArrayBuffer(rho,front,NULL);
+	FT_ParallelExchGridVectorArrayBuffer(f_surf,front);
 }	/* end setSmoothedProperties in 3D */
 
 // Flux of Riemann solution of Burgers equation u_t + uu_x = 0
