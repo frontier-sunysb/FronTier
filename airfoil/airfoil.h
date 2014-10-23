@@ -313,6 +313,8 @@ extern void merge_global_point_set(GLOBAL_POINT**,GLOBAL_POINT*,int);
 extern void copy_from_client_point_set(GLOBAL_POINT**,GLOBAL_POINT*,int,
 				double*,double*);
 extern void copy_to_client_point_set(GLOBAL_POINT**,GLOBAL_POINT*,int);
+extern void new_set_vertex_impulse(ELASTIC_SET*,GLOBAL_POINT**);
+extern void new_set_geomset_velocity(ELASTIC_SET*,GLOBAL_POINT**);
 
 // afvelo.cpp
 extern void setMotionParams(Front*);

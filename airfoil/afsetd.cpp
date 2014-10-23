@@ -50,6 +50,9 @@ static void set_node_impulse(ELASTIC_SET*,NODE*,SPRING_VERTEX*,int*);
 
 static void get_point_value_from(POINT*,GLOBAL_POINT**);
 static void put_point_value_to(POINT*,GLOBAL_POINT**);
+static void new_set_node_impulse(ELASTIC_SET*,NODE*,GLOBAL_POINT**);
+static void new_set_curve_impulse(ELASTIC_SET*,CURVE*,GLOBAL_POINT**);
+static void new_set_surf_impulse(ELASTIC_SET*,SURFACE*,GLOBAL_POINT**);
 
 static void reorder_string_curves(NODE*);
 
@@ -1435,3 +1438,97 @@ static void reorder_string_curves(NODE *node)
 	}
 	FT_FreeThese(2,string_curves,nb_points);
 }	/* end reorder_string_curves */
+
+extern void new_set_vertex_impulse(
+        ELASTIC_SET *geom_set,
+        GLOBAL_POINT **point_set)
+{
+        int i,ns,nc,nn;
+
+        ns = geom_set->num_surfs;
+        nc = geom_set->num_curves;
+        nn = geom_set->num_nodes;
+        for (i = 0; i < ns; ++i)
+            new_set_surf_impulse(geom_set,geom_set->surfs[i],point_set);
+        for (i = 0; i < nc; ++i)
+            new_set_curve_impulse(geom_set,geom_set->curves[i],point_set);
+        for (i = 0; i < nn; ++i)
+            new_set_node_impulse(geom_set,geom_set->nodes[i],point_set);
+
+}       /* end set_vertex_impulse */
+
+static void new_set_node_impulse(
+	ELASTIC_SET *geom_set,
+	NODE *node,
+        GLOBAL_POINT **point_set)
+{
+	int i,dim;
+	STATE *sl,*sr;
+	long gindex = Gindex(node->posn);
+
+	dim = FT_Dimension();
+	sl = (STATE*)left_state(node->posn);
+	sr = (STATE*)right_state(node->posn);
+	for (i = 0; i < dim; ++i)
+	    sl->impulse[i] = sr->impulse[i] = point_set[gindex]->impuls[i];
+}	/* end set_node_impulse */
+
+static void new_set_curve_impulse(
+	ELASTIC_SET *geom_set,
+	CURVE *curve,
+        GLOBAL_POINT **point_set)
+{
+	int j,dim;
+	STATE *sl,*sr;
+	BOND *b;
+	long gindex;
+
+	dim = FT_Dimension();
+
+	for (b = curve->first; b != curve->last; b = b->next)
+	{
+	    gindex = Gindex(b->end);
+	    sl = (STATE*)left_state(b->end);
+	    sr = (STATE*)right_state(b->end);
+            for (j = 0; j < dim; ++j)
+            {
+	    	sl->impulse[j] = sr->impulse[j] = point_set[gindex]->impuls[j];
+	    }
+	}
+}	/* end set_curve_impulse */
+
+static void new_set_surf_impulse(
+	ELASTIC_SET *geom_set,
+	SURFACE *surf,
+        GLOBAL_POINT **point_set)
+{
+	int j,k;
+	TRI *tri;
+	POINT *p;
+	HYPER_SURF *hs;
+	HYPER_SURF_ELEMENT *hse;
+	STATE *sl,*sr;
+	long gindex;
+
+	unsort_surf_point(surf);
+	hs = Hyper_surf(surf);
+	for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
+			tri = tri->next)
+	{
+	    hse = Hyper_surf_element(tri);
+	    for (j = 0; j < 3; ++j)
+	    {
+		p = Point_of_tri(tri)[j];
+		if (sorted(p) || Boundary_point(p)) continue;
+		sorted(p) = YES;
+		gindex = Gindex(p);
+		FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+            	for (k = 0; k < 3; ++k)
+            	{
+	    	    sl->impulse[k] = sr->impulse[k] 
+				= point_set[gindex]->impuls[k];
+	    	}
+	    }
+	}
+}	/* end set_surf_impulse */
+
