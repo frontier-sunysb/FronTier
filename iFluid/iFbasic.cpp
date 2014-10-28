@@ -2409,7 +2409,8 @@ boolean Incompress_Solver_Smooth_Basis::paintToSolveGridPoint()
 	int idir,i,j,k,n,ic,*ip,ipn[MAXD];
 	int ip_seed[MAXD];
 	static int **ips,ip_size;
-	boolean seed_found = NO;
+	boolean seed_not_found = YES;
+	boolean global_seed_not_found;
 	int paint_method;
 
 	paint_method = BY_CROSSING;
@@ -2425,7 +2426,7 @@ boolean Incompress_Solver_Smooth_Basis::paintToSolveGridPoint()
 	    FT_MatrixMemoryAlloc((POINTER*)&ips,ip_size,dim,sizeof(int));
 	}
 
-	seed_found = NO;
+	seed_not_found = YES;
 	switch (dim)
 	{
 	case 2:
@@ -2439,11 +2440,11 @@ boolean Incompress_Solver_Smooth_Basis::paintToSolveGridPoint()
                         ip_seed[0] = i;
                         ip_seed[1] = j;
                         domain_status[ic] = TO_SOLVE;
-                        seed_found = YES;
+                        seed_not_found = NO;
                         break;
                     }
                 }
-                if (seed_found) break;
+                if (!seed_not_found) break;
             }
 	    break;
 	case 3:
@@ -2460,20 +2461,26 @@ boolean Incompress_Solver_Smooth_Basis::paintToSolveGridPoint()
 			    ip_seed[1] = j;
 			    ip_seed[2] = k;
 			    domain_status[ic] = TO_SOLVE;
-			    seed_found = YES;
+			    seed_not_found = NO;
 			    break;
 		    	}
 		    }
-		    if (seed_found) break;
+		    if (!seed_not_found) break;
 	    	}
-	    	if (seed_found) break;
+	    	if (!seed_not_found) break;
 	    }
 	    break;
 	}
-	if (!seed_found)
+	global_seed_not_found = pp_global_status(seed_not_found);
+	if (global_seed_not_found)
 	{
 	    stop_clock("paint_color");
 	    return NO;
+	}
+	else if (seed_not_found)
+	{
+	    stop_clock("paint_color");
+	    return YES;
 	}
 
 	/* Start traversing through connected neighbors */

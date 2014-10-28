@@ -1583,10 +1583,12 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
 	    if (iFparams->total_div_cancellation)
             	elliptic_solver.dsolve(array);
 	    else
+	    {
             	elliptic_solver.solve(array);
+	    }
 	    paintSolvedGridPoint();
 	}
-
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
 
 	min_phi =  HUGE;
 	max_phi = -HUGE;
