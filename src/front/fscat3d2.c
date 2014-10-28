@@ -75,11 +75,6 @@ LOCAL  	void  merge_overlap_nodes(INTERFACE*);
 LOCAL	boolean is_buffer_curve(CURVE*,INTERFACE*);
 
 LOCAL	double	ltol[3];/*LINE TOLERANCE*/
-/*TMP*/
-LOCAL void print_intfc_nodes(INTERFACE*);
-LOCAL void print_intfc_curves(INTERFACE*);
-LOCAL void search_the_bond(INTERFACE *intfc);
-
 
 /*ARGSUSED*/
 EXPORT boolean f_intfc_communication3d2(
@@ -692,7 +687,7 @@ EXPORT   void  merge_curves(
 {
 	CURVE     **c,**curve;
 	SURFACE	  *surf;
-	BOND      *b,*b1,*b2,*bc,*bo;
+	BOND      *b,*b1,*b2,*bc,*bo,*bs,*be;
 	BOND_TRI  **bt;
 	NODE      **n,**nodes;
 	int       found_node;
@@ -714,18 +709,37 @@ merge_curve:
        
 		/* find merged curve in the head of the curve */
 		first_match = last_match = NO;
-		bo = (*c)->first;
-		bc = find_match_bond(bo,*curve);
-		if (bc != NULL)
-		    first_match = YES;
-		else
+		bs = (*c)->first;
+		be = (*c)->last;
+		b1 = find_match_bond(bs,*curve);
+		b2 = find_match_bond(be,*curve);
+		if (b1 == NULL && b2 == NULL)
 		{
-		    bo = (*c)->last;
-		    bc = find_match_bond(bo,*curve);
-		    if (bc != NULL)
-			last_match = YES;
+		    bs = (*curve)->first;
+		    be = (*curve)->last;
+		    b1 = find_match_bond(bs,*c);
+		    b2 = find_match_bond(be,*c);
+		    if (b1 && b2)
+		    {
+		    	delete_curve(*curve);
+		    	goto  merge_curve;
+		    }
+		    else
+			continue;
 		}
-            
+		else if (b1)
+		{
+		    bo = bs;
+		    bc = b1;
+		    first_match = YES;
+		}
+		else if (b2)
+		{
+		    bo = be;
+		    bc = b2;
+		    last_match = YES;
+		}
+		
 		if(first_match)
 		{
 		    /*check if c is included in curve, b1 \in c, b2 \in curve */
@@ -2497,50 +2511,3 @@ LOCAL	boolean is_buffer_curve(
 	}
 	return NO;
 }	/* end is_buffer_curve */
-
-/*TMP*/
-static void print_intfc_nodes(
-	INTERFACE *intfc)
-{
-	NODE **n;
-	int count = 0;
-	for (n = intfc->nodes; n && *n; ++n)
-	{
-	    count++;
-	}
-	printf("%d nodes:\n",count);
-	for (n = intfc->nodes; n && *n; ++n)
-	    print_node(*n);
-}	/* end print_intfc_nodes */
-
-static void print_intfc_curves(
-	INTERFACE *intfc)
-{
-	CURVE **c;
-	int count = 0;
-	for (c = intfc->curves; c && *c; ++c)
-	{
-	    count++;
-	}
-	printf("%d curves:\n",count);
-	for (c = intfc->curves; c && *c; ++c)
-	{
-	    print_curve(*c);
-	}
-}	/* end print_intfc_curves */
-
-LOCAL void search_the_bond(INTERFACE *intfc)
-{
-	CURVE **c;
-	BOND *b;
-	for (c = intfc->curves; c && *c; ++c)
-	{
-	    for (b = (*c)->first; b != NULL; b = b->next)
-		if (the_bond(b))
-		{
-		    printf("The bond found:\n");
-		    print_bond(b);
-		    print_curve(*c);
-		}
-	}
-}	/* end search_the_bond */
