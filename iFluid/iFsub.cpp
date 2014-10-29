@@ -133,6 +133,7 @@ extern void read_iF_dirichlet_bdry_data(
 	char msg[100],s[100];
 	int i,k,dim = front->rect_grid->dim;
 	FILE *infile = fopen(inname,"r");
+	INTERFACE *intfc = front->interf;
 	static STATE *state;
 	POINTER func_params;
 	HYPER_SURF *hs;
@@ -145,7 +146,7 @@ extern void read_iF_dirichlet_bdry_data(
 	(void) printf("\tSplit state (S)\n");
 	for (i = 0; i < dim; ++i)
 	{
-	    if (f_basic.boundary[i][0] == DIRICHLET_BOUNDARY)
+	    if (rect_boundary_type(intfc,i,0) == DIRICHLET_BOUNDARY)
 	    {
 		hs = NULL;
 		i_surf = 2*i;
@@ -203,7 +204,7 @@ extern void read_iF_dirichlet_bdry_data(
 		    clean_up(ERROR);
 		}
 	    }
-            if (f_basic.boundary[i][1] == DIRICHLET_BOUNDARY)
+	    if (rect_boundary_type(intfc,i,1) == DIRICHLET_BOUNDARY)
 	    {
 		hs = NULL;
 		i_surf = 2*i + 1;

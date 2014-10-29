@@ -1231,6 +1231,7 @@ extern void set_elastic_params(
         if (af_params->m_g != 0.0 &&
             dt_tol > sqrt((af_params->m_g)/(af_params->kg))/10.0)
             dt_tol = sqrt((af_params->m_g)/(af_params->kg))/10.0;
+	pp_global_min(&dt_tol,1);
 	geom_set->dt_tol = dt_tol;
 }	/* end set_elastic_params */
 

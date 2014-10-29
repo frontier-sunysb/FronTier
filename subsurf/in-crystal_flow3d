@@ -71,13 +71,13 @@ Enter the debugging string: trace
 Enter the debugging string: tCLOCK
 Enter the debugging string: tstep_size
 Enter the debugging string: sample_velocity
-Enter the sample line type: xy
+Enter the sample line type: 2
 Enter the sample line coordinate: 0.5 0.5
 Enter the start step for sample: 0
 Enter the end step for sample: 10000
 Enter the step interval for sample: 20
 Enter the debugging string: sample_solute
-Enter the sample line type: xy
+Enter the sample line type: 2
 Enter the sample line coordinate: 0.5 0.5
 Enter the start step for sample: 0
 Enter the end step for sample: 10000

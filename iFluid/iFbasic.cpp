@@ -1646,6 +1646,7 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
 	char dirname[256];
 	double **vel = field->vel;
 	static char **sample_color;
+	int sample_dir;
 
 	if (sample_color == NULL)
 	{
@@ -1672,6 +1673,54 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
             step = front->step;
             count = 0;
         }
+        switch (sample_type[0])
+	{
+	case 'x':
+	    switch (sample_type[1])
+	    {
+	    case 'y':
+		sample_dir = 2;
+		break;
+	    case 'z':
+		sample_dir = 1;
+		break;
+	    }
+	    break;
+	case 'y':
+	    switch (sample_type[1])
+	    {
+	    case 'x':
+		sample_dir = 2;
+		break;
+	    case 'z':
+		sample_dir = 0;
+		break;
+	    }
+	    break;
+	case 'z':
+	    switch (sample_type[1])
+	    {
+	    case 'y':
+		sample_dir = 0;
+		break;
+	    case 'x':
+		sample_dir = 1;
+		break;
+	    }
+	    break;
+	case '0':
+	    sample_dir = 0;
+	    break;
+	case '1':
+	    sample_dir = 1;
+	    break;
+	case '2':
+	    sample_dir = 2;
+	    break;
+	default:
+	    (void) printf("Unknown sample type\n");
+	    clean_up(ERROR);
+	}
 
         sprintf(dirname, "%s/samples/sample-%d",out_name,step);
 	if (!create_directory(dirname,NO))
@@ -1679,9 +1728,9 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
             screen("Cannot create directory %s\n",dirname);
             clean_up(ERROR);
         }
-        switch (sample_type[0])
+        switch (sample_dir)
         {
-        case 'x':
+	case 2:
             if (l == -1)
             {
                 double x1,x2;
@@ -1700,293 +1749,297 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                 x2 = coords[0];
                 lambda1 = (sample_line[0] - x1) / (x2 - sample_line[0]);
             }
-
-            switch (sample_type[1])
+            if (m == -1)
             {
-                case 'y':
-                    if (m == -1)
-                    {
-                        double y1,y2;
-                        do
-                        {
-                            ++m;
-                            index = d_index3d(0,m,0,top_gmax);
-                            getRectangleCenter(index,coords);
-                        }while(sample_line[1]>=coords[1]);
-                        --m;
-                        index = d_index3d(0,m,0,top_gmax);
-                        getRectangleCenter(index,coords);
-                        y1 = coords[1];
-                        index = d_index3d(0,m+1,0,top_gmax);
-                        getRectangleCenter(index,coords);
-                        y2 = coords[1];
-                        lambda2 = (sample_line[1] - y1)/(y2 - sample_line[1]);
-                    }
-                    i = l;
-                    j = m;
-                    sprintf(sname, "%s/x-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-		    fprintf(sfile,"Next\n");
-		    fprintf(sfile,"color=%s\n",sample_color[count]);
-		    fprintf(sfile,"thickness=1.5\n");
-                    for (k = kmin; k <= kmax; ++k)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        velo1 = vel[0][index];
-                        index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = vel[0][index];
-                        velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j+1,k,top_gmax);
-                        velo1 = vel[0][index];
-                        index = d_index3d(i+1,j+1,k,top_gmax);
-                        velo2 = vel[0][index];
-                        velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[2],velo);
-                    }
-                    fclose(sfile);
-
-                    sprintf(sname,"%s/y-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-		    fprintf(sfile,"Next\n");
-		    fprintf(sfile,"color=%s\n",sample_color[count]);
-		    fprintf(sfile,"thickness=1.5\n");
-                    for (k = kmin; k <= kmax; ++k)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        velo1 = vel[1][index];
-                        index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = vel[1][index];
-                        velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j+1,k,top_gmax);
-                        velo1 = vel[1][index];
-                        index = d_index3d(i+1,j+1,k,top_gmax);
-                        velo2 = vel[1][index];
-                        velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[2],velo);
-                    }
-                    fclose(sfile);
-
-                    sprintf(sname,"%s/z-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-		    fprintf(sfile,"Next\n");
-		    fprintf(sfile,"color=%s\n",sample_color[count]);
-		    fprintf(sfile,"thickness=1.5\n");
-                    for (k = kmin; k <= kmax; ++k)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        velo1 = vel[2][index];
-                        index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = vel[2][index];
-                        velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j+1,k,top_gmax);
-                        velo1 = vel[2][index];
-                        index = d_index3d(i+1,j+1,k,top_gmax);
-                        velo2 = vel[2][index];
-                        velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[2],velo);
-                    }
-                    fclose(sfile);
-
-                    sprintf(sname,"%s/p-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-		    fprintf(sfile,"Next\n");
-		    fprintf(sfile,"color=%s\n",sample_color[count]);
-		    fprintf(sfile,"thickness=1.5\n");
-                    for (k = kmin; k <= kmax; ++k)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        velo1 = field->pres[index];
-                        index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = field->pres[index];
-                        velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j+1,k,top_gmax);
-                        velo1 = field->pres[index];
-                        index = d_index3d(i+1,j+1,k,top_gmax);
-                        velo2 = field->pres[index];
-                        velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[2],velo);
-                    }
-                    fclose(sfile);
-
-                    sprintf(sname,"%s/mu-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-		    fprintf(sfile,"Next\n");
-		    fprintf(sfile,"color=%s\n",sample_color[count]);
-		    fprintf(sfile,"thickness=1.5\n");
-                    for (k = kmin; k <= kmax; ++k)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        velo1 = field->mu[index];
-                        index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = field->mu[index];
-                        velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j+1,k,top_gmax);
-                        velo1 = field->mu[index];
-                        index = d_index3d(i+1,j+1,k,top_gmax);
-                        velo2 = field->mu[index];
-                        velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[2],velo);
-                    }
-                    fclose(sfile);
-                    printf("sample line: x = %20.14f, y = %20.14f\n",coords[0],
-                        coords[1]);
-
-                    break;
-
-                case 'z':
-                    if (m == -1)
-                    {
-                        double z1,z2;
-                        do
-                        {
-                            ++m;
-                            index = d_index3d(0,0,m,top_gmax);
-                            getRectangleCenter(index,coords);
-                        }while(sample_line[1]>=coords[2]);
-                        --m;
-                        index = d_index3d(0,0,m,top_gmax);
-                        getRectangleCenter(index,coords);
-                        z1 = coords[2];
-                        index = d_index3d(0,0,m+1,top_gmax);
-                        getRectangleCenter(index,coords);
-                        z2 = coords[2];
-                        lambda2 = (sample_line[1] - z1)/(z2 - sample_line[1]);
-                    }
-                    i = l;
-                    k = m;
-                    sprintf(sname, "%s/x-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-		    fprintf(sfile,"Next\n");
-		    fprintf(sfile,"color=%s\n",sample_color[count]);
-		    fprintf(sfile,"thickness=1.5\n");
-                    for (j = jmin; j <= jmax; ++j)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        velo1 = vel[0][index];
-                        index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = vel[0][index];
-                        velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = vel[0][index];
-                        index = d_index3d(i+1,j,k+1,top_gmax);
-                        velo2 = vel[0][index];
-                        velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[1],velo);
-                    }
-                    fclose(sfile);
-
-                    sprintf(sname, "%s/y-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-		    fprintf(sfile,"Next\n");
-		    fprintf(sfile,"color=%s\n",sample_color[count]);
-		    fprintf(sfile,"thickness=1.5\n");
-                    for (j = jmin; j <= jmax; ++j)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        velo1 = vel[1][index];
-                        index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = vel[1][index];
-                        velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = vel[1][index];
-                        index = d_index3d(i+1,j,k+1,top_gmax);
-                        velo2 = vel[1][index];
-                        velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[1],velo);
-                    }
-                    fclose(sfile);
-
-                    sprintf(sname, "%s/z-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-		    fprintf(sfile,"Next\n");
-		    fprintf(sfile,"color=%s\n",sample_color[count]);
-		    fprintf(sfile,"thickness=1.5\n");
-                    for (j = jmin; j <= jmax; ++j)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        velo1 = vel[2][index];
-                        index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = vel[2][index];
-                        velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = vel[2][index];
-                        index = d_index3d(i+1,j,k+1,top_gmax);
-                        velo2 = vel[2][index];
-                        velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[1],velo);
-                    }
-                    fclose(sfile);
-
-                    sprintf(sname, "%s/p-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-		    fprintf(sfile,"Next\n");
-		    fprintf(sfile,"color=%s\n",sample_color[count]);
-		    fprintf(sfile,"thickness=1.5\n");
-                    for (j = jmin; j <= jmax; ++j)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        velo1 = field->pres[index];
-                        index = d_index3d(i+1,j,k,top_gmax);
-                        velo2 = field->pres[index];
-                        velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = field->pres[index];
-                        index = d_index3d(i+1,j,k+1,top_gmax);
-                        velo2 = field->pres[index];
-                        velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[1],velo);
-                    }
-                    fclose(sfile);
-
-                    printf("sample line: x = %20.14f, z = %20.14f\n",coords[0],
-                        coords[2]);
-
-                    break;
-
-                    default:
-                        printf("Incorrect input for sample velocity!\n");
-                        break;
-
+                double y1,y2;
+                do
+                {
+                    ++m;
+                    index = d_index3d(0,m,0,top_gmax);
+                    getRectangleCenter(index,coords);
+                }while(sample_line[1]>=coords[1]);
+                --m;
+                index = d_index3d(0,m,0,top_gmax);
+                getRectangleCenter(index,coords);
+                y1 = coords[1];
+                index = d_index3d(0,m+1,0,top_gmax);
+                getRectangleCenter(index,coords);
+                y2 = coords[1];
+                lambda2 = (sample_line[1] - y1)/(y2 - sample_line[1]);
             }
-            break;
+            i = l;
+            j = m;
+            sprintf(sname, "%s/x-%d.xg",dirname,count);
+            sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
+            for (k = kmin; k <= kmax; ++k)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+                velo1 = vel[0][index];
+                index = d_index3d(i+1,j,k,top_gmax);
+                velo2 = vel[0][index];
+                velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
 
-        case 'y':
+                index = d_index3d(i,j+1,k,top_gmax);
+                velo1 = vel[0][index];
+                index = d_index3d(i+1,j+1,k,top_gmax);
+                velo2 = vel[0][index];
+                velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
+                getRectangleCenter(index,coords);
+                fprintf(sfile,"%20.14f   %20.14f\n",coords[2],velo);
+            }
+            fclose(sfile);
+
+            sprintf(sname,"%s/y-%d.xg",dirname,count);
+            sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
+            for (k = kmin; k <= kmax; ++k)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+                velo1 = vel[1][index];
+                index = d_index3d(i+1,j,k,top_gmax);
+                velo2 = vel[1][index];
+                velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                index = d_index3d(i,j+1,k,top_gmax);
+                velo1 = vel[1][index];
+                index = d_index3d(i+1,j+1,k,top_gmax);
+                velo2 = vel[1][index];
+                velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
+                getRectangleCenter(index,coords);
+                fprintf(sfile,"%20.14f   %20.14f\n",coords[2],velo);
+            }
+            fclose(sfile);
+
+            sprintf(sname,"%s/z-%d.xg",dirname,count);
+            sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
+            for (k = kmin; k <= kmax; ++k)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+                velo1 = vel[2][index];
+                index = d_index3d(i+1,j,k,top_gmax);
+                velo2 = vel[2][index];
+                velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                index = d_index3d(i,j+1,k,top_gmax);
+                velo1 = vel[2][index];
+                index = d_index3d(i+1,j+1,k,top_gmax);
+                velo2 = vel[2][index];
+                velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
+                getRectangleCenter(index,coords);
+                fprintf(sfile,"%20.14f   %20.14f\n",coords[2],velo);
+            }
+            fclose(sfile);
+
+            sprintf(sname,"%s/p-%d.xg",dirname,count);
+            sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
+            for (k = kmin; k <= kmax; ++k)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+                velo1 = field->pres[index];
+                index = d_index3d(i+1,j,k,top_gmax);
+                velo2 = field->pres[index];
+                velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                index = d_index3d(i,j+1,k,top_gmax);
+                velo1 = field->pres[index];
+                index = d_index3d(i+1,j+1,k,top_gmax);
+                velo2 = field->pres[index];
+                velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
+                getRectangleCenter(index,coords);
+                fprintf(sfile,"%20.14f   %20.14f\n",coords[2],velo);
+            }
+            fclose(sfile);
+
+            sprintf(sname,"%s/mu-%d.xg",dirname,count);
+            sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
+            for (k = kmin; k <= kmax; ++k)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+                velo1 = field->mu[index];
+                index = d_index3d(i+1,j,k,top_gmax);
+                velo2 = field->mu[index];
+                velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                index = d_index3d(i,j+1,k,top_gmax);
+                velo1 = field->mu[index];
+                index = d_index3d(i+1,j+1,k,top_gmax);
+                velo2 = field->mu[index];
+                velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
+                getRectangleCenter(index,coords);
+                fprintf(sfile,"%20.14f   %20.14f\n",coords[2],velo);
+            }
+            fclose(sfile);
+            printf("sample line: x = %20.14f, y = %20.14f\n",coords[0],
+                coords[1]);
+
+            break;
+	case 1:
+            if (l == -1)
+            {
+                double x1,x2;
+                do
+                {
+                    ++l;
+                    index = d_index3d(l,0,0,top_gmax);
+                    getRectangleCenter(index, coords);
+                }while(sample_line[0]>=coords[0]);
+                --l;
+                index = d_index3d(l,0,0,top_gmax);
+                getRectangleCenter(index,coords);
+                x1 = coords[0];
+                index = d_index3d(l+1,0,0,top_gmax);
+                getRectangleCenter(index,coords);
+                x2 = coords[0];
+                lambda1 = (sample_line[0] - x1) / (x2 - sample_line[0]);
+            }
+            if (m == -1)
+            {
+                double z1,z2;
+                do
+                {
+                    ++m;
+                    index = d_index3d(0,0,m,top_gmax);
+                    getRectangleCenter(index,coords);
+                }while(sample_line[1]>=coords[2]);
+                --m;
+                index = d_index3d(0,0,m,top_gmax);
+                getRectangleCenter(index,coords);
+                z1 = coords[2];
+                index = d_index3d(0,0,m+1,top_gmax);
+                getRectangleCenter(index,coords);
+                z2 = coords[2];
+                lambda2 = (sample_line[1] - z1)/(z2 - sample_line[1]);
+            }
+            i = l;
+            k = m;
+            sprintf(sname, "%s/x-%d.xg",dirname,count);
+            sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
+            for (j = jmin; j <= jmax; ++j)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+                velo1 = vel[0][index];
+                index = d_index3d(i+1,j,k,top_gmax);
+                velo2 = vel[0][index];
+                velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                index = d_index3d(i,j,k+1,top_gmax);
+                velo1 = vel[0][index];
+                index = d_index3d(i+1,j,k+1,top_gmax);
+                velo2 = vel[0][index];
+                velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
+                getRectangleCenter(index,coords);
+                fprintf(sfile,"%20.14f   %20.14f\n",coords[1],velo);
+            }
+            fclose(sfile);
+
+            sprintf(sname, "%s/y-%d.xg",dirname,count);
+            sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
+            for (j = jmin; j <= jmax; ++j)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+                velo1 = vel[1][index];
+                index = d_index3d(i+1,j,k,top_gmax);
+                velo2 = vel[1][index];
+                velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                index = d_index3d(i,j,k+1,top_gmax);
+                velo1 = vel[1][index];
+                index = d_index3d(i+1,j,k+1,top_gmax);
+                velo2 = vel[1][index];
+                velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
+                getRectangleCenter(index,coords);
+                fprintf(sfile,"%20.14f   %20.14f\n",coords[1],velo);
+            }
+            fclose(sfile);
+
+            sprintf(sname, "%s/z-%d.xg",dirname,count);
+            sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
+            for (j = jmin; j <= jmax; ++j)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+                velo1 = vel[2][index];
+                index = d_index3d(i+1,j,k,top_gmax);
+                velo2 = vel[2][index];
+                velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                index = d_index3d(i,j,k+1,top_gmax);
+                velo1 = vel[2][index];
+                index = d_index3d(i+1,j,k+1,top_gmax);
+                velo2 = vel[2][index];
+                velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
+                getRectangleCenter(index,coords);
+                fprintf(sfile,"%20.14f   %20.14f\n",coords[1],velo);
+            }
+            fclose(sfile);
+
+            sprintf(sname, "%s/p-%d.xg",dirname,count);
+            sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
+            for (j = jmin; j <= jmax; ++j)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+                velo1 = field->pres[index];
+                index = d_index3d(i+1,j,k,top_gmax);
+                velo2 = field->pres[index];
+                velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                index = d_index3d(i,j,k+1,top_gmax);
+                velo1 = field->pres[index];
+                index = d_index3d(i+1,j,k+1,top_gmax);
+                velo2 = field->pres[index];
+                velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
+                getRectangleCenter(index,coords);
+                fprintf(sfile,"%20.14f   %20.14f\n",coords[1],velo);
+            }
+            fclose(sfile);
+
+            printf("sample line: x = %20.14f, z = %20.14f\n",coords[0],
+                coords[2]);
+            break;
+	case 0:
             if (l == -1)
             {
                 double y1,y2;
@@ -2005,141 +2058,131 @@ void Incompress_Solver_Smooth_3D_Basis::sampleVelocity()
                 y2 = coords[1];
                 lambda1 = (sample_line[0] - y1)/(y2 - sample_line[0]);
             }
-
-            switch (sample_type[1])
+            if (m == -1)
             {
-                case 'z':
-                    if (m == -1)
-                    {
-                        double z1,z2;
-                        do
-                        {
-                            ++m;
-                            index = d_index3d(0,0,m,top_gmax);
-                            getRectangleCenter(index,coords);
-                        }while(sample_line[1]>=coords[2]);
-                        --m;
-                        index = d_index3d(0,0,m,top_gmax);
-                        getRectangleCenter(index,coords);
-                        z1 = coords[2];
-                        index = d_index3d(0,0,m+1,top_gmax);
-                        getRectangleCenter(index,coords);
-                        z2 = coords[2];
-                        lambda2 = (sample_line[1] - z1)/(z2 - sample_line[1]);
-                    }
-                    j = l;
-                    k = m;
-                    sprintf(sname, "%s/x-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-		    fprintf(sfile,"Next\n");
-		    fprintf(sfile,"color=%s\n",sample_color[count]);
-		    fprintf(sfile,"thickness=1.5\n");
-                    for (i = imin; i <= imax; ++i)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        velo1 = vel[0][index];
-                        index = d_index3d(i,j+1,k,top_gmax);
-                        velo2 = vel[0][index];
-                        velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = vel[0][index];
-                        index = d_index3d(i,j+1,k+1,top_gmax);
-                        velo2 = vel[0][index];
-                        velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[0],velo);
-                    }
-                    fclose(sfile);
-
-                    sprintf(sname, "%s/y-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-		    fprintf(sfile,"Next\n");
-		    fprintf(sfile,"color=%s\n",sample_color[count]);
-		    fprintf(sfile,"thickness=1.5\n");
-                    for (i = imin; i <= imax; ++i)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        velo1 = vel[1][index];
-                        index = d_index3d(i,j+1,k,top_gmax);
-                        velo2 = vel[1][index];
-                        velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = vel[1][index];
-                        index = d_index3d(i,j+1,k+1,top_gmax);
-                        velo2 = vel[1][index];
-                        velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[0],velo);
-                    }
-                    fclose(sfile);
-
-                    sprintf(sname, "%s/z-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-		    fprintf(sfile,"Next\n");
-		    fprintf(sfile,"color=%s\n",sample_color[count]);
-		    fprintf(sfile,"thickness=1.5\n");
-                    for (i = imin; i <= imax; ++i)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        velo1 = vel[2][index];
-                        index = d_index3d(i,j+1,k,top_gmax);
-                        velo2 = vel[2][index];
-                        velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = vel[2][index];
-                        index = d_index3d(i,j+1,k+1,top_gmax);
-                        velo2 = vel[2][index];
-                        velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[0],velo);
-                    }
-                    fclose(sfile);
-
-                    sprintf(sname, "%s/p-%d.xg",dirname,count);
-                    sfile = fopen(sname,"w");
-		    fprintf(sfile,"Next\n");
-		    fprintf(sfile,"color=%s\n",sample_color[count]);
-		    fprintf(sfile,"thickness=1.5\n");
-                    for (i = imin; i <= imax; ++i)
-                    {
-                        index = d_index3d(i,j,k,top_gmax);
-                        velo1 = field->pres[index];
-                        index = d_index3d(i,j+1,k,top_gmax);
-                        velo2 = field->pres[index];
-                        velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        index = d_index3d(i,j,k+1,top_gmax);
-                        velo1 = field->pres[index];
-                        index = d_index3d(i,j+1,k+1,top_gmax);
-                        velo2 = field->pres[index];
-                        velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
-
-                        velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
-                        getRectangleCenter(index,coords);
-                        fprintf(sfile,"%20.14f   %20.14f\n",coords[0],velo);
-                    }
-                    fclose(sfile);
-
-                    printf("sample line: y = %20.14f, z = %20.14f\n",coords[1],
-                        coords[2]);
-
-                    break;
-
-                default:
-                    printf("Incorrect input for sample velocity!\n");
-                    break;
+                double z1,z2;
+                do
+                {
+                    ++m;
+                    index = d_index3d(0,0,m,top_gmax);
+                    getRectangleCenter(index,coords);
+                }while(sample_line[1]>=coords[2]);
+                --m;
+                index = d_index3d(0,0,m,top_gmax);
+                getRectangleCenter(index,coords);
+                z1 = coords[2];
+                index = d_index3d(0,0,m+1,top_gmax);
+                getRectangleCenter(index,coords);
+                z2 = coords[2];
+                lambda2 = (sample_line[1] - z1)/(z2 - sample_line[1]);
             }
+            j = l;
+            k = m;
+            sprintf(sname, "%s/x-%d.xg",dirname,count);
+            sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
+            for (i = imin; i <= imax; ++i)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+                velo1 = vel[0][index];
+                index = d_index3d(i,j+1,k,top_gmax);
+                velo2 = vel[0][index];
+                velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                index = d_index3d(i,j,k+1,top_gmax);
+                velo1 = vel[0][index];
+                index = d_index3d(i,j+1,k+1,top_gmax);
+                velo2 = vel[0][index];
+                velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
+                getRectangleCenter(index,coords);
+                fprintf(sfile,"%20.14f   %20.14f\n",coords[0],velo);
+            }
+            fclose(sfile);
+
+            sprintf(sname, "%s/y-%d.xg",dirname,count);
+            sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
+            for (i = imin; i <= imax; ++i)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+                velo1 = vel[1][index];
+                index = d_index3d(i,j+1,k,top_gmax);
+                velo2 = vel[1][index];
+                velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                index = d_index3d(i,j,k+1,top_gmax);
+                velo1 = vel[1][index];
+                index = d_index3d(i,j+1,k+1,top_gmax);
+                velo2 = vel[1][index];
+                velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
+                getRectangleCenter(index,coords);
+                fprintf(sfile,"%20.14f   %20.14f\n",coords[0],velo);
+            }
+            fclose(sfile);
+
+            sprintf(sname, "%s/z-%d.xg",dirname,count);
+            sfile = fopen(sname,"w");
+	    fprintf(sfile,"Next\n");
+	    fprintf(sfile,"color=%s\n",sample_color[count]);
+	    fprintf(sfile,"thickness=1.5\n");
+            for (i = imin; i <= imax; ++i)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+                velo1 = vel[2][index];
+                index = d_index3d(i,j+1,k,top_gmax);
+                velo2 = vel[2][index];
+                velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                index = d_index3d(i,j,k+1,top_gmax);
+                velo1 = vel[2][index];
+                index = d_index3d(i,j+1,k+1,top_gmax);
+                velo2 = vel[2][index];
+                velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
+                getRectangleCenter(index,coords);
+                fprintf(sfile,"%20.14f   %20.14f\n",coords[0],velo);
+            }
+            fclose(sfile);
+
+            sprintf(sname, "%s/p-%d.xg",dirname,count);
+            sfile = fopen(sname,"w");
+		    fprintf(sfile,"Next\n");
+		    fprintf(sfile,"color=%s\n",sample_color[count]);
+		    fprintf(sfile,"thickness=1.5\n");
+            for (i = imin; i <= imax; ++i)
+            {
+                index = d_index3d(i,j,k,top_gmax);
+                velo1 = field->pres[index];
+                index = d_index3d(i,j+1,k,top_gmax);
+                velo2 = field->pres[index];
+                velo_tmp1 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                index = d_index3d(i,j,k+1,top_gmax);
+                velo1 = field->pres[index];
+                index = d_index3d(i,j+1,k+1,top_gmax);
+                velo2 = field->pres[index];
+                velo_tmp2 = (velo1 + lambda1*velo2)/(1.0 + lambda1);
+
+                velo = (velo_tmp1 + lambda2*velo_tmp2)/(1.0 + lambda2);
+                getRectangleCenter(index,coords);
+                fprintf(sfile,"%20.14f   %20.14f\n",coords[0],velo);
+            }
+            fclose(sfile);
+
+            printf("sample line: y = %20.14f, z = %20.14f\n",coords[1],
+                coords[2]);
+	    break;
         default:
-            printf("Incorrect input for sample velocity!\n");
+            (void) printf("Incorrect input for sample velocity!\n");
             break;
         }
 	count++;

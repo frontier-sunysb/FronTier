@@ -72,6 +72,7 @@ extern void setMotionParams(
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
 	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
 	INTERFACE *intfc = front->interf;
+	boolean status;
 
 	af_params->no_fluid = NO;
 	if (dim == 3 && numOfGoreHsbdry(intfc) != 0)
@@ -228,8 +229,10 @@ extern void setMotionParams(
             for (i = 0; i < dim; ++i)
 	    	iFparams->gravity[i] = af_params->gravity[i];
 	}
-	if (!FT_FrontContainWaveType(front,ELASTIC_BOUNDARY))
-	    return;
+	status = FT_FrontContainWaveType(front,ELASTIC_BOUNDARY);
+	status = pp_max_status(status);
+	if (!status) return;
+
 	af_params->n_sub = 1;
 	CursorAfterString(infile,"Enter interior sub step number:");
 	fscanf(infile,"%d",&af_params->n_sub);

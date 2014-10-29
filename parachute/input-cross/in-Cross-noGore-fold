@@ -135,7 +135,7 @@ Enter the debugging string: tCLOCK
 Enter the debugging string: tdirichlet_bdry
 Enter the debugging string: tflow_through
 Enter the debugging string: sample_velocity
-Enter the sample line type: xy
+Enter the sample line type: 2
 Enter the sample line coordinate: 6.0 7.0
 Enter the start step for sample: 0
 Enter the end step for sample: 10000
