@@ -220,7 +220,8 @@ static  void airfoil_driver(
 	}
 	FT_TimeControlFilter(front);
 	FT_PrintTimeStamp(front);
-	if (FT_TimeLimitReached(front)) // For restart debugging 
+	// For restart debugging 
+	if (FT_TimeLimitReached(front) && debugging("restart")) 
 	{
 	    FT_Save(front,out_name);
             l_cartesian->printFrontInteriorStates(out_name);

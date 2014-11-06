@@ -433,8 +433,8 @@ EXPORT boolean the_bond(BOND *b)
 	double tol = 1.0e-5;	/* vertices coords must have at least */
 				/* five digits after decimal points */
 
-	double p[2][3] = {{0,1,0.491666666666666641},	/* Place holder for */
-			 {0,1,0.508333333333333304}};	/* coords of end points */
+	double p[2][3] = {{6.094954,5.583979,18.000000}, /* Place holder for */
+			 {6.047777,5.575963,18.000000}}; /* coords of end points */
 	
 	for (i = 0; i < 3; i++)
 	{

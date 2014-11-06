@@ -466,6 +466,7 @@ static void InstallInCurve(
         FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
         extra->af_node_type = GORE_NODE;
         node->extra = (POINTER)extra;
+        node->size_of_extra = sizeof(AF_NODE_EXTRA);
 	vent_curve = make_curve(0,0,node,node);
 	install_curve_in_surface_bdry(surf,vent_curve,POSITIVE_ORIENTATION);
 	hsbdry_type(vent_curve) = GORE_HSBDRY;
@@ -706,6 +707,7 @@ static void SplitCirBdry(
 					sizeof(AF_NODE_EXTRA));
                         extra->af_node_type = GORE_NODE;
                         vent_nodes[i]->extra = (POINTER)extra;
+                        vent_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
                         break;
                     }
                 }
@@ -723,6 +725,7 @@ static void SplitCirBdry(
 					sizeof(AF_NODE_EXTRA));
                     extra->af_node_type = GORE_NODE;
                     vent_nodes[i]->extra = (POINTER)extra;
+                    vent_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
                     break;
                 }
             }
@@ -1392,6 +1395,7 @@ static void installString(
 	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
         extra->af_node_type = LOAD_NODE;
         nload->extra = (POINTER)extra;
+        nload->size_of_extra = sizeof(AF_NODE_EXTRA);
 
 	FT_VectorMemoryAlloc((POINTER*)&string_nodes,num_strings,
                                 sizeof(NODE*));
@@ -1414,6 +1418,7 @@ static void installString(
 					sizeof(AF_NODE_EXTRA));
                 	extra->af_node_type = STRING_NODE;
                 	string_nodes[i]->extra = (POINTER)extra;
+                	string_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
 			break;
 		    }
 		}
@@ -1429,6 +1434,7 @@ static void installString(
 					sizeof(AF_NODE_EXTRA));
                     extra->af_node_type = STRING_NODE;
                     string_nodes[i]->extra = (POINTER)extra;
+                    string_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
                     break;
 		}
 	    }

@@ -71,6 +71,7 @@ LOCAL   boolean append_other_curves3(INTERFACE*,INTERFACE*,P_LINK*,int);
 LOCAL   boolean bond_match3(BOND*,BOND*);
 LOCAL   void merge_overlap_nodes(INTERFACE*);
 LOCAL	void print_unmatched_tris(TRI**,TRI**,int,int);
+LOCAL 	void exchange_intfc_extra(INTERFACE*);
 
 LOCAL	double	tol1[MAXD]; /*TOLERANCE*/
 
@@ -205,6 +206,7 @@ EXPORT	boolean f_intfc_communication3d3(
 
 	    }	
 	}
+	exchange_intfc_extra(intfc);
 
 	if (status == FUNCTION_SUCCEEDED)
 	{
@@ -1249,9 +1251,10 @@ LOCAL INTERFACE *cut_intfc_to_wave_type(
 	int dim = gr->dim;
 	char fname[100];
 
+	set_floating_point_tolerance3(computational_grid(intfc)->h);
 	intfc_surface_loop(tmp_intfc,s)
 	{
-	    if (wave_type(*s) != w_type)
+	    if (wave_type(*s) != w_type && w_type != ANY_WAVE_TYPE)
 		surfs_del[num_delete++] = *s;
 	    else
 	    {
@@ -1360,6 +1363,8 @@ LOCAL boolean append_other_curves3(
 	    for (j = 0; j < num_c; ++j)
 	    {
 		if (c[j] == NULL)	/* already matched */
+		    continue;
+		if (Gindex(ac[i]) != Gindex(c[j]))
 		    continue;
 	    	for (ba = ac[i]->first; ba != NULL; ba = ba->next)
 	    	{
@@ -1547,3 +1552,56 @@ LOCAL	void print_unmatched_tris(
 	    }
 	}
 }	/* end print_unmatched_tris */
+
+LOCAL void exchange_intfc_extra(INTERFACE *intfc)
+{
+	int i,j,num_nodes;
+	int global_index;
+	int size_of_extra;
+	NODE **n;
+	POINTER extra;
+	boolean extra_assigned;
+
+	num_nodes = 0;
+	intfc_node_loop(intfc,n)
+	    if ((*n)->extra != NULL) num_nodes++;
+
+	for (i = 0; i < pp_numnodes(); ++i)
+	{
+	    if (i == pp_mynode()) continue;
+	    pp_send(30,&num_nodes,sizeof(int),i);
+	    intfc_node_loop(intfc,n)
+	    {
+	    	if ((*n)->extra == NULL) continue;
+	    	pp_send(31,&(Gindex((*n)->posn)),sizeof(long),i);
+	    	pp_send(32,&((*n)->size_of_extra),sizeof(int),i);
+	    	pp_send(33,(*n)->extra,(*n)->size_of_extra,i);
+	    }
+	}
+	pp_gsync();
+	for (i = 0; i < pp_numnodes(); ++i)
+	{
+	    if (i == pp_mynode()) continue;
+	    pp_recv(30,i,&num_nodes,sizeof(int));
+	    for (j = 0; j < num_nodes; ++j)
+	    {
+	    	pp_recv(31,i,&global_index,sizeof(long));
+	    	pp_recv(32,i,&size_of_extra,sizeof(int));
+		FT_ScalarMemoryAlloc((POINTER*)&extra,size_of_extra);
+	    	pp_recv(33,i,extra,size_of_extra);
+		extra_assigned = NO;
+		intfc_node_loop(intfc,n)
+		{
+		    if ((*n)->extra == NULL && 
+			Gindex((*n)->posn) == global_index)
+		    {
+			(*n)->extra = extra;
+			(*n)->size_of_extra = size_of_extra;
+			extra_assigned = YES;
+		    }
+		}
+		if (extra_assigned == NO)
+		    free_these(1,extra);
+	    }
+	}
+}	/* end exchange_intfc_extra */

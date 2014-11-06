@@ -1047,5 +1047,6 @@ static void set_gore_node(
 		extra->af_node_type = GORE_NODE;
 	    }
 	    n->extra = (POINTER)extra;
+	    n->size_of_extra = sizeof(AF_NODE_EXTRA);
 	}
 }	/* end set_gore_node */

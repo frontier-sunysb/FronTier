@@ -1398,8 +1398,16 @@ LOCAL	void show_front_gv(
 	int dim = front->rect_grid->dim;
 	static boolean first = YES;
 	int numnodes = pp_numnodes();
+	INTERFACE *gv_intfc;
 
 	if (dim == 1) return;
+	gv_intfc = front->interf;
+	if (dim == 3 && pp_numnodes() > 1)
+	{
+	    int owner[3];
+	    owner[0] = owner[1] = owner[2] = 0;
+	    gv_intfc = collect_hyper_surface(front,owner,ANY_WAVE_TYPE);	
+	}
 
 	/* Create GV directory */
 	sprintf(dirname,"%s/gview",out_name);
@@ -1416,17 +1424,22 @@ LOCAL	void show_front_gv(
 	sprintf(dirname,"%s/gv.ts%s",dirname,right_flush(step,7));
         if (numnodes > 1)
             sprintf(dirname,"%s-nd%s",dirname,right_flush(pp_mynode(),4));
-	gview_plot_interface(dirname,front->interf);
-	if (front->print_gview_color == YES)
+	if (gv_intfc != NULL)
+	    gview_plot_interface(dirname,gv_intfc);
+	if (front->print_gview_color == YES && gv_intfc != NULL)
 	{
 	    sprintf(dirname,"%s/gview",out_name);
 	    sprintf(dirname,"%s/gv-color.ts%s",dirname,right_flush(step,7));
             if (numnodes > 1)
             	sprintf(dirname,"%s-nd%s",dirname,right_flush(pp_mynode(),4));
-	    gview_plot_color_scaled_interface(dirname,front->interf);
+	    gview_plot_color_scaled_interface(dirname,gv_intfc);
 	}
 	if (dim != 2)
+	{
+	    if (pp_numnodes() > 1 && gv_intfc != NULL)
+		delete_interface(gv_intfc);
 	    return;
+	}
 
 	if (front->hdf_movie_var != NULL)
 	{

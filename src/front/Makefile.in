@@ -24,6 +24,7 @@ fgb2d.$(OBJEXT) \
 fgb3dutil.$(OBJEXT) \
 fgb3d.$(OBJEXT) \
 fgb3comp.$(OBJEXT) \
+fglobal.$(OBJEXT) \
 fgrid.$(OBJEXT) \
 finit.$(OBJEXT) \
 fint.$(OBJEXT) \

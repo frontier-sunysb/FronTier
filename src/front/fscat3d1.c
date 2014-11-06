@@ -2898,11 +2898,12 @@ EXPORT	CURVE *matching_curve(
 	NODE		*ns, *ne;
 	POINT		*ap, *p;
 
+	c = NULL;
 	ns = matching_node(ac->start,p_table,p_size);
 	ne = matching_node(ac->end,p_table,p_size);
 	for (cc = ns->out_curves; cc && *cc; ++cc)
 	    if (curves_match(*cc,ac,p_table,p_size))
-	        return *cc;
+		return *cc;
 	
 	c = copy_curve(ac,ns,ne);
 	
@@ -2921,8 +2922,10 @@ EXPORT	CURVE *matching_curve(
 	    	    b->next->start = p;
 	    }
 	    else
+	    {
 	    	(void) add_to_hash_table((POINTER)ap,(POINTER)b->end,
 					 p_table,p_size);
+	    }
 	}
 	
 	test_curve_link(c);
@@ -3013,6 +3016,7 @@ EXPORT void open_null_bonds(
 
 	nc = I_NumOfIntfcCurves(intfc);
 	uni_array(&curves,3*nc,sizeof(CURVE*));
+	set_floating_point_tolerance1(computational_grid(intfc)->h);
 
 start_open_bonds:
 	nc = 0;

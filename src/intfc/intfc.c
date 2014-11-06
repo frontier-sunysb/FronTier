@@ -1777,9 +1777,9 @@ EXPORT NODE *i_copy_node(
 	}
 	Boundary(newnode) = Boundary(node);
 	newnode->extra = node->extra;
+	newnode->size_of_extra = node->size_of_extra;
 	newnode->vparams = node->vparams;
-	newnode->vfunc = node->vfunc;
-	Gindex(newnode) = Gindex(node);
+        newnode->vfunc = node->vfunc;
 
 	return newnode;
 }		/*end i_copy_node*/

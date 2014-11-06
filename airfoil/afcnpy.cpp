@@ -41,6 +41,7 @@ static void setSurfVelocity(ELASTIC_SET*,SURFACE*,double**,SPRING_VERTEX*,int*);
 static void new_setNodeVelocity(ELASTIC_SET*,NODE*,double**,GLOBAL_POINT**);
 static void new_setCurveVelocity(ELASTIC_SET*,CURVE*,double**,GLOBAL_POINT**);
 static void new_setSurfVelocity(ELASTIC_SET*,SURFACE*,double**,GLOBAL_POINT**);
+static void collectNodeExtra(Front*,INTERFACE*,int);
 
 #define 	MAX_NUM_RING1		30
 
@@ -1968,8 +1969,11 @@ extern void fourth_order_elastic_set_propagate(
 		point_set[i] = NULL;
 
 	    if (pp_numnodes() > 1)
+	    {
             	elastic_intfc = FT_CollectHypersurfFromSubdomains(fr,owner,
 				ELASTIC_BOUNDARY);
+		collectNodeExtra(fr,elastic_intfc,owner_id);
+	    }
 	    else
 		elastic_intfc = fr->interf;
 	    start_clock("set_data");
@@ -2284,3 +2288,57 @@ extern void new_set_geomset_velocity(
 	    new_setNodeVelocity(geom_set,geom_set->nodes[i],point_set);
 
 }	/* end set_geomset_velocity */
+
+static void collectNodeExtra(
+	Front *front,
+	INTERFACE *host_intfc,
+	int owner_id)
+{
+	NODE **n;
+	NODE **node_with_extra;
+	int i,j,num_nodes;
+	INTERFACE *intfc = front->interf;
+	long global_index;
+	AF_NODE_EXTRA *extra;
+
+	if (pp_mynode() != owner_id)
+	{
+	    num_nodes = 0;
+	    intfc_node_loop(intfc,n)
+	    {
+		if ((*n)->extra != NULL)
+		    num_nodes++;
+	    }
+	    pp_send(10,&num_nodes,sizeof(int),owner_id);
+	    intfc_node_loop(intfc,n)
+	    {
+		if ((*n)->extra != NULL)
+		{
+	    	    pp_send(11,&(Gindex((*n)->posn)),sizeof(long),owner_id);
+	    	    pp_send(12,(*n)->extra,(*n)->size_of_extra,owner_id);
+		}
+	    }
+	}
+	else
+	{
+	    for (i = 0; i < pp_numnodes(); ++i)
+	    {
+		if (i == owner_id) continue;
+		pp_recv(10,i,&num_nodes,sizeof(int));
+		for (j = 0; j < num_nodes; ++j)
+		{
+		    FT_ScalarMemoryAlloc((POINTER*)&extra,
+				sizeof(AF_NODE_EXTRA));
+		    pp_recv(11,i,&global_index,sizeof(long));
+		    pp_recv(12,i,extra,sizeof(AF_NODE_EXTRA));
+		    intfc_node_loop(host_intfc,n)
+		    {
+			if (Gindex((*n)->posn) != global_index)
+			    continue;
+			(*n)->extra = (POINTER)extra;
+			(*n)->size_of_extra = sizeof(AF_NODE_EXTRA);
+		    }
+		}
+	    }
+	}
+}	/* end collectNodeExtra */

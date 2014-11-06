@@ -152,6 +152,7 @@ static void CopyNodeInfo(
 				sizeof(AF_NODE_EXTRA));
             	    	extra->af_node_type = tmp->af_node_type;
             	        (*newn)->extra = (POINTER)extra;
+            	        (*newn)->size_of_extra = sizeof(AF_NODE_EXTRA);
 		    }
 		    else
 			(*newn)->extra = NULL;
@@ -206,6 +207,7 @@ static void MergeTwoIntfc(
 	    FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    extra->af_node_type = tmp_ex->af_node_type;
 	    newn->extra = (POINTER)extra;	    
+	    newn->size_of_extra = sizeof(AF_NODE_EXTRA);	    
 	}
 	free(p_table);
 	set_current_interface(cur_intfc);

@@ -218,10 +218,9 @@ struct _NODE
 	struct _CURVE **in_curves;	/* Pointer to Set of In Curves */
 	struct _CURVE **out_curves;	/* Pointer to Set of Out Curves */
 	POINTER extra;			/* For special use */
-	int global_index;
-	/* The folllowing are used for curve propagation */
+	int size_of_extra;
 	POINTER vparams;
-	void (*vfunc)(POINTER,double*);
+        void (*vfunc)(POINTER,double*);
 };
 typedef struct _NODE NODE;
 
@@ -465,6 +464,8 @@ struct _INTERFACE
 	int		dim;		/* Dimension of Imbedding Space */
 	int		num_points;	/* Total from curves */
 	long		max_point_gindex;
+	long		max_curve_gindex;
+	long		max_surf_gindex;
 
 	/* Internal Variables: */
 	struct Table	*table;	/* Pointer to Interface Table */

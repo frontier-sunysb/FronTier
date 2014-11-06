@@ -42,6 +42,7 @@ extern void printAfExtraDada(
 	int i,dim = intfc->dim;
 	FILE *outfile;
 	char filename[200];
+	SURFACE **s;
 	CURVE **c;
 	NODE **n;
 	BOND *b;
@@ -163,6 +164,14 @@ extern void printAfExtraDada(
 	    p = (*n)->posn;
             fprintf(outfile,"%ld\n",Gindex(p));
 	}
+
+	fprintf(outfile,"\nGlobal index of curves\n");
+	for (c = intfc->curves; c && *c; ++c)
+	    fprintf(outfile,"%ld\n",Gindex(*c));
+
+	fprintf(outfile,"\nGlobal index of surfaces\n");
+	for (s = intfc->surfaces; s && *s; ++s)
+	    fprintf(outfile,"%ld\n",Gindex(*s));
 	fclose(outfile);
 }	/* end printAfExtraDada */
 
@@ -178,6 +187,7 @@ extern void readAfExtraDada(
 	int i,dim = intfc->dim;
 	FILE *infile;
 	char filename[200];
+	SURFACE **s;
 	CURVE **c;
 	NODE **n;
 	BOND *b;
@@ -278,6 +288,7 @@ extern void readAfExtraDada(
 	    fgetstring(infile,"af_node_type =");
             fscanf(infile,"%d",(int*)&n_params->af_node_type);
 	    (*n)->extra = (POINTER)n_params;
+	    (*n)->size_of_extra = sizeof(AF_NODE_EXTRA);
 	}
 	if (fgetstring(infile,"Global index of points") == FUNCTION_FAILED)
 	    return;		/* to make old files still runable */
@@ -312,6 +323,16 @@ extern void readAfExtraDada(
 	max_point_gindex++;
 	pp_global_lmax(&max_point_gindex,1);
 	intfc->max_point_gindex = max_point_gindex;
+
+	if (fgetstring(infile,"Global index of curves") == FUNCTION_FAILED)
+	    return;		/* to make old files still runable */
+	for (c = intfc->curves; c && *c; ++c)
+            fscanf(infile,"%ld",&Gindex(*c));
+
+	if (fgetstring(infile,"Global index of surfaces") == FUNCTION_FAILED)
+	    return;		/* to make old files still runable */
+	for (s = intfc->surfaces; s && *s; ++s)
+            fscanf(infile,"%ld",&Gindex(*s));
 }	/* end readAfExtraDada */
 
 extern void printHyperSurfQuality(
@@ -900,6 +921,7 @@ static void copyParachuteSet(
 		copy_set->load_node = copy_set->nodes[i];
         	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 		copy_set->load_node->extra = extra;
+		copy_set->load_node->size_of_extra = sizeof(AF_NODE_EXTRA);
 		extra->af_node_type = LOAD_NODE;
 	    }
 	}
@@ -1003,6 +1025,7 @@ extern void InstallNewLoadNode(
         FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
         extra->af_node_type = SEC_LOAD_NODE;
         sec_nload->extra = (POINTER)extra;
+        sec_nload->size_of_extra = sizeof(AF_NODE_EXTRA);
 
 	i = 0;
 	intfc_node_loop(intfc,n)
@@ -1040,6 +1063,7 @@ extern void InstallNewLoadNode(
         FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
         extra->af_node_type = LOAD_NODE;
         nload->extra = (POINTER)extra;
+        nload->size_of_extra = sizeof(AF_NODE_EXTRA);
 
 	string_curves[num_canopy] = make_curve(0,0,sec_nload,nload);
 	hsbdry_type(string_curves[num_canopy]) = STRING_HSBDRY;

@@ -487,6 +487,7 @@ static boolean insert_vertical_gore(
 		FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 		extra->af_node_type = GORE_NODE;
 		start_nodes[i]->extra = (POINTER)extra;
+		start_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
 		str_node_moved = YES;
 	    }
 	    else
@@ -496,6 +497,7 @@ static boolean insert_vertical_gore(
 		FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 		extra->af_node_type = GORE_NODE;
 		start_nodes[i]->extra = (POINTER)extra;
+		start_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
 	    }
 
 	    canopy_bdry = FT_CurveOfPoint(intfc, end_pts[i], &b);
@@ -506,6 +508,7 @@ static boolean insert_vertical_gore(
                 FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
                 extra->af_node_type = GORE_NODE;
                 end_nodes[i]->extra = (POINTER)extra;
+		end_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
                 str_node_moved = YES;
             }
             else
@@ -515,6 +518,7 @@ static boolean insert_vertical_gore(
                 FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
                 extra->af_node_type = GORE_NODE;
                 end_nodes[i]->extra = (POINTER)extra;
+		end_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
             }
 
 
@@ -591,6 +595,7 @@ static boolean install_strings_and_rotate(
 	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	extra->af_node_type = LOAD_NODE;
 	nload->extra = (POINTER)extra;
+	nload->size_of_extra = sizeof(AF_NODE_EXTRA);
 
 	FT_VectorMemoryAlloc((POINTER*)&string_angle,num_strings,
 				sizeof(double));
@@ -656,6 +661,7 @@ static boolean install_strings_and_rotate(
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
+	    	string_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
 		node_moved = YES;
 	    }
 	    else
@@ -665,6 +671,7 @@ static boolean install_strings_and_rotate(
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
+	    	string_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
 	    }
 	}
 	for (i = 0; i < num_strings; ++i)
@@ -800,6 +807,7 @@ static boolean install_strings_and_rotate_w_gores(
 	    FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    extra->af_node_type = GORE_NODE;
 	    ncanopy->extra = (POINTER)extra;
+	    ncanopy->size_of_extra = sizeof(AF_NODE_EXTRA);
 	}
 	FT_FreeThese(1,c);
 
@@ -838,6 +846,7 @@ static boolean install_strings_and_rotate_w_gores(
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
+	    	string_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
 		str_node_moved = YES;
 	    }
 	    else
@@ -847,6 +856,7 @@ static boolean install_strings_and_rotate_w_gores(
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
+	    	string_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
 	    }
 	}
 	if (vent_bdry != NULL)
@@ -862,6 +872,7 @@ static boolean install_strings_and_rotate_w_gores(
 				sizeof(AF_NODE_EXTRA));
 	    	    extra->af_node_type = GORE_NODE;
 	    	    vent_nodes[i]->extra = (POINTER)extra;
+	    	    vent_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
 		    vnt_node_moved = YES;
 	    	}
 	    	else
@@ -872,6 +883,7 @@ static boolean install_strings_and_rotate_w_gores(
 				sizeof(AF_NODE_EXTRA));
 	    	    extra->af_node_type = GORE_NODE;
 	    	    vent_nodes[i]->extra = (POINTER)extra;
+	    	    vent_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
 	    	}
 	    }
 	}
@@ -1064,6 +1076,7 @@ static boolean install_strings(
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
+	    	string_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
 		node_moved = YES;
 		continue;
 	    }
@@ -1072,6 +1085,7 @@ static boolean install_strings(
 	    FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    extra->af_node_type = STRING_NODE;
 	    string_nodes[i]->extra = (POINTER)extra;
+	    string_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
 	}
 	for (i = 0; i < num_strings; ++i)
 	{
@@ -1442,6 +1456,7 @@ static boolean install_strings_and_rotate_w_fixer(
 	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	extra->af_node_type = LOAD_NODE;
 	nload->extra = (POINTER)extra;
+	nload->size_of_extra = sizeof(AF_NODE_EXTRA);
 
 	FT_VectorMemoryAlloc((POINTER*)&string_angle,num_strings,
 				sizeof(double));
@@ -1507,6 +1522,7 @@ static boolean install_strings_and_rotate_w_fixer(
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
+	    	string_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
 		node_moved = YES;
 	    }
 	    else
@@ -1516,6 +1532,7 @@ static boolean install_strings_and_rotate_w_fixer(
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
+	    	string_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
 	    }
 	}
 
@@ -1608,6 +1625,7 @@ static boolean install_strings_and_rotate_w_parallel_gores(
         FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
         extra->af_node_type = LOAD_NODE;
         nload->extra = (POINTER)extra;
+        nload->size_of_extra = sizeof(AF_NODE_EXTRA);
 
         FT_VectorMemoryAlloc((POINTER*)&gore_x, num_gores,
                                 sizeof(double));
@@ -1683,6 +1701,7 @@ static boolean install_strings_and_rotate_w_parallel_gores(
                 FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
                 extra->af_node_type = GORE_NODE;
                 start_nodes[i]->extra = (POINTER)extra;
+        	start_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
                 str_node_moved = YES;
             }
             else
@@ -1692,6 +1711,7 @@ static boolean install_strings_and_rotate_w_parallel_gores(
                 FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
                 extra->af_node_type = GORE_NODE;
                 start_nodes[i]->extra = (POINTER)extra;
+        	start_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
             }
 
             canopy_bdry = FT_CurveOfPoint(intfc, end_pts[i], &b);

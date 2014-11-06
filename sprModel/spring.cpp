@@ -269,7 +269,7 @@ static void initCurvePropagation(
 	char string[200];
 	int i,num_curves = 0;
 	FILE *infile;
-	static AF_NODE_EXTRA node_extra;
+	AF_NODE_EXTRA *node_extra;
 
 	infile = fopen(InName(front),"r");
 	if (!CursorAfterStringOpt(infile,"Enter yes to set curve motion:"))
@@ -289,7 +289,8 @@ static void initCurvePropagation(
 	}
 
 	front->_curve_propagate = spring_curve_propagate;
-	node_extra.af_node_type = PRESET_NODE;
+	FT_ScalarMemoryAlloc((POINTER*)&node_extra,sizeof(AF_NODE_EXTRA));
+	node_extra->af_node_type = PRESET_NODE;
 	intfc_surface_loop(intfc,s)
 	{
 	    if (wave_type(*s) == ELASTIC_BOUNDARY)
@@ -340,8 +341,10 @@ static void initCurvePropagation(
 	    curves[i]->vfunc = node_vel_func;
 	    vparams[i].time = &front->time;
 	    hsbdry_type(curves[i]) = PRESET_CURVE;
-	    curves[i]->start->extra = &node_extra;
-	    curves[i]->end->extra = &node_extra;
+	    curves[i]->start->extra = (POINTER)node_extra;
+	    curves[i]->end->extra = (POINTER)node_extra;
+	    curves[i]->start->size_of_extra = sizeof(AF_NODE_EXTRA);
+	    curves[i]->end->size_of_extra = sizeof(AF_NODE_EXTRA);
 	}
 }	/* end initCurvePropagation */
 
@@ -349,7 +352,7 @@ static void initNodePropagation(
 	Front *front)
 {
 	static NODE_VEL_PARAMS *vparams;
-	static AF_NODE_EXTRA node_extra;
+	AF_NODE_EXTRA *node_extra;
 	NODE **n,*nodes[20];
 	INTERFACE *intfc = front->interf;
 	SURFACE **s,*surf;
@@ -397,7 +400,8 @@ static void initNodePropagation(
 	front->_node_propagate = spring_node_propagate;
 	FT_VectorMemoryAlloc((POINTER*)&vparams,num_nodes,
 			sizeof(NODE_VEL_PARAMS));
-	node_extra.af_node_type = PRESET_NODE;
+	FT_ScalarMemoryAlloc((POINTER*)&node_extra,sizeof(AF_NODE_EXTRA));
+	node_extra->af_node_type = PRESET_NODE;
 	for (i = 0; i < num_nodes; ++i)
 	{
 	    (void) printf("For node at (%f %f %f)\n",Coords(nodes[i]->posn)[0],
@@ -416,6 +420,7 @@ static void initNodePropagation(
 	    nodes[i]->vparams = (POINTER)&vparams[i];
 	    nodes[i]->vfunc = node_vel_func;
 	    nodes[i]->extra = &node_extra;
+	    nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
 	    vparams[i].time = &front->time;
 	}
 }	/* end initNodePropagation */

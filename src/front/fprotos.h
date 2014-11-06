@@ -259,6 +259,11 @@ IMPORT  boolean  fill_comp_from_prev_intfc(INTERFACE *, int *, int *);
 IMPORT  TRI*  Tri_on_side_along_wall(int*,TRI*,int);
 IMPORT	int	idir_of_dir(GRID_DIRECTION);
 
+        /* fglobal.c*/
+IMPORT	void  	set_point_gindex(Front*);
+IMPORT	void  	set_surface_gindex(Front*);
+IMPORT	void  	set_curve_gindex(Front*);
+
         /* fgrid.c*/
 IMPORT	int  	count_grid_intfc_crossings(INTERFACE*);
 IMPORT 	int 	insert_grid_intfc_crossings(INTERFACE*);
