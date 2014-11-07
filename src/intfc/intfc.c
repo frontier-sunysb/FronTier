@@ -2173,6 +2173,7 @@ EXPORT CURVE *i_make_curve(
 	curve->last = curve->first;
 	curve->num_points = 2;
 	set_not_bdry(curve);
+	Gindex(curve) = -1;
 	return curve;
 }		/*end i_make_curve*/
 

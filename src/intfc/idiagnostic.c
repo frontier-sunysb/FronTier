@@ -322,9 +322,20 @@ EXPORT boolean the_side(TRI  *tri)
 	return NO;
 }
 
+EXPORT void print_curve_global_index(CURVE *curve)
+{
+	BOND *b;
+	(void) printf("Curve global index: %d\n",Gindex(curve));
+	curve_bond_loop(curve,b)
+	{
+	    (void) printf("Bond: %ld->%ld\n",Gindex(b->start),Gindex(b->end));
+	}
+	(void) printf("\n");
+}	/* end print_curve_global_index */
+
 EXPORT void print_tri_global_index(TRI* tri)
 {
-	printf("Global indices of tri vertices: %ld %ld %ld\n",
+	(void) printf("Global indices of tri vertices: %ld %ld %ld\n",
 			Gindex(Point_of_tri(tri)[0]),
 			Gindex(Point_of_tri(tri)[1]),
 			Gindex(Point_of_tri(tri)[2]));
@@ -371,6 +382,38 @@ EXPORT void print_bond_coords(BOND* bond)
 	    printf("end  : %f %f %f\n",Coords(p)[0],Coords(p)[1],Coords(p)[2]);
 	}
 }	/* end print_bond_coords */
+
+EXPORT  void print_curve_point_coords(
+	INTERFACE *intfc,
+	long point_gindex)
+{
+	CURVE **c;
+	BOND *b;
+	POINT *p;
+	boolean point_found = NO;
+	intfc_curve_loop(intfc,c)
+	{
+	    p = (*c)->first->start;
+	    if (Gindex(p) == point_gindex)
+	    {
+		(void) printf("Point found: %f %f %f\n",Coords(p)[0],
+				Coords(p)[1],Coords(p)[2]);
+		point_found = YES;
+	    }
+	    curve_bond_loop(*c,b)
+	    {
+		p = b->end;
+	    	if (Gindex(p) == point_gindex)
+	    	{
+		    (void) printf("Point found: %f %f %f\n",Coords(p)[0],
+				Coords(p)[1],Coords(p)[2]);
+		    point_found = YES;
+	    	}
+	    }
+	}
+	if (!point_found)
+	    (void) printf("Point not found!\n");
+}	/* print_curve_point_coords */
 
 EXPORT	boolean check_tri_and_neighbor(TRI *tri)
 {

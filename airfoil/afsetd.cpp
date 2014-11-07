@@ -1252,9 +1252,9 @@ extern void assembleParachuteSet(
 	INTERFACE *intfc,
 	ELASTIC_SET *geom_set)
 {
-	SURFACE **s;
-	CURVE **c;
-	NODE **n;
+	SURFACE **s = NULL;
+	CURVE **c = NULL;
+	NODE **n = NULL;
 	int i,l,ns,nc,nn;
 	SURFACE **surfs = geom_set->surfs;
 	CURVE **curves = geom_set->curves;
@@ -1290,6 +1290,22 @@ extern void assembleParachuteSet(
 		    	nodes[nn++] = (*c)->end;
 	    	}
 	    }
+	}
+	if (ns == 0)
+	{
+	    intfc_curve_loop(intfc,c)
+	    {
+		if (hsbdry_type(*c) == STRING_HSBDRY ||
+		    hsbdry_type(*c) == MONO_COMP_HSBDRY ||
+		    hsbdry_type(*c) == GORE_HSBDRY)
+		{
+		    curves[nc++] = *c;
+		    if (!pointer_in_list((*c)->start,nn,(POINTER*)nodes))
+                    	nodes[nn++] = (*c)->start;
+                    if (!pointer_in_list((*c)->end,nn,(POINTER*)nodes))
+                    	nodes[nn++] = (*c)->end;
+		}
+	    }	
 	}
 
 	/* Assemble curves and nodes */

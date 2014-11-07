@@ -474,6 +474,8 @@ IMPORT  boolean 	search_the_tri_in_surf(SURFACE*);
 IMPORT	void	print_tri_coords(TRI*);
 IMPORT	void	print_bond_coords(BOND*);
 IMPORT	void	print_tri_global_index(TRI*);
+IMPORT	void	print_curve_global_index(CURVE*);
+IMPORT	void	print_curve_point_coords(INTERFACE*,long);
 IMPORT  void 	find_blk_tri(BLK_TRI *);
 IMPORT	boolean point_on_curve(POINT*,BOND**,CURVE*);
 IMPORT	void closest_point_on_curve(POINT**,BOND**,double*,CURVE*);
