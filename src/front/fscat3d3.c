@@ -108,19 +108,6 @@ EXPORT	boolean f_intfc_communication3d3(
 
 	DEBUG_ENTER(f_intfc_communication3d3)
 
-	static int count = 0;
-	count++;
-	if (count == 2)
-	{
-	    CURVE **c;
-    	    printf("Entering f_intfc_communication3d3()\n");
-	    printf("num_curves = %d\n",I_NumOfIntfcCurves(intfc));
-	    intfc_curve_loop(intfc,c)
-	    {
-		if (Gindex(*c) == 0)
-		    print_curve_global_index(*c);
-	    }
-	}
 	set_floating_point_tolerance3(fr->rect_grid->h);
 	sav_copy = copy_intfc_states();
 	sav_intfc = current_interface();

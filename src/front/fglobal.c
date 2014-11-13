@@ -406,15 +406,7 @@ LOCAL void exchange_surf_gindex(
 	    num_out_tris[num_surfs] = 0;
 	    surf_tri_loop(*s,t)
 	    {
-		for (i = 0; i < 3; ++i)
-		{
-		    p = Point_of_tri(t)[i];
-		    if (point_out_domain(p,intfc,L,U))
-		    {
-			num_out_tris[num_surfs]++;
-			break;
-		    }
-		}
+		num_out_tris[num_surfs]++;
 	    }
 	    num_surfs++;
 	}
@@ -429,19 +421,10 @@ LOCAL void exchange_surf_gindex(
 	    i = 0;
 	    surf_tri_loop(*s,t)
 	    {
-		for (j = 0; j < 3; j++)
-		{
-		    p = Point_of_tri(t)[j];
-		    if (point_out_domain(p,intfc,L,U))
-			break;
-		}
-		if (j < 3)
-		{
-		    gtris[num_surfs][i].gtri[0] = Gindex(Point_of_tri(t)[0]);
-		    gtris[num_surfs][i].gtri[1] = Gindex(Point_of_tri(t)[1]);
-		    gtris[num_surfs][i].gtri[2] = Gindex(Point_of_tri(t)[2]);
-		    i++;
-		}
+		gtris[num_surfs][i].gtri[0] = Gindex(Point_of_tri(t)[0]);
+		gtris[num_surfs][i].gtri[1] = Gindex(Point_of_tri(t)[1]);
+		gtris[num_surfs][i].gtri[2] = Gindex(Point_of_tri(t)[2]);
+		i++;
 	    }
 	    num_out_tris[num_surfs] = i;
 	    num_surfs++;
@@ -614,11 +597,7 @@ LOCAL void exchange_curve_gindex(
 	    num_out_bonds[num_curves] = 0;
 	    curve_bond_loop(*c,b)
 	    {
-		if (point_out_domain(b->start,intfc,L,U) ||
-		    point_out_domain(b->end,intfc,L,U))
-		{
-		    num_out_bonds[num_curves]++;
-		}
+		num_out_bonds[num_curves]++;
 	    }
 	    num_curves++;
 	}
@@ -635,14 +614,10 @@ LOCAL void exchange_curve_gindex(
 	    i = 0;
 	    curve_bond_loop(*c,b)
 	    {
-		if (point_out_domain(b->start,intfc,L,U) ||
-		    point_out_domain(b->end,intfc,L,U))
-		{
-		    num_out_bonds[num_curves]++;
-		    gbonds[num_curves][i].gbond[0] = Gindex(b->start);
-		    gbonds[num_curves][i].gbond[1] = Gindex(b->end);
-		    i++;
-		}
+		num_out_bonds[num_curves]++;
+		gbonds[num_curves][i].gbond[0] = Gindex(b->start);
+		gbonds[num_curves][i].gbond[1] = Gindex(b->end);
+		i++;
 	    }
 	    num_out_bonds[num_curves] = i;
 	    num_curves++;
@@ -711,6 +686,8 @@ LOCAL void exchange_curve_gindex(
 	intfc->max_curve_gindex = 0;
 	intfc_curve_loop(intfc,c)
 	{
+	    if (dim == 3 && hsbdry_type(*c) == SUBDOMAIN_HSBDRY)
+		continue;
 	    if (intfc->max_curve_gindex < Gindex(*c))
 		intfc->max_curve_gindex = Gindex(*c);
 	}
@@ -759,6 +736,8 @@ LOCAL void exchange_curve_gindex(
 	}
 	intfc_curve_loop(intfc,c)
 	{
+	    if (dim == 3 && hsbdry_type(*c) == SUBDOMAIN_HSBDRY)
+		continue;
 	    for (i = 0; i <= intfc->max_curve_gindex; ++i)
 		if (Gindex(*c) == g_list[i])
 		    Gindex(*c) = i;
