@@ -296,6 +296,7 @@ LIB_LOCAL COMPONENT component3d(
 	{
             int icrds[3];
 
+	    printf("Test position 1\n");
 	    nearest_on_front_grid_block(icoords,icrds,intfc);
 	    comp = component_wrt_icoords3d(coords,icrds,intfc);
 	}
@@ -406,6 +407,7 @@ LOCAL COMPONENT component_wrt_icoords3d(
 	{
 	    int icrds[3];
 	    /* Find nearest ONFRONT grid block */
+	    printf("Test position 2\n");
 	    nearest_on_front_grid_block(icoords,icrds,intfc);
 	    return component_wrt_icoords3d(coords,icrds,intfc);
 	}
@@ -481,8 +483,7 @@ LOCAL	void	nearest_on_front_grid_block(
 	if ((ix_closest < 0) || (iy_closest < 0) || (iz_closest < 0))
 	{
 	    screen("ERROR in nearest_on_front_grid_block(), "
-	           "no front block near icoords (%d, %d, %d) ",ix,iy,iz);
-	    (void) printf("not found\n");
+	           "no front block near icoords (%d, %d, %d)\n",ix,iy,iz);
 	    clean_up(ERROR);
 	}
 	icrds[0] = ix_closest;

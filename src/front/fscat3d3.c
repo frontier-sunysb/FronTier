@@ -291,6 +291,11 @@ LOCAL 	int append_adj_intfc_to_buffer3(
 	reset_hash_table(p_table,p_size);
 	
 	/* Begin patching adj_intfc to current interface */
+
+	/* append curves not on surfaces */
+	append_other_curves3(intfc,adj_intfc,p_table,p_size);
+
+	/* append surfaces and attached curves */
 	for (as = adj_intfc->surfaces; as && *as; ++as)
 	{
 	    corr_surf_found = NO;
@@ -323,8 +328,6 @@ LOCAL 	int append_adj_intfc_to_buffer3(
 		Hyper_surf_index(surf) = Hyper_surf_index((*as));
 	    }
 	}
-	/* append curves not on surfaces */
-	append_other_curves3(intfc,adj_intfc,p_table,p_size);
 	for (ac = adj_intfc->curves; ac && *ac; ++ac)
 	{
 	    matching_curve(*ac,p_table,p_size); 
@@ -1339,7 +1342,7 @@ LOCAL boolean append_other_curves3(
 	    	continue;
 	    if (num_c >= MAX_NUM_OTHER_CURVES)
 	    {
-		printf("In append_other_curves1(): num_c = %d\n",num_c);
+		printf("In append_other_curves3(): num_c = %d\n",num_c);
 		printf("MAX_NUM_OTHER_CURVES too small!\n");
 		clean_up(ERROR);
 	    }
@@ -1351,7 +1354,7 @@ LOCAL boolean append_other_curves3(
 	    	continue;
 	    if (num_ac >= MAX_NUM_OTHER_CURVES)
 	    {
-		printf("In append_other_curves1(): num_ac = %d\n",num_ac);
+		printf("In append_other_curves3(): num_ac = %d\n",num_ac);
 		printf("MAX_NUM_OTHER_CURVES too small!\n");
 		clean_up(ERROR);
 	    }
@@ -1376,23 +1379,27 @@ LOCAL boolean append_other_curves3(
 			    p = (POINT*)find_from_hash_table((POINTER)ba->start,
                                                 p_table,p_size);
 			    if (p == NULL)
+			    {
 				(void) add_to_hash_table((POINTER)ba->start,
 						(POINTER)b->start,
                                                 p_table,p_size);
+			    }
 			    else if (p != b->start)
 			    {
-				printf("Bond start not from hashing table!\n");
+				screen("Bond start not from hashing table!\n");
 				clean_up(ERROR);
 			    }
 			    p = (POINT*)find_from_hash_table((POINTER)ba->end,
                                                 p_table,p_size);
 			    if (p == NULL)
+			    {
 				(void) add_to_hash_table((POINTER)ba->end,
 						(POINTER)b->end,
                                                 p_table,p_size);
+			    }
 			    else if (p != b->end)
 			    {
-				printf("Bond end not from hashing table!\n");
+				screen("Bond end not from hashing table!\n");
 				clean_up(ERROR);
 			    }
 		    	}

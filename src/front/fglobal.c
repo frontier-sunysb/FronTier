@@ -379,8 +379,7 @@ LOCAL void exchange_surf_gindex(
 {
 	INTERFACE *intfc = front->interf;
 	RECT_GRID *gr = front->rect_grid;
-	double *L = gr->L;
-	double *U = gr->U;
+	double L[MAXD],U[MAXD];
 	SURFACE **s;
 	TRI *t;
 	POINT *p;
@@ -400,6 +399,11 @@ LOCAL void exchange_surf_gindex(
 	FT_VectorMemoryAlloc((POINTER*)&surf_gindex,num_surfs,sizeof(long));
 	FT_VectorMemoryAlloc((POINTER*)&gtris,num_surfs,sizeof(GTRI*));
 
+	for (i = 0; i < dim; i++)
+	{
+	    L[i] = gr->L[i]+(gr->lbuf[i]*gr->h[i]);
+	    U[i] = gr->U[i]-(gr->ubuf[i]*gr->h[i]);
+	}
 	num_surfs = 0;
 	intfc_surface_loop(intfc,s)
 	{
@@ -568,8 +572,7 @@ LOCAL void exchange_curve_gindex(
 {
 	INTERFACE *intfc = front->interf;
 	RECT_GRID *gr = front->rect_grid;
-	double *L = gr->L;
-	double *U = gr->U;
+	double L[MAXD],U[MAXD];
 	CURVE **c;
 	BOND *b;
 	POINT *p;
@@ -589,6 +592,11 @@ LOCAL void exchange_curve_gindex(
 	FT_VectorMemoryAlloc((POINTER*)&curve_gindex,num_curves,sizeof(long));
 	FT_VectorMemoryAlloc((POINTER*)&gbonds,num_curves,sizeof(GBOND*));
 
+	for (i = 0; i < dim; i++)
+	{
+	    L[i] = gr->L[i]+(gr->lbuf[i]*gr->h[i]);
+	    U[i] = gr->U[i]-(gr->ubuf[i]*gr->h[i]);
+	}
 	num_curves = 0;
 	intfc_curve_loop(intfc,c)
 	{
@@ -597,7 +605,11 @@ LOCAL void exchange_curve_gindex(
 	    num_out_bonds[num_curves] = 0;
 	    curve_bond_loop(*c,b)
 	    {
-		num_out_bonds[num_curves]++;
+		if (point_out_domain(b->start,intfc,L,U) ||
+                    point_out_domain(b->end,intfc,L,U))
+                {
+                    num_out_bonds[num_curves]++;
+                }
 	    }
 	    num_curves++;
 	}
@@ -614,10 +626,14 @@ LOCAL void exchange_curve_gindex(
 	    i = 0;
 	    curve_bond_loop(*c,b)
 	    {
-		num_out_bonds[num_curves]++;
-		gbonds[num_curves][i].gbond[0] = Gindex(b->start);
-		gbonds[num_curves][i].gbond[1] = Gindex(b->end);
-		i++;
+		if (point_out_domain(b->start,intfc,L,U) ||
+                    point_out_domain(b->end,intfc,L,U))
+                {
+                    num_out_bonds[num_curves]++;
+		    gbonds[num_curves][i].gbond[0] = Gindex(b->start);
+		    gbonds[num_curves][i].gbond[1] = Gindex(b->end);
+		    i++;
+                }
 	    }
 	    num_out_bonds[num_curves] = i;
 	    num_curves++;
