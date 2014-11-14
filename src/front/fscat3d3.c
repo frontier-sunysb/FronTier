@@ -1415,13 +1415,8 @@ LOCAL	boolean bond_match3(
 	BOND *ba)
 {
 	int i;
-	for (i = 0; i < 3; ++i)
-	{
-	    if (fabs(Coords(b->start)[i] - Coords(ba->start)[i]) > tol1[i])
-		return NO;
-	    if (fabs(Coords(b->end)[i] - Coords(ba->end)[i]) > tol1[i])
-		return NO;
-	}
+	if (Gindex(b->start) != Gindex(ba->start)) return NO;
+	if (Gindex(b->end) != Gindex(ba->end)) return NO;
 	return YES;
 }	/* end bond_match3 */
 
