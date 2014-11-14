@@ -126,8 +126,6 @@ EXPORT	boolean f_intfc_communication3d3(
 	    print_interface(intfc);
 	}
 
-	if(fr->step == -1)
-	    add_to_debug("out_surf");
 	/* Extend interface in three directions */
 
         construct_reflect_bdry(fr);
@@ -176,7 +174,9 @@ EXPORT	boolean f_intfc_communication3d3(
 		    him[i] = (me[i] - 2*j + 1 + G[i])%G[i];
 		    dst_id = domain_id(him,G,dim);
 		    if (dst_id != myid)
+		    {
 			adj_intfc[(j+1)%2] = receive_interface(dst_id);
+		    }
 		}
 
 	    }
@@ -390,21 +390,6 @@ LOCAL int append_buffer_surface3(
 	    print_surface(adj_surf);
 	}
 	
-	if(debugging("out_surf"))
-	{
-	    char   s[40];
-	    
-	    printf("#check curve_surf\n");
-	    check_surface_curve(surf);
-	    printf("#check_curve adj_surf\n");
-	    check_surface_curve(adj_surf);
-
-	    sprintf(s, "surf_%d", pp_mynode());
-	    tecplot_surface(s, NULL, surf);
-	    sprintf(s, "adj_surf_%d", pp_mynode());
-	    tecplot_surface(s, NULL, adj_surf);
-	}
-
 	if (len_tris_s < surf->num_tri)
 	{
 	    len_tris_s = surf->num_tri;

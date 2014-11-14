@@ -296,7 +296,6 @@ LIB_LOCAL COMPONENT component3d(
 	{
             int icrds[3];
 
-	    printf("Test position 1\n");
 	    nearest_on_front_grid_block(icoords,icrds,intfc);
 	    comp = component_wrt_icoords3d(coords,icrds,intfc);
 	}
@@ -407,7 +406,6 @@ LOCAL COMPONENT component_wrt_icoords3d(
 	{
 	    int icrds[3];
 	    /* Find nearest ONFRONT grid block */
-	    printf("Test position 2\n");
 	    nearest_on_front_grid_block(icoords,icrds,intfc);
 	    return component_wrt_icoords3d(coords,icrds,intfc);
 	}
@@ -2522,35 +2520,18 @@ LIB_LOCAL boolean make_tri_lists(
 
 	    total_num_of_tri_blocks = 0;
 	    
-	    if (interface_reconstructed(intfc) == YES)
-            {
-                for (s = intfc->surfaces; s && *s; ++s)
-                    for (t = first_tri(*s); !at_end_of_tri_list(t,*s); 
-				t = t->next)
-		    {
-			/* This has problem, does not seem worthy debugging
-                        blocks_on_grid_based_tri(t,T->num_of_tris,
-				T->compon3d,top_grid,intfc);
-			*/
-	                blocks_on_tri(t,T->num_of_tris,T->compon3d,
-				top_grid,intfc);
-		    }
-            }
-            else
+	    for (s = intfc->surfaces; s && *s; ++s)
 	    {
-	        for (s = intfc->surfaces; s && *s; ++s)
-	        {
-	    	    for (t = first_tri(*s); !at_end_of_tri_list(t,*s); 
+	    	for (t = first_tri(*s); !at_end_of_tri_list(t,*s); 
 				t = t->next)
-		    {
-	                blocks_on_tri(t,T->num_of_tris,T->compon3d,
-				top_grid,intfc);
-		    }
-	        }
+		{
+	            blocks_on_tri(t,T->num_of_tris,T->compon3d,top_grid,intfc);
+		}
 	    }
 	
 	    /* Assign tris[][][] and surfaces[][][]: */
-	    if ((status = set_tri_and_surface_list_pointers(T,xmax,ymax,zmax)))
+	    if (total_num_of_tri_blocks > 0 &&
+		(status = set_tri_and_surface_list_pointers(T,xmax,ymax,zmax)))
 	    {
 
 	    	/* Copy in the grid blocks from Tri_blocks: */
@@ -2565,7 +2546,8 @@ LIB_LOCAL boolean make_tri_lists(
 	    }
 	    free(Tri_blocks);
 	}
-	else
+
+	if (max_size == out_cnt || total_num_of_tri_blocks == 0)
 	{
 	    for (iz = 0; iz < zmax; ++iz)
 	    {
@@ -3269,10 +3251,11 @@ LOCAL void set_off_front_comp3d(
 	ixmax = xmax-1;		iymax = ymax-1;		izmax = zmax-1;
 
 	/* deal with bdry types which do not have surfaces. */
-	for(i=0; i<3; i++)
-	    for(j=0; j<2; j++)
-	        bdry_flag[i][j] = buffered_boundary_type(rect_boundary_type(intfc,i,j)) || 
-		             rect_boundary_type(intfc,i,j) == UNKNOWN_BOUNDARY_TYPE;
+	for (i=0; i<3; i++)
+	for (j=0; j<2; j++)
+	    bdry_flag[i][j] = buffered_boundary_type(
+			rect_boundary_type(intfc,i,j)) || 
+		        rect_boundary_type(intfc,i,j) == UNKNOWN_BOUNDARY_TYPE;
 
 	if (bdry_flag[0][0])
 	    ++ixmin;
