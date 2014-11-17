@@ -71,7 +71,6 @@ LOCAL   boolean  seal_closed_curve(CURVE*, int);
 LOCAL   void  set_btri_on_bond(BOND*,CURVE*);
 LOCAL   void  check_bond_comp(const char*, BOND*, BOND*);
 LOCAL   void  merge_overlap_curves(INTERFACE*,INTERFACE*);
-LOCAL  	void  merge_overlap_nodes(INTERFACE*);
 LOCAL	boolean is_buffer_curve(CURVE*,INTERFACE*);
 
 LOCAL	double	ltol[3];/*LINE TOLERANCE*/
@@ -633,7 +632,7 @@ merge_over_curve:
 
 #define		MAX_CURVE_LIST		500
 
-LOCAL  void  merge_overlap_nodes(	
+EXPORT  void  merge_overlap_nodes(	
 	INTERFACE *intfc)
 {
 	int i,j,num_nodes = I_NumOfIntfcNodes(intfc);
@@ -683,7 +682,8 @@ LOCAL  void  merge_overlap_nodes(
 
 EXPORT   void  merge_curves(
 	INTERFACE *intfc,
-	INTERFACE *adj_intfc)
+	INTERFACE *adj_intfc,
+	boolean use_gindex)
 {
 	CURVE     **c,**curve;
 	SURFACE	  *surf;
@@ -706,6 +706,8 @@ merge_curve:
 	    {
 		if (is_closed_curve(*curve) || *curve == *c)
 		    continue;
+		if (use_gindex && Gindex(*curve) != Gindex(*c))
+		    continue;
        
 		/* find merged curve in the head of the curve */
 		first_match = last_match = NO;
@@ -721,6 +723,8 @@ merge_curve:
 		    b2 = find_match_bond(be,*c);
 		    if (b1 && b2)
 		    {
+			merge_btris(bs,b1,*c,POSITIVE_ORIENTATION,intfc);
+                        merge_btris(be,b2,*c,POSITIVE_ORIENTATION,intfc);
 		    	delete_curve(*curve);
 		    	goto  merge_curve;
 		    }
@@ -1059,7 +1063,7 @@ LOCAL 	boolean append_adj_intfc_to_buffer2(
 	
 	free(p_table);
 	
-	merge_curves(intfc,adj_intfc);
+	merge_curves(intfc,adj_intfc,NO);
 	
 	set_current_interface(cur_intfc);
 	

@@ -2121,7 +2121,7 @@ LOCAL 	int append_adj_intfc_to_buffer1(
 	    merge_gindex_of_curve(*ac,grid,dir,nb,p_table,p_size);
 	}
 	
-	merge_curves(intfc,adj_intfc);
+	merge_curves(intfc,adj_intfc,NO);
 	
 	set_current_interface(cur_intfc);
 	
@@ -3080,7 +3080,7 @@ start_open_bonds:
 			c[0]->last->next = NULL;
 		    	node = make_node(b->start);
 		    	change_node_of_curve(c[0],NEGATIVE_ORIENTATION,node);
-		    	curves[i]->num_points--;
+		    	c[0]->num_points--;
 			
 		    }
 		    else if (b == c[1]->first)
@@ -3089,7 +3089,7 @@ start_open_bonds:
 			c[1]->first->prev = NULL;
 		    	node = make_node(b->end);
 		    	change_node_of_curve(c[1],POSITIVE_ORIENTATION,node);
-		    	curves[i]->num_points--;
+		    	c[1]->num_points--;
 		    }
 		    goto start_open_bonds;
 		}

@@ -167,11 +167,11 @@ extern void printAfExtraDada(
 
 	fprintf(outfile,"\nGlobal index of curves\n");
 	for (c = intfc->curves; c && *c; ++c)
-	    fprintf(outfile,"%ld\n",Gindex(*c));
+	    fprintf(outfile,"%d\n",Gindex(*c));
 
 	fprintf(outfile,"\nGlobal index of surfaces\n");
 	for (s = intfc->surfaces; s && *s; ++s)
-	    fprintf(outfile,"%ld\n",Gindex(*s));
+	    fprintf(outfile,"%d\n",Gindex(*s));
 	fclose(outfile);
 }	/* end printAfExtraDada */
 
@@ -327,12 +327,12 @@ extern void readAfExtraDada(
 	if (fgetstring(infile,"Global index of curves") == FUNCTION_FAILED)
 	    return;		/* to make old files still runable */
 	for (c = intfc->curves; c && *c; ++c)
-            fscanf(infile,"%ld",&Gindex(*c));
+            fscanf(infile,"%d",&Gindex(*c));
 
 	if (fgetstring(infile,"Global index of surfaces") == FUNCTION_FAILED)
 	    return;		/* to make old files still runable */
 	for (s = intfc->surfaces; s && *s; ++s)
-            fscanf(infile,"%ld",&Gindex(*s));
+            fscanf(infile,"%d",&Gindex(*s));
 }	/* end readAfExtraDada */
 
 extern void printHyperSurfQuality(

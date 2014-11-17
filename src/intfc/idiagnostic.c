@@ -251,7 +251,7 @@ EXPORT boolean the_tri_rot(TRI *tri)
 
 EXPORT boolean the_tri_with_gindex(TRI *tri)
 {
-	long gindex[3] = {2614, 13, 11546};
+	long gindex[3] = {18214, 10267, 18184};
 	int i,j;
 	for (i = 0; i < 3; ++i)
 	{
@@ -321,6 +321,16 @@ EXPORT boolean the_side(TRI  *tri)
 	}
 	return NO;
 }
+
+EXPORT boolean the_bond_with_gindex(BOND *bond)
+{
+	long gindex[2] = {12976, 12977};
+	if (Gindex(bond->start) == gindex[0] &&
+	    Gindex(bond->end) == gindex[1])
+	    return YES;
+	else
+	    return NO;
+}	/* end the_bond_with_gindex */
 
 EXPORT void print_curve_global_index(CURVE *curve)
 {

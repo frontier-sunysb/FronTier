@@ -465,7 +465,8 @@ IMPORT  void 	points_of_interface(INTERFACE*);
 IMPORT	boolean	the_tri(TRI*);
 IMPORT	boolean	the_tri_with_gindex(TRI*);
 IMPORT	boolean	the_side(TRI*);
-IMPORT	boolean	the_BOND(BOND*);
+IMPORT	boolean	the_bond(BOND*);
+IMPORT	boolean	the_bond_with_gindex(BOND*);
 IMPORT	boolean	the_point(POINT*);
 IMPORT	boolean	the_pt(double *);
 IMPORT 	boolean	check_tri_and_neighbor(TRI*);
@@ -597,6 +598,7 @@ IMPORT	void	planar_surface_triangulation(SURFACE*,RECT_GRID*,const boolean);
 
 /*	icheck3d.c*/
 IMPORT	void	null_sides_are_consistent(void);
+IMPORT	void	set_null_sides_consistent(boolean);
 IMPORT	boolean	i_consistent_interface(INTERFACE*);
 IMPORT  boolean check_consistency_of_tris_on_surface(SURFACE*);
 IMPORT  boolean check_tri(TRI*,INTERFACE*);

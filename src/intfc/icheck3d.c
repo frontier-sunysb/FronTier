@@ -46,6 +46,11 @@ EXPORT	void	null_sides_are_consistent(void)
 	allow_null_sides = YES;
 }		/*end null_sides_are_consistent*/
 
+EXPORT  void    set_null_sides_consistent(boolean yes_no)
+{
+	allow_null_sides = yes_no;
+}	/* end set_null_sides_consistent */
+
 EXPORT	boolean i_consistent_interface(
 	INTERFACE	*intfc)
 {
@@ -706,7 +711,7 @@ LOCAL	boolean	check_curve3d(
 		    !(((*bts)->surface == bts0[i]->surface) &&
 		          ((*bts)->orient == bts0[i]->orient)))
 		{
-	            (void) printf("%s inconsistent surface numbers on "
+	            (void) printf("%s surface numbers on "
 				  "bond tri\n",warn);
 		    (void) printf("surface = %llu surface[%d] = %llu\n",
 				  (long long unsigned int)
@@ -722,9 +727,13 @@ LOCAL	boolean	check_curve3d(
 	    }
 	    if (i != nbts)
 	    {
-	        (void) printf("%s inconsistent %d != %d number of bond tris "
+	        (void) printf("%s: %d != %d number of bond tris "
 			      "on bond\n",warn,i,nbts);
+		(void) printf("Bond gindex: %ld %ld\n",Gindex(b->start),
+				Gindex(b->end));
 		print_bond(b);
+		print_curve(c);
+		clean_up(ERROR);
 	        status = NO;
 	    }
 	    for (bts = Btris(b); bts && *bts; ++bts)
@@ -1116,6 +1125,7 @@ LOCAL	boolean tri_side_consistent(
 	            (void) printf("WARNING in tri_side_consistent(), "
 	                          "neighbor->tri == NULL\n");
 	            (void) printf("tri - \n");
+		    print_tri_global_index(tri);
 	            print_tri(tri,intfc);
 		}
 	    }

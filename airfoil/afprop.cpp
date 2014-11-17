@@ -541,8 +541,8 @@ static void mono_curve_propagation(
 
 	oldb = oldc->first;
 	newb = newc->first;
-	oldp = oldb->end;
-	newp = newb->end;
+	oldp = oldb->start;
+	newp = newb->start;
 	for (btris = Btris(oldb); btris && *btris; ++btris)
 	{
 	    oldp->hse = oldhse = Hyper_surf_element((*btris)->tri);

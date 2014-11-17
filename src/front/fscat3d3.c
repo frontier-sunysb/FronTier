@@ -61,7 +61,7 @@ LOCAL	int	append_adj_intfc_to_buffer3(INTERFACE*,INTERFACE*,
 					   RECT_GRID*,int,int);
 LOCAL	int	append_buffer_surface3(SURFACE*,SURFACE*,RECT_GRID*,int,int,
 				      P_LINK*,int);
-LOCAL	void	clip_intfc_at_grid_bdry1(INTERFACE*);
+LOCAL	void	clip_intfc_at_grid_bdry3(INTERFACE*);
 LOCAL	boolean	tri_bond_cross_line(TRI*,double,int);
 LOCAL	boolean	tri_bond_cross_test(TRI*,double,int);
 LOCAL	void	synchronize_tris_at_subdomain_bdry(TRI**,TRI**,int,P_LINK*,int);
@@ -69,7 +69,6 @@ LOCAL 	INTERFACE *cut_intfc_to_wave_type(INTERFACE*,int);
 LOCAL 	void 	delete_surface_set(SURFACE*);
 LOCAL   boolean append_other_curves3(INTERFACE*,INTERFACE*,P_LINK*,int);
 LOCAL   boolean bond_match3(BOND*,BOND*);
-LOCAL   void merge_overlap_nodes(INTERFACE*);
 LOCAL	void print_unmatched_tris(TRI**,TRI**,int,int);
 LOCAL 	void exchange_intfc_extra(INTERFACE*);
 
@@ -129,7 +128,7 @@ EXPORT	boolean f_intfc_communication3d3(
 	/* Extend interface in three directions */
 
         construct_reflect_bdry(fr);
-	clip_intfc_at_grid_bdry1(intfc);
+	clip_intfc_at_grid_bdry3(intfc);
 
 	for (i = 0; i < dim; ++i)
 	{
@@ -332,7 +331,7 @@ LOCAL 	int append_adj_intfc_to_buffer3(
 	{
 	    matching_curve(*ac,p_table,p_size); 
 	}
-	merge_curves(intfc,adj_intfc);
+	merge_curves(intfc,adj_intfc,YES);
 	reset_intfc_num_points(intfc);
 	
 	set_current_interface(cur_intfc);
@@ -994,7 +993,7 @@ LOCAL	POINT_LIST	*set_point_list(
 	return Plist.next;
 }		/*end set_point_list*/
 
-LOCAL void clip_intfc_at_grid_bdry1(
+LOCAL void clip_intfc_at_grid_bdry3(
 	INTERFACE	*intfc)
 {
 	INTERFACE	*cur_intfc = current_interface();
@@ -1003,7 +1002,7 @@ LOCAL void clip_intfc_at_grid_bdry1(
 	int		dir, nb;
 	double		L[MAXD],U[MAXD];
 
-	DEBUG_ENTER(clip_intfc_at_grid_bdry1)
+	DEBUG_ENTER(clip_intfc_at_grid_bdry3)
 	strip_subdomain_bdry_curves(intfc);
 	set_current_interface(intfc);
 	for (dir = 0; dir < dim; ++dir)
@@ -1036,8 +1035,8 @@ LOCAL void clip_intfc_at_grid_bdry1(
 	
 	reset_intfc_num_points(intfc);
 	set_current_interface(cur_intfc);
-	DEBUG_LEAVE(clip_intfc_at_grid_bdry1)
-}		/*end clip_intfc_at_grid_bdry1*/
+	DEBUG_LEAVE(clip_intfc_at_grid_bdry3)
+}		/*end clip_intfc_at_grid_bdry3*/
 
 EXPORT INTERFACE *collect_hyper_surface(
 	Front *fr,
@@ -1404,56 +1403,6 @@ LOCAL	boolean bond_match3(
 	if (Gindex(b->end) != Gindex(ba->end)) return NO;
 	return YES;
 }	/* end bond_match3 */
-
-LOCAL  void  merge_overlap_nodes(	
-	INTERFACE *intfc)
-{
-	int i,j,num_nodes = I_NumOfIntfcNodes(intfc);
-	boolean *node_merged;
-	NODE **n,**node_list,*n1,*n2;
-	CURVE **c;
-
-	uni_array(&node_merged,num_nodes,sizeof(boolean));
-	uni_array(&node_list,num_nodes,sizeof(NODE*));
-	for (i = 0; i < num_nodes; ++i)
-	    node_merged[i] = NO;
-	i = 0;
-	intfc_node_loop(intfc,n)
-	{
-	    node_list[i++] = *n;
-	}
-	for (i = 0; i < num_nodes-1; ++i)
-	{
-	    if (node_merged[i]) continue;
-	    n1 = node_list[i];
-	    node_merged[i] = YES;
-	    for (j = i+1; j < num_nodes; ++j)
-	    {
-	    	n2 = node_list[j];
-		if (n1->posn != n2->posn) continue;
-	    	if (node_merged[j]) continue;
-		/*
-		printf("merging i = %d  j = %d\n",i,j);
-		printf("p1 = %d  p2 = %d\n",n1->posn,n2->posn);
-		printf("p1 = %f %f %f\n",Coords(n1->posn)[0],
-				Coords(n1->posn)[1],Coords(n1->posn)[2]);
-		printf("Node n1:\n");
-		print_node(n1);
-		printf("Node n2:\n");
-		print_node(n2);
-		*/
-	    	node_merged[j] = YES;
-		node_in_curve_loop(n2,c)
-		{
-		    change_node_of_curve(*c,NEGATIVE_ORIENTATION,n1);
-		}
-		node_out_curve_loop(n2,c)
-		{
-		    change_node_of_curve(*c,POSITIVE_ORIENTATION,n1);
-		}
-	    }
-	}
-}	/* end merge_overlap_nodes */
 
 LOCAL	void print_unmatched_tris(
 	TRI **tris_s,

@@ -728,7 +728,8 @@ IMPORT  INTERFACE *cut_buf_interface1(INTERFACE*,int,int,int*,int*);
 IMPORT	boolean	f_intfc_communication3d2(Front*);
 IMPORT  void    clip_front_for_output(Front*,RECT_GRID*);
 IMPORT	double	line_cross_tolerance(RECT_GRID*);
-IMPORT  void    merge_curves(INTERFACE*,INTERFACE*);
+IMPORT  void    merge_curves(INTERFACE*,INTERFACE*,boolean);
+IMPORT  void 	merge_overlap_nodes(INTERFACE*);
 IMPORT  void    merge_btris(BOND*,BOND*,CURVE*,ORIENTATION,INTERFACE*);
 IMPORT  void    average_btris(TRI*,SURFACE*,TRI*,SURFACE*);
 	

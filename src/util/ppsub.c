@@ -1194,12 +1194,9 @@ EXPORT	boolean	pp_global_status(
 	    if (allstats == NULL)
 	    	uni_array(&allstats,n,sizeof(boolean));
 
-	    start_clock("MPI_All_gather");
 	    mpi_return_status = MPI_Allgather((POINTER)&status,1,MPI_INT,
 	    				      (POINTER)allstats,1,MPI_INT,
 					      FronTier_COMM);
-	    if (debugging("pp_clock"))
-	    	start_clock("MPI_All_gather");
 
 	    if (mpi_return_status != MPI_SUCCESS)
 	    {
