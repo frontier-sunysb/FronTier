@@ -230,7 +230,6 @@ extern void setMotionParams(
 	    	iFparams->gravity[i] = af_params->gravity[i];
 	}
 	status = FT_FrontContainWaveType(front,ELASTIC_BOUNDARY);
-	status = pp_max_status(status);
 	if (!status) return;
 
 	af_params->n_sub = 1;

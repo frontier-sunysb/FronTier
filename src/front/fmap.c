@@ -3960,14 +3960,17 @@ EXPORT	boolean FT_FrontContainWaveType(
 	int w_type)
 {
 	INTERFACE *intfc = front->interf;
+	boolean status;
 	int dim = FT_Dimension();
+
+	status = NO;
 	if (dim == 2)
 	{
 	    CURVE **c;
 	    intfc_curve_loop(intfc,c)
 	    {
 		if (wave_type(*c) == w_type)
-		    return YES;
+		    status = YES;
 	    }
 	}
 	else if (dim == 3)
@@ -3976,8 +3979,9 @@ EXPORT	boolean FT_FrontContainWaveType(
 	    intfc_surface_loop(intfc,s)
 	    {
 		if (wave_type(*s) == w_type)
-		    return YES;
+		    status = YES;
 	    }
 	}
-	return NO;
+	status = pp_max_status(status);
+	return status;
 }	/* end FT_FrontContainContact */

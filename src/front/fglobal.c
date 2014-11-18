@@ -703,8 +703,6 @@ LOCAL void exchange_curve_gindex(
 		{
 		    pp_recv(51,dst_id,&curve_gindex[k],sizeof(long));
 		    pp_recv(52,dst_id,&num_out_bonds[k],sizeof(int));
-		    if (k == 3) 
-			printf("num_out_bonds[%d] = %d\n",k,num_out_bonds[k]);
 	    	    FT_VectorMemoryAlloc((POINTER*)&gbonds[k],num_out_bonds[k],
 				sizeof(GBOND));
 		    pp_recv(53,dst_id,gbonds[k],num_out_bonds[k]*sizeof(GBOND));

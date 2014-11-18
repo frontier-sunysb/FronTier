@@ -344,6 +344,10 @@ extern void generic_spring_solver(
             {
                 x_new[i][j] += (sv[i].ext_impul[j]
                                 + 0.5*sv[i].ext_accel[j]*dt)*dt;
+		if (isnan(sv[i].ext_impul[j]))
+		{
+		    printf("sv[%d].ext_impul[%d] = NaN\n",i,j);
+		}
                 sv[i].ext_impul[j] += sv[i].ext_accel[j]*dt;
             }
 	    for (i = 0; i < size; ++i)
