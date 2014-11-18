@@ -480,6 +480,7 @@ struct _INTERFACE
 	struct _INTERFACE  *prev_interf;
 	POINTER		e_comps;
 	struct	_TRI	**point_tri_store;
+	struct  _TRI    **point_tri_store_rgb;
 };
 typedef struct _INTERFACE INTERFACE;
 

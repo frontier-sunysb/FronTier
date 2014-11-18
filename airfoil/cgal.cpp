@@ -66,6 +66,7 @@ static void setSurfZeroMesh(SURFACE*);
 static void resetGoreBdryZerolength(SURFACE*);
 static void setMonoCompBdryZeroLength(SURFACE*);
 static boolean sewSurface(FILE*,SURFACE*);
+static void linkSurfaceTriPoint(INTERFACE*,SURFACE*);
 
 extern void CgalCanopySurface(
 	FILE *infile,
@@ -1703,3 +1704,232 @@ static void resetGoreBdryZerolength(
             setCurveZeroLength(*c,1.0);
         }
 }       /* end resetGoreBdryZerolength */
+
+extern void installStringtoBox(
+        Front *front,
+        double *cen,
+        double *edge,
+        SURFACE *surf)
+{
+        int i,j,k;
+        double *out_nodes_coords;
+        int num_strings = 4;
+        POINT **string_node_pts, *temp;
+        NODE **string_nodes, *nload, **node;
+        CURVE **string_curves, **box_curves;
+        BOND *string_bond;
+        TRI *tri;
+        INTERFACE *intfc = front->interf;
+        AF_NODE_EXTRA *extra;
+
+        out_nodes_coords = new double[num_strings*2];
+        FT_VectorMemoryAlloc((POINTER*)&string_node_pts,num_strings,
+                                sizeof(POINT*));
+
+        out_nodes_coords[0] = cen[0] - edge[0];
+        out_nodes_coords[1] = cen[0] + edge[0];
+        out_nodes_coords[2] = cen[0] + edge[0];
+        out_nodes_coords[3] = cen[0] - edge[0];
+        out_nodes_coords[4] = cen[1] - edge[1];
+        out_nodes_coords[5] = cen[1] - edge[1];
+        out_nodes_coords[6] = cen[1] + edge[1];
+        out_nodes_coords[7] = cen[1] + edge[1];
+
+        double coords[MAXD],dir[MAXD];
+        double length,len_fac;
+        double spacing,*h = computational_grid(intfc)->h;
+        int nb, flag = 0;
+        double EPS = 0.1 * h[0];
+        boolean found;
+
+        FT_VectorMemoryAlloc((POINTER*)&string_curves,num_strings,
+                                sizeof(CURVE*));
+        FT_VectorMemoryAlloc((POINTER*)&box_curves,num_strings,
+                                sizeof(CURVE*));
+
+        for (i = 0; i < num_strings; i++)
+        {
+            found = NO;
+            surf_tri_loop(surf,tri)
+            {
+                for (j = 0; j < 3; j++)
+                {
+                    temp = tri->__pts[j];
+                    if (fabs(Coords(tri->__pts[j])[0] - out_nodes_coords[i])
+                        < EPS && fabs(Coords(tri->__pts[j])[1] -
+                        out_nodes_coords[num_strings + i]) < EPS &&
+                        fabs(Coords(tri->__pts[j])[2] - (cen[2] + edge[2]))
+                        < EPS)
+                    {
+                        found = YES;
+                        flag++;
+                        string_node_pts[i] = tri->__pts[j];
+                        break;
+                    }
+                }
+                if (found == YES)
+                    break;
+            }
+        }
+        if (flag != num_strings)
+        {
+            printf("Cannot find enough string nodes on box!\n");
+            clean_up(ERROR);
+        }
+        FT_VectorMemoryAlloc((POINTER*)&string_nodes,num_strings,sizeof(NODE*));
+        for (i = 0; i < num_strings; i++)
+        {
+            string_nodes[i] = make_node(string_node_pts[i]);
+            FT_ScalarMemoryAlloc((POINTER*)&extra,
+                               sizeof(AF_NODE_EXTRA));
+            extra->af_node_type = STRING_NODE;
+            string_nodes[i]->extra = (POINTER)extra;
+        }
+        intfc_node_loop(intfc,node)
+        {
+            nload = *node;
+            extra = (AF_NODE_EXTRA*)(nload->extra);
+            if (extra == NULL)
+                continue;
+            if (extra->af_node_type == LOAD_NODE)
+                break;
+        }
+
+        length = HUGE;
+        for (i = 0; i < num_strings; ++i)
+        {
+            double sep = separation(string_nodes[i]->posn,nload->posn,3);
+            if (length > sep)
+                length = sep;
+        }
+        nb = (int)length/(0.3*h[0]);
+        for (i = 0; i < num_strings; ++i)
+        {
+            string_curves[i] = make_curve(0,0,string_nodes[i],nload);
+            hsbdry_type(string_curves[i]) = STRING_HSBDRY;
+            spacing = separation(string_nodes[i]->posn,nload->posn,3);
+            for (j = 0; j < 3; ++j)
+                dir[j] = (Coords(nload->posn)[j] -
+                        Coords(string_nodes[i]->posn)[j])/spacing;
+            len_fac = length/spacing;
+            spacing /= (double)nb;
+            string_bond = string_curves[i]->first;
+            for (j = 1; j < nb; ++j)
+            {
+                for (k = 0; k < 3; ++k)
+                    coords[k] = Coords(string_nodes[i]->posn)[k] +
+                                        j*dir[k]*spacing;
+                insert_point_in_bond(Point(coords),string_bond,
+                                        string_curves[i]);
+                string_bond = string_bond->next;
+            }
+            setCurveZeroLength(string_curves[i],len_fac);
+        }
+        linkSurfaceTriPoint(intfc,surf);
+
+        POINT *ptmp,*p_end,*p_start;
+        TRI **tris;
+        BOND *bond,*box_bond;
+        boolean in_bond;
+        for (i = 0; i < num_strings; i++)
+        {
+            if (i == 0 || i == 1)
+            {
+                box_curves[i] = make_curve(0,0,string_nodes[i],
+                                        string_nodes[(i+1)%num_strings]);
+            }
+            else
+            {
+                box_curves[i] = make_curve(0,0,string_nodes[(i+1)%num_strings],
+                                        string_nodes[i]);
+            }
+            install_curve_in_surface_bdry(surf,box_curves[i],
+                                        POSITIVE_ORIENTATION);
+            hsbdry_type(box_curves[i]) = PASSIVE_HSBDRY;
+            box_bond = box_curves[i]->first;
+            p_start = string_node_pts[i];
+            p_end = string_node_pts[(i+1)%num_strings];
+            surf_tri_loop(surf,tri)
+            {
+                POINT **pts = Point_of_tri(tri);
+                for (j = 0; j < 3; j++)
+                {
+                    in_bond = NO;
+                    ptmp = pts[j];
+                    if ((ptmp->_coords[0]-p_start->_coords[0])*
+                        (p_end->_coords[1]-p_start->_coords[1]) ==
+                        (ptmp->_coords[1]-p_start->_coords[1])*
+                        (p_end->_coords[0]-p_start->_coords[0]) &&
+                        ptmp->_coords[2] == p_start->_coords[2])
+                    {
+                        curve_bond_loop(box_curves[i],bond)
+                        {
+                            if (ptmp->_coords[0] == Coords(bond->start)[0] &&
+                                ptmp->_coords[1] == Coords(bond->start)[1])
+                            {
+                                in_bond = YES;
+                                break;
+                            }
+                            if (box_bond->next == NULL)
+                            {
+                               if (ptmp->_coords[0] == Coords(bond->end)[0] &&
+                                    ptmp->_coords[1] == Coords(bond->end)[1])
+                                {
+                                    in_bond = YES;
+                                    break;
+                                }
+                            }
+                        }
+                        if (in_bond == YES) break;
+                        insert_point_in_bond(ptmp,box_bond,box_curves[i]);
+                        box_bond = box_bond->next;
+                        break;
+                    }
+                }
+            }
+            linkCurveTriBond(box_curves[i],surf);
+            setCurveZeroLength(box_curves[i],len_fac);
+        }
+        return;
+}       /* installStringtoBox */
+
+static void linkSurfaceTriPoint(
+        INTERFACE *intfc,
+        SURFACE *surf)
+{
+        TRI *tri,**ptris;
+        int i,j,num_point_tris;
+        POINT **pts;
+        std::vector<POINT*> pts_on_rgb;
+
+        num_point_tris = 0;
+        surf_tri_loop(surf,tri)
+        {
+            num_point_tris++;
+            pts = Point_of_tri(tri);
+            for (j = 0; j < 3; j++)
+            {
+                if (pts[j]->num_tris == 0)
+                    pts_on_rgb.push_back(pts[j]);
+                pts[j]->num_tris++;
+            }
+        }
+        num_point_tris *= 3;
+        intfc->point_tri_store_rgb = (TRI**)store(num_point_tris*sizeof(TRI*));
+        ptris = intfc->point_tri_store;
+        for (i = 0; i < pts_on_rgb.size(); ++i)
+        {
+            pts_on_rgb[i]->tris = ptris;
+            ptris += pts_on_rgb[i]->num_tris;
+            pts_on_rgb[i]->num_tris = 0;
+        }
+        surf_tri_loop(surf,tri)
+        {
+            pts = Point_of_tri(tri);
+            for (j = 0; j < 3; j++)
+            {
+                pts[j]->tris[pts[j]->num_tris++] = tri;
+            }
+        }
+        return;
+}       /* end linkSurfaceTriPoint */

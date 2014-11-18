@@ -57,7 +57,10 @@ extern void initParachuteModules(Front *front)
 	initRigidBody(front);
 
 	if (debugging("trace"))
+	{
+	    gview_plot_interface("ginit",front->interf);
 	    (void) printf("Leaving initParachuteModules()\n");
+	}
 }	/* end initParachuteModules */
 
 extern void initParachuteDefault(
@@ -323,6 +326,7 @@ static void initRigidBody(
 	int i,dim = FT_Dimension();
 	int neg_comp,pos_comp;
 	SURFACE *surf;
+        double edge[MAXD];
 
 	if (CursorAfterStringOpt(infile,"Enter yes to add rigid body:"))
 	{
@@ -335,6 +339,7 @@ static void initRigidBody(
 	    return;
 	(void) printf("Available type of rigid body include:\n");
 	(void) printf("\tSphere (S)\n");
+	(void) printf("\tBox (B)\n");
 	CursorAfterString(infile,"Enter type of rigid body:");
 	fscanf(infile,"%s",string);
 	(void) printf("%s\n",string);
@@ -349,23 +354,49 @@ static void initRigidBody(
 	    fscanf(infile,"%lf",&radius);
 	    (void) printf("%f\n",radius);
 	    for (i = 0; i < dim; ++i) radii[i] = radius;
-	    break;
-	default:
-	    (void) printf("Unknow type of rigid body!\n");
-	    clean_up(ERROR);
-	}
-	(void) printf("Rigid body can be fixed (F) or Movable (M)\n");
-	(void) printf("The default is Movable (M)\n");
-	w_type = MOVABLE_BODY_BOUNDARY;
-	neg_comp = SOLID_COMP;
-	pos_comp = LIQUID_COMP2;
-	if (CursorAfterStringOpt(infile,"Type yes is the rigid body is fixed:"))
-	{
-	    fscanf(infile,"%s",string);
-	    (void) printf("%s\n",string);
-	    if (string[0] == 'y' || string[0] == 'Y')
-		w_type = NEUMANN_BOUNDARY;
-	}
-	FT_MakeEllipticSurf(front,cen,radii,neg_comp,pos_comp,w_type,3.0,&surf);
-	fclose(infile);
+            (void) printf("Rigid body can be fixed (F) or Movable (M)\n");
+            (void) printf("The default is Movable (M)\n");
+            w_type = MOVABLE_BODY_BOUNDARY;
+            neg_comp = SOLID_COMP;
+            pos_comp = LIQUID_COMP2;
+            if (CursorAfterStringOpt(infile,
+                                "Type yes is the rigid body is fixed:"))
+            {
+                fscanf(infile,"%s",string);
+                (void) printf("%s\n",string);
+                if (string[0] == 'y' || string[0] == 'Y')
+                    w_type = NEUMANN_BOUNDARY;
+            }
+            FT_MakeEllipticSurf(front,cen,radii,neg_comp,pos_comp,
+                                w_type,3.0,&surf);
+            break;
+        case 'b':
+        case 'B':
+            CursorAfterString(infile,"Enter center of the box:");
+            fscanf(infile,"%lf %lf %lf",cen,cen+1,cen+2);
+            (void) printf("%f %f %f\n",cen[0],cen[1],cen[2]);
+            CursorAfterString(infile,"Enter edges of the box:");
+            fscanf(infile,"%lf %lf %lf",edge,edge+1,edge+2);
+            (void) printf("%f %f %f\n",edge[0],edge[1],edge[2]);
+            (void) printf("Rigid body can be fixed (F) or Movable (M)\n");
+            (void) printf("The default is Movable (M)\n");
+            w_type = MOVABLE_BODY_BOUNDARY;
+            neg_comp = SOLID_COMP;
+            pos_comp = LIQUID_COMP2;
+            if (CursorAfterStringOpt(infile,
+                                "Type yes is the rigid body is fixed:"))
+            {
+                fscanf(infile,"%s",string);
+                (void) printf("%s\n",string);
+                if (string[0] == 'y' || string[0] == 'Y')
+                    w_type = NEUMANN_BOUNDARY;
+            }
+            FT_MakeCuboidSurf(front,cen,edge,neg_comp,pos_comp,w_type,&surf);
+            installStringtoBox(front,cen,edge,surf);
+            break;
+        default:
+            (void) printf("Unknow type of rigid body!\n");
+            clean_up(ERROR);
+        }
+        fclose(infile);
 }	/* end initRigidBody */

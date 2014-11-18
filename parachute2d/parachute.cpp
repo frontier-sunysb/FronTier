@@ -35,6 +35,8 @@ boolean ReSetTime;
 int RestartStep;
 boolean binary = YES;
 int constrained_propagate;
+static int l_cartesian_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
+                        HYPER_SURF*,double*);
 
 /********************************************************************
  *	Level function parameters for the initial interface 	    *
@@ -50,6 +52,7 @@ int main(int argc, char **argv)
 	static IF_PARAMS iFparams;
 	static AF_PARAMS af_params;
 	static PARAMS eqn_params;
+	static VELO_FUNC_PACK velo_func_pack;
 
 	FT_Init(argc,argv,&f_basic);
 	f_basic.dim = 2;
@@ -133,6 +136,11 @@ int main(int argc, char **argv)
 
 	setMotionParams(&front);
 
+	front._compute_force_and_torque = ifluid_compute_force_and_torque;
+        velo_func_pack.func_params = (POINTER)l_cartesian;
+        velo_func_pack.func = l_cartesian_vel;
+        velo_func_pack.point_propagate = ifluid_point_propagate;
+        FT_InitVeloFunc(&front,&velo_func_pack);
 	l_cartesian->findStateAtCrossing = ifluid_find_state_at_crossing;
 	l_cartesian->getInitialState = zero_state;
 	l_cartesian->initMesh();
@@ -227,6 +235,7 @@ static  void airfoil_driver(
 
             FT_AddMovieFrame(front,out_name,binary);
 
+            FrontPreAdvance(front);
 	    FT_Propagate(front);
 	    if (!af_params->no_fluid)
 	    {
@@ -255,6 +264,7 @@ static  void airfoil_driver(
         {
 	    /* Propagating interface for time step dt */
 
+            FrontPreAdvance(front);
 	    if (!af_params->no_fluid)
 	    {
 	    	coating_mono_hyper_surf(front);
@@ -354,3 +364,16 @@ static void zero_state(
             field->vel[i][index] = 0.0;
         field->pres[index] = 0.0;
 }       /* end zero_state */
+
+static int l_cartesian_vel(
+        POINTER params,
+        Front *front,
+        POINT *p,
+        HYPER_SURF_ELEMENT *hse,
+        HYPER_SURF *hs,
+        double *vel)
+{
+        double *coords = Coords(p);
+        ((Incompress_Solver_Smooth_Basis*)params)->getVelocity(coords, vel);
+        return YES;
+}       /* end l_cartesian_vel */

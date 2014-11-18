@@ -205,6 +205,12 @@ static double getInitialState(double* coords,PARAMS* params)
 		    return 0.0;
 	case ZERO_STATE:
 		return 0.0;
+        case DISK_STATE:
+                if (sqr(coords[0]-params->center[0])
+                        + sqr(coords[1]-params->center[1]) < params->radius)
+                    return params->Tl;
+                else
+                    return params->Tr;
 	}
 }
 
@@ -499,7 +505,8 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
                             if(v[l] < 0 && m == 1)
                                 rhs += eta * (T0 - T_nb);
                         }
-			else if (wave_type(hs) == NEUMANN_BOUNDARY)
+			else if (wave_type(hs) == NEUMANN_BOUNDARY ||
+                                wave_type(hs) == MOVABLE_BODY_BOUNDARY)
 			{
 			    T_nb = Temp[ic];
 			    solver.Add_A(I,I,coeff_nb);
@@ -523,6 +530,11 @@ void CARTESIAN::computeAdvectionCN(COMPONENT sub_comp)
                                 rhs += 0.5*lambda*(2.0*T_nb - T0);
 			    }
 			}
+			else
+                        {
+                            printf("Unknows boundary condition! \n");
+                            clean_up(ERROR);
+                        }
                     }
                 }
                 solver.Add_A(I,I,coeff);
@@ -1787,6 +1799,7 @@ extern void read_params(
 	char string[100];
 	FILE* infile;
 	infile = fopen(inname,"r");
+	int i;
 
 	CursorAfterString(infile,"Enter molecular diffusivities:");
 	fscanf(infile,"%lf",&eqn_params->D);
@@ -1853,6 +1866,26 @@ extern void read_params(
 	case 'z':
 	    eqn_params->init_state = ZERO_STATE;
 	    break;
+	case 'D':
+        case 'd':
+            eqn_params->init_state = DISK_STATE;
+            CursorAfterString(infile,"Enter center of the disk:");
+            for (i = 0; i < 2; i++)
+            {
+                fscanf(infile,"%lf",&eqn_params->center[i]);
+                (void) printf("%f ",eqn_params->center[i]);
+            }
+            (void) printf("\n");
+            CursorAfterString(infile,"Enter radius of the disk:");
+            fscanf(infile,"%lf",&eqn_params->radius);
+            (void) printf("%f\n",eqn_params->radius);
+            CursorAfterString(infile,"Enter inside temperature:");
+            fscanf(infile,"%lf",&eqn_params->Tl);
+            (void) printf("%f\n",eqn_params->Tl);
+            CursorAfterString(infile,"Enter outside temperature:");
+            fscanf(infile,"%lf",&eqn_params->Tr);
+            (void) printf("%f\n",eqn_params->Tr);
+            break;
 	}
 	fclose(infile);
 	return;

@@ -923,6 +923,7 @@ static  void rgbody_point_propagate(
 	double dn,*h = front->rect_grid->h;
 	double *m_pre = field->pres;
 	double *m_vor = field->vort;
+	double *m_temp = field->temperature;
 	double nor[MAXD],p1[MAXD];
 	double *p0 = Coords(oldp);
 	STATE *oldst,*newst;
@@ -959,10 +960,13 @@ static  void rgbody_point_propagate(
                 crds_com[i] = Coords(oldp)[i] +dt*vel[i] -
                         center_of_mass(oldhs)[i];
             }
-            vel[0] += -angular_velo(oldhs)*crds_com[1]*cos(omega_dt) -
-                     angular_velo(oldhs)*crds_com[0]*sin(omega_dt);
-            vel[1] +=  angular_velo(oldhs)*crds_com[0]*cos(omega_dt) -
-                     angular_velo(oldhs)*crds_com[1]*sin(omega_dt);
+            if (motion_type(oldhs) == ROTATION)
+            {
+		vel[0] += -angular_velo(oldhs)*crds_com[1]*cos(omega_dt) -
+			angular_velo(oldhs)*crds_com[0]*sin(omega_dt);
+		vel[1] +=  angular_velo(oldhs)*crds_com[0]*cos(omega_dt) -
+			angular_velo(oldhs)*crds_com[1]*sin(omega_dt);
+	    }
             for (i = 0; i < dim; ++i)
             {
                 Coords(newp)[i] = Coords(oldp)[i] + dt*vel[i];
@@ -978,6 +982,8 @@ static  void rgbody_point_propagate(
 	for (i = 0; i < dim; ++i) newst->vel[i] = vel[i];
 	FT_IntrpStateVarAtCoords(front,comp,p1,m_pre,
 			getStatePres,&newst->pres,&oldst->pres);
+        FT_IntrpStateVarAtCoords(front,comp,p1,m_temp,
+                        getStateTemp,&newst->temperature,&oldst->temperature);
 	if (dim == 2)
 	{
 	    FT_IntrpStateVarAtCoords(front,comp,p1,m_vor,

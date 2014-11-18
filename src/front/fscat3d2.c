@@ -696,15 +696,12 @@ EXPORT   void  merge_curves(
 merge_curve:
 	for (c = intfc->curves; c && *c; c++)
 	{
-	    if(is_closed_curve(*c))
-		continue;
-
 	    if (is_buffer_curve(*c,adj_intfc))
 		continue;
 
 	    for (curve = intfc->curves; curve && *curve; curve++) 	
 	    {
-		if (is_closed_curve(*curve) || *curve == *c)
+		if (*curve == *c)
 		    continue;
 		if (use_gindex && Gindex(*curve) != Gindex(*c))
 		    continue;
@@ -733,12 +730,22 @@ merge_curve:
 		}
 		else if (b1)
 		{
+		    if (is_closed_curve(*c))
+		    {
+		    	delete_curve(*curve);
+		    	goto  merge_curve;
+		    }
 		    bo = bs;
 		    bc = b1;
 		    first_match = YES;
 		}
 		else if (b2)
 		{
+		    if (is_closed_curve(*c))
+		    {
+		    	delete_curve(*curve);
+		    	goto  merge_curve;
+		    }
 		    bo = be;
 		    bc = b2;
 		    last_match = YES;

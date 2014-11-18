@@ -2580,6 +2580,17 @@ LOCAL void FrontPreAdvance2d(
 		index = body_index(*c);
 		if (motion_type(*c) == PRESET_MOTION) 
 		{
+		    double omega_dt,crds_com[MAXD];
+                    omega_dt = 0.5*angular_velo(*c)*dt;
+                    for (i = 0; i < dim; ++i)
+                        crds_com[i] = center_of_mass(*c)[i]
+                                        - rotation_center(*c)[i];
+                    center_of_mass_velo(*c)[0] =
+                                - angular_velo(*c)*crds_com[1]*cos(omega_dt)
+                                - angular_velo(*c)*crds_com[0]*sin(omega_dt);
+                    center_of_mass_velo(*c)[1] =
+                                angular_velo(*c)*crds_com[0]*cos(omega_dt)
+                                - angular_velo(*c)*crds_com[1]*sin(omega_dt);
 		    if (debugging("rigid_body"))
 		    {
 		    	printf("Body index: %d\n",index);
@@ -2589,7 +2600,6 @@ LOCAL void FrontPreAdvance2d(
 					center_of_mass_velo(*c)[0],
 					center_of_mass_velo(*c)[1]);
 		    }
-		    continue;
 		}
 		else if (motion_type(*c) == VERTICAL_MOTION)
 		{
@@ -2626,7 +2636,7 @@ LOCAL void FrontPreAdvance2d(
                 }
                 for (i = 0; i < dim; ++i)
                     center_of_mass(*c)[i] += dt*center_of_mass_velo(*c)[i];
-                if (1)
+                if (debugging("rigid_body"))
                 {
                     printf("Body index: %d\n",index);
                     printf("total mass = %16.15f\n",total_mass(*c));
@@ -2647,7 +2657,8 @@ LOCAL void FrontPreAdvance2d(
                         center_of_mass_velo(*c)[i] +=
                                 dt*force[index][i]/total_mass(*c);
                         center_of_mass(*c)[i] += dt*center_of_mass_velo(*c)[i];
-                        center_of_mass(*c)[i] -= 0.5*(force[index][i]/total_mass(*c)*sqr(dt)) ;
+                        center_of_mass(*c)[i] -= 
+				0.5*(force[index][i]/total_mass(*c)*sqr(dt)) ;
                 }
                 if (debugging("rigid_body"))
                 {

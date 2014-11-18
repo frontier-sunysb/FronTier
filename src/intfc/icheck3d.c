@@ -659,6 +659,8 @@ LOCAL	boolean	check_curve3d(
 	    {
 		(void) printf("%s curve has no bond tris but is "
 			      "connected to some surface\n",warn);
+		printf("gindex of curve = %d\n",Gindex(c));
+		print_curve(c);
 		status = NO;
 	    }
 	}

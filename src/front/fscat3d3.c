@@ -476,7 +476,9 @@ LOCAL int append_buffer_surface3(
 		clean_up(ERROR);
 	    }
 	    else
+	    {
 	        install_curve_in_surface_bdry(surf, *c, POSITIVE_ORIENTATION);
+	    }
 
 	for (c = adj_surf->neg_curves; c && *c; c++)
 	    if (!delete_from_pointers(adj_surf, &(*c)->neg_surfaces))
@@ -697,10 +699,6 @@ LOCAL boolean match_tris_at_subdomain_bdry(
 	        if (match_two_tris(ts,ta))
 		{
 		    ma[i] = ms[j] = YES;
-		    
-		    if(debugging("app_tri"))
-		        printf("ns  %d \n", j);
-
 	    	    average_btris(ts, surf, ta, adj_surf);
 		    merge_two_tris(ts,ta,surf,adj_surf);
 		    break;

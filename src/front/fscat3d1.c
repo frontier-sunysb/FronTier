@@ -2604,14 +2604,14 @@ EXPORT	void merge_two_tris(
             {
 	       if(Bond_on_side(ts,i) == NULL)
                {
-                       if(Bond_on_side(ta,i) == NULL)
+                   if(Bond_on_side(ta,i) == NULL)
                            continue;
 		       
-	       	       printf("#merge_two_tris: bond on block face.\n");
+	       	   printf("#merge_two_tris: bond on block face.\n");
 		       /*set tri_neighbor btri*/
-                       Bond_tri_on_side(ts,i) = btri = Bond_tri_on_side(ta,i);
-                       btri->tri = ts;
-                       btri->surface = s;
+                   Bond_tri_on_side(ts,i) = btri = Bond_tri_on_side(ta,i);
+                   btri->tri = ts;
+                   btri->surface = s;
                }
 	       continue;
             }
@@ -2903,7 +2903,16 @@ EXPORT	CURVE *matching_curve(
 	ne = matching_node(ac->end,p_table,p_size);
 	for (cc = ns->out_curves; cc && *cc; ++cc)
 	    if (curves_match(*cc,ac,p_table,p_size))
+	    {
+		/*
+		if (Gindex(*cc) == 28)
+		{
+		    printf("In matching_curve() curves_match() found curve\n");
+		    print_curve(*cc);
+		}
+		*/
 		return *cc;
+	    }
 	
 	c = copy_curve(ac,ns,ne);
 	

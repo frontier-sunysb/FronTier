@@ -251,7 +251,7 @@ EXPORT boolean the_tri_rot(TRI *tri)
 
 EXPORT boolean the_tri_with_gindex(TRI *tri)
 {
-	long gindex[3] = {18214, 10267, 18184};
+	long gindex[3] = {12937, 12938, 14840};
 	int i,j;
 	for (i = 0; i < 3; ++i)
 	{

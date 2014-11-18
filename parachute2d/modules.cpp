@@ -42,6 +42,7 @@ static void modifyCanopySet(FILE*,Front*,SURFACE*);
 static boolean curve_of_boundary_hs(CURVE*);
 static boolean line_seg_func(POINTER,double,double*);
 static boolean arc_func(POINTER,double,double*);
+static void rgb_init(Front*,RG_PARAMS);
 
 
 extern void init2DModules(Front *front)
@@ -49,6 +50,7 @@ extern void init2DModules(Front *front)
 	int i,num_canopy;
 	FILE *infile = fopen(InName(front),"r");
 	SURFACE *surf;
+	RG_PARAMS rgb_params;
 
 	if (debugging("trace"))
 	    (void) printf("Entering init2DModules()\n");
@@ -70,6 +72,7 @@ extern void init2DModules(Front *front)
 	    initMultiModule(front,num_canopy);
 
 	initRigidBody(front);
+	rgb_init(front,rgb_params);
 
 	if (debugging("trace"))
 	    (void) printf("Leaving init2DModules()\n");
@@ -152,7 +155,6 @@ static void CopyNodeInfo(
 				sizeof(AF_NODE_EXTRA));
             	    	extra->af_node_type = tmp->af_node_type;
             	        (*newn)->extra = (POINTER)extra;
-            	        (*newn)->size_of_extra = sizeof(AF_NODE_EXTRA);
 		    }
 		    else
 			(*newn)->extra = NULL;
@@ -207,7 +209,6 @@ static void MergeTwoIntfc(
 	    FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    extra->af_node_type = tmp_ex->af_node_type;
 	    newn->extra = (POINTER)extra;	    
-	    newn->size_of_extra = sizeof(AF_NODE_EXTRA);	    
 	}
 	free(p_table);
 	set_current_interface(cur_intfc);
@@ -642,3 +643,180 @@ extern void initInnerBoundary(
 	    clean_up(ERROR);
 	}
 }	/* end initInnerBoundary */
+
+extern  void prompt_for_rigid_body_params(
+        int dim,
+        char *inname,
+        RG_PARAMS *rgb_params)
+{
+        int i;
+        char msg[100],s[100];
+        FILE *infile = fopen(inname,"r");
+
+        if (debugging("rgbody"))
+            (void) printf("Enter prompt_for_rigid_body_params()\n");
+
+        rgb_params->dim = dim;
+        sprintf(msg,"Enter the total mass for rigid body:");
+        CursorAfterString(infile,msg);
+        fscanf(infile,"%lf",&rgb_params->total_mass);
+        (void) printf("%f\n",rgb_params->total_mass);
+        sprintf(msg,"Enter the center of mass for rigid body:");
+        CursorAfterString(infile,msg);
+        for (i = 0; i < dim; ++i)
+        {
+            fscanf(infile,"%lf",&rgb_params->center_of_mass[i]);
+            (void) printf("%f ",rgb_params->center_of_mass[i]);
+        }
+        (void) printf("\n");
+        CursorAfterString(infile,
+                "Type yes if rigid body will only rotate about an axis:");
+        fscanf(infile,"%s",s);
+        (void) printf("%s\n",s);
+        if (s[0] == 'y' || s[0] == 'Y')
+        {
+            if (dim == 3)
+            {
+                double mag_dir = 0.0;
+                sprintf(msg,"Enter direction of the axis:");
+                CursorAfterString(infile,msg);
+                for (i = 0; i < dim; ++i)
+                {
+                    fscanf(infile,"%lf",&rgb_params->rotation_dir[i]);
+                    (void) printf("%f ",rgb_params->rotation_dir[i]);
+                    mag_dir += sqr(rgb_params->rotation_dir[i]);
+                }
+                mag_dir = sqrt(mag_dir);
+                for (i = 0; i < dim; ++i)
+                    rgb_params->rotation_dir[i] /= mag_dir;
+                (void) printf("\n");
+            }
+
+            sprintf(msg,"Enter center of the axis:");
+            CursorAfterString(infile,msg);
+            for (i = 0; i < dim; ++i)
+            {
+                fscanf(infile,"%lf",&rgb_params->rotation_cen[i]);
+                (void) printf("%f ",rgb_params->rotation_cen[i]);
+            }
+            (void) printf("\n");
+
+            sprintf(msg,"Enter the moment of inertial about the axis:");
+            CursorAfterString(infile,msg);
+            fscanf(infile,"%lf",&rgb_params->moment_of_inertial);
+            (void) printf("%f\n",rgb_params->moment_of_inertial);
+
+            CursorAfterString(infile,
+                        "Type yes if angular velocity is preset: ");
+            fscanf(infile,"%s",s);
+            (void) printf("%s\n",s);
+            if (s[0] == 'y' || s[0] == 'Y')
+            {
+                rgb_params->motion_type = PRESET_MOTION;
+                CursorAfterString(infile,"Enter preset angular velocity: ");
+            }
+            else
+	    {
+                rgb_params->motion_type = ROTATION;
+                CursorAfterString(infile,"Enter initial angular velocity: ");
+            }
+            fscanf(infile,"%lf",&rgb_params->angular_velo);
+            (void) printf("%f\n",rgb_params->angular_velo);
+        }
+        else
+        {
+            sprintf(msg,"Enter the moment of inertial about center of mass:");
+            CursorAfterString(infile,msg);
+            fscanf(infile,"%lf",&rgb_params->moment_of_inertial);
+            (void) printf("%f\n",rgb_params->moment_of_inertial);
+
+            rgb_params->motion_type = FREE_MOTION;
+            CursorAfterString(infile,
+                        "Type yes if you want vertical motion only?: ");
+            fscanf(infile,"%s",s);
+            (void) printf("%s\n",s);
+            if (s[0] == 'y' || s[0] == 'Y')
+                rgb_params->motion_type = VERTICAL_MOTION;
+            CursorAfterString(infile,
+                        "Type yes if you want horizontal motion only?: ");
+            fscanf(infile,"%s",s);
+            (void) printf("%s\n",s);
+            if (s[0] == 'y' || s[0] == 'Y')
+                rgb_params->motion_type = HORIZONTAL_MOTION;
+
+            sprintf(msg,"Enter the initial center of mass velocity:");
+            CursorAfterString(infile,msg);
+            for (i = 0; i < dim; ++i)
+            {
+                fscanf(infile,"%lf",&rgb_params->cen_of_mass_velo[i]);
+                (void) printf("%f ",rgb_params->cen_of_mass_velo[i]);
+            }
+            (void) printf("\n");
+
+        }
+
+        if (debugging("rgbody"))
+            (void) printf("Leaving prompt_for_rigid_body_params()\n");
+}       /* end prompt_for_rigid_body_params */
+
+extern void set_rgbody_params(
+        RG_PARAMS rg_params,
+        HYPER_SURF *hs)
+{
+        int i,dim = rg_params.dim;
+        total_mass(hs) = rg_params.total_mass;
+        mom_inertial(hs) = rg_params.moment_of_inertial;
+        angular_velo(hs) = rg_params.angular_velo;
+        motion_type(hs) = rg_params.motion_type;
+        surface_tension(hs) = 0.0;
+        for (i = 0; i < dim; ++i)
+        {
+            center_of_mass(hs)[i] = rg_params.center_of_mass[i];
+            center_of_mass_velo(hs)[i] =
+                                rg_params.cen_of_mass_velo[i];
+            rotation_center(hs)[i] =
+                                rg_params.rotation_cen[i];
+            if (dim == 3)
+                rotation_direction(hs)[i] =
+                                rg_params.rotation_dir[i];
+        }
+}       /* end set_rgbody_params */
+
+static void rgb_init(Front *front,
+        RG_PARAMS rgb_params)
+{
+        CURVE **c;
+        SURFACE **s;
+
+        if (debugging("trace"))
+            printf("Entering rgb_init() \n");
+        if (FT_Dimension() == 1) return;
+        else if (FT_Dimension() == 2)
+        {
+            for (c = front->interf->curves; c && *c; ++c)
+            {
+                if (wave_type(*c) == MOVABLE_BODY_BOUNDARY)
+                {
+                    prompt_for_rigid_body_params(front->f_basic->dim,
+                                front->f_basic->in_name,&rgb_params);
+                    body_index(*c) = 0;
+                    set_rgbody_params(rgb_params,Hyper_surf(*c));
+                }
+            }
+        }
+        else
+        {
+            for (s = front->interf->surfaces; s && *s; ++s)
+            {
+                if (wave_type(*s) == MOVABLE_BODY_BOUNDARY)
+                {
+                    prompt_for_rigid_body_params(front->f_basic->dim,
+                                front->f_basic->in_name,&rgb_params);
+                    body_index(*s) = 0;
+                    set_rgbody_params(rgb_params,Hyper_surf(*s));
+                }
+            }
+        }
+        if (debugging("trace"))
+            printf("Leaving rgb_init() \n");
+}       /* end rgb_init */

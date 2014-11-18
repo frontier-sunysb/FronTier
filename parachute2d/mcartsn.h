@@ -6,7 +6,8 @@ enum _INIT_STATE{
 	CONST_STATE,
 	RAND_STATE,
 	STEP_STATE,
-	SHOCK_STATE
+	SHOCK_STATE,
+	DISK_STATE
 };
 typedef enum _INIT_STATE INIT_STATE;
 
@@ -23,6 +24,8 @@ struct _PARAMS {
 	double Tr;/*initial right temperature */
 	double D;    /*molecular diffusivities of the temperature*/
 	int dir; /*direction of step*/
+	double center[MAXD]; /* center of the disk state case */
+        double radius; /* raduis of the disk state case */
 };
 typedef struct _PARAMS PARAMS;
 

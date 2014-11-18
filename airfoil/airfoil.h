@@ -343,4 +343,7 @@ extern void initSpringModel(Front*);
 // sprModel/cgal.cpp
 extern void CgalCanopySurface(FILE*,Front*,SURFACE**);
 
+// used on the rigid body in parachute
+extern void installStringtoBox(Front*,double*,double*,SURFACE*);
+
 #endif
