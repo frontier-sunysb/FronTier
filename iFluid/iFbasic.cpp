@@ -2449,12 +2449,11 @@ void Incompress_Solver_Smooth_Basis::paintSolvedGridPoint()
 boolean Incompress_Solver_Smooth_Basis::paintToSolveGridPoint()
 {
 	GRID_DIRECTION  dir[6] = {EAST,NORTH,UPPER,WEST,SOUTH,LOWER};
-	int idir,i,j,k,n,ic,*ip,ipn[MAXD];
-	int ip_seed[MAXD];
+	int idir,i,j,k,n,ic,ic1,*ip,ipn[MAXD];
 	static int **ips,ip_size;
-	boolean seed_not_found = YES;
-	boolean global_seed_not_found;
+	boolean seed_found;
 	int paint_method;
+	int nv0,nv1;
 
 	paint_method = BY_CROSSING;
 
@@ -2465,11 +2464,14 @@ boolean Incompress_Solver_Smooth_Basis::paintToSolveGridPoint()
 	{
 	    ip_size = 1;
 	    for (i = 0; i < dim; ++i)
+	    {
 	    	ip_size *= (smax[i] - smin[i] + 1); 
+	    }
 	    FT_MatrixMemoryAlloc((POINTER*)&ips,ip_size,dim,sizeof(int));
 	}
 
-	seed_not_found = YES;
+	seed_found = NO;
+	n = 0;
 	switch (dim)
 	{
 	case 2:
@@ -2480,14 +2482,16 @@ boolean Incompress_Solver_Smooth_Basis::paintToSolveGridPoint()
                     ic = d_index2d(i,j,top_gmax);
                     if (domain_status[ic] == NOT_SOLVED)
                     {
-                        ip_seed[0] = i;
-                        ip_seed[1] = j;
+			ips[n][0] = i;
+			ips[n][1] = j;
+			ip = ips[n];
                         domain_status[ic] = TO_SOLVE;
-                        seed_not_found = NO;
+                        seed_found = YES;
+			n++;
                         break;
                     }
                 }
-                if (!seed_not_found) break;
+                if (seed_found) break;
             }
 	    break;
 	case 3:
@@ -2500,65 +2504,332 @@ boolean Incompress_Solver_Smooth_Basis::paintToSolveGridPoint()
 		    	ic = d_index3d(i,j,k,top_gmax);	
 		    	if (domain_status[ic] == NOT_SOLVED)
 		    	{
-			    ip_seed[0] = i;
-			    ip_seed[1] = j;
-			    ip_seed[2] = k;
+			    ips[n][0] = i;
+			    ips[n][1] = j;
+			    ips[n][2] = k;
+			    ip = ips[n];
 			    domain_status[ic] = TO_SOLVE;
-			    seed_not_found = NO;
+			    seed_found = YES;
+			    n++;
 			    break;
 		    	}
 		    }
-		    if (!seed_not_found) break;
+		    if (seed_found) break;
 	    	}
-	    	if (!seed_not_found) break;
+	    	if (seed_found) break;
 	    }
 	    break;
 	}
-	global_seed_not_found = pp_global_status(seed_not_found);
-	if (global_seed_not_found)
+	seed_found = pp_max_status(seed_found);
+
+	if (!seed_found)
 	{
 	    stop_clock("paint_color");
 	    return NO;
 	}
-	else if (seed_not_found)
-	{
-	    stop_clock("paint_color");
-	    return YES;
-	}
 
 	/* Start traversing through connected neighbors */
 
-	n = 0;
-	for (i = 0; i < dim; ++i)
-	    ips[n][i] = ip_seed[i];
-	ip = ips[n++];
-
-	while (n != 0)
+	while (seed_found)
 	{
-start_loop:
-	    for (idir = 0; idir < dim*2; ++idir)
+	    while (n != 0)
 	    {
-	    	if (nextConnectedPoint(ip,dir[idir],ipn,paint_method,smin,smax))
+start_loop:
+	    	for (idir = 0; idir < dim*2; ++idir)
 	    	{
-		    for (i = 0; i < dim; ++i)
-		    {
-		    	ips[n][i] = ipn[i];
-		    }
-		    ic = d_index(ipn,top_gmax,dim);
-		    domain_status[ic] = TO_SOLVE;
-		    ip = ips[n];
-		    n++;
-		    if (n >= ip_size)
-		    {
-			(void) printf("Dead loop! Check code!\n");
-			clean_up(ERROR);
-		    }
-		    goto start_loop;
+	    	    if (nextConnectedPoint(ip,dir[idir],ipn,paint_method,
+				smin,smax))
+	    	    {
+		    	for (i = 0; i < dim; ++i)
+		    	{
+		    	    ips[n][i] = ipn[i];
+		    	}
+		    	ic = d_index(ipn,top_gmax,dim);
+		    	domain_status[ic] = TO_SOLVE;
+		    	ip = ips[n];
+		    	n++;
+		    	if (n >= ip_size)
+		    	{
+			    (void) printf("Dead loop! Check code!\n");
+			    clean_up(ERROR);
+		    	}
+		    	goto start_loop;
+	    	    }
 	    	}
+	    	n--;
+	    	ip = ips[n];
 	    }
-	    n--;
+	    FT_ParallelExchGridIntArrayBuffer(domain_status,front);
+	    seed_found = NO;
 	    ip = ips[n];
+	    switch (dim)
+	    {
+	    case 2:
+		if (lbuf[0] != 0)
+		{
+		    ip[0] = imin - 1;
+	    	    for (j = jmin; j <= jmax; ++j)
+		    {
+			ic  = d_index2d(imin,j,top_gmax);
+			ic1 = d_index2d(imin-1,j,top_gmax);
+			if (domain_status[ic]  == NOT_SOLVED &&
+			    domain_status[ic1] == TO_SOLVE)
+			{
+			    ip[1] = j;
+	    	    	    if (nextConnectedPoint(ip,EAST,ips[n],
+				paint_method,smin,smax))
+			    {
+				domain_status[ic] = TO_SOLVE;
+				seed_found = YES;
+				n++;
+				break;
+			    }
+			}
+		    }
+		}
+		if (seed_found) break;
+		if (ubuf[0] != 0)
+		{
+		    ip[0] = imax + 1;
+	    	    for (j = jmin; j <= jmax; ++j)
+		    {
+			ic  = d_index2d(imax,j,top_gmax);
+			ic1 = d_index2d(imax+1,j,top_gmax);
+			if (domain_status[ic]  == NOT_SOLVED &&
+			    domain_status[ic1] == TO_SOLVE)
+			{
+			    ip[1] = j;
+	    	    	    if (nextConnectedPoint(ip,EAST,ips[n],
+				paint_method,smin,smax))
+			    {
+				domain_status[ic] = TO_SOLVE;
+				seed_found = YES;
+				n++;
+				break;
+			    }
+			}
+		    }
+		}
+		if (seed_found) break;
+		if (lbuf[1] != 0)
+		{
+		    ip[1] = jmin - 1;
+	    	    for (i = imin; i <= imax; ++i)
+		    {
+			ic  = d_index2d(i,jmin,top_gmax);
+			ic1 = d_index2d(i,jmin-1,top_gmax);
+			if (domain_status[ic]  == NOT_SOLVED &&
+			    domain_status[ic1] == TO_SOLVE)
+			{
+			    ip[0] = i;
+	    	    	    if (nextConnectedPoint(ip,NORTH,ips[n],
+				paint_method,smin,smax))
+			    {
+				domain_status[ic] = TO_SOLVE;
+				seed_found = YES;
+				n++;
+				break;
+			    }
+			}
+		    }
+		}
+		if (seed_found) break;
+		if (ubuf[1] != 0)
+		{
+		    ip[1] = jmax + 1;
+	    	    for (i = imin; i <= imax; ++i)
+		    {
+			ic  = d_index2d(i,jmax,top_gmax);
+			ic1 = d_index2d(i,jmax+1,top_gmax);
+			if (domain_status[ic]  == NOT_SOLVED &&
+			    domain_status[ic1] == TO_SOLVE)
+			{
+			    ip[0] = i;
+	    	    	    if (nextConnectedPoint(ip,SOUTH,ips[n],
+				paint_method,smin,smax))
+			    {
+				domain_status[ic] = TO_SOLVE;
+				seed_found = YES;
+				n++;
+				break;
+			    }
+			}
+		    }
+		}
+		break;
+	    case 3:
+		if (lbuf[0] != 0)
+		{
+		    ip[0] = imin - 1;
+	    	    for (j = jmin; j <= jmax; ++j)
+		    {
+	    	        for (k = kmin; k <= kmax; ++k)
+		        {
+			    ic  = d_index3d(imin,j,k,top_gmax);
+			    ic1 = d_index3d(imin-1,j,k,top_gmax);
+			    if (domain_status[ic]  == NOT_SOLVED &&
+			    	domain_status[ic1] == TO_SOLVE)
+			    {
+			    	ip[1] = j;
+			    	ip[2] = k;
+	    	    	    	if (nextConnectedPoint(ip,EAST,ips[n],
+				    paint_method,smin,smax))
+			    	{
+				    domain_status[ic] = TO_SOLVE;
+				    seed_found = YES;
+				    n++;
+				    break;
+			    	}
+			    }
+		        }
+			if (seed_found) break;
+		    }
+		}
+		if (seed_found) break;
+		if (ubuf[0] != 0)
+		{
+		    ip[0] = imax + 1;
+	    	    for (j = jmin; j <= jmax; ++j)
+		    {
+	    	        for (k = kmin; k <= kmax; ++k)
+		        {
+			    ic  = d_index3d(imax,j,k,top_gmax);
+			    ic1 = d_index3d(imax+1,j,k,top_gmax);
+			    if (domain_status[ic]  == NOT_SOLVED &&
+			    	domain_status[ic1] == TO_SOLVE)
+			    {
+			    	ip[1] = j;
+			    	ip[2] = k;
+	    	    	    	if (nextConnectedPoint(ip,WEST,ips[n],
+				    paint_method,smin,smax))
+			    	{
+				    domain_status[ic] = TO_SOLVE;
+				    seed_found = YES;
+				    n++;
+				    break;
+			    	}
+			    }
+		        }
+			if (seed_found) break;
+		    }
+		}
+		if (seed_found) break;
+		if (lbuf[1] != 0)
+		{
+		    ip[1] = jmin - 1;
+	    	    for (i = imin; i <= imax; ++i)
+		    {
+	    	        for (k = kmin; k <= kmax; ++k)
+		        {
+			    ic  = d_index3d(i,jmin,k,top_gmax);
+			    ic1 = d_index3d(i,jmin-1,k,top_gmax);
+			    if (domain_status[ic]  == NOT_SOLVED &&
+			    	domain_status[ic1] == TO_SOLVE)
+			    {
+			    	ip[0] = i;
+			    	ip[2] = k;
+	    	    	    	if (nextConnectedPoint(ip,NORTH,ips[n],
+				    paint_method,smin,smax))
+			    	{
+				    domain_status[ic] = TO_SOLVE;
+				    seed_found = YES;
+				    n++;
+				    break;
+			    	}
+			    }
+		        }
+			if (seed_found) break;
+		    }
+		}
+		if (seed_found) break;
+		if (ubuf[1] != 0)
+		{
+		    ip[1] = jmax + 1;
+	    	    for (i = imin; i <= imax; ++i)
+		    {
+	    	        for (k = kmin; k <= kmax; ++k)
+		        {
+			    ic  = d_index3d(i,jmax,k,top_gmax);
+			    ic1 = d_index3d(i,jmax+1,k,top_gmax);
+			    if (domain_status[ic]  == NOT_SOLVED &&
+			    	domain_status[ic1] == TO_SOLVE)
+			    {
+			    	ip[0] = i;
+			    	ip[2] = k;
+	    	    	    	if (nextConnectedPoint(ip,SOUTH,ips[n],
+				    paint_method,smin,smax))
+			    	{
+				    domain_status[ic] = TO_SOLVE;
+				    seed_found = YES;
+				    n++;
+				    break;
+			    	}
+			    }
+		        }
+			if (seed_found) break;
+		    }
+		}
+		if (seed_found) break;
+		if (lbuf[2] != 0)
+		{
+		    ip[2] = kmin - 1;
+	    	    for (i = imin; i <= imax; ++i)
+		    {
+	    	        for (j = jmin; j <= jmax; ++j)
+		        {
+			    ic  = d_index3d(i,j,kmin,top_gmax);
+			    ic1 = d_index3d(i,j,kmin-1,top_gmax);
+			    if (domain_status[ic]  == NOT_SOLVED &&
+			    	domain_status[ic1] == TO_SOLVE)
+			    {
+			    	ip[0] = i;
+			    	ip[1] = j;
+	    	    	    	if (nextConnectedPoint(ip,UPPER,ips[n],
+				    paint_method,smin,smax))
+			    	{
+				    domain_status[ic] = TO_SOLVE;
+				    seed_found = YES;
+				    n++;
+				    break;
+			    	}
+			    }
+		        }
+			if (seed_found) break;
+		    }
+		}
+		if (seed_found) break;
+		if (ubuf[2] != 0)
+		{
+		    ip[2] = kmax + 1;
+	    	    for (i = imin; i <= imax; ++i)
+		    {
+	    	        for (j = jmin; j <= jmax; ++j)
+		        {
+			    ic  = d_index3d(i,j,kmax,top_gmax);
+			    ic1 = d_index3d(i,j,kmax+1,top_gmax);
+			    if (domain_status[ic]  == NOT_SOLVED &&
+			    	domain_status[ic1] == TO_SOLVE)
+			    {
+			    	ip[0] = i;
+			    	ip[1] = j;
+	    	    	    	if (nextConnectedPoint(ip,LOWER,ips[n],
+				    paint_method,smin,smax))
+			    	{
+				    domain_status[ic] = TO_SOLVE;
+				    seed_found = YES;
+				    n++;
+				    break;
+			    	}
+			    }
+		        }
+			if (seed_found) break;
+		    }
+		}
+		break;
+	    }
+	    seed_found = pp_max_status(seed_found);
 	}
+
 	stop_clock("paint_color");
 	return YES;
 }	/* end paintToSolveGridPoint */

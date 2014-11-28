@@ -26,6 +26,7 @@ Enter projection type: SIMPLE
 Enter number of canopy surfaces: 3
 
 Enter yes to use CGAL to generate mesh: yes
+For module 1
 Enter canopy surface type: P
 Enter circle center: 0 0
 Enter circle radius: 5.2915
@@ -47,6 +48,7 @@ Enter displacement of translation: 0 0 0
 Enter yes for rotation of canopy: y
 Enter center of rotation: 0 0 2
 Enter azimuthal and polar angles: 0 20
+For module 2
 Enter canopy surface type: P
 Enter circle center: 0 0
 Enter circle radius: 5.2915
@@ -68,6 +70,7 @@ Enter displacement of translation: 0 0 0
 Enter yes for rotation of canopy: y
 Enter center of rotation: 0 0 2
 Enter azimuthal and polar angles: 120 20
+For module 3
 Enter canopy surface type: P
 Enter circle center: 0 0
 Enter circle radius: 5.2915

@@ -588,6 +588,13 @@ EXPORT	void FT_ParallelExchGridArrayBuffer(
 	scatter_top_grid_float_array(DUAL_GRID,grid_array,front,symmetry);
 }	/* end FT_ParallelExchGridArrayBuffer */
 
+EXPORT	void FT_ParallelExchGridIntArrayBuffer(
+	int *iarray,
+	Front *front)
+{
+	scatter_top_grid_int_array(DUAL_GRID,iarray,front);
+}	/* end FT_ParallelExchGridIntArrayBuffer */
+
 EXPORT	void FT_ParallelExchGridVectorArrayBuffer(
 	double **vec_grid_array,
 	Front *front)

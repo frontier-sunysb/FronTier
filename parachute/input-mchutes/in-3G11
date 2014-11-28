@@ -10,7 +10,7 @@ Lower boundary in 2-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 2-th dimension: DIRICHLET_BOUNDARY
 
 Max time: 6.0
-Max step: 2000
+Max step: 1000
 Print interval: 0.05
 Movie frame interval: 0.05
 CFL factor: 0.5
@@ -26,6 +26,7 @@ Enter projection type: SIMPLE
 Enter number of canopy surfaces: 3
 
 Enter yes to use CGAL to generate mesh: yes
+For module 1
 Enter canopy surface type: FLAT
 Enter type of canopy boundary: C
 Enter the height of the plane: 20
@@ -43,6 +44,7 @@ Enter displacement of translation: 0 0 0
 Enter yes for rotation of canopy: y
 Enter center of rotation: 0 0 2
 Enter azimuthal and polar angles: 0 25
+For module 2
 Enter canopy surface type: FLAT
 Enter type of canopy boundary: C
 Enter the height of the plane: 20
@@ -60,6 +62,7 @@ Enter displacement of translation: 0 0 0
 Enter yes for rotation of canopy: y
 Enter center of rotation: 0 0 2
 Enter azimuthal and polar angles: 120 25
+For module 3
 Enter canopy surface type: FLAT
 Enter type of canopy boundary: C
 Enter the height of the plane: 20

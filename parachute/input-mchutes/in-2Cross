@@ -10,9 +10,9 @@ Lower boundary in 2-th dimension: DIRICHLET_BOUNDARY
 Upper boundary in 2-th dimension: DIRICHLET_BOUNDARY
 
 Max time: 6.0
-Max step: 2000
-Print interval: 0.05
-Movie frame interval: 0.05
+Max step: 1000
+Print interval: 0.1
+Movie frame interval: 0.1
 CFL factor: 0.5
 Redistribution interval: 10000000
 
@@ -27,71 +27,63 @@ Enter number of canopy surfaces: 2
 
 Enter yes to use CGAL to generate mesh: yes
 
+For module 1
+Available canopy surface types are:
+        FLAT (F)
+        PARABOLIC (P)
+        ELLIPTIC (E)
 Enter canopy surface type: FLAT
+Available types of canopy boundaries are:
+        Circular (C)
+        Rectangular (R)
+        Elliptic (E)
+        Cross (X)
+        Wing (W)
 Enter type of canopy boundary: X
 Enter the height of the plane: 20
 Enter lower bounds of first rectangle: -1.5 -4.5
 Enter upper bounds of first rectangle: 1.5 4.5
 Enter lower bounds of second rectangle: -4.5 -1.5
 Enter upper bounds of second rectangle: 4.5 1.5
-Enter yes to attach strings to canopy: yes
-Available string chord configurations are
-	Parallel (P)
-	Angular (A)
-Enter string configuration type: P
-Enter number of paris in x-direction: 5
-Enter start and end x-coordinates: -1.5 1.5
-Enter y position of lower and upper sides: -4.5 4.5
-Enter number of paris in y-direction: 5
-Enter start and end y-coordinates: -1.5 1.5
-Enter x position of lower and upper sides: -4.5 4.5
-Enter yes to attach gores to canopy: no 
+Enter yes to attach gores to canopy: no
 Enter number of chords on one side: 5
+Entering yes to fold surface: no
+Entering yes to sew surface: no
 Enter yes to attach strings to canopy: yes
-Enter gore length factor: 1.0
-Enter number of chords: 30
-Enter start angle of chord: 6.263185
-Enter initial position of load: 0 0 6
-Enter rotation angles: 0.0
+Enter initial position of load: 0.000000 0.000000 6.000000
 Entering yes to modify initialization: yes
-Enter yes for translation of canopy: n
-Enter displacement of translation: 0 0 0
-Enter yes for rotation of canopy: y
-Enter center of rotation: 0 0 2
-Enter azimuthal and polar angles: 45 20
+Enter yes for rotation of canopy: yes
+Enter center of rotation: 0.000000 0.000000 2.000000
+Enter azimuthal and polar angles: 45.000000 20.000000
 
+For module 2
+Available canopy surface types are:
+        FLAT (F)
+        PARABOLIC (P)
+        ELLIPTIC (E)
 Enter canopy surface type: FLAT
+Available types of canopy boundaries are:
+        Circular (C)
+        Rectangular (R)
+        Elliptic (E)
+        Cross (X)
+        Wing (W)
 Enter type of canopy boundary: X
 Enter the height of the plane: 20
 Enter lower bounds of first rectangle: -1.5 -4.5
 Enter upper bounds of first rectangle: 1.5 4.5
 Enter lower bounds of second rectangle: -4.5 -1.5
 Enter upper bounds of second rectangle: 4.5 1.5
-Enter yes to attach strings to canopy: yes
-Available string chord configurations are
-	Parallel (P)
-	Angular (A)
-Enter string configuration type: P
-Enter number of paris in x-direction: 5
-Enter start and end x-coordinates: -1.5 1.5
-Enter y position of lower and upper sides: -4.5 4.5
-Enter number of paris in y-direction: 5
-Enter start and end y-coordinates: -1.5 1.5
-Enter x position of lower and upper sides: -4.5 4.5
-Enter yes to attach gores to canopy: no 
+Enter yes to attach gores to canopy: no
 Enter number of chords on one side: 5
+Entering yes to fold surface: no
+Entering yes to sew surface: no
 Enter yes to attach strings to canopy: yes
-Enter gore length factor: 1.0
-Enter number of chords: 30
-Enter start angle of chord: 6.263185
-Enter initial position of load: 0 0 6
-Enter rotation angles: 0.0
+Enter initial position of load: 0.000000 0.000000 6.000000
 Entering yes to modify initialization: yes
-Enter yes for translation of canopy: n
-Enter displacement of translation: 0 0 0
-Enter yes for rotation of canopy: y
-Enter center of rotation: 0 0 2
-Enter azimuthal and polar angles: 225 20
+Enter yes for rotation of canopy: yes
+Enter center of rotation: 0.000000 0.000000 2.000000
+Enter azimuthal and polar angles: 225.000000 20.000000
 
 Enter center of rotation: 0 0 2
 Enter new load position: 0 0 -4
