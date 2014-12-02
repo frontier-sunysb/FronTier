@@ -58,6 +58,7 @@ void L_RECTANGLE::setCoords(
 //------------------------------------------------------------------------------
 Incompress_Solver_Smooth_Basis::Incompress_Solver_Smooth_Basis(Front &front):front(&front)
 {
+	skip_neumann_solver = 0;
 }
 
 //---------------------------------------------------------------
@@ -2599,7 +2600,7 @@ start_loop:
 			    domain_status[ic1] == TO_SOLVE)
 			{
 			    ip[1] = j;
-	    	    	    if (nextConnectedPoint(ip,EAST,ips[n],
+	    	    	    if (nextConnectedPoint(ip,WEST,ips[n],
 				paint_method,smin,smax))
 			    {
 				domain_status[ic] = TO_SOLVE;
@@ -3549,7 +3550,6 @@ double Incompress_Solver_Smooth_Basis::computeDualFieldPointDiv(
 	int idir,nb;
 	int ic[MAXD],icu[MAXD],icl[MAXD];
 	double du;
-	static int count = 0;
 
 	for (i = 0; i < dim; ++i)
 	{

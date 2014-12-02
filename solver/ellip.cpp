@@ -612,13 +612,13 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
 	start_clock("Petsc Solver");
 	if (use_neumann_solver)
 	{
-	    printf("\nUsing Neumann Solver!\n");
-	    if (size < 8)
+	    if (skip_neumann_solver)
 	    {
-	    	(void) printf("Isolated small region for solve3d()\n");
+	    	(void) printf("Skip isolated small region for solve3d()\n");
 		stop_clock("Petsc Solver");
 		return;
 	    }
+	    printf("\nUsing Neumann Solver!\n");
 	    solver.Solve_withPureNeumann();
 	    solver.GetNumIterations(&num_iter);
 	    solver.GetFinalRelativeResidualNorm(&rel_residual);

@@ -243,6 +243,7 @@ public:
                                 POINTER*,HYPER_SURF**,double*);
 	double checkSolver(int *icoords,boolean print_details);
 	double dcheckSolver(int *icoords,boolean print_details);
+	int skip_neumann_solver;
 private:
         // Dimension
         int dim;

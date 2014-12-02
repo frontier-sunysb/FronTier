@@ -279,6 +279,8 @@ public:
 	virtual void solve(double dt) = 0; // main step function
         virtual void vtk_plot_scalar(char*, const char*) = 0;
 
+	int skip_neumann_solver;
+
 protected:
 	Front *front;
 	Front *base_front;	// for convergence tests

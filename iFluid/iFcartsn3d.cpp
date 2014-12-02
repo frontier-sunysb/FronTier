@@ -1580,6 +1580,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::computeProjectionSimple(void)
             elliptic_solver.ijk_to_I = ijk_to_I;
             elliptic_solver.ilower = ilower;
             elliptic_solver.iupper = iupper;
+            elliptic_solver.skip_neumann_solver = skip_neumann_solver;
 	    if (iFparams->total_div_cancellation)
             	elliptic_solver.dsolve(array);
 	    else
