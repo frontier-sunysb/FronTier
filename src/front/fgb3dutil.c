@@ -5165,7 +5165,9 @@ LOCAL void unset_comp_along_grid_line(
 		    COMPONENT icn;
 		    ic = d_index3d(ip[0],ip[1],ip[2],gmax);
 		    icn = d_index3d(ipn[0],ipn[1],ipn[2],gmax);
-		    if (comp[ic] != comp[icn])
+		    if (comp[ic] == NO_COMP || comp[icn] == NO_COMP)
+			continue;
+		    else if (comp[ic] != comp[icn])
 		    {
 			if (comp[ic] != exterior_component(intfc))
 		    	    comp[ic] = NO_COMP;
