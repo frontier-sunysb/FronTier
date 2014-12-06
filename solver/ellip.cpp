@@ -602,6 +602,7 @@ void ELLIPTIC_SOLVER::solve3d(double *soln)
                 solver.Set_A(I,I,1.0);
 		rhs = soln[index];
             }
+	    if (num_nb == 1 && rhs < 0.0) rhs *= -1.0;
             solver.Set_b(I,rhs);
 	}
 	use_neumann_solver = pp_min_status(use_neumann_solver);

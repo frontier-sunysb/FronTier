@@ -697,9 +697,11 @@ EXPORT void   init_intfc_curvature3d(
 		print_general_vector("p=", Coords(p), 3, "\n");
 		nt = set_tri_list_around_point(p,Tri_of_hse(hse),&ptris,intfc);
 		p->curvature = 0.0;
-		for(i=0; i<nt; i++)
-		    print_tri(ptris[i], intfc);
-		tecplot_tris("cur_tst", ptris, nt);
+		for(i = 0; i < nt; i++)
+		{
+		    print_tri_coords(ptris[i]);
+		    printf("\n");
+		}
 	   }
         }
 	intfc->normal_unset = NO;

@@ -2562,7 +2562,7 @@ start_loop:
 	    }
 	    FT_ParallelExchGridIntArrayBuffer(domain_status,front);
 	    seed_found = NO;
-	    ip = ips[n];
+	    ip = ipn;
 	    switch (dim)
 	    {
 	    case 2:
