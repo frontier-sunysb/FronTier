@@ -56,14 +56,11 @@ LOCAL	boolean	buffer_extension3d3(INTERFACE*,INTERFACE*,int,int,boolean);
 LOCAL	boolean	match_tris_at_subdomain_bdry(SURFACE*,SURFACE*,TRI**,TRI**,
 	                                     int,int);
 LOCAL	boolean	match_two_tris(TRI*,TRI*);
-LOCAL	boolean	tri_cross_line(TRI*,double,int);
 LOCAL	int	append_adj_intfc_to_buffer3(INTERFACE*,INTERFACE*,
 					   RECT_GRID*,int,int);
 LOCAL	int	append_buffer_surface3(SURFACE*,SURFACE*,RECT_GRID*,int,int,
 				      P_LINK*,int);
 LOCAL	void	clip_intfc_at_grid_bdry3(INTERFACE*);
-LOCAL	boolean	tri_bond_cross_line(TRI*,double,int);
-LOCAL	boolean	tri_bond_cross_test(TRI*,double,int);
 LOCAL	void	synchronize_tris_at_subdomain_bdry(TRI**,TRI**,int,P_LINK*,int);
 LOCAL 	INTERFACE *cut_intfc_to_wave_type(INTERFACE*,int);
 LOCAL 	void 	delete_surface_set(SURFACE*);
@@ -570,78 +567,6 @@ LOCAL	void	synchronize_tris_at_subdomain_bdry(
 	    }
 	}
 }		/*end synchronize_tris_at_subdomain_bdry*/
-
-LOCAL	boolean	tri_cross_line(
-	TRI		*tri,
-	double		crx_coord,
-	int		dir)
-{
-	double	min_coord, max_coord;
-	double	crx_tol = tol1[dir];
-
-	min_coord = max_coord = Coords(Point_of_tri(tri)[0])[dir];
-
-	if (min_coord > Coords(Point_of_tri(tri)[1])[dir])
-	    min_coord = Coords(Point_of_tri(tri)[1])[dir];
-	if (min_coord > Coords(Point_of_tri(tri)[2])[dir])
-	    min_coord = Coords(Point_of_tri(tri)[2])[dir];
-
-	if (max_coord < Coords(Point_of_tri(tri)[1])[dir])
-	    max_coord = Coords(Point_of_tri(tri)[1])[dir];
-	if (max_coord < Coords(Point_of_tri(tri)[2])[dir])
-	    max_coord = Coords(Point_of_tri(tri)[2])[dir];
-	
-	return (((min_coord - crx_coord) <= crx_tol) && 
-	        ((crx_coord - max_coord) <= crx_tol)) ? YES : NO;
-}		/*end tri_cross_line*/
-
-/*NO    no bond side or no tri crx line
-  YES   one tri crx line
-*/
-LOCAL	boolean	tri_bond_cross_line(
-	TRI		*tri,
-	double		crx_coord,
-	int		dir)
-{
-	int		i;
-	BOND		*b;
-	BOND_TRI	**btris;
-
-	for(i=0; i<3; i++)
-	{
-	    if(!is_side_bdry(tri, i))
-	        continue;
-	    b = Bond_on_side(tri, i);
-	    for(btris = Btris(b); btris && *btris; btris++)
-	    	if(tri_cross_line((*btris)->tri,crx_coord,dir))
-	            return YES;
-	}
-	return NO;
-}
-
-LOCAL boolean tri_bond_cross_test(
-	TRI		*tri,
-	double		crx_coord,
-	int		dir)
-{
-	int	i, j, n;
-	TRI	**tris;
-	POINT	*p;
-
-	for(i = 0; i < 3; i++)
-	{
-	    if(Boundary_point(Point_of_tri(tri)[i]))
-	    {
-	        p = Point_of_tri(tri)[i];
-		n = set_tri_list_around_point(p,tri,&tris,tri->surf->interface);
-		if (tri_bond_cross_line(tris[0],crx_coord,dir) && 
-	   	    tri_bond_cross_line(tris[n-1],crx_coord,dir))
-	    	    return YES;
-	    }
-	}
-	return NO;
-}
-
 
 LOCAL boolean match_tris_at_subdomain_bdry(
 	SURFACE		*surf,

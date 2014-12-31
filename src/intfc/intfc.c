@@ -6442,14 +6442,16 @@ EXPORT	void	order_interface(
 	for (cur = intfc->curves; cur && *cur; cur++)
 	{
 	    cc = *cur;
-	    for (bb=cc->first; bb != NULL; bb=bb->next)
+	    for (bb = cc->first; bb != NULL; bb = bb->next)
 	    {
 	        for (j=0,btris0=Btris(cc->first); btris0+j && btris0[j]; ++j)
 		{
 		    for (i=j,btris=Btris(bb); btris+i && btris[i]; ++i)
 		    {
 		    
-			if((btris[i])->surface == (btris0[j])->surface && i != j)
+			if ((btris[i])->surface == (btris0[j])->surface && 
+			    (btris[i])->orient == (btris0[j])->orient &&
+				i != j)
 			{
 			    tmpbtri = btris[i];
 			    btris[i] = btris[j];

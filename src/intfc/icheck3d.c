@@ -230,6 +230,7 @@ LOCAL	boolean i_consistent_interface3d(
 	const char         *warn = "WARNING in i_consistent_interface(), ";
 
 	/* Check Nodes */
+	printf("Test consistent_interface()\n");
 	for (n = intfc->nodes; n && *n; ++n)
 	{
 	    if ((*n)->interface != intfc)
@@ -325,10 +326,10 @@ LOCAL	boolean i_consistent_interface3d(
 		    if (!consistent_tri_list)
 		    {
 		        (void) printf("\n%s Corrupt tri list s (%llu) "
-	    	                      "p(%llu) - (%g, %g, %g)\n",
-				      warn,(long long unsigned int)surface_number(s),
-	    		              (long long unsigned int)point_number(p),
-	    		              Coords(p)[0],Coords(p)[1],Coords(p)[2]);
+	    	                      "p(%llu) - (%g, %g, %g)\n",warn,
+				(long long unsigned int)surface_number(s),
+	    		        (long long unsigned int)point_number(p),
+	    		        Coords(p)[0],Coords(p)[1],Coords(p)[2]);
 		        print_tri(tri,hs->interface);
 		        (void) printf("%d tris about point\n",ntris);
 		        for (i = 0; i < ntris; ++i)
@@ -363,7 +364,7 @@ LOCAL	boolean i_consistent_interface3d(
 		    b = Bond_on_side(tris[0],nside);
 		else if (is_side_bdry(tris[0],pside))
 		    b = Bond_on_side(tris[0],pside);
-		else
+		else if (!allow_null_sides)
 		{
 		    int i;
 	            (void) printf("%s Boundary_point has no adjacent "
@@ -379,6 +380,8 @@ LOCAL	boolean i_consistent_interface3d(
 		    }
 		    status = NO;
 		}
+		else
+		    continue;
 		tri = tris[0];
 	    }
 	    for (bts = Btris(b); bts && *bts; ++bts)
@@ -387,8 +390,9 @@ LOCAL	boolean i_consistent_interface3d(
 	    if ((bts == NULL) || (*bts == NULL))
 	    {
 		(void) printf("%s bond tri for tri  not found\n",warn);
-	    	(void) printf("p(%llu) - (%g, %g, %g), ",(long long unsigned int)point_number(p),
-	    		      Coords(p)[0],Coords(p)[1],Coords(p)[2]);
+	    	(void) printf("p(%llu) - (%g, %g, %g), ",
+				(long long unsigned int)point_number(p),
+	    		      	Coords(p)[0],Coords(p)[1],Coords(p)[2]);
 		print_tri(tri,hs->interface);
 		print_bond(b);
 		status = NO;
@@ -398,8 +402,9 @@ LOCAL	boolean i_consistent_interface3d(
 	        if ((*bts)->bond != b)
 	        {
 		    (void) printf("%s (*bts)->bond != b\n",warn);
-	    	    (void) printf("p(%llu) - (%g, %g, %g), ",(long long unsigned int)point_number(p),
-	    		          Coords(p)[0],Coords(p)[1],Coords(p)[2]);
+	    	    (void) printf("p(%llu) - (%g, %g, %g), ",
+				(long long unsigned int)point_number(p),
+	    		        Coords(p)[0],Coords(p)[1],Coords(p)[2]);
 		    print_tri(tri,hs->interface);
 		    print_bond(b);
 		    status = NO;
@@ -408,8 +413,9 @@ LOCAL	boolean i_consistent_interface3d(
 	        {
 	            (void) printf("%s inconsistent surfaces at bond tri\n",
 				  warn);
-	    	    (void) printf("p(%llu) - (%g, %g, %g), ",(long long unsigned int)point_number(p),
-	    		          Coords(p)[0],Coords(p)[1],Coords(p)[2]);
+	    	    (void) printf("p(%llu) - (%g, %g, %g), ",
+				(long long unsigned int)point_number(p),
+	    		        Coords(p)[0],Coords(p)[1],Coords(p)[2]);
 		    print_tri(tri,hs->interface);
 		    print_bond(b);
 		    status = NO;
@@ -418,8 +424,9 @@ LOCAL	boolean i_consistent_interface3d(
 		{
 		    (void) printf("%s inconsistent orientation at bond tri\n",
 				  warn);
-	    	    (void) printf("p(%llu) - (%g, %g, %g), ",(long long unsigned int)point_number(p),
-	    		          Coords(p)[0],Coords(p)[1],Coords(p)[2]);
+	    	    (void) printf("p(%llu) - (%g, %g, %g), ",
+				(long long unsigned int)point_number(p),
+	    		        Coords(p)[0],Coords(p)[1],Coords(p)[2]);
 		    print_tri(tri,hs->interface);
 		    print_bond(b);
 		    status = NO;
@@ -440,8 +447,9 @@ LOCAL	boolean i_consistent_interface3d(
 		    c = NULL;
 	            (void) printf("%s undetermined orientation at "
 				  "bond on tri\n",warn);
-	    	    (void) printf("p(%llu) - (%g, %g, %g), ",(long long unsigned int)point_number(p),
-	    		          Coords(p)[0],Coords(p)[1],Coords(p)[2]);
+	    	    (void) printf("p(%llu) - (%g, %g, %g), ",
+				(long long unsigned int)point_number(p),
+	    		        Coords(p)[0],Coords(p)[1],Coords(p)[2]);
 		    print_tri(tri,hs->interface);
 		    print_bond(b);
 		    status = NO;
@@ -450,8 +458,9 @@ LOCAL	boolean i_consistent_interface3d(
 	        if ((c == NULL) || (*c == NULL))
 	        {
 		    (void) printf("%s curve with bond on tri not found\n",warn);
-	    	    (void) printf("p(%llu) - (%g, %g, %g), ",(long long unsigned int)point_number(p),
-	    		          Coords(p)[0],Coords(p)[1],Coords(p)[2]);
+	    	    (void) printf("p(%llu) - (%g, %g, %g), ",
+				(long long unsigned int)point_number(p),
+	    		        Coords(p)[0],Coords(p)[1],Coords(p)[2]);
 		    print_tri(tri,hs->interface);
 		    print_bond(b);
 		    status = NO;
@@ -464,8 +473,9 @@ LOCAL	boolean i_consistent_interface3d(
 	            if (bb == NULL)
 	            {
 		        (void) printf("%s bond not on curve\n",warn);
-	    	        (void) printf("p(%llu) - (%g, %g, %g), ",(long long unsigned int)point_number(p),
-	    		              Coords(p)[0],Coords(p)[1],Coords(p)[2]);
+	    	        (void) printf("p(%llu) - (%g, %g, %g), ",
+				(long long unsigned int)point_number(p),
+	    		        Coords(p)[0],Coords(p)[1],Coords(p)[2]);
 		        print_tri(tri,hs->interface);
 		        print_bond(b);
 		        print_curve(*c);
@@ -859,10 +869,11 @@ LOCAL	boolean	check_curve3d(
 	            ntris = set_tri_list_around_point(b->start,tri,&tris,intfc);
 		    t0 = tris[0]; t1 = tris[ntris-1];
 		    if (!(((side_of_tri_with_bond(b,t0) < 3) &&
-			      (side_of_tri_with_bond(b->prev,t1) < 3))
+			   (side_of_tri_with_bond(b->prev,t1) < 3))
 		        ||
-			     ((side_of_tri_with_bond(b,t1) < 3) &&
-			      (side_of_tri_with_bond(b->prev,t0) < 3)))
+			  ((side_of_tri_with_bond(b,t1) < 3) &&
+			   (side_of_tri_with_bond(b->prev,t0) < 3)))
+			&& !allow_null_sides
 		       )
 		    {
 			(void) printf("%s, corrupt tri list at b->start\n",

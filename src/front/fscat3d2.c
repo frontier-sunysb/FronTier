@@ -55,7 +55,7 @@ LOCAL	boolean      reconstruct_tris_in_rfl_block(SURFACE*,TRI**,TRI**,int*,
 	 				        RECT_GRID*,int,int);
 LOCAL	boolean      reflect_buffer_interface(INTERFACE*,int,int,boolean);
 LOCAL	boolean      tri_on_bound(TRI*,double,int);
-LOCAL	boolean      tri_out_domain2(TRI*,double*,double*,int,int);
+LOCAL	boolean      tri_center_out_domain(TRI*,double*,double*,int,int);
 LOCAL	boolean      tri_side_on_bound(TRI*,double,int,int*);
 LOCAL	double     dist2_between_tris(TRI*,TRI*,int*);
 LOCAL	void      clip_intfc_at_grid_bdry2(INTERFACE*);
@@ -467,8 +467,16 @@ LOCAL   void  check_bond_comp(
 	{
 	    printf("b1->start = %p  b2->start = %p\n",(void*)b1->start,
 				(void*)b2->start);
+	    printf("Coordinates: (%f, %f, %f)  (%f, %f, %f)\n",
+			Coords(b1->start)[0],Coords(b1->start)[1],
+			Coords(b1->start)[2],Coords(b2->start)[0],
+			Coords(b2->start)[1],Coords(b2->start)[2]);
 	    printf("b1->end   = %p  b2->end   = %p\n",(void*)b1->end,
 				(void*)b2->end);
+	    printf("Coordinates: (%f, %f, %f)  (%f, %f, %f,)\n",
+			Coords(b1->end)[0],Coords(b1->end)[1],
+			Coords(b1->end)[2],Coords(b2->end)[0],
+			Coords(b2->end)[1],Coords(b2->end)[2]);
 	    printf("start gindex: %ld %ld\n",Gindex(b1->start),
 				Gindex(b2->start));
 	    printf("end   gindex: %ld %ld\n",Gindex(b1->end),Gindex(b2->end));
@@ -754,8 +762,10 @@ merge_curve:
 		if(first_match)
 		{
 		    /*check if c is included in curve, b1 \in c, b2 \in curve */
-		    for(b2 = bc, b1=bo; b2 && b1; b2 = b2->next, b1 = b1->next)
+		    for (b2 = bc, b1=bo; b2 && b1; b2 = b2->next, b1 = b1->next)
+		    {
 			check_bond_comp("merge_curves", b1, b2);
+		    }
 		    if(b1 == NULL)
 		    continue;
 
@@ -795,7 +805,9 @@ merge_curve:
 		    /*check if c is included in curve, b1 \in c, b2 \in curve */
 		    for (b2 = bc, b1 = bo; b2 && b1; 
 			 b2 = b2->prev, b1 = b1->prev)
+		    {
 			check_bond_comp("merge_curves", b1, b2);
+		    }
 		    if(b1 == NULL)
 		    continue;
 
@@ -1510,7 +1522,7 @@ LOCAL void open_null_sides2(
 	{
 	    for (tri=first_tri(*s); !at_end_of_tri_list(tri,*s); tri=tri->next)
 	    {
-	    	if (tri_out_domain2(tri,L,U,dir,nb))
+	    	if (tri_center_out_domain(tri,L,U,dir,nb))
 	    	{
 	    	    remove_out_domain_tri(tri,*s);
 	    	}
@@ -1527,7 +1539,7 @@ LOCAL void open_null_sides2(
 	DEBUG_LEAVE(open_null_sides2)
 }		/*end open_null_sides2*/
 
-LOCAL boolean tri_out_domain2(
+LOCAL boolean tri_center_out_domain(
 	TRI		*tri,
 	double		*L,
 	double		*U,
@@ -1554,7 +1566,7 @@ LOCAL boolean tri_out_domain2(
 		return YES;
 	}
 	return NO;
-}	/* end tri_out_domain2 */
+}	/* end tri_center_out_domain */
 
 LOCAL void clip_intfc_at_grid_bdry2(
 	INTERFACE	*intfc)

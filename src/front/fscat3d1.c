@@ -67,8 +67,7 @@ LOCAL	boolean	match_tris_at_subdomain_bdry(SURFACE*,SURFACE*,TRI**,TRI**,
 	                                     int,int);
 LOCAL	boolean	match_two_tris(TRI*,TRI*);
 LOCAL	boolean	null_side_on_surface(SURFACE*,TRI**,int*);
-LOCAL	boolean	tri_cross_line(TRI*,double,int);
-LOCAL	boolean	tri_out_domain1(TRI*,double*,double*,int,int);
+LOCAL	boolean	tri_out_domain(TRI*,double*,double*,int,int);
 LOCAL	boolean	bond_out_domain1(BOND*,double*,double*,int,int);
 LOCAL	int	append_adj_intfc_to_buffer1(INTERFACE*,INTERFACE*,
 					   RECT_GRID*,int,int);
@@ -79,8 +78,6 @@ LOCAL	boolean	append_other_curves1(INTERFACE*,INTERFACE*,RECT_GRID*,int,int,
 LOCAL	void	clip_intfc_at_grid_bdry1(INTERFACE*);
 LOCAL	boolean	tri_bond_out_domain(TRI*,double*,double*,int,int);
 LOCAL	boolean	tri_bond_test(TRI*,double*,double*,int,int);
-LOCAL	boolean	tri_bond_cross_line(TRI*,double,int);
-LOCAL	boolean	tri_bond_cross_test(TRI*,double,int);
 LOCAL	void	copy_tri_state_to_btri(BOND_TRI*,BOND*,ORIENTATION,INTERFACE *);
 LOCAL	void	merge_point_pointers_at_subdomain_bdry(TRI**,TRI**,
 						       int,P_LINK*,int);
@@ -1608,8 +1605,6 @@ LOCAL	boolean f_intfc_communication3d1(
 	    print_interface(intfc);
 	}
 
-	if(fr->step == -1)
-	    add_to_debug("out_surf");
 	/* Extend interface in three directions */
 
         construct_reflect_bdry(fr);
@@ -1658,19 +1653,14 @@ LOCAL	boolean f_intfc_communication3d1(
 		    reflect_interface(buf_intfc,p,nor);
 		    adj_intfc[j] = buf_intfc;
 		}
-                /*
-                else if (rect_boundary_type(intfc,i,j) == REFLECTION_BOUNDARY)
-                {
-                    adj_intfc[j] = NULL;
-                    set_current_interface(intfc);
-                }
-                */
 		if (rect_boundary_type(intfc,i,(j+1)%2) == SUBDOMAIN_BOUNDARY)
 		{
 		    him[i] = (me[i] - 2*j + 1 + G[i])%G[i];
 		    dst_id = domain_id(him,G,dim);
 		    if (dst_id != myid)
+		    {
 			adj_intfc[(j+1)%2] = receive_interface(dst_id);
+		    }
 		}
 
 	    }
@@ -1717,7 +1707,6 @@ LOCAL	boolean f_intfc_communication3d1(
 	}
 
 comm_exit:
-
 	set_copy_intfc_states(sav_copy);
 	set_current_interface(sav_intfc);
 	DEBUG_LEAVE(f_intfc_communication3d1)
@@ -2178,21 +2167,6 @@ LOCAL int append_buffer_surface1(
 	    print_surface(adj_surf);
 	}
 	
-	if(debugging("out_surf"))
-	{
-	    char   s[40];
-	    
-	    printf("#check curve_surf\n");
-	    check_surface_curve(surf);
-	    printf("#check_curve adj_surf\n");
-	    check_surface_curve(adj_surf);
-
-	    sprintf(s, "surf_%d", pp_mynode());
-	    tecplot_surface(s, NULL, surf);
-	    sprintf(s, "adj_surf_%d", pp_mynode());
-	    tecplot_surface(s, NULL, adj_surf);
-	}
-
 	if (len_tris_s < surf->num_tri)
 	{
 	    len_tris_s = surf->num_tri;
@@ -2225,7 +2199,9 @@ LOCAL int append_buffer_surface1(
 	{
 	    if (tri_cross_line(tri,crx_coord,dir) == YES ||
 		tri_bond_cross_test(tri,crx_coord,dir) == YES)
+	    {
 		tris_a[na++] = tri;
+	    }
 	}
 
 	/* Add matching points to the hashing table p_table */
@@ -2266,25 +2242,25 @@ LOCAL int append_buffer_surface1(
 	link_tri_list_to_surface(first_tri(surf),last_tri(adj_surf),surf);
 	
 	/* BEGIN curves in adj_surf should be added to surf. */
-	for(c=adj_surf->pos_curves; c && *c; c++)
-	    if(! delete_from_pointers(adj_surf, &(*c)->pos_surfaces))
+	for (c = adj_surf->pos_curves; c && *c; c++)
+	    if (!delete_from_pointers(adj_surf,&(*c)->pos_surfaces))
 	    {
 	        printf("ERROR: in append_buffer_surface1, "
 		       "adj_surf and pos_curves are not paired.\n");
 		clean_up(ERROR);
 	    }
 	    else
-	        install_curve_in_surface_bdry(surf, *c, POSITIVE_ORIENTATION);
+	        install_curve_in_surface_bdry(surf,*c,POSITIVE_ORIENTATION);
 
-	for(c=adj_surf->neg_curves; c && *c; c++)
-	    if(! delete_from_pointers(adj_surf, &(*c)->neg_surfaces))
+	for (c = adj_surf->neg_curves; c && *c; c++)
+	    if (!delete_from_pointers(adj_surf,&(*c)->neg_surfaces))
 	    {
 	        printf("ERROR: in append_buffer_surface1, "
 		       "adj_surf and neg_curves are not paired.\n");
 		clean_up(ERROR);
 	    }
 	    else
-	        install_curve_in_surface_bdry(surf, *c, NEGATIVE_ORIENTATION);
+	        install_curve_in_surface_bdry(surf,*c,NEGATIVE_ORIENTATION);
 
 	adj_surf->pos_curves = adj_surf->neg_curves = NULL;
 	(void) delete_surface(adj_surf);
@@ -2341,13 +2317,6 @@ LOCAL	void	synchronize_tris_at_subdomain_bdry(
 			    if (p2 == ps[2])
 			    {
 			        rotate_triangle(ts,(3-id)%3);
-				
-				if(debugging("ts_tst"))
-				{
-				    printf("#sync tris af\n");
-				    print_tri(ts, ts->surf->interface);
-				    remove_from_debug("ts_tst");
-				}
 			        set_normal_of_tri(ts);
 			        set_normal_of_tri(ta);
 			        break;
@@ -2361,13 +2330,13 @@ LOCAL	void	synchronize_tris_at_subdomain_bdry(
 	    if(j == nt)
 	    {
 	        printf("WARNING, synchronize_tris_at_subdomain_bdry, "
-		       "suitable triangle is not found.\n");
+		       "suitable triangle not found.\n");
 	        print_tri(ts, ts->surf->interface);
 	    }
 	}
 }		/*end synchronize_tris_at_subdomain_bdry*/
 
-LOCAL	boolean	tri_cross_line(
+EXPORT	boolean	tri_cross_line(
 	TRI		*tri,
 	double		crx_coord,
 	int		dir)
@@ -2394,57 +2363,39 @@ LOCAL	boolean	tri_cross_line(
 /*NO    no bond side or no tri crx line
   YES   one tri crx line
 */
-LOCAL	boolean	tri_bond_cross_line(
-	TRI		*tri,
-	double		crx_coord,
-	int		dir)
-{
-	int		i;
-	BOND		*b;
-	BOND_TRI	**btris;
 
-	for(i=0; i<3; i++)
-	{
-	    if(!is_side_bdry(tri, i))
-	        continue;
-	    b = Bond_on_side(tri, i);
-	    for(btris = Btris(b); btris && *btris; btris++)
-	    	if(tri_cross_line((*btris)->tri,crx_coord,dir))
-	            return YES;
-	}
-	return NO;
-}
-
-LOCAL boolean tri_bond_cross_test(
+EXPORT boolean tri_bond_cross_test(
 	TRI		*tri,
 	double		crx_coord,
 	int		dir)
 {
 	int	i, j, n;
-	TRI	**tris;
+	TRI	**tris,*t;
 	POINT	*p;
+	BOND	*b;
+	BOND_TRI **btris;
 
-	if(tri_bond_cross_line(tri,crx_coord,dir))
-	    return YES;
-	j = 0;
-	for(i=0; i<3; i++)
-	{
-	    if(Boundary_point(Point_of_tri(tri)[i]))
-	    {
-	        p = Point_of_tri(tri)[i];
-	        j++;
+	for (i = 0; i < 3; i++)
+        {
+            p = Point_of_tri(tri)[i];
+            if (Boundary_point(p))
+            {
+		b = bond_of_boundary_point(p,tri);
+                if (b == NULL) continue;
+                for (btris = Btris(b); btris && *btris; ++btris)
+                {
+                    t = (*btris)->tri;
+                    n = set_tri_list_around_point(p,t,&tris,t->surf->interface);
+		    for (j = 0; j < n; ++j)
+		    {
+		    	if (tri_cross_line(tris[j],crx_coord,dir))
+			    return YES;
+		    }
+		}
 	    }
 	}
-
-	if(j != 1)
-	    return NO;
-	n = set_tri_list_around_point(p, tri, &tris, tri->surf->interface);
-	
-	if(tri_bond_cross_line(tris[0],crx_coord,dir) && 
-	   tri_bond_cross_line(tris[n-1],crx_coord,dir) )
-	    return YES;
 	return NO;
-}
+}	/* end tri_bond_cross_line */
 
 
 LOCAL boolean match_tris_at_subdomain_bdry(
@@ -2713,6 +2664,7 @@ LOCAL boolean add_matching_pt_to_hash_table(
 	    double	*pa, *ps;
 	    double	len, min_len;
 
+	    (void) printf("In add_matching_pt_to_hash_table(), status = NO\n");
 	    for (pla = plista; pla != NULL; pla = pla->next)
 	    {
 	        min_len = HUGE_VAL;
@@ -2733,8 +2685,10 @@ LOCAL boolean add_matching_pt_to_hash_table(
 		    }
 		}
 		
+		(void) printf("Closest pair:\n");
 		print_general_vector("pa", pa, 3, "\n");
 		print_general_vector("ps", ps, 3, "\n");
+		(void) printf("\n");
 	    }
 	}
 
@@ -2997,14 +2951,16 @@ EXPORT void open_surf_null_sides(
 	int nb)
 {
 	TRI *tri,*ntri;
+	int i;
+	POINT *p;
 
 	ntri = NULL;
 	for (tri=first_tri(surf); !at_end_of_tri_list(tri,surf); tri=ntri)
 	{
 	    ntri = tri->next;
 	    /* bond with inside tri survives. */
-	    if (tri_out_domain1(tri,L,U,dir,nb) && 
-		tri_bond_test(tri,L,U,dir,nb))
+	    if (tri_bond_test(tri,L,U,dir,nb) &&
+		tri_out_domain(tri,L,U,dir,nb))
 	    {
 	    	remove_out_domain_tri(tri,surf);
 	    }
@@ -3186,7 +3142,7 @@ EXPORT void remove_out_domain_tri(
 }		/*end remove_out_domain_tri*/
 
 
-LOCAL boolean tri_out_domain1(
+LOCAL boolean tri_out_domain(
 	TRI		*tri,
 	double		*L,
 	double		*U,
@@ -3214,7 +3170,7 @@ LOCAL boolean tri_out_domain1(
 	    }
 	}
 	return YES;
-}	/* end tri_out_domain1 */
+}	/* end tri_out_domain */
 
 LOCAL boolean tri_bond_out_domain(
 	TRI		*tri,
@@ -3233,7 +3189,7 @@ LOCAL boolean tri_bond_out_domain(
 	        continue;
 	    b = Bond_on_side(tri,i);
 	    for (btris = Btris(b); btris && *btris; btris++)
-	        if (!tri_out_domain1((*btris)->tri,L,U,dir,nb))
+	        if (!tri_out_domain((*btris)->tri,L,U,dir,nb))
 		    return NO;
 	}
 	return YES;
@@ -3246,23 +3202,33 @@ LOCAL boolean tri_bond_test(
 	int		dir,
 	int		nb)
 {
-	int	i, n;
-	TRI	**tris;
-	POINT	*p;
+	int		i,j,n;
+	POINT		*p;
+	BOND		*b;
+	TRI		**tris,*t;
+	BOND_TRI	**btris;
 
 	for (i = 0; i < 3; i++)
 	{
-	    if (Boundary_point(Point_of_tri(tri)[i]))
+	    p = Point_of_tri(tri)[i];
+	    if (Boundary_point(p))
 	    {
-	        p = Point_of_tri(tri)[i];
-		n = set_tri_list_around_point(p,tri,&tris,tri->surf->interface);
-		if (!tri_bond_out_domain(tris[0],L,U,dir,nb) &&
-	   	    !tri_bond_out_domain(tris[n-1],L,U,dir,nb))
-		    return NO;
+		b = bond_of_boundary_point(p,tri);
+		if (b == NULL) continue;
+		for (btris = Btris(b); btris && *btris; ++btris)
+		{
+		    t = (*btris)->tri;
+		    n = set_tri_list_around_point(p,t,&tris,t->surf->interface);
+		    for (j = 0; j < n; ++j)
+		    {
+			if (!tri_out_domain(tris[j],L,U,dir,nb))
+			    return NO;
+		    }
+		}
 	    }
 	}
 	return YES;
-}
+}	/* end tri_bond_test */
 
 
 LOCAL void clip_intfc_at_grid_bdry1(

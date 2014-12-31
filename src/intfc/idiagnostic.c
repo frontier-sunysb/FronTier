@@ -271,9 +271,9 @@ EXPORT boolean the_tri(TRI *tri)
 	double tol = 1.0e-5;	/* vertices coords must have at least */
 				/* five digits after decimal points */
 
-	double p[3][3] = {{10.52394,10.61321,20.25264},
-			  {10.53335,10.52471,20.30917},
-			  {10.59807,10.57634,20.22635}};
+	double p[3][3] = {{7.086424,   6.177732,  18.731641},
+			  {7.011301,   6.168649,  18.730873},
+			  {7.094202,   6.103728,  18.718782}};
 
 	/*return NO; */
 
@@ -324,7 +324,7 @@ EXPORT boolean the_side(TRI  *tri)
 
 EXPORT boolean the_bond_with_gindex(BOND *bond)
 {
-	long gindex[2] = {12976, 12977};
+	long gindex[2] = {15907, 12804};
 	if (Gindex(bond->start) == gindex[0] &&
 	    Gindex(bond->end) == gindex[1])
 	    return YES;
@@ -361,7 +361,7 @@ EXPORT void print_tri_coords(TRI* tri)
 	for (i = 0; i < 3; i++)
 	{
 	    p = Point_of_tri(tri)[i];
-	    printf("%20.14f %20.14f %20.14f\n",Coords(p)[0],Coords(p)[1],
+	    printf("%10.6f, %10.6f, %10.6f\n",Coords(p)[0],Coords(p)[1],
 					Coords(p)[2]);
 	}
 }	/* end print_tri_coords */
@@ -486,8 +486,8 @@ EXPORT boolean the_bond(BOND *b)
 	double tol = 1.0e-5;	/* vertices coords must have at least */
 				/* five digits after decimal points */
 
-	double p[2][3] = {{6.094954,5.583979,18.000000}, /* Place holder for */
-			 {6.047777,5.575963,18.000000}}; /* coords of end points */
+	double p[2][3] = {{7.0708675,6.3257405,18.7540352}, /* Place holder for */
+			  {7.0630893,6.3997446,18.7635713}}; /* coords of end points */
 	
 	for (i = 0; i < 3; i++)
 	{
@@ -527,8 +527,8 @@ LOCAL boolean the_point_one(POINT *pt, double *p)
 
 EXPORT boolean the_point(POINT *pt)
 {
-	double	p1[3] = {12, 0, 0.519222};
-	double	p2[3] = {0.496094, 0.496094, 0.519222};
+	double	p1[3] = {7.086424, 6.177732, 18.731641};
+	double	p2[3] = {7.086424, 6.177732, 18.731641};
 
 	if(the_point_one(pt,p1) || the_point_one(pt,p2))
 	    return YES;

@@ -264,6 +264,7 @@ IMPORT boolean surf_in_interface(SURFACE*,INTERFACE*);
 IMPORT boolean curve_in_interface(CURVE*,INTERFACE*);
 IMPORT boolean node_in_interface(NODE*,INTERFACE*);
 IMPORT void unit_vector(double*,double*,int);
+IMPORT BOND *bond_of_boundary_point(POINT*,TRI*);
 
 /*	iuserintfc.c*/
 IMPORT	I_USER_INTERFACE	*i_user_hook(int);

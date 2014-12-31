@@ -4792,3 +4792,29 @@ EXPORT	void  unit_vector(
 	for (i = 0; i < dim; ++i)
 	    uvec[i] = vec[i]/length;
 }	/* end unit_vector */
+
+EXPORT BOND *bond_of_boundary_point(
+	POINT *p,
+	TRI *tri)
+{
+	int i,n;
+	TRI **tris;
+	BOND *b;
+	n = set_tri_list_around_point(p,tri,&tris,tri->surf->interface);
+	for (i = 0; i < 3; ++i)
+	{
+	    if (is_side_bdry(tris[0],i))
+	    {
+		b = Bond_on_side(tris[0],i);
+		if (p == b->start || b == b->end)
+		    return b;
+	    }
+	    if (is_side_bdry(tris[n-1],i))
+	    {
+		b = Bond_on_side(tris[n-1],i);
+		if (p == b->start || b == b->end)
+		    return b;
+	    }
+	}	
+	return NULL;
+}	/* end bond_of_boundary_point */

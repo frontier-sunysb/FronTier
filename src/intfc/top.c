@@ -183,11 +183,14 @@ LIB_LOCAL void fprint_bond(
 
 	intfc = current_interface();
 	dim = intfc->dim;
-	(void) fprintf(file,"bond %llu\n",(long long unsigned int)bond_number(b,intfc));
+	(void) fprintf(file,"bond %llu\n",
+			(long long unsigned int)bond_number(b,intfc));
 	fprint_general_vector(file,"start ",Coords(b->start),dim," ");
-	(void) fprintf(file,"%llu\n",(long long unsigned int)point_number(b->start));
+	(void) fprintf(file,"%llu\n",
+			(long long unsigned int)point_number(b->start));
 	fprint_general_vector(file,"end   ",Coords(b->end),dim," ");
-	(void) fprintf(file,"%llu\n",(long long unsigned int)point_number(b->end));
+	(void) fprintf(file,"%llu\n",
+			(long long unsigned int)point_number(b->end));
 	if (dim == 3)
 	{
 	    BOND_TRI **btris;
@@ -197,9 +200,9 @@ LIB_LOCAL void fprint_bond(
 	    	(void) fprintf(file,"%p ",(POINTER)*btris);
 	    (void) fprintf(file,"\n");
 	}
-	(void) fprintf(file,"len %g  prev %llu  next %llu\n",
-		            b->length,(long long unsigned int)bond_number(b->prev,intfc),
-		            (long long unsigned int)bond_number(b->next,intfc));
+	(void) fprintf(file,"len %g  prev %llu  next %llu\n",b->length,
+			(long long unsigned int)bond_number(b->prev,intfc),
+		        (long long unsigned int)bond_number(b->next,intfc));
 }		/*end fprint_bond*/
 
 /*
@@ -223,14 +226,18 @@ EXPORT	void print_bond_list(
 	(void) printf("\nBond list for curve %llu:\n",(long long unsigned int)curve_number(c));
 
 	dim = c->interface->dim;
-	(void) printf(" %llu | ",(long long unsigned int)bond_number(c->first->prev,c->interface));
+	(void) printf(" %llu | ",(long long unsigned int)
+			bond_number(c->first->prev,c->interface));
 	for (i = 1,b = c->first; b != c->last; b = b->next,++i)
 	{
 		endchar = i%4 ? ' ' : '\n';
-		(void) printf(" -> %llu%c",(long long unsigned int)bond_number(b,c->interface),endchar);
+		(void) printf(" -> %llu%c",(long long unsigned int)
+			bond_number(b,c->interface),endchar);
 	}
-	(void) printf(" -> %llu ",(long long unsigned int)bond_number(c->last,c->interface));
-	(void) printf(" -> | %llu ",(long long unsigned int)bond_number(c->last->next,c->interface));
+	(void) printf(" -> %llu ",(long long unsigned int)
+			bond_number(c->last,c->interface));
+	(void) printf(" -> | %llu ",(long long unsigned int)
+			bond_number(c->last->next,c->interface));
 	(void) printf("\n\n");
 
 	print_general_vector(" ",Coords(c->first->start),dim,"");
