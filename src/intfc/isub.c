@@ -4806,13 +4806,13 @@ EXPORT BOND *bond_of_boundary_point(
 	    if (is_side_bdry(tris[0],i))
 	    {
 		b = Bond_on_side(tris[0],i);
-		if (p == b->start || b == b->end)
+		if (p == b->start || p == b->end)
 		    return b;
 	    }
 	    if (is_side_bdry(tris[n-1],i))
 	    {
 		b = Bond_on_side(tris[n-1],i);
-		if (p == b->start || b == b->end)
+		if (p == b->start || p == b->end)
 		    return b;
 	    }
 	}	

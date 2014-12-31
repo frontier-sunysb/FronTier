@@ -2309,8 +2309,6 @@ LIB_LOCAL boolean next_point3d(
 		return YES;
 	    }
 	}
-	static int count = 0;
-	count++;
 
 	/*loop over all points on neg_curves */
 	if (T->np_do_n_curs == YES)
@@ -2348,14 +2346,6 @@ LIB_LOCAL boolean next_point3d(
 			tri_at_bond(T->cur_bond,*T->cur_surface,
 			NEGATIVE_ORIENTATION));
 	    	    sorted(*P) = YES;
-		    if (count == 85833)
-		    {
-			printf("count = %d\n",count);
-			printf("bond gindex = %d %d\n",
-				Gindex(T->cur_bond->start),
-				Gindex(T->cur_bond->end));
-			print_curve(*(T->cur_curve));
-		    }
 	        }
 	        return YES;
 	    }
