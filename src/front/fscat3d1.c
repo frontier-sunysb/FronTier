@@ -76,8 +76,8 @@ LOCAL	int	append_buffer_surface1(SURFACE*,SURFACE*,RECT_GRID*,int,int,
 LOCAL	boolean	append_other_curves1(INTERFACE*,INTERFACE*,RECT_GRID*,int,int,
 				      P_LINK*,int);
 LOCAL	void	clip_intfc_at_grid_bdry1(INTERFACE*);
-LOCAL	boolean	tri_bond_out_domain(TRI*,double*,double*,int,int);
-LOCAL	boolean	tri_bond_test(TRI*,double*,double*,int,int);
+LOCAL	boolean	tri_set_out_domain(TRI*,double*,double*,int,int);
+LOCAL	boolean	tri_cross_line(TRI*,double,int);
 LOCAL	void	copy_tri_state_to_btri(BOND_TRI*,BOND*,ORIENTATION,INTERFACE *);
 LOCAL	void	merge_point_pointers_at_subdomain_bdry(TRI**,TRI**,
 						       int,P_LINK*,int);
@@ -2187,8 +2187,7 @@ LOCAL int append_buffer_surface1(
 	ns = na = 0;
 	for (tri=first_tri(surf); !at_end_of_tri_list(tri,surf); tri=tri->next)
 	{
-	    if (tri_cross_line(tri,crx_coord,dir) == YES || 
-		tri_bond_cross_test(tri,crx_coord,dir) == YES)
+	    if (tri_set_cross_line(tri,crx_coord,dir) == YES)
 	    {
 		tris_s[ns++] = tri;
 	    }
@@ -2197,8 +2196,7 @@ LOCAL int append_buffer_surface1(
 	for (tri = first_tri(adj_surf); !at_end_of_tri_list(tri,adj_surf); 
 	     tri = tri->next)
 	{
-	    if (tri_cross_line(tri,crx_coord,dir) == YES ||
-		tri_bond_cross_test(tri,crx_coord,dir) == YES)
+	    if (tri_set_cross_line(tri,crx_coord,dir) == YES)
 	    {
 		tris_a[na++] = tri;
 	    }
@@ -2229,8 +2227,7 @@ LOCAL int append_buffer_surface1(
 	for (tri = first_tri(adj_surf); !at_end_of_tri_list(tri,adj_surf);
 	     tri = tri->next)
 	{
-	    if (tri_cross_line(tri,crx_coord,dir) == YES || 
-		tri_bond_cross_test(tri,crx_coord,dir) == YES)
+	    if (tri_set_cross_line(tri,crx_coord,dir) == YES)
 	    {
 	        tris_a[na++] = tri;
 	    }
@@ -2336,7 +2333,7 @@ LOCAL	void	synchronize_tris_at_subdomain_bdry(
 	}
 }		/*end synchronize_tris_at_subdomain_bdry*/
 
-EXPORT	boolean	tri_cross_line(
+LOCAL	boolean	tri_cross_line(
 	TRI		*tri,
 	double		crx_coord,
 	int		dir)
@@ -2364,7 +2361,7 @@ EXPORT	boolean	tri_cross_line(
   YES   one tri crx line
 */
 
-EXPORT boolean tri_bond_cross_test(
+EXPORT boolean tri_set_cross_line(
 	TRI		*tri,
 	double		crx_coord,
 	int		dir)
@@ -2375,6 +2372,8 @@ EXPORT boolean tri_bond_cross_test(
 	BOND	*b;
 	BOND_TRI **btris;
 
+    	if (tri_cross_line(tri,crx_coord,dir))
+	    return YES;
 	for (i = 0; i < 3; i++)
         {
             p = Point_of_tri(tri)[i];
@@ -2959,8 +2958,7 @@ EXPORT void open_surf_null_sides(
 	{
 	    ntri = tri->next;
 	    /* bond with inside tri survives. */
-	    if (tri_bond_test(tri,L,U,dir,nb) &&
-		tri_out_domain(tri,L,U,dir,nb))
+	    if (tri_set_out_domain(tri,L,U,dir,nb))
 	    {
 	    	remove_out_domain_tri(tri,surf);
 	    }
@@ -3172,30 +3170,7 @@ LOCAL boolean tri_out_domain(
 	return YES;
 }	/* end tri_out_domain */
 
-LOCAL boolean tri_bond_out_domain(
-	TRI		*tri,
-	double		*L,
-	double		*U,
-	int		dir,
-	int		nb)
-{
-	int		i;
-	BOND		*b;
-	BOND_TRI	**btris;
-
-	for (i = 0; i < 3; i++)
-	{
-	    if (!is_side_bdry(tri,i))
-	        continue;
-	    b = Bond_on_side(tri,i);
-	    for (btris = Btris(b); btris && *btris; btris++)
-	        if (!tri_out_domain((*btris)->tri,L,U,dir,nb))
-		    return NO;
-	}
-	return YES;
-}
-
-LOCAL boolean tri_bond_test(
+LOCAL boolean tri_set_out_domain(
 	TRI		*tri,
 	double		*L,
 	double		*U,
@@ -3208,6 +3183,8 @@ LOCAL boolean tri_bond_test(
 	TRI		**tris,*t;
 	BOND_TRI	**btris;
 
+	if (!tri_out_domain(tri,L,U,dir,nb))
+	    return NO;
 	for (i = 0; i < 3; i++)
 	{
 	    p = Point_of_tri(tri)[i];
@@ -3228,7 +3205,7 @@ LOCAL boolean tri_bond_test(
 	    }
 	}
 	return YES;
-}	/* end tri_bond_test */
+}	/* end tri_set_out_domain */
 
 
 LOCAL void clip_intfc_at_grid_bdry1(

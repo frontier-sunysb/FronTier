@@ -724,8 +724,7 @@ IMPORT	boolean	surfaces_matched(SURFACE*,SURFACE*);
 IMPORT  void    shift_interface(INTERFACE*,double,int);
 IMPORT	void	set_default_comp(boolean);
 IMPORT  INTERFACE *cut_buf_interface1(INTERFACE*,int,int,int*,int*);
-IMPORT  boolean tri_bond_cross_test(TRI*,double,int);
-IMPORT  boolean tri_cross_line(TRI*,double,int);
+IMPORT  boolean tri_set_cross_line(TRI*,double,int);
 	
 	/* fscat3d2.c*/
 IMPORT	boolean	f_intfc_communication3d2(Front*);

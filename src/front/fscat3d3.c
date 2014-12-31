@@ -73,9 +73,6 @@ LOCAL	double	tol1[MAXD]; /*TOLERANCE*/
 
 #define MAX_SUBDOMAIN_TRIS      3000
 
-/*	New LOCAL functions	*/
-LOCAL  void    set_floating_point_tolerance3(double*);
-
 /*ARGSUSED*/
 
 EXPORT	boolean f_intfc_communication3d3(
@@ -104,7 +101,7 @@ EXPORT	boolean f_intfc_communication3d3(
 
 	DEBUG_ENTER(f_intfc_communication3d3)
 
-	set_floating_point_tolerance3(fr->rect_grid->h);
+	set_floating_point_tolerance1(fr->rect_grid->h);
 	sav_copy = copy_intfc_states();
 	sav_intfc = current_interface();
 	set_copy_intfc_states(YES);
@@ -342,22 +339,6 @@ LOCAL 	int append_adj_intfc_to_buffer3(
 	return YES;
 }		/*end append_adj_intfc_to_buffer3*/
 
-LOCAL void set_floating_point_tolerance3(
-	double		*h)
-{
-	double eps;
-	static const double mfac = 10.0;/*TOLERANCE*/
-	static const double gfac = 0.00004;/*TOLERANCE*/
-	int   i;
-
-	eps = mfac*MACH_EPS;
-	for (i = 0; i < 3; ++i)
-	{
-	    tol1[i] = gfac*h[i];/*TOLERANCE*/
-	    tol1[i] = max(tol1[i],eps);
-	}
-}		/*end set_floating_point_tolerance3*/
-
 LOCAL int append_buffer_surface3(
 	SURFACE		*surf,
 	SURFACE		*adj_surf,
@@ -406,8 +387,7 @@ LOCAL int append_buffer_surface3(
 	ns = na = 0;
 	for (tri=first_tri(surf); !at_end_of_tri_list(tri,surf); tri=tri->next)
 	{
-	    if (tri_cross_line(tri,crx_coord,dir) == YES || 
-		tri_bond_cross_test(tri,crx_coord,dir) == YES)
+	    if (tri_set_cross_line(tri,crx_coord,dir) == YES)
 	    {
 		tris_s[ns++] = tri;
 	    }
@@ -416,8 +396,7 @@ LOCAL int append_buffer_surface3(
 	for (tri = first_tri(adj_surf); !at_end_of_tri_list(tri,adj_surf); 
 	     tri = tri->next)
 	{
-	    if (tri_cross_line(tri,crx_coord,dir) == YES ||
-		tri_bond_cross_test(tri,crx_coord,dir) == YES)
+	    if (tri_set_cross_line(tri,crx_coord,dir) == YES)
 	    {
 		tris_a[na++] = tri;
 	    }
@@ -452,8 +431,7 @@ LOCAL int append_buffer_surface3(
 	for (tri = first_tri(adj_surf); !at_end_of_tri_list(tri,adj_surf);
 	     tri = tri->next)
 	{
-	    if (tri_cross_line(tri,crx_coord,dir) == YES || 
-		tri_bond_cross_test(tri,crx_coord,dir) == YES)
+	    if (tri_set_cross_line(tri,crx_coord,dir) == YES)
 	    {
 	        tris_a[na++] = tri;
 	    }
@@ -1160,7 +1138,7 @@ LOCAL INTERFACE *cut_intfc_to_wave_type(
 	int dim = gr->dim;
 	char fname[100];
 
-	set_floating_point_tolerance3(computational_grid(intfc)->h);
+	set_floating_point_tolerance1(computational_grid(intfc)->h);
 	intfc_surface_loop(tmp_intfc,s)
 	{
 	    if (wave_type(*s) != w_type && w_type != ANY_WAVE_TYPE)
