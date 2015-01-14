@@ -100,7 +100,6 @@ int main(int argc, char **argv)
 	    level_func_pack.func_params = NULL;
 	    level_func_pack.func = NULL;
 	    level_func_pack.num_points = 500;
-	    level_func_pack.is_closed_curve = YES;
 	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
 
 	    FT_MatrixMemoryAlloc((POINTER*)&level_func_pack.point_array,500,

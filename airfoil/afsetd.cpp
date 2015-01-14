@@ -90,7 +90,7 @@ static void count_node_neighbors(
 		b = (*c)->first;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
+		    nt = I_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
 			if (!pointer_in_list((POINTER)tris[j],num_tris,
@@ -104,7 +104,7 @@ static void count_node_neighbors(
 		b = (*c)->last;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
+		    nt = I_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
 			if (!pointer_in_list((POINTER)tris[j],num_tris,
@@ -159,7 +159,7 @@ static void count_curve_neighbors(
 		p = b->end;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
+		    nt = I_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
 			for (side = 0; side < 3; ++side)
@@ -754,7 +754,7 @@ extern void set_node_spring_vertex(
 		b = (*c)->first;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
+		    nt = I_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
 			if (!pointer_in_list((POINTER)tris[j],num_tris,
@@ -768,7 +768,7 @@ extern void set_node_spring_vertex(
 		b = (*c)->last;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
+		    nt = I_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
 			if (!pointer_in_list((POINTER)tris[j],num_tris,
@@ -935,7 +935,7 @@ extern void set_curve_spring_vertex(
 		sv[i].m = m_l;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
+		    nt = I_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
 			for (side = 0; side < 3; ++side)

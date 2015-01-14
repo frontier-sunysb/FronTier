@@ -31,13 +31,19 @@ rotsym=" "
 gascleann=" "
 basecode=" "
 AC_ARG_WITH(export,[  --with-export                 Compilation of the Basic FronTier++ code ],[basecode="yes"],[basecode="no"])
+AC_ARG_WITH(simple,[  --with-simple                 Compilation of the Simple FronTier++ code ],[basecode="simple"],[basecode="no"])
 
-if test "$basecode" = "yes"; then
-    echo "Base code"
-    AC_SUBST(BASECODE,${BASECODE})        
-else
+if test "$basecode" = "no"; then
     echo "Full code"
     AC_SUBST(BASECODE,${BASECODE})        
+else
+	if test "$basecode" = "simple"; then
+		echo "Simple code"
+    		AC_SUBST(BASECODE,${BASECODE})
+    	else
+    		echo "Base code"
+    		AC_SUBST(BASECODE,${BASECODE})        
+	fi
 fi
 
 AC_ARG_WITH(gd,[  --with-gd=PFX             Links with gd library for 1d post processing],[scriptotherlibsinc=" -L$withval/lib "${scriptotherlibs} scriptotherlibs="-lgd "${scriptotherlibs} gdincs=" -D__GD__ -I"${withval}"/include "],[gdincs=""])
@@ -136,7 +142,7 @@ testappprefix="neither"
 AC_ARG_WITH(hdf,[  --with-hdf              Support for the hdf library],[hdffprefix=$withval hdff="yes"],[hdff="no"])
 if test $hdff = 'yes';then
         hdfincs=" -I"${hdffprefix}"/include -DUSE_HDF "
-        scriptotherlibsinc=${scriptotherlibsinc}" -L"${hdffprefix}"/lib "
+        scriptotherlibsinc=${scriptotherlibsinc}" -L/usr/lib -L"${hdffprefix}"/lib "
         scriptotherlibs=${scriptotherlibs}" -lmfhdf -ldf -ljpeg -lz "        
 
 fi
@@ -404,7 +410,7 @@ appinc="-I"${appprefix}"/include "
 fi
 
 
-if test $testover =  'yes';then
+if test [[$testover = 'yes']];then
 over="-DUSE_OVERTURE "
 fi
 
@@ -482,7 +488,7 @@ parachute2d/Makefile
 sprModel/Makefile
 subsurf/Makefile
 crystal/Makefile
-example/Makefile
+example2d/Makefile
 example3d/Makefile
 iTaps/Makefile
 finance/Makefile
@@ -517,7 +523,7 @@ src/front/Makefile
 src/intfc/Makefile 
 subsurf/Makefile
 crystal/Makefile
-example/Makefile
+example2d/Makefile
 example3d/Makefile
 melting/Makefile
 iFluid/Makefile
@@ -529,6 +535,19 @@ devel-deps.inc
 iMesh-Defs.inc'
 fi
 
+if test $basecode = "simple"; then
+filelist='Makefile 
+src/Makefile 
+src/util/Makefile 
+src/front/Makefile 
+src/intfc/Makefile 
+example2d/Makefile
+example3d/Makefile
+src/pak/linpak/Makefile
+src/pak/blas/Makefile
+devel-deps.inc
+iMesh-Defs.inc'
+fi
 
 
 AC_CONFIG_FILES($filelist)

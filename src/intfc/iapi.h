@@ -181,7 +181,7 @@ extern "C" {
  *  \ingroup QUERY
     \brief This function count number of interior points on the surface
      boundary (on curve or node) points are not included.
-    \param surf @b in   Pointer to a surface of the front interface.
+    \param surf @b in   Pointer to an input surface.
  */
 
    IMPORT  int I_NumOfSurfInteriorPoints(SURFACE *surf);
@@ -190,7 +190,7 @@ extern "C" {
  *  \ingroup QUERY
     \brief This function count number of interior points on the curve
      boundary (on node) points are not included.
-    \param curve @b in   Pointer to a curve of the front interface.
+    \param curve @b in   Pointer to a curve.
  */
 
    IMPORT  int I_NumOfCurveInteriorPoints(CURVE *curve);
@@ -260,7 +260,7 @@ extern "C" {
  *  \ingroup QUERY
     \brief This function count number of curves attached to the node,
      including both in_curves and out_curves.
-    \param node @b in   Pointer to a node of the front interface.
+    \param node @b in   Pointer to a node of the interface.
  */
 
    IMPORT  int I_NumOfNodeCurves(NODE *node);
@@ -269,7 +269,7 @@ extern "C" {
  *  \ingroup QUERY
     \brief This function count number of surfaces attached to the curve,
      including both pos_surfaces and neg_surfaces.
-    \param curve @b in   Pointer to a curve of the front interface.
+    \param curve @b in   Pointer to a curve of the interface.
  */
 
    IMPORT  int I_NumOfCurveSurfaces(CURVE *curve);
@@ -286,6 +286,214 @@ extern "C" {
 			double *coords,
 			INTERFACE *intfc);
 
+/*! \fn int I_NumOfIntfcBonds(INTERFACE *intfc)
+ *  \ingroup QUERY
+    \brief This function count number of bonds on the entire interface.
+    \param intfc @b in  Pointer to the interface.
+ */
+
+   IMPORT  int I_NumOfIntfcBonds(INTERFACE *intfc);
+
+/*! \fn int I_NumOfIntfcPoints(INTERFACE *intfc)
+ *  \ingroup QUERY
+    \brief This function count number of point on the entire interface.
+    \param intfc @b in  Pointer to the interface.
+ */
+
+   IMPORT  int I_NumOfIntfcPoints(INTERFACE *intfc);
+
+/*! \fn int I_NumOfCurveBonds(CURVE *curve)
+ *  \ingroup QUERY
+    \brief This function count number of bond on a curve.
+    \param curve @b in  Pointer to curve.
+ */
+
+   IMPORT  int I_NumOfCurveBonds(CURVE *curve);
+
+/*! \fn int I_NumOfCurvePoints(CURVE *curve)
+ *  \ingroup QUERY
+    \brief This function count number of point on the curve including
+     its nodes (closed node may be counted twice).
+    \param curve @b in  Pointer to a curve.
+ */
+
+   IMPORT  int I_NumOfCurvePoints(CURVE *curve);
+
+/*! \fn void I_ArrayOfCurves(INTERFACE *intfc,CURVE **curves)
+ *  \ingroup QUERY
+    \brief This function put all curves in the interface to an array,
+     assuming the memory of the pointer array has already been allocated.
+    \param intfc @b in  Pointer to the interface.
+    \param curves @b inout  Curve array (memory allocated).
+ */
+
+   IMPORT  void I_ArrayOfCurves(INTERFACE *intfc,CURVE **curves);
+
+/*! \fn void I_ArrayOfSurfaces(INTERFACE *intfc,SURFACE **surfs)
+ *  \ingroup QUERY
+    \brief This function put all surfaces in the interface to an array,
+     assuming the memory of the pointer array has already been allocated.
+    \param intfc @b in  Pointer to the interface.
+    \param surfs @b inout  Surface array (memory allocated).
+ */
+
+   IMPORT  void I_ArrayOfSurfaces(INTERFACE *intfc,SURFACE **surfs);
+
+/*! \fn int I_NumOfIntfcTris(INTERFACE *intfc)
+ *  \ingroup QUERY
+    \brief This function count number of triangles on the entire interface.
+    \param intfc @b in  Pointer to the interface.
+ */
+
+   IMPORT  int I_NumOfIntfcTris(INTERFACE *intfc);
+
+/*! \fn int I_NumOfSurfTris(SURFACE *surf)
+ *  \ingroup QUERY
+    \brief This function count number of triangles on the surface.
+    \param surf @b in   Pointer to a surface.
+ */
+
+   IMPORT  int I_NumOfSurfTris(SURFACE *surf);
+
+/*! \fn int I_NumOfSurfPoints(SURFACE *surf)
+ *  \ingroup QUERY
+    \brief This function count number of points on the surface.
+    \param surf @b in   Pointer to a surface.
+ */
+
+   IMPORT  int I_NumOfSurfPoints(SURFACE *surf);
+
+/*! \fn int I_NumOfSurfaces(INTERFACE *intfc)
+ *  \ingroup QUERY
+    \brief This function returns number of surfaces on the interface.
+    \param intfc @b in  Pointer to the interface.
+ */
+
+   IMPORT  int I_NumOfSurfaces(INTERFACE *intfc);
+
+/*! \fn void I_ArrayOfIntfcCurves(INTERFACE *intfc, CURVE **curve_array)
+ *  \ingroup QUERY
+    \brief This function put all the handles (pointers) of curves in the 
+     intfc to an array (already allocated with memory) curve_array.
+    \param intfc @b in	Pointer to an interface.
+    \param curve_array @b inout curve array (with memory allocated).
+ */
+
+   IMPORT  void I_ArrayOfIntfcCurves(INTERFACE *intfc ,
+				CURVE **curve_array);
+
+/*! \fn void I_ArrayOfCurvePoints(CURVE *curve, POINT **point_array)
+ *  \ingroup QUERY
+    \brief This function put all the handles (pointers) of points on the 
+     curve to an array (already allocated with memory) point_array.
+    \param curve @b in	Pointer to a curve of the interface.
+    \param point_array @b inout point array (with memory allocated).
+ */
+
+   IMPORT  void I_ArrayOfCurvePoints(CURVE *curve,
+				POINT **point_array);
+
+/*! \fn int I_NumOfSurfPoints(SURFACE *surf)
+ *  \ingroup QUERY
+    \brief This function count number of point on the surface.
+    \param surf @b in	Pointer to a surface of the interface.
+ */
+
+   IMPORT  int I_NumOfSurfPoints(SURFACE *surf);
+
+/*! \fn int I_NumOfIntfcBonds(INTERFACE *intfc)
+ *  \ingroup QUERY
+    \brief This function count number of bond on the entire interface.
+    \param intfc @b in	Pointer to the interface.
+ */
+
+   IMPORT  int I_NumOfIntfcBonds(INTERFACE *intfc);
+
+/*! \fn void I_ArrayOfNodeCurves(NODE *node, CURVE **curve_array)
+ *  \ingroup QUERY
+    \brief This function put all the handles (pointers) of curves on the 
+     node to an array (already allocated with memory) curve_array.
+    \param node @b in	Pointer to a node of the interface.
+    \param curve_array @b inout curve array (with memory allocated).
+ */
+
+   IMPORT  void I_ArrayOfNodeCurves(NODE *node,
+				CURVE **curve_array);
+
+/*! \fn void I_ArrayOfCurveBonds(CURVE *curve, BOND **bond_array)
+ *  \ingroup QUERY
+    \brief This function put all the handles (pointers) of bonds on the 
+     curve to an array (already allocated with memory) bond_array.
+    \param curve @b in	Pointer to a curve of the interface.
+    \param bond_array @b inout bond array (with memory allocated).
+ */
+
+   IMPORT  void I_ArrayOfCurveBonds(CURVE *curve,
+				BOND **bond_array);
+
+/*! \fn void I_ArrayOfSurfPoints(SURFACE *surf, POINT **point_array)
+ *  \ingroup QUERY
+    \brief This function put all the handles (pointers) of points on the 
+     surface to an array (already allocated with memory) point_array.
+    \param surf @b in	Pointer to a surface of the interface.
+    \param point_array @b inout point array (with memory allocated).
+ */
+
+   IMPORT  void I_ArrayOfSurfPoints(SURFACE *surf,
+				POINT **point_array);
+
+
+/*! \fn void I_ArrayOfSurfCurves(SURFACE *surf, CURVE **curve_array)
+ *  \ingroup QUERY
+    \brief This function put all the handles (pointers) of curves on the 
+     surface to an array (already allocated with memory) curve_array.
+    \param surf @b in	Pointer to a surface of the interface.
+    \param curve_array @b inout curve array (with memory allocated).
+ */
+
+   IMPORT  void I_ArrayOfSurfCurves(SURFACE *surf, CURVE **curve_array);
+
+/*! \fn int I_NumOfSurfCurves(SURFACE *surf)
+ *  \ingroup QUERY
+    \brief This function count and return number of curves on the surface.
+    \param surf @b in	Pointer to a surface of the interface.
+ */
+
+   IMPORT  int I_NumOfSurfCurves(SURFACE *surf);
+
+/*! \fn int I_FirstRingTrisAroundPoint(POINT *p, TRI *tri, TRI ***tris)
+ *  \ingroup QUERY
+    \brief This function searches for triangles in the first ring around
+     the input point p, and return the number of tris in the first ring.
+    \param p @b in	Pointer to a point of the interface.
+    \param tri @b in	Pointer to one of the tris around the point.
+    \param tris @b out	Pointer to array of tris around the point.
+ */
+
+   IMPORT  int I_FirstRingTrisAroundPoint(POINT *p, TRI *tri, TRI ***tris);
+
+/*! \fn CURVE* I_CurveOfPoint(INTERFACE *intfc, POINT *point, BOND **bond)
+ *  \ingroup QUERY
+    \brief This function looks for the curve on which the point 
+     is located. If found, it will return the handle (pointer) of 
+     the curve, otherwise it will return NULL.
+    \param intfc @b in	Pointer to the interface.
+    \param point @b in point on which the curve to be returned.
+    \param bond @b out bond on which the point is at.
+ */
+
+   IMPORT  CURVE* I_CurveOfPoint(INTERFACE *intfc,POINT *point, BOND **bond);
+
+/*! \fn NODE* I_NodeOfPoint(INTERFACE *intfc, POINT *point)
+ *  \ingroup QUERY
+    \brief This function looks for the node on which the point 
+     is located. If found, it will return the handle (pointer) of 
+     the node, otherwise it will return NULL.
+    \param intfc @b in	Pointer to the interface.
+    \param point @b in point on which the curve to be returned.
+ */
+
+   IMPORT  NODE* I_NodeOfPoint(INTERFACE *intfc, POINT *point);
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif

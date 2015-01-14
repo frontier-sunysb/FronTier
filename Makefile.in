@@ -7,6 +7,7 @@ lib_only:
 	cd src && $(MAKE)
 	$(MAKE) incs 
 
+ifeq ($(BASECODE),no)
 all: 
 	cd src && $(MAKE)
 	$(MAKE) incs 
@@ -29,10 +30,32 @@ all:
 	cd timeSeries && $(MAKE)
 	cd poisson && $(MAKE)
 	cd subsurf && $(MAKE)
+else ifeq ($(BASECODE),yes)
+all:
+	cd src && $(MAKE)
+	cd example2d && $(MAKE)
+	cd example3d && $(MAKE)
+	cd iFluid && $(MAKE)
+	cd cFluid && $(MAKE)
+	cd crystal && $(MAKE)
+	cd melting && $(MAKE)
+	cd subsurf && $(MAKE)
+else
+all:
+	cd src && $(MAKE)
+	cd example2d && $(MAKE)
+	cd example3d && $(MAKE)
+	cd iFluid && $(MAKE)
+	cd cFluid && $(MAKE)
+	cd crystal && $(MAKE)
+	cd melting && $(MAKE)
+	cd subsurf && $(MAKE)
+endif
+
 ifeq ($(BASECODE),no)
 clean:
 	-cd src && $(MAKE) clean
-	-cd example && $(MAKE) clean
+	-cd example2d && $(MAKE) clean
 	-cd example3d && $(MAKE) clean
 	-cd iFluid && $(MAKE) clean
 	-cd cFluid && $(MAKE) clean
@@ -57,16 +80,24 @@ clean:
 	-cd lib/$(build_cpu)/; rm -rf gas *.a
 	-rm -rf incs
 	-rm -rf include
-else
+else  ifeq ($(BASECODE),yes)
 clean:
 	-cd src && $(MAKE) clean
-	-cd example && $(MAKE) clean
+	-cd example2d && $(MAKE) clean
 	-cd example3d && $(MAKE) clean
 	-cd iFluid && $(MAKE) clean
 	-cd cFluid && $(MAKE) clean
 	-cd crystal && $(MAKE) clean
 	-cd melting && $(MAKE) clean
 	-cd subsurf && $(MAKE) clean
+	-cd lib/$(build_cpu)/; rm -rf *.a
+	-rm -rf incs
+	-rm -rf include
+else
+clean:
+	-cd src && $(MAKE) clean
+	-cd example2d && $(MAKE) clean
+	-cd example3d && $(MAKE) clean
 	-cd lib/$(build_cpu)/; rm -rf *.a
 	-rm -rf incs
 	-rm -rf include
@@ -124,7 +155,7 @@ $(header_files): $(include_dirs)
 
 
 test:	
-	cd example/; $(MAKE)
+	cd example2d/; $(MAKE)
 
 TARFLIST = $$ME/README \
 $$ME/build \
@@ -147,9 +178,9 @@ $$ME/src/pak/blas/*.f \
 $$ME/configure.in \
 $$ME/Makefile.in \
 $$ME/src/Makefile.in \
-$$ME/example/*.cpp \
-$$ME/example/Makefile.in \
-$$ME/example/README \
+$$ME/example2d/*.cpp \
+$$ME/example2d/Makefile.in \
+$$ME/example2d/README \
 $$ME/example3d/*.cpp \
 $$ME/example3d/Makefile.in \
 $$ME/curvature/*.cpp \
@@ -303,9 +334,9 @@ $$ME/src/pak/blas/*.f \
 $$ME/configure.in \
 $$ME/Makefile.in \
 $$ME/src/Makefile.in \
-$$ME/example/*.cpp \
-$$ME/example/Makefile.in \
-$$ME/example/README \
+$$ME/example2d/*.cpp \
+$$ME/example2d/Makefile.in \
+$$ME/example2d/README \
 $$ME/example3d/*.cpp \
 $$ME/example3d/Makefile.in \
 $$ME/curvature/*.cpp \
@@ -320,7 +351,7 @@ $$ME/crystal/*.cpp \
 $$ME/crystal/*.h \
 $$ME/crystal/Makefile.in \
 $$ME/crystal/README \
-$$ME/crystal/in-* \
+$$ME/crystal/input-*/* \
 $$ME/crystal/mrun* \
 $$ME/melting/*.cpp \
 $$ME/melting/*.h \

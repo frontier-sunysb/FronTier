@@ -111,7 +111,7 @@ int main(int argc, char **argv)
 
 	/* Original mesh produced my marching cube method */
 	printf("Original mesh produced my marching cube method\n");
-	printf("NumOfIntfcTris = %d\n",NumOfIntfcTris(front.interf));
+	printf("NumOfIntfcTris = %d\n",I_NumOfIntfcTris(front.interf));
 	sprintf(dname,"intfc-%d",count++);
 	gview_plot_interface(dname,front.interf);
 
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 	sprintf(dname,"intfc-%d",count++);
 	FT_RedistMesh(&front);
 	printf("After redistribution using default parameters\n");
-	printf("NumOfIntfcTris = %d\n",NumOfIntfcTris(front.interf));
+	printf("NumOfIntfcTris = %d\n",I_NumOfIntfcTris(front.interf));
 	printf("Max_tri_sqr_area = %24.18g\n",Max_tri_sqr_area(&front,0));
 	printf("Min_tri_sqr_area = %24.18g\n",Min_tri_sqr_area(&front,0));
 	printf("Max_scaled_tri_side_sqr_length = %24.18g\n",
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 	sprintf(dname,"intfc-%d",count++);
 	FT_RedistMesh(&front);
 	printf("After redistribution\n");
-	printf("NumOfIntfcTris = %d\n",NumOfIntfcTris(front.interf));
+	printf("NumOfIntfcTris = %d\n",I_NumOfIntfcTris(front.interf));
 	printf("Max_tri_sqr_area = %24.18g\n",Max_tri_sqr_area(&front,0));
 	printf("Min_tri_sqr_area = %24.18g\n",Min_tri_sqr_area(&front,0));
 	printf("Max_scaled_tri_side_sqr_length = %24.18g\n",
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 	for (i = 0; i < 3; ++i)
 	    FT_RedistMesh(&front);
 	printf("After redistribution\n");
-	printf("NumOfIntfcTris = %d\n",NumOfIntfcTris(front.interf));
+	printf("NumOfIntfcTris = %d\n",I_NumOfIntfcTris(front.interf));
 	printf("Max_tri_sqr_area = %24.18g\n",Max_tri_sqr_area(&front,0));
 	printf("Min_tri_sqr_area = %24.18g\n",Min_tri_sqr_area(&front,0));
 	printf("Max_scaled_tri_side_sqr_length = %24.18g\n",

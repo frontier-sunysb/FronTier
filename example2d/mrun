@@ -1,0 +1,19 @@
+#!/bin/csh -f
+
+set DIR = `pwd`
+
+#directory of excutable
+echo $DIR
+echo input file $DIR/in-$1
+
+#run options
+if ( $#argv != 1 ) then
+	echo "Multi-threads"
+	echo output directory $DIR/out-$1-$2$3
+	@ n = $2 * $3
+	mpirun -np $n $DIR/example$1 -d 2 -p $2 $3 -o $DIR/out-$1-$2$3
+else
+	echo "Single-thread"
+	echo output directory $DIR/out-$1
+	$DIR/example$1 -d 2 -o $DIR/out-$1
+endif

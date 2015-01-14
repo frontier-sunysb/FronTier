@@ -36,9 +36,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 *	ArrayOfCurvePoints(curve, coords);	
 *	ArrayOfIntfcPoints(intfc, coords);		
 * 	
-*	ArrayOfCurves(intfc, curves);
-*	ArrayOfCurves(intfc, coords, vertex_indices);
-*
 *	ArrayOfSurfaces(intfc, surfaces);
 *
 *	ArrayOfSurfTris_FT(surface, tris);		
@@ -179,17 +176,6 @@ EXPORT	void ArrayOfIntfcPoints(INTERFACE *intfc, double *coords)
 	    	coords[n++] = Coords(p)[i];
 	}
 }
-
-EXPORT	void ArrayOfSurfaces(
-	INTERFACE *intfc,
-	SURFACE **surfaces)
-{
-	SURFACE **s;
-	int n = 0;
-	for (s = intfc->surfaces; s && *s; ++s)
-	    surfaces[n++] = *s;	    
-}	/* end ArrayOfCurves */
-
 
 /**********************************************************************
  *	ArrayOfSurfTris_FT()

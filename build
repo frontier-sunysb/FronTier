@@ -8,6 +8,7 @@ function parse_arguments {
         echo
         echo "    -d          Enable debugging."
         echo "    -e          Export version"
+        echo "    -s          Simple version"
         echo "    -n          Just configure. Do not run make."
         echo "    -o2          Just configure. Do not run make."
         echo "    --with-gpu  Enable compilation with GPU."
@@ -40,6 +41,8 @@ export BASECODE="no"
         elif [[ "$arg" == "-e" ]]; then
 	    CONF="$CONF --with-export"
 	    export BASECODE="yes"
+        elif [[ "$arg" == "-s" ]]; then
+	    export BASECODE="simple"
         elif [[ "$arg" == "--with-gpu" ]]; then
             WITHGPU=1
         elif [[ "$arg" == "-o2" ]]; then
@@ -149,6 +152,33 @@ function config_generic {
         read PETSC_LIB_
         if  [[ -n "$PETSC_LIB_" ]]; then export PETSC_LIB=$PETSC_LIB_; fi
     fi
+
+    PMAKE="-j2"
+}
+
+#################
+function config_simple {
+    # Simple platforms. 
+    CONF="--with-simple"
+    HASMPI=`which mpicxx`
+    if [[ -n "$HASMPI" ]]; then
+        # Assume OpenMPI.
+        export CXX="mpicxx ${OPTS}"
+        export F77="mpif77 ${OPTS}"
+        export CC="mpicc ${OPTS}"
+    else
+        # Assume gcc and gfortran.
+        export CXX="g++ ${OPTS}"
+        export F77="gfortran ${OPTS}"
+        export CC="gcc ${OPTS}"
+    fi
+
+    if [[ $WITHHDF -eq 1 ]]; then
+        CONF="$CONF --with-hdf=/usr/local/pkg/hdf"
+    fi
+    export CONF="--with-mpich=/usr/local/pkg/mpich2 -with-devel ${CONF}"
+    WITHHDF=0;
+    WITHGD=0;
 
     PMAKE="-j2"
 }
@@ -646,7 +676,10 @@ parse_arguments $*
 # Invoke machine specific config function
 HOST=`uname -n`;
 # Choose proper compilers based on machine
-if [[ "${HOST}" == "fenp" ]]; then
+if [[ "${BASECODE}" == "simple" ]]; then
+    echo "Configure with basic fucntion"
+    config_simple
+elif [[ "${HOST}" == "fenp" ]]; then
     echo "Computer is recognized as NYBlue/P."
     config_nybluep
 elif [[ "${HOST}" == "fen" ]]; then

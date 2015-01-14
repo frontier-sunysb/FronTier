@@ -781,7 +781,7 @@ repeat:
 	    boolean next_found = NO;
 
 	    tri = Tri_of_hse(cpts[i]->hse);
-	    num_tris = FT_FirstRingTrisAroundPoint(cpts[i],tri,&tris);
+	    num_tris = I_FirstRingTrisAroundPoint(cpts[i],tri,&tris);
 	    for (j = 0; j < num_tris; ++j)
 	    {
 	    	for (iv = 0; iv < 3; ++iv)

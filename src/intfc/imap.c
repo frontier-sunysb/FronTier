@@ -981,3 +981,330 @@ EXPORT int I_ComponentAtCoords(
 {
 	return component(coords,intfc);
 }	/* end I_ComponentAtCoords */
+
+/***********************************************************************
+ *      I_NumOfIntfcBonds()
+ * return the number of bonds in the given INTERFACE *intfc.
+ ***********************************************************************/
+EXPORT int I_NumOfIntfcBonds(INTERFACE *intfc)
+{
+        CURVE **c;
+        int num_bonds = 0;
+        for (c = intfc->curves; c && *c; ++c)
+            num_bonds += I_NumOfCurveBonds(*c);
+        return num_bonds;
+}       /* end I_NumOfIntfcBonds */
+
+/***********************************************************************
+ *      I_NumOfIntfcPoints()
+ * return the number of points in the given INTERFACE *intfc.
+ ***********************************************************************/
+EXPORT  int I_NumOfIntfcPoints(INTERFACE *intfc)
+{
+        int i, n, dim = intfc->dim;
+        POINT   *p;
+        HYPER_SURF_ELEMENT *phse;
+        HYPER_SURF         *phs;
+   
+        n=0;
+        next_point(intfc,NULL, NULL,NULL);
+        for ((void)next_point(intfc, &p, &phse, &phs); p!= NULL;
+             (void)next_point(intfc, &p, &phse, &phs))
+        {
+            /*Index_of_point(p) = n/dim; */
+            ++n;
+        }
+        return n;
+}       /* end I_NumOfIntfcPoints */
+
+/***********************************************************************
+ *      I_NumOfCurveBonds()
+ * return the number of bonds in the given CURVE *c.
+ ***********************************************************************/
+EXPORT int I_NumOfCurveBonds(CURVE *c)
+{
+        BOND *b;
+        int num_bonds = 0;
+        for(b = c->first; b != NULL; b = b->next)
+            num_bonds++;
+        return num_bonds;
+}       /* end I_NumOfCurveBonds */
+
+/***********************************************************************
+ *      I_NumOfCurvePoints()
+ * return the number of points in the given CURVE *c.
+ ***********************************************************************/
+EXPORT  int I_NumOfCurvePoints(CURVE *c)
+{
+        return c->num_points;
+}       /* end I_NumOfCurvePoints */
+
+EXPORT  void I_ArrayOfSurfaces(
+        INTERFACE *intfc,
+        SURFACE **surfaces)
+{
+        SURFACE **s;
+        int n = 0;
+        for (s = intfc->surfaces; s && *s; ++s)
+            surfaces[n++] = *s;
+}       /* end I_ArrayOfSurfaces */
+
+EXPORT  void I_ArrayOfCurves(
+        INTERFACE *intfc,
+        CURVE **curves)
+{
+        CURVE **c;
+        int n = 0;
+        for (c = intfc->curves; c && *c; ++c)
+            curves[n++] = *c;
+}       /* end I_ArrayOfCurves */
+
+/**********************************************************************
+ *      I_NumOfIntfcTris()
+ * return the number of triangles in the given INTERFACE *intfc.
+ **********************************************************************/
+EXPORT  int I_NumOfIntfcTris(INTERFACE *intfc)
+{
+        SURFACE **s;
+        int num_tris = 0;
+        for (s = intfc->surfaces; s && *s; ++s)
+            num_tris += I_NumOfSurfTris(*s);
+        return num_tris;
+}       /* end I_NumOfIntfcTris */
+
+/**********************************************************************
+ *      I_NumOfSurfTris()
+ * return the number of triangles in the given SURFACE *s.
+ **********************************************************************/
+EXPORT  int I_NumOfSurfTris(SURFACE *s)
+{
+        return s->num_tri;
+}       /* end I_NumOfSurfTris */
+
+/**********************************************************************
+ *      I_NumOfSurfaces()
+ * return the number of surfaces in the given INTERFACE *intfc.
+ **********************************************************************/
+EXPORT  int I_NumOfSurfaces(INTERFACE *intfc)
+{
+        SURFACE **s;
+        int num_surfs = 0;
+        for (s = intfc->surfaces; s && *s; ++s)
+	    num_surfs++;
+        return num_surfs;
+}       /* end I_NumOfSurfaces */
+
+EXPORT int I_NumOfSurfCurves(
+        SURFACE *surf)  
+{
+        int n = 0;
+        CURVE **c;
+        for (c = surf->pos_curves; c && *c; ++c)
+            ++n;
+        for (c = surf->neg_curves; c && *c; ++c)  
+            ++n;
+        return n;
+}       /* end I_NumOfSurfCurves */
+
+EXPORT void I_ArrayOfIntfcCurves(
+	INTERFACE *intfc,
+	CURVE **curves)
+{
+	CURVE **c;
+        int n = 0;
+        for (c = intfc->curves; c && *c; ++c)
+            curves[n++] = *c;
+}	/* end I_ArrayOfIntfcCurves */
+
+EXPORT void I_ArrayOfSurfCurves(
+	SURFACE *surf,
+	CURVE **curves)
+{
+	int n = 0;
+	CURVE **c;
+	for (c = surf->pos_curves; c && *c; ++c)
+	    curves[n++] = *c;
+	for (c = surf->neg_curves; c && *c; ++c)
+	    curves[n++] = *c;
+}	/* end I_ArrayOfSurfCurves */
+
+EXPORT void I_ArrayOfNodeCurves(
+	NODE *node,
+	CURVE **curves)
+{
+	int n = 0;
+	CURVE **c;
+	for (c = node->in_curves; c && *c; ++c)
+	    curves[n++] = *c;
+	for (c = node->out_curves; c && *c; ++c)
+	    curves[n++] = *c;
+}	/* end I_ArrayOfNodeCurves */
+
+EXPORT void I_ArrayOfCurvePoints(
+	CURVE *curve,
+	POINT **pts)
+{
+	int n,dim = curve->interface->dim;
+	BOND *b;
+
+	n = 0;
+	pts[n] = curve->first->start;
+	if (dim == 2)
+	{
+	    pts[n]->hse = Hyper_surf_element(curve->first);
+	    pts[n]->hs = Hyper_surf(curve);
+	}
+	n++;
+	for (b = curve->first; b != NULL; b = b->next)
+	{
+	    pts[n] = b->end;
+	    if (dim == 2)
+	    {
+	    	pts[n]->hse = Hyper_surf_element(b);
+	    	pts[n]->hs = Hyper_surf(curve);
+	    }
+	    n++;
+	}
+}	/* end I_ArrayOfCurvePoints */
+
+EXPORT void I_ArrayOfCurveBonds(
+	CURVE *curve,
+	BOND **bonds)
+{
+	BOND *b;
+	int n = 0;
+
+	for (b = curve->first; b != NULL; b = b->next)
+	{
+	    bonds[n++] = b;
+	}
+}	/* end I_ArrayOfCurveBonds */
+
+/*	Expensive function, use with caution 
+*/
+
+EXPORT CURVE *I_CurveOfPoint(
+	INTERFACE *intfc,
+	POINT *point,
+	BOND **bond)
+{
+	CURVE **c,*curve;
+	BOND *b;
+	for (c = intfc->curves; c && *c; c++)
+	{
+	    curve = *c;
+	    if (curve->first->start == point) 
+	    {
+		*bond = curve->first;
+		return curve;
+	    }
+	    for (b = curve->first; b != NULL; b = b->next)
+	    {
+		if (b->end == point) 
+		{
+		    *bond = (b->next != NULL) ? b->next : b;
+		    return curve;
+		}
+	    }
+	}
+	return NULL;
+}	/* end I_CurveOfPoint */
+
+
+EXPORT NODE *I_NodeOfPoint(
+	INTERFACE *intfc,
+	POINT *point)
+{
+	NODE **n,*node;
+	for (n = intfc->nodes; n && *n; n++)
+	{
+	    node = *n;
+	    if (node->posn == point)
+		return node;
+	}
+	return NULL;
+}	/* end I_NodeOfPoint */
+
+EXPORT void I_ArrayOfSurfPoints(
+	SURFACE *surf,
+	POINT **pts)
+{
+	POINT *p;
+	TRI *tri;
+	int i,n;
+
+	/* reset point index */
+	for(tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
+			tri = tri->next)
+	{
+	    for(i = 0; i < 3; i++)
+	    {
+	        p = Point_of_tri(tri)[i];
+		Index_of_point(p) = -1;		
+	    }
+	}		
+	
+	/* points	 */
+	n = 0;
+	for(tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
+			tri = tri->next)
+	{
+	    for(i = 0; i < 3; i++)
+	    {
+	        p = Point_of_tri(tri)[i];
+		if (Index_of_point(p) == -1)
+		{
+		    pts[n++] = p;
+		    Index_of_point(p) = n;		
+		}
+	    }
+	}		
+}	/* end I_ArrayOfSurfPoints */
+
+/***********************************************************************
+ *	I_NumOfSurfPoints(SURFACE *s)
+ ***********************************************************************/
+EXPORT	int I_NumOfSurfPoints(SURFACE *surf)
+{
+	POINT *p;
+	TRI *tri;
+	int i,n;
+
+	/* reset point index */
+	for(tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
+			tri = tri->next)
+	{
+	    for(i = 0; i < 3; i++)
+	    {
+	        p = Point_of_tri(tri)[i];
+		Index_of_point(p) = -1;		
+	    }
+	}		
+	
+	/* points	 */
+	n = 0;
+	for(tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
+			tri = tri->next)
+	{
+	    for(i = 0; i < 3; i++)
+	    {
+	        p = Point_of_tri(tri)[i];
+		if (Index_of_point(p) == -1)
+		{
+		    Index_of_point(p) = n++;		
+		}
+	    }
+	}		
+	
+	return n;
+}	/* end I_NumOfSurfPoints */
+
+EXPORT int I_FirstRingTrisAroundPoint(
+	POINT *p,
+	TRI *tri,
+	TRI ***tris)	/* tris in first ring around the point p */
+{
+	int nt;
+	nt = set_tri_list_around_point(p,tri,tris,p->interface);
+	return nt;
+}	/* end I_FirstRingTrisAroundPoint */

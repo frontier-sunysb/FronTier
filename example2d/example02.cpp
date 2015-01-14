@@ -44,7 +44,9 @@ char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 int RestartStep;
 boolean binary = YES;
-
+/********************************************************************
+ *	Level function parameters for the initial interface 	    *
+ ********************************************************************/
 
 int main(int argc, char **argv)
 {
@@ -53,6 +55,7 @@ int main(int argc, char **argv)
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
+	CIRCLE_PARAMS circle_params;	/* level function parameters */
 	VORTEX_PARAMS vortex_params; /* velocity function parameters */
 	Locstate  sl;
 
@@ -63,7 +66,7 @@ int main(int argc, char **argv)
 
 	f_basic.L[0] = 0.0;	f_basic.L[1] = 0.0;
 	f_basic.U[0] = 1.0;	f_basic.U[1] = 1.0;
-	f_basic.gmax[0] = 200;	f_basic.gmax[1] = 200;		//myex grid size
+	f_basic.gmax[0] = 400;	f_basic.gmax[1] = 400;		//myex grid size
 	f_basic.boundary[0][0] = f_basic.boundary[0][1] = PERIODIC_BOUNDARY;
 	f_basic.boundary[1][0] = f_basic.boundary[1][1] = PERIODIC_BOUNDARY;
 	f_basic.size_of_intfc_state = 0;
@@ -82,47 +85,34 @@ int main(int argc, char **argv)
                                 right_flush(pp_mynode(),4));
 
 	FT_StartUp(&front,&f_basic);
-	add_to_debug("free_end_node");
 
 	if (!RestartRun)
 	{
 	    /* Initialize interface through level function */
 
-	    level_func_pack.neg_component = 2;
+	    level_func_pack.neg_component = 1;
 	    level_func_pack.pos_component = 2;
 	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
 
 	    level_func_pack.func_params = NULL;
 	    level_func_pack.func = NULL;
 
-	    level_func_pack.num_points = 251;		//myex num points
-	    level_func_pack.is_closed_curve = NO;
+	    level_func_pack.num_points = 250;		//myex num points
 
-	    FT_MatrixMemoryAlloc((POINTER*)&level_func_pack.point_array,
-	    			level_func_pack.num_points,
+	    FT_MatrixMemoryAlloc((POINTER*)&level_func_pack.point_array,level_func_pack.num_points,
 				2,sizeof(double));
 	    int i;
 	    for (i = 0; i < level_func_pack.num_points; ++i)
 	    {
-	    	double phi = i*PI/(double)(level_func_pack.num_points-1);
-	    	level_func_pack.point_array[i][0] = 0.5 + 0.20*cos(phi);
-	    	level_func_pack.point_array[i][1] = 0.35 + 0.20*sin(phi);
+	    	double phi = i*2.0*PI/(double)level_func_pack.num_points;
+	    	level_func_pack.point_array[i][0] = 0.5 + 0.15*cos(phi);
+	    	level_func_pack.point_array[i][1] = 0.25 + 0.15*sin(phi);
 	    }
 
 	    FT_InitIntfc(&front,&level_func_pack);
 	    if (f_basic.dim < 3)
                 FT_ClipIntfcToSubdomain(&front);
 	}
-	CURVE **c;
-	for (c = front.interf->curves; c && *c; ++c)
-	{
-	    if (negative_component(*c) == positive_component(*c))
-	    {
-		node_type((*c)->start) = MONO_COMP_NODE;
-		node_type((*c)->end) = MONO_COMP_NODE;
-	    }
-	}
-	xgraph_2d_intfc("init_intfc",front.interf);
 
 	/* Initialize velocity field function */
 
@@ -152,7 +142,6 @@ static  void test_propagate(
 {
         double CFL;
 	VORTEX_PARAMS *vparams = (VORTEX_PARAMS*)front->vparams;
-	char gname[100] = "immersed_intfc.gif";
 
 	front->max_time = 1.0;
 	front->max_step = 1000000;
@@ -170,7 +159,7 @@ static  void test_propagate(
 	if (!RestartRun)
 	{
             FT_RedistMesh(front);
-	    FT_ResetTime(front);
+            FT_ResetTime(front);
 
 	    // Always output the initial interface.
 	    FT_Save(front,out_name);
@@ -179,9 +168,9 @@ static  void test_propagate(
 	    // This is a virtual propagation to get maximum front 
 	    // speed to determine the first time step.
 
-	    FT_Propagate(front);
+            FT_Propagate(front);
             FT_SetTimeStep(front);
-	    FT_SetOutputCounter(front);
+            FT_SetOutputCounter(front);
 	}
 	else
 	{
@@ -194,8 +183,8 @@ static  void test_propagate(
         {
 	    /* Propagating interface for time step dt */
 
-	    FT_Propagate(front);
-	    FT_AddTimeStepToCounter(front);
+            FT_Propagate(front);
+            FT_AddTimeStepToCounter(front);
 
 	    //Next time step determined by maximum speed of previous
 	    //step, assuming the propagation is hyperbolic and
@@ -211,12 +200,14 @@ static  void test_propagate(
             fflush(stdout);
 
             if (FT_IsSaveTime(front))
-		FT_Save(front,out_name);
+                FT_Save(front,out_name);
             if (FT_IsMovieFrameTime(front))
                 FT_AddMovieFrame(front,out_name,binary);
 
             if (FT_TimeLimitReached(front))
-                    break;
+                break;
+
+	    /* Time and step control section */
 
 	    FT_TimeControlFilter(front);
         }

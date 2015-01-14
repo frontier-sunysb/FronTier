@@ -457,7 +457,7 @@ extern void compute_curve_accel1(
 		p = b->end;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
+		    nt = I_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
 			for (side = 0; side < 3; ++side)
@@ -605,7 +605,7 @@ extern void compute_node_accel1(
 		b = (*c)->first;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
+		    nt = I_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
 			if (!pointer_in_list((POINTER)tris[j],num_tris,
@@ -619,7 +619,7 @@ extern void compute_node_accel1(
 		b = (*c)->last;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
+		    nt = I_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
 			if (!pointer_in_list((POINTER)tris[j],num_tris,
@@ -900,7 +900,7 @@ extern void compute_node_accel2(
 		b = (*c)->first;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
+		    nt = I_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
 			if (!pointer_in_list((POINTER)tris[j],num_tris,
@@ -914,7 +914,7 @@ extern void compute_node_accel2(
 		b = (*c)->last;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
+		    nt = I_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
 			if (!pointer_in_list((POINTER)tris[j],num_tris,
@@ -1049,7 +1049,7 @@ extern void compute_curve_accel2(
 		p = b->end;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
+		    nt = I_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
 			for (side = 0; side < 3; ++side)
@@ -1256,7 +1256,7 @@ extern void compute_node_accel3(
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
 		    out_surfs[ns++] = (*btris)->surface;
-		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
+		    nt = I_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
 			for (side = 0; side < 3; ++side)
@@ -1294,7 +1294,7 @@ extern void compute_node_accel3(
 			if ((*btris)->surface == out_surfs[j])
 			    duplicate_surf = YES;
 		    if (duplicate_surf == YES) continue;
-		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
+		    nt = I_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
 			for (side = 0; side < 3; ++side)
@@ -1416,7 +1416,7 @@ extern void compute_curve_accel3(
 		p = b->end;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
-		    nt = FT_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
+		    nt = I_FirstRingTrisAroundPoint(p,(*btris)->tri,&tris);
 		    for (j = 0; j < nt; ++j)
 		    {
 			for (side = 0; side < 3; ++side)

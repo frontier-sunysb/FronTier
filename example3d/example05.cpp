@@ -263,14 +263,14 @@ static double test_ellipoid_func(
 	    if (dist2 <= 0)
 	    {
 	    	if(dist3>=0)
-		    arg = -1*std::min(fabs(dist2),fabs(dist3));
+		    arg = -1*FT_Min(fabs(dist2),fabs(dist3));
 		else
-		    arg = std::min(fabs(dist1),fabs(dist3)); 
+		    arg = FT_Min(fabs(dist1),fabs(dist3)); 
 	    }
 	    else
 	    {
 	    	if(dist3>=0)
-		    arg = std::min(fabs(dist1), fabs(dist2));
+		    arg = FT_Min(fabs(dist1), fabs(dist2));
 		else
 		    arg = dist1;
 	    }

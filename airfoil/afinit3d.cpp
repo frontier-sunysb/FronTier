@@ -438,9 +438,9 @@ static boolean insert_vertical_gore(
 	for (i = 0; i < num_gores; ++i)
 	    gore_x[i] = gores_start_x + i * gores_dis;
 
-        num_curves = FT_NumOfSurfCurves(surf);
+        num_curves = I_NumOfSurfCurves(surf);
         FT_VectorMemoryAlloc((POINTER*)&c,num_curves,sizeof(CURVE*));
-        FT_ArrayOfSurfCurves(surf,c);
+        I_ArrayOfSurfCurves(surf,c);
 
         for (i = 0; i < num_curves; ++i)
 	{
@@ -479,11 +479,11 @@ static boolean insert_vertical_gore(
 	str_node_moved = NO;
 	for (i = 0; i < num_gores; ++i)
 	{
-	    canopy_bdry = FT_CurveOfPoint(intfc, start_pts[i], &b);
+	    canopy_bdry = I_CurveOfPoint(intfc, start_pts[i], &b);
 	    if (is_closed_curve(canopy_bdry) && !str_node_moved)
 	    {
 		move_closed_loop_node(canopy_bdry, b);
-		start_nodes[i] = FT_NodeOfPoint(intfc, start_pts[i]);
+		start_nodes[i] = I_NodeOfPoint(intfc, start_pts[i]);
 		FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 		extra->af_node_type = GORE_NODE;
 		start_nodes[i]->extra = (POINTER)extra;
@@ -493,18 +493,18 @@ static boolean insert_vertical_gore(
 	    else
 	    {
 		c = split_curve(start_pts[i], b, canopy_bdry, 0,0,0,0);
-		start_nodes[i] = FT_NodeOfPoint(intfc, start_pts[i]);
+		start_nodes[i] = I_NodeOfPoint(intfc, start_pts[i]);
 		FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 		extra->af_node_type = GORE_NODE;
 		start_nodes[i]->extra = (POINTER)extra;
 		start_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
 	    }
 
-	    canopy_bdry = FT_CurveOfPoint(intfc, end_pts[i], &b);
+	    canopy_bdry = I_CurveOfPoint(intfc, end_pts[i], &b);
             if (is_closed_curve(canopy_bdry) && !str_node_moved)
             {
                 move_closed_loop_node(canopy_bdry, b);
-                end_nodes[i] = FT_NodeOfPoint(intfc, end_pts[i]);
+                end_nodes[i] = I_NodeOfPoint(intfc, end_pts[i]);
                 FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
                 extra->af_node_type = GORE_NODE;
                 end_nodes[i]->extra = (POINTER)extra;
@@ -514,7 +514,7 @@ static boolean insert_vertical_gore(
             else
             {
                 c = split_curve(end_pts[i], b, canopy_bdry, 0,0,0,0);
-                end_nodes[i] = FT_NodeOfPoint(intfc, end_pts[i]);
+                end_nodes[i] = I_NodeOfPoint(intfc, end_pts[i]);
                 FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
                 extra->af_node_type = GORE_NODE;
                 end_nodes[i]->extra = (POINTER)extra;
@@ -610,18 +610,18 @@ static boolean install_strings_and_rotate(
 		string_angle[i] -= 2.0*PI;
 	}
 
-	num_curves = FT_NumOfSurfCurves(surf);
+	num_curves = I_NumOfSurfCurves(surf);
 	FT_VectorMemoryAlloc((POINTER*)&c,num_curves,sizeof(CURVE*));
-	FT_ArrayOfSurfCurves(surf,c);
+	I_ArrayOfSurfCurves(surf,c);
 
 	max_radius_sqr = 0.0;
 	for (i = 0; i < num_curves; ++i)
 	{
 	    if (hsbdry_type(c[i]) != MONO_COMP_HSBDRY)
 		continue;
-	    num_points = FT_NumOfCurvePoints(c[i]);
+	    num_points = I_NumOfCurvePoints(c[i]);
 	    FT_VectorMemoryAlloc((POINTER*)&pts,num_points,sizeof(POINT*));
-	    FT_ArrayOfCurvePoints(c[i],pts);
+	    I_ArrayOfCurvePoints(c[i],pts);
 	    ave_radius_sqr = 0.0;
 	    for (j = 0; j < num_points; ++j)
 	    {
@@ -653,11 +653,11 @@ static boolean install_strings_and_rotate(
 	node_moved = NO;
 	for (i = 0; i < num_strings; ++i)
 	{
-	    canopy_bdry = FT_CurveOfPoint(intfc,string_pts[i],&b);
+	    canopy_bdry = I_CurveOfPoint(intfc,string_pts[i],&b);
 	    if (is_closed_curve(canopy_bdry) && !node_moved)
 	    {
 		move_closed_loop_node(canopy_bdry,b);
-	        string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
+	        string_nodes[i] = I_NodeOfPoint(intfc,string_pts[i]);
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
@@ -667,7 +667,7 @@ static boolean install_strings_and_rotate(
 	    else
 	    {
 	    	c = split_curve(string_pts[i],b,canopy_bdry,0,0,0,0);
-	    	string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
+	    	string_nodes[i] = I_NodeOfPoint(intfc,string_pts[i]);
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
@@ -696,9 +696,9 @@ static boolean install_strings_and_rotate(
 	}
 	FT_FreeThese(3,string_angle,string_pts,string_nodes);
 
-	num_points = FT_NumOfSurfPoints(surf);
+	num_points = I_NumOfSurfPoints(surf);
 	FT_VectorMemoryAlloc((POINTER*)&pts,num_points,sizeof(POINT*));
-	FT_ArrayOfSurfPoints(surf,pts);
+	I_ArrayOfSurfPoints(surf,pts);
 	I_SphericalRotatePoint(nload->posn,cload,rot_phi,rot_theta,YES);
 	for (i = 0; i < num_points; ++i)
 	    I_SphericalRotatePoint(pts[i],cload,rot_phi,rot_theta,NO);
@@ -764,9 +764,9 @@ static boolean install_strings_and_rotate_w_gores(
 		string_angle[i] -= 2.0*PI;
 	}
 
-	num_curves = FT_NumOfSurfCurves(surf);
+	num_curves = I_NumOfSurfCurves(surf);
 	FT_VectorMemoryAlloc((POINTER*)&c,num_curves,sizeof(CURVE*));
-	FT_ArrayOfSurfCurves(surf,c);
+	I_ArrayOfSurfCurves(surf,c);
 
 	k = 0;
 	for (i = 0; i < num_curves; ++i)
@@ -774,9 +774,9 @@ static boolean install_strings_and_rotate_w_gores(
 	    if (hsbdry_type(c[i]) != MONO_COMP_HSBDRY)
 		continue;
 	    mono_c[k] = c[i];
-	    num_points = FT_NumOfCurvePoints(c[i]);
+	    num_points = I_NumOfCurvePoints(c[i]);
 	    FT_VectorMemoryAlloc((POINTER*)&pts,num_points,sizeof(POINT*));
-	    FT_ArrayOfCurvePoints(c[i],pts);
+	    I_ArrayOfCurvePoints(c[i],pts);
 	    ave_radius_sqr[k] = 0.0;
 	    for (j = 0; j < num_points; ++j)
 	    {
@@ -838,11 +838,11 @@ static boolean install_strings_and_rotate_w_gores(
 	str_node_moved = vnt_node_moved = NO;
 	for (i = 0; i < num_strings; ++i)
 	{
-	    canopy_bdry = FT_CurveOfPoint(intfc,string_pts[i],&b);
+	    canopy_bdry = I_CurveOfPoint(intfc,string_pts[i],&b);
 	    if (is_closed_curve(canopy_bdry) && !str_node_moved)
 	    {
 		move_closed_loop_node(canopy_bdry,b);
-	        string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
+	        string_nodes[i] = I_NodeOfPoint(intfc,string_pts[i]);
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
@@ -852,7 +852,7 @@ static boolean install_strings_and_rotate_w_gores(
 	    else
 	    {
 	    	c = split_curve(string_pts[i],b,canopy_bdry,0,0,0,0);
-	    	string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
+	    	string_nodes[i] = I_NodeOfPoint(intfc,string_pts[i]);
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
@@ -863,11 +863,11 @@ static boolean install_strings_and_rotate_w_gores(
 	{
 	    for (i = 0; i < num_strings; ++i)
 	    {
-	    	vent_bdry = FT_CurveOfPoint(intfc,vent_pts[i],&b);
+	    	vent_bdry = I_CurveOfPoint(intfc,vent_pts[i],&b);
 	    	if (is_closed_curve(vent_bdry) && !vnt_node_moved)
 	    	{
 		    move_closed_loop_node(vent_bdry,b);
-	            vent_nodes[i] = FT_NodeOfPoint(intfc,vent_pts[i]);
+	            vent_nodes[i] = I_NodeOfPoint(intfc,vent_pts[i]);
 	    	    FT_ScalarMemoryAlloc((POINTER*)&extra,
 				sizeof(AF_NODE_EXTRA));
 	    	    extra->af_node_type = GORE_NODE;
@@ -878,7 +878,7 @@ static boolean install_strings_and_rotate_w_gores(
 	    	else
 	    	{
 	    	    c = split_curve(vent_pts[i],b,vent_bdry,0,0,0,0);
-	    	    vent_nodes[i] = FT_NodeOfPoint(intfc,vent_pts[i]);
+	    	    vent_nodes[i] = I_NodeOfPoint(intfc,vent_pts[i]);
 	    	    FT_ScalarMemoryAlloc((POINTER*)&extra,
 				sizeof(AF_NODE_EXTRA));
 	    	    extra->af_node_type = GORE_NODE;
@@ -926,9 +926,9 @@ static boolean install_strings_and_rotate_w_gores(
 	FT_FreeThese(5, string_angle, string_pts,string_nodes,vent_pts, 
 				vent_nodes);
 
-	num_points = FT_NumOfSurfPoints(surf);
+	num_points = I_NumOfSurfPoints(surf);
 	FT_VectorMemoryAlloc((POINTER*)&pts,num_points,sizeof(POINT*));
-	FT_ArrayOfSurfPoints(surf,pts);
+	I_ArrayOfSurfPoints(surf,pts);
 	I_SphericalRotatePoint(nload->posn,cload,rot_phi,rot_theta,YES);
 	for (i = 0; i < num_points; ++i)
 	    I_SphericalRotatePoint(pts[i],cload,rot_phi,rot_theta,NO);
@@ -1004,18 +1004,18 @@ static boolean install_strings(
         	string_angle[i] -= 2.0*PI;
         }
 
-	num_curves = FT_NumOfSurfCurves(surf);
+	num_curves = I_NumOfSurfCurves(surf);
 	FT_VectorMemoryAlloc((POINTER*)&c,num_curves,sizeof(CURVE*));
-	FT_ArrayOfSurfCurves(surf,c);
+	I_ArrayOfSurfCurves(surf,c);
 
 	max_radius_sqr = 0.0;
 	for (i = 0; i < num_curves; ++i)
 	{
 	    if (hsbdry_type(c[i]) != MONO_COMP_HSBDRY)
 		continue;
-	    num_points = FT_NumOfCurvePoints(c[i]);
+	    num_points = I_NumOfCurvePoints(c[i]);
 	    FT_VectorMemoryAlloc((POINTER*)&pts,num_points,sizeof(POINT*));
-	    FT_ArrayOfCurvePoints(c[i],pts);
+	    I_ArrayOfCurvePoints(c[i],pts);
 	    ave_radius_sqr = 0.0;
 	    for (j = 0; j < num_points; ++j)
 	    {
@@ -1032,9 +1032,9 @@ static boolean install_strings(
 	}
 	FT_FreeThese(1,c);
 
-	num_bonds = FT_NumOfCurveBonds(canopy_bdry);
+	num_bonds = I_NumOfCurveBonds(canopy_bdry);
 	FT_VectorMemoryAlloc((POINTER*)&bonds,num_bonds,sizeof(BOND*));
-	FT_ArrayOfCurveBonds(canopy_bdry,bonds);
+	I_ArrayOfCurveBonds(canopy_bdry,bonds);
 	for (i = 0; i < num_bonds; ++i)
 	{
 	    theta1 = plane_angle(cen,Coords(bonds[i]->start));
@@ -1068,11 +1068,11 @@ static boolean install_strings(
 	node_moved = NO;
 	for (i = 0; i < num_strings; ++i)
 	{
-	    canopy_bdry = FT_CurveOfPoint(intfc,string_pts[i],&b);
+	    canopy_bdry = I_CurveOfPoint(intfc,string_pts[i],&b);
 	    if (is_closed_curve(canopy_bdry) && !node_moved)
 	    {
 		move_closed_loop_node(canopy_bdry,b);
-	        string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
+	        string_nodes[i] = I_NodeOfPoint(intfc,string_pts[i]);
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
@@ -1081,7 +1081,7 @@ static boolean install_strings(
 		continue;
 	    }
 	    c = split_curve(string_pts[i],b,canopy_bdry,0,0,0,0);
-	    string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
+	    string_nodes[i] = I_NodeOfPoint(intfc,string_pts[i]);
 	    FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    extra->af_node_type = STRING_NODE;
 	    string_nodes[i]->extra = (POINTER)extra;
@@ -1135,7 +1135,7 @@ static boolean change_mono_boundary(
 	    else
             {
                 static C_PARAMS c_params;
-                int i,npts = FT_NumOfCurvePoints(cside01);
+                int i,npts = I_NumOfCurvePoints(cside01);
                 c_params.load_type = bdry_params->upper_side[0];
                 c_params.load_mass = bdry_params->upper_mass[0];
                 c_params.point_mass = bdry_params->upper_mass[0]/npts;
@@ -1471,18 +1471,18 @@ static boolean install_strings_and_rotate_w_fixer(
 		string_angle[i] -= 2.0*PI;
 	}
 
-	num_curves = FT_NumOfSurfCurves(surf);
+	num_curves = I_NumOfSurfCurves(surf);
 	FT_VectorMemoryAlloc((POINTER*)&c,num_curves,sizeof(CURVE*));
-	FT_ArrayOfSurfCurves(surf,c);
+	I_ArrayOfSurfCurves(surf,c);
 
 	max_radius_sqr = 0.0;
 	for (i = 0; i < num_curves; ++i)
 	{
 	    if (hsbdry_type(c[i]) != MONO_COMP_HSBDRY)
 		continue;
-	    num_points = FT_NumOfCurvePoints(c[i]);
+	    num_points = I_NumOfCurvePoints(c[i]);
 	    FT_VectorMemoryAlloc((POINTER*)&pts,num_points,sizeof(POINT*));
-	    FT_ArrayOfCurvePoints(c[i],pts);
+	    I_ArrayOfCurvePoints(c[i],pts);
 	    ave_radius_sqr = 0.0;
 	    for (j = 0; j < num_points; ++j)
 	    {
@@ -1514,11 +1514,11 @@ static boolean install_strings_and_rotate_w_fixer(
 	node_moved = NO;
 	for (i = 0; i < num_strings; ++i)
 	{
-	    canopy_bdry = FT_CurveOfPoint(intfc,string_pts[i],&b);
+	    canopy_bdry = I_CurveOfPoint(intfc,string_pts[i],&b);
 	    if (is_closed_curve(canopy_bdry) && !node_moved)
 	    {
 		move_closed_loop_node(canopy_bdry,b);
-	        string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
+	        string_nodes[i] = I_NodeOfPoint(intfc,string_pts[i]);
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
@@ -1528,7 +1528,7 @@ static boolean install_strings_and_rotate_w_fixer(
 	    else
 	    {
 	    	c = split_curve(string_pts[i],b,canopy_bdry,0,0,0,0);
-	    	string_nodes[i] = FT_NodeOfPoint(intfc,string_pts[i]);
+	    	string_nodes[i] = I_NodeOfPoint(intfc,string_pts[i]);
 	    	FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
 	    	extra->af_node_type = STRING_NODE;
 	    	string_nodes[i]->extra = (POINTER)extra;
@@ -1580,9 +1580,9 @@ static boolean install_strings_and_rotate_w_fixer(
 	}
 	FT_FreeThese(3,string_angle,string_pts,string_nodes);
 
-	num_points = FT_NumOfSurfPoints(surf);
+	num_points = I_NumOfSurfPoints(surf);
 	FT_VectorMemoryAlloc((POINTER*)&pts,num_points,sizeof(POINT*));
-	FT_ArrayOfSurfPoints(surf,pts);
+	I_ArrayOfSurfPoints(surf,pts);
 	I_SphericalRotatePoint(nload->posn,cload,rot_phi,rot_theta,YES);
 	for (i = 0; i < num_points; ++i)
 	    I_SphericalRotatePoint(pts[i],cload,rot_phi,rot_theta,NO);
@@ -1645,9 +1645,9 @@ static boolean install_strings_and_rotate_w_parallel_gores(
         for (i = 0; i < num_gores; ++i)
             gore_x[i] = gores_start_x + i * gores_dis;
 
-        num_curves = FT_NumOfSurfCurves(surf);
+        num_curves = I_NumOfSurfCurves(surf);
         FT_VectorMemoryAlloc((POINTER*)&c,num_curves,sizeof(CURVE*));
-        FT_ArrayOfSurfCurves(surf,c);
+        I_ArrayOfSurfCurves(surf,c);
 
         for (i = 0; i < num_curves; ++i)
         {
@@ -1693,11 +1693,11 @@ static boolean install_strings_and_rotate_w_parallel_gores(
         str_node_moved = NO;
         for (i = 0; i < num_gores; ++i)
         {
-            canopy_bdry = FT_CurveOfPoint(intfc, start_pts[i], &b);
+            canopy_bdry = I_CurveOfPoint(intfc, start_pts[i], &b);
             if (is_closed_curve(canopy_bdry) && !str_node_moved)
             {
                 move_closed_loop_node(canopy_bdry, b);
-                start_nodes[i] = FT_NodeOfPoint(intfc, start_pts[i]);
+                start_nodes[i] = I_NodeOfPoint(intfc, start_pts[i]);
                 FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
                 extra->af_node_type = GORE_NODE;
                 start_nodes[i]->extra = (POINTER)extra;
@@ -1707,18 +1707,18 @@ static boolean install_strings_and_rotate_w_parallel_gores(
             else
             {
                 c = split_curve(start_pts[i], b, canopy_bdry, 0,0,0,0);
-                start_nodes[i] = FT_NodeOfPoint(intfc, start_pts[i]);
+                start_nodes[i] = I_NodeOfPoint(intfc, start_pts[i]);
                 FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
                 extra->af_node_type = GORE_NODE;
                 start_nodes[i]->extra = (POINTER)extra;
         	start_nodes[i]->size_of_extra = sizeof(AF_NODE_EXTRA);
             }
 
-            canopy_bdry = FT_CurveOfPoint(intfc, end_pts[i], &b);
+            canopy_bdry = I_CurveOfPoint(intfc, end_pts[i], &b);
             if (is_closed_curve(canopy_bdry) && !str_node_moved)
             {
                 move_closed_loop_node(canopy_bdry, b);
-                end_nodes[i] = FT_NodeOfPoint(intfc, end_pts[i]);
+                end_nodes[i] = I_NodeOfPoint(intfc, end_pts[i]);
                 FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
                 extra->af_node_type = GORE_NODE;
                 end_nodes[i]->extra = (POINTER)extra;
@@ -1727,7 +1727,7 @@ static boolean install_strings_and_rotate_w_parallel_gores(
             else
             {
                 c = split_curve(end_pts[i], b, canopy_bdry, 0,0,0,0);
-                end_nodes[i] = FT_NodeOfPoint(intfc, end_pts[i]);
+                end_nodes[i] = I_NodeOfPoint(intfc, end_pts[i]);
                 FT_ScalarMemoryAlloc((POINTER*)&extra,sizeof(AF_NODE_EXTRA));
                 extra->af_node_type = GORE_NODE;
                 end_nodes[i]->extra = (POINTER)extra;

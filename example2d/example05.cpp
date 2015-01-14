@@ -22,24 +22,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ****************************************************************/
 
 /*
-*				example0.c:
+*				example2.c:
 *
 *		User initialization example for Front Package:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
-*	
-*	This example shows a circle in a double vortex field. It demonstrates
-*	the resolution of the front tracking method.
+*
+*	This is example of three circles all moving the a normal velocity.
+*	Bifurcation occurs when they meet each other. FronTier solves
+*	the bifurcation automatically.
 *
 */
 
-#include <vector>
 #include <FronTier.h>
 
 	/*  Function Declarations */
 static void test_propagate(Front*);
-static int rotation_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
+static int norm_vel_func(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
 	                       HYPER_SURF*,double*);
+static void map_output_interface(Front*,char*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -47,28 +48,15 @@ int RestartStep;
 boolean binary = YES;
 
 /********************************************************************
- *	Level function parameters for the initial interface 	    *
- ********************************************************************/
-
-typedef struct {
-        /* equation for line is x^2/a^2 + y^2/b^2 = 1 */
-        double x0;
-        double y0;         
-	double r;
-        double w;         
-	double h;
-} DISK_PARAMS;
-
-
-/********************************************************************
  *	Velocity function parameters for the front	 	    *
  ********************************************************************/
 
-typedef struct {
-        double omega_0;          /* angular velocity */
-        double domega_dr;
-        double cen[2];
-} ROTATION_VEL_PARAMS;
+struct _TNORV_PARAMS
+{
+        int dim;
+        double coeff;
+};
+typedef struct _TNORV_PARAMS TNORV_PARAMS;
 
 int main(int argc, char **argv)
 {
@@ -77,20 +65,20 @@ int main(int argc, char **argv)
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-	DISK_PARAMS disk_params;	/* level function parameters */
-	ROTATION_VEL_PARAMS rv_params; /* velocity function parameters */
+	TNORV_PARAMS norm_params; /* velocity function parameters */
+	MC_PARAMS mc_params;
 	Locstate  sl;
 
 	FT_Init(argc,argv,&f_basic);
-	f_basic.dim = 2;	
+	f_basic.dim = 2;
 
 	/* Initialize basic computational data */
 
 	f_basic.L[0] = 0.0;	f_basic.L[1] = 0.0;
 	f_basic.U[0] = 1.0;	f_basic.U[1] = 1.0;
-	f_basic.gmax[0] = 128;	f_basic.gmax[1] = 128;
-	f_basic.boundary[0][0] = f_basic.boundary[0][1] = PERIODIC_BOUNDARY;
-	f_basic.boundary[1][0] = f_basic.boundary[1][1] = PERIODIC_BOUNDARY;
+	f_basic.gmax[0] = 40;	f_basic.gmax[1] = 40;
+	f_basic.boundary[0][0] = f_basic.boundary[0][1] = DIRICHLET_BOUNDARY;
+	f_basic.boundary[1][0] = f_basic.boundary[1][1] = DIRICHLET_BOUNDARY;
 	f_basic.size_of_intfc_state = 0;
 
         in_name                 = f_basic.in_name;
@@ -112,33 +100,41 @@ int main(int argc, char **argv)
 	{
 	    /* Initialize interface through level function */
 
-	    disk_params.x0 = 0.5;
-	    disk_params.y0 = 0.5;
-	    disk_params.r = 0.3;
-	    disk_params.w = 0.01;
-	    disk_params.h = 0.4;
+	    mc_params.dim = 2;
+	    mc_params.num_cir = 3;
+            FT_VectorMemoryAlloc((POINTER*)&mc_params.rad,mc_params.num_cir,
+	    				FLOAT);
+            FT_MatrixMemoryAlloc((POINTER*)&mc_params.cen,mc_params.num_cir,
+	    				2,FLOAT);
+	    mc_params.cen[0][0] = 0.3;
+	    mc_params.cen[0][1] = 0.3;
+	    mc_params.cen[1][0] = 0.7;
+	    mc_params.cen[1][1] = 0.3;
+	    mc_params.cen[2][0] = 0.5;
+	    mc_params.cen[2][1] = 0.7;
+	    mc_params.rad[0] = 0.1;
+	    mc_params.rad[1] = 0.1;
+	    mc_params.rad[2] = 0.1;
 
 	    level_func_pack.neg_component = 1;
 	    level_func_pack.pos_component = 2;
-	    level_func_pack.func_params = (POINTER)&disk_params;
-	    level_func_pack.func = slotted_disk_func;
+	    level_func_pack.func_params = (POINTER)&mc_params;
+	    level_func_pack.func = multi_circle_func;
 	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
+
 	    FT_InitIntfc(&front,&level_func_pack);
 	    if (f_basic.dim < 3)
                 FT_ClipIntfcToSubdomain(&front);
 	}
 
-
 	/* Initialize velocity field function */
 
-        rv_params.cen[0] = 0.5;
-        rv_params.cen[1] = 0.5;
-        rv_params.omega_0 = -2.0*PI;
-        rv_params.domega_dr = 0.0;
+	norm_params.dim = 2;
+	norm_params.coeff = 0.1;
 
-	velo_func_pack.func_params = (POINTER)&rv_params;
-	velo_func_pack.func = rotation_vel;
-	velo_func_pack.point_propagate = fourth_order_point_propagate;
+	velo_func_pack.func_params = (POINTER)&norm_params;
+	velo_func_pack.func = norm_vel_func;
+	velo_func_pack.point_propagate = first_order_point_propagate;
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
 
@@ -155,13 +151,12 @@ static  void test_propagate(
 {
         double CFL;
 
-	front->max_time = 3;
+	front->max_time = 3.0;
 	front->max_step = 10000;
 	front->print_time_interval = 2.0;
-	front->movie_frame_interval = 0.05;
+	front->movie_frame_interval = 0.02;
 
         CFL = Time_step_factor(front);
-	Frequency_of_redistribution(front,GENERAL_WAVE) = 1000;
 
 	printf("CFL = %f\n",CFL);
 	printf("Frequency_of_redistribution(front,GENERAL_WAVE) = %d\n",
@@ -179,9 +174,9 @@ static  void test_propagate(
 	    // This is a virtual propagation to get maximum front 
 	    // speed to determine the first time step.
 
-            FT_Propagate(front);
+	    FT_Propagate(front);
             FT_SetTimeStep(front);
-            FT_SetOutputCounter(front);
+	    FT_SetOutputCounter(front);
 	}
 	else
 	{
@@ -194,8 +189,8 @@ static  void test_propagate(
         {
 	    /* Propagating interface for time step dt */
 
-            FT_Propagate(front);
-            FT_AddTimeStepToCounter(front);
+	    FT_Propagate(front);
+	    FT_AddTimeStepToCounter(front);
 
 	    //Next time step determined by maximum speed of previous
 	    //step, assuming the propagation is hyperbolic and
@@ -204,78 +199,99 @@ static  void test_propagate(
 
             FT_SetTimeStep(front);
 
+	    /* Output section */
+
             printf("\ntime = %f   step = %5d   next dt = %f\n",
                         front->time,front->step,front->dt);
             fflush(stdout);
 
             if (FT_IsSaveTime(front))
-                FT_Save(front,out_name);
+		FT_Save(front,out_name);
             if (FT_IsMovieFrameTime(front))
                 FT_AddMovieFrame(front,out_name,binary);
 
             if (FT_TimeLimitReached(front))
                     break;
 
-	    /* Output section, next dt may be modified */
-
 	    FT_TimeControlFilter(front);
         }
         (void) delete_interface(front->interf);
 }       /* end test_propagate */
 
-/********************************************************************
- *	Sample (rotation) velocity function for the front    *
- ********************************************************************/
-
-static int rotation_vel(
-	POINTER params,
-	Front *front,
-	POINT *p,
-	HYPER_SURF_ELEMENT *hse,
-	HYPER_SURF *hs,
-	double *vel)
+static int norm_vel_func(
+        POINTER params,
+        Front *front,
+        POINT *p,
+        HYPER_SURF_ELEMENT *hse,
+        HYPER_SURF *hs,
+        double *vel)
 {
-	ROTATION_VEL_PARAMS *rv_params = (ROTATION_VEL_PARAMS*)params;
-	double *coords = Coords(p);
-	double V,xcomp,ycomp;
-	double rad;
-	double *cen = rv_params->cen;
-	double omega_0 = rv_params->omega_0;
-	double domega_dr = rv_params->domega_dr;
-	double dx,dy;
+        TNORV_PARAMS *norv_params;
+        int i;
+        double coeff;
+        double curvature;
+        double nor[MAXD];
+                                                                                
+        norv_params = (TNORV_PARAMS*)params;
+        coeff = norv_params->coeff;
+                                                                                
+        GetFrontNormal(p,hse,hs,nor,front);
+        for (i = 0; i < norv_params->dim; ++i)
+        {
+            vel[i] = nor[i]*coeff;
+        }
+}       /* end normal_vel_func */
 
-	dx = coords[0] - cen[0]; 
-	dy = coords[1] - cen[1];
-
-	rad = sqrt(sqr(dx) + sqr(dy));
-	if (rad == 0.0)
-        {
-            vel[0] = vel[1] = 0.0;
-            return 1;
-        }
-	xcomp = fabs(coords[1]-cen[0])/rad;
-        ycomp = fabs(coords[0]-cen[1])/rad;
-        V = rad*(omega_0 + domega_dr*rad);
-        if (coords[0]-cen[0] >= 0.0 && coords[1]-cen[1] >= 0.0) /*1st quadrant*/
-        {
-            vel[0] = -V*xcomp;
-            vel[1] =  V*ycomp;
-        }
-        else if (coords[0]-cen[0] <= 0.0 && coords[1]-cen[1] >= 0.0) /*2nd quadrant*/
-        {
-            vel[0] = -V*xcomp;
-            vel[1] = -V*ycomp;
-        }
-        else if (coords[0]-cen[0] <= 0.0 && coords[1]-cen[1] <= 0.0) /*3rd quadrant*/
-        {
-            vel[0] =  V*xcomp;
-            vel[1] = -V*ycomp;
-        }
-        else if (coords[0]-cen[0] >= 0.0 && coords[1]-cen[1] <= 0.0) /*4th quadrant*/
-        {
-            vel[0] =  V*xcomp;
-            vel[1] =  V*ycomp;
-        }
+static void map_output_interface(
+	Front *front,
+	char *out_name)
+{
+	INTERFACE *intfc = front->interf;
+        FILE *out_file;
+        char filename[100];
+	int i,j,k,step;
+	step = front->step;
+	sprintf(filename,"%s.ts%s",out_name,right_flush(step,5));
+	out_file = fopen(filename,"w");
 	
+	int num_curves = I_NumOfIntfcCurves(intfc);
+	int dim = Dimension(intfc);
+	int num_nodes = I_NumOfIntfcNodes(intfc);
+	int num_bonds = I_NumOfIntfcBonds(intfc);
+	int num_points = I_NumOfIntfcPoints(intfc);
 
-}	/* end rotation_vel */
+	CURVE **curves;
+	curves = (CURVE**)malloc(num_curves*sizeof(CURVE*));
+
+	I_ArrayOfIntfcCurves(intfc,curves);
+
+	fprintf(out_file,"Interface at step %d\n\n",step);
+	fprintf(out_file,"Dimension = %d\n",dim);
+	fprintf(out_file,"Number of Curves = %d\n",num_curves);
+	fprintf(out_file,"Number of Nodes = %d\n",num_nodes);
+	fprintf(out_file,"Number of Interface Bonds = %d\n",num_bonds);
+	fprintf(out_file,"Number of Interface Points = %d\n",num_points);
+	for (i = 0; i < num_curves; ++i)
+	{
+	    double *coords;
+
+	    num_bonds = I_NumOfCurveBonds(curves[i]);
+	    num_points = I_NumOfCurvePoints(curves[i]);
+	    coords = (double*)malloc(num_points*dim*sizeof(double));
+
+	    ArrayOfCurvePoints(curves[i],coords);
+
+	    fprintf(out_file,"Number of Bonds on Curve %d = %d\n",
+	    			i+1,num_bonds);
+	    fprintf(out_file,"Number of Points on Curve %d = %d\n\n",
+	    			i+1,num_points);
+	    for (j = 0; j < num_points; ++j)
+	    {
+	    	for (k = 0; k < dim; ++k)
+		    fprintf(out_file,"%f  ",coords[dim*j+k]);
+	    	fprintf(out_file,"\n");
+	    }
+	    fprintf(out_file,"\n\n");
+	}
+	fclose(out_file);
+}	/* end map_output */

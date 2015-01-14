@@ -109,7 +109,7 @@ extern void second_order_elastic_curve_propagate(
             dt = fr_dt/(double)n_sub;
         }
 
-	num_pts = FT_NumOfCurvePoints(oldc);
+	num_pts = I_NumOfCurvePoints(oldc);
 	if (size < num_pts)
 	{
 	    size = num_pts;
@@ -314,7 +314,7 @@ extern void second_order_elastic_surf_propagate(
 	    }
 	}
 
-	num_pts = FT_NumOfSurfPoints(news);
+	num_pts = I_NumOfSurfPoints(news);
 	if (size < num_pts)
 	{
 	    size = num_pts;
@@ -991,11 +991,11 @@ static void print_airfoil_stat3d_1(
 	    vcom = center_of_mass_velo(Hyper_surf(surf))[2];
 	    if (first)
 	    {
-		np = FT_NumOfSurfPoints(surf);
+		np = I_NumOfSurfPoints(surf);
 		ip = np/2;
 		FT_VectorMemoryAlloc((POINTER*)&pts,np,sizeof(POINT*));
 	    }
-	    FT_ArrayOfSurfPoints(surf,pts);
+	    I_ArrayOfSurfPoints(surf,pts);
 	    psample = pts[ip];
 	    for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf);
                         tri = tri->next)
@@ -1508,7 +1508,7 @@ extern void fourth_order_elastic_curve_propagate(
             for (i = 0; i < max_point_gindex; ++i)
                 point_set[i] = NULL;
         }
-	num_pts = FT_NumOfCurvePoints(oldc);
+	num_pts = I_NumOfCurvePoints(oldc);
 	geom_set.num_surfs = 0;
 	geom_set.num_curves = 1;
 	geom_set.curves[0] = newc;
@@ -1795,7 +1795,7 @@ extern void fourth_order_elastic_surf_propagate(
 	geom_set.num_surfs = 1;
 	geom_set.surfs[0] = news;
 
-	num_pts = FT_NumOfSurfPoints(news);
+	num_pts = I_NumOfSurfPoints(news);
 	if (point_set == NULL)
         {
             FT_VectorMemoryAlloc((POINTER*)&point_set,max_point_gindex,

@@ -336,7 +336,7 @@ static void convert_to_point_mass(
             for (c = intfc->curves; c && *c; ++c)
             {
                 if (wave_type(*c) == ELASTIC_BOUNDARY)
-                    num_str_pts +=  FT_NumOfCurvePoints(*c);
+                    num_str_pts +=  I_NumOfCurvePoints(*c);
             }
             num_str_pts -= 2; //ignore the boundary points
             af_params->m_l = af_params->total_string_mass/num_str_pts;
@@ -349,12 +349,12 @@ static void convert_to_point_mass(
             for (s = intfc->surfaces; s && *s; ++s)
             {
                 if (wave_type(*s) == ELASTIC_BOUNDARY)
-                    num_fabric_pts += FT_NumOfSurfPoints(*s);
+                    num_fabric_pts += I_NumOfSurfPoints(*s);
             }
             for (c = intfc->curves; c && *c; ++c)
             {
                 if (hsbdry_type(*c) == STRING_HSBDRY)
-                     num_str_pts += FT_NumOfCurvePoints(*c);
+                     num_str_pts += I_NumOfCurvePoints(*c);
             }
             af_params->m_s = af_params->total_canopy_mass/num_fabric_pts;
             if (num_str_pts != 0)

@@ -703,7 +703,7 @@ static void SplitCirBdry(
                         Coords(bond->start)[1] == nodes_coords[i+num_strings])
                     {
                         move_closed_loop_node(vent_bdry,bond);
-                        vent_nodes[i] = FT_NodeOfPoint(intfc,bond->start);
+                        vent_nodes[i] = I_NodeOfPoint(intfc,bond->start);
                         FT_ScalarMemoryAlloc((POINTER*)&extra,
 					sizeof(AF_NODE_EXTRA));
                         extra->af_node_type = GORE_NODE;
@@ -721,7 +721,7 @@ static void SplitCirBdry(
                 {
 		    pre_bond = bond->prev;
                     split_curve(bond->start,bond,vent_bdry,0,0,0,0);
-                    vent_nodes[i] = FT_NodeOfPoint(intfc,bond->start);
+                    vent_nodes[i] = I_NodeOfPoint(intfc,bond->start);
                     FT_ScalarMemoryAlloc((POINTER*)&extra,
 					sizeof(AF_NODE_EXTRA));
                     extra->af_node_type = GORE_NODE;
@@ -731,9 +731,9 @@ static void SplitCirBdry(
                 }
             }
 	    if (ORIEN == POSITIVE_ORIENTATION)
-                vent_bdry = FT_CurveOfPoint(intfc,bond->start,&bond);
+                vent_bdry = I_CurveOfPoint(intfc,bond->start,&bond);
 	    else if (ORIEN == NEGATIVE_ORIENTATION)
-                vent_bdry = FT_CurveOfPoint(intfc,pre_bond->start,&bond);
+                vent_bdry = I_CurveOfPoint(intfc,pre_bond->start,&bond);
         }
 }	/* end SplitInCirBdry */
             
@@ -1414,7 +1414,7 @@ static void installString(
 		    if (bond->start == string_node_pts[i])
 		    {
 			move_closed_loop_node(canopy_bdry,bond);
-			string_nodes[i] = FT_NodeOfPoint(intfc,bond->start);
+			string_nodes[i] = I_NodeOfPoint(intfc,bond->start);
 			FT_ScalarMemoryAlloc((POINTER*)&extra,
 					sizeof(AF_NODE_EXTRA));
                 	extra->af_node_type = STRING_NODE;
@@ -1430,7 +1430,7 @@ static void installString(
 		if (bond->start == string_node_pts[i])
 		{
 		    split_curve(bond->start,bond,canopy_bdry,0,0,0,0);
-		    string_nodes[i] = FT_NodeOfPoint(intfc,bond->start);
+		    string_nodes[i] = I_NodeOfPoint(intfc,bond->start);
                     FT_ScalarMemoryAlloc((POINTER*)&extra,
 					sizeof(AF_NODE_EXTRA));
                     extra->af_node_type = STRING_NODE;
@@ -1439,7 +1439,7 @@ static void installString(
                     break;
 		}
 	    }
-	    canopy_bdry = FT_CurveOfPoint(intfc,bond->start,&bond);
+	    canopy_bdry = I_CurveOfPoint(intfc,bond->start,&bond);
 	}
 	length = HUGE;
 	for (i = 0; i < num_strings; ++i)

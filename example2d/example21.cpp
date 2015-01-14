@@ -32,19 +32,12 @@ boolean binary = YES;
  *	Level function parameters for the initial interface 	    *
  ********************************************************************/
 
-typedef struct {
-	int dim;
-	double center[MAXD];
-        double R; 
-} CIRCLE_PARAMS;
-
 	/*  Function Declarations */
 static void set_geom_functions(Front*);
 static void test_normal(POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*,Front*);
 static void reset_hyper_sphere_points(Front*,CIRCLE_PARAMS);
 static void print_error_norms(Front*,char*,CIRCLE_PARAMS);
 static double test_curvature(POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,Front*);
-static double level_circle_func(POINTER,double*);
 
 int main(int argc, char **argv)
 {
@@ -78,7 +71,7 @@ int main(int argc, char **argv)
 	    /* Initialize interface through level function */
 
 	for (i = 0; i < dim; ++i)
-	    circle_params.center[i] = 0.5;
+	    circle_params.cen[i] = 0.5;
 	circle_params.R = 0.3;
 	circle_params.dim = dim;
 
@@ -96,29 +89,6 @@ int main(int argc, char **argv)
 	clean_up(0);
 }
 
-/********************************************************************
- *	Hyper sphere level function for the initial interface    *
- ********************************************************************/
-
-static double level_circle_func(
-        POINTER func_params,
-        double *coords)
-{
-	CIRCLE_PARAMS *circle_params = (CIRCLE_PARAMS*)func_params;
-	double *center,R,dist;
-	int i,dim;
-
-	center = circle_params->center;
-	R  = circle_params->R;
-	dim  = circle_params->dim;
-
-	dist = 0.0;
-	for (i = 0; i < dim; ++i)
-	    dist += sqr(coords[i] - center[i]);	
-	dist = sqrt(dist) - R;
-	return dist;
-}	/* end level_circle_func */
-
 static void reset_hyper_sphere_points(
 	Front *front,
 	CIRCLE_PARAMS circle_params)
@@ -127,7 +97,7 @@ static void reset_hyper_sphere_points(
         HYPER_SURF_ELEMENT *hse;
         HYPER_SURF         *hs;
 	INTERFACE	   *intfc = front->interf;
-	double	 	   *center = circle_params.center;
+	double	 	   *center = circle_params.cen;
 	double	 	   r, R = circle_params.R;
 	int		   i,dim = circle_params.dim;
 
@@ -160,7 +130,7 @@ static void print_error_norms(
         HYPER_SURF_ELEMENT *hse;
         HYPER_SURF         *hs;
 	INTERFACE	   *intfc = front->interf;
-	double	 	   *center = circle_params.center;
+	double	 	   *center = circle_params.cen;
 	double	 	   r, R = circle_params.R;
 	int		   i,dim = circle_params.dim;
 	double		   nor[MAXD],exact_nor[MAXD];

@@ -22,15 +22,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ****************************************************************/
 
 /*
-*				example2.c:
+*				example16.c:
 *
 *		User initialization example for Front Package:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
-*
-*	This is example of three circles all moving the a normal velocity.
-*	Bifurcation occurs when they meet each other. FronTier solves
-*	the bifurcation automatically.
+*	
+*	This example shows a circle in a multiple vortex field. It 
+*	demonstrates the reversibility of the front tracking method.
 *
 */
 
@@ -38,25 +37,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 	/*  Function Declarations */
 static void test_propagate(Front*);
-static int norm_vel_func(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
+static int test_vortex_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
 	                       HYPER_SURF*,double*);
-static void map_output_interface(Front*,char*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 int RestartStep;
 boolean binary = YES;
 
-/********************************************************************
- *	Velocity function parameters for the front	 	    *
- ********************************************************************/
-
-struct _TNORV_PARAMS
-{
-        int dim;
-        double coeff;
-};
-typedef struct _TNORV_PARAMS TNORV_PARAMS;
 
 int main(int argc, char **argv)
 {
@@ -65,8 +53,7 @@ int main(int argc, char **argv)
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-	TNORV_PARAMS norm_params; /* velocity function parameters */
-	MC_PARAMS mc_params;
+	VORTEX_PARAMS vortex_params; /* velocity function parameters */
 	Locstate  sl;
 
 	FT_Init(argc,argv,&f_basic);
@@ -76,9 +63,9 @@ int main(int argc, char **argv)
 
 	f_basic.L[0] = 0.0;	f_basic.L[1] = 0.0;
 	f_basic.U[0] = 1.0;	f_basic.U[1] = 1.0;
-	f_basic.gmax[0] = 40;	f_basic.gmax[1] = 40;
-	f_basic.boundary[0][0] = f_basic.boundary[0][1] = DIRICHLET_BOUNDARY;
-	f_basic.boundary[1][0] = f_basic.boundary[1][1] = DIRICHLET_BOUNDARY;
+	f_basic.gmax[0] = 200;	f_basic.gmax[1] = 200;		//myex grid size
+	f_basic.boundary[0][0] = f_basic.boundary[0][1] = PERIODIC_BOUNDARY;
+	f_basic.boundary[1][0] = f_basic.boundary[1][1] = PERIODIC_BOUNDARY;
 	f_basic.size_of_intfc_state = 0;
 
         in_name                 = f_basic.in_name;
@@ -95,46 +82,59 @@ int main(int argc, char **argv)
                                 right_flush(pp_mynode(),4));
 
 	FT_StartUp(&front,&f_basic);
+	add_to_debug("free_end_node");
 
 	if (!RestartRun)
 	{
 	    /* Initialize interface through level function */
 
-	    mc_params.dim = 2;
-	    mc_params.num_cir = 3;
-            FT_VectorMemoryAlloc((POINTER*)&mc_params.rad,mc_params.num_cir,
-	    				FLOAT);
-            FT_MatrixMemoryAlloc((POINTER*)&mc_params.cen,mc_params.num_cir,
-	    				2,FLOAT);
-	    mc_params.cen[0][0] = 0.3;
-	    mc_params.cen[0][1] = 0.3;
-	    mc_params.cen[1][0] = 0.7;
-	    mc_params.cen[1][1] = 0.3;
-	    mc_params.cen[2][0] = 0.5;
-	    mc_params.cen[2][1] = 0.7;
-	    mc_params.rad[0] = 0.1;
-	    mc_params.rad[1] = 0.1;
-	    mc_params.rad[2] = 0.1;
-
-	    level_func_pack.neg_component = 1;
+	    level_func_pack.neg_component = 2;
 	    level_func_pack.pos_component = 2;
-	    level_func_pack.func_params = (POINTER)&mc_params;
-	    level_func_pack.func = multi_circle_func;
 	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
+
+	    level_func_pack.func_params = NULL;
+	    level_func_pack.func = NULL;
+
+	    level_func_pack.num_points = 251;		//myex num points
+
+	    FT_MatrixMemoryAlloc((POINTER*)&level_func_pack.point_array,
+	    			level_func_pack.num_points,
+				2,sizeof(double));
+	    int i;
+	    for (i = 0; i < level_func_pack.num_points; ++i)
+	    {
+	    	double phi = i*PI/(double)(level_func_pack.num_points-1);
+	    	level_func_pack.point_array[i][0] = 0.5 + 0.20*cos(phi);
+	    	level_func_pack.point_array[i][1] = 0.35 + 0.20*sin(phi);
+	    }
 
 	    FT_InitIntfc(&front,&level_func_pack);
 	    if (f_basic.dim < 3)
                 FT_ClipIntfcToSubdomain(&front);
 	}
+	CURVE **c;
+	for (c = front.interf->curves; c && *c; ++c)
+	{
+	    if (negative_component(*c) == positive_component(*c))
+	    {
+		node_type((*c)->start) = MONO_COMP_NODE;
+		node_type((*c)->end) = MONO_COMP_NODE;
+	    }
+	}
+	xgraph_2d_intfc("init_intfc",front.interf);
 
 	/* Initialize velocity field function */
 
-	norm_params.dim = 2;
-	norm_params.coeff = 0.1;
+	vortex_params.dim = 2;
+	vortex_params.type[0] = 'M';
+	vortex_params.cos_time = 0;
+	vortex_params.cen[0] = 0.5;
+	vortex_params.cen[1] = 0.25;
+	vortex_params.rad = 0.15;
 
-	velo_func_pack.func_params = (POINTER)&norm_params;
-	velo_func_pack.func = norm_vel_func;
-	velo_func_pack.point_propagate = first_order_point_propagate;
+	velo_func_pack.func_params = (POINTER)&vortex_params;
+	velo_func_pack.func = test_vortex_vel;
+	velo_func_pack.point_propagate = fourth_order_point_propagate;
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
 
@@ -150,13 +150,17 @@ static  void test_propagate(
         Front *front)
 {
         double CFL;
+	VORTEX_PARAMS *vparams = (VORTEX_PARAMS*)front->vparams;
+	char gname[100] = "immersed_intfc.gif";
 
-	front->max_time = 3.0;
-	front->max_step = 10000;
-	front->print_time_interval = 2.0;
+	front->max_time = 1.0;
+	front->max_step = 1000000;
+	front->print_time_interval = 1.0;
 	front->movie_frame_interval = 0.02;
+	vparams->time = 0.5*front->max_time;
 
         CFL = Time_step_factor(front);
+	Frequency_of_redistribution(front,GENERAL_WAVE) = 2;
 
 	printf("CFL = %f\n",CFL);
 	printf("Frequency_of_redistribution(front,GENERAL_WAVE) = %d\n",
@@ -218,7 +222,11 @@ static  void test_propagate(
         (void) delete_interface(front->interf);
 }       /* end test_propagate */
 
-static int norm_vel_func(
+/********************************************************************
+ *	Sample (vortex) velocity function for the front    *
+ ********************************************************************/
+
+static int test_vortex_vel(
         POINTER params,
         Front *front,
         POINT *p,
@@ -226,72 +234,70 @@ static int norm_vel_func(
         HYPER_SURF *hs,
         double *vel)
 {
-        TNORV_PARAMS *norv_params;
-        int i;
-        double coeff;
-        double curvature;
-        double nor[MAXD];
-                                                                                
-        norv_params = (TNORV_PARAMS*)params;
-        coeff = norv_params->coeff;
-                                                                                
-        GetFrontNormal(p,hse,hs,nor,front);
-        for (i = 0; i < norv_params->dim; ++i)
-        {
-            vel[i] = nor[i]*coeff;
-        }
-}       /* end normal_vel_func */
+        VORTEX_PARAMS *vortex_params;
+        int i, dim;
+        double coeff,coeff2,xtemp,ytemp;
+        char *type;
+        double *coords = Coords(p);
+        vortex_params = (VORTEX_PARAMS*)params;
+	double x,y,z;
 
-static void map_output_interface(
-	Front *front,
-	char *out_name)
-{
-	INTERFACE *intfc = front->interf;
-        FILE *out_file;
-        char filename[100];
-	int i,j,k,step;
-	step = front->step;
-	sprintf(filename,"%s.ts%s",out_name,right_flush(step,5));
-	out_file = fopen(filename,"w");
-	
-	int num_curves = I_NumOfIntfcCurves(intfc);
-	int dim = Dimension(intfc);
-	int num_nodes = FT_NumOfIntfcNodes(intfc);
-	int num_bonds = FT_NumOfIntfcBonds(intfc);
-	int num_points = FT_NumOfIntfcPoints(intfc);
+	dim = vortex_params->dim;
+        type = vortex_params->type;
 
-	CURVE **curves;
-	curves = (CURVE**)malloc(num_curves*sizeof(CURVE*));
+        coeff2 = 1.0;
+        if(vortex_params->time > 0 && front->time >= vortex_params->time)
+            coeff2 = -1.0;
+	x = coords[0];
+	y = coords[1];
+	if (dim == 3)
+	    z = coords[2];
 
-	FT_ArrayOfIntfcCurves(intfc,curves);
-
-	fprintf(out_file,"Interface at step %d\n\n",step);
-	fprintf(out_file,"Dimension = %d\n",dim);
-	fprintf(out_file,"Number of Curves = %d\n",num_curves);
-	fprintf(out_file,"Number of Nodes = %d\n",num_nodes);
-	fprintf(out_file,"Number of Interface Bonds = %d\n",num_bonds);
-	fprintf(out_file,"Number of Interface Points = %d\n",num_points);
-	for (i = 0; i < num_curves; ++i)
+	if (dim == 2)
 	{
-	    double *coords;
-
-	    num_bonds = FT_NumOfCurveBonds(curves[i]);
-	    num_points = FT_NumOfCurvePoints(curves[i]);
-	    coords = (double*)malloc(num_points*dim*sizeof(double));
-
-	    ArrayOfCurvePoints(curves[i],coords);
-
-	    fprintf(out_file,"Number of Bonds on Curve %d = %d\n",
-	    			i+1,num_bonds);
-	    fprintf(out_file,"Number of Points on Curve %d = %d\n\n",
-	    			i+1,num_points);
-	    for (j = 0; j < num_points; ++j)
+	    switch(type[0])
 	    {
-	    	for (k = 0; k < dim; ++k)
-		    fprintf(out_file,"%lf  ",coords[dim*j+k]);
-	    	fprintf(out_file,"\n");
+	        case 'm':
+		case 'M':
+		    //four vortex work
+		    xtemp = 4*PI*(x+0.5);
+		    ytemp = 4*PI*(y+0.5);
+		    vel[0] = coeff2*sin(xtemp)*sin(ytemp); 
+		    vel[1] = coeff2*cos(xtemp)*cos(ytemp); 
+		    //end four vortex work
+		    break;
+		case 's':
+		case 'S':
+		    //2D single vortex motion
+		    vel[0] = -coeff2*sin(PI*x)*sin(PI*x)*sin(2*PI*y);
+		    vel[1] = coeff2*sin(2*PI*x)*sin(PI*y)*sin(PI*y);
+		    break;
+		default:
+		    screen("Undefined vortex type!\n");
+		    clean_up(ERROR);
 	    }
-	    fprintf(out_file,"\n\n");
 	}
-	fclose(out_file);
-}	/* end map_output */
+	else if (dim == 3)
+	{
+	    switch(type[0])
+	    {
+	    case 'm':
+	    case 'M':
+		//double vortex work
+	        vel[0] = coeff2*2*sin(PI*x)*sin(PI*x)*sin(2*PI*y)*sin(2*PI*z);
+	        vel[1] = -coeff2*sin(2*PI*x)*sin(PI*y)*sin(PI*y)*sin(2*PI*z);
+	        vel[2] = -coeff2*sin(2*PI*x)*sin(2*PI*y)*sin(PI*z)*sin(PI*z);
+		break;
+	    case 's':
+	    case 'S':
+		//shearing flow motion
+		vel[0] = coeff2*sin(PI*x)*sin(PI*x)*sin(2*PI*y);
+		vel[1] = -coeff2*sin(2*PI*x)*sin(PI*y)*sin(PI*y);
+		vel[2] = coeff2*sqr(1-2*sqrt((x-0.5)*(x-0.5)+(y-0.5)*(y-0.5)));
+	    default:
+	        screen("Undefined time dependency type!\n");
+	        clean_up(ERROR);
+	    }
+	}    
+}       /* end vortex_vel */
+

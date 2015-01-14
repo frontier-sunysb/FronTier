@@ -490,10 +490,10 @@ extern void optimizeElasticMesh(
 	old_string_pts = old_canopy_pts = 0;
 	for (s = intfc->surfaces; s && *s; ++s)
 	    if (wave_type(*s) == ELASTIC_BOUNDARY)
-		old_canopy_pts += FT_NumOfSurfPoints(*s);
+		old_canopy_pts += I_NumOfSurfPoints(*s);
 	for (c = intfc->curves; c && *c; ++c)
 	    if (hsbdry_type(*c) == STRING_HSBDRY)
-		old_string_pts += FT_NumOfCurvePoints(*c) - 2;
+		old_string_pts += I_NumOfCurvePoints(*c) - 2;
 
 	printf("num_opt_round = %d\n",num_opt_round);
 	num_opt_round = 20;
@@ -537,10 +537,10 @@ extern void optimizeElasticMesh(
 	new_string_pts = new_canopy_pts = 0;
 	for (s = intfc->surfaces; s && *s; ++s)
 	    if (wave_type(*s) == ELASTIC_BOUNDARY)
-		new_canopy_pts += FT_NumOfSurfPoints(*s);
+		new_canopy_pts += I_NumOfSurfPoints(*s);
 	for (c = intfc->curves; c && *c; ++c)
 	    if (hsbdry_type(*c) == STRING_HSBDRY)
-		new_string_pts += FT_NumOfCurvePoints(*c) - 2;
+		new_string_pts += I_NumOfCurvePoints(*c) - 2;
 	if (debugging("optimize_intfc"))
 	{
 	    gview_plot_interface("gview-after-optimize",intfc);

@@ -305,8 +305,8 @@ static void map_output_interface(
 	int i,step;
 	step = front->step;
 			
-	int num_points = NumOfIntfcPoints(intfc);
-	int num_tris = NumOfIntfcTris(intfc);
+	int num_points = I_NumOfIntfcPoints(intfc);
+	int num_tris = I_NumOfIntfcTris(intfc);
 	int dim = 3;
 	double *coords = (double*)malloc(num_points*dim*sizeof(double));
 	int *vertex_indices = (int*)malloc(num_tris*3*sizeof(int));
@@ -318,18 +318,18 @@ static void map_output_interface(
 	ArrayOfIntfcTris(intfc,coords,vertex_indices);	
 	SaveAsTecplot(filename,num_points,coords,num_tris,vertex_indices);
 	
-	int num_surfaces = NumOfSurfaces(intfc);
+	int num_surfaces = I_NumOfSurfaces(intfc);
 	printf("Number of surfaces = %d\n",num_surfaces);
 	SURFACE **surfaces;
 	surfaces = (SURFACE**)malloc(num_surfaces*sizeof(SURFACE*));
 	
-	ArrayOfSurfaces(intfc, surfaces);
+	I_ArrayOfSurfaces(intfc, surfaces);
 	// print the tris of each surface
 	for(i = 0; i < num_surfaces; i++)
 	{
 	    sprintf(filename,"%s-%d.surface-%d.plt",out_name,step,i);
-	    num_points = NumOfSurfPoints(surfaces[i]);
-	    num_tris   = NumOfSurfTris(surfaces[i]);
+	    num_points = I_NumOfSurfPoints(surfaces[i]);
+	    num_tris   = I_NumOfSurfTris(surfaces[i]);
 	    printf("Number of points on surface %d = %d\n",i+1,num_points);
 	    printf("Number of tris on surface %d = %d\n",i+1,num_tris);
 	    ArrayOfSurfTris(surfaces[i],coords,vertex_indices);
