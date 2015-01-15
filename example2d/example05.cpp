@@ -22,15 +22,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ****************************************************************/
 
 /*
-*				example2.c:
+*				example1.c:
 *
 *		User initialization example for Front Package:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
 *
-*	This is example of three circles all moving the a normal velocity.
-*	Bifurcation occurs when they meet each other. FronTier solves
-*	the bifurcation automatically.
+*	This is an example of three circles moving in a double vortex
+*	velocity field.
 *
 */
 
@@ -38,9 +37,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 	/*  Function Declarations */
 static void test_propagate(Front*);
-static int norm_vel_func(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
+static int ddouble_vortex_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
 	                       HYPER_SURF*,double*);
-static void map_output_interface(Front*,char*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -51,12 +49,10 @@ boolean binary = YES;
  *	Velocity function parameters for the front	 	    *
  ********************************************************************/
 
-struct _TNORV_PARAMS
-{
-        int dim;
-        double coeff;
-};
-typedef struct _TNORV_PARAMS TNORV_PARAMS;
+typedef struct {
+	double i1,i2;
+        double cen1[2],cen2[2];
+} DOUBLE_VORTEX_PARAMS;
 
 int main(int argc, char **argv)
 {
@@ -65,7 +61,7 @@ int main(int argc, char **argv)
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-	TNORV_PARAMS norm_params; /* velocity function parameters */
+	DOUBLE_VORTEX_PARAMS dv_params; /* velocity function parameters */
 	MC_PARAMS mc_params;
 	Locstate  sl;
 
@@ -76,9 +72,9 @@ int main(int argc, char **argv)
 
 	f_basic.L[0] = 0.0;	f_basic.L[1] = 0.0;
 	f_basic.U[0] = 1.0;	f_basic.U[1] = 1.0;
-	f_basic.gmax[0] = 40;	f_basic.gmax[1] = 40;
-	f_basic.boundary[0][0] = f_basic.boundary[0][1] = DIRICHLET_BOUNDARY;
-	f_basic.boundary[1][0] = f_basic.boundary[1][1] = DIRICHLET_BOUNDARY;
+	f_basic.gmax[0] = 100;	f_basic.gmax[1] = 100;
+	f_basic.boundary[0][0] = f_basic.boundary[0][1] = PERIODIC_BOUNDARY;
+	f_basic.boundary[1][0] = f_basic.boundary[1][1] = PERIODIC_BOUNDARY;
 	f_basic.size_of_intfc_state = 0;
 
         in_name                 = f_basic.in_name;
@@ -103,21 +99,21 @@ int main(int argc, char **argv)
 	    mc_params.dim = 2;
 	    mc_params.num_cir = 3;
             FT_VectorMemoryAlloc((POINTER*)&mc_params.rad,mc_params.num_cir,
-	    				FLOAT);
+	    					FLOAT);
             FT_MatrixMemoryAlloc((POINTER*)&mc_params.cen,mc_params.num_cir,
-	    				2,FLOAT);
+	    					2,FLOAT);
 	    mc_params.cen[0][0] = 0.3;
 	    mc_params.cen[0][1] = 0.3;
 	    mc_params.cen[1][0] = 0.7;
 	    mc_params.cen[1][1] = 0.3;
 	    mc_params.cen[2][0] = 0.5;
 	    mc_params.cen[2][1] = 0.7;
-	    mc_params.rad[0] = 0.1;
-	    mc_params.rad[1] = 0.1;
-	    mc_params.rad[2] = 0.1;
+	    mc_params.rad[0] = 0.15;
+	    mc_params.rad[1] = 0.15;
+	    mc_params.rad[2] = 0.15;
 
-	    level_func_pack.neg_component = 1;
-	    level_func_pack.pos_component = 2;
+	    level_func_pack.neg_component = 2;
+	    level_func_pack.pos_component = 3;
 	    level_func_pack.func_params = (POINTER)&mc_params;
 	    level_func_pack.func = multi_circle_func;
 	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
@@ -129,12 +125,16 @@ int main(int argc, char **argv)
 
 	/* Initialize velocity field function */
 
-	norm_params.dim = 2;
-	norm_params.coeff = 0.1;
+	dv_params.cen1[0] = 0.25;
+	dv_params.cen1[1] = 0.50;
+	dv_params.cen2[0] = 0.75;
+	dv_params.cen2[1] = 0.50;
+	dv_params.i1 = -0.5;
+	dv_params.i2 =  0.5;
 
-	velo_func_pack.func_params = (POINTER)&norm_params;
-	velo_func_pack.func = norm_vel_func;
-	velo_func_pack.point_propagate = first_order_point_propagate;
+	velo_func_pack.func_params = (POINTER)&dv_params;
+	velo_func_pack.func = ddouble_vortex_vel;
+	velo_func_pack.point_propagate = fourth_order_point_propagate;
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
 
@@ -151,9 +151,9 @@ static  void test_propagate(
 {
         double CFL;
 
-	front->max_time = 3.0;
+	front->max_time = 2.0;
 	front->max_step = 10000;
-	front->print_time_interval = 2.0;
+	front->print_time_interval = 1.0;
 	front->movie_frame_interval = 0.02;
 
         CFL = Time_step_factor(front);
@@ -218,80 +218,38 @@ static  void test_propagate(
         (void) delete_interface(front->interf);
 }       /* end test_propagate */
 
-static int norm_vel_func(
-        POINTER params,
-        Front *front,
-        POINT *p,
-        HYPER_SURF_ELEMENT *hse,
-        HYPER_SURF *hs,
-        double *vel)
-{
-        TNORV_PARAMS *norv_params;
-        int i;
-        double coeff;
-        double curvature;
-        double nor[MAXD];
-                                                                                
-        norv_params = (TNORV_PARAMS*)params;
-        coeff = norv_params->coeff;
-                                                                                
-        GetFrontNormal(p,hse,hs,nor,front);
-        for (i = 0; i < norv_params->dim; ++i)
-        {
-            vel[i] = nor[i]*coeff;
-        }
-}       /* end normal_vel_func */
+/********************************************************************
+ *	Sample (circle) velocity function for the front    *
+ ********************************************************************/
 
-static void map_output_interface(
+static int ddouble_vortex_vel(
+	POINTER params,
 	Front *front,
-	char *out_name)
+	POINT *p,
+	HYPER_SURF_ELEMENT *hse,
+	HYPER_SURF *hs,
+	double *vel)
 {
-	INTERFACE *intfc = front->interf;
-        FILE *out_file;
-        char filename[100];
-	int i,j,k,step;
-	step = front->step;
-	sprintf(filename,"%s.ts%s",out_name,right_flush(step,5));
-	out_file = fopen(filename,"w");
-	
-	int num_curves = I_NumOfIntfcCurves(intfc);
-	int dim = Dimension(intfc);
-	int num_nodes = I_NumOfIntfcNodes(intfc);
-	int num_bonds = I_NumOfIntfcBonds(intfc);
-	int num_points = I_NumOfIntfcPoints(intfc);
+	DOUBLE_VORTEX_PARAMS *dv_params = (DOUBLE_VORTEX_PARAMS*)params;
+	double *coords = Coords(p);
+	double d1,d2;
+	double s1,s2;
+	double *cen1 = dv_params->cen1;
+	double *cen2 = dv_params->cen2;
+	double dx1,dy1;
+	double dx2,dy2;
 
-	CURVE **curves;
-	curves = (CURVE**)malloc(num_curves*sizeof(CURVE*));
+	dx1 = coords[0] - cen1[0]; 
+	dy1 = coords[1] - cen1[1];
+	dx2 = coords[0] - cen2[0]; 
+	dy2 = coords[1] - cen2[1];
 
-	I_ArrayOfIntfcCurves(intfc,curves);
+	d1 = sqrt(sqr(dx1) + sqr(dy1));
+	d2 = sqrt(sqr(dx2) + sqr(dy2));
 
-	fprintf(out_file,"Interface at step %d\n\n",step);
-	fprintf(out_file,"Dimension = %d\n",dim);
-	fprintf(out_file,"Number of Curves = %d\n",num_curves);
-	fprintf(out_file,"Number of Nodes = %d\n",num_nodes);
-	fprintf(out_file,"Number of Interface Bonds = %d\n",num_bonds);
-	fprintf(out_file,"Number of Interface Points = %d\n",num_points);
-	for (i = 0; i < num_curves; ++i)
-	{
-	    double *coords;
+	s1 = dv_params->i1/2.0/PI/d1;
+	s2 = dv_params->i2/2.0/PI/d2;
 
-	    num_bonds = I_NumOfCurveBonds(curves[i]);
-	    num_points = I_NumOfCurvePoints(curves[i]);
-	    coords = (double*)malloc(num_points*dim*sizeof(double));
-
-	    ArrayOfCurvePoints(curves[i],coords);
-
-	    fprintf(out_file,"Number of Bonds on Curve %d = %d\n",
-	    			i+1,num_bonds);
-	    fprintf(out_file,"Number of Points on Curve %d = %d\n\n",
-	    			i+1,num_points);
-	    for (j = 0; j < num_points; ++j)
-	    {
-	    	for (k = 0; k < dim; ++k)
-		    fprintf(out_file,"%f  ",coords[dim*j+k]);
-	    	fprintf(out_file,"\n");
-	    }
-	    fprintf(out_file,"\n\n");
-	}
-	fclose(out_file);
-}	/* end map_output */
+	vel[0] =  s1*dy1/d1 + s2*dy2/d2;
+	vel[1] = -s1*dx1/d1 - s2*dx2/d2;
+}	/* end ddouble_vortex_vel */

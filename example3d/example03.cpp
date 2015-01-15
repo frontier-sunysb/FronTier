@@ -35,8 +35,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 	/*  Function Declarations */
 static void test_propagate(Front*);
-static double test_ellipoid_func(POINTER,double*);
-static int test_translation_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*);
+static double plate_func(POINTER,double*);
+static int test_rotation_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -46,19 +46,24 @@ boolean binary = YES;
 /********************************************************************
  *	Level function parameters for the initial interface 	    *
  ********************************************************************/
-//Dummbell shape interface, two spheres of radius R centered at (x0,y,z)
-//and (x1,y,z) connected by a cylinder of radius rr along x0->x1. Assume
-//x0<x1;
+//Plate shape interface
 typedef struct {
-        double cen[3];
-	double rad[3];
-} TEST_ELLIPSOID_PARAMS;
+        double x;
+        double y;
+	double z;
+	double w1;
+        double w2;
+        double h;
+} PLATE_PARAMS;
 
 
-typedef struct {
-	int dim;
-	double vel[3];
-} TEST_TRANS_PARAMS;
+typedef struct
+{       
+       int dim;
+       double x_0,y_0;
+       double omega_0;
+       double grad;
+} TEST_ROTATION_PARAMS;
 
 /********************************************************************
  *	Velocity function parameters for the front	 	    *
@@ -70,10 +75,10 @@ int main(int argc, char **argv)
 	static Front front;
 	static RECT_GRID comp_grid;
 	static F_BASIC_DATA f_basic;
-	TEST_ELLIPSOID_PARAMS s_params;
+	PLATE_PARAMS d_params;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-	TEST_TRANS_PARAMS curv_params; /* velocity function parameters */
+	TEST_ROTATION_PARAMS cr_params; /* velocity function parameters */
 	Locstate  sl;
 
 	f_basic.dim = 3;	
@@ -81,9 +86,9 @@ int main(int argc, char **argv)
 
 	/* Initialize basic computational data */
 
-	f_basic.L[0] = 0.0;	f_basic.L[1] = 0.0; 	f_basic.L[2] = 0.0;
-	f_basic.U[0] = 1.0;	f_basic.U[1] = 1.0; 	f_basic.U[2] = 1.0;
-	f_basic.gmax[0] = 64;	f_basic.gmax[1] = 64; f_basic.gmax[2] = 64;
+	f_basic.L[0] = 0;	f_basic.L[1] = 0; 	f_basic.L[2] =2.0; 
+	f_basic.U[0] = 5.0;	f_basic.U[1] = 1.0; 	f_basic.U[2] = 3.0;
+	f_basic.gmax[0] = 100;	f_basic.gmax[1] = 20; f_basic.gmax[2] = 20;
 	f_basic.boundary[0][0] = f_basic.boundary[0][1] = DIRICHLET_BOUNDARY;
 	f_basic.boundary[1][0] = f_basic.boundary[1][1] = DIRICHLET_BOUNDARY;
 	f_basic.boundary[2][0] = f_basic.boundary[2][1] = DIRICHLET_BOUNDARY;
@@ -107,17 +112,17 @@ int main(int argc, char **argv)
 	if (!RestartRun)
 	{
 	    /* Initialize interface through level function */
-	    s_params.cen[0] = 0.7;
-	    s_params.cen[1] = 0.5;
-	    s_params.cen[2] = 0.5;
-	    s_params.rad[0] = 0.25;
-	    s_params.rad[1] = 0.3;
-	    s_params.rad[2] = 0.1;
+	    d_params.x = 2.5;
+	    d_params.y = 0.5;
+            d_params.z = 2.5;
+            d_params.w1 = 4.0;
+            d_params.w2 = 0.8;
+            d_params.h = 0.1;
 
 	    level_func_pack.neg_component = 1;
 	    level_func_pack.pos_component = 2;
-	    level_func_pack.func_params = (POINTER)&s_params;
-	    level_func_pack.func = test_ellipoid_func;
+	    level_func_pack.func_params = (POINTER)&d_params;
+	    level_func_pack.func = plate_func;
 	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
 
 	    FT_InitIntfc(&front,&level_func_pack);
@@ -125,13 +130,14 @@ int main(int argc, char **argv)
 
 	/* Initialize velocity field function */
 
-	curv_params.dim = 3;
-	curv_params.vel[0] = 0.5;
-	curv_params.vel[1] = 0.1;
-	curv_params.vel[2] = 0.153;
+	cr_params.dim = 3;
+	cr_params.x_0 = 0.5;
+	cr_params.y_0 = 2.5;
+	cr_params.omega_0 = 2.0;
+	cr_params.grad = 0.0;
 
-	velo_func_pack.func_params = (POINTER)&curv_params;
-	velo_func_pack.func = test_translation_vel;
+	velo_func_pack.func_params = (POINTER)&cr_params;
+	velo_func_pack.func = test_rotation_vel;
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
 
@@ -142,6 +148,8 @@ int main(int argc, char **argv)
 	* the assigned fourth_order_point_propagate.
 	*/
 
+	front._point_propagate = first_order_point_propagate;
+
 	/* Propagate the front */
 
 	test_propagate(&front);
@@ -150,17 +158,18 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+
 static  void test_propagate(
         Front *front)
 {
         double CFL;
 
-	front->max_time = 1; 
-	front->max_step = 1000;
-	front->print_time_interval = 0.5;
-	front->movie_frame_interval = 0.1;
+	front->max_time = 2.0; 
+	front->max_step = 534;
+	front->print_time_interval = 0.02;
+	front->movie_frame_interval = 0.004;
 
-        CFL = Time_step_factor(front) = 0.1;
+        CFL = Time_step_factor(front) = 0.2;
 
 	printf("CFL = %f\n",CFL);
 	printf("Frequency_of_redistribution(front,GENERAL_WAVE) = %d\n",
@@ -226,37 +235,125 @@ static  void test_propagate(
  *	Sample (dummbell 3D) level function for the initial interface    *
  ********************************************************************/
 
-static double test_ellipoid_func(
+static double plate_func(
         POINTER func_params,
         double *coords)
 {
-        TEST_ELLIPSOID_PARAMS *e_params = (TEST_ELLIPSOID_PARAMS*)func_params;
-        const double *cen,*rad;         
-	double arg;          
+        PLATE_PARAMS *d_params = (PLATE_PARAMS*)func_params;
+	double x,y,z,w1,w2,h,r0,r1,rx0,rx1,ry0,ry1;
+	double arg;
 
-	cen = e_params->cen;         
-	rad = e_params->rad; 
-        arg = 1.0 -
-                sqr(coords[0] - cen[0])/sqr(rad[0]) -
-                sqr(coords[1] - cen[1])/sqr(rad[1]) -
-                sqr(coords[2] - cen[2])/sqr(rad[2]);
+        x = d_params->x;
+        y = d_params->y;
+	z = d_params->z;
+        w1  = d_params->w1;
+	w2 = d_params->w2;
+        h  = d_params->h;
+	
+	if ((coords[2] - z) >=0 ){
+	    r0 = (coords[2] - z)*w1 / h;
+	    r1 = (coords[2] - z)*w2 / h;
+	} else {
+	    r0 = -(coords[2] - z)*w1 / h;
+	    r1 = -(coords[2] - z)*w2 / h;
+	}
 
-        return -arg;
-}       /* end test_ellipoid_func */
+	if ((coords[0] - x) >=0 ){
+	    rx0 = (coords[0] - x)*w2 / w1;
+	    rx1 = (coords[0] - x)*h / w1;
+	} else {
+	    rx0 = -(coords[0] - x)*2 / w1;
+	    rx1 = -(coords[0] - x)*h / w1;
+	}
 
-static int test_translation_vel(
-        POINTER params,
-        Front *front,
-        POINT *p,
-        HYPER_SURF_ELEMENT *hse,
-        HYPER_SURF *hs,
-        double *vel)
-{
-	TEST_TRANS_PARAMS *trans_params = (TEST_TRANS_PARAMS*) params;
-	int i;
-        for (i = 0; i < trans_params->dim; ++i)
-        {
-            vel[i] = trans_params->vel[i];
+	if ((coords[1] - y) >=0 ){
+	    ry0 = (coords[1] - y)*w1 / w2;
+	    ry1 = (coords[1] - y)*h / w2;
+	} else {
+	    ry0 = -(coords[1] - y)*w1 / w2;
+	    ry1 = -(coords[1] - y)*h / w2;
+	}
+
+	if ((x - r0) <= coords[0] && coords[0] <= (x + r0) )
+	{
+	    if ((y - r1) <= coords[1] && coords[1] <= (y + r1) ){
+	    	if (coords[2] >= z) arg = sqrt(h*(coords[2] - z)/2.0) - h/2.0;
+		else                arg = sqrt(-h*(coords[2] - z)/2.0) - h/2.0;
+	    }
         }
-}
+	
+	if ((y - rx0) <= coords[1] && coords[1] <= (y + rx0) )
+	{
+	    if ((z - rx1) <= coords[2] && coords[2] <= (z + rx1) ){
+	    	if (coords[0] >= x) arg = sqrt(w1*(coords[0] - x)/2.0) - w1/2.0;
+		else                arg = sqrt(-w1*(coords[0] - x)/2.0) - w1/2.0;
+	    }
+        }
+	
+	if ((x - ry0) <= coords[0] && coords[0] <= (x + ry0) )
+	{
+	    if ((z - ry1) <= coords[2] && coords[2] <= (z + ry1) ){
+	    	if (coords[1] >= y) arg = sqrt(w2*(coords[1] - y)/2.0) - w2/2.0;
+		else                arg = sqrt(-w2*(coords[1] - y)/2.0) - w2/2.0;
+	    }
+        }
+	
+	
+	return -arg;
+}       /* end plate_func */
 
+static int test_rotation_vel(
+	POINTER params,
+	Front *front,
+	POINT *p,
+	HYPER_SURF_ELEMENT *hse,
+	HYPER_SURF *hs,
+	double *vel)
+{
+	TEST_ROTATION_PARAMS *c_params;
+	double x0,y0;
+	double omega_0,domega_dr;
+	double rad,V;
+	double xcomp,ycomp;
+	double *coords = Coords(p);
+
+	c_params = (TEST_ROTATION_PARAMS*)params;
+
+	x0 = c_params->x_0;
+	y0 = c_params->y_0;
+	omega_0 = c_params->omega_0;
+	domega_dr = c_params->grad;
+
+	rad = sqrt(sqr(coords[1] - x0) + sqr(coords[2] - y0));
+	if (rad == 0.0)
+	{
+	    vel[0] = vel[1] = vel[2] = 0.0;
+	    return 1;
+	}
+	xcomp = fabs(coords[2]-y0)/rad;
+	ycomp = fabs(coords[1]-x0)/rad;
+	V = rad*(omega_0 + domega_dr*rad)*(1+coords[0]*20);
+
+	vel[0] = 0.0;
+	if (coords[1]-x0 >= 0.0 && coords[2]-y0 >= 0.0) /*1st quadrant*/ 
+	{
+	    vel[1] = -V*xcomp;
+	    vel[2] =  V*ycomp;
+	}
+	else if (coords[1]-x0 <= 0.0 && coords[2]-y0 >= 0.0) /*2nd quadrant*/ 
+	{
+	    vel[1] = -V*xcomp;
+	    vel[2] = -V*ycomp;
+	}
+	else if (coords[1]-x0 <= 0.0 && coords[2]-y0 <= 0.0) /*3rd quadrant*/ 
+	{
+	    vel[1] =  V*xcomp;
+	    vel[2] = -V*ycomp;
+	}
+	else if (coords[1]-x0 >= 0.0 && coords[2]-y0 <= 0.0) /*4th quadrant*/ 
+	{
+	    vel[1] =  V*xcomp;
+	    vel[2] =  V*ycomp;
+	}
+	vel[0] = 0;
+}	/* end shear_motion_vel */

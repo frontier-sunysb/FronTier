@@ -21,38 +21,42 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ****************************************************************/
 
+
 /*
-*				test_map_3d.c:
+*				example16.c:
 *
 *		User initialization example for Front Package:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
 *	
-*	This example shows how to use an array of points to make a curve.
+*	This example shows a circle in a multiple vortex field. It 
+*	demonstrates the reversibility of the front tracking method.
 *
 */
 
 #include <FronTier.h>
 
 	/*  Function Declarations */
-
 static void test_propagate(Front*);
-static int test_vortex_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
-                               HYPER_SURF*,double*);
+static int  test_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
+			HYPER_SURF*,double*);
+static void computeError(Front*,int);
+static void adjustIntfcPoints(INTERFACE *intfc,MC_PARAMS);
+static void setPhysicsHsOrder(INTERFACE*,int);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 int RestartStep;
 boolean binary = YES;
-
 /********************************************************************
- *      Velocity function parameters for the front                  *
+ *	Level function parameters for the initial interface 	    *
  ********************************************************************/
 
 typedef struct {
-        double i1,i2;
-        double cen1[2],cen2[2];
-} DOUBLE_VORTEX_PARAMS;
+	        /* equation for line is x^2/a^2 + y^2/b^2 = 1 */
+        double C; 
+} RADIAL_VEL_PARAMS;
+
 
 int main(int argc, char **argv)
 {
@@ -61,18 +65,22 @@ int main(int argc, char **argv)
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-        DOUBLE_VORTEX_PARAMS dv_params; /* velocity function parameters */
+	RADIAL_VEL_PARAMS rv_params; /* velocity function parameters */
+	MC_PARAMS mc_params;
+	int i;
 
+	f_basic.dim = 2;	// default
 	FT_Init(argc,argv,&f_basic);
-	f_basic.dim = 2;
 
 	/* Initialize basic computational data */
 
-	f_basic.L[0] = 0.0;	f_basic.L[1] = 0.0;
-	f_basic.U[0] = 1.0;	f_basic.U[1] = 1.0;
-	f_basic.gmax[0] = 200;	f_basic.gmax[1] = 200;
-	f_basic.boundary[0][0] = f_basic.boundary[0][1] = DIRICHLET_BOUNDARY;
-	f_basic.boundary[1][0] = f_basic.boundary[1][1] = DIRICHLET_BOUNDARY;
+	for (i = 0; i < f_basic.dim; ++i)
+	{
+	    f_basic.L[i] = 0.0;	
+	    f_basic.U[i] = 1.0;	
+	    f_basic.gmax[i] = 100;	
+	    f_basic.boundary[i][0] = f_basic.boundary[i][1] = PERIODIC_BOUNDARY;
+	}
 	f_basic.size_of_intfc_state = 0;
 
         in_name                 = f_basic.in_name;
@@ -82,98 +90,112 @@ int main(int argc, char **argv)
         RestartRun              = f_basic.RestartRun;
         RestartStep             = f_basic.RestartStep;
 
-        sprintf(restart_name,"%s/intfc-ts%s",restart_name,
-                        right_flush(RestartStep,7));
-        if (pp_numnodes() > 1)
-            sprintf(restart_name,"%s-nd%s",restart_name, 
-                                right_flush(pp_mynode(),4));
-	
+        sprintf(restart_name,"%s.ts%s",restart_name,right_flush(RestartStep,7));
+#if defined(__MPI__)
+        sprintf(restart_name,"%s-nd%s",restart_name,right_flush(pp_mynode(),4));
+#endif /* defined(__MPI__) */
 
 	FT_StartUp(&front,&f_basic);
+	add_to_debug("high_order_redist");
 
-	if (!RestartRun)
+	/* Initialize interface through level function */
+
+	level_func_pack.neg_component = 1;
+	level_func_pack.pos_component = 2;
+	level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
+	mc_params.num_cir = 1;
+	FT_VectorMemoryAlloc((POINTER*)&mc_params.rad,mc_params.num_cir,FLOAT);
+        FT_MatrixMemoryAlloc((POINTER*)&mc_params.cen,mc_params.num_cir,2,FLOAT);
+	for (i = 0; i < f_basic.dim; ++i)
 	{
-	    /* Initialize interface through level function */
-
-	    level_func_pack.neg_component = 1;
-	    level_func_pack.pos_component = 2;
-	    level_func_pack.func_params = NULL;
-	    level_func_pack.func = NULL;
-	    level_func_pack.num_points = 500;
-	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
-
-	    FT_MatrixMemoryAlloc((POINTER*)&level_func_pack.point_array,500,
-	    				2,sizeof(double));
-	    int i;
-	    for (i = 0; i < 500; ++i)
-	    {
-	        double phi = i*2.0*PI/500.0;
-	        level_func_pack.point_array[i][0] = 0.5 + 0.3*cos(phi);
-	        level_func_pack.point_array[i][1] = 0.5 + 0.3*sin(phi);
-	    }
-	    FT_InitIntfc(&front,&level_func_pack);
-	    if (f_basic.dim < 3)
-                FT_ClipIntfcToSubdomain(&front);
+            mc_params.cen[0][i] = 0.5;
 	}
+        mc_params.rad[0] = 0.15;
+	mc_params.dim = f_basic.dim;
+	level_func_pack.func_params = (POINTER)&mc_params;
+        level_func_pack.func = multi_circle_func;
+
+	FT_InitIntfc(&front,&level_func_pack);
+	adjustIntfcPoints(front.interf,mc_params);
+	if (f_basic.dim == 3)
+	{
+	    gview_plot_interface("gview",front.interf);
+	}
+
+	Frequency_of_redistribution(&front,GENERAL_WAVE) = 
+			f_basic.gmax[0]/20;
 
 	/* Initialize velocity field function */
 
-        dv_params.cen1[0] = 0.25;
-        dv_params.cen1[1] = 0.50;
-        dv_params.cen2[0] = 0.75;
-        dv_params.cen2[1] = 0.50;
-        dv_params.i1 = -0.5;
-        dv_params.i2 =  0.5;
+	rv_params.C = 0.2;
+	velo_func_pack.func_params = (POINTER)&rv_params;
+	velo_func_pack.func = test_vel;
+	velo_func_pack.point_propagate = first_order_point_propagate;
 
-        velo_func_pack.func_params = (POINTER)&dv_params;
-        velo_func_pack.func = test_vortex_vel;
-        velo_func_pack.point_propagate = fourth_order_point_propagate;
+	FT_InitVeloFunc(&front,&velo_func_pack);
 
-        FT_InitVeloFunc(&front,&velo_func_pack);
+	/* Propagate the front */
 
-        /* Propagate the front */
-
-        test_propagate(&front);
+	test_propagate(&front);
 
 	clean_up(0);
+	return 0;
 }
 
 static  void test_propagate(
         Front *front)
 {
-        double CFL;
+        int ip,im,status,count;
+        Front *newfront;
+        double dt,dt_frac,CFL;
+        boolean is_print_time, is_movie_time, time_limit_reached;
+        char s[10];
+        double fcrds[MAXD];
+        int  dim = front->rect_grid->dim;
+	VORTEX_PARAMS *vparams = (VORTEX_PARAMS*)front->vparams;
+	int redist_order;
 
-	front->max_time = 2.0;
-	front->max_step = 400;
+	redist_order = 2;
+
+	front->max_time = 1.0;
+	front->max_step = 11;
 	front->print_time_interval = 1.0;
 	front->movie_frame_interval = 0.02;
+	vparams->time = 0.5*front->max_time;
 
         CFL = Time_step_factor(front);
-	Frequency_of_redistribution(front,GENERAL_WAVE) = 2;
 
+        printf("dim = %d\n", dim);
 	printf("CFL = %f\n",CFL);
 	printf("Frequency_of_redistribution(front,GENERAL_WAVE) = %d\n",
 		Frequency_of_redistribution(front,GENERAL_WAVE));
 
+	setPhysicsHsOrder(front->interf,redist_order);
+	computeError(front,redist_order);
 	if (!RestartRun)
 	{
-            FT_RedistMesh(front);
-	    FT_ResetTime(front);
+            redistribute(front,YES,NO);
+
+            front->time = 0.0;
+            front->dt = 0.0;
+	    front->step = 0;
 
 	    // Always output the initial interface.
 	    FT_Save(front,out_name);
             FT_AddMovieFrame(front,out_name,binary);
+            ip = im = 1;
 
 	    // This is a virtual propagation to get maximum front 
 	    // speed to determine the first time step.
 
-	    FT_Propagate(front);
-            FT_SetTimeStep(front);
-	    FT_SetOutputCounter(front);
+            status = FrontAdvance(front->dt,&dt_frac,front,&newfront,
+                                (POINTER)NULL);
+            front->dt = CFL*FrontHypTimeStep(front); 
 	}
 	else
 	{
-            FT_SetOutputCounter(front);
+	    ip = (int)(front->time/front->print_time_interval + 1.0);
+            im = (int)(front->time/front->movie_frame_interval + 1.0);
 	}
 
 	FT_TimeControlFilter(front);
@@ -182,15 +204,17 @@ static  void test_propagate(
         {
 	    /* Propagating interface for time step dt */
 
-	    FT_Propagate(front);
+            FT_Propagate(front);
+
 	    FT_AddTimeStepToCounter(front);
+	    computeError(front,redist_order);
 
 	    //Next time step determined by maximum speed of previous
 	    //step, assuming the propagation is hyperbolic and
 	    //is not dependent on second order derivatives of
 	    //the interface such as curvature, and etc.
 
-            FT_SetTimeStep(front);
+            front->dt = CFL*FrontHypTimeStep(front); 
 
 	    /* Output section */
 
@@ -198,13 +222,18 @@ static  void test_propagate(
                         front->time,front->step,front->dt);
             fflush(stdout);
 
-            if (FT_IsSaveTime(front))
-		FT_Save(front,out_name);
+	    if (FT_IsSaveTime(front))
+                FT_Save(front,out_name);
             if (FT_IsMovieFrameTime(front))
                 FT_AddMovieFrame(front,out_name,binary);
 
-            if (FT_TimeLimitReached(front))
-                    break;
+	    if (FT_TimeLimitReached(front))
+            {
+                FT_PrintTimeStamp(front);
+                break;
+            }
+
+	    /* Time and step control section */
 
 	    FT_TimeControlFilter(front);
         }
@@ -212,37 +241,137 @@ static  void test_propagate(
 }       /* end test_propagate */
 
 /********************************************************************
- *	Sample (circle) velocity function for the front    *
+ *	Sample (vortex) velocity function for the front    *
  ********************************************************************/
 
-static int test_vortex_vel(
-	POINTER params,
-	Front *front,
-	POINT *p,
-	HYPER_SURF_ELEMENT *hse,
-	HYPER_SURF *hs,
-	double *vel)
+
+static int test_vel(
+        POINTER params,
+        Front *front,
+        POINT *p,
+        HYPER_SURF_ELEMENT *hse,
+        HYPER_SURF *hs,
+        double *vel)
 {
-	DOUBLE_VORTEX_PARAMS *dv_params = (DOUBLE_VORTEX_PARAMS*)params;
+        RADIAL_VEL_PARAMS *rv_params = (RADIAL_VEL_PARAMS*)params;
+	double C = rv_params->C;
+        int i, dim = front->rect_grid->dim;
+	double r = 0.0;
+	double speed;
 	double *coords = Coords(p);
-	double d1,d2;
-	double s1,s2;
-	double *cen1 = dv_params->cen1;
-	double *cen2 = dv_params->cen2;
-	double dx1,dy1;
-	double dx2,dy2;
 
-	dx1 = coords[0] - cen1[0]; 
-	dy1 = coords[1] - cen1[1];
-	dx2 = coords[0] - cen2[0]; 
-	dy2 = coords[1] - cen2[1];
+	speed = C*front->rect_grid->h[0];
+	for (i = 0; i < dim; ++i)
+	    r += sqr(coords[i] - 0.5);
+	r = sqrt(r);
+	for (i = 0; i < dim; ++i)
+	    vel[i] = C*(coords[i] - 0.5)/r;
+}       /* end vortex_vel */
 
-	d1 = sqrt(sqr(dx1) + sqr(dy1));
-	d2 = sqrt(sqr(dx2) + sqr(dy2));
+static void computeError(
+	Front *front,
+	int redist_order)
+{
+	INTERFACE *intfc = front->interf;
+	RADIAL_VEL_PARAMS *vparams = (RADIAL_VEL_PARAMS*)front->vparams;
+	double C = vparams->C;
+	int i,num_points,dim = intfc->dim;
+	double time = front->time;
+	double L1_error,L2_error,Li_error;
+	double r,R;
+	static FILE *L1File,*L2File,*LiFile;
+	char fname[100];
+	POINT   *p;
+        HYPER_SURF_ELEMENT *hse;
+        HYPER_SURF         *hs;
 
-	s1 = dv_params->i1/2.0/PI/d1;
-	s2 = dv_params->i2/2.0/PI/d2;
 
-	vel[0] =  s1*dy1/d1 + s2*dy2/d2;
-	vel[1] = -s1*dx1/d1 - s2*dx2/d2;
-}	/* end test_vortex_vel */
+	if (L1File == NULL)
+	{
+	    sprintf(fname,"L1-error-order-%d",redist_order);
+	    L1File = fopen(fname,"w");
+	    sprintf(fname,"L2-error-order-%d",redist_order);
+	    L2File = fopen(fname,"w");
+	    sprintf(fname,"Li-error-order-%d",redist_order);
+	    LiFile = fopen(fname,"w");
+	    fprintf(L1File,"\"L1 Error\"\n");
+	    fprintf(L2File,"\"L2 Error\"\n");
+	    fprintf(LiFile,"\"Li Error\"\n");
+	}
+
+	R = 0.15 + C*time;
+
+	L1_error = L2_error = Li_error = 0.0;
+	num_points = 0;
+	next_point(intfc,NULL, NULL,NULL);
+        while (next_point(intfc,&p,&hse,&hs))
+        {
+	    if (wave_type(hs) < FIRST_PHYSICS_WAVE_TYPE)
+		continue;
+	    r = 0.0;
+	    for (i = 0; i < dim; ++i)
+		r += sqr(Coords(p)[i] - 0.5);
+	    r = sqrt(r);
+	    L1_error += fabs(r-R);
+	    L2_error += sqr(r-R);
+	    Li_error = FT_Max(fabs(r-R),Li_error);
+	    num_points++;
+	}
+	L1_error /= (double)num_points;
+	L2_error /= (double)num_points;
+	L2_error = sqrt(L2_error);
+
+	fprintf(L1File,"%24.18g  %24.18g\n",time,L1_error);
+	fflush(L1File);
+	fprintf(L2File,"%24.18g  %24.18g\n",time,L2_error);
+	fflush(L2File);
+	fprintf(LiFile,"%24.18g  %24.18g\n",time,Li_error);
+	fflush(LiFile);
+}	/* end computeError */
+
+static void adjustIntfcPoints(
+	INTERFACE *intfc,
+	MC_PARAMS mc_params)
+{
+	int i,dim = intfc->dim;
+	double *center = mc_params.cen[0];
+	double r,exact_radius = mc_params.rad[0];
+	double crds[MAXD];
+        POINT *p;
+        HYPER_SURF *hs;
+        HYPER_SURF_ELEMENT *hse;
+	next_point(intfc,NULL,NULL,NULL);
+        while (next_point(intfc,&p,&hse,&hs))
+        {
+	    if (wave_type(hs) < FIRST_PHYSICS_WAVE_TYPE) continue;
+	    r = 0.0;
+	    for (i = 0; i < dim; ++i)
+	    {
+		crds[i] = Coords(p)[i] - center[i];
+		r += sqr(crds[i]);
+	    }
+	    r = sqrt(r);
+	    for (i = 0; i < dim; ++i)
+		Coords(p)[i] = crds[i]*exact_radius/r + center[i];
+	}
+}	/* end adjustIntfcPoints */
+
+static void setPhysicsHsOrder(
+	INTERFACE *intfc,
+	int order)
+{
+	CURVE **c;
+	SURFACE **s;
+
+	switch (intfc->dim)
+	{
+	case 2:
+	    for (c = intfc->curves; c && *c; ++c)
+	    	if (wave_type(*c) >= FIRST_PHYSICS_WAVE_TYPE)
+		    (*c)->redist_order = order;
+	case 3:
+	    for (s = intfc->surfaces; s && *s; ++s)
+	    	if (wave_type(*s) >= FIRST_PHYSICS_WAVE_TYPE)
+		    (*s)->redist_order = order;
+	}
+}	/* end setPhysicsHsOrder */

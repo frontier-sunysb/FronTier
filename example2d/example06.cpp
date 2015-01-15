@@ -37,13 +37,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 	/*  Function Declarations */
 static void test_propagate(Front*);
-static int ddouble_vortex_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
+static int tdouble_vortex_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
 	                       HYPER_SURF*,double*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 int RestartStep;
 boolean binary = YES;
+
 
 /********************************************************************
  *	Velocity function parameters for the front	 	    *
@@ -108,12 +109,12 @@ int main(int argc, char **argv)
 	    mc_params.cen[1][1] = 0.3;
 	    mc_params.cen[2][0] = 0.5;
 	    mc_params.cen[2][1] = 0.7;
-	    mc_params.rad[0] = 0.15;
-	    mc_params.rad[1] = 0.15;
-	    mc_params.rad[2] = 0.15;
+	    mc_params.rad[0] = 0.1;
+	    mc_params.rad[1] = 0.1;
+	    mc_params.rad[2] = 0.1;
 
-	    level_func_pack.neg_component = 2;
-	    level_func_pack.pos_component = 3;
+	    level_func_pack.neg_component = 1;
+	    level_func_pack.pos_component = 2;
 	    level_func_pack.func_params = (POINTER)&mc_params;
 	    level_func_pack.func = multi_circle_func;
 	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
@@ -133,7 +134,7 @@ int main(int argc, char **argv)
 	dv_params.i2 =  0.5;
 
 	velo_func_pack.func_params = (POINTER)&dv_params;
-	velo_func_pack.func = ddouble_vortex_vel;
+	velo_func_pack.func = tdouble_vortex_vel;
 	velo_func_pack.point_propagate = fourth_order_point_propagate;
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
@@ -151,9 +152,9 @@ static  void test_propagate(
 {
         double CFL;
 
-	front->max_time = 2.0;
+	front->max_time = 1.5;
 	front->max_step = 10000;
-	front->print_time_interval = 1.0;
+	front->print_time_interval = 0.5;
 	front->movie_frame_interval = 0.02;
 
         CFL = Time_step_factor(front);
@@ -222,7 +223,7 @@ static  void test_propagate(
  *	Sample (circle) velocity function for the front    *
  ********************************************************************/
 
-static int ddouble_vortex_vel(
+static int tdouble_vortex_vel(
 	POINTER params,
 	Front *front,
 	POINT *p,
@@ -252,4 +253,4 @@ static int ddouble_vortex_vel(
 
 	vel[0] =  s1*dy1/d1 + s2*dy2/d2;
 	vel[1] = -s1*dx1/d1 - s2*dx2/d2;
-}	/* end ddouble_vortex_vel */
+}	/* end tdouble_vortex_vel */

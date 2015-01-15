@@ -22,15 +22,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ****************************************************************/
 
 /*
-*				example2.c:
+*				example1.c:
 *
 *		User initialization example for Front Package:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
 *
-*	This is example of three circles all moving the a normal velocity.
-*	Bifurcation occurs when they meet each other. FronTier solves
-*	the bifurcation automatically.
+*	This is an example of three circles moving in a double vortex
+*	velocity field.
 *
 */
 
@@ -38,24 +37,34 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 	/*  Function Declarations */
 static void test_propagate(Front*);
-static int norm_vel_func(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
+static double crystal_curve(POINTER,double*);
+static int crystal_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
 	                       HYPER_SURF*,double*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 int RestartStep;
-boolean binary = YES;
+boolean binary=YES;
+
+/********************************************************************
+ *	Level function parameters for the initial interface 	    *
+ ********************************************************************/
+
+typedef struct {
+        int num_cir;
+        double **cen;
+        double *rad;
+} TMC_PARAMS;
+
 
 /********************************************************************
  *	Velocity function parameters for the front	 	    *
  ********************************************************************/
 
-struct _TNORV_PARAMS
-{
-        int dim;
-        double coeff;
-};
-typedef struct _TNORV_PARAMS TNORV_PARAMS;
+typedef struct {
+	double i1,i2;
+        double cen1[2],cen2[2];
+} CRYSTAL_PARAMS;
 
 int main(int argc, char **argv)
 {
@@ -64,8 +73,8 @@ int main(int argc, char **argv)
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-	TNORV_PARAMS norm_params; /* velocity function parameters */
-	MC_PARAMS mc_params;
+	CRYSTAL_PARAMS dv_params; /* velocity function parameters */
+	TMC_PARAMS mc_params;
 	Locstate  sl;
 
 	FT_Init(argc,argv,&f_basic);
@@ -76,8 +85,8 @@ int main(int argc, char **argv)
 	f_basic.L[0] = 0.0;	f_basic.L[1] = 0.0;
 	f_basic.U[0] = 1.0;	f_basic.U[1] = 1.0;
 	f_basic.gmax[0] = 100;	f_basic.gmax[1] = 100;
-	f_basic.boundary[0][0] = f_basic.boundary[0][1] = PERIODIC_BOUNDARY;
-	f_basic.boundary[1][0] = f_basic.boundary[1][1] = PERIODIC_BOUNDARY;
+	f_basic.boundary[0][0] = f_basic.boundary[0][1] = DIRICHLET_BOUNDARY;
+	f_basic.boundary[1][0] = f_basic.boundary[1][1] = DIRICHLET_BOUNDARY;
 	f_basic.size_of_intfc_state = 0;
 
         in_name                 = f_basic.in_name;
@@ -99,7 +108,6 @@ int main(int argc, char **argv)
 	{
 	    /* Initialize interface through level function */
 
-	    mc_params.dim = 2;
 	    mc_params.num_cir = 3;
             FT_VectorMemoryAlloc((POINTER*)&mc_params.rad,mc_params.num_cir,
 	    					FLOAT);
@@ -118,7 +126,7 @@ int main(int argc, char **argv)
 	    level_func_pack.neg_component = 1;
 	    level_func_pack.pos_component = 2;
 	    level_func_pack.func_params = (POINTER)&mc_params;
-	    level_func_pack.func = multi_circle_func;
+	    level_func_pack.func = crystal_curve;
 	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
 
 	    FT_InitIntfc(&front,&level_func_pack);
@@ -128,23 +136,18 @@ int main(int argc, char **argv)
 
 	/* Initialize velocity field function */
 
-	norm_params.dim = 2;
-	norm_params.coeff = 0.1;
+	dv_params.cen1[0] = 0.25;
+	dv_params.cen1[1] = 0.50;
+	dv_params.cen2[0] = 0.75;
+	dv_params.cen2[1] = 0.50;
+	dv_params.i1 = -0.5;
+	dv_params.i2 =  0.5;
 
-	velo_func_pack.func_params = (POINTER)&norm_params;
-	velo_func_pack.func = norm_vel_func;
-	velo_func_pack.point_propagate = first_order_point_propagate;
+	velo_func_pack.func_params = (POINTER)&dv_params;
+	velo_func_pack.func = crystal_vel;
+	velo_func_pack.point_propagate = fourth_order_point_propagate;
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
-
-        /* For geometry-dependent velocity, use first
-        * order point propagation function, higher order
-        * propagation requires surface propagate, currently
-        * in writing, not yet in use. The following override
-        * the assigned fourth_order_point_propagate.
-        */
-
-        front._point_propagate = first_order_point_propagate;
 
 	/* Propagate the front */
 
@@ -159,7 +162,7 @@ static  void test_propagate(
 {
         double CFL;
 
-	front->max_time = 2.0;
+	front->max_time = 0.4;
 	front->max_step = 10000;
 	front->print_time_interval = 1.0;
 	front->movie_frame_interval = 0.02;
@@ -226,26 +229,56 @@ static  void test_propagate(
         (void) delete_interface(front->interf);
 }       /* end test_propagate */
 
-LOCAL int norm_vel_func(
-        POINTER params,
-        Front *front,
-        POINT *p,
-        HYPER_SURF_ELEMENT *hse,
-        HYPER_SURF *hs,
-        double *vel)
+/********************************************************************
+ *	Sample (circle) velocity function for the front    *
+ ********************************************************************/
+
+static int crystal_vel(
+	POINTER params,
+	Front *front,
+	POINT *p,
+	HYPER_SURF_ELEMENT *hse,
+	HYPER_SURF *hs,
+	double *vel)
 {
-        TNORV_PARAMS *norv_params;
-        int i;
-        double coeff;
-        double curvature;
-        double nor[MAXD];
-                                                                                
-        norv_params = (TNORV_PARAMS*)params;
-        coeff = norv_params->coeff;
-                                                                                
-        GetFrontNormal(p,hse,hs,nor,front);
-        for (i = 0; i < norv_params->dim; ++i)
-        {
-            vel[i] = nor[i]*coeff;
-        }
-}       /* end normal_vel_func */
+	CRYSTAL_PARAMS *dv_params = (CRYSTAL_PARAMS*)params;
+	double *coords = Coords(p);
+	
+	double dx = 1.0/45.0;
+	double circ[2];
+	double nor[2];
+	int i,count;
+	count = 0;
+	for(i=0;i<20;i++)
+	{
+	     circ[0] = coords[0]+dx*sin( i*(1.0/20.0)*2.0*3.1415);
+	     circ[1] = coords[1]+dx*cos( i*(1.0/20.0)*2.0*3.1415);
+	     if(component(circ,front->interf) == 2)
+	     count++;
+
+	 }
+	GetFrontNormal(p,hse,hs,nor,front);
+	for (i = 0; i < 2; ++i)
+	{
+	    vel[i] = nor[i]*(((1.0*count)/20.0));
+	    
+	    // this slows the growth more
+	    if(count <8)
+	    vel[i]=0;
+	    //vel[i] = nor[i]*exp(20.0/(1.0*count));
+	}
+
+
+}	/* end double_vortex_vel */
+
+LOCAL double crystal_curve(
+        POINTER func_params,
+        double *coords)
+{
+
+	double dist, theta;
+
+	dist =   sqrt(sqr(coords[0]-0.5) + sqr(coords[1]-0.5));
+	theta = asin((coords[1]-0.5)/dist);
+	return dist - .15 - 0.04*sin(5.0*theta) - .02*sin(10.0*theta);
+}       /* end crystal_curve */

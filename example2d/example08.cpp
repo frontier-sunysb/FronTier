@@ -22,14 +22,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ****************************************************************/
 
 /*
-*				example0.c:
+*				example.c:
 *
 *		User initialization example for Front Package:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
-*	
-*	This example shows a circle in a double vortex field. It demonstrates
-*	the resolution of the front tracking method.
 *
 */
 
@@ -38,9 +35,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 	/*  Function Declarations */
 static void test_propagate(Front*);
-static double tlevel_circle_func(POINTER,double*);
-static int test_double_vortex_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
-	                       HYPER_SURF*,double*);
+static double cap_h_func(POINTER,double*);
+static int test_curvature_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*);
+
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -52,32 +49,33 @@ boolean binary = YES;
  ********************************************************************/
 
 typedef struct {
-	        /* equation for line is x^2/a^2 + y^2/b^2 = 1 */
-        double x0,x1;
-        double y0,y1;        
-        double R; 
-        double r;  
-} TCIRCLE_PARAMS;
+        double x0;
+        double y0;
+        double h;
+        double w;
+} H_PARAMS;
 
+
+typedef struct {
+	int dim;
+	double coeff;
+	double epsilon;
+} TEST_CURV_PARAMS;
 
 /********************************************************************
  *	Velocity function parameters for the front	 	    *
  ********************************************************************/
 
-typedef struct {
-	double i1,i2;
-        double cen1[2],cen2[2];
-} DOUBLE_VORTEX_PARAMS;
 
 int main(int argc, char **argv)
 {
 	static Front front;
 	static RECT_GRID comp_grid;
 	static F_BASIC_DATA f_basic;
+	H_PARAMS h_params;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-	TCIRCLE_PARAMS circle_params;	/* level function parameters */
-	DOUBLE_VORTEX_PARAMS dv_params; /* velocity function parameters */
+	TEST_CURV_PARAMS curv_params; /* velocity function parameters */
 	Locstate  sl;
 
 	FT_Init(argc,argv,&f_basic);
@@ -110,17 +108,15 @@ int main(int argc, char **argv)
 	if (!RestartRun)
 	{
 	    /* Initialize interface through level function */
+	    h_params.x0 = 0.5;
+            h_params.y0 = 0.5;
+            h_params.h = 0.4;
+            h_params.w = 0.1;
 
-	    circle_params.x0 = 0.5;
-	    circle_params.y0 = 0.2;
-	    circle_params.x1 = 0.5;
-	    circle_params.y1 = 0.5;
-	    circle_params.R = 0.3;
-            circle_params.r = 0.3;
 	    level_func_pack.neg_component = 1;
 	    level_func_pack.pos_component = 2;
-	    level_func_pack.func_params = (POINTER)&circle_params;
-	    level_func_pack.func = tlevel_circle_func;
+	    level_func_pack.func_params = (POINTER)&h_params;
+	    level_func_pack.func = cap_h_func;
 	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
 
 	    FT_InitIntfc(&front,&level_func_pack);
@@ -130,18 +126,24 @@ int main(int argc, char **argv)
 
 	/* Initialize velocity field function */
 
-	dv_params.cen1[0] = 0.25;
-	dv_params.cen1[1] = 0.50;
-	dv_params.cen2[0] = 0.75;
-	dv_params.cen2[1] = 0.50;
-	dv_params.i1 = -0.5;
-	dv_params.i2 =  0.5;
+	curv_params.dim = 2;
+	curv_params.coeff = 0;
+	curv_params.epsilon = 0.01;
 
-	velo_func_pack.func_params = (POINTER)&dv_params;
-	velo_func_pack.func = test_double_vortex_vel;
-	velo_func_pack.point_propagate = fourth_order_point_propagate;
+	velo_func_pack.func_params = (POINTER)&curv_params;
+	velo_func_pack.func = test_curvature_vel;
+	velo_func_pack.point_propagate = first_order_point_propagate;
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
+	
+        /* For geometry-dependent velocity, use first
+        * order point propagation function, higher order
+        * propagation requires surface propagate, currently
+        * in writing, not yet in use. The following override
+        * the assigned fourth_order_point_propagate.
+        */
+
+        front._point_propagate = first_order_point_propagate;
 
 	/* Propagate the front */
 
@@ -156,12 +158,12 @@ static  void test_propagate(
 {
         double CFL;
 
-	front->max_time = 1.5;
-	front->max_step = 10000;
-	front->print_time_interval = 0.5;
-	front->movie_frame_interval = 0.02;
+	front->max_time = 1.0; 
+	front->max_step = 100000;
+	front->print_time_interval = 1.0;
+	front->movie_frame_interval = 0.01;
 
-        CFL = Time_step_factor(front);
+        CFL = Time_step_factor(front) = 0.1;
 
 	printf("CFL = %f\n",CFL);
 	printf("Frequency_of_redistribution(front,GENERAL_WAVE) = %d\n",
@@ -224,63 +226,71 @@ static  void test_propagate(
 }       /* end test_propagate */
 
 /********************************************************************
- *	Sample (circle) level function for the initial interface    *
+ *	Sample (H shape) level function for the initial interface    *
  ********************************************************************/
 
-static double tlevel_circle_func(
+static double cap_h_func(
         POINTER func_params,
         double *coords)
 {
-	TCIRCLE_PARAMS *circle_params = (TCIRCLE_PARAMS*)func_params;
-	double x0,y0,x1,y1,R,r,dist1,dist2;
+        H_PARAMS *h_params = (H_PARAMS*)func_params;
+        double x0,y0,h,w;
+        double dist[3];
+        int i,imin;
+        double r1,r2,dmin;
 
-	x0 = circle_params->x0;
-	y0 = circle_params->y0;
-	x1 = circle_params->x1;
-	y1 = circle_params->y1;
-	R  = circle_params->R;
-        r = circle_params->r;
-	dist1 = sqrt(sqr(coords[0] - x0) + sqr(coords[1] - y0)) - R;
-	dist2 = sqrt(sqr(coords[0] - x1) + sqr(coords[1] - y1)) - r;
-	if(dist1 > 0.0 && dist2 < 0.0) return -std::min(dist1,-dist2);
-	else return std::min(fabs(dist1),fabs(dist2));
+        x0 = h_params->x0;
+        y0 = h_params->y0;
+        h  = h_params->h;
+        w  = h_params->w;
 
-	
-}	/* end tlevel_circle_func */
+        dmin = HUGE;
+        r1 = fabs(coords[0]-x0)/(h/2.0);
+        r2 = fabs(coords[1]-y0)/(w/2.0);
+        dist[0] = std::max(r1,r2) - 1;
 
+        r1 = fabs(coords[0]-x0+(h-w)/2.0)/(w/2.0);
+        r2 = fabs(coords[1]-y0)/(h/2.0);
+        dist[1] = std::max(r1,r2) - 1;
 
-/********************************************************************
- *	Sample (circle) velocity function for the front    *
- ********************************************************************/
+        r1 = fabs(coords[0]-x0-(h-w)/2.0)/(w/2.0);
+        r2 = fabs(coords[1]-y0)/(h/2.0);
+        dist[2] = std::max(r1,r2) - 1;
 
-static int test_double_vortex_vel(
-	POINTER params,
-	Front *front,
-	POINT *p,
-	HYPER_SURF_ELEMENT *hse,
-	HYPER_SURF *hs,
-	double *vel)
+        for (i = 0; i < 3; ++i)
+        {
+            if(dist[i]<dmin)
+            {
+                dmin = dist[i];
+            }
+        }
+
+        return dmin;
+}       /* end cap_h_func */
+
+static int test_curvature_vel(
+        POINTER params,
+        Front *front,
+        POINT *p,
+        HYPER_SURF_ELEMENT *hse,
+        HYPER_SURF *hs,
+        double *vel)
 {
-	DOUBLE_VORTEX_PARAMS *dv_params = (DOUBLE_VORTEX_PARAMS*)params;
-	double *coords = Coords(p);
-	double d1,d2;
-	double s1,s2;
-	double *cen1 = dv_params->cen1;
-	double *cen2 = dv_params->cen2;
-	double dx1,dy1;
-	double dx2,dy2;
+	TEST_CURV_PARAMS *curv_params = (TEST_CURV_PARAMS*) params;
+        int i;
+        double coeff,epsilon,eps;
+        double kappa;
+        double nor[MAXD];
 
-	dx1 = coords[0] - cen1[0]; 
-	dy1 = coords[1] - cen1[1];
-	dx2 = coords[0] - cen2[0]; 
-	dy2 = coords[1] - cen2[1];
+        coeff = curv_params->coeff;
+        epsilon = curv_params->epsilon;
 
-	d1 = sqrt(sqr(dx1) + sqr(dy1));
-	d2 = sqrt(sqr(dx2) + sqr(dy2));
+        GetFrontNormal(p,hse,hs,nor,front);
+	GetFrontCurvature(p,hse,hs,&kappa,front);
 
-	s1 = dv_params->i1/2.0/PI/d1;
-	s2 = dv_params->i2/2.0/PI/d2;
+        for (i = 0; i < curv_params->dim; ++i)
+        {
+            vel[i] = nor[i]*(coeff - epsilon*kappa);
+        }
+}
 
-	vel[0] =  s1*dy1/d1 + s2*dy2/d2;
-	vel[1] = -s1*dx1/d1 - s2*dx2/d2;
-}	/* end test_double_vortex_vel */

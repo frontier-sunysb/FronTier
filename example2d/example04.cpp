@@ -22,13 +22,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ****************************************************************/
 
 /*
-*				example4.c:
+*				example2.c:
 *
 *		User initialization example for Front Package:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
 *
-*	This example shows the test of Dirichlet boudary.
+*	This is example of three circles all moving the a normal velocity.
+*	Bifurcation occurs when they meet each other. FronTier solves
+*	the bifurcation automatically.
 *
 */
 
@@ -36,8 +38,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 	/*  Function Declarations */
 static void test_propagate(Front*);
-static int trans_vel_func(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
+static int norm_vel_func(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
 	                       HYPER_SURF*,double*);
+static void map_output_interface(Front*,char*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -48,12 +51,12 @@ boolean binary = YES;
  *	Velocity function parameters for the front	 	    *
  ********************************************************************/
 
-struct _TRANSV_PARAMS
+struct _TNORV_PARAMS
 {
         int dim;
-	double vx,vy;
+        double coeff;
 };
-typedef struct _TRANSV_PARAMS TRANSV_PARAMS;
+typedef struct _TNORV_PARAMS TNORV_PARAMS;
 
 int main(int argc, char **argv)
 {
@@ -62,7 +65,7 @@ int main(int argc, char **argv)
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-	TRANSV_PARAMS trans_params; /* velocity function parameters */
+	TNORV_PARAMS norm_params; /* velocity function parameters */
 	MC_PARAMS mc_params;
 	Locstate  sl;
 
@@ -73,7 +76,7 @@ int main(int argc, char **argv)
 
 	f_basic.L[0] = 0.0;	f_basic.L[1] = 0.0;
 	f_basic.U[0] = 1.0;	f_basic.U[1] = 1.0;
-	f_basic.gmax[0] = 100;	f_basic.gmax[1] = 100;
+	f_basic.gmax[0] = 40;	f_basic.gmax[1] = 40;
 	f_basic.boundary[0][0] = f_basic.boundary[0][1] = DIRICHLET_BOUNDARY;
 	f_basic.boundary[1][0] = f_basic.boundary[1][1] = DIRICHLET_BOUNDARY;
 	f_basic.size_of_intfc_state = 0;
@@ -126,13 +129,12 @@ int main(int argc, char **argv)
 
 	/* Initialize velocity field function */
 
-	trans_params.dim = 2;
-	trans_params.vx = 0.4;
-	trans_params.vy = 0.23463;
+	norm_params.dim = 2;
+	norm_params.coeff = 0.1;
 
-	velo_func_pack.func_params = (POINTER)&trans_params;
-	velo_func_pack.func = trans_vel_func;
-	velo_func_pack.point_propagate = fourth_order_point_propagate;
+	velo_func_pack.func_params = (POINTER)&norm_params;
+	velo_func_pack.func = norm_vel_func;
+	velo_func_pack.point_propagate = first_order_point_propagate;
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
 
@@ -149,9 +151,9 @@ static  void test_propagate(
 {
         double CFL;
 
-	front->max_time = 2.1;
+	front->max_time = 3.0;
 	front->max_step = 10000;
-	front->print_time_interval = 1.0;
+	front->print_time_interval = 2.0;
 	front->movie_frame_interval = 0.02;
 
         CFL = Time_step_factor(front);
@@ -216,7 +218,7 @@ static  void test_propagate(
         (void) delete_interface(front->interf);
 }       /* end test_propagate */
 
-LOCAL int trans_vel_func(
+static int norm_vel_func(
         POINTER params,
         Front *front,
         POINT *p,
@@ -224,10 +226,72 @@ LOCAL int trans_vel_func(
         HYPER_SURF *hs,
         double *vel)
 {
-        TRANSV_PARAMS *transv_params;
+        TNORV_PARAMS *norv_params;
+        int i;
+        double coeff;
+        double curvature;
+        double nor[MAXD];
                                                                                 
-        transv_params = (TRANSV_PARAMS*)params;
+        norv_params = (TNORV_PARAMS*)params;
+        coeff = norv_params->coeff;
                                                                                 
-	vel[0] = transv_params->vx;
-	vel[1] = transv_params->vy;
-}       /* end transal_vel_func */
+        GetFrontNormal(p,hse,hs,nor,front);
+        for (i = 0; i < norv_params->dim; ++i)
+        {
+            vel[i] = nor[i]*coeff;
+        }
+}       /* end normal_vel_func */
+
+static void map_output_interface(
+	Front *front,
+	char *out_name)
+{
+	INTERFACE *intfc = front->interf;
+        FILE *out_file;
+        char filename[100];
+	int i,j,k,step;
+	step = front->step;
+	sprintf(filename,"%s.ts%s",out_name,right_flush(step,5));
+	out_file = fopen(filename,"w");
+	
+	int num_curves = I_NumOfIntfcCurves(intfc);
+	int dim = Dimension(intfc);
+	int num_nodes = I_NumOfIntfcNodes(intfc);
+	int num_bonds = I_NumOfIntfcBonds(intfc);
+	int num_points = I_NumOfIntfcPoints(intfc);
+
+	CURVE **curves;
+	curves = (CURVE**)malloc(num_curves*sizeof(CURVE*));
+
+	I_ArrayOfIntfcCurves(intfc,curves);
+
+	fprintf(out_file,"Interface at step %d\n\n",step);
+	fprintf(out_file,"Dimension = %d\n",dim);
+	fprintf(out_file,"Number of Curves = %d\n",num_curves);
+	fprintf(out_file,"Number of Nodes = %d\n",num_nodes);
+	fprintf(out_file,"Number of Interface Bonds = %d\n",num_bonds);
+	fprintf(out_file,"Number of Interface Points = %d\n",num_points);
+	for (i = 0; i < num_curves; ++i)
+	{
+	    double *coords;
+
+	    num_bonds = I_NumOfCurveBonds(curves[i]);
+	    num_points = I_NumOfCurvePoints(curves[i]);
+	    coords = (double*)malloc(num_points*dim*sizeof(double));
+
+	    ArrayOfCurvePoints(curves[i],coords);
+
+	    fprintf(out_file,"Number of Bonds on Curve %d = %d\n",
+	    			i+1,num_bonds);
+	    fprintf(out_file,"Number of Points on Curve %d = %d\n\n",
+	    			i+1,num_points);
+	    for (j = 0; j < num_points; ++j)
+	    {
+	    	for (k = 0; k < dim; ++k)
+		    fprintf(out_file,"%f  ",coords[dim*j+k]);
+	    	fprintf(out_file,"\n");
+	    }
+	    fprintf(out_file,"\n\n");
+	}
+	fclose(out_file);
+}	/* end map_output */

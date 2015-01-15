@@ -63,43 +63,7 @@ example13: @devel@ example13.cpp
 	$(CXX) -c -I../include $(incs) example13.cpp
 	$(CXX) example13.o -I../include -L../lib/@build_cpu@  $(libincs) -lFronTier -lm $(libs) -o example13
 
-example14: @devel@ example14.cpp
-	$(CXX) -c -I../include $(incs) example14.cpp
-	$(CXX) example14.o -I../include -L../lib/@build_cpu@  $(libincs) -lFronTier -lm $(libs) -o example14
-
-example15: @devel@ example15.cpp
-	$(CXX) -c -I../include $(incs) example15.cpp
-	$(CXX) example15.o -I../include -L../lib/@build_cpu@  $(libincs) -lFronTier -lm $(libs) -o example15
-
-example16: @devel@ example16.cpp
-	$(CXX) -c -I../include $(incs) example16.cpp
-	$(CXX) example16.o -I../include -L../lib/@build_cpu@  $(libincs) -lFronTier -lm $(libs) -o example16
-
-example17: @devel@ example17.cpp
-	$(CXX) -c -I../include $(incs) example17.cpp
-	$(CXX) example17.o -I../include -L../lib/@build_cpu@  $(libincs) -lFronTier -lm $(libs) -o example17
-
-example18: @devel@ example18.cpp
-	$(CXX) -c -I../include $(incs) example18.cpp
-	$(CXX) example18.o -I../include -L../lib/@build_cpu@  $(libincs) -lFronTier -lm $(libs) -o example18
-
-example19: @devel@ example19.cpp
-	$(CXX) -c -I../include $(incs) example19.cpp
-	$(CXX) example19.o -I../include -L../lib/@build_cpu@  $(libincs) -lFronTier -lm $(libs) -o example19
-
-example20: @devel@ example20.cpp
-	$(CXX) -c -I../include $(incs) example20.cpp
-	$(CXX) example20.o -I../include -L../lib/@build_cpu@  $(libincs) -lFronTier -lm $(libs) -o example20
-
-example21: @devel@ example21.cpp
-	$(CXX) -c -I../include $(incs) example21.cpp
-	$(CXX) example21.o -I../include -L../lib/@build_cpu@  $(libincs) -lFronTier -lm $(libs) -o example21
-
-example22: @devel@ example22.cpp
-	$(CXX) -c -I../include $(incs) example22.cpp
-	$(CXX) example22.o -I../include -L../lib/@build_cpu@  $(libincs) -lFronTier -lm $(libs) -o example22
-
-all: example00 example01 example02 example03 example04 example05 example06 example07 example08 example09 example10 example11 example12 example13 example14 example15 example16 example17 example18 example19 example20 example21 example22
+all: example00 example01 example02 example03 example04 example05 example06 example07 example08 example09 example10 example11 example12 example13
 
 -include ../devel-deps.inc
 

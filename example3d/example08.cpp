@@ -23,57 +23,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 
 /*
-*				test_map_3d.c:
+*				example.c:
 *
 *		User initialization example for Front Package:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
-*
-*	This is example of three circles all moving the a normal velocity.
-*	Bifurcation occurs when they meet each other. FronTier solves
-*	the bifurcation automatically.
-*
-*	This example shows how to convert the interface into arrays
-*	of floats. Functions introduced in this example include:
-*
-*	Dimension(intfc);
-*
-* int     NumOfPoints(SURFACE *s);
-* int     NumOfPoints(INTERFACE *intfc);
-* int     NumOfNodes(INTERFACE *intfc);
-* int     NumOfBonds(INTERFACE *intfc);
-* int     NumOfCurves(INTERFACE *intfc);
-* int     NumOfSurfaces(INTERFACE *intfc);
-* int     NumOfTris(SURFACE *s);
-* int     NumOfTris(INTERFACE *intfc);
-
-* void    ArrayOfPoints(INTERFACE *intfc, double *coords);
-* void    ArrayOfTri(SURFACE *surface, TRI **tris);
-* void    ArrayOfTri(SURFACE *surface, double *coords, int *vertices_index);
-* void    ArrayOfTri(INTERFACE *intfc, TRI **tris);
-* void    ArrayOfTri(INTERFACE *intfc, double *coords, int *vertex_indices);
-*
-*	See their use in function map_output_interface().
 *
 */
 
 #include <FronTier.h>
 
 	/*  Function Declarations */
+static void test_propagate(Front*);
+static double sphere_func(POINTER,double*);
+static int test_curvature_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
+			HYPER_SURF*,double*);
 
-static void  map_output_interface(Front*);
-
-char *out_name;
+char *in_name,*restart_state_name,*restart_name,*out_name;
+boolean RestartRun;
+int RestartStep;
+boolean binary = YES;
 
 /********************************************************************
- *	Level function parameters for the initial interface 	    *
+ *	Velocity function parameters for the front	 	    *
  ********************************************************************/
 
 typedef struct {
-        int num_cir;
-        double **cen;
-        double *rad;
-} TMC_PARAMS;
+	int dim;
+	double coeff;
+	double epsilon;
+} TEST_CURV_PARAMS;
 
 int main(int argc, char **argv)
 {
@@ -81,129 +60,182 @@ int main(int argc, char **argv)
 	static RECT_GRID comp_grid;
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
-	TMC_PARAMS mc_params;
+	static VELO_FUNC_PACK velo_func_pack;
+	RECT_BOX_PARAMS rect_box_params;
+	TEST_CURV_PARAMS curv_params; /* velocity function parameters */
+	Locstate  sl;
 
 	f_basic.dim = 3;	
 	FT_Init(argc,argv,&f_basic);
 
 	/* Initialize basic computational data */
 
-	f_basic.L[0] = 0.0;	f_basic.L[1] = 0.0;	f_basic.L[2] = 0.0;
-	f_basic.U[0] = 1.0;	f_basic.U[1] = 1.0;	f_basic.U[2] = 1.0;
-	f_basic.gmax[0] = 40;	f_basic.gmax[1] = 40;	f_basic.gmax[2] = 40;
+	f_basic.L[0] = 0.0;	f_basic.L[1] = 0.0; 	f_basic.L[2] = 0.0;
+	f_basic.U[0] = 1.0;	f_basic.U[1] = 1.0; 	f_basic.U[2] = 1.0;
+	f_basic.gmax[0] = 64;	f_basic.gmax[1] = 64; f_basic.gmax[2] = 64;
 	f_basic.boundary[0][0] = f_basic.boundary[0][1] = DIRICHLET_BOUNDARY;
 	f_basic.boundary[1][0] = f_basic.boundary[1][1] = DIRICHLET_BOUNDARY;
 	f_basic.boundary[2][0] = f_basic.boundary[2][1] = DIRICHLET_BOUNDARY;
 	f_basic.size_of_intfc_state = 0;
 
-        out_name                = f_basic.out_name;
+	 in_name                 = f_basic.in_name;
+         restart_state_name      = f_basic.restart_state_name;
+         out_name                = f_basic.out_name;
+         restart_name            = f_basic.restart_name;
+         RestartRun              = f_basic.RestartRun;
+         RestartStep             = f_basic.RestartStep;
+
+        sprintf(restart_name,"%s/intfc-ts%s",restart_name,
+                        right_flush(RestartStep,7));
+        if (pp_numnodes() > 1)
+            sprintf(restart_name,"%s-nd%s",restart_name, 
+                                right_flush(pp_mynode(),4));
 
 	FT_StartUp(&front,&f_basic);
 
-	/* Start testing */
+	if (!RestartRun)
+	{
+	    /* Initialize interface through level function */
+	    rect_box_params.dim = 3;
+	    rect_box_params.center[0] = 0.5;
+	    rect_box_params.center[1] = 0.5;
+	    rect_box_params.center[2] = 0.5;
+	    rect_box_params.length[0] = 0.4;
+	    rect_box_params.length[1] = 0.3;
+	    rect_box_params.length[2] = 0.2;
 
-	front.step = 0;
+	    level_func_pack.neg_component = 1;
+	    level_func_pack.pos_component = 2;
+	    level_func_pack.func_params = (POINTER)&rect_box_params;
+	    level_func_pack.func = rect_box_func;
+	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
 
+	    FT_InitIntfc(&front,&level_func_pack);
+	}
 
-	/* Initialize interface through level function */
+	/* Initialize velocity field function */
 
-	mc_params.num_cir = 1;
-        FT_VectorMemoryAlloc((POINTER*)&mc_params.rad,mc_params.num_cir,FLOAT);
-        FT_MatrixMemoryAlloc((POINTER*)&mc_params.cen,mc_params.num_cir,3,FLOAT);
-	mc_params.cen[0][0] = 0.4;
-	mc_params.cen[0][1] = 0.4;
-	mc_params.cen[0][2] = 0.4;
-	mc_params.rad[0] = 0.3;
+	curv_params.dim = 3;
+	curv_params.coeff = 0.1;
+	curv_params.epsilon = 0.0001;
 
-	level_func_pack.neg_component = 1;
-	level_func_pack.pos_component = 2;
-	level_func_pack.func_params = (POINTER)&mc_params;
-	level_func_pack.func = multi_circle_func;
-	level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
-	
-	FT_InitIntfc(&front,&level_func_pack);
+	velo_func_pack.func_params = (POINTER)&curv_params;
+	velo_func_pack.func = test_curvature_vel;
 
-	map_output_interface(&front);
+	FT_InitVeloFunc(&front,&velo_func_pack);
+
+	/* For geometry-dependent velocity, use first 
+	* order point propagation function, higher order
+	* propagation requires surface propagate, currently
+	* in writing, not yet in use. The following override
+	* the assigned fourth_order_point_propagate.
+	*/
+
+	front._point_propagate = first_order_point_propagate;
+
+	/* Propagate the front */
+
+	test_propagate(&front);
 
 	clean_up(0);
+	return 0;
 }
 
-static void SaveAsTecplot(
-	char *filename, 
-	int nP, 
-	double *coords, 
-	int nTri, 
-	int *vIndices)
+static  void test_propagate(
+        Front *front)
 {
-	FILE *hfile = fopen(filename, "w");
-	fprintf(hfile, "TITLE = %s \n", filename);
-	fprintf(hfile, "VARIABLES = \"X\" \"Y\" \"Z\" \n");
-	fprintf(hfile, "ZONE N=%d, E=%d, F=FEPOINT, ET=TETRAHEDRON \n", 
-					nP, nTri);
-	for(int i=0; i<nP; i++)
-	    fprintf(hfile,"%f %f %f \n",coords[i*3+0],coords[i*3+1],
-	    				coords[i*3+2]);
-	for(int i=0; i<nTri; i++)
-	    fprintf(hfile, "%d %d %d %d", vIndices[i*3+0], vIndices[i*3+1],
-					vIndices[i*3+2], vIndices[i*3+0]);
-	fclose(hfile);
-		
-}
+        double CFL;
 
-static void map_output_interface(
-	Front *front)
-{
-	INTERFACE *intfc = front->interf;
-        char filename[100];
-	int i,j,step;
-	step = front->step;
-			
-	int num_points = I_NumOfIntfcPoints(intfc);
-	int num_tris = I_NumOfIntfcTris(intfc);
-	int dim = 3;
-	double *coords = (double*)malloc(num_points*dim*sizeof(double));
-	int *vertex_indices = (int*)malloc(num_tris*3*sizeof(int));
-	TRI **tris = (TRI**)malloc(num_tris*sizeof(TRI*));
-	const char *out_name = "output";
-	
-	// the interface
-	printf("Number of interface points = %d\n",num_points);
-	printf("Number of interface triangles = %d\n\n",num_tris);
+	front->max_time = 3; 
+	front->max_step = 2;
+	front->print_time_interval = 0.6;
+	front->movie_frame_interval = 0.1;
 
-	ArrayOfIntfcTris_FT(intfc,tris);	
-	printf("Print first 10 triangles:\n\n");
-	for (i = 0; i < 10; i++)
-	    print_tri(tris[i],intfc);
-	printf("\n\n");
+        CFL = Time_step_factor(front) = 0.1;
 
-	sprintf(filename,"%s-%d.intfc.plt",out_name,step);
-	ArrayOfIntfcTris(intfc,coords,vertex_indices);	
-	SaveAsTecplot(filename,num_points,coords,num_tris,vertex_indices);
-	
-	int num_surfaces = I_NumOfSurfaces(intfc);
-	printf("Number of surfaces = %d\n",num_surfaces);
-	SURFACE **surfaces;
-	surfaces = (SURFACE**)malloc(num_surfaces*sizeof(SURFACE*));
-	
-	I_ArrayOfSurfaces(intfc, surfaces);
-	// print the tris of each surface
-	for(i = 0; i < num_surfaces; i++)
+	printf("CFL = %f\n",CFL);
+	printf("Frequency_of_redistribution(front,GENERAL_WAVE) = %d\n",
+		Frequency_of_redistribution(front,GENERAL_WAVE));
+
+	if (!RestartRun)
 	{
-	    sprintf(filename,"%s-%d.surface-%d.plt",out_name,step,i);
-	    num_points = I_NumOfSurfPoints(surfaces[i]);
-	    num_tris   = I_NumOfSurfTris(surfaces[i]);
-	    printf("Number of points on surface %d = %d\n",
-	    			i+1,num_points);
-	    printf("Number of tris on surface %d = %d\n",
-	    			i+1,num_tris);
+            FT_RedistMesh(front);
+	    FT_ResetTime(front);
 
-	    ArrayOfSurfTris_FT(surfaces[i],tris);	
-	    printf("Print first 10 triangles:\n\n");
-	    for (j = 0; j < 10; j++)
-	        print_tri(tris[i],intfc);
-	    printf("\n\n");
+	    // Always output the initial interface.
+	    FT_Save(front,out_name);
+            FT_AddMovieFrame(front,out_name,binary);
 
-	    ArrayOfSurfTris(surfaces[i],coords,vertex_indices);
-	    SaveAsTecplot(filename,num_points,coords,num_tris,vertex_indices);
+	    // This is a virtual propagation to get maximum front 
+	    // speed to determine the first time step.
+
+	    FT_Propagate(front);
+            FT_SetTimeStep(front);
+	    FT_SetOutputCounter(front);
 	}
-}	/* end map_output */
+	else
+	{
+            FT_SetOutputCounter(front);
+	}
+
+	FT_TimeControlFilter(front);
+
+	for (;;)
+        {
+	    /* Propagating interface for time step dt */
+
+	    FT_Propagate(front);
+	    FT_AddTimeStepToCounter(front);
+
+	    //Next time step determined by maximum speed of previous
+	    //step, assuming the propagation is hyperbolic and
+	    //is not dependent on second order derivatives of
+	    //the interface such as curvature, and etc.
+
+            FT_SetTimeStep(front);
+
+	    /* Output section */
+
+            printf("\ntime = %f   step = %5d   next dt = %f\n",
+                        front->time,front->step,front->dt);
+            fflush(stdout);
+
+            if (FT_IsSaveTime(front))
+		FT_Save(front,out_name);
+            if (FT_IsMovieFrameTime(front))
+                FT_AddMovieFrame(front,out_name,binary);
+
+            if (FT_TimeLimitReached(front))
+                    break;
+
+	    FT_TimeControlFilter(front);
+	}
+        (void) delete_interface(front->interf);
+}       /* end test_propagate */
+
+static int test_curvature_vel(
+        POINTER params,
+        Front *front,
+        POINT *p,
+        HYPER_SURF_ELEMENT *hse,
+        HYPER_SURF *hs,
+        double *vel)
+{
+	TEST_CURV_PARAMS *curv_params = (TEST_CURV_PARAMS*) params;
+        int i;
+        double coeff,epsilon,eps;
+        double kappa;
+        double nor[MAXD];
+
+        coeff = curv_params->coeff;
+        epsilon = curv_params->epsilon;
+
+        normal(p,hse,hs,nor,front);
+        kappa = fabs(mean_curvature_at_point(p,hse,hs,front));
+
+        for (i = 0; i < curv_params->dim; ++i)
+        {
+            vel[i] = nor[i]*(coeff - epsilon*kappa);
+        }
+}
+

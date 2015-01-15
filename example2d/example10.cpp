@@ -22,22 +22,25 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ****************************************************************/
 
 /*
-*				example.c:
+*				example2.c:
 *
 *		User initialization example for Front Package:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
 *
+*	This is example of three circles all moving the a normal velocity.
+*	Bifurcation occurs when they meet each other. FronTier solves
+*	the bifurcation automatically.
+*
 */
 
-#include <vector>
 #include <FronTier.h>
 
 	/*  Function Declarations */
 static void test_propagate(Front*);
-static double cap_h_func(POINTER,double*);
-static int test_curvature_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*);
-
+static int norm_vel_func(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
+	                       HYPER_SURF*,double*);
+static void test_grid_intfc(INTERFACE*);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -45,37 +48,25 @@ int RestartStep;
 boolean binary = YES;
 
 /********************************************************************
- *	Level function parameters for the initial interface 	    *
- ********************************************************************/
-
-typedef struct {
-        double x0;
-        double y0;
-        double h;
-        double w;
-} H_PARAMS;
-
-
-typedef struct {
-	int dim;
-	double coeff;
-	double epsilon;
-} TEST_CURV_PARAMS;
-
-/********************************************************************
  *	Velocity function parameters for the front	 	    *
  ********************************************************************/
 
+struct _TNORV_PARAMS
+{
+        int dim;
+        double coeff;
+};
+typedef struct _TNORV_PARAMS TNORV_PARAMS;
 
 int main(int argc, char **argv)
 {
 	static Front front;
 	static RECT_GRID comp_grid;
 	static F_BASIC_DATA f_basic;
-	H_PARAMS h_params;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-	TEST_CURV_PARAMS curv_params; /* velocity function parameters */
+	TNORV_PARAMS norm_params; /* velocity function parameters */
+	MC_PARAMS mc_params;
 	Locstate  sl;
 
 	FT_Init(argc,argv,&f_basic);
@@ -85,9 +76,11 @@ int main(int argc, char **argv)
 
 	f_basic.L[0] = 0.0;	f_basic.L[1] = 0.0;
 	f_basic.U[0] = 1.0;	f_basic.U[1] = 1.0;
-	f_basic.gmax[0] = 100;	f_basic.gmax[1] = 100;
+	f_basic.gmax[0] = 40;	f_basic.gmax[1] = 40;
 	f_basic.boundary[0][0] = f_basic.boundary[0][1] = PERIODIC_BOUNDARY;
+	//f_basic.boundary[0][0] = f_basic.boundary[0][1] = DIRICHLET_BOUNDARY;
 	f_basic.boundary[1][0] = f_basic.boundary[1][1] = PERIODIC_BOUNDARY;
+	//f_basic.boundary[1][0] = f_basic.boundary[1][1] = DIRICHLET_BOUNDARY;
 	f_basic.size_of_intfc_state = 0;
 
         in_name                 = f_basic.in_name;
@@ -108,15 +101,27 @@ int main(int argc, char **argv)
 	if (!RestartRun)
 	{
 	    /* Initialize interface through level function */
-	    h_params.x0 = 0.5;
-            h_params.y0 = 0.5;
-            h_params.h = 0.4;
-            h_params.w = 0.1;
+
+	    mc_params.dim = 2;
+	    mc_params.num_cir = 3;
+            FT_VectorMemoryAlloc((POINTER*)&mc_params.rad,mc_params.num_cir,
+	    					FLOAT);
+            FT_MatrixMemoryAlloc((POINTER*)&mc_params.cen,mc_params.num_cir,
+	    					2,FLOAT);
+	    mc_params.cen[0][0] = 0.3;
+	    mc_params.cen[0][1] = 0.3;
+	    mc_params.cen[1][0] = 0.7;
+	    mc_params.cen[1][1] = 0.3;
+	    mc_params.cen[2][0] = 0.5;
+	    mc_params.cen[2][1] = 0.7;
+	    mc_params.rad[0] = 0.1;
+	    mc_params.rad[1] = 0.1;
+	    mc_params.rad[2] = 0.1;
 
 	    level_func_pack.neg_component = 1;
 	    level_func_pack.pos_component = 2;
-	    level_func_pack.func_params = (POINTER)&h_params;
-	    level_func_pack.func = cap_h_func;
+	    level_func_pack.func_params = (POINTER)&mc_params;
+	    level_func_pack.func = multi_circle_func;
 	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
 
 	    FT_InitIntfc(&front,&level_func_pack);
@@ -126,16 +131,15 @@ int main(int argc, char **argv)
 
 	/* Initialize velocity field function */
 
-	curv_params.dim = 2;
-	curv_params.coeff = 0;
-	curv_params.epsilon = 0.01;
+	norm_params.dim = 2;
+	norm_params.coeff = 0.1;
 
-	velo_func_pack.func_params = (POINTER)&curv_params;
-	velo_func_pack.func = test_curvature_vel;
+	velo_func_pack.func_params = (POINTER)&norm_params;
+	velo_func_pack.func = norm_vel_func;
 	velo_func_pack.point_propagate = first_order_point_propagate;
 
 	FT_InitVeloFunc(&front,&velo_func_pack);
-	
+
         /* For geometry-dependent velocity, use first
         * order point propagation function, higher order
         * propagation requires surface propagate, currently
@@ -147,6 +151,7 @@ int main(int argc, char **argv)
 
 	/* Propagate the front */
 
+	add_to_debug("make_grid_intfc");
 	test_propagate(&front);
 
 	clean_up(0);
@@ -158,12 +163,12 @@ static  void test_propagate(
 {
         double CFL;
 
-	front->max_time = 1.0; 
-	front->max_step = 100000;
+	front->max_time = 2.0;
+	front->max_step = 2;
 	front->print_time_interval = 1.0;
-	front->movie_frame_interval = 0.01;
+	front->movie_frame_interval = 0.02;
 
-        CFL = Time_step_factor(front) = 0.1;
+        CFL = Time_step_factor(front);
 
 	printf("CFL = %f\n",CFL);
 	printf("Frequency_of_redistribution(front,GENERAL_WAVE) = %d\n",
@@ -225,50 +230,7 @@ static  void test_propagate(
         (void) delete_interface(front->interf);
 }       /* end test_propagate */
 
-/********************************************************************
- *	Sample (H shape) level function for the initial interface    *
- ********************************************************************/
-
-static double cap_h_func(
-        POINTER func_params,
-        double *coords)
-{
-        H_PARAMS *h_params = (H_PARAMS*)func_params;
-        double x0,y0,h,w;
-        double dist[3];
-        int i,imin;
-        double r1,r2,dmin;
-
-        x0 = h_params->x0;
-        y0 = h_params->y0;
-        h  = h_params->h;
-        w  = h_params->w;
-
-        dmin = HUGE;
-        r1 = fabs(coords[0]-x0)/(h/2.0);
-        r2 = fabs(coords[1]-y0)/(w/2.0);
-        dist[0] = std::max(r1,r2) - 1;
-
-        r1 = fabs(coords[0]-x0+(h-w)/2.0)/(w/2.0);
-        r2 = fabs(coords[1]-y0)/(h/2.0);
-        dist[1] = std::max(r1,r2) - 1;
-
-        r1 = fabs(coords[0]-x0-(h-w)/2.0)/(w/2.0);
-        r2 = fabs(coords[1]-y0)/(h/2.0);
-        dist[2] = std::max(r1,r2) - 1;
-
-        for (i = 0; i < 3; ++i)
-        {
-            if(dist[i]<dmin)
-            {
-                dmin = dist[i];
-            }
-        }
-
-        return dmin;
-}       /* end cap_h_func */
-
-static int test_curvature_vel(
+LOCAL int norm_vel_func(
         POINTER params,
         Front *front,
         POINT *p,
@@ -276,21 +238,62 @@ static int test_curvature_vel(
         HYPER_SURF *hs,
         double *vel)
 {
-	TEST_CURV_PARAMS *curv_params = (TEST_CURV_PARAMS*) params;
+        TNORV_PARAMS *norv_params;
         int i;
-        double coeff,epsilon,eps;
-        double kappa;
+        double coeff;
+        double curvature;
         double nor[MAXD];
-
-        coeff = curv_params->coeff;
-        epsilon = curv_params->epsilon;
-
-        GetFrontNormal(p,hse,hs,nor,front);
-	GetFrontCurvature(p,hse,hs,&kappa,front);
-
-        for (i = 0; i < curv_params->dim; ++i)
+                                                                                
+        norv_params = (TNORV_PARAMS*)params;
+        coeff = norv_params->coeff;
+                                                                                
+        normal(p,hse,hs,nor,front);
+        for (i = 0; i < norv_params->dim; ++i)
         {
-            vel[i] = nor[i]*(coeff - epsilon*kappa);
+            vel[i] = nor[i]*coeff;
         }
-}
+}       /* end normal_vel_func */
+
+static	void test_grid_intfc(
+	INTERFACE *intfc)
+{
+	INTERFACE *grid_intfc;
+	VOLUME_FRAC volume_frac;
+	RECT_GRID *grid;
+	int i,smin[2],smax[2];
+
+	printf("Test make_grid_intfc on DUAL_GRID:\n");
+	grid_intfc = make_grid_intfc(intfc,DUAL_GRID,NULL);
+	grid = &topological_grid(grid_intfc);
+	for (i = 0; i < 2; ++i)
+	{
+	    smin[i] = 0;
+	    smax[i] = grid->gmax[i];
+	}
+	show_grid_components(smin,smax,0,grid_intfc);
+	free_grid_intfc(grid_intfc);
+
+	printf("Test make_grid_intfc on COMP_GRID:\n");
+	grid_intfc = make_grid_intfc(intfc,COMP_GRID,NULL);
+	grid = &topological_grid(grid_intfc);
+	for (i = 0; i < 2; ++i)
+	{
+	    smin[i] = 0;
+	    smax[i] = grid->gmax[i];
+	}
+	show_grid_components(smin,smax,0,grid_intfc);
+	free_grid_intfc(grid_intfc);
+
+	printf("Test make_grid_intfc on EXPANDED_DUAL_GRID:\n");
+	grid_intfc = make_grid_intfc(intfc,EXPANDED_DUAL_GRID,NULL);
+	grid = &topological_grid(grid_intfc);
+	for (i = 0; i < 2; ++i)
+	{
+	    smin[i] = 0;
+	    smax[i] = grid->gmax[i];
+	}
+	show_grid_components(smin,smax,0,grid_intfc);
+	free_grid_intfc(grid_intfc);
+	
+}	/* test_grid_intfc */
 

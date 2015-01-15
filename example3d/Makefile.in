@@ -7,7 +7,7 @@ incs =  @exampleincs@
 libincs = @otherlibsinc@
 libs = @otherlibs@
 
-all: example00 example01 example02 example03 example04 example05 example06 example07 example08 example09 example10 example11 example12 example13
+all: example00 example01 example02 example03 example04 example05 example06 example07 example08
 
 example00: @devel@ example00.cpp
 	$(CXX) -c -I../include $(incs) example00.cpp
@@ -44,26 +44,6 @@ example07: @devel@ example07.cpp
 example08: @devel@ example08.cpp
 	$(CXX) -c -I../include $(incs) example08.cpp
 	$(CXX) example08.o -I../include -L../lib/@build_cpu@ $(libincs) -lFronTier -lm $(libs) -o example08
-
-example09: @devel@ example09.cpp
-	$(CXX) -c -I../include $(incs) example09.cpp
-	$(CXX) example09.o -I../include -L../lib/@build_cpu@ $(libincs) -lFronTier -lm $(libs) -o example09
-
-example10: @devel@ example10.cpp
-	$(CXX) -c -I../include $(incs) example10.cpp
-	$(CXX) example10.o -I../include -L../lib/@build_cpu@ $(libincs) -lFronTier -lm $(libs) -o example10
-
-example11: @devel@ example11.cpp
-	$(CXX) -c -I../include $(incs) example11.cpp
-	$(CXX) example11.o -I../include -L../lib/@build_cpu@ $(libincs) -lFronTier -lm $(libs) -o example11
-
-example12: @devel@ example12.cpp
-	$(CXX) -c -I../include $(incs) example12.cpp
-	$(CXX) example12.o -I../include -L../lib/@build_cpu@ $(libincs) -lFronTier -lm $(libs) -o example12
-
-example13: @devel@ example13.cpp
-	$(CXX) -c -I../include $(incs) example13.cpp
-	$(CXX) example13.o -I../include -L../lib/@build_cpu@ $(libincs) -lFronTier -lm $(libs) -o example13
 
 clean:
 	rm -rf *.o example[0-9][0-9] 

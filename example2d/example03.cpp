@@ -22,14 +22,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ****************************************************************/
 
 /*
-*				example3.c:
+*				example4.c:
 *
 *		User initialization example for Front Package:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
 *
-*	This example shows the test of periodic boundary both horizontally
-*	and vertically.
+*	This example shows the test of Dirichlet boudary.
 *
 */
 
@@ -75,8 +74,8 @@ int main(int argc, char **argv)
 	f_basic.L[0] = 0.0;	f_basic.L[1] = 0.0;
 	f_basic.U[0] = 1.0;	f_basic.U[1] = 1.0;
 	f_basic.gmax[0] = 100;	f_basic.gmax[1] = 100;
-	f_basic.boundary[0][0] = f_basic.boundary[0][1] = PERIODIC_BOUNDARY;
-	f_basic.boundary[1][0] = f_basic.boundary[1][1] = PERIODIC_BOUNDARY;
+	f_basic.boundary[0][0] = f_basic.boundary[0][1] = DIRICHLET_BOUNDARY;
+	f_basic.boundary[1][0] = f_basic.boundary[1][1] = DIRICHLET_BOUNDARY;
 	f_basic.size_of_intfc_state = 0;
 
         in_name                 = f_basic.in_name;
@@ -150,7 +149,7 @@ static  void test_propagate(
 {
         double CFL;
 
-	front->max_time = 2.0;
+	front->max_time = 2.1;
 	front->max_step = 10000;
 	front->print_time_interval = 1.0;
 	front->movie_frame_interval = 0.02;
@@ -164,7 +163,7 @@ static  void test_propagate(
 	if (!RestartRun)
 	{
             FT_RedistMesh(front);
-            FT_ResetTime(front);
+	    FT_ResetTime(front);
 
 	    // Always output the initial interface.
 	    FT_Save(front,out_name);
@@ -173,9 +172,9 @@ static  void test_propagate(
 	    // This is a virtual propagation to get maximum front 
 	    // speed to determine the first time step.
 
-            FT_Propagate(front);
+	    FT_Propagate(front);
             FT_SetTimeStep(front);
-            FT_SetOutputCounter(front);
+	    FT_SetOutputCounter(front);
 	}
 	else
 	{
@@ -232,4 +231,3 @@ LOCAL int trans_vel_func(
 	vel[0] = transv_params->vx;
 	vel[1] = transv_params->vy;
 }       /* end transal_vel_func */
-
