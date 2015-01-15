@@ -22,14 +22,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ****************************************************************/
 
 /*
-*				example0.c:
+*				example00.c:
 *
 *		User initialization example for Front Package:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
 *	
-*	This example shows a circle in a double vortex field. It demonstrates
-*	the resolution of the front tracking method.
+*	This example shows a slotted disk in rotation. It demonstrates
+*	the geometry preservation of the front tracking method.
 *
 */
 
@@ -45,20 +45,6 @@ char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 int RestartStep;
 boolean binary = YES;
-
-/********************************************************************
- *	Level function parameters for the initial interface 	    *
- ********************************************************************/
-
-typedef struct {
-        /* equation for line is x^2/a^2 + y^2/b^2 = 1 */
-        double x0;
-        double y0;         
-	double r;
-        double w;         
-	double h;
-} DISK_PARAMS;
-
 
 /********************************************************************
  *	Velocity function parameters for the front	 	    *
@@ -77,7 +63,7 @@ int main(int argc, char **argv)
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-	DISK_PARAMS disk_params;	/* level function parameters */
+	TDISK_PARAMS disk_params;	/* level function parameters */
 	ROTATION_VEL_PARAMS rv_params; /* velocity function parameters */
 	Locstate  sl;
 
@@ -158,7 +144,7 @@ static  void test_propagate(
 	front->max_time = 3;
 	front->max_step = 10000;
 	front->print_time_interval = 2.0;
-	front->movie_frame_interval = 0.05;
+	front->movie_frame_interval = 0.1;
 
         CFL = Time_step_factor(front);
 	Frequency_of_redistribution(front,GENERAL_WAVE) = 1000;
@@ -256,22 +242,26 @@ static int rotation_vel(
 	xcomp = fabs(coords[1]-cen[0])/rad;
         ycomp = fabs(coords[0]-cen[1])/rad;
         V = rad*(omega_0 + domega_dr*rad);
-        if (coords[0]-cen[0] >= 0.0 && coords[1]-cen[1] >= 0.0) /*1st quadrant*/
+        if (coords[0]-cen[0] >= 0.0 && 
+	    coords[1]-cen[1] >= 0.0) /*1st quadrant*/
         {
             vel[0] = -V*xcomp;
             vel[1] =  V*ycomp;
         }
-        else if (coords[0]-cen[0] <= 0.0 && coords[1]-cen[1] >= 0.0) /*2nd quadrant*/
+        else if (coords[0]-cen[0] <= 0.0 && 
+	    coords[1]-cen[1] >= 0.0) /*2nd quadrant*/
         {
             vel[0] = -V*xcomp;
             vel[1] = -V*ycomp;
         }
-        else if (coords[0]-cen[0] <= 0.0 && coords[1]-cen[1] <= 0.0) /*3rd quadrant*/
+        else if (coords[0]-cen[0] <= 0.0 && 
+	    coords[1]-cen[1] <= 0.0) /*3rd quadrant*/
         {
             vel[0] =  V*xcomp;
             vel[1] = -V*ycomp;
         }
-        else if (coords[0]-cen[0] >= 0.0 && coords[1]-cen[1] <= 0.0) /*4th quadrant*/
+        else if (coords[0]-cen[0] >= 0.0 && 
+	    coords[1]-cen[1] <= 0.0) /*4th quadrant*/
         {
             vel[0] =  V*xcomp;
             vel[1] =  V*ycomp;

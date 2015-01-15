@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ****************************************************************/
 
 /*
-*				example16.c:
+*				example02.c:
 *
 *		User initialization example for Front Package:
 *
@@ -57,7 +57,8 @@ int main(int argc, char **argv)
 	static VELO_FUNC_PACK velo_func_pack;
 	CIRCLE_PARAMS circle_params;	/* level function parameters */
 	VORTEX_PARAMS vortex_params; /* velocity function parameters */
-	Locstate  sl;
+	POINTER sl;
+	int i;
 
 	FT_Init(argc,argv,&f_basic);
 	f_basic.dim = 2;
@@ -99,9 +100,8 @@ int main(int argc, char **argv)
 
 	    level_func_pack.num_points = 250;		//myex num points
 
-	    FT_MatrixMemoryAlloc((POINTER*)&level_func_pack.point_array,level_func_pack.num_points,
-				2,sizeof(double));
-	    int i;
+	    FT_MatrixMemoryAlloc((POINTER*)&level_func_pack.point_array,
+			level_func_pack.num_points,2,sizeof(double));
 	    for (i = 0; i < level_func_pack.num_points; ++i)
 	    {
 	    	double phi = i*2.0*PI/(double)level_func_pack.num_points;

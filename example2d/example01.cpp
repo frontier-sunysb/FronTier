@@ -22,14 +22,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ****************************************************************/
 
 /*
-*				example0.c:
+*				example01.c:
 *
 *		User initialization example for Front Package:
 *
 *	Copyright 1999 by The University at Stony Brook, All rights reserved.
 *	
-*	This example shows a circle in a double vortex field. It demonstrates
-*	the resolution of the front tracking method.
+*	This example shows interface evolution of a circle in the double 
+*       vortex field. It demonstrates the subgrid resolution of the front 
+*       tracking method.
 *
 */
 
@@ -143,10 +144,10 @@ static  void test_propagate(
         double CFL;
         int  dim = front->rect_grid->dim;
 
-	front->max_time = 4.0;
-	front->max_step = 400;
-	front->print_time_interval = 1.0;
-	front->movie_frame_interval = 0.02;
+	front->max_time = 0.5;
+	front->max_step = 800;
+	front->print_time_interval = 0.1;
+	front->movie_frame_interval = 0.025;
 
         CFL = Time_step_factor(front);
 
@@ -172,9 +173,7 @@ static  void test_propagate(
             FT_SetOutputCounter(front);
 	}
 	else
-	{
             FT_SetOutputCounter(front);
-	}
 
 	FT_TimeControlFilter(front);
 
@@ -194,19 +193,19 @@ static  void test_propagate(
 
 	    /* Output section */
 
-            printf("\ntime = %f   step = %5d   next dt = %f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
-
 	    if (FT_IsSaveTime(front))
                 FT_Save(front,out_name);
             if (FT_IsMovieFrameTime(front))
                 FT_AddMovieFrame(front,out_name,binary);
 
             if (FT_TimeLimitReached(front))
-                    break;
+	    {
+		FT_PrintTimeStamp(front);
+                break;
+	    }
 
 	    FT_TimeControlFilter(front);
+	    FT_PrintTimeStamp(front);
         }
         (void) delete_interface(front->interf);
 }       /* end test_propagate */
