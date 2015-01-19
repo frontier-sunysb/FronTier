@@ -2500,7 +2500,6 @@ EXPORT	boolean FrontGetPointChain(
 	return YES;
 }	/* end FrontGetPointChain */
 
-
 EXPORT void FrontPreAdvance(
 	Front *front)
 {
@@ -2588,17 +2587,6 @@ LOCAL void FrontPreAdvance2d(
 		index = body_index(*c);
 		if (motion_type(*c) == PRESET_MOTION) 
 		{
-		    double omega_dt,crds_com[MAXD];
-                    omega_dt = 0.5*angular_velo(*c)*dt;
-                    for (i = 0; i < dim; ++i)
-                        crds_com[i] = center_of_mass(*c)[i]
-                                        - rotation_center(*c)[i];
-                    center_of_mass_velo(*c)[0] =
-                                - angular_velo(*c)*crds_com[1]*cos(omega_dt)
-                                - angular_velo(*c)*crds_com[0]*sin(omega_dt);
-                    center_of_mass_velo(*c)[1] =
-                                angular_velo(*c)*crds_com[0]*cos(omega_dt)
-                                - angular_velo(*c)*crds_com[1]*sin(omega_dt);
 		    if (debugging("rigid_body"))
 		    {
 		    	printf("Body index: %d\n",index);
@@ -2671,7 +2659,8 @@ LOCAL void FrontPreAdvance2d(
                 if (debugging("rigid_body"))
                 {
                     printf("Body index: %d\n",index);
-                    printf("force = %20.19f %20.19f\n",force[index][0],force[index][1]);
+                    printf("force = %20.19f %20.19f\n",force[index][0],
+			force[index][1]);
                     printf("center_of_mass = %20.19f  %20.19f\n",
                         center_of_mass(*c)[0],center_of_mass(*c)[1]);
                     printf("center_of_mass_velo = %20.19f  %20.19f\n",
@@ -2696,6 +2685,7 @@ LOCAL void FrontPreAdvance3d(
 	double **torque,**force,torq_dir;
 	double t[MAXD],f[MAXD];
 	double dt = front->dt;
+	double coef[3],temp[4][4];
 
 	if (debugging("rigid_body"))
 	    (void) printf("Entering FrontPreAdvance()\n");
@@ -2766,7 +2756,7 @@ LOCAL void FrontPreAdvance3d(
 					center_of_mass_velo(*s)[1],
 					center_of_mass_velo(*s)[2]);
 		    }
-		    continue;
+                    continue;
 		}
 		torq_dir = Dot3d(torque[index],rotation_direction(*s));
 		angular_velo(*s) += dt*torq_dir/mom_inertial(*s);
@@ -2782,6 +2772,150 @@ LOCAL void FrontPreAdvance3d(
 		{
 		    for (i = 0; i < dim; ++i)
 		    	center_of_mass_velo(*s)[i] = 0.0;
+		    /* no outside torque case w.r.t. the rotation center;
+		    future work: add torque w.t.t. the rotation center to the 
+		    right hand side of euler's equation of*/
+                    coef[0] = (p_mom_inertial(*s)[2]-p_mom_inertial(*s)[1]) /
+                                        p_mom_inertial(*s)[0];
+                    coef[1] = (p_mom_inertial(*s)[0]-p_mom_inertial(*s)[2]) /
+                                        p_mom_inertial(*s)[1];
+                    coef[2] = (p_mom_inertial(*s)[1]-p_mom_inertial(*s)[0]) /
+                                        p_mom_inertial(*s)[2];
+                    temp[0][0] = - coef[0] * p_angular_velo(*s)[1]
+                                * p_angular_velo(*s)[2];
+                    temp[0][1] = - coef[1] * p_angular_velo(*s)[2]
+                                * p_angular_velo(*s)[0];
+                    temp[0][2] = - coef[2] * p_angular_velo(*s)[0]
+                                * p_angular_velo(*s)[1];
+                    temp[1][0] = - coef[0]
+                         * (p_angular_velo(*s)[1] + 0.5 * temp[0][1] * dt)
+                         * (p_angular_velo(*s)[2] + 0.5 * temp[0][2] * dt);
+                    temp[1][1] = - coef[1]
+                         * (p_angular_velo(*s)[2] + 0.5 * temp[0][2] * dt)
+                         * (p_angular_velo(*s)[0] + 0.5 * temp[0][0] * dt);
+                    temp[1][2] = - coef[2]
+                         * (p_angular_velo(*s)[0] + 0.5 * temp[0][0] * dt)
+                         * (p_angular_velo(*s)[1] + 0.5 * temp[0][1] * dt);
+                    temp[2][0] = - coef[0]
+                         * (p_angular_velo(*s)[1] + 0.5 * temp[1][1] * dt)
+                         * (p_angular_velo(*s)[2] + 0.5 * temp[1][2] * dt);
+                    temp[2][1] = - coef[1]
+                         * (p_angular_velo(*s)[2] + 0.5 * temp[1][2] * dt)
+                         * (p_angular_velo(*s)[0] + 0.5 * temp[1][0] * dt);
+                    temp[2][2] = - coef[2]
+                         * (p_angular_velo(*s)[0] + 0.5 * temp[1][0] * dt)
+                         * (p_angular_velo(*s)[1] + 0.5 * temp[1][1] * dt);
+                    temp[3][0] = - coef[0]
+                         * (p_angular_velo(*s)[1] +  temp[2][1] * dt)
+                         * (p_angular_velo(*s)[2] +  temp[2][2] * dt);
+                    temp[3][1] = - coef[1]
+                         * (p_angular_velo(*s)[2] +  temp[2][2] * dt)
+                         * (p_angular_velo(*s)[0] +  temp[2][0] * dt);
+                    temp[3][2] = - coef[2]
+                         * (p_angular_velo(*s)[0] +  temp[2][0] * dt)
+                         * (p_angular_velo(*s)[1] +  temp[2][1] * dt);
+                    for (i = 0; i < dim; ++i)
+                        p_angular_velo(*s)[i] += dt/6.0 * (temp[0][i] +
+                                2*temp[1][i] + 2*temp[2][i] + temp[3][i]);
+                    /* derive the updated euler parameters */
+                    for (i = 0; i < 4; i++)
+                        old_euler_params(*s)[i] = euler_params(*s)[i];
+                    temp[0][0] = - euler_params(*s)[1]*p_angular_velo(*s)[0]
+                                 - euler_params(*s)[2]*p_angular_velo(*s)[1]
+                                 - euler_params(*s)[3]*p_angular_velo(*s)[2];
+                    temp[0][1] =   euler_params(*s)[0]*p_angular_velo(*s)[0]
+                                 + euler_params(*s)[3]*p_angular_velo(*s)[1]
+                                 - euler_params(*s)[2]*p_angular_velo(*s)[2];
+                    temp[0][2] = - euler_params(*s)[3]*p_angular_velo(*s)[0]
+                                 + euler_params(*s)[0]*p_angular_velo(*s)[1]
+                                 + euler_params(*s)[1]*p_angular_velo(*s)[2];
+                    temp[0][3] =   euler_params(*s)[2]*p_angular_velo(*s)[0]
+                                 - euler_params(*s)[1]*p_angular_velo(*s)[1]
+                                 + euler_params(*s)[0]*p_angular_velo(*s)[2];
+                    for (i = 0; i < 4; i++)
+                        temp[0][i] *= 0.5;
+                    temp[1][0] = - (euler_params(*s)[1] + 0.5*temp[0][1]*dt)
+                                   * p_angular_velo(*s)[0]
+                                 - (euler_params(*s)[2] + 0.5*temp[0][2]*dt)
+                                   * p_angular_velo(*s)[1]
+                                 - (euler_params(*s)[3] + 0.5*temp[0][3]*dt)
+                                   * p_angular_velo(*s)[2];
+                    temp[1][1] =   (euler_params(*s)[0] + 0.5*temp[0][0]*dt)
+                                   * p_angular_velo(*s)[0]
+                                 + (euler_params(*s)[3] + 0.5*temp[0][3]*dt)
+                                   * p_angular_velo(*s)[1]
+                                 - (euler_params(*s)[2] + 0.5*temp[0][2]*dt)
+                                   * p_angular_velo(*s)[2];
+                    temp[1][2] = - (euler_params(*s)[3] + 0.5*temp[0][3]*dt)
+                                   * p_angular_velo(*s)[0]
+                                 + (euler_params(*s)[0] + 0.5*temp[0][0]*dt)
+                                   * p_angular_velo(*s)[1]
+                                 + (euler_params(*s)[1] + 0.5*temp[0][1]*dt)
+                                   * p_angular_velo(*s)[2];
+                    temp[1][3] =   (euler_params(*s)[2] + 0.5*temp[0][2]*dt)
+                                   * p_angular_velo(*s)[0]
+                                 - (euler_params(*s)[1] + 0.5*temp[0][1]*dt)
+                                   * p_angular_velo(*s)[1]
+                                 + (euler_params(*s)[0] + 0.5*temp[0][0]*dt)
+                                   * p_angular_velo(*s)[2];
+                    for (i = 0; i < 4; i++)
+                        temp[1][i] *= 0.5;
+                    temp[2][0] = - (euler_params(*s)[1] + 0.5*temp[1][1]*dt)
+                                   * p_angular_velo(*s)[0]
+                                 - (euler_params(*s)[2] + 0.5*temp[1][2]*dt)
+                                   * p_angular_velo(*s)[1]
+                                 - (euler_params(*s)[3] + 0.5*temp[1][3]*dt)
+                                   * p_angular_velo(*s)[2];
+                    temp[2][1] =   (euler_params(*s)[0] + 0.5*temp[1][0]*dt)
+                                   * p_angular_velo(*s)[0]
+                                 + (euler_params(*s)[3] + 0.5*temp[1][3]*dt)
+                                   * p_angular_velo(*s)[1]
+                                 - (euler_params(*s)[2] + 0.5*temp[1][2]*dt)
+                                   * p_angular_velo(*s)[2];
+                    temp[2][2] = - (euler_params(*s)[3] + 0.5*temp[1][3]*dt)
+                                   * p_angular_velo(*s)[0]
+                                 + (euler_params(*s)[0] + 0.5*temp[1][0]*dt)
+                                   * p_angular_velo(*s)[1]
+                                 + (euler_params(*s)[1] + 0.5*temp[1][1]*dt)
+                                   * p_angular_velo(*s)[2];
+                    temp[2][3] =   (euler_params(*s)[2] + 0.5*temp[1][2]*dt)
+                                   * p_angular_velo(*s)[0]
+                                 - (euler_params(*s)[1] + 0.5*temp[1][1]*dt)
+                                   * p_angular_velo(*s)[1]
+                                 + (euler_params(*s)[0] + 0.5*temp[1][0]*dt)
+                                   * p_angular_velo(*s)[2];
+                    for (i = 0; i < 4; i++)
+                        temp[2][i] *= 0.5;
+                    temp[3][0] = - (euler_params(*s)[1] + temp[2][1]*dt)
+                                   * p_angular_velo(*s)[0]
+                                 - (euler_params(*s)[2] + temp[2][2]*dt)
+                                   * p_angular_velo(*s)[1]
+                                 - (euler_params(*s)[3] + temp[2][3]*dt)
+                                   * p_angular_velo(*s)[2];
+                    temp[3][1] =   (euler_params(*s)[0] + temp[2][0]*dt)
+                                   * p_angular_velo(*s)[0]
+                                 + (euler_params(*s)[3] + temp[2][3]*dt)
+                                   * p_angular_velo(*s)[1]
+                                 - (euler_params(*s)[2] + temp[2][2]*dt)
+                                   * p_angular_velo(*s)[2];
+                    temp[3][2] = - (euler_params(*s)[3] + temp[2][3]*dt)
+                                   * p_angular_velo(*s)[0]
+                                 + (euler_params(*s)[0] + temp[2][0]*dt)
+                                   * p_angular_velo(*s)[1]
+                                 + (euler_params(*s)[1] + temp[2][1]*dt)
+                                   * p_angular_velo(*s)[2];
+                    temp[3][3] =   (euler_params(*s)[2] + temp[2][2]*dt)
+                                   * p_angular_velo(*s)[0]
+                                 - (euler_params(*s)[1] + temp[2][1]*dt)
+                                   * p_angular_velo(*s)[1]
+                                 + (euler_params(*s)[0] + temp[2][0]*dt)
+                                   * p_angular_velo(*s)[2];
+                    for (i = 0; i < 4; i++)
+                        temp[3][i] *= 0.5;
+		    for (i = 0; i < 4; ++i)
+                        euler_params(*s)[i] += dt/6.0 * (temp[0][i] +
+                                2*temp[1][i] + 2*temp[2][i] + temp[3][i]);
+
 		}
 		for (i = 0; i < dim; ++i)
                     center_of_mass(*s)[i] += dt*center_of_mass_velo(*s)[i];
@@ -2792,7 +2926,11 @@ LOCAL void FrontPreAdvance3d(
 					torque[index][1],torque[index][2]);
 		    printf("force = %f %f %f\n",force[index][0],
 					force[index][1],force[index][2]);
-		    printf("angular_velo = %f\n",angular_velo(*s));
+		    printf("p_angular_velo = %f %f %f\n",p_angular_velo(*s)[0],
+                                p_angular_velo(*s)[1],p_angular_velo(*s)[2]);
+                    printf("euler_params = %f %f %f %f\n",euler_params(*s)[0],
+                                euler_params(*s)[1],euler_params(*s)[2],
+                                euler_params(*s)[3]);
 		    printf("center_of_mass = %f  %f  %f\n",
 					center_of_mass(*s)[0],
 					center_of_mass(*s)[1],
@@ -2810,7 +2948,8 @@ LOCAL void FrontPreAdvance3d(
 		    center_of_mass_velo(*s)[i] +=
                         	dt*force[index][i]/total_mass(*s);
                     center_of_mass(*s)[i] += dt*center_of_mass_velo(*s)[i];
-		    center_of_mass(*s)[i] -= 0.5*(force[index][i]/total_mass(*s)*dt*dt) ;
+		    center_of_mass(*s)[i] -= 
+				0.5*(force[index][i]/total_mass(*s)*dt*dt) ;
 		}
 		if (debugging("rigid_body"))
 		{

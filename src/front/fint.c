@@ -1167,6 +1167,13 @@ EXPORT	void	f_user_copy_hyper_surf(
                                 center_of_mass_velo(old_hs)[i];
                 rotation_direction(new_hs)[i] = rotation_direction(old_hs)[i];
                 rotation_center(new_hs)[i] = rotation_center(old_hs)[i];
+		p_mom_inertial(new_hs)[i] = p_mom_inertial(old_hs)[i];
+                p_angular_velo(new_hs)[i] = p_angular_velo(old_hs)[i];
+            }
+	    for (i = 0; i < 4; i++)
+            {
+                euler_params(new_hs)[i] = euler_params(old_hs)[i];
+                old_euler_params(new_hs)[i] = old_euler_params(old_hs)[i];
             }
 	}
 }		/*end f_user_copy_hyper_surf*/

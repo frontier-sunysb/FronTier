@@ -730,7 +730,7 @@ extern  void prompt_for_rigid_body_params(
         RG_PARAMS *rgb_params)
 {
         int i;
-        char msg[100],s[100];
+        char msg[100],s[100],ss[100];
         FILE *infile = fopen(inname,"r");
 
         if (debugging("rgbody"))
@@ -753,56 +753,98 @@ extern  void prompt_for_rigid_body_params(
                 "Type yes if rigid body will only rotate about an axis:");
         fscanf(infile,"%s",s);
         (void) printf("%s\n",s);
+	ss[0] = 'N';
+	if(CursorAfterStringOpt(infile,
+                "Type yes if rigid body will only rotate about an point:"))
+	{
+	    fscanf(infile,"%s",ss);
+            (void) printf("%s\n",ss);
+	}
         if (s[0] == 'y' || s[0] == 'Y')
         {
-            if (dim == 3)
-            {
-                double mag_dir = 0.0;
-                sprintf(msg,"Enter direction of the axis:");
+	    if (ss[0] == 'n' || ss[0] == 'N')
+	    {
+                if (dim == 3)
+                {
+                    double mag_dir = 0.0;
+                    sprintf(msg,"Enter direction of the axis:");
+                    CursorAfterString(infile,msg);
+                    for (i = 0; i < dim; ++i)
+                    {
+                        fscanf(infile,"%lf",&rgb_params->rotation_dir[i]);
+                        (void) printf("%f ",rgb_params->rotation_dir[i]);
+                        mag_dir += sqr(rgb_params->rotation_dir[i]);
+                    }
+                    mag_dir = sqrt(mag_dir);
+                    for (i = 0; i < dim; ++i)
+                        rgb_params->rotation_dir[i] /= mag_dir;
+                    (void) printf("\n");
+                }
+
+                sprintf(msg,"Enter center of the axis:");
                 CursorAfterString(infile,msg);
                 for (i = 0; i < dim; ++i)
                 {
-                    fscanf(infile,"%lf",&rgb_params->rotation_dir[i]);
-                    (void) printf("%f ",rgb_params->rotation_dir[i]);
-                    mag_dir += sqr(rgb_params->rotation_dir[i]);
+                    fscanf(infile,"%lf",&rgb_params->rotation_cen[i]);
+                    (void) printf("%f ",rgb_params->rotation_cen[i]);
                 }
-                mag_dir = sqrt(mag_dir);
-                for (i = 0; i < dim; ++i)
-                    rgb_params->rotation_dir[i] /= mag_dir;
                 (void) printf("\n");
-            }
 
-            sprintf(msg,"Enter center of the axis:");
-            CursorAfterString(infile,msg);
-            for (i = 0; i < dim; ++i)
-            {
-                fscanf(infile,"%lf",&rgb_params->rotation_cen[i]);
-                (void) printf("%f ",rgb_params->rotation_cen[i]);
-            }
-            (void) printf("\n");
+                sprintf(msg,"Enter the moment of inertial about the axis:");
+                CursorAfterString(infile,msg);
+                fscanf(infile,"%lf",&rgb_params->moment_of_inertial);
+                (void) printf("%f\n",rgb_params->moment_of_inertial);
 
-            sprintf(msg,"Enter the moment of inertial about the axis:");
-            CursorAfterString(infile,msg);
-            fscanf(infile,"%lf",&rgb_params->moment_of_inertial);
-            (void) printf("%f\n",rgb_params->moment_of_inertial);
-
-            CursorAfterString(infile,
-                        "Type yes if angular velocity is preset: ");
-            fscanf(infile,"%s",s);
-            (void) printf("%s\n",s);
-            if (s[0] == 'y' || s[0] == 'Y')
-            {
-                rgb_params->motion_type = PRESET_MOTION;
-                CursorAfterString(infile,"Enter preset angular velocity: ");
+                CursorAfterString(infile,
+                            "Type yes if angular velocity is preset: ");
+                fscanf(infile,"%s",s);
+                (void) printf("%s\n",s);
+                if (s[0] == 'y' || s[0] == 'Y')
+                {
+                    rgb_params->motion_type = PRESET_MOTION;
+                    CursorAfterString(infile,"Enter preset angular velocity: ");
+                }
+                else
+                {
+                    rgb_params->motion_type = ROTATION;
+                    CursorAfterString(infile,
+				"Enter initial angular velocity: ");
+                }
+                fscanf(infile,"%lf",&rgb_params->angular_velo);
+                (void) printf("%f\n",rgb_params->angular_velo);
             }
             else
             {
+                sprintf(msg,"Enter center of the point:");
+                CursorAfterString(infile,msg);
+                for (i = 0; i < dim; ++i)
+                {
+                    fscanf(infile,"%lf",&rgb_params->rotation_cen[i]);
+                    (void) printf("%f ",rgb_params->rotation_cen[i]);
+                }
+                (void) printf("\n");
+                sprintf(msg,"Enter the moment of inertial about the point:");
+                CursorAfterString(infile,msg);
+                for (i = 0; i < dim; ++i)
+                {
+                    fscanf(infile,"%lf",&rgb_params->p_moment_of_inertial[i]);
+                    (void) printf("%f ",rgb_params->p_moment_of_inertial[i]);
+                }
+                (void) printf("\n");
                 rgb_params->motion_type = ROTATION;
-                CursorAfterString(infile,"Enter initial angular velocity: ");
+                CursorAfterString(infile,
+                        "Enter initial angular velocity about the point:");
+                for (i = 0; i < dim; ++i)
+                {
+                    fscanf(infile,"%lf",&rgb_params->p_angular_velo[i]);
+                    (void) printf("%f ",rgb_params->p_angular_velo[i]);
+                }
+                (void) printf("\n");
+                rgb_params->euler_params[0] = 1.0;
+                for (i = 0; i < dim; i++)
+                    rgb_params->euler_params[i+1] = 0.0;
             }
-            fscanf(infile,"%lf",&rgb_params->angular_velo);
-            (void) printf("%f\n",rgb_params->angular_velo);
-        }
+	}
         else
         {
             sprintf(msg,"Enter the moment of inertial about center of mass:");
@@ -857,7 +899,15 @@ extern void set_rgbody_params(
             rotation_center(hs)[i] =
                                 rg_params.rotation_cen[i];
             if (dim == 3)
-                rotation_direction(hs)[i] =
-                                rg_params.rotation_dir[i];
+	    {
+                rotation_direction(hs)[i] = rg_params.rotation_dir[i];
+		p_mom_inertial(hs)[i] = rg_params.p_moment_of_inertial[i];
+                p_angular_velo(hs)[i] = rg_params.p_angular_velo[i];
+	    }
+        }
+	if (dim == 3)
+        {
+            for (i = 0; i < 4; i++)
+                euler_params(hs)[i] = rg_params.euler_params[i];
         }
 }       /* end set_rgbody_params */

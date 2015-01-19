@@ -568,6 +568,7 @@ struct _Front {
 	POINTER vparams;	/* parameters for velocity function */
 	POINTER extra1;		/* pointer to extra data structure */
 	POINTER extra2;		/* pointer to extra data structure */
+	POINTER extra3;		/* pointer to extra data structure */
 	char *out_name;		/* Directory name of output files */
 	SAMPLE *sample;
 	COMPONENT *hdf_comps[MAXD];	/* Saved for hdf plotting */

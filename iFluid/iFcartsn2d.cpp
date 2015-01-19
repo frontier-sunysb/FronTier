@@ -341,6 +341,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
 	    	elliptic_solver.solve(array);
 	    paintSolvedGridPoint();
 	}
+	FT_ParallelExchGridArrayBuffer(array,front,NULL);
 
 	for (j = 0; j <= top_gmax[1]; j++)
 	for (i = 0; i <= top_gmax[0]; i++)

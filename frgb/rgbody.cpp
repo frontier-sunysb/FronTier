@@ -151,6 +151,7 @@ static  void fluid_driver(
 	Incompress_Solver_Smooth_Basis *cartesian)
 {
         double CFL;
+	RG_PARAMS *rg_params = (RG_PARAMS*)front->extra3;
 
 	Curve_redistribution_function(front) = full_redistribute;
 
@@ -166,8 +167,14 @@ static  void fluid_driver(
 		printf("Calling initial FT_Propagate()\n");
 	    FrontPreAdvance(front);
             FT_Propagate(front);
-	    //cartesian->solve(front->dt);
+	    if (!rg_params->no_fluid)
+	    {
+	    	if (debugging("trace")) printf("Begin calling solve()\n");
+	    	cartesian->solve(front->dt);
+	    	if (debugging("trace")) printf("Passed solve()\n");
+	    }
 	    record_moving_body_data(out_name,front);
+            FT_AddMovieFrame(front,out_name,binary);
 	    FT_SetOutputCounter(front);
 	    FT_SetTimeStep(front);
         }
@@ -194,9 +201,12 @@ static  void fluid_driver(
 	    if (debugging("trace")) printf("Passed FrontPreAdvance()\n");
             FT_Propagate(front);
 
-	    if (debugging("trace")) printf("Begin calling solve()\n");
-	    cartesian->solve(front->dt);
-	    if (debugging("trace")) printf("Passed solve()\n");
+	    if (!rg_params->no_fluid)
+	    {
+	    	if (debugging("trace")) printf("Begin calling solve()\n");
+	    	cartesian->solve(front->dt);
+	    	if (debugging("trace")) printf("Passed solve()\n");
+	    }
 
 	    FT_AddTimeStepToCounter(front);
 				
@@ -282,8 +292,10 @@ extern void record_moving_body_data(
 	static boolean first = YES;
 	static FILE **torque_files,**omega_files;
 	static FILE **force_files,**com_files;
-	static double *torque,*omega;
+	static FILE **pa_velo_files,**euler_files;
+	static double **torque,*omega;
 	static double **force,**com_velo;
+	static double **pa_velo,**euler;
 	int dim = intfc->dim;
 	char fname[256];
 
@@ -313,11 +325,15 @@ extern void record_moving_body_data(
 
         if (first)
         {
-            FT_VectorMemoryAlloc((POINTER*)&torque,num_moving_body,FLOAT);
             FT_VectorMemoryAlloc((POINTER*)&omega,num_moving_body,FLOAT);
+            FT_MatrixMemoryAlloc((POINTER*)&torque,num_moving_body,MAXD,FLOAT);
             FT_MatrixMemoryAlloc((POINTER*)&force,num_moving_body,MAXD,FLOAT);
             FT_MatrixMemoryAlloc((POINTER*)&com_velo,num_moving_body,
 					MAXD,FLOAT);
+	    FT_MatrixMemoryAlloc((POINTER*)&pa_velo,num_moving_body,
+                                        MAXD,FLOAT);
+            FT_MatrixMemoryAlloc((POINTER*)&euler,num_moving_body,
+                                        MAXD+1,FLOAT);
 	    if (pp_mynode() == 0)
 	    {
             	FT_VectorMemoryAlloc((POINTER*)&torque_files,num_moving_body,
@@ -328,6 +344,10 @@ extern void record_moving_body_data(
 					sizeof(FILE*));
             	FT_VectorMemoryAlloc((POINTER*)&com_files,num_moving_body,
 					sizeof(FILE*));
+		FT_VectorMemoryAlloc((POINTER*)&pa_velo_files,
+                                        num_moving_body,sizeof(FILE*));
+                FT_VectorMemoryAlloc((POINTER*)&euler_files,
+                                        num_moving_body,sizeof(FILE*));
             	for (i = 0; i < num_moving_body; ++i)
 		{
 		    sprintf(fname,"%s/cen-of_mass-%d",out_name,i);
@@ -338,6 +358,10 @@ extern void record_moving_body_data(
 		    force_files[i] = fopen(fname,"w");
 		    sprintf(fname,"%s/torque-%d",out_name,i);
 		    torque_files[i] = fopen(fname,"w");
+		    sprintf(fname,"%s/pa_velo-%d",out_name,i);
+                    pa_velo_files[i] = fopen(fname,"w");
+                    sprintf(fname,"%s/euler-%d",out_name,i);
+                    euler_files[i] = fopen(fname,"w");
 		}
 	    }
         }
@@ -350,7 +374,7 @@ extern void record_moving_body_data(
             	{
                     i = body_index(*c);
                     FrontForceAndTorqueOnHs(front,Hyper_surf(*c),front->dt,
-					force[i],&torque[i]);
+					force[i],torque[i]);
                     omega[i] = angular_velo(*c);
                     for (j = 0; j < dim; ++j)
                     	com_velo[i][j] = center_of_mass_velo(*c)[j];
@@ -364,10 +388,14 @@ extern void record_moving_body_data(
             	{
                     i = body_index(*s);
                     FrontForceAndTorqueOnHs(front,Hyper_surf(*s),front->dt,
-					force[i],&torque[i]);
+					force[i],torque[i]);
                     omega[i] = angular_velo(*s);
                     for (j = 0; j < dim; ++j)
                     	com_velo[i][j] = center_of_mass_velo(*s)[j];
+		    for (j = 0; j < dim; ++j)
+                        pa_velo[i][j] = p_angular_velo(*s)[j];
+                    for (j = 0; j < 4; ++j)
+                        euler[i][j] = euler_params(*s)[j];
             	}
             }
 	    break;
@@ -375,7 +403,7 @@ extern void record_moving_body_data(
         for (i = 0; i < num_moving_body; ++i)
         {
             pp_global_sum(force[i],dim);
-            pp_global_sum(&torque[i],1);
+            pp_global_sum(torque[i],dim);
         }
         if (pp_mynode() != 0) return;
 
@@ -391,22 +419,33 @@ extern void record_moving_body_data(
         }
         for (i = 0; i < num_moving_body; ++i)
         {
-            fprintf(torque_files[i],"%f  %f\n",front->time,torque[i]);
             fprintf(omega_files[i],"%f  %f\n",front->time,omega[i]);
+            fprintf(torque_files[i],"%f  ",front->time);
             fprintf(force_files[i],"%f  ",front->time);
             fprintf(com_files[i],"%f  ",front->time);
+	    fprintf(pa_velo_files[i],"%f \t",front->time);
+            fprintf(euler_files[i],"%f \t",front->time);
             for (j = 0; j < dim; ++j)
             {
+            	fprintf(torque_files[i],"%f  ",torque[i][j]);
                 fprintf(force_files[i],"%f  ",force[i][j]);
                 fprintf(com_files[i],"%f  ",com_velo[i][j]);
+		fprintf(pa_velo_files[i],"%f \t",pa_velo[i][j]);
             }
+            for (j = 0; j < 4; ++j)
+                fprintf(euler_files[i],"%f \t",euler[i][j]);
+            fprintf(torque_files[i],"\n");
             fprintf(force_files[i],"\n");
             fprintf(com_files[i],"\n");
+	    fprintf(pa_velo_files[i],"\n");
+            fprintf(euler_files[i],"\n");
 
             fflush(torque_files[i]);
             fflush(omega_files[i]);
             fflush(force_files[i]);
             fflush(com_files[i]);
+	    fflush(pa_velo_files[i]);
+            fflush(euler_files[i]);
         }
 }	/* end record_moving_body_data */
 
@@ -424,7 +463,12 @@ extern void read_rg_prob_type(
 	if (string[0] == 'F' || string[0] == 'f')
 	{
             if (string[6] == 'S' || string[6] == 's')
-                *prob_type = FLUID_SOLID_CIRCLE;
+	    {
+		if (string[13] == 'i' || string[13] == 'I')
+                    *prob_type = FLUID_SOLID_CIRCLE;
+                else if (string[13] == 'o' || string[13] == 'O')
+                    *prob_type = FLUID_SOLID_CONE;
+            }
             else if (string[6] == 'R' || string[6] == 'r')
                 *prob_type = FLUID_RIGID_BODY;
 	}

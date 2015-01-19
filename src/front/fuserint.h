@@ -394,6 +394,10 @@ struct _F_HYPER_SURF {
         double  cm_velo[MAXD];		/* Center of mass velocity */
         double  angular_velo;		/* Angular velocity of rotation */
 	double	radius;			/* For sphereical body */
+	double  p_moment_of_inertial[MAXD];
+	double  p_angular_velo[MAXD];
+	double  euler_params[4];
+        double  old_euler_params[4];
 	MOTION_TYPE motion_type;
 };
 typedef struct _F_HYPER_SURF F_HYPER_SURF;
@@ -418,6 +422,11 @@ typedef struct _F_HYPER_SURF F_HYPER_SURF;
 #define rotation_center(hs)  	(f_hyper_surf(hs)->rotation_cen)
 #define motion_type(hs)         (f_hyper_surf(hs)->motion_type)
 #define spherical_radius(hs)    (f_hyper_surf(hs)->radius)
+#define p_mom_inertial(hs)      (f_hyper_surf(hs)->p_moment_of_inertial)
+#define p_angular_velo(hs)      (f_hyper_surf(hs)->p_angular_velo)
+#define euler_params(hs)        (f_hyper_surf(hs)->euler_params)
+#define old_euler_params(hs)    (f_hyper_surf(hs)->old_euler_params)
+
 
 
 #define	perform_redistribution_function(hs)				\

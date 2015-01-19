@@ -36,8 +36,47 @@ static void initRotorIntfc(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
 static void initWindMillIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
 static void initBeeIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
 static void initApacheIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
+static void initConeIntfc(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
 /*TMP*/
 static	void insert_surface_tris_into_another(SURFACE*,SURFACE*);
+
+static void initConeIntfc(
+        Front *front,
+        LEVEL_FUNC_PACK *level_func_pack,
+        char *inname,
+        RG_PROB_TYPE prob_type)
+{
+        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+        FILE *infile = fopen(inname,"r");
+        COMPONENT neg_comp;
+        COMPONENT pos_comp;
+        char msg[100],s[100];
+        double  (*func)(POINTER,double*);
+        POINTER func_params;
+        static CONE_PARAMS cone_params;
+        int dim = 3;
+
+        CursorAfterString(infile,"Enter the center of the cone:");
+        fscanf(infile,"%lf %lf %lf",&cone_params.center[0],
+                        &cone_params.center[1],&cone_params.center[2]);
+        (void) printf("%f %f %f\n",cone_params.center[0],
+                        cone_params.center[1],cone_params.center[2]);
+        CursorAfterString(infile,"Enter the slope of the cone:");
+        fscanf(infile,"%lf",&cone_params.slope);
+        (void) printf("%f \n",cone_params.slope);
+        CursorAfterString(infile,"Enter the height of the cone:");
+        fscanf(infile,"%lf",&cone_params.height);
+        (void) printf("%f \n",cone_params.height);
+
+        func_params = (POINTER)&cone_params;
+        func = cone_func;
+        neg_comp = LIQUID_COMP2;
+        pos_comp = SOLID_COMP;
+        make_rigid_body(front,inname,func_params,func,
+                                pos_comp,neg_comp,0);
+        fclose(infile);
+        FT_ParallelExchIntfcBuffer(front);
+}
 
 static void initRotorIntfc(
 	Front *front,
@@ -137,7 +176,7 @@ static void initWindMillIntfc3d(
         char msg[100];
 	SURFACE *wing,*rotor,*support;
 	char vtk_name[100],string[100];
-	RG_PARAMS rgb_params;
+	static RG_PARAMS rgb_params;
 
 	sprintf(string,"Enter the vtk file name for wing:");
 	CursorAfterString(infile,string);
@@ -147,6 +186,8 @@ static void initWindMillIntfc3d(
 	pos_comp = LIQUID_COMP2;
 	read_vtk_surface(intfc,neg_comp,pos_comp,vtk_name,&wing);
 	wave_type(wing) = MOVABLE_BODY_BOUNDARY;
+	rgb_params.no_fluid = NO;
+	front->extra3 = (POINTER)&rgb_params;
 	if (debugging("windmill"))
 	{
 	    (void) printf("Wing surface read from vtk file %s\n",vtk_name);
@@ -279,6 +320,10 @@ extern void init_moving_bodies(
             iFparams->m_comp1 = SOLID_COMP;
 	    initApacheIntfc3d(front,level_func_pack,inname,prob_type);
 	    break;
+	case FLUID_SOLID_CONE:
+            iFparams->m_comp1 = SOLID_COMP;
+            initConeIntfc(front,level_func_pack,inname,prob_type);
+            break;
 	default:
 	    (void) printf("ERROR: wrong type in init_moving_bodies!\n");
 	    clean_up(ERROR);
@@ -343,8 +388,10 @@ static void make_rigid_body2d(
 	int j,dim = intfc->dim;
 	int num_segs;
 	CURVE **curves;
-	RG_PARAMS rg_params;
+	static RG_PARAMS rg_params;
 
+	rg_params.no_fluid = NO;
+	front->extra3 = (POINTER)&rg_params;
 	curves = (CURVE**)FT_CreateLevelHyperSurfs(gr,intfc,neg_comp,pos_comp,
 			func,func_params,MOVABLE_BODY_BOUNDARY,&num_segs);
 	if (curves == NULL || num_segs == 0) return;
@@ -372,8 +419,10 @@ static void make_rigid_body3d(
 	int i,dim = intfc->dim;
 	int num_segs;
 	SURFACE **ps;
-	RG_PARAMS rg_params;
+	static RG_PARAMS rg_params;
 
+	rg_params.no_fluid = NO;
+	front->extra3 = (POINTER)&rg_params;
 	ps = (SURFACE**)FT_CreateLevelHyperSurfs(gr,intfc,neg_comp,pos_comp,
 			func,func_params,MOVABLE_BODY_BOUNDARY,&num_segs);
 	if (ps == NULL || num_segs == 0) return;
@@ -446,7 +495,7 @@ static void initBeeIntfc3d(
 	SURFACE *body_parts[22];
 	char string[100];
 	char **vtk_name;
-	RG_PARAMS rgb_params;
+	static RG_PARAMS rgb_params;
 	char fname[200];
 
 	printf("Entering initBeeIntfc3D()\n");
@@ -473,6 +522,8 @@ static void initBeeIntfc3d(
 	sprintf(vtk_name[19],"vtk-bee/WING1.vtk");
 	sprintf(vtk_name[20],"vtk-bee/WING2.vtk");
 
+	rgb_params.no_fluid = NO;
+	front->extra3 = (POINTER)&rgb_params;
 	for (i = 0; i < 21; ++i)
 	{
 	    neg_comp = SOLID_COMP;
@@ -523,7 +574,7 @@ static void initApacheIntfc3d(
 	SURFACE *body_parts[22];
 	char string[100];
 	char **vtk_name;
-	RG_PARAMS rgb_params;
+	static RG_PARAMS rgb_params;
 	char fname[200];
 
 	printf("Entering initApacheIntfc3d()\n");
@@ -531,6 +582,8 @@ static void initApacheIntfc3d(
 	sprintf(vtk_name[0],"vtk-apache/APACHE.vtk");
 	sprintf(vtk_name[1],"vtk-apache/APACROT2.vtk");
 
+	rgb_params.no_fluid = NO;
+	front->extra3 = (POINTER)&rgb_params;
 	for (i = 0; i < 2; ++i)
 	{
 	    neg_comp = SOLID_COMP;
