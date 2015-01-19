@@ -43,8 +43,8 @@ int main(int argc, char **argv)
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
 	static IF_PARAMS iFparams;
+        static RG_PARAMS rgb_params;
 	IF_PROB_TYPE prob_type;
-        RG_PARAMS rgb_params;
 
 	/* Initialize basic computational data */
 
@@ -88,6 +88,7 @@ int main(int argc, char **argv)
 	if (debugging("trace")) printf("Passed FT_StartUp()\n");
 	iFparams.dim = f_basic.dim;
 	front.extra1 = (POINTER)&iFparams;
+	front.extra3 = (POINTER)&rgb_params;
 	read_iF_prob_type(in_name,&prob_type);
 	read_iFparams(in_name,&iFparams);
 	if (debugging("trace")) printf("Passed read_iFparams()\n");
@@ -301,6 +302,7 @@ static void rgb_init(Front *front,
         CURVE **c;
         SURFACE **s;
 
+	rgb_params->no_fluid = NO;	/* default */
         if (FT_Dimension() == 1) return;
         else if (FT_Dimension() == 2)
         {

@@ -10,7 +10,7 @@ Lower boundary in 2-th dimension: PERIODIC_BOUNDARY
 Upper boundary in 2-th dimension: PERIODIC_BOUNDARY
 
 Max time: 16.0
-Max step: 1
+Max step: 1000
 Print interval: 100.0
 Movie frame interval: 0.1
 CFL factor: 0.75

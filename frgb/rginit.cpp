@@ -55,7 +55,10 @@ static void initConeIntfc(
         POINTER func_params;
         static CONE_PARAMS cone_params;
         int dim = 3;
+	static RG_PARAMS rg_params;
 
+	rg_params.no_fluid = YES;
+	front->extra3 = (POINTER)&rg_params;
         CursorAfterString(infile,"Enter the center of the cone:");
         fscanf(infile,"%lf %lf %lf",&cone_params.center[0],
                         &cone_params.center[1],&cone_params.center[2]);
