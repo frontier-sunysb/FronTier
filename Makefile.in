@@ -30,7 +30,7 @@ all:
 	cd timeSeries && $(MAKE)
 	cd poisson && $(MAKE)
 	cd subsurf && $(MAKE)
-else ifeq ($(BASECODE),yes)
+else ifeq ($(BASECODE),adv)
 all:
 	cd src && $(MAKE)
 	cd example2d && $(MAKE)
@@ -80,7 +80,7 @@ clean:
 	-cd lib/$(build_cpu)/; rm -rf gas *.a
 	-rm -rf incs
 	-rm -rf include
-else  ifeq ($(BASECODE),yes)
+else  ifeq ($(BASECODE),adv)
 clean:
 	-cd src && $(MAKE) clean
 	-cd example2d && $(MAKE) clean
@@ -98,6 +98,7 @@ clean:
 	-cd src && $(MAKE) clean
 	-cd example2d && $(MAKE) clean
 	-cd example3d && $(MAKE) clean
+	-cd cFluid && $(MAKE) clean
 	-cd lib/$(build_cpu)/; rm -rf *.a
 	-rm -rf incs
 	-rm -rf include
@@ -313,6 +314,73 @@ tar:
 	cd ./ && ME=`basename $$PWD` && cd .. && tar -cf "`date +FronTier++.%m_%d_%y.tar`" ${TARFLIST} && \
 	gzip "`date +FronTier++.%m_%d_%y.tar`" && mv `date +FronTier++.%m_%d_%y.tar`.gz $$ME/.
 
+ADVTARFLIST = $$ME/README \
+$$ME/build \
+$$ME/install-sh \
+$$ME/config.status \
+$$ME/config.sub \
+$$ME/config.guess \
+$$ME/devel-deps.inc.in \
+$$ME/iMesh-Defs.inc.in \
+$$ME/configure.in \
+$$ME/src/util/mkdep.pl \
+$$ME/src/util/mkfiles.pl \
+$$ME/src/util/ftrules \
+$$ME/src/util/gasrules \
+$$ME/src/pak/Makefile.in \
+$$ME/src/pak/linpak/Makefile.in \
+$$ME/src/pak/linpak/*.f \
+$$ME/src/pak/blas/Makefile.in \
+$$ME/src/pak/blas/*.f \
+$$ME/configure.in \
+$$ME/Makefile.in \
+$$ME/src/Makefile.in \
+$$ME/example2d/*.cpp \
+$$ME/example2d/Makefile.in \
+$$ME/example2d/README \
+$$ME/example2d/mrun \
+$$ME/example3d/*.cpp \
+$$ME/example3d/Makefile.in \
+$$ME/example3d/mrun \
+$$ME/example3d/README \
+$$ME/crystal/*.cpp \
+$$ME/crystal/*.h \
+$$ME/crystal/Makefile.in \
+$$ME/crystal/README \
+$$ME/crystal/input-*/* \
+$$ME/crystal/mrun* \
+$$ME/iFluid/*.cpp \
+$$ME/iFluid/*.h \
+$$ME/iFluid/Makefile.in \
+$$ME/iFluid/input-*/in-* \
+$$ME/iFluid/mrun* \
+$$ME/cFluid/*.cpp \
+$$ME/cFluid/*.h \
+$$ME/cFluid/Makefile.in \
+$$ME/cFluid/in-* \
+$$ME/cFluid/mrun* \
+$$ME/solver/*.cpp \
+$$ME/solver/*.h \
+$$ME/solver/Makefile.in \
+$$ME/src/intfc/*.c \
+$$ME/src/intfc/*.h  \
+$$ME/src/intfc/*.cu \
+$$ME/src/intfc/*.cuh  \
+$$ME/src/intfc/Makefile.in \
+$$ME/src/util/*.h \
+$$ME/src/util/*.c \
+$$ME/src/util/Makefile.in \
+$$ME/src/front/*.c \
+$$ME/src/front/*.h \
+$$ME/src/front/*.cu \
+$$ME/src/front/*.cuh \
+$$ME/src/front/Makefile.in \
+$$ME/src/front/README \
+
+adv-tar:
+	cd ./ && ME=`basename $$PWD` && cd .. && tar -cf "`date +FronTier++-adv.%m_%d_%y.tar`" ${ADVTARFLIST} && \
+	gzip "`date +FronTier++-adv.%m_%d_%y.tar`" && mv `date +FronTier++-adv.%m_%d_%y.tar`.gz $$ME/.
+
 BASETARFLIST = $$ME/README \
 $$ME/build \
 $$ME/install-sh \
@@ -339,38 +407,14 @@ $$ME/example2d/Makefile.in \
 $$ME/example2d/README \
 $$ME/example3d/*.cpp \
 $$ME/example3d/Makefile.in \
-$$ME/curvature/*.cpp \
-$$ME/curvature/*.h \
-$$ME/curvature/Makefile.in \
 $$ME/example3d/README \
-$$ME/subsurf/*.cpp \
-$$ME/subsurf/*.h \
-$$ME/subsurf/Makefile.in \
-$$ME/subsurf/in-* \
-$$ME/crystal/*.cpp \
-$$ME/crystal/*.h \
-$$ME/crystal/Makefile.in \
-$$ME/crystal/README \
-$$ME/crystal/input-*/* \
-$$ME/crystal/mrun* \
-$$ME/melting/*.cpp \
-$$ME/melting/*.h \
-$$ME/melting/Makefile.in \
-$$ME/melting/in-* \
-$$ME/melting/mrun* \
-$$ME/iFluid/*.cpp \
-$$ME/iFluid/*.h \
-$$ME/iFluid/Makefile.in \
-$$ME/iFluid/input-*/in-* \
-$$ME/iFluid/mrun* \
+$$ME/example2d/mrun \
+$$ME/example3d/mrun \
 $$ME/cFluid/*.cpp \
 $$ME/cFluid/*.h \
 $$ME/cFluid/Makefile.in \
-$$ME/cFluid/in-* \
+$$ME/cFluid/input-*/in-* \
 $$ME/cFluid/mrun* \
-$$ME/solver/*.cpp \
-$$ME/solver/*.h \
-$$ME/solver/Makefile.in \
 $$ME/src/intfc/*.c \
 $$ME/src/intfc/*.h  \
 $$ME/src/intfc/*.cu \

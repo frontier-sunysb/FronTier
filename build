@@ -7,10 +7,9 @@ function parse_arguments {
         echo "Usage: $0 [-d] [-n] [-g] [--with-hdf]"
         echo
         echo "    -d          Enable debugging."
-        echo "    -e          Export version"
-        echo "    -s          Simple version"
+        echo "    -a          Advanced version"
+        echo "    -b          Base version"
         echo "    -n          Just configure. Do not run make."
-        echo "    -o2          Just configure. Do not run make."
         echo "    --with-gpu  Enable compilation with GPU."
         echo "    --without-hypre  Not to enable compilation with HYPRE."
         echo "    --without-hdf  Not to enable compilation with HDF4."
@@ -38,11 +37,10 @@ export BASECODE="no"
 	    CONF="$CONF --enable-itaps"
         elif [[ "$arg" == "--enable-imesh" ]]; then
 	    CONF="$CONF --enable-imesh"
-        elif [[ "$arg" == "-e" ]]; then
-	    CONF="$CONF --with-export"
-	    export BASECODE="yes"
-        elif [[ "$arg" == "-s" ]]; then
-	    export BASECODE="simple"
+        elif [[ "$arg" == "-a" ]]; then
+	    export BASECODE="adv"
+        elif [[ "$arg" == "-b" ]]; then
+	    export BASECODE="base"
         elif [[ "$arg" == "--with-gpu" ]]; then
             WITHGPU=1
         elif [[ "$arg" == "-o2" ]]; then
@@ -90,9 +88,10 @@ function config_ycshu {
 #################
 function config_generic {
     # Generic platforms. 
+    
     HASMPI=`which mpicxx`
     if [[ -n "$HASMPI" ]]; then
-        # Assume OpenMPI.
+        # Assume MPICH2.
         export CXX="mpicxx ${OPTS}"
         export F77="mpif77 ${OPTS}"
         export CC="mpicc ${OPTS}"
@@ -116,21 +115,22 @@ function config_generic {
     if  [[ -n "$F77_" ]]; then export F77=$F77_; fi
 
     if [[ ${CC:0:2} == "mp" ]] && [[ ${CXX:0:2} == "mp" ]] && [[ ${F77:0:2} == "mp" ]]; then
-        CONF="$CONF --with-mpi"
+        CONF="$CONF --with-mpich=${HASMPI/\/bin\/mpicxx/}"
     fi
 
     if [[ -n "$WITHHDF" ]]; then
-        echo -n "Enter root directory for HDF4. (Hit RETURN to skip HDF4.): "
-        read HDF4_DIR
-        if [[ -n "$HDF4_DIR" ]]; then
-            CONF="$CONF --with-hdf=$HDF4_DIR"
-        fi
-    fi
-    if [[ -n "$WITHHDF5" ]]; then
         echo -n "Enter root directory for HDF5. (Hit RETURN to skip HDF5.): "
         read HDF5_DIR
         if [[ -n "$HDF5_DIR" ]]; then
-            CONF="$CONF --with-hdf5=$HDF5_DIR"
+            CONF="$CONF --with-hdf=$HDF5_DIR"
+        fi
+    fi
+
+    if [[ -n "$WITHGD" ]]; then
+        echo -n "Enter root directory for GD. (Hit RETURN to skip GD.): "
+        read GD_DIR
+        if [[ -n "$GD_DIR" ]]; then
+            CONF="$CONF --with-gd=$GD_DIR"
         fi
     fi
 
@@ -141,25 +141,44 @@ function config_generic {
     if [[ -n "$PETSC_DIR" ]]; then
         export CONF="--with-petsc=$PETSC_DIR --with-devel ${CONF}"
 
-        echo -n "Enter PETSC_ARCH: "
-        read PETSC_ARCH
-        export PETSC_ARCH
+        export PETSC_INCLUDE="-I${PETSC_DIR}/include -I${PETSC_DIR}/include"
 
-        export PETSC_INCLUDE="-I${PETSC_DIR}/include -I${PETSC_DIR}/${PETSC_ARCH}/include"
-
-        export PETSC_LIB="-lblas -llapack -L${PETSC_DIR}/${PETSC_ARCH}/lib -lpetsc -ldl -fopenmp -lm -lX11"
+        export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -l:libblas.so -l:liblapack.so -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
         echo -n "Enter PETSC_LIB. Note that you may also need to include libraries for LAPACK and BLAS also. (Hit return to use default $PETSC_LIB):"
         read PETSC_LIB_
         if  [[ -n "$PETSC_LIB_" ]]; then export PETSC_LIB=$PETSC_LIB_; fi
+    fi
+
+    if [[ "${BASECODE}" == "base" ]]; then
+        echo "Configure with basic fucntion"
+   	CONF="${CONF} --with-base" 
+    elif [[ "${BASECODE}" == "adv" ]]; then
+        echo "Configure with advance fucntion"
+   	CONF="${CONF} --with-adv" 
+    fi
+
+    if [[ -n "$WITHGPU" ]]; then
+        CONF="$CONF --with-gpu"
+        export USEGPU="yes"
+    else
+        export USEGPU="no"
+    fi
+
+    if [[ -n "$WITHHYPRE" ]]; then
+        CONF="$CONF --with-hypre"
+        export USEHYPRE="yes"
+	export PETSC_LIB="${PETSC_LIB} -lHYPRE"
+    else
+        export USEHYPRE="no"
     fi
 
     PMAKE="-j2"
 }
 
 #################
-function config_simple {
+function config_base {
     # Simple platforms. 
-    CONF="--with-simple"
+    CONF="--with-base"
     HASMPI=`which mpicxx`
     if [[ -n "$HASMPI" ]]; then
         # Assume OpenMPI.
@@ -173,6 +192,13 @@ function config_simple {
         export CC="gcc ${OPTS}"
     fi
 
+    if [[ -n "$WITHGPU" ]]; then
+        CONF="$CONF --with-gpu"
+        export USEGPU="yes"
+    else
+        export USEGPU="no"
+    fi
+
     if [[ $WITHHDF -eq 1 ]]; then
         CONF="$CONF --with-hdf=/usr/local/pkg/hdf"
     fi
@@ -180,6 +206,45 @@ function config_simple {
     WITHHDF=0;
     WITHGD=0;
 
+    PMAKE="-j2"
+}
+
+function config_adv {
+    # advance platforms. 
+    CONF="--with-adv"
+export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
+    export F77="mpif77 ${OPTS}"
+    export CC="mpicc ${OPTS} ${COPTS_GCC}"
+
+    export scriptotherlibs="${scriptotherlibs} /usr/lib/libblas.so /usr/lib/x86_64-linux-gnu/libgfortran.so.3"
+
+    export PETSC_DIR=/usr/local/pkg/petsc
+    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
+
+    if [[ -n "$WITHHYPRE" ]]; then
+        CONF="$CONF --with-hypre"
+        export USEHYPRE="yes"
+    else
+        export USEHYPRE="no"
+    fi
+
+    if [[ -n "$WITHGPU" ]]; then
+        CONF="$CONF --with-gpu"
+        export USEGPU="yes"
+    else
+        export USEGPU="no"
+    fi
+
+    if [[ -n "$WITHHDF" ]]; then
+        CONF="$CONF --with-hdf=/usr/local/pkg/hdf"
+    fi
+
+    if [[ -n "$WITHGSL" ]]; then
+        CONF="$CONF --with-gsl=/usr"
+    fi
+
+    export CONF="--with-mpich=/usr/local/pkg/mpich2 --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/usr"
     PMAKE="-j2"
 }
 
@@ -676,9 +741,9 @@ parse_arguments $*
 # Invoke machine specific config function
 HOST=`uname -n`;
 # Choose proper compilers based on machine
-if [[ "${BASECODE}" == "simple" ]]; then
-    echo "Configure with basic fucntion"
-    config_simple
+if [[ "${BASECODE}" == "base" ]] || [[ "${BASECODE}" == "adv" ]]; then
+    echo "Base code, using generic configuration"
+    config_generic
 elif [[ "${HOST}" == "fenp" ]]; then
     echo "Computer is recognized as NYBlue/P."
     config_nybluep

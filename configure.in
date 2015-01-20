@@ -29,22 +29,12 @@ pakyesorno=" "
 subgrid=" "
 rotsym=" "
 gascleann=" "
-basecode=" "
-AC_ARG_WITH(export,[  --with-export                 Compilation of the Basic FronTier++ code ],[basecode="yes"],[basecode="no"])
-AC_ARG_WITH(simple,[  --with-simple                 Compilation of the Simple FronTier++ code ],[basecode="simple"],[basecode="no"])
+basecode="full"
 
-if test "$basecode" = "no"; then
-    echo "Full code"
-    AC_SUBST(BASECODE,${BASECODE})        
-else
-	if test "$basecode" = "simple"; then
-		echo "Simple code"
-    		AC_SUBST(BASECODE,${BASECODE})
-    	else
-    		echo "Base code"
-    		AC_SUBST(BASECODE,${BASECODE})        
-	fi
-fi
+AC_ARG_WITH(adv,[  --with-adv                 Compilation of the Advanced FronTier++ code ],[basecode="adv"],[])
+AC_ARG_WITH(base,[  --with-base                 Compilation of the Basic FronTier++ code ],[basecode="base"],[])
+
+
 
 AC_ARG_WITH(gd,[  --with-gd=PFX             Links with gd library for 1d post processing],[scriptotherlibsinc=" -L$withval/lib "${scriptotherlibs} scriptotherlibs="-lgd "${scriptotherlibs} gdincs=" -D__GD__ -I"${withval}"/include "],[gdincs=""])
 
@@ -476,7 +466,7 @@ AC_SUBST(build_linpak, ${build_linpak})
 #AC_SUBST(AWK,"awk")
 # Write the makefiles
 
-if test $basecode = "no"; then
+if test $basecode = "full"; then
 filelist='Makefile 
 src/Makefile 
 src/util/Makefile 
@@ -515,27 +505,25 @@ devel-deps.inc
 iMesh-Defs.inc'
 fi
 
-if test $basecode = "yes"; then
+if test $basecode = "adv"; then
 filelist='Makefile 
-src/Makefile 
+src/Makefile
 src/util/Makefile 
 src/front/Makefile 
 src/intfc/Makefile 
-subsurf/Makefile
-crystal/Makefile
 example2d/Makefile
 example3d/Makefile
-melting/Makefile
-iFluid/Makefile
 cFluid/Makefile
+iFluid/Makefile
 solver/Makefile
+crystal/Makefile
 src/pak/linpak/Makefile
 src/pak/blas/Makefile
 devel-deps.inc
 iMesh-Defs.inc'
 fi
 
-if test $basecode = "simple"; then
+if test $basecode = "base"; then
 filelist='Makefile 
 src/Makefile 
 src/util/Makefile 
@@ -543,6 +531,7 @@ src/front/Makefile
 src/intfc/Makefile 
 example2d/Makefile
 example3d/Makefile
+cFluid/Makefile
 src/pak/linpak/Makefile
 src/pak/blas/Makefile
 devel-deps.inc
