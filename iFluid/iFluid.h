@@ -143,6 +143,7 @@ typedef struct {
 	POINTER eddy_params;
 	double  Amplitute; 	/*Amplitute of velocity*/
 	double	ymax;	   	/* Maximum distance in Baldwin-Lomax model */
+	double  porosity;       /*porosity*/
 	char base_dir_name[200];
         int base_step;
 	boolean scalar_field; /*include scalar field or not*/

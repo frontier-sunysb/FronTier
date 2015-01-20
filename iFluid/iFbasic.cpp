@@ -3167,6 +3167,7 @@ void Incompress_Solver_Smooth_Basis::computeFieldPointGrad(
         HYPER_SURF *hs;
         GRID_DIRECTION dir[3][2] = {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
 	int status;
+	double porosity = iFparams->porosity;
 
 	index = d_index(icoords,top_gmax,dim);
         comp = top_comp[index];
@@ -3186,8 +3187,12 @@ void Incompress_Solver_Smooth_Basis::computeFieldPointGrad(
 		    p_edge[idir][nb] = field[index_nb];
 	    	else if (status ==CONST_P_PDE_BOUNDARY)
 		    p_edge[idir][nb] = getStatePhi(intfc_state);
-	    	else if (status ==CONST_V_PDE_BOUNDARY)
+	    	else if (status ==CONST_V_PDE_BOUNDARY &&
+                        wave_type(hs) == DIRICHLET_BOUNDARY)
 		    p_edge[idir][nb] = p0;
+		else
+                    p_edge[idir][nb] = (1.0-porosity)*p0 +
+                        porosity*field[index_nb];
 	    }
 	}
 	for (i = 0; i < dim; ++i)

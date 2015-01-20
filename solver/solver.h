@@ -232,6 +232,7 @@ public:
 	int ilower;
 	int iupper;
 
+	double porosity;
 	double *soln;		/* field variable of new step */
 	double *source;		/* source field */
 	double *D;		/* div(D*grad)phi = source */
@@ -289,6 +290,7 @@ public:
 	COMPONENT soln_comp1;
 	COMPONENT soln_comp2;
 	COMPONENT obst_comp;
+	double porosity;
 	double **var;		/* field variable of old step */
 	double **soln;		/* field variable of new step */
 	double **source;	/* source field */

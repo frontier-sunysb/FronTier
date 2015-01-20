@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 HYPERB_SOLVER::HYPERB_SOLVER(Front &front):front(&front)
 {
+	porosity = 0.0;
 }
 
 void HYPERB_SOLVER::solveRungeKutta()
@@ -1000,13 +1001,15 @@ void HYPERB_SOLVER::setNeumannStates(
 	    if (nb == 0)
 	    {
 	    	for (j = 0; j < dim; j++)
-		    vst->vel[j][nrad-i] = v_tmp[j];
+		    vst->vel[j][nrad-i] = (1.0 - porosity)*v_tmp[j] +
+                        porosity*m_vst->vel[j][d_index(ic,top_gmax,dim)];
 		vst->rho[nrad-i] = rho_of_comp(comp);
 	    }
 	    else
 	    {
 	    	for (j = 0; j < dim; j++)
-		    vst->vel[j][n+nrad+i-1] = v_tmp[j];
+		    vst->vel[j][n+nrad+i-1] = (1.0 - porosity)*v_tmp[j] +
+                        porosity*m_vst->vel[j][d_index(ic,top_gmax,dim)];
 		vst->rho[n+nrad+i-1] = rho_of_comp(comp);
 	    }
 	}

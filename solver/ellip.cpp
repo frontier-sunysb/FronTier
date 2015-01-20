@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 ELLIPTIC_SOLVER::ELLIPTIC_SOLVER(Front &front):front(&front)
 {
+	porosity = 0.0;
 }
 
 void ELLIPTIC_SOLVER::set_solver_domain(void)
@@ -358,6 +359,12 @@ void ELLIPTIC_SOLVER::solve2d(double *soln)
 		    rhs += -coeff[l]*getStateVar(intfc_state);
                     aII += -coeff[l];
 		    use_neumann_solver = NO;
+                }
+		else if (status == CONST_V_PDE_BOUNDARY &&
+                        wave_type(hs) == NEUMANN_BOUNDARY)
+                {
+                    solver.Set_A(I,I_nb[l],porosity*coeff[l]);
+                    aII += -porosity*coeff[l];
                 }
 	    }
 	    /*

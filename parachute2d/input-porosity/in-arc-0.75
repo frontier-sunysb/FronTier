@@ -1,0 +1,98 @@
+Domain limit in 0-th dimension: 0 12
+Domain limit in 1-th dimension: -3 12
+Computational grid: 150 300
+Lower boundary in 0-th dimension: PERIODIC_BOUNDARY
+Upper boundary in 0-th dimension: PERIODIC_BOUNDARY
+Lower boundary in 1-th dimension: DIRICHLET_BOUNDARY
+Upper boundary in 1-th dimension: DIRICHLET_BOUNDARY
+
+Max time: 5.2
+Print interval: 5
+Movie frame interval: 0.1
+
+Max step: 200000
+CFL factor: 0.5
+Redistribution interval: 10000000
+Type yes to turn off auto-redistribution: y
+
+Projection type can be
+        SIMPLE
+        BELL_COLELLA
+        KIM_MOIN
+        PEROT_BOTELLA
+Enter projection type: SIMPLE
+Enter advection order: 4
+Available elliptic methods are:
+        Simple elliptic (S)
+        CIM elliptic (C)
+        Double elliptic (DB)
+        Dual elliptic (DU)
+Enter elliptic method: S
+
+Enter number of canopy surfaces: 1
+Enter yes to add rigid body: yes
+Available type of rigid body include:
+	Circular arc (A)
+Enter type of rigid body: A
+Enter center coordinates: 6 0 
+Enter radius: 3
+Enter start end angles in degrees: 45 135
+
+Rigid body can be fixed (F) or Movable (M)
+The default is Movable (M)
+Type yes if the rigid body is fixed: yes
+
+Entering yes to turn off fluid solver: no
+Enter gravity: 0 0
+Enter density and viscosity of the fluid: 1.2 0.000628
+Enter porosity of canopy: 0.75
+Enter yes to use eddy viscosity: no
+Available tuebulence models are:
+        Baldwin-Lomax (B)
+        Moin (M)
+Enter turbulence model: B
+Enter maximum distance for eddy viscosity: 0.1
+
+Enter factor of smoothing radius: 1
+
+For lower boundary in 1-th dimension
+Enter type of Dirichlet boundary: CONSTAT_STATE
+Enter velocity: 0 2
+Enter pressure: 0
+For upper boundary in 1-th dimension
+Enter type of Dirichlet boundary: FLOW_THROUGH
+
+Type y to set movie bounds: y 
+Type y to make movie of pressure: y
+Enter min and max pressure: -120 120
+Type y to make movie of vorticity: y
+Enter min and max vorticity: -70 70
+Type y to make movie of velocity: y
+Enter min and max velocity: -4 4
+Type y to make movie of viscosity: y
+Enter min and max viscosity: 0 0.00628
+
+Type y to make vector velocity field movie: y 
+
+Enter string spring constant: 50000
+Enter string friction constant: 0.001
+Enter string point mass: 0.01
+
+************Debugging options*****************
+
+Enter yes for debugging: yes
+Enter the debugging string: tcoat_comp
+Enter the debugging string: tcanopy_struct
+Enter the debugging string: ttrace
+Enter the debugging string: tstep_size
+Enter the debugging string: tCLOCK
+Enter the debugging string: tdirichlet_bdry
+Enter the debugging string: tflow_through
+Enter the debugging string: tcheck_div
+Enter the debugging string: thdf
+Enter the debugging string: sample_velocity
+Enter the sample line type: x
+Enter the sample line coordinate: 6.0
+Enter the start step for sample: 1525 
+Enter the end step for sample: 1596
+Enter the step interval for sample: 1

@@ -61,6 +61,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeAdvection(void)
 	    }
 	}
 	hyperb_solver.rho = rho;
+	hyperb_solver.porosity = iFparams->porosity;
 
 	hyperb_solver.obst_comp = SOLID_COMP;
 	switch (iFparams->adv_order)
@@ -321,6 +322,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::computeProjectionSimple(void)
         {
 	    checkVelocityDiv("Before computeProjection()");
         }
+	elliptic_solver.porosity = iFparams->porosity;
         elliptic_solver.D = diff_coeff;
         elliptic_solver.source = source;
         elliptic_solver.soln = array;
@@ -757,6 +759,7 @@ void Incompress_Solver_Smooth_2D_Cartesian::
         double **f_surf = field->f_surf;
         INTERFACE *grid_intfc = front->grid_intfc;
 	int status;
+	double porosity = iFparams->porosity;
 
         if (debugging("trace"))
             (void) printf("Entering Incompress_Solver_Smooth_2D_Cartesian::"
@@ -825,7 +828,14 @@ void Incompress_Solver_Smooth_2D_Cartesian::
                             U_nb[nb] = vel[l][index];
                         }
                         else
-                            U_nb[nb] = getStateVel[l](intfc_state);
+			{
+			    U_nb[nb] = getStateVel[l](intfc_state);
+                            if (wave_type(hs) == NEUMANN_BOUNDARY ||
+				wave_type(hs) == MOVABLE_BODY_BOUNDARY)
+                                U_nb[nb] = porosity*vel[l][index_nb[nb]] +
+                                        (1.0 - porosity)*U_nb[nb];
+			}
+			
 			if (wave_type(hs) == DIRICHLET_BOUNDARY ||
 			    neumann_type_bdry(wave_type(hs)))
                             mu[nb] = mu0;
@@ -868,8 +878,13 @@ void Incompress_Solver_Smooth_2D_Cartesian::
                             aII -= coeff[nb];
                             rhs += coeff[nb]*U_nb[nb];
                         }
-                        else
+                        else if (wave_type(hs) == DIRICHLET_BOUNDARY)
                             rhs += 2.0*coeff[nb]*U_nb[nb];
+			else
+			{
+			    solver.Set_A(I,I_nb[nb],-porosity*coeff[nb]);
+                            rhs += (2.0 - porosity)*coeff[nb]*U_nb[nb];
+			}
                     }
 		}
             	rhs += m_dt*source[l];

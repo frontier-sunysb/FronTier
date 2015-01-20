@@ -214,11 +214,21 @@ extern void setMotionParams(
             	fscanf(infile,"%lf",&iFparams->surf_tension);
             	(void) printf("%f\n",iFparams->surf_tension);
 	    }
+	    if (FT_FrontContainWaveType(front,NEUMANN_BOUNDARY) ||
+		FT_FrontContainWaveType(front,MOVABLE_BODY_BOUNDARY))
+	    {
+		af_params->gamma = 0.0; //default value
+            	CursorAfterStringOpt(infile,"Enter porosity of canopy:");
+            	fscanf(infile,"%lf",&af_params->gamma);
+            	(void) printf("%f\n",af_params->gamma);
+		iFparams->porosity = af_params->gamma;
+	    }
 	    if (FT_FrontContainWaveType(front,ELASTIC_BOUNDARY))
 	    {
             	CursorAfterString(infile,"Enter porosity of canopy:");
             	fscanf(infile,"%lf",&af_params->gamma);
             	(void) printf("%f\n",af_params->gamma);
+		iFparams->porosity = af_params->gamma;
             	CursorAfterString(infile,"Enter area density of canopy:");
             	fscanf(infile,"%lf",&af_params->area_dens);
             	(void) printf("%f\n",af_params->area_dens);
