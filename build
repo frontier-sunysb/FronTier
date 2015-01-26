@@ -335,6 +335,46 @@ function config_alpha {
 }
 
 #################
+function config_sigma {
+    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
+    export F77="mpif77 ${OPTS}"
+    export CC="mpicc ${OPTS} ${COPTS_GCC}"
+
+    export scriptotherlibs="${scriptotherlibs} /usr/lib/libblas.so /usr/lib/x86_64-linux-gnu/libgfortran.so.3" 
+
+    export PETSC_DIR=/usr/local/pkg/petsc
+    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
+    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
+
+    if [[ -n "$WITHHYPRE" ]]; then
+        CONF="$CONF --with-hypre"
+	export USEHYPRE="yes"
+    else
+	export USEHYPRE="no"
+    fi
+
+    if [[ -n "$WITHGPU" ]]; then
+        CONF="$CONF --with-gpu"
+	export USEGPU="yes"
+    else
+	export USEGPU="no"
+    fi
+
+    if [[ -n "$WITHHDF" ]]; then
+        CONF="$CONF --with-hdf=/usr/local/pkg/hdf"
+    fi
+
+    if [[ -n "$WITHGSL" ]]; then
+        CONF="$CONF --with-gsl=/usr"
+    fi
+
+    export CONF="--with-mpich=/usr/local/pkg/mpich2 --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/usr"
+    PMAKE="-j2"
+}
+
+#################
+
+#################
 function config_omega {
     export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
     export F77="mpif77 ${OPTS}"
@@ -762,6 +802,9 @@ elif [[ "${HOST}" == "alpha" ]]; then
 elif [[ "${HOST}" == "omega" ]]; then
     echo "Computer is recognized as omega."
     config_omega
+elif [[ "${HOST}" == "sigma" ]]; then
+    echo "Computer is recognized as omega."
+    config_sigma
 elif [[ "${HOST}" == "lambda" ]]; then
     echo "Computer is recognized as omega."
     config_lambda
