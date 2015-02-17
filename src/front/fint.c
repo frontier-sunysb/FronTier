@@ -1167,6 +1167,7 @@ EXPORT	void	f_user_copy_hyper_surf(
                                 center_of_mass_velo(old_hs)[i];
                 rotation_direction(new_hs)[i] = rotation_direction(old_hs)[i];
                 rotation_center(new_hs)[i] = rotation_center(old_hs)[i];
+                translation_dir(new_hs)[i] = translation_dir(old_hs)[i];
 		p_mom_inertial(new_hs)[i] = p_mom_inertial(old_hs)[i];
                 p_angular_velo(new_hs)[i] = p_angular_velo(old_hs)[i];
             }
@@ -3280,3 +3281,27 @@ LOCAL	void f_fprint_Dirichlet_bdry_states(
 	(void) fprintf(file,"for interface %llu\n",(long long unsigned int)interface_number(intfc));
 	(void) fprintf(file,"\n\n");
 }		/*end f_fprint_Dirichlet_bdry_states*/
+
+EXPORT  const char *motion_type_name(
+        MOTION_TYPE motion_type)
+{
+        switch(motion_type)
+        {
+        case FREE_MOTION:
+            return "FREE_MOTION";
+        case COM_MOTION:
+            return "COM_MOTION";
+        case TRANSLATION:
+            return "TRANSLATION";
+        case ROTATION:
+            return "ROTATION";
+        case PRESET_MOTION:
+            return "PRESET_MOTION";
+        case PRESET_COM_MOTION:
+            return "PRESET_COM_MOTION";
+        case PRESET_TRANSLATION:
+            return "PRESET_TRANSLATION";
+        case PRESET_ROTATION:
+            return "PRESET_ROTATION";
+        }
+}       /* end motion_type_name */

@@ -302,7 +302,7 @@ static void rgb_init(Front *front,
         CURVE **c;
         SURFACE **s;
 
-	rgb_params->no_fluid = NO;	/* default */
+	rgb_params.no_fluid = NO;	/* default */
         if (FT_Dimension() == 1) return;
         else if (FT_Dimension() == 2)
         {

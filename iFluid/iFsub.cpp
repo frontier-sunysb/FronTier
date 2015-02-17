@@ -984,7 +984,8 @@ static  void rgbody_point_propagate(
                 vel[2] += -p_angular_velo(oldhs)[1] * crds_com[0]
                           +p_angular_velo(oldhs)[0] * crds_com[1];
 		// propagate by euler parameters
-		if (motion_type(oldhs) == ROTATION)
+		if (motion_type(oldhs) == ROTATION ||
+		    motion_type(oldhs) == PRESET_ROTATION)
 		{
                     double A[3][3],AI[3][3];
                     double ep[4];
@@ -1921,16 +1922,17 @@ static  void ifluid_compute_force_and_torque3d(
                     rr[i] = posn[i] - rotation_center(surface)[i];
                 }
                 Cross3d(rr,f,t);
-                tdir = Dot3d(t,(rotation_direction(hs)));
+//		tdir = Dot3d(t,(rotation_direction(hs)));
                 for (i = 0; i < dim; ++i)
                 {
-                    t[i] = tdir*rotation_direction(hs)[i];
+//		    t[i] = tdir*rotation_direction(hs)[i];
                     torque[i] += t[i];
                 }
             }
         }
          /* Add gravity to the total force */
-        if (motion_type(surface) != ROTATION)
+        if (motion_type(surface) != ROTATION &&
+	    motion_type(surface) != PRESET_ROTATION)
         {
             for (i = 0; i < dim; ++i)
                 force[i] += gravity[i]*total_mass(surface);

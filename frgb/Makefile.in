@@ -50,9 +50,6 @@ cim_ellip.o : ../solver/solver.h ../solver/cim_ellip.cpp
 dual_ellip.o : ../solver/solver.h ../solver/dual_ellip.cpp
 	${CXX} -c ../solver/dual_ellip.cpp $(incsloc) $(incs) ${Petsc_Include}
 
-iFsub.o : ../iFluid/iFluid.h ../iFluid/iFsub.cpp
-	${CXX} -c ../iFluid/iFsub.cpp $(incsloc) $(incs) ${Petsc_Include}
-
 rginit.o : rgbody.h ../iFluid/iFluid.h rginit.cpp
 	${CXX} -c rginit.cpp $(incsloc) $(incs) ${Petsc_Include}
 
@@ -68,7 +65,8 @@ rgbody: ../iFluid/iFluid.h rgbody.h rgbody.cpp rginit.o iFsub.o iFinit.o ../lib/
 
 clean:
 	rm -rf *.o rgbody 
-output :
+
+cleanoutput:
 	rm -rf out/*
 
 gif :

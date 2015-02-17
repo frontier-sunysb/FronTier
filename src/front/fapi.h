@@ -1174,6 +1174,22 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 				double seg_length, 
 				REDISTRIBUTION_DIRECTION dir);
 
+/*! \fn CURVE *FT_MakeNodeArrayCurve(Front *front, int num_nodes, double **node_array, COMPONENT neg_comp, COMPONENT pos_comp, boolean is_closed_curve, scale_factor, int w_type)
+ *  \ingroup INSERT
+    \brief This function inserts a curve into the front with given
+     array of points, if is_closed_curve is true, the curve is closed.
+    \param front @b inout Pointer to the front in which curve is inserted.
+    \param num_nodes @b in number of nodal points of the curve.
+    \param node_array @b in an array of node coordinates.
+    \param neg_comp @b in index for negative side of the curve (inner side).
+    \param pos_comp @b in index for positive side of the curve (outer side).
+    \param is_closed_curve @b in indicate whether the curve is closed.
+    \param scale_factor @b in length factor of bond to grid spacing.
+    \param w_type @b in wave type of the curve.
+ */
+
+   IMPORT  CURVE *FT_MakeNodeArrayCurve(Front *front,int num_nodes,double **node_array,COMPONENT neg_comp,COMPONENT pos_comp,boolean is_closed_curve,double scale_factor, int w_type);
+
 /*! \fn CURVE *FT_MakePointArrayCurve(Front *front, int num_points, double **point_array, COMPONENT neg_comp, COMPONENT pos_comp, boolean is_closed_curve)
  *  \ingroup INSERT
     \brief This function inserts a curve into the front with given

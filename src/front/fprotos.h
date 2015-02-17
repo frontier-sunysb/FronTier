@@ -391,6 +391,7 @@ IMPORT	void	f_user_fprint_surface(FILE*,SURFACE*);
 IMPORT	void	f_user_install_faces(SURFACE*,int);
 IMPORT	void	f_user_read_print_surface(SURFACE*,const IO_TYPE*,boolean);
 IMPORT	void	f_user_read_surface(SURFACE*);
+IMPORT	const	char *motion_type_name(MOTION_TYPE);
 
 	/* fnode.c*/
 IMPORT	int	f_node_propagate(Front*,POINTER,NODE*,NODE*,RPROBLEM**,

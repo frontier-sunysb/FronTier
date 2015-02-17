@@ -30,6 +30,7 @@ Projection type can be
         KIM_MOIN
         PEROT_BOTELLA
 Enter projection type: SIMPLE
+Enter yes if the object is fixed: yes
 Enter the center of the rectangle: 0.5 0.5 3.0
 Enter lengths of the rectangle: 0.2985 0.2985 0.2985
 Enter density and viscosity of the fluid: 0.1 0.0628
