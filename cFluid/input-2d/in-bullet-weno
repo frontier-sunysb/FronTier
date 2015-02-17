@@ -24,7 +24,7 @@ Numerical scheme for interior solver can be
         TVD_1st_ORDER
         TVD_2nd_ORDER
         TVD_4th_ORDER
-Enter numerical scheme for interior solver: WENO_4nd_ORDER
+Enter numerical scheme for interior solver: WENO_4th_ORDER
 Point propagator order can be (1,2,4)
 Enter order of point propagator: 2
 
@@ -32,15 +32,18 @@ Enter the center of projectile: 0.5 2.0
 Enter the radius of the projectile: 0.2
 Enter the head height of the projectile: 0.3
 Enter the butt height of the projectile: 0.2
-Enter the total mass for rigid body: 0.5
-Enter the center of mass for rigid body: 0.5 2.0
-Type yes if rigid body will only rotate about an axis: no
-Enter the moment of inertial about center of mass: 0.5
-Type yes if you want vertical motion only?: no
-Type yes if you want horizontal motion only?: yes
-Enter the initial center of mass velocity: 0.0 0.0
+Enter yes if there is gun: yes
 Enter the gun open position: 1.0
 Enter the gun wall thickness: 0.3
+
+Type yes if motion is preset: no
+Enter type of dynamic motion: TRANSLATION
+Enter the direction of motion: 1.0 0.0
+Enter the total mass for rigid body: 0.5
+Enter the initial center of mass for rigid body: 0.5 2.0
+Enter the initial center of mass velocity: 0.0 0.0
+Enter the moment of inertial about center of mass: 0.5
+
 Direction 0 side 0 is MIXED_TYPE_BOUNDARY
 Total number of nodes 6
 Nodes coordinates are:
