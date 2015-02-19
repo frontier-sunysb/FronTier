@@ -663,6 +663,8 @@ static void initPressurePump(
 	    fscanf(infile,"%lf %lf",&node_coords[i][0],&node_coords[i][1]);
 	    (void) printf("%f %f\n",node_coords[i][0],node_coords[i][1]);
 	}
+	neg_comp = SOLID_COMP;
+	pos_comp = LIQUID_COMP2;
 	pump = FT_MakeNodeArrayCurve(front,num_nodes,node_coords,neg_comp,
 			pos_comp,NO,0.75,MOVABLE_BODY_BOUNDARY);
 

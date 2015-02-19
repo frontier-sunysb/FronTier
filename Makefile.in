@@ -21,7 +21,7 @@ all:
 	cd crystal && $(MAKE)
 	cd curvature && $(MAKE)
 	cd finance && $(MAKE)
-	cd frgb && $(MAKE)
+	cd rgbody && $(MAKE)
 	cd climate && $(MAKE)
 	cd iFluid && $(MAKE)
 	cd melting && $(MAKE)
@@ -68,7 +68,7 @@ clean:
 	-cd crystal && $(MAKE) clean
 	-cd curvature && $(MAKE) clean
 	-cd finance && $(MAKE) clean
-	-cd frgb && $(MAKE) clean
+	-cd rgbody && $(MAKE) clean
 	-cd climate && $(MAKE) clean
 	-cd melting && $(MAKE) clean
 	-cd pde && $(MAKE) clean
@@ -258,11 +258,11 @@ $$ME/weno/in-* \
 $$ME/proj/*.cpp \
 $$ME/proj/*.h \
 $$ME/proj/Makefile.in \
-$$ME/frgb/*.cpp \
-$$ME/frgb/*.h \
-$$ME/frgb/Makefile.in \
-$$ME/frgb/in-* \
-$$ME/frgb/mrun* \
+$$ME/rgbody/*.cpp \
+$$ME/rgbody/*.h \
+$$ME/rgbody/Makefile.in \
+$$ME/rgbody/in-* \
+$$ME/rgbody/mrun* \
 $$ME/climate/*.cpp \
 $$ME/climate/*.h \
 $$ME/climate/Makefile.in \
