@@ -105,7 +105,22 @@ int main(int argc, char **argv)
 	    init_moving_bodies(&front,&level_func_pack,in_name,prob_type);
 	    FT_InitIntfc(&front,&level_func_pack);
 	    if (debugging("trace"))
+	    {
+		char test_name[100];
 	    	printf("Passed FT_InitIntfc()\n");
+		switch (f_basic.dim)
+                {
+                case 2:
+                    sprintf(test_name,"init_intfc-%d.xg",pp_mynode());
+                    xgraph_2d_intfc(test_name,front.interf);
+                    break;
+                case 3:
+                    sprintf(test_name,"init_intfc-%d.xg",pp_mynode());
+                    gview_plot_interface("gv-init",front.interf);
+                    break;
+                }
+	    }
+	    FT_PromptSetMixedTypeBoundary2d(in_name,&front);
 	    read_iF_dirichlet_bdry_data(in_name,&front,f_basic);
 	    if (f_basic.dim < 3)
 	    	FT_ClipIntfcToSubdomain(&front);
@@ -274,9 +289,20 @@ static int rgbody_vel(
 	    vel[1] += -omega*crds_at_com[0];
 	    break;
 	case 3:
-	    omega = angular_velo(hs);
-            vel[0] += omega*crds_at_com[2];
-            vel[2] += -omega*crds_at_com[0];
+//	    omega = angular_velo(hs);
+//	    vel[0] += omega*crds_at_com[2];
+//	    vel[2] += -omega*crds_at_com[0];
+	    if (motion_type(hs) == ROTATION ||
+		motion_type(hs) == PRESET_ROTATION ||
+		motion_type(hs) == FREE_MOTION)
+	    {
+		vel[0] += -p_angular_velo(hs)[2] * crds_at_com[1]
+                          +p_angular_velo(hs)[1] * crds_at_com[2];
+                vel[1] +=  p_angular_velo(hs)[2] * crds_at_com[0]
+                          -p_angular_velo(hs)[0] * crds_at_com[2];
+                vel[2] += -p_angular_velo(hs)[1] * crds_at_com[0]
+                          +p_angular_velo(hs)[0] * crds_at_com[1];
+	    }
 	}
 	return YES;
 }	/* end rgbody_vel */
@@ -457,6 +483,18 @@ extern void read_rg_prob_type(
 	FILE *infile = fopen(inname,"r");
 
 	*prob_type = ERROR_TYPE;
+	(void) printf("Available problem types are:\n");
+        (void) printf("\tFLUID_SOLID_CIRCLE\n");
+        (void) printf("\tFLUID_RIGID_BODY\n");
+        (void) printf("\tOPEN_ROTOR\n");
+        (void) printf("\tPRESSURE_PUMP\n");
+        (void) printf("\tROTOR_ONE_FLUID\n");
+        (void) printf("\tROTOR_TWO_FLUID\n");
+        (void) printf("\tWINDMILL_2D\n");
+        (void) printf("\tWINDMILL_3D\n");
+        (void) printf("\tBEE_3D\n");
+        (void) printf("\tHELICOPTER_3D\n");
+        (void) printf("\tFLUID_SOLID_CONE\n");
 	CursorAfterString(infile,"Enter problem type:");
 	fscanf(infile,"%s",string);
 	(void) printf("%s\n",string);
@@ -494,6 +532,10 @@ extern void read_rg_prob_type(
 	{
             *prob_type = HELICOPTER_3D;
 	}
+	else if (string[0] == 'O' || string[0] == 'o')
+            *prob_type = OPEN_ROTOR;
+        else if (string[0] == 'P' || string[0] == 'p')
+            *prob_type = PRESSURE_PUMP;
 
 	assert(*prob_type != ERROR_TYPE);
 	fclose(infile);

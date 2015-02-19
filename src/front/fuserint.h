@@ -350,11 +350,13 @@ typedef enum _REDISTRIBUTION_DIRECTION REDISTRIBUTION_DIRECTION;
 
 enum _MOTION_TYPE {
 	FREE_MOTION		= 0,
-	VERTICAL_MOTION,
-	HORIZONTAL_MOTION,
-	ROTATION,
 	COM_MOTION,
-	PRESET_MOTION
+	TRANSLATION,
+	ROTATION,
+	PRESET_MOTION,
+	PRESET_COM_MOTION,
+	PRESET_TRANSLATION,
+        PRESET_ROTATION
 };
 typedef enum _MOTION_TYPE MOTION_TYPE;
 	
@@ -389,6 +391,7 @@ struct _F_HYPER_SURF {
         double  mass;			/* Total mass */
         double  moment_of_inertial;	/* Moment of inertial about the axis */
         double  center_of_mass[MAXD];	/* Center of mass */
+	double	translation_dir[MAXD];	/* Direction of translation */
 	double	rotation_dir[MAXD];	/* Direction of rotation */
 	double	rotation_cen[MAXD];	/* Center of rotation */
         double  cm_velo[MAXD];		/* Center of mass velocity */
@@ -418,6 +421,7 @@ typedef struct _F_HYPER_SURF F_HYPER_SURF;
 #define center_of_mass(hs)      (f_hyper_surf(hs)->center_of_mass)
 #define angular_velo(hs)        (f_hyper_surf(hs)->angular_velo)
 #define center_of_mass_velo(hs) (f_hyper_surf(hs)->cm_velo)
+#define translation_dir(hs)  	(f_hyper_surf(hs)->translation_dir)
 #define rotation_direction(hs)  (f_hyper_surf(hs)->rotation_dir)
 #define rotation_center(hs)  	(f_hyper_surf(hs)->rotation_cen)
 #define motion_type(hs)         (f_hyper_surf(hs)->motion_type)

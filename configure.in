@@ -489,7 +489,7 @@ pde/Makefile
 MonteCarlo/Makefile
 timeSeries/Makefile
 iFluid/Makefile
-frgb/Makefile
+rgbody/Makefile
 climate/Makefile
 poisson/Makefile
 cFluid/Makefile

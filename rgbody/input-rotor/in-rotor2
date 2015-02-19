@@ -7,7 +7,7 @@ Lower boundary in 1-th dimension: PASSIVE_BOUNDARY
 Upper boundary in 1-th dimension: PASSIVE_BOUNDARY
 
 Max time: 2.0
-Max step: 10000
+Max step: 1000
 Print interval: 1
 Movie frame interval: 0.1
 CFL factor: 0.75
@@ -19,7 +19,8 @@ Problem type can be
         FLUID_SOLID_CIRCLE
 	FLUID_RIGID_BODY
 	ROTRO_ONE_FLUID
-Enter problem type: ROTRO_ONE_FLUID
+	ROTRO_TWO_FLUID
+Enter problem type: ROTRO_TWO_FLUID
 Projection type can be
         SIMPLE
         BELL_COLELLA
@@ -29,8 +30,11 @@ Enter projection type: SIMPLE
 
 Enter center of the cylinder: 2.0 2.0
 Enter radius of the cylinder: 1.9
-Enter density and viscosity of the fluid: 0.1 0.00628
+Enter radius of the two fluid interface: 1.0
+Enter density and viscosity of fluid 1: 0.1 0.00628
+Enter density and viscosity of fluid 2: 1.0 0.00628
 Enter gravity: 0.0 0.0
+
 Available geometrical shapes of rigid body are
 	Ellipse (E)
 	Tilt Ellipse (N)
@@ -48,12 +52,13 @@ Enter the outer radius: 0.9
 
 ************Rigid body parameters*************
 
-Enter the total mass for rigid body: 1.0
-Enter the center of mass for rigid body: 2.0 2.0
-Type yes if rigid body will only rotate about an axis: y
-Enter center of the axis: 2.0 2.0
-Enter the moment of inertial about the axis: 4.0
-Type yes if angular velocity is preset: y
+Type yes if motion is preset: y
+Available preset motion types are:
+        PRESET_TRANSLATION
+        PRESET_ROTATION
+        PRESET_MOTION (general)
+Enter type of preset motion: PRESET_ROTATION
+Enter rotation center: 2 2
 Enter preset angular velocity: 3.14
 
 ************Movie output parameters*************

@@ -37,6 +37,7 @@ static void initWindMillIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
 static void initBeeIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
 static void initApacheIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
 static void initConeIntfc(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
+static void initPressurePump(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
 /*TMP*/
 static	void insert_surface_tris_into_another(SURFACE*,SURFACE*);
 
@@ -100,21 +101,29 @@ static void initRotorIntfc(
 
 	circle_params.dim = 2;
 	circle_params.add_plan_surf = NO;
-	CursorAfterString(infile,"Enter center of the cylinder:");
-	fscanf(infile,"%lf  %lf",&circle_params.cen[0],
+	if (prob_type != OPEN_ROTOR)
+        {
+	    CursorAfterString(infile,"Enter center of the cylinder:");
+	    fscanf(infile,"%lf  %lf",&circle_params.cen[0],
 				&circle_params.cen[1]);
-	(void) printf("%f %f\n",circle_params.cen[0],circle_params.cen[1]);
-	CursorAfterString(infile,"Enter radius of the cylinder:");
-	fscanf(infile,"%lf",&circle_params.R);
-	(void) printf("%f\n",circle_params.R);
-	func_params = (POINTER)&circle_params;
-        func = level_circle_func;
-	neg_comp = (prob_type == ROTOR_ONE_FLUID) ?
+	    (void) printf("%f %f\n",circle_params.cen[0],circle_params.cen[1]);
+	    CursorAfterString(infile,"Enter radius of the cylinder:");
+	    fscanf(infile,"%lf",&circle_params.R);
+	    (void) printf("%f\n",circle_params.R);
+	    func_params = (POINTER)&circle_params;
+            func = level_circle_func;
+	    neg_comp = (prob_type == ROTOR_ONE_FLUID) ?
 				LIQUID_COMP2 : LIQUID_COMP1;
-	pos_comp = SOLID_COMP;
-	wall = (CURVE**)FT_CreateLevelHyperSurfs(front->rect_grid,front->interf,
-			neg_comp,pos_comp,func,func_params,NEUMANN_BOUNDARY,
-			&num_segs);
+	    pos_comp = SOLID_COMP;
+	    wall = (CURVE**)FT_CreateLevelHyperSurfs(front->rect_grid,
+			front->interf,neg_comp,pos_comp,func,func_params,
+			NEUMANN_BOUNDARY,&num_segs);
+	}
+	else
+        {
+            pos_comp = SOLID_COMP;
+            neg_comp = LIQUID_COMP2;
+        }
 	if (prob_type == ROTOR_TWO_FLUID)
 	{
 	    CursorAfterString(infile,
@@ -303,6 +312,7 @@ extern void init_moving_bodies(
 	switch (prob_type)
         {
 	case ROTOR_ONE_FLUID:
+	case OPEN_ROTOR:
             iFparams->m_comp1 = SOLID_COMP;
 	case ROTOR_TWO_FLUID:
 	    initRotorIntfc(front,level_func_pack,inname,prob_type);
@@ -326,6 +336,10 @@ extern void init_moving_bodies(
 	case FLUID_SOLID_CONE:
             iFparams->m_comp1 = SOLID_COMP;
             initConeIntfc(front,level_func_pack,inname,prob_type);
+            break;
+	case PRESSURE_PUMP:
+            iFparams->m_comp1 = SOLID_COMP;
+            initPressurePump(front,level_func_pack,inname,prob_type);
             break;
 	default:
 	    (void) printf("ERROR: wrong type in init_moving_bodies!\n");
@@ -619,3 +633,43 @@ static void initApacheIntfc3d(
 	fclose(infile);
 	FT_ParallelExchIntfcBuffer(front);
 }	/* end initApacheIntfc3d */
+
+static void initPressurePump(
+	Front *front,
+	LEVEL_FUNC_PACK *level_func_pack,
+	char *inname,
+	RG_PROB_TYPE prob_type)
+{
+	FILE *infile = fopen(inname,"r");
+	int i,num_nodes;
+	double **node_coords;
+	int neg_comp,pos_comp;
+	CURVE *pump;
+	RG_PARAMS rg_params;
+	int dim = FT_Dimension();
+
+	printf("Entering initPressurePump()\n");
+	rg_params.no_fluid = NO;
+	front->extra3 = (POINTER)&rg_params;
+	CursorAfterString(infile,"Enter number of node point of pump: ");
+	fscanf(infile,"%d",&num_nodes);
+	(void) printf("%d\n",num_nodes);
+	FT_MatrixMemoryAlloc((POINTER*)&node_coords,num_nodes,MAXD,
+				sizeof(double));
+	CursorAfterString(infile,"Enter coordinates of node points: ");
+	(void) printf("\n");
+	for (i = 0; i < num_nodes; ++i)
+	{
+	    fscanf(infile,"%lf %lf",&node_coords[i][0],&node_coords[i][1]);
+	    (void) printf("%f %f\n",node_coords[i][0],node_coords[i][1]);
+	}
+	neg_comp = SOLID_COMP;
+	pos_comp = LIQUID_COMP2;
+	pump = FT_MakeNodeArrayCurve(front,num_nodes,node_coords,neg_comp,
+			pos_comp,NO,0.75,MOVABLE_BODY_BOUNDARY);
+
+	fclose(infile);
+
+	prompt_for_rigid_body_params(dim,inname,&rg_params);
+	set_rgbody_params(rg_params,Hyper_surf(pump));
+}	/* end initPressurePump */

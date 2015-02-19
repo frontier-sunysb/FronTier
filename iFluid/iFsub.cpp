@@ -42,6 +42,7 @@ static void get_time_dependent_params(int,FILE*,POINTER*);
 static void get_split_state_params(Front*,FILE*,POINTER*);
 static void addToEnergyFlux(RECT_GRID*,HYPER_SURF*,double*,double*,int,int,
 			boolean);
+static void promptForDirichletBdryState(FILE*,Front*,HYPER_SURF**,int);
 
 static double (*getStateVel[3])(POINTER) = {getStateXvel,getStateYvel,
                                         getStateZvel};
@@ -130,14 +131,12 @@ extern void read_iF_dirichlet_bdry_data(
 	Front *front,
 	F_BASIC_DATA f_basic)
 {
-	char msg[100],s[100];
-	int i,k,dim = front->rect_grid->dim;
+	char msg[100];
+	int i,j,dim = front->rect_grid->dim;
 	FILE *infile = fopen(inname,"r");
 	INTERFACE *intfc = front->interf;
-	static STATE *state;
-	POINTER func_params;
 	HYPER_SURF *hs;
-	int i_surf;
+	int i_hs = 0;
 
 	(void) printf("Available type of Dirichlet boundary include: \n");
 	(void) printf("\tConstant state (C)\n");
@@ -145,123 +144,47 @@ extern void read_iF_dirichlet_bdry_data(
 	(void) printf("\tTime dependent (T)\n");
 	(void) printf("\tSplit state (S)\n");
 	for (i = 0; i < dim; ++i)
+	for (j = 0; j < 2; ++j)
 	{
-	    if (rect_boundary_type(intfc,i,0) == DIRICHLET_BOUNDARY)
+	    if (rect_boundary_type(intfc,i,j) == DIRICHLET_BOUNDARY)
 	    {
 		hs = NULL;
-		i_surf = 2*i;
-	        if (rect_boundary_type(front->interf,i,0) == DIRICHLET_BOUNDARY)
+	        if (rect_boundary_type(front->interf,i,j) == DIRICHLET_BOUNDARY)
 		    hs = FT_RectBoundaryHypSurf(front->interf,
-					DIRICHLET_BOUNDARY,i,0);
-		sprintf(msg,"For lower boundary in %d-th dimension",i);
+					DIRICHLET_BOUNDARY,i,j);
+		if (j == 0)
+		    sprintf(msg,"For lower boundary in %d-th dimension",i);
+		else
+		    sprintf(msg,"For upper boundary in %d-th dimension",i);
 		CursorAfterString(infile,msg);
 		(void) printf("\n");
-		CursorAfterString(infile,"Enter type of Dirichlet boundary:");
-		fscanf(infile,"%s",s);
-		(void) printf("%s\n",s);
-		switch (s[0])
-		{
-		case 'c':			// Constant state
-		case 'C':
-		    FT_ScalarMemoryAlloc((POINTER*)&state,sizeof(STATE));
-		    CursorAfterString(infile,"Enter velocity:");
-		    for (k = 0; k < dim; ++k)
-		    {
-			fscanf(infile,"%lf",&state->vel[k]);
-			(void) printf("%f ",state->vel[k]);
-		    }
-		    (void) printf("\n");
-		    CursorAfterString(infile,"Enter pressure:");
-		    fscanf(infile,"%lf",&state->pres);
-		    (void) printf("%f\n",state->pres);
-		    state->phi = getPhiFromPres(front,state->pres);
-		    FT_InsertDirichletBoundary(front,NULL,NULL,
-					NULL,(POINTER)state,hs,i_surf);
-		    break;
-		case 'f':			// Flow through state
-		case 'F':
-		    FT_InsertDirichletBoundary(front,
-					iF_flowThroughBoundaryState,
-					"flowThroughBoundaryState",NULL,
-					NULL,hs,i_surf);
-		    break;
-		case 't':			// Time dependent state
-		case 'T':
-		    get_time_dependent_params(dim,infile,&func_params);
-		    FT_InsertDirichletBoundary(front,iF_timeDependBoundaryState,
-					"iF_timeDependBoundaryState",
-					func_params,NULL,hs,i_surf);
-		    break;
-		case 's':			// Split state
-		case 'S':
-		    get_split_state_params(front,infile,&func_params);
-		    FT_InsertDirichletBoundary(front,iF_splitBoundaryState,
-					"iF_splitBoundaryState",
-					func_params,NULL,hs,i_surf);
-		    break;
-		default:
-		    (void) printf("Unknown Dirichlet boundary!\n");
-		    clean_up(ERROR);
-		}
+		promptForDirichletBdryState(infile,front,&hs,i_hs);
+		i_hs++;
 	    }
-	    if (rect_boundary_type(intfc,i,1) == DIRICHLET_BOUNDARY)
-	    {
-		hs = NULL;
-		i_surf = 2*i + 1;
-                if (rect_boundary_type(front->interf,i,1) == DIRICHLET_BOUNDARY)
-		    hs = FT_RectBoundaryHypSurf(front->interf,
-					DIRICHLET_BOUNDARY,i,1);
-		sprintf(msg,"For upper boundary in %d-th dimension",i);
-		CursorAfterString(infile,msg);
-		(void) printf("\n");
-		CursorAfterString(infile,"Enter type of Dirichlet boundary:");
-		fscanf(infile,"%s",s);
-		(void) printf("%s\n",s);
-		switch (s[0])
-		{
-		case 'c':			// Constant state
-		case 'C':
-		    FT_ScalarMemoryAlloc((POINTER*)&state,sizeof(STATE));
-		    CursorAfterString(infile,"Enter velocity:");
-		    for (k = 0; k < dim; ++k)
-		    {
-			fscanf(infile,"%lf ",&state->vel[k]);
-			(void) printf("%f ",state->vel[k]);
-		    }
-		    (void) printf("\n");
-		    CursorAfterString(infile,"Enter pressure:");
-		    fscanf(infile,"%lf",&state->pres);
-		    (void) printf("%f\n",state->pres);
-		    state->phi = getPhiFromPres(front,state->pres);
-		    FT_InsertDirichletBoundary(front,NULL,NULL,
-					NULL,(POINTER)state,hs,i_surf);
-		    break;
-		case 'f':			// Flow through state
-		case 'F':
-		    FT_InsertDirichletBoundary(front,
-					iF_flowThroughBoundaryState,
-					"flowThroughBoundaryState",NULL,
-					NULL,hs,i_surf);
-		    break;
-		case 't':			// Time dependent state
-		case 'T':
-		    get_time_dependent_params(dim,infile,&func_params);
-		    FT_InsertDirichletBoundary(front,iF_timeDependBoundaryState,
-					"iF_timeDependBoundaryState",
-					func_params,NULL,hs,i_surf);
-		    break;
-		case 's':			// Split state
-		case 'S':
-		    get_split_state_params(front,infile,&func_params);
-		    FT_InsertDirichletBoundary(front,iF_splitBoundaryState,
-					"iF_splitBoundaryState",
-					func_params,NULL,hs,i_surf);
-		    break;
-		default:
-		    (void) printf("Unknown Dirichlet boundary!\n");
-		    clean_up(ERROR);
-		}
-	    }
+	    else if (rect_boundary_type(intfc,i,j) == MIXED_TYPE_BOUNDARY)
+            {
+		HYPER_SURF **hss;
+		int k,nhs;
+                hss = FT_MixedBoundaryHypSurfs(intfc,i,j,DIRICHLET_BOUNDARY,
+                                        &nhs);
+                printf("Number of Dirichlet boundaries on dir %d side %d: %d\n",
+                                        i,j,nhs);
+                if (dim == 2)
+                {
+                    for (k = 0; k < nhs; ++k)
+                    {
+                        CURVE *c = Curve_of_hs(hss[k]);
+                        (void) printf("Curve %d start and end at: ",k+1);
+                        (void) printf("(%f %f)->(%f %f)\n",
+                                  Coords(c->start->posn)[0],
+                                  Coords(c->start->posn)[1],
+                                  Coords(c->end->posn)[0],
+                                  Coords(c->end->posn)[1]);
+                        promptForDirichletBdryState(infile,front,hss+k,i_hs);
+                        i_hs++;
+                    }
+                }
+            }
 	}
 	fclose(infile);
 }	/* end read_iF_dirichlet_bdry_data */
@@ -780,6 +703,7 @@ static  void dirichlet_point_propagate(
 	    newst = (STATE*)right_state(newp);
 	    comp = positive_component(oldhs);
 	}
+	printf("comp = %d\n",positive_component(oldhs));
 	setStateViscosity(iFparams,newst,comp);
 	if (newst == NULL) return;	// node point
 
@@ -984,7 +908,8 @@ static  void rgbody_point_propagate(
                 vel[2] += -p_angular_velo(oldhs)[1] * crds_com[0]
                           +p_angular_velo(oldhs)[0] * crds_com[1];
 		// propagate by euler parameters
-		if (motion_type(oldhs) == ROTATION)
+		if (motion_type(oldhs) == ROTATION ||
+		    motion_type(oldhs) == PRESET_ROTATION)
 		{
                     double A[3][3],AI[3][3];
                     double ep[4];
@@ -1921,16 +1846,17 @@ static  void ifluid_compute_force_and_torque3d(
                     rr[i] = posn[i] - rotation_center(surface)[i];
                 }
                 Cross3d(rr,f,t);
-                tdir = Dot3d(t,(rotation_direction(hs)));
+//		tdir = Dot3d(t,(rotation_direction(hs)));
                 for (i = 0; i < dim; ++i)
                 {
-                    t[i] = tdir*rotation_direction(hs)[i];
+//		    t[i] = tdir*rotation_direction(hs)[i];
                     torque[i] += t[i];
                 }
             }
         }
          /* Add gravity to the total force */
-        if (motion_type(surface) != ROTATION)
+        if (motion_type(surface) != ROTATION &&
+	    motion_type(surface) != PRESET_ROTATION)
         {
             for (i = 0; i < dim; ++i)
                 force[i] += gravity[i]*total_mass(surface);
@@ -2127,3 +2053,61 @@ static void setStateViscosity(
 	    state->mu = 0.0;
 	}
 }
+
+static void promptForDirichletBdryState(
+	FILE *infile,
+	Front *front,
+	HYPER_SURF **hs,
+        int i_hs)
+{
+	static STATE *state;
+	char s[100];
+	POINTER func_params;
+	int dim = FT_Dimension();
+	int k;
+
+	CursorAfterString(infile,"Enter type of Dirichlet boundary:");
+	fscanf(infile,"%s",s);
+	(void) printf("%s\n",s);
+	switch (s[0])
+	{
+	case 'c':			// Constant state
+	case 'C':
+	    FT_ScalarMemoryAlloc((POINTER*)&state,sizeof(STATE));
+	    CursorAfterString(infile,"Enter velocity:");
+	    for (k = 0; k < dim; ++k)
+	    {
+		fscanf(infile,"%lf",&state->vel[k]);
+		(void) printf("%f ",state->vel[k]);
+	    }
+	    (void) printf("\n");
+	    CursorAfterString(infile,"Enter pressure:");
+	    fscanf(infile,"%lf",&state->pres);
+	    (void) printf("%f\n",state->pres);
+	    state->phi = getPhiFromPres(front,state->pres);
+	    FT_InsertDirichletBoundary(front,NULL,NULL,
+			NULL,(POINTER)state,*hs,i_hs);
+	    break;
+	case 'f':			// Flow through state
+	case 'F':
+	    FT_InsertDirichletBoundary(front,
+			iF_flowThroughBoundaryState,"flowThroughBoundaryState",
+			NULL,NULL,*hs,i_hs);
+	    break;
+	case 't':			// Time dependent state
+	case 'T':
+	    get_time_dependent_params(dim,infile,&func_params);
+	    FT_InsertDirichletBoundary(front,iF_timeDependBoundaryState,
+			"iF_timeDependBoundaryState",func_params,NULL,*hs,i_hs);
+	    break;
+	case 's':			// Split state
+	case 'S':
+	    get_split_state_params(front,infile,&func_params);
+	    FT_InsertDirichletBoundary(front,iF_splitBoundaryState,
+			"iF_splitBoundaryState",func_params,NULL,*hs,i_hs);
+	    break;
+	default:
+	    (void) printf("Unknown Dirichlet boundary!\n");
+	    clean_up(ERROR);
+	}
+}	/* end promptForDirichletBdryState */

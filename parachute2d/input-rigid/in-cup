@@ -1,0 +1,108 @@
+Domain limit in 0-th dimension: 0 12
+Domain limit in 1-th dimension: 0 12
+Computational grid: 100 100
+Lower boundary in 0-th dimension: PASSIVE_BOUNDARY
+Upper boundary in 0-th dimension: PASSIVE_BOUNDARY
+Lower boundary in 1-th dimension: PASSIVE_BOUNDARY
+Upper boundary in 1-th dimension: PASSIVE_BOUNDARY
+
+Max time: 50.0
+Print interval: 5
+Movie frame interval: 0.5
+
+Max step: 1000
+CFL factor: 0.5
+Redistribution interval: 10000000
+Type yes to turn off auto-redistribution: y
+
+Enter yes to consider scalar field: yes
+Enter molecular diffusivities: 0.1
+Enter initial state: DISK_STATE
+Enter center of the disk: 6 6
+Enter radius of the disk: 1.0
+Enter inside temperature: 1.0
+Enter outside temperature: 0.0
+
+Projection type can be
+        SIMPLE
+        BELL_COLELLA
+        KIM_MOIN
+        PEROT_BOTELLA
+Enter projection type: SIMPLE
+Enter advection order: 4
+Available elliptic methods are:
+        Simple elliptic (S)
+        CIM elliptic (C)
+        Double elliptic (DB)
+        Dual elliptic (DU)
+Enter elliptic method: S
+
+Enter yes to add inner boundary: yes
+Available inner boundary types are
+	Circle (c)
+Entering inner boundary type: circle
+Entering center of the circle: 6 6
+Entering radius of the circle: 5.5
+
+Enter number of canopy surfaces: 0
+Enter yes to add rigid body: yes
+Available type of rigid body include:
+	Circle (C)
+Enter type of rigid body: C
+Enter center of the circle: 6 3
+Enter radius of the circle: 0.5
+Rigid body can be fixed (F) or Movable (M)
+The default is Movable (M)
+Type yes if the rigid body is fixed: n
+
+Type yes if motion is preset: yes
+Enter type of preset motion: PRESET_ROTATION
+Enter rotation center: 6 6
+Enter preset angular velocity: 1.0
+
+Enter the total mass for rigid body: 0.5
+Enter the center of mass for rigid body: 6 3
+Enter the moment of inertial about the axis: 0.5
+
+Entering yes to turn off fluid solver: no
+Enter gravity: 0 0
+Enter density and viscosity of the fluid: 1.2 0.000628
+Enter yes to use eddy viscosity: yes
+Available tuebulence models are:
+        Baldwin-Lomax (B)
+        Moin (M)
+        Smagorinski (S)
+Enter turbulence model: B
+Enter maximum distance for eddy viscosity: 0.1
+Enter factor of smoothing radius: 1
+
+For lower boundary in 1-th dimension
+Enter type of Dirichlet boundary: CONSTAT_STATE
+Enter velocity: 0 3
+Enter pressure: 0
+For upper boundary in 1-th dimension
+Enter type of Dirichlet boundary: FLOW_THROUGH
+
+Type y to make movie of pressure: y
+Type y to make movie of vorticity: y
+Type y to make movie of velocity: y
+Type y to make movie of temperature: y
+Type y to make vector velocity field movie: n
+
+Enter string spring constant: 50000
+Enter string friction constant: 0.001
+Enter string point mass: 0.01
+
+************Debugging options*****************
+
+Enter yes for debugging: no
+Enter the debugging string: rigid_body
+Enter the debugging string: ttrace
+Enter the debugging string: tstep_size
+Enter the debugging string: tCLOCK
+Enter the debugging string: tsample_velocity
+Enter the sample line type: xy
+Enter the sample line coordinate: 6.0 6.0
+Enter the start step for sample: 0
+Enter the end step for sample: 10
+Enter the step interval for sample: 1

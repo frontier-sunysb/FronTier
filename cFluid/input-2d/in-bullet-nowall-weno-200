@@ -32,15 +32,16 @@ Enter the center of projectile: 0.5 4.0
 Enter the radius of the projectile: 0.2
 Enter the head height of the projectile: 0.3
 Enter the butt height of the projectile: 0.2
-Enter the total mass for rigid body: 0.5
-Enter the center of mass for rigid body: 0.5 4.0
-Type yes if rigid body will only rotate about an axis: no
-Enter the moment of inertial about center of mass: 0.5
-Type yes if you want vertical motion only?: no
-Type yes if you want horizontal motion only?: yes
-Enter the initial center of mass velocity: 4.0 0.0
 Enter the gun open position: 1.0
 Enter the gun wall thickness: 0.3
+
+Type yes if motion is preset: no
+Enter type of dynamic motion: TRANSLATION
+Enter the direction of motion: 1.0 0.0
+Enter the total mass for rigid body: 0.5
+Enter the initial center of mass for rigid body: 0.5 4.0
+Enter the initial center of mass velocity: 4.0 0.0
+Enter the moment of inertial about center of mass: 0.5
 
 Enter gamma, pinf, einf of ambient air: 1.67 0 0
 Enter density and pressure of ambient air: 1 1
@@ -63,6 +64,7 @@ Type y to make movie of velocity: y
 ************Debugging options*****************
 
 Enter yes for debugging: yes
+Enter the debugging string: tinit_intfc
 Enter the debugging string: hdf_bound
 Enter the debugging string: ttrace
 Enter the debugging string: tCLOCK

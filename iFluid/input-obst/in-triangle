@@ -26,6 +26,7 @@ Projection type can be
         KIM_MOIN
         PEROT_BOTELLA
 Enter projection type: SIMPLE
+Enter yes if the object is fixed: yes
 Triangle is specified by three vertices
 Enter coordinates of point 1: 0.5 3.0
 Enter coordinates of point 2: 0.3 3.2

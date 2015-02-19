@@ -519,6 +519,65 @@ EXPORT	void FT_SetGlobalIndex(
 	set_curve_gindex(front);
 }	/* end FT_SetGlobalIndex */
 
+EXPORT  CURVE *FT_MakeNodeArrayCurve(
+        Front *front,   
+        int num_nodes,
+        double **node_array,
+        COMPONENT   neg_comp,
+        COMPONENT   pos_comp,
+        boolean is_closed_curve,
+	double scale_factor,
+        int w_type)
+{
+	double **dir;
+	double *len,*dh,**point_array;
+	int i,j,n,*np,num_points;
+	CURVE *curve;
+
+	uni_array(&len,num_nodes-1,sizeof(double));
+	uni_array(&dh,num_nodes-1,sizeof(double));
+	uni_array(&np,num_nodes-1,sizeof(int));
+	bi_array(&dir,num_nodes-1,MAXD,sizeof(double));
+	num_points = 1;
+	for (i = 0; i < num_nodes-1; ++i)
+	{
+	    dir[i][0] = node_array[i+1][0] - node_array[i][0];
+	    dir[i][1] = node_array[i+1][1] - node_array[i][1];
+	    len[i] = sqrt(sqr(dir[i][0]) + sqr(dir[i][1]));
+	    dir[i][0] /= len[i];
+	    dir[i][1] /= len[i];
+	    dh[i] = scale_factor*FT_GridSizeInDir(dir[i],front);
+	    if (len[i] <= dh[i])
+	    {
+		np[i] = 1;
+		num_points++;
+	    }
+	    else
+	    {
+	    	np[i] = irint(len[i]/dh[i]);
+	    	dh[i] = len[i]/np[i];
+	    	num_points += np[i];
+	    }
+	}
+	bi_array(&point_array,num_points,MAXD,sizeof(double));
+	n = 0;
+	for (i = 0; i < num_nodes-1; ++i)
+	{
+	    for (j = 0; j < np[i]; ++j)
+	    {
+		point_array[n][0] = node_array[i][0] + j*dh[i]*dir[i][0];
+		point_array[n][1] = node_array[i][1] + j*dh[i]*dir[i][1];
+		n++;
+	    }
+	}
+	point_array[n][0] = node_array[num_nodes-1][0];
+	point_array[n][1] = node_array[num_nodes-1][1];
+	curve = FT_MakePointArrayCurve(front,num_points,point_array,neg_comp,
+			pos_comp,is_closed_curve,w_type);
+	free_these(5,point_array,np,len,dir,dh);
+	return curve;
+}	/* end FT_MakeNodeArrayCurve */
+
 EXPORT	CURVE *FT_MakePointArrayCurve(
 	Front *front,
 	int num_points,

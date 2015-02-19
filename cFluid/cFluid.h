@@ -150,13 +150,19 @@ typedef struct _FLOW_THROUGH_PARAMS FLOW_THROUGH_PARAMS;
 
 struct _RG_PARAMS {
         int dim;
+	boolean no_fluid;               /* For benchmark tests */
         double  total_mass;             /* Total mass */
         double  moment_of_inertial;     /* Moment of inertial about the axis */
         double  center_of_mass[MAXD];   /* Center of mass */
         double  rotation_dir[MAXD];     /* Direction of rotation */
+        double  translation_dir[MAXD];  /* Restricted direction of motion */
         double  rotation_cen[MAXD];     /* Center of rotation */
         double  cen_of_mass_velo[MAXD]; /* Center of mass velocity */
         double  angular_velo;           /* Angular velocity of rotation */
+        double  p_moment_of_inertial[MAXD];
+        double  p_angular_velo[MAXD];
+        double  euler_params[4];
+        double  old_euler_params[4];
         MOTION_TYPE motion_type;
 };
 typedef struct _RG_PARAMS RG_PARAMS;

@@ -2273,9 +2273,11 @@ EXPORT  double cone_func(
         y = coords[1] - c[1];
         z = coords[2] - c[2];
 
-        if (x > 0 && x < h)
+        if (z > 0 && z < h)
         {
-            arg = sqr(s * x) - sqr(y)- sqr(z);
+            arg = sqr(s * z) - sqr(y)- sqr(x);
+	    if (arg < 0) arg = -1;
+	    else arg = 1;
         }
         else
         {

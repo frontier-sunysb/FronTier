@@ -26,20 +26,6 @@ Projection type can be
         KIM_MOIN
         PEROT_BOTELLA
 Enter projection type: SIMPLE
-Type y to make movie of pressure: y
-Type y to make movie of vorticity: y
-Type y to make movie of velocity: y
-Type y to make vector velocity field movie: y
-
-Enter density and viscosity of the fluid: 1.0 0.00628
-Enter gravity: 0.0 0.0
-
-For lower boundary in 1-th dimension
-Enter type of Dirichlet boundary: FLOW_THROUGH
-For upper boundary in 1-th dimension
-Enter type of Dirichlet boundary: CONSTANT_STATE
-Enter velocity: 0 -100
-Enter pressure: 20
 
 Available geometrical shapes of rigid body are
         Ellipse (E)
@@ -55,15 +41,36 @@ Enter the center: 1.0 2.0
 Enter the number of wings: 8
 Enter the inner radius: 0.2
 Enter the outer radius: 0.48
+Enter density and viscosity of the fluid: 1.0 0.00628
+Enter gravity: 0.0 0.0
+
+************Rigid body parameters*************
+
+Type yes if motion is preset: y
+Enter type of preset motion: PRESET_ROTATION
+Enter rotation center: 1.0 2.0
+Enter preset angular velocity: 6.28
 Enter the total mass for rigid body: 1.0
 Enter the center of mass for rigid body: 1.0 2.0
-Type yes if rigid body will only rotate about an axis: y
-Enter center of the axis: 1.0 2.0
 Enter the moment of inertial about the axis: 4.0
-Type yes if angular velocity is preset: n
-Enter initial angular velocity: 1.57
+
+For lower boundary in 1-th dimension
+Enter type of Dirichlet boundary: FLOW_THROUGH
+For upper boundary in 1-th dimension
+Enter type of Dirichlet boundary: CONSTANT_STATE
+Enter velocity: 0 -100
+Enter pressure: 20
+
+************Movie output parameters*************
+Type y to make movie of pressure: y
+Type y to make movie of vorticity: y
+Type y to make movie of velocity: y
+Type y to make vector velocity field movie: y
 
 ************Debugging options*****************
 
 Enter yes for debugging: yes
 Enter the debugging string: rigid_body
+Enter the debugging string: tstep_size
+Enter the debugging string: trace
+Enter the debugging string: tCLOCK

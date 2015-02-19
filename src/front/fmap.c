@@ -2585,7 +2585,10 @@ LOCAL void FrontPreAdvance2d(
 	    if (wave_type(*c) == MOVABLE_BODY_BOUNDARY)
 	    {
 		index = body_index(*c);
-		if (motion_type(*c) == PRESET_MOTION) 
+		if (motion_type(*c) == PRESET_MOTION ||
+		    motion_type(*c) == PRESET_COM_MOTION ||
+		    motion_type(*c) == PRESET_TRANSLATION ||
+		    motion_type(*c) == PRESET_ROTATION) 
 		{
 		    if (debugging("rigid_body"))
 		    {
@@ -2597,22 +2600,12 @@ LOCAL void FrontPreAdvance2d(
 					center_of_mass_velo(*c)[1]);
 		    }
 		}
-		else if (motion_type(*c) == VERTICAL_MOTION)
+		else if (motion_type(*c) == TRANSLATION)
 		{
-		    for (i = 0; i < dim-1; ++i)
-		    	center_of_mass_velo(*c)[i] = 0.0;
-		    for (i = dim-1; i < dim; ++i)
+		    for (i = 0; i < dim; ++i)
 		    	center_of_mass_velo(*c)[i] +=
-                        	dt*force[index][i]/total_mass(*c);
-		    angular_velo(*c) = 0.0;
-		}
-		else if (motion_type(*c) == HORIZONTAL_MOTION)
-		{
-		    for (i = 0; i < dim-1; ++i)
-		    	center_of_mass_velo(*c)[i] +=
-                        	dt*force[index][i]/total_mass(*c);
-		    for (i = dim-1; i < dim; ++i)
-		    	center_of_mass_velo(*c)[i] = 0.0;
+                        	dt*translation_dir(*c)[i]*force[index][i]/
+				total_mass(*c);
 		    angular_velo(*c) = 0.0;
 		}
 		else if (motion_type(*c) == ROTATION) 
@@ -2620,6 +2613,13 @@ LOCAL void FrontPreAdvance2d(
 		    for (i = 0; i < dim; ++i)
 		    	center_of_mass_velo(*c)[i] = 0.0;
 		    angular_velo(*c) += dt*torque[index]/mom_inertial(*c);
+		}
+		else if (motion_type(*c) == COM_MOTION)
+		{
+		    for (i = 0; i < dim; ++i)
+		    	center_of_mass_velo(*c)[i] +=
+                        	dt*force[index][i]/total_mass(*c);
+		    angular_velo(*c) = 0.0;
 		}
 		else
 		{
@@ -2715,7 +2715,7 @@ LOCAL void FrontPreAdvance3d(
 	{
 	    if (wave_type(*s) == MOVABLE_BODY_BOUNDARY)
 	    {
-		if (motion_type(*s) == PRESET_MOTION) continue;
+//		if (motion_type(*s) == PRESET_MOTION) continue;
 		index = body_index(*s);
 		FrontForceAndTorqueOnHs(front,Hyper_surf(*s),dt,f,t);
 	    	for (j = 0; j < dim; ++j)
@@ -2744,7 +2744,9 @@ LOCAL void FrontPreAdvance3d(
 	    if (wave_type(*s) == MOVABLE_BODY_BOUNDARY)
 	    {
 		index = body_index(*s);
-		if (motion_type(*s) == PRESET_MOTION) 
+		if (motion_type(*s) == PRESET_MOTION ||
+		    motion_type(*s) == PRESET_COM_MOTION ||
+                    motion_type(*s) == PRESET_TRANSLATION)
 		{
 		    if (debugging("rigid_body"))
 		    {
@@ -2756,11 +2758,20 @@ LOCAL void FrontPreAdvance3d(
 					center_of_mass_velo(*s)[1],
 					center_of_mass_velo(*s)[2]);
 		    }
-                    continue;
+//                    continue;
 		}
-		torq_dir = Dot3d(torque[index],rotation_direction(*s));
-		angular_velo(*s) += dt*torq_dir/mom_inertial(*s);
-		if (motion_type(*s) != ROTATION)
+//		torq_dir = Dot3d(torque[index],rotation_direction(*s));
+//		angular_velo(*s) += dt*torq_dir/mom_inertial(*s);
+		else if (motion_type(*s) == TRANSLATION)
+                {
+                    for (i = 0; i < dim; ++i)
+                    {
+                        center_of_mass_velo(*s)[i] +=
+				dt*translation_dir(*s)[i]*force[index][i]/
+                                total_mass(*s);
+                    }
+                }
+		else if (motion_type(*s) == COM_MOTION)
 		{
 		    for (i = 0; i < dim; ++i)
 		    {
@@ -2768,13 +2779,41 @@ LOCAL void FrontPreAdvance3d(
                         	dt*force[index][i]/total_mass(*s);
 		    }
 		}
-		else 
+		else if (motion_type(*s) == PRESET_ROTATION)
 		{
+		    /* rotate about a fixed axis */
+		    /* use the relationship between the euler parameters and
+		       the rotation direction */
+		    /* the angular velocity is a constant in this case */
 		    for (i = 0; i < dim; ++i)
-		    	center_of_mass_velo(*s)[i] = 0.0;
-		    /* no outside torque case w.r.t. the rotation center;
-		    future work: add torque w.t.t. the rotation center to the 
-		    right hand side of euler's equation of*/
+                            center_of_mass_velo(*s)[i] = 0.0;
+                    for (i = 0; i < 4; i++)
+                        old_euler_params(*s)[i] = euler_params(*s)[i];
+		    euler_params(*s)[0] = cos(0.5*angular_velo(*s)
+						*(front->time+dt));
+		    for (i = 1; i < 4; ++i)
+			euler_params(*s)[i] = rotation_direction(*s)[i-1] * 
+				sin(0.5*angular_velo(*s)*(front->time+dt));
+		}
+		else /* Free Motion, Rotation Motion*/ 
+		{
+		    /* update the center of mass velocity */
+		    if (motion_type(*s) == FREE_MOTION)
+		    {
+			for (i = 0; i < dim; ++i)
+                    	{
+                            center_of_mass_velo(*s)[i] +=
+                                    dt*force[index][i]/total_mass(*s);
+                    	}
+		    }
+		    else
+		    {
+		    	for (i = 0; i < dim; ++i)
+		    	    center_of_mass_velo(*s)[i] = 0.0;
+		    }
+		    /* update the principle angular velocity by solving
+		       euler's equation with 4th order RK method */
+		    /* torque has been added in the equations */
                     coef[0] = (p_mom_inertial(*s)[2]-p_mom_inertial(*s)[1]) /
                                         p_mom_inertial(*s)[0];
                     coef[1] = (p_mom_inertial(*s)[0]-p_mom_inertial(*s)[2]) /
@@ -2782,38 +2821,50 @@ LOCAL void FrontPreAdvance3d(
                     coef[2] = (p_mom_inertial(*s)[1]-p_mom_inertial(*s)[0]) /
                                         p_mom_inertial(*s)[2];
                     temp[0][0] = - coef[0] * p_angular_velo(*s)[1]
-                                * p_angular_velo(*s)[2];
+                                * p_angular_velo(*s)[2]
+				+ torque[index][0] / p_mom_inertial(*s)[0];
                     temp[0][1] = - coef[1] * p_angular_velo(*s)[2]
-                                * p_angular_velo(*s)[0];
+                                * p_angular_velo(*s)[0]
+				+ torque[index][1] / p_mom_inertial(*s)[1];
                     temp[0][2] = - coef[2] * p_angular_velo(*s)[0]
-                                * p_angular_velo(*s)[1];
+                                * p_angular_velo(*s)[1]
+				+ torque[index][2] / p_mom_inertial(*s)[2];
                     temp[1][0] = - coef[0]
                          * (p_angular_velo(*s)[1] + 0.5 * temp[0][1] * dt)
-                         * (p_angular_velo(*s)[2] + 0.5 * temp[0][2] * dt);
+                         * (p_angular_velo(*s)[2] + 0.5 * temp[0][2] * dt)
+			 + torque[index][0] / p_mom_inertial(*s)[0];
                     temp[1][1] = - coef[1]
                          * (p_angular_velo(*s)[2] + 0.5 * temp[0][2] * dt)
-                         * (p_angular_velo(*s)[0] + 0.5 * temp[0][0] * dt);
+                         * (p_angular_velo(*s)[0] + 0.5 * temp[0][0] * dt)
+			 + torque[index][1] / p_mom_inertial(*s)[1];
                     temp[1][2] = - coef[2]
                          * (p_angular_velo(*s)[0] + 0.5 * temp[0][0] * dt)
-                         * (p_angular_velo(*s)[1] + 0.5 * temp[0][1] * dt);
+                         * (p_angular_velo(*s)[1] + 0.5 * temp[0][1] * dt)
+			 + torque[index][2] / p_mom_inertial(*s)[2];
                     temp[2][0] = - coef[0]
                          * (p_angular_velo(*s)[1] + 0.5 * temp[1][1] * dt)
-                         * (p_angular_velo(*s)[2] + 0.5 * temp[1][2] * dt);
+                         * (p_angular_velo(*s)[2] + 0.5 * temp[1][2] * dt)
+			 + torque[index][0] / p_mom_inertial(*s)[0];
                     temp[2][1] = - coef[1]
                          * (p_angular_velo(*s)[2] + 0.5 * temp[1][2] * dt)
-                         * (p_angular_velo(*s)[0] + 0.5 * temp[1][0] * dt);
+                         * (p_angular_velo(*s)[0] + 0.5 * temp[1][0] * dt)
+			 + torque[index][1] / p_mom_inertial(*s)[1];
                     temp[2][2] = - coef[2]
                          * (p_angular_velo(*s)[0] + 0.5 * temp[1][0] * dt)
-                         * (p_angular_velo(*s)[1] + 0.5 * temp[1][1] * dt);
+                         * (p_angular_velo(*s)[1] + 0.5 * temp[1][1] * dt)
+			 + torque[index][2] / p_mom_inertial(*s)[2];
                     temp[3][0] = - coef[0]
                          * (p_angular_velo(*s)[1] +  temp[2][1] * dt)
-                         * (p_angular_velo(*s)[2] +  temp[2][2] * dt);
+                         * (p_angular_velo(*s)[2] +  temp[2][2] * dt)
+			 + torque[index][0] / p_mom_inertial(*s)[0];
                     temp[3][1] = - coef[1]
                          * (p_angular_velo(*s)[2] +  temp[2][2] * dt)
-                         * (p_angular_velo(*s)[0] +  temp[2][0] * dt);
+                         * (p_angular_velo(*s)[0] +  temp[2][0] * dt)
+			 + torque[index][1] / p_mom_inertial(*s)[1];
                     temp[3][2] = - coef[2]
                          * (p_angular_velo(*s)[0] +  temp[2][0] * dt)
-                         * (p_angular_velo(*s)[1] +  temp[2][1] * dt);
+                         * (p_angular_velo(*s)[1] +  temp[2][1] * dt)
+			 + torque[index][2] / p_mom_inertial(*s)[2];
                     for (i = 0; i < dim; ++i)
                         p_angular_velo(*s)[i] += dt/6.0 * (temp[0][i] +
                                 2*temp[1][i] + 2*temp[2][i] + temp[3][i]);
@@ -2926,6 +2977,7 @@ LOCAL void FrontPreAdvance3d(
 					torque[index][1],torque[index][2]);
 		    printf("force = %f %f %f\n",force[index][0],
 					force[index][1],force[index][2]);
+		    printf("angular_velo = %f\n",angular_velo(*s));
 		    printf("p_angular_velo = %f %f %f\n",p_angular_velo(*s)[0],
                                 p_angular_velo(*s)[1],p_angular_velo(*s)[2]);
                     printf("euler_params = %f %f %f %f\n",euler_params(*s)[0],
