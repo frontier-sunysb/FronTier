@@ -45,6 +45,120 @@ LOCAL	void	debug_print_B_node_curves(const char*,
 LOCAL	void copy_state_to_node(Locstate,COMPONENT,NODE*,size_t);
 LOCAL	boolean close_to_subdomain_bdry(O_CURVE,O_CURVE,O_CURVE);
 LOCAL   int  free_end_node_propagate(Front*,POINTER,NODE*,NODE*,double);
+LOCAL 	boolean out_physical_boundary(POINT*,INTERFACE*,RECT_GRID*);
+
+
+LOCAL	boolean out_physical_boundary(
+	POINT *p,
+	INTERFACE *intfc,
+	RECT_GRID *gr)
+{
+	int i,dim;
+	double *L = gr->L;
+	double *U = gr->U;
+
+	for (i = 0; i < dim; ++i)
+        {
+            if (rect_boundary_type(intfc,i,0) != SUBDOMAIN_BOUNDARY &&
+                Coords(p)[i] < L[i])
+                return YES;
+            if (rect_boundary_type(intfc,i,1) != SUBDOMAIN_BOUNDARY &&
+                Coords(p)[i] >= U[i])
+                return YES;
+        }
+        return NO;
+}	/* end out_physical_boundary */
+
+/*	
+*	This function only works for movable body curve.
+*/
+LOCAL void redist_adjacent_bond(
+	NODE *newn,
+	Front *fr)
+{
+	INTERFACE *intfc = fr->interf;
+	RECT_GRID *gr = fr->rect_grid;
+	CURVE **c,*curve;
+	BOND *b;
+	POINT *p;
+	double coords[MAXD];
+	double *h = gr->h;
+	double spacing = Front_spacing(fr,GENERAL_WAVE);
+	int i,dim = FT_Dimension();	
+	boolean is_in_curve,job_done;
+
+	curve = NULL;
+	for (c = newn->in_curves; c && *c; ++c)
+	{
+	    if (wave_type(*c) == MOVABLE_BODY_BOUNDARY)
+	    {
+		curve = *c;
+		is_in_curve = YES;
+	    }
+	}
+	for (c = newn->out_curves; c && *c; ++c)
+	{
+	    if (wave_type(*c) == MOVABLE_BODY_BOUNDARY)
+	    {
+		curve = *c;
+		is_in_curve = NO;
+	    }
+	}
+	if (curve == NULL) return;
+
+	job_done = NO;
+	while (!job_done)
+	{
+	    if (is_in_curve)
+	    {
+		b = curve->last;
+		p = b->start;
+	        if (out_physical_boundary(p,intfc,gr))
+	        {
+		    delete_start_of_bond(b,curve);
+		    continue;
+	        }
+		if (scaled_bond_length(b,h,dim) > 1.5*spacing)
+		{
+		    for (i = 0; i < dim; ++i)
+			coords[i] = 0.5*(Coords(b->start)[i] +
+					Coords(b->end)[i]); 
+		    insert_point_in_bond(Point(coords),b,curve);
+		    continue;
+		}
+		else if (scaled_bond_length(b,h,dim) < 0.5*spacing)
+		{
+		    delete_start_of_bond(b,curve);
+		    continue;
+		}
+		job_done = YES;
+	    }
+	    else
+	    {
+		b = curve->first;
+		p = b->end;
+	        if (out_physical_boundary(p,intfc,gr))
+	        {
+		    delete_end_of_bond(b,curve);
+		    continue;
+	        }
+		if (scaled_bond_length(b,h,dim) > 1.5*spacing)
+		{
+		    for (i = 0; i < dim; ++i)
+			coords[i] = 0.5*(Coords(b->start)[i] +
+					Coords(b->end)[i]); 
+		    insert_point_in_bond(Point(coords),b,curve);
+		    continue;
+		}
+		else if (scaled_bond_length(b,h,dim) < 0.5*spacing)
+		{
+		    delete_end_of_bond(b,curve);
+		    continue;
+		}
+		job_done = YES;
+	    }
+	}
+}	/* end redist_adjacent_bond */
 
 /*   
 *		fixed_node_propagate():
@@ -117,9 +231,11 @@ EXPORT	int fixed_node_propagate(
 	    	lst =  Left_state_at_node(oldc,oc_or);
 	    	rst = Right_state_at_node(oldc,oc_or);
 	    	if (wave_type(oldc) >= FIRST_PHYSICS_WAVE_TYPE)
-	    	    (void) printf("oldc %llu physical\n",(long long unsigned int)curve_number(oldc));
+	    	    (void) printf("oldc %llu physical\n",
+				(long long unsigned int)curve_number(oldc));
 	    	else
-	    	    (void) printf("oldc %llu\n",(long long unsigned int)curve_number(oldc));
+	    	    (void) printf("oldc %llu\n",
+				(long long unsigned int)curve_number(oldc));
 	    	(void) printf("\t left - ");	(*fr->print_state)(lst);
 	    	(void) printf("\tright - ");	(*fr->print_state)(rst);
 	    }
@@ -139,9 +255,11 @@ EXPORT	int fixed_node_propagate(
 	    if (debugging("fixed_node"))
 	    {
 	    	if (wave_type(newc) >= FIRST_PHYSICS_WAVE_TYPE)
-	    	    (void) printf("newc %llu physical\n",(long long unsigned int)curve_number(newc));
+	    	    (void) printf("newc %llu physical\n",
+				(long long unsigned int)curve_number(newc));
 	    	else
-	    	    (void) printf("newc %llu\n",(long long unsigned int)curve_number(newc));
+	    	    (void) printf("newc %llu\n",
+				(long long unsigned int)curve_number(newc));
 	    	(void) printf("\t left - ");	(*fr->print_state)(lst);
 	    	(void) printf("\tright - ");	(*fr->print_state)(rst);
 	    	(void) printf("\n");
@@ -151,6 +269,9 @@ EXPORT	int fixed_node_propagate(
 		/* Correct neigboring states at node */
 
 	reset_fixed_node_states(newn,fr);
+	/* The following function is for FIXED moivable body node, if */
+	/* more complicated situation occurs, new node type may be needed */
+	redist_adjacent_bond(newn,fr);
 
 	for (i = 0; i < dim; ++i)
 	    Node_vel(newn)[i] = 0.0;

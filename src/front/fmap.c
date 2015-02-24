@@ -2715,7 +2715,6 @@ LOCAL void FrontPreAdvance3d(
 	{
 	    if (wave_type(*s) == MOVABLE_BODY_BOUNDARY)
 	    {
-//		if (motion_type(*s) == PRESET_MOTION) continue;
 		index = body_index(*s);
 		FrontForceAndTorqueOnHs(front,Hyper_surf(*s),dt,f,t);
 	    	for (j = 0; j < dim; ++j)
@@ -2758,10 +2757,7 @@ LOCAL void FrontPreAdvance3d(
 					center_of_mass_velo(*s)[1],
 					center_of_mass_velo(*s)[2]);
 		    }
-//                    continue;
 		}
-//		torq_dir = Dot3d(torque[index],rotation_direction(*s));
-//		angular_velo(*s) += dt*torq_dir/mom_inertial(*s);
 		else if (motion_type(*s) == TRANSLATION)
                 {
                     for (i = 0; i < dim; ++i)

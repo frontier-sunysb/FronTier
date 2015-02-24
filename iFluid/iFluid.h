@@ -196,6 +196,8 @@ struct _RG_PARAMS {
 	double  p_angular_velo[MAXD];
 	double  euler_params[4];
         double  old_euler_params[4];
+	void	(*vel_func)(POINTER,double*,double*);
+	POINTER vparams;
         MOTION_TYPE motion_type;
 };
 typedef struct _RG_PARAMS RG_PARAMS;

@@ -36,6 +36,7 @@ static void initRectPlaneIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
 static void initTrianglePlaneIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
 static void initChannelFlow(Front*,LEVEL_FUNC_PACK*,char*);
 static void initCylinderPlaneIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
+static void prompt_for_velocity_func(int,char*,RG_PARAMS*);
 
 extern void setInitialIntfc(
 	Front *front,
@@ -997,6 +998,24 @@ extern  void prompt_for_rigid_body_params(
 		    rgb_params->euler_params[i] = 0.0;
 	    }
 	}
+	fclose(infile);
+	if (rgb_params->motion_type == PRESET_ROTATION ||
+	    rgb_params->motion_type == PRESET_MOTION ||
+	    rgb_params->motion_type == PRESET_TRANSLATION)
+	{
+	    rgb_params->vparams = NULL;
+	    rgb_params->vel_func = NULL;
+	    if (CursorAfterStringOpt(infile,
+                "Type yes to use prescribed velocity function:"))
+	    {
+	    	fscanf(infile,"%s",s);
+            	(void) printf("%s\n",s);
+		if (s[0] == 'y' || s[0] == 'Y')
+		{
+		    prompt_for_velocity_func(dim,inname,rgb_params);
+		}
+	    }
+	}
 
         if (debugging("rgbody"))
             (void) printf("Leaving prompt_for_rigid_body_params()\n");
@@ -1011,6 +1030,8 @@ extern void set_rgbody_params(
         mom_inertial(hs) = rg_params.moment_of_inertial;
         angular_velo(hs) = rg_params.angular_velo;
         motion_type(hs) = rg_params.motion_type;
+        vparams(hs) = rg_params.vparams;
+        vel_func(hs) = rg_params.vel_func;
         surface_tension(hs) = 0.0;
         for (i = 0; i < dim; ++i)
         {
@@ -1033,3 +1054,13 @@ extern void set_rgbody_params(
                 euler_params(hs)[i] = rg_params.euler_params[i];
         }
 }       /* end set_rgbody_params */
+
+static  void prompt_for_velocity_func(
+	int dim,
+	char *inname,
+	RG_PARAMS *rgb_params)
+{
+	FILE *infile = fopen(inname,"r");
+
+	fclose(infile);
+}	/* end prompt_for_velocity_func */

@@ -4,9 +4,7 @@ Front Traking algorithms. Front Tracking is a numerical method for
 the solution of partial differential equations whose solutions have 
 discontinuities.  
 
-
 Copyright (C) 1999 by The University at Stony Brook. 
- 
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -401,6 +399,8 @@ struct _F_HYPER_SURF {
 	double  p_angular_velo[MAXD];
 	double  euler_params[4];
         double  old_euler_params[4];
+	POINTER	vparams;
+	void	(*vel_func)(POINTER,double*,double*);
 	MOTION_TYPE motion_type;
 };
 typedef struct _F_HYPER_SURF F_HYPER_SURF;
@@ -430,6 +430,8 @@ typedef struct _F_HYPER_SURF F_HYPER_SURF;
 #define p_angular_velo(hs)      (f_hyper_surf(hs)->p_angular_velo)
 #define euler_params(hs)        (f_hyper_surf(hs)->euler_params)
 #define old_euler_params(hs)    (f_hyper_surf(hs)->old_euler_params)
+#define vparams(hs)    		(f_hyper_surf(hs)->vparams)
+#define vel_func(hs)    	(f_hyper_surf(hs)->vel_func)
 
 
 
