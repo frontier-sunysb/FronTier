@@ -53,7 +53,7 @@ LOCAL	boolean out_physical_boundary(
 	INTERFACE *intfc,
 	RECT_GRID *gr)
 {
-	int i,dim;
+	int i,dim = gr->dim;
 	double *L = gr->L;
 	double *U = gr->U;
 

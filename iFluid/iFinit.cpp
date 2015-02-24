@@ -998,7 +998,6 @@ extern  void prompt_for_rigid_body_params(
 		    rgb_params->euler_params[i] = 0.0;
 	    }
 	}
-	fclose(infile);
 	if (rgb_params->motion_type == PRESET_ROTATION ||
 	    rgb_params->motion_type == PRESET_MOTION ||
 	    rgb_params->motion_type == PRESET_TRANSLATION)
@@ -1016,6 +1015,7 @@ extern  void prompt_for_rigid_body_params(
 		}
 	    }
 	}
+	fclose(infile);
 
         if (debugging("rgbody"))
             (void) printf("Leaving prompt_for_rigid_body_params()\n");
