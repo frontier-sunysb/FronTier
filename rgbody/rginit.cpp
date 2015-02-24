@@ -645,7 +645,7 @@ static void initPressurePump(
 	double **node_coords;
 	int neg_comp,pos_comp;
 	CURVE *pump;
-	RG_PARAMS rg_params;
+	static RG_PARAMS rg_params;
 	int dim = FT_Dimension();
 
 	printf("Entering initPressurePump()\n");

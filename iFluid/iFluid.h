@@ -128,6 +128,7 @@ typedef struct {
 	double surf_tension;
 	double smoothing_radius;
 	double ub_speed;
+	double min_speed;	/* Limit time step in zero ambient velocity */
 	COMPONENT m_comp1;
 	COMPONENT m_comp2;
 	IF_FIELD *field;
@@ -196,7 +197,7 @@ struct _RG_PARAMS {
 	double  p_angular_velo[MAXD];
 	double  euler_params[4];
         double  old_euler_params[4];
-	void	(*vel_func)(POINTER,double*,double*);
+	void	(*vel_func)(Front*,POINTER,double*,double*);
 	POINTER vparams;
         MOTION_TYPE motion_type;
 };

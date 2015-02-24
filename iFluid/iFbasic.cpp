@@ -784,6 +784,9 @@ void Incompress_Solver_Smooth_Basis::setAdvectionDt()
 	    max_dt = hmin/max_speed;
 	else
 	    max_dt = HUGE;
+	if (iFparams->min_speed != 0.0)
+	    max_dt = FT_Min(max_dt,hmin/iFparams->min_speed);
+
 	min_dt = 0.0000001*sqr(hmin)/mu_min;
 	if (debugging("trace"))
 	{

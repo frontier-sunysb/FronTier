@@ -400,7 +400,7 @@ struct _F_HYPER_SURF {
 	double  euler_params[4];
         double  old_euler_params[4];
 	POINTER	vparams;
-	void	(*vel_func)(POINTER,double*,double*);
+	void	(*vel_func)(Front*,POINTER,double*,double*);
 	MOTION_TYPE motion_type;
 };
 typedef struct _F_HYPER_SURF F_HYPER_SURF;

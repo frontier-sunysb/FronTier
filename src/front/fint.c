@@ -1160,6 +1160,8 @@ EXPORT	void	f_user_copy_hyper_surf(
             angular_velo(new_hs) = angular_velo(old_hs);
             motion_type(new_hs) = motion_type(old_hs);
             spherical_radius(new_hs) = spherical_radius(old_hs);
+	    vparams(new_hs) = vparams(old_hs);
+	    vel_func(new_hs) = vel_func(old_hs);
             for (i = 0; i < old_hs->interface->dim; ++i)
             {
                 center_of_mass(new_hs)[i] = center_of_mass(old_hs)[i];

@@ -192,6 +192,7 @@ static  void fluid_driver(
             FT_AddMovieFrame(front,out_name,binary);
 	    FT_SetOutputCounter(front);
 	    FT_SetTimeStep(front);
+            front->dt = std::min(front->dt,CFL*cartesian->max_dt);
         }
         else
 	    FT_SetOutputCounter(front);

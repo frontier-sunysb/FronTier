@@ -37,6 +37,7 @@ static void initTrianglePlaneIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
 static void initChannelFlow(Front*,LEVEL_FUNC_PACK*,char*);
 static void initCylinderPlaneIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
 static void prompt_for_velocity_func(int,char*,RG_PARAMS*);
+static void sine_vel_func(Front*,POINTER,double*,double*);
 
 extern void setInitialIntfc(
 	Front *front,
@@ -1061,6 +1062,60 @@ static  void prompt_for_velocity_func(
 	RG_PARAMS *rgb_params)
 {
 	FILE *infile = fopen(inname,"r");
+	char s[100];
+	int i;
+	static TIME_DEPENDENT_PARAMS *td_params;
 
+	FT_ScalarMemoryAlloc((POINTER*)&td_params,
+                        sizeof(TIME_DEPENDENT_PARAMS));
+	(void) printf("Available prescribed velocity function types are:\n");
+        (void) printf("\tSINE:\n");
+	CursorAfterString(infile,
+		"Enter the prescribed velocity function type:");
+	fscanf(infile,"%s",s);
+	(void)printf("%s\n",s);
+	if (s[0] == 's' || s[0] == 'S')
+	{
+	    td_params->td_type = SINE_FUNC;
+	    CursorAfterString(infile,"Enter velocity amplitude:");
+            for (i = 0; i < dim; ++i)
+            {
+                fscanf(infile,"%lf ",&td_params->v_amp[i]);
+                (void) printf("%f ",td_params->v_amp[i]);
+            }
+            (void) printf("\n");
+	    CursorAfterString(infile,"Enter oscillation frequency:");
+            fscanf(infile,"%lf ",&td_params->omega);
+            (void) printf("%f\n",td_params->omega);
+	    td_params->omega *= 2.0*PI;
+	    CursorAfterString(infile,"Enter initial phase:");
+            fscanf(infile,"%lf ",&td_params->phase);
+            (void) printf("%f\n",td_params->phase);
+            td_params->phase *= PI/180.0;
+	    rgb_params->vparams = (POINTER)td_params;
+	    rgb_params->vel_func = sine_vel_func;
+	}
+	else
+	{
+	    (void) printf("Unknown type of time-dependent function!\n");
+            clean_up(ERROR);
+	}
 	fclose(infile);
 }	/* end prompt_for_velocity_func */
+
+static void sine_vel_func(
+	Front* front,
+	POINTER vparams,
+	double *coords,
+	double *velo)
+{
+	int i;
+	int dim = front->rect_grid->dim;
+	TIME_DEPENDENT_PARAMS *td_params;
+	double time = front->time;
+
+	td_params = (TIME_DEPENDENT_PARAMS*)vparams;
+	for (i = 0; i < dim; ++i)
+	    velo[i] = td_params->v_amp[i] * sin(td_params->omega*time
+			+ td_params->phase);
+}	/* end sine_vel_func */

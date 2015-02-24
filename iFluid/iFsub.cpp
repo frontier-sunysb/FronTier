@@ -703,7 +703,6 @@ static  void dirichlet_point_propagate(
 	    newst = (STATE*)right_state(newp);
 	    comp = positive_component(oldhs);
 	}
-	printf("comp = %d\n",positive_component(oldhs));
 	setStateViscosity(iFparams,newst,comp);
 	if (newst == NULL) return;	// node point
 
@@ -1228,6 +1227,14 @@ extern void read_iFparams(
             (void) printf("%s\n",string);
             if (string[0] == 'y' || string[0] == 'Y')
                 iFparams->scalar_field = YES;
+        }
+	iFparams->min_speed = 0.0;
+        if (CursorAfterStringOpt(infile,
+			"Enter minimum speed to limit time step:"))
+        {
+            fscanf(infile,"%lf ",&iFparams->min_speed);
+            (void) printf("%f ",iFparams->min_speed);
+            (void) printf("\n");
         }
 	fclose(infile);
 }	/* end read_iFparams */
