@@ -134,16 +134,16 @@ LIB_LOCAL  boolean  i_intersections3d(
 	C_BOND	  *cbond;
 	C_CURVE	  **c;
 	C_CURVE	  **c_curves = NULL;
-	COMPONENT ***cz, **czy, *czyx;
+	COMPONENT ***comps;
 	CROSS	  *cr, Cr;
 	NODE	  **n;
-	SURFACE	  *****sz, ****szy, ***szyx, **s, **s0, **s1;
+	SURFACE	  *****surfs, **s, **s0, **s1;
 	SURFACE	  *cs0, *cs1;
 	TRI	  **t, *tri, *ct0, *ct1;
-	TRI	  *****tz, ****tzy, ***tzyx, **t0, **t1;
+	TRI	  *****tris, **t0, **t1;
 	int	  ix, iy, iz;
 	int	  i, j, xmax, ymax, zmax, nt;
-	int	  ***nz, **nzy, *nzyx;
+	int	  ***num_tris;
 	boolean	  status;
 
 	if (intfc->surfaces == NULL) 
@@ -202,32 +202,29 @@ LIB_LOCAL  boolean  i_intersections3d(
 *	the surface elements (TRI's) into grid cubes determined by the
 *	topological grid.
 */
-	tz = intfc->table->tris;
-	sz = intfc->table->surfaces;
-	nz = intfc->table->num_of_tris;
-	cz = intfc->table->compon3d;
+	tris = intfc->table->tris;
+	surfs = intfc->table->surfaces;
+	num_tris = intfc->table->num_of_tris;
+	comps = intfc->table->compon3d;
 
 /*
 *	The following code sets up a loop over all of the "bins" (i.e. grid
 *	cubes, or blocks of the topological grid.)
 */
 
-	for (iz = 0; iz < zmax; ++iz, ++tz, ++sz, ++nz, ++cz)
-	{
-	    tzy = *tz;	szy = *sz;	nzy = *nz; czy = *cz;
-        for (iy = 0; iy < ymax; ++iy, ++tzy, ++szy, ++nzy, ++czy)
-	{
-	    tzyx = *tzy;   szyx = *szy;	nzyx = *nzy; czyx = *czy;
-	for (ix = 0; ix < xmax; ++ix, ++tzyx, ++szyx, ++nzyx, ++czyx)
+	for (iz = 0; iz < zmax; ++iz)
+	for (iy = 0; iy < ymax; ++iy)
+	for (ix = 0; ix < xmax; ++ix)
 	{
 	    /* This grid cube must be passed through by the front...  */
 
-	    if (*czyx != ONFRONT)
+	    if (comps[iz][iy][ix] != ONFRONT)
 		continue;
 
 	    /* and it must contain 2 or more TRI's.     */
 	    
-	    if ((nt = *nzyx) < 2)
+	    nt = num_tris[iz][iy][ix];
+	    if (nt < 2)
 		continue;
 
 	    /*
@@ -235,8 +232,8 @@ LIB_LOCAL  boolean  i_intersections3d(
 	    *    list of SURFACE's for this grid cube.
 	    */
 	    
-	    t = *tzyx;
-	    s = *szyx;
+	    t = tris[iz][iy][ix];
+	    s = surfs[iz][iy][ix];
 	    
 	        /* Loop over all pairs of Tris: */
 	    for (i = 0, t0 = t, s0 = s; i < nt - 1; ++i, ++t0, ++s0)
@@ -294,8 +291,6 @@ LIB_LOCAL  boolean  i_intersections3d(
 		    }
 		}
 	    }
-	}
-	}
 	}
 	stop_clock("make intersection loop");
 
@@ -466,8 +461,8 @@ LOCAL C_BOND *test_cross(
 	INTERFACE *intfc)
 {
 	C_BOND      *new_cb,**cbs;
-	POINT       *q[3]; 
-	double  	    line[MAXD];     /* intersection line of t0, t1 planes */
+	POINT       *p[3],*q[3]; 
+	double      line[MAXD];     /* intersection line of t0, t1 planes */
 	const double *tnor;
 
 	struct {
@@ -494,6 +489,7 @@ LOCAL C_BOND *test_cross(
 	       *p_of_t0[3],*p_of_t1[3],         /* coordinates of vertices */
 	       proj_of_t0[3], proj_of_t1[3];    /* projection of points */
 					        /* of ti on normal of tj */
+	double L0[3],U0[3],L1[3],U1[3];		/* bounding box of tris */
 
 #define set_c_surf_flag(f,e,o,l)				        \
     ( cs_on_bdry(f) = (o),						\
@@ -521,8 +517,28 @@ LOCAL C_BOND *test_cross(
 
 	for (i = 0; i < 3; ++i)
 	{
+	    L0[i] = L1[i] = HUGE;
+	    U0[i] = U1[i] = -HUGE;
+	}
+	for (i = 0; i < 3; ++i)
+	{
+	    p[i] = Point_of_tri(t0)[i];
 	    q[i] = Point_of_tri(t1)[i];
+	    p_of_t0[i] = Coords(p[i]);
 	    p_of_t1[i] = Coords(q[i]);
+	    /* set bounding boxes of each tri */
+	    for (j = 0; j < 3; ++j)
+	    {
+		L0[j] = (p_of_t0[i][j] < L0[j]) ? p_of_t0[i][j] : L0[j];
+		L1[j] = (p_of_t1[i][j] < L1[j]) ? p_of_t1[i][j] : L1[j];
+		U0[j] = (p_of_t0[i][j] > U0[j]) ? p_of_t0[i][j] : U0[j];
+		U1[j] = (p_of_t1[i][j] > U1[j]) ? p_of_t1[i][j] : U1[j];
+	    }
+	}
+	for (i = 0; i < 3; ++i)
+	{
+	    if (U0[i] <= L1[i] || U1[i] <= L0[i]) /* boxes exclusive */
+		return NULL;
 	}
 
 	/*   i0, i1 will denote the common vertex */
@@ -531,12 +547,9 @@ LOCAL C_BOND *test_cross(
 	num_com_vertex = 0;
 	for (i = 0; i < 3; ++i)
 	{
-	    POINT *p = Point_of_tri(t0)[i];
-		
-	    p_of_t0[i] = Coords(p);
 	    for (j = 0; j < 3; ++j)
 	    {
-	    	if (p == q[j])
+	    	if (p[i] == q[j])
 	    	{
 	    	    cv0[num_com_vertex] = i;
 	 	    cv1[num_com_vertex] = j;
@@ -705,7 +718,6 @@ LOCAL C_BOND *test_cross(
 	if (num_com_vertex == 1)
 	{
 	    	/* processing t0 */
-
 	    i0 = cv0[0];
 	    j0 = Next_m3(i0);
 	    k0 = Prev_m3(i0);
@@ -761,7 +773,9 @@ LOCAL C_BOND *test_cross(
 		num_t0_crossing = 1;
 		r = proj_of_t0[j0] / (proj_of_t0[j0] - proj_of_t0[k0]);
 		for (i = 0; i < 3; ++i)
+		{
 		    x[0].coords[i] = r*p_of_t0[k0][i] + (1 - r)*p_of_t0[j0][i];
+		}
 		x[0].label = j0;
 		x[0].edge_vertex = YES;
 	    }
@@ -936,7 +950,6 @@ LOCAL C_BOND *test_cross(
 	        return NULL;
 	    }
 	    break;
-
 	case 1:
 	    if (num_t0_crossing == 0)
 		return NULL;    /* merely touching */
@@ -953,7 +966,6 @@ LOCAL C_BOND *test_cross(
 	        return NULL;
 	    }
 	    break;
-
 	case 2:
 	    if (num_t0_crossing != 0)
 	    {
@@ -968,7 +980,6 @@ LOCAL C_BOND *test_cross(
 	        return NULL;
 	    }
 	    break;
-	
 	default:
 	    (void) printf("WARNING in test_cross(), "
 	           "Unexpected co-planar tris!\n");
@@ -996,7 +1007,6 @@ LOCAL C_BOND *test_cross(
 	        return NULL;
 	    }
 	    break;
-
 	case 1:
 	    if (num_t1_crossing == 0)
 		return NULL;    /* merely touching */
@@ -1007,7 +1017,6 @@ LOCAL C_BOND *test_cross(
 		return NULL;
 	    }
 	    break;
-
 	case 2:
 	    if (num_t1_crossing != 0)
 	    {
@@ -1022,7 +1031,6 @@ LOCAL C_BOND *test_cross(
 	        return NULL;
 	    }
 	    break;
-
 	default:
 	    (void) printf("WARNING in test_cross(), "
 	                  "Unexpected co-planar tris!\n");
@@ -1030,7 +1038,6 @@ LOCAL C_BOND *test_cross(
 			  num_t1_touching,num_t1_crossing);
 	    return test_coplanar_cross(t0,t1,num_com_vertex,status,intfc);
 	}
-
 
 	    /* label the four cross points by tri and by order */
 
@@ -1102,7 +1109,6 @@ LOCAL C_BOND *test_cross(
 	    set_flag_start(new_cb,0,x[l0].edge_vertex,YES,x[l0].label);
 	    set_flag_start(new_cb,1,x[l1].edge_vertex,YES,x[l1].label);
 	}
-
 	else if (x[l0].order > x[l1].order)
 	{
 	    start = x[l0].coords;
@@ -1118,7 +1124,6 @@ LOCAL C_BOND *test_cross(
 	    set_flag_start(new_cb,0,x[l0].edge_vertex,YES,x[l0].label);
 	    set_flag_start(new_cb,1,NO,NO,-1);
 	}
-
 	else  /* if (x[l1].order > x[l0].order) */
 	{
 	    start = x[l1].coords;
@@ -1134,7 +1139,6 @@ LOCAL C_BOND *test_cross(
 	    set_flag_start(new_cb,0,NO,NO,-1);
 	    set_flag_start(new_cb,1,x[l1].edge_vertex,YES,x[l1].label);
 	}
-
 
 	    /* end side of new_cb */
 
@@ -1192,7 +1196,6 @@ LOCAL C_BOND *test_cross(
 	    set_flag_end(new_cb,0,x[u0].edge_vertex,YES,x[u0].label);
 	    set_flag_end(new_cb,1,NO,NO,-1);
 	}
-
 	else  /* if (x[u1].order < x[u0].order) */
 	{
 	    end = x[u1].coords;

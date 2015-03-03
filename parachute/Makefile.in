@@ -54,6 +54,8 @@ afsetd.o : ../airfoil/airfoil.h ../iFluid/iFluid.h ../airfoil/afsetd.cpp
 	${CXX} -c ../airfoil/afsetd.cpp $(incsloc) $(incs) ${Petsc_Include}
 afcnpy.o : ../airfoil/airfoil.h ../iFluid/iFluid.h ../airfoil/afcnpy.cpp
 	${CXX} -c ../airfoil/afcnpy.cpp $(incsloc) $(incs) ${Petsc_Include}
+afinit3d.o : ../airfoil/airfoil.h ../iFluid/iFluid.h ../airfoil/afinit3d.cpp
+	${CXX} -c ../airfoil/afinit3d.cpp $(incsloc) $(incs) ${Petsc_Include}
 parachute.o : ../airfoil/airfoil.h ../iFluid/iFluid.h parachute.cpp
 	${CXX} -c parachute.cpp $(incsloc) $(incs) ${Petsc_Include}
 modules.o : ../airfoil/airfoil.h ../iFluid/iFluid.h modules.cpp
@@ -64,13 +66,13 @@ cgal.o : ../airfoil/airfoil.h ../iFluid/iFluid.h ../airfoil/cgal.cpp
 	${CXX} -c ../airfoil/cgal.cpp -frounding-math -I/usr/local/pkg/cgal/include -L/usr/local/pkg/cgal/lib -lCGAL_Core -lCGAL_ImageIO -lCGAL -L/usr/lib64 -lgmp -lmpfr $(incsloc) $(incs) ${Petsc_Include} 
 
 ifeq ($(USEGPU),no)
-parachute: ../iFluid/iFluid.h ../solver/solver.h ../airfoil/airfoil.h parachute.cpp afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o cgal.o ../lib/libiF.a
+parachute: ../iFluid/iFluid.h ../solver/solver.h ../airfoil/airfoil.h parachute.cpp afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o afinit3d.o modules.o iFsub.o cgal.o ../lib/libiF.a
 	${CXX} -c parachute.cpp $(incsloc) $(incs) ${Petsc_Include}
-	$(CXX) -o parachute parachute.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o cgal.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} -frounding-math -I/usr/local/pkg/cgal/include -L/usr/local/pkg/cgal/lib -lCGAL_Core -lCGAL_ImageIO -lCGAL -L/usr/lib64 -lgmp -lmpfr 
+	$(CXX) -o parachute parachute.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o afinit3d.o modules.o iFsub.o cgal.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} -frounding-math -I/usr/local/pkg/cgal/include -L/usr/local/pkg/cgal/lib -lCGAL_Core -lCGAL_ImageIO -lCGAL -L/usr/lib64 -lgmp -lmpfr 
 else
-parachute: ../iFluid/iFluid.h ../solver/solver.h ../airfoil/airfoil.h parachute.cpp afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o ../lib/libiF.a airfoil_gpu.o cgal.o
+parachute: ../iFluid/iFluid.h ../solver/solver.h ../airfoil/airfoil.h parachute.cpp afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o afinit3d.o modules.o iFsub.o ../lib/libiF.a airfoil_gpu.o cgal.o
 	${CXX} -c parachute.cpp $(incsloc) $(incs) ${Petsc_Include}
-	$(CXX) -o parachute parachute.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o modules.o iFsub.o airfoil_gpu.o cgal.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so -frounding-math -I/usr/local/pkg/cgal/include -L/usr/local/pkg/cgal/lib -lCGAL_Core -lCGAL_ImageIO -lCGAL -L/usr/lib64 -lgmp -lmpfr
+	$(CXX) -o parachute parachute.o afdata.o afprop.o afvelo.o aftest.o afsetd.o afcnpy.o afinit3d.o modules.o iFsub.o airfoil_gpu.o cgal.o -I../include -L../lib/${build_cpu} -liF ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so -frounding-math -I/usr/local/pkg/cgal/include -L/usr/local/pkg/cgal/lib -lCGAL_Core -lCGAL_ImageIO -lCGAL -L/usr/lib64 -lgmp -lmpfr
 endif
 
 

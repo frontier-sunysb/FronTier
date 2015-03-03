@@ -113,6 +113,7 @@ int main(int argc, char **argv)
 	if (!RestartRun)
 	{
 	    FT_InitIntfc(&front,&level_func_pack);
+	    initRigidBody(&front);
 	    if (f_basic.dim == 3 && debugging("trace"))
 	    {
 		gview_plot_interface("ginit",front.interf);

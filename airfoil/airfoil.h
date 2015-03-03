@@ -227,6 +227,7 @@ extern void setInitialIntfcAF(Front*,LEVEL_FUNC_PACK*,char*);
 extern void initEllipticSurf(FILE*,Front*,LEVEL_FUNC_PACK*);
 extern void initParabolicSurf(FILE*,Front*,LEVEL_FUNC_PACK*);
 extern void initPlaneSurf(FILE*,Front*,LEVEL_FUNC_PACK*);
+extern void initRigidBody(Front*);
 
 // afprop.cpp
 extern void airfoil_point_propagate(Front*,POINTER,POINT*,POINT*,

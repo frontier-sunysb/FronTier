@@ -257,6 +257,7 @@ struct _TRI
 	int boundary;		/* tri bonds on interface curves? */
 	int order;		/* used as an identification for a tri, avoid 
 				   the conflict with _index in private_data. */
+	boolean	constrained;	/* If yes will not free to move */
 	union
 	{
 	    int		   _index;
@@ -1258,6 +1259,7 @@ enum {
 
 #define Tri_order(_tri_)                ((_tri_)->order)
 #define	Surface_of_tri(_tri_)		((_tri_)->surf)
+#define Constrained(_tri_)		((_tri_)->constrained)
 #define Tri_workspace(_tri_)		((_tri_)->private_data._workspace)
 #define Tri_index(_tri_)		((_tri_)->private_data._index)
 #define Tri_cross_list(_tri_)		((_tri_)->private_data._tri_cross_list)

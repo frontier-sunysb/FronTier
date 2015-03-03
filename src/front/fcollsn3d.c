@@ -37,9 +37,9 @@ LOCAL void find_convex_tri_cluster(TRI**,int,TRI**,int*);
 LOCAL void set_tr_tf_pf_list(Front*,C_CURVE*,TRI***,int*,TRI***,int*,
 			POINT***,int*);
 LOCAL void add_neighbors_of_landing_tri(TRI***,int*,SURFACE*,int*,TRI*);
-LOCAL void check_add_tri(TRI***,TRI*,int*,int*);
 LOCAL void check_add_pt(POINT***,POINT*,int*,int*);
 LOCAL void test_rigid_pts(Front*,TRI**,int,TRI**,int);
+LOCAL boolean check_add_tri(TRI***,TRI*,int*,int*);
 
 EXPORT	void	resolve_collision(
 	Front	*front)
@@ -59,37 +59,29 @@ EXPORT	void	resolve_collision(
 	printf("cross = %p\n",(void*)cross);
 	stop_clock("intersection");
 	if (cross == NULL) return;
-	/*
-	while (cross != NULL)
+	for (i = 0, cr = cross; cr != NULL; ++i, cr = cr->next)
 	{
-	*/
-	    for (i = 0, cr = cross; cr != NULL; ++i, cr = cr->next)
+	    cc = cr->c_curve;
+	    sprintf(fname,"cross-%d",count);
+	    gview_plot_c_curve(cc,i,fname);
+	    s = cc->s;
+	    c_type = collision_type(intfc,s);
+	    switch (c_type)
 	    {
-		cc = cr->c_curve;
-		sprintf(fname,"cross-%d",count);
-		gview_plot_c_curve(cc,i,fname);
-		s = cc->s;
-		c_type = collision_type(intfc,s);
-		switch (c_type)
-		{
-		case FABRIC_RIGID_COLLISION:
-		    fabric_rigid_collision(front,cc);
-		    break;
-		case FABRIC_FABRIC_COLLISION:
-		    (void) printf("FABRIC_FABRIC_COLLISION not implemented!\n");
-		    continue;
-		case RIGID_RIGID_COLLISION:
-		    (void) printf("RIGID_RIGID_COLLISION not implemented!\n");
-		    clean_up(ERROR);
-		default:
-		    (void) printf("Unknown collision!\n");
-		    clean_up(ERROR);
-		}
+	    case FABRIC_RIGID_COLLISION:
+		fabric_rigid_collision(front,cc);
+		break;
+	    case FABRIC_FABRIC_COLLISION:
+		(void) printf("FABRIC_FABRIC_COLLISION not implemented!\n");
+		continue;
+	    case RIGID_RIGID_COLLISION:
+		(void) printf("RIGID_RIGID_COLLISION not implemented!\n");
+		clean_up(ERROR);
+	    default:
+		(void) printf("Unknown collision!\n");
+		clean_up(ERROR);
 	    }
-	/*
 	}
-	clean_up(0);
-	*/
 }	/* end resolve_collision */
 
 LOCAL int collision_type(
@@ -172,8 +164,6 @@ LOCAL void fabric_rigid_collision(
 				&pf_list,&num_pfs);
 
 	FT_MatrixMemoryAlloc((POINTER*)&newpts,num_pfs,MAXD,sizeof(double));
-	sprintf(dirname,"cross-tris/cross0-%d",front->step);
-	gview_plot_crossing_tris(dirname,tr_list,num_trs,tf_list,num_tfs);
 	for (i = 0; i < num_pfs; ++i)
 	{
 	    status = nearest_point_to_tri_cluster(Coords(pf_list[i]),int_comp,
@@ -187,16 +177,17 @@ LOCAL void fabric_rigid_collision(
 	    for (k = 0; k < 3; ++k)
 		Coords(pf_list[i])[k] = newpts[i][k];
 	}
-	sprintf(dirname,"cross-tris/cross1-%d",front->step);
-	gview_plot_crossing_tris(dirname,tr_list,num_trs,tf_list,num_tfs);
-	printf("Component after treatment:\n");
+	if (debugging("collision"))
+	{
+	    sprintf(dirname,"cross-tris/after-lifting-%d",front->step);
+	    gview_plot_crossing_tris(dirname,tr_list,num_trs,tf_list,num_tfs);
+	}
 	for (i = 0; i < num_pfs; ++i)
 	{
 	    COMPONENT comp;
 	    p = pf_list[i];
 	    comp = component_wrt_tri_cluster(Coords(p),sr,tr_list,
 				num_trs);
-	    printf("comp[%d] = %d\n",i,comp);
 	}
 	num_prs = max_num_prs = 0;
 	pr_list = NULL;
@@ -223,13 +214,17 @@ LOCAL void fabric_rigid_collision(
 	    p = pr_list[i];
 	    status = nearest_point_to_tri_cluster(Coords(p),int_comp,
                             sf,tf_list,num_tfs,&tri_on,&id,nearest_pt,nor);
-	    printf("tri_on = %p\n",(void*)tri_on);
 	    if (status == ONEDGE)
 		printf("ie = %d\n",id);
 	    else
 		printf("\n");
 	}
 	remove_from_debug("tri_cluster");
+	if (debugging("collision"))
+	{
+	    sprintf(dirname,"cross-tris/before-leaving-%d",front->step);
+	    gview_plot_crossing_tris(dirname,tr_list,num_trs,tf_list,num_tfs);
+	}
 	printf("num_prs = %d\n",num_prs);
 	free_these(4,tr_list,tf_list,pf_list,newpts);
 }	/* end fabric_rigid_collision */
@@ -247,9 +242,78 @@ LOCAL void test_rigid_pts(
 	
 }	/* end test_rigid_pts */
 
+LOCAL boolean point_inside_c_curve(
+	POINT *p,
+	C_CURVE *cc)
+{
+	C_BOND *cb;
+	double v1[MAXD],v2[MAXD],vn0[MAXD],vn[MAXD];
+	int i;
+
+	cb = cc->first;
+	for (i = 0; i < 3; ++i)
+	{
+	    v1[i] = Coords(cb->start)[i] - Coords(cb->end)[i];
+	    v2[i] = Coords(p)[i] - Coords(cb->end)[i];
+	}
+	Cross3d(v1,v2,vn0);
+	for (cb = cb->next; cb != NULL; cb = cb->next)
+	{
+	    for (i = 0; i < 3; ++i)
+	    {
+	    	v1[i] = Coords(cb->start)[i] - Coords(cb->end)[i];
+	    	v2[i] = Coords(p)[i] - Coords(cb->end)[i];
+	    }
+	    Cross3d(v1,v2,vn);
+	    if (Dot3d(vn,vn0) < 0.0) return NO;
+	}
+	return YES;
+}	/* end point_inside_c_curve */
+
+LOCAL TRI *find_inner_seed_tri(
+	C_CURVE *cc,
+	SURFACE *surf,
+	TRI **tris,
+	int nt)
+{
+	C_BOND *cb;
+	TRI *t,*nbt;
+	int i,j,k,ii;
+	POINT *p;
+
+	for (cb = cc->first; cb != NULL; cb = cb->next)
+	{
+	    for (k = 0; k < 2; ++k)
+	    {
+	    	t = cb->s[k].t;
+	    	if (t->surf != surf) continue;
+		for (i = 0; i < 3; ++i)
+		{
+		    if (is_side_bdry(t,i)) continue;
+		    nbt = Tri_on_side(t,i);
+		    if (pointer_in_list((POINTER)nbt,nt,(POINTER*)tris))
+			continue;
+		    for (j = 0; j < 3; ++j)
+		    {
+			if (is_side_bdry(nbt,j)) continue;
+			if (Tri_on_side(nbt,j) != t) continue;
+			p = Point_of_tri(nbt)[(j+2)%3];
+			if (point_inside_c_curve(p,cc))
+			{
+			    return nbt;
+			}
+		    }
+		}
+	    }
+	}
+	return NULL;
+}	/* end find_inner_seed_tri */
+
 /*	This function set up the lists (1) tris on fabric surface,
  *	(2) tris on rigid surface, and (3) fabric points which 
- *	have crossed the rigid surface.
+ *	have crossed the rigid surface. Tri on convex side is a tri 
+ *	which has at least two neighbors in the corresponding list.
+ *	It loops until all tris on the convex side are in the list.
  */
 
 LOCAL void set_tr_tf_pf_list(
@@ -273,11 +337,14 @@ LOCAL void set_tr_tf_pf_list(
 			/* ext_comp is the component exterior to comp domain */
 			/* int_comp is the component interior to comp domain */
 	SIDE status;
-	boolean convex_tri_added;
-	TRI *t,*tr_on,*nbt1,*nbt2,**ptris;
+	TRI *t,*nbt,*tr_on,**ptris;
 	double nearest_pt[MAXD],nor[MAXD];
 	int id;
+	char dirname[100];
+	POINTER_Q *seed_queue,*pq;
 
+	set_pointer_queue_opts(PQ_BLOCK_SIZE,200,PQ_ALLOC_TYPE,"vmalloc",
+				PQ_ALLOC_SIZE_FOR_POINTERS,sizeof(TRI*),0);
 	/* resetting */
 	num_cbs = 0;
 	sr = sf = NULL;
@@ -286,10 +353,8 @@ LOCAL void set_tr_tf_pf_list(
 	npf = ntf = ntr = 0;
 	max_npf = max_ntf = max_ntr = 0;
 
-	printf("Entering set_tr_tf_pf_list()\n");
 	for (cb = cc->first; cb != NULL; cb = cb->next)
 	    num_cbs++;
-	printf("num_cbs = %d\n",num_cbs);
 
 	for (i = 0; i < 2; ++i)
 	{
@@ -303,6 +368,7 @@ LOCAL void set_tr_tf_pf_list(
 	int_comp = (positive_component(sr) == ext_comp) ? 
 		    negative_component(sr) : positive_component(sr);
 
+	/* Tri lists of collision rings */
 	for (i = 0, cb = cc->first; cb != NULL; i++, cb = cb->next)
 	{
 	    for (k = 0; k < 2; ++k)
@@ -314,60 +380,70 @@ LOCAL void set_tr_tf_pf_list(
 	    	    check_add_tri(&tf,t,&ntf,&max_ntf);
 	    }
 	}
-	printf("Step 1: ntr = %d  ntf = %d\n",ntr,ntf);
-	convex_tri_added = YES;
-	while (convex_tri_added)
+
+	/* Find seed tri inside the rigid surface ring */
+	t = find_inner_seed_tri(cc,sr,tr,ntr);
+	if (debugging("collision"))
 	{
-	    convex_tri_added = NO;
-	    for (i = 0; i < ntr-1; ++i)
-	    {
-		for (k = 0; k < 3; ++k)
-		{
-		    nbt1 = Tri_on_side(tr[i],k);
-		    if (!pointer_in_list((POINTER)nbt1,ntr,(POINTER*)tr))
-			break;
-		}
-		if (k == 3) continue; /* all neighbors already in list */
-	    	for (j = i+1; j < ntr; ++j)
-		{
-		    for (k = 0; k < 3; ++k)
-		    {
-		    	nbt2 = Tri_on_side(tr[j],k);
-		    	if (pointer_in_list((POINTER)nbt2,ntr,(POINTER*)tr))
-			    continue;
-			if (nbt1 == nbt2)
-	    	    	    check_add_tri(&tr,nbt1,&ntr,&max_ntr);
-		    }
-		}
-	    }
+	    sprintf(dirname,"cross-tris/rigid-seed-%d",front->step);
+	    gview_plot_crossing_tris(dirname,tr,ntr,&t,1);
 	}
-	convex_tri_added = YES;
-	while (convex_tri_added)
+
+	/* Fill tr list with tris inside the ring */
+	seed_queue = add_to_pointer_queue(NULL,NULL);
+	seed_queue->pointer = (POINTER)t;
+	check_add_tri(&tr,t,&ntr,&max_ntr);
+	while (seed_queue)
 	{
-	    convex_tri_added = NO;
-	    for (i = 0; i < ntf-1; ++i)
+	    pq = head_of_pointer_queue(seed_queue);
+	    t = (TRI*)(pq->pointer);
+	    for (i = 0; i < 3; ++i)
 	    {
-		for (k = 0; k < 3; ++k)
-		{
-		    nbt1 = Tri_on_side(tf[i],k);
-		    if (!pointer_in_list((POINTER)nbt1,ntf,(POINTER*)tf))
-			break;
-		}
-		if (k == 3) continue; /* all neighbors already in list */
-	    	for (j = i+1; j < ntf; ++j)
-		{
-		    for (k = 0; k < 3; ++k)
-		    {
-		    	nbt2 = Tri_on_side(tf[j],k);
-		    	if (pointer_in_list((POINTER)nbt2,ntf,(POINTER*)tf))
-			    continue;
-			if (nbt1 == nbt2)
-	    	    	    check_add_tri(&tf,nbt1,&ntf,&max_ntf);
-		    }
-		}
+		if (is_side_bdry(t,i)) continue;
+		nbt = Tri_on_side(t,i);
+		if (pointer_in_list((POINTER)nbt,ntr,(POINTER*)tr))
+		    continue;
+		seed_queue = add_to_pointer_queue(NULL,seed_queue);
+		seed_queue->pointer = (POINTER)nbt;
+		check_add_tri(&tr,nbt,&ntr,&max_ntr);
 	    }
+	    seed_queue = delete_from_pointer_queue(pq);
 	}
-	printf("Step 2: ntr = %d  ntf = %d\n",ntr,ntf);
+
+	/* Find seed tri inside the fabric surface ring */
+	t = find_inner_seed_tri(cc,sf,tf,ntf);
+	if (debugging("collision"))
+	{
+	    sprintf(dirname,"cross-tris/fabric-seed-%d",front->step);
+	    gview_plot_crossing_tris(dirname,tf,ntf,&t,1);
+	}
+
+	/* Fill tf list with tris inside the ring */
+	seed_queue = add_to_pointer_queue(NULL,NULL);
+	seed_queue->pointer = (POINTER)t;
+	check_add_tri(&tf,t,&ntf,&max_ntf);
+	while (seed_queue)
+	{
+	    pq = head_of_pointer_queue(seed_queue);
+	    t = (TRI*)(pq->pointer);
+	    for (i = 0; i < 3; ++i)
+	    {
+		if (is_side_bdry(t,i)) continue;
+		nbt = Tri_on_side(t,i);
+		if (pointer_in_list((POINTER)nbt,ntf,(POINTER*)tf))
+		    continue;
+		seed_queue = add_to_pointer_queue(NULL,seed_queue);
+		seed_queue->pointer = (POINTER)nbt;
+		check_add_tri(&tf,nbt,&ntf,&max_ntf);
+	    }
+	    seed_queue = delete_from_pointer_queue(pq);
+	}
+	if (debugging("collision"))
+	{
+	    sprintf(dirname,"cross-tris/convex-%d",front->step);
+	    gview_plot_crossing_tris(dirname,tr,ntr,tf,ntf);
+	}
+
 	for (i = 0; i < ntf; ++i)
 	{
 	    for (j = 0; j < 3; ++j)
@@ -376,6 +452,7 @@ LOCAL void set_tr_tf_pf_list(
 		if (pointer_in_list((POINTER)p,npf,(POINTER*)pf))
 		    continue;
 		comp = component_wrt_tri_cluster(Coords(p),sr,tr,ntr);
+		printf("comp = %d ext_comp = %d\n",comp,ext_comp);
 		if (comp == ext_comp)
             	{
 		    check_add_pt(&pf,p,&npf,&max_npf);
@@ -389,7 +466,10 @@ LOCAL void set_tr_tf_pf_list(
 		add_neighbors_of_landing_tri(&tr,&ntr,sr,&max_ntr,tr_on);
 	    }
 	}
-	printf("Step 3: ntr = %d  ntf = %d  npf = %d\n",ntr,ntf,npf);
+	if (debugging("collision"))
+	{
+	    (void) printf("ntr = %d  ntf = %d  npf = %d\n",ntr,ntf,npf);
+	}
 	*tr_list = tr;		*num_trs = ntr;
 	*tf_list = tf;		*num_tfs = ntf;
 	*pf_list = pf;		*num_pfs = npf;
@@ -412,7 +492,7 @@ LOCAL void add_neighbors_of_landing_tri(
 	    check_add_tri(tri_list,nbtris[i],num_tri,max_num_tri);
 }	/* add_neighbors_of_landing_tri */
 
-LOCAL void check_add_tri(
+LOCAL boolean check_add_tri(
 	TRI ***tri_list,
 	TRI *tri,
 	int *num_tris,
@@ -435,7 +515,10 @@ LOCAL void check_add_tri(
 	{
 	    (*tri_list)[*num_tris] = tri;
 	    (*num_tris)++;
+	    return YES;
 	}
+	else 
+	    return NO;
 }	/* end check_add_tri */
 
 LOCAL void check_add_pt(
