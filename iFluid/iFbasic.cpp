@@ -3134,21 +3134,35 @@ double Incompress_Solver_Smooth_Basis::computeFieldPointDiv(
 	int status;
         GRID_DIRECTION dir[3][2] = {{WEST,EAST},{SOUTH,NORTH},{LOWER,UPPER}};
 	int idir,nb;
+	double u0;
+        double porosity = iFparams->porosity;
 
 	index = d_index(icoords,top_gmax,dim);
         comp = top_comp[index];
 
-	for (idir = 0; idir < dim; idir++)
-	{
-	    for (j = 0; j < dim; ++j)
-	    	icnb[j] = icoords[j];
-	    for (nb = 0; nb < 2; nb++)
-	    {
-	    	icnb[idir] = (nb == 0) ? icoords[idir] - 1 : icoords[idir] + 1;
-	    	index_nb = d_index(icnb,top_gmax,dim);
-	    	u_edge[idir][nb] = field[idir][index_nb];
-	    }
-	}
+        for (idir = 0; idir < dim; idir++)
+        {
+            u0 = field[idir][index];
+            for (j = 0; j < dim; ++j)
+                icnb[j] = icoords[j];
+            for (nb = 0; nb < 2; nb++)
+            {
+                icnb[idir] = (nb == 0) ? icoords[idir] - 1 : icoords[idir] + 1;
+                index_nb = d_index(icnb,top_gmax,dim);
+                status = (*findStateAtCrossing)(front,icoords,dir[idir][nb],
+                                comp,&intfc_state,&hs,crx_coords);
+                if (status == NO_PDE_BOUNDARY)
+                    u_edge[idir][nb] = field[idir][index_nb];
+                else if (status ==CONST_P_PDE_BOUNDARY)
+                    u_edge[idir][nb] = u0;
+                else if (status ==CONST_V_PDE_BOUNDARY &&
+                        wave_type(hs) == DIRICHLET_BOUNDARY)
+                    u_edge[idir][nb] = getStateVel[idir](intfc_state);
+                else
+                    u_edge[idir][nb] = (1.0-porosity)*u0 +
+                        porosity*field[idir][index_nb];
+            }
+        }
 
 	div = 0.0;
 	for (i = 0; i < dim; ++i)

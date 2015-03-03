@@ -12,7 +12,7 @@
 #include "FronTier.h"
 #include "solver.h"
 
-#define         SOLID_COMP		0
+#define         SOLID_COMP		1
 #define         LIQUID_COMP1		2
 #define         LIQUID_COMP2		3
 #define		LIQUID_COMP		3

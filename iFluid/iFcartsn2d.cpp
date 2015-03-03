@@ -688,25 +688,58 @@ void Incompress_Solver_Smooth_2D_Cartesian::solve(double dt)
 
 double Incompress_Solver_Smooth_2D_Cartesian::getVorticity(int i, int j)
 {
-	int index0,index00,index01,index10,index11;
-	double v00,v01,v10,v11;
-	double dx,dy;
-	double vorticity;
-	double **vel = field->vel;
+        int icoords[MAXD],icnb[MAXD];
+        int index,index_nb;
+        COMPONENT comp;
+        double div,u_edge[2][2];
+        double crx_coords[MAXD];
+        POINTER intfc_state;
+        HYPER_SURF *hs;
+        int status;
+        GRID_DIRECTION dir[2][2] = {{WEST,EAST},{SOUTH,NORTH}};
+        int k,idir,nb;
+        double u0;
+        double porosity = iFparams->porosity;
+        double dx,dy;
+        double vorticity;
+        double **vel = field->vel;
+        int dim = 2;
 
-	dx = top_h[0];
-	dy = top_h[1];
-	index0 = d_index2d(i,j,top_gmax);
-	index00 = d_index2d(i-1,j,top_gmax);
-	index01 = d_index2d(i+1,j,top_gmax);
-	index10 = d_index2d(i,j-1,top_gmax);
-	index11 = d_index2d(i,j+1,top_gmax);
-	v00 = -vel[1][index00];
-	v01 =  vel[1][index01];
-	v10 =  vel[0][index10];
-	v11 = -vel[0][index11];
+        icoords[0] = i;
+        icoords[1] = j;
 
-	vorticity = (v00 + v01)/2.0/dy + (v10 + v11)/2.0/dx;
+        index = d_index(icoords,top_gmax,dim);
+        comp = top_comp[index];
+
+        for (idir = 0; idir < dim; idir++)
+        {
+            u0 = vel[(idir+1)%dim][index];
+            for (k = 0; k < dim; ++k)
+                icnb[k] = icoords[k];
+            for (nb = 0; nb < 2; nb++)
+            {
+                dx = top_h[0];
+                dy = top_h[1];
+                icnb[idir] = (nb == 0) ? icoords[idir] - 1 : icoords[idir] + 1;
+                index_nb = d_index(icnb,top_gmax,dim);
+                status = (*findStateAtCrossing)(front,icoords,dir[idir][nb],
+                                comp,&intfc_state,&hs,crx_coords);
+                if (status == NO_PDE_BOUNDARY)
+                    u_edge[idir][nb] = vel[(idir+1)%dim][index_nb];
+                else if (status ==CONST_P_PDE_BOUNDARY)
+                    u_edge[idir][nb] = u0;
+                else if (status ==CONST_V_PDE_BOUNDARY &&
+                        wave_type(hs) == DIRICHLET_BOUNDARY)
+                    u_edge[idir][nb] = getStateVel[(idir+1)%dim](intfc_state);
+                else
+                    u_edge[idir][nb] = (1.0-porosity)*u0 +
+                        porosity*vel[(idir+1)%dim][index_nb];
+            }
+        }
+
+        vorticity = (u_edge[0][1]-u_edge[0][0])/2/dx -
+                        (u_edge[1][1]-u_edge[1][0])/2/dy;
+
 	return vorticity;
 }	/* end getVorticity */
 
