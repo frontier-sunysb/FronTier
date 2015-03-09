@@ -274,8 +274,16 @@ LIB_LOCAL  boolean  i_intersections3d(
 			}
 		    }
 		    
+		    static int count = 0;
 		    if ((cbond = test_cross(ct0,ct1,&status,intfc)) != NULL)
 		    {
+			/*
+			char dirname[100];
+			sprintf(dirname,"cross-tris-%d",count++);
+			gview_plot_crossing_tris(dirname,&ct0,1,&ct1,1);
+			printf("test_cross() positive\n");
+			if (count == 1) clean_up(0);
+			*/
 			(void) add_to_pointers(cbond,&Tri_cross_list(ct0));
 			(void) add_to_pointers(cbond,&Tri_cross_list(ct1));
 			if (DEBUG)
@@ -557,6 +565,8 @@ LOCAL C_BOND *test_cross(
 		}
 	    }
 	}
+	printf("\nTest step 1\n");
+	printf("num_com_vertex = %d\n",num_com_vertex);
 
 	if (num_com_vertex == 3)
 	{
@@ -769,13 +779,21 @@ LOCAL C_BOND *test_cross(
 	    }
 	    else
 	    {
+		double v1[3],v2[3],v[3];
+		double cp1[3],cp2[3];
 	        num_t0_touching = 1;
 		num_t0_crossing = 1;
-		r = proj_of_t0[j0] / (proj_of_t0[j0] - proj_of_t0[k0]);
+		r = proj_of_t0[j0]/(proj_of_t0[j0] - proj_of_t0[k0]);
 		for (i = 0; i < 3; ++i)
 		{
 		    x[0].coords[i] = r*p_of_t0[k0][i] + (1 - r)*p_of_t0[j0][i];
+		    v[i] = x[0].coords[i] - p_of_t1[i1][i];
+		    v1[i] = p_of_t1[j1][i] - p_of_t1[i1][i];
+		    v2[i] = p_of_t1[k1][i] - p_of_t1[i1][i];
 		}
+		Cross3d(v,v1,cp1);
+		Cross3d(v,v2,cp2);
+		printf("Dot = %20.14f\n",Dot3d(cp1,cp2));
 		x[0].label = j0;
 		x[0].edge_vertex = YES;
 	    }
@@ -929,6 +947,26 @@ LOCAL C_BOND *test_cross(
 		}
 	    }
 	}	
+	static int count = 0;
+	count++;
+	printf("count = %d\n",count);
+	x[0].order = 0.0;
+	for (i = 1; i < 4; ++i)
+	{
+	    double v[3];
+	    for (j = 0; j < 3; ++j)
+	    {
+		v[j] = x[i].coords[j] - x[0].coords[j];
+	    }
+	    x[i].order = Dot3d(v,line);
+	}
+	printf("Test step 2\n");
+	printf("num_t0_touching = %d\n",num_t0_touching);
+	printf("num_t0_crossing = %d\n",num_t0_crossing);
+	printf("x[0].order = %20.14f\n",x[0].order);
+	printf("x[1].order = %20.14f\n",x[1].order);
+	printf("x[2].order = %20.14f\n",x[2].order);
+	printf("x[3].order = %20.14f\n",x[3].order);
 
 		/* Non-Intersecting Cases */
 
@@ -989,6 +1027,9 @@ LOCAL C_BOND *test_cross(
 	}
 
 
+	printf("Test step 3\n");
+	printf("num_t1_touching = %d\n",num_t1_touching);
+	printf("num_t1_crossing = %d\n",num_t1_crossing);
 	switch (num_t1_touching)
 	{
 	case 0:
@@ -1059,6 +1100,10 @@ LOCAL C_BOND *test_cross(
 	    l1 = 2;  u1 = 3;
 	}
 
+	printf("order l0 %d: %20.14f\n",l0,x[l0].order);
+	printf("order u0 %d: %20.14f\n",u0,x[u0].order);
+	printf("order l1 %d: %20.14f\n",l1,x[l1].order);
+	printf("order u1 %d: %20.14f\n",u1,x[u1].order);
 	if (x[u0].order <= (x[l1].order + cr_tol))
 	    return NULL;
 	if (x[u1].order <= (x[l0].order + cr_tol))
@@ -1066,12 +1111,14 @@ LOCAL C_BOND *test_cross(
 
 		/* Create new C_BOND */
 
+	printf("Test step 4\n");
 	new_cb = CBond(NULL,NULL,NULL,t0,t1);
 
 	    /* start side of new_cb */
 
 	if (fabs(x[l0].order - x[l1].order) <= cr_tol)
 	{
+	    printf("Position 1 for start side\n");
 	    if (x[l0].edge_vertex && x[l1].edge_vertex)
 	    {
 		for (i= 0; i< 3; ++i)
@@ -1111,6 +1158,7 @@ LOCAL C_BOND *test_cross(
 	}
 	else if (x[l0].order > x[l1].order)
 	{
+	    printf("Position 2 for start side\n");
 	    start = x[l0].coords;
 	    new_cb->s[1].prev_t = t1;
 
@@ -1126,6 +1174,7 @@ LOCAL C_BOND *test_cross(
 	}
 	else  /* if (x[l1].order > x[l0].order) */
 	{
+	    printf("Position 3 for start side\n");
 	    start = x[l1].coords;
 	    new_cb->s[0].prev_t = t0;
 
@@ -1144,6 +1193,7 @@ LOCAL C_BOND *test_cross(
 
 	if (fabs(x[u0].order - x[u1].order) <= cr_tol)
 	{
+	    printf("Position 1 for end side\n");
 	    if (x[u0].edge_vertex && x[u1].edge_vertex)
 	    {
 		for (i= 0; i< 3; ++i)
@@ -1183,6 +1233,7 @@ LOCAL C_BOND *test_cross(
 	}
 	else if (x[u0].order < x[u1].order)
 	{
+	    printf("Position 2 for end side\n");
 	    end = x[u0].coords;		
 	    new_cb->s[1].next_t = t1;
 
@@ -1198,6 +1249,7 @@ LOCAL C_BOND *test_cross(
 	}
 	else  /* if (x[u1].order < x[u0].order) */
 	{
+	    printf("Position 3 for end side\n");
 	    end = x[u1].coords;
 	    new_cb->s[0].next_t = t0;
 

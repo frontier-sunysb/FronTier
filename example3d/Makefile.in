@@ -9,6 +9,10 @@ libs = @otherlibs@
 
 all: example00 example01 example02 example03 example04 example05 example06 example07 example08
 
+example: @devel@ example.cpp
+	$(CXX) -c -I../include $(incs) example.cpp
+	$(CXX) example.o -I../include -L../lib/@build_cpu@ $(libincs) -lFronTier -lm $(libs) -o example
+
 example00: @devel@ example00.cpp
 	$(CXX) -c -I../include $(incs) example00.cpp
 	$(CXX) example00.o -I../include -L../lib/@build_cpu@ $(libincs) -lFronTier -lm $(libs) -o example00
@@ -48,6 +52,6 @@ example08: @devel@ example08.cpp
 clean:
 	rm -rf *.o example[0-9][0-9] 
 tagsfile:
-	ctags *.[chf] ../src/*/*.[chf] ../src/*/*/*.[chf]
+	ctags *.cpp ../src/*/*.[chf] ../src/*/*/*.[chf]
 
 -include ../devel-deps.inc

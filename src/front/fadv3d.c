@@ -1455,11 +1455,13 @@ LOCAL int struct_advance_front3d(
 	    (*front->interior_propagate)(*newfront,dt);
 	stop_clock("interior_propagate");
 
+	/*
 	printf("Before resolve_collision()\n");
         printf("interface_reconstructed(intfc) = %d\n",
                 interface_reconstructed((*newfront)->interf));
         resolve_collision(*newfront);
 	printf("After resolve_collision()\n");
+	*/
 
 	start_clock("scatter_front");
 	if (!scatter_front(*newfront))

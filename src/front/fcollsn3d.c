@@ -104,7 +104,7 @@ LOCAL int collision_type(
 		return UNKNOWN_COLLISION;
 	}
 	else if (w_type1 == NEUMANN_BOUNDARY ||
-            w_type2 == MOVABLE_BODY_BOUNDARY)
+            w_type1 == MOVABLE_BODY_BOUNDARY)
 	{
 	    if (w_type2 == ELASTIC_BOUNDARY)
 		return FABRIC_RIGID_COLLISION;
