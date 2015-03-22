@@ -42,7 +42,6 @@ static int test_double_vortex_vel(POINTER,Front*,POINT*,
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 int RestartStep;
-boolean binary = YES;
 
 /**
  * This Example demonstrate a sphere evolves under double vortex 

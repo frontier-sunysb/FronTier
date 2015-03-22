@@ -41,7 +41,6 @@ char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 boolean ReadFromInput;
 int RestartStep;
-boolean binary = YES;
 
 int main(int argc, char **argv)
 {

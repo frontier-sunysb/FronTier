@@ -33,7 +33,6 @@ char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 boolean ReSetTime;
 int RestartStep;
-boolean binary = YES;
 int constrained_propagate;
 static int l_cartesian_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
                         HYPER_SURF*,double*);

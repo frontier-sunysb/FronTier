@@ -46,7 +46,6 @@ int RestartStep;
 #if defined(__MPI__)
 int subdomains[MAXD];
 #endif /* defined(__MPI__) */
-boolean binary = YES;
 
 /********************************************************************
  *	Level function parameters for the initial interface 	    *

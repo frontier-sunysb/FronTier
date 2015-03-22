@@ -42,7 +42,6 @@ static int test_curvature_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 int RestartStep;
-boolean binary = YES;
 
 /********************************************************************
  *	Velocity function parameters for the front	 	    *

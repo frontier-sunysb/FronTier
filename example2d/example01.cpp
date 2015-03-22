@@ -43,7 +43,6 @@ static void test_propagate(Front*);
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 int RestartStep;
-boolean binary = YES;
 
 /********************************************************************
  *	Velocity function parameters for the front	 	    *

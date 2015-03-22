@@ -42,7 +42,6 @@ static int test_translation_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 int RestartStep;
-boolean binary = YES;
 
 /********************************************************************
  *	Level function parameters for the initial interface 	    *

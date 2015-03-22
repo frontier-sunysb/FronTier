@@ -37,7 +37,6 @@ char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 boolean ReSetTime;
 int RestartStep;
-boolean binary = YES;
 int constrained_propagate;
 
 /********************************************************************

@@ -33,7 +33,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 
 char *in_name,*out_name;
-boolean binary = NO;
 
 static void rand_vector(double*,int,unsigned short int*);
 static void xprint_vector(const char*,const char*,double*,double*,int);
