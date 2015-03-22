@@ -280,7 +280,7 @@ extern "C" {
 
    IMPORT  boolean FT_IsSaveTime(Front *front );
 
-/*! \fn boolean FT_IsMovieFrameTime(Front *front)
+/*! \fn boolean FT_IsDrawTime(Front *front)
  *  \ingroup TIME
     \brief Signals that time is reached for output of a movie frame. returns
      YES to indicate that a movie frame should be generated. This function
@@ -288,7 +288,7 @@ extern "C" {
     \param front @b in	Pointer to Front.
  */
 
-   IMPORT  boolean FT_IsMovieFrameTime(Front *front );
+   IMPORT  boolean FT_IsDrawTime(Front *front );
 
 /*! \fn boolean FT_TimeLimitReached(Front *front)
  *  \ingroup TIME
@@ -326,28 +326,22 @@ extern "C" {
 
    IMPORT  void FT_AddTimeStepToCounter(Front *front );
 
-/*! \fn void FT_Save(Front *front, char *out_name)
+/*! \fn void FT_Save(Front *front)
  *  \ingroup OUTPUT
     \brief Output front geometric data to the directory of out_name.
      The data can be used for restart of the run. 
     \param front @b in	Pointer to Front.
-    \param out_name @b in	String for output directory name.
  */
 
-   IMPORT  void FT_Save(Front *front ,
-	   		      char *out_name );
+   IMPORT  void FT_Save(Front *front);
 
-/*! \fn void FT_AddMovieFrame(Front *front, char *out_name, boolean binary)
+/*! \fn void FT_Draw(Front *front)
  *  \ingroup OUTPUT
     \brief Output a movie frame, currently includes GD, hdf, vtk formats.
     \param front @b in	Pointer to Front.
-    \param out_name @b in	String for output directory name.
-    \param binary @b in	Boolean whether the output should be binary (for some data).
  */
 
-   IMPORT  void FT_AddMovieFrame(Front *front ,
-	   		      char *out_name ,
-			      boolean binary );
+   IMPORT  void FT_Draw(Front *front);
 
 /*! \fn void FT_XgraphSampleLine(char *dirname,char *varname,boolean data_in_domain,int size,double *x,double *var)
     \ingroup OUTPUT

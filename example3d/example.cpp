@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 	    FT_InitIntfc(&front,&level_func_pack);
 	}
 	initInteriorSurfaces(&front);
-	FT_AddMovieFrame(&front,out_name,YES);
+	FT_Draw(&front,out_name,YES);
 	clean_up(0);
 
 	/* For geometry-dependent velocity, use first 
@@ -94,8 +94,8 @@ static  void test_propagate(
 	    FT_ResetTime(front);
 
 	    // Always output the initial interface.
-	    FT_Save(front,out_name);
-            FT_AddMovieFrame(front,out_name,YES);
+	    FT_Save(front);
+            FT_Draw(front);
 
 	    // This is a virtual propagation to get maximum front 
 	    // speed to determine the first time step.
@@ -129,9 +129,9 @@ static  void test_propagate(
 	    /* Output section */
 
             if (FT_IsSaveTime(front))
-		FT_Save(front,out_name);
-            if (FT_IsMovieFrameTime(front))
-                FT_AddMovieFrame(front,out_name,YES);
+		FT_Save(front);
+            if (FT_IsDrawTime(front))
+                FT_Draw(front);
 
             if (FT_TimeLimitReached(front))
 	    {
@@ -167,6 +167,15 @@ static void initInteriorSurfaces(
 	case 'S':
 	    center[0] = center[1] = center[2] = 0.5;
 	    radius[0] = radius[1] = radius[2] = 0.3;
+	    FT_MakeEllipticSurf(front,center,radius,neg_comp,pos_comp,
+			w_type,2,&surf);
+	    break;
+	case 'e':
+	case 'E':
+	    center[0] = center[1] = center[2] = 0.5;
+	    radius[0] = 0.2;
+	    radius[1] = 0.4;
+	    radius[2] = 0.3;
 	    FT_MakeEllipticSurf(front,center,radius,neg_comp,pos_comp,
 			w_type,2,&surf);
 	    break;

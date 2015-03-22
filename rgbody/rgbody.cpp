@@ -35,7 +35,6 @@ char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 boolean ReadFromInput;
 int RestartStep;
-boolean binary = NO;
 
 int main(int argc, char **argv)
 {
@@ -189,7 +188,7 @@ static  void fluid_driver(
 	    	if (debugging("trace")) printf("Passed solve()\n");
 	    }
 	    record_moving_body_data(out_name,front);
-            FT_AddMovieFrame(front,out_name,binary);
+            FT_Draw(front);
 	    FT_SetOutputCounter(front);
 	    FT_SetTimeStep(front);
             front->dt = std::min(front->dt,CFL*cartesian->max_dt);
@@ -244,12 +243,12 @@ static  void fluid_driver(
 
             if (FT_IsSaveTime(front))
 	    {
-            	FT_Save(front,out_name);
+            	FT_Save(front);
 		cartesian->printFrontInteriorStates(out_name);
 	    }
-            if (FT_IsMovieFrameTime(front))
+            if (FT_IsDrawTime(front))
 	    {
-            	FT_AddMovieFrame(front,out_name,binary);
+            	FT_Draw(front);
 	    }
 
             if (FT_TimeLimitReached(front))

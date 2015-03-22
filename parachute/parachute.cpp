@@ -196,12 +196,12 @@ static  void airfoil_driver(
 	    }
 
 	    setStressColor(front);
-	    FT_Save(front,out_name);
+	    FT_Save(front);
 
             l_cartesian->printFrontInteriorStates(out_name);
 	    printAfExtraDada(front,out_name);
 
-            FT_AddMovieFrame(front,out_name,binary);
+            FT_Draw(front);
 
 	    FT_Propagate(front);
 	    if (!af_params->no_fluid)
@@ -224,7 +224,7 @@ static  void airfoil_driver(
 	// For restart debugging 
 	if (FT_TimeLimitReached(front) && debugging("restart")) 
 	{
-	    FT_Save(front,out_name);
+	    FT_Save(front);
             l_cartesian->printFrontInteriorStates(out_name);
 	    printAfExtraDada(front,out_name);
 	    return;
@@ -282,13 +282,13 @@ static  void airfoil_driver(
             if (FT_IsSaveTime(front))
 	    {
 		setStressColor(front);
-		FT_Save(front,out_name);
+		FT_Save(front);
                 l_cartesian->printFrontInteriorStates(out_name);
 	    	printAfExtraDada(front,out_name);
 	    }
-            if (FT_IsMovieFrameTime(front))
+            if (FT_IsDrawTime(front))
 	    {
-                FT_AddMovieFrame(front,out_name,binary);
+                FT_Draw(front);
 	    }
 
             if (FT_TimeLimitReached(front))

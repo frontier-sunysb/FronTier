@@ -155,7 +155,7 @@ int main(int argc, char **argv)
         level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
         
 	FT_InitIntfc(&front,&level_func_pack);
-        FT_Save(&front,out_name);
+        FT_Save(&front);
 	switch (method)
 	{
 	case TEST_HYPER_SPHERE:

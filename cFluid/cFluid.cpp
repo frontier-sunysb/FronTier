@@ -41,7 +41,6 @@ char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 boolean ReadFromInput;
 int RestartStep;
-boolean binary = NO;
 
 int main(int argc, char **argv)
 {
@@ -192,14 +191,14 @@ static  void gas_driver(
 	    FT_Propagate(front);
 	    g_cartesian.solve(front->dt);
 
-	    FT_Save(front,out_name);
+	    FT_Save(front);
             g_cartesian.printFrontInteriorStates(out_name);
             if (compare_with_base_data(front))
             {
                 g_cartesian.compareWithBaseData(out_name);
                 g_cartesian.freeBaseFront();
             }
-            FT_AddMovieFrame(front,out_name,binary);
+            FT_Draw(front);
 
 	    FT_SetTimeStep(front);
 	    front->dt = std::min(front->dt,CFL*g_cartesian.max_dt);
@@ -256,7 +255,7 @@ static  void gas_driver(
 	    start_clock("output");
             if (FT_IsSaveTime(front))
 	    {
-            	FT_Save(front,out_name);
+            	FT_Save(front);
 		g_cartesian.printFrontInteriorStates(out_name);
 		if (compare_with_base_data(front))
 		{
@@ -264,9 +263,9 @@ static  void gas_driver(
 		    g_cartesian.freeBaseFront();
 		}
 	    }
-            if (FT_IsMovieFrameTime(front))
+            if (FT_IsDrawTime(front))
 	    {
-            	FT_AddMovieFrame(front,out_name,binary);
+            	FT_Draw(front);
 	    }
 	    stop_clock("output");
 
@@ -275,12 +274,12 @@ static  void gas_driver(
 	    	start_clock("exit-output");
 		if (!FT_IsSaveTime(front))
 		{
-            	    FT_Save(front,out_name);
+            	    FT_Save(front);
 		    g_cartesian.printFrontInteriorStates(out_name);
 		}
-		if (!FT_IsMovieFrameTime(front))
+		if (!FT_IsDrawTime(front))
 		{
-                    FT_AddMovieFrame(front,out_name,binary);
+                    FT_Draw(front);
 		}
 		FT_PrintTimeStamp(front);
 	    	stop_clock("exit-output");

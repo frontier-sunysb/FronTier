@@ -192,13 +192,13 @@ static  void solute_main_driver(
 	for (i = 1; i < dim; ++i)
 	    h_min = std::min(h_min,front->rect_grid->h[i]);
 
-        FT_AddMovieFrame(front,out_name,binary);
+        FT_Draw(front);
 	if (dim == 2 && front->vtk_movie_var)
             c_cartesian.vtk_plot_concentration2d(out_name);
 	if (dim == 1)
             c_cartesian.oneDimPlot(out_name);
 	if (debugging("trace"))
-	    printf("Passed FT_AddMovieFrame()\n");
+	    printf("Passed FT_Draw()\n");
 
 	if (dim == 1)
 	{
@@ -250,7 +250,7 @@ static  void solute_main_driver(
 	    FT_SetTimeStep(front);
 	    c_cartesian.setAdvectionDt();
 	    front->dt = std::min(front->dt,CFL*c_cartesian.max_dt);
-            FT_Save(front,out_name);
+            FT_Save(front);
 
 	    if (dim == 1)
 	    	c_cartesian.oneDimPlot(out_name);
@@ -301,16 +301,16 @@ static  void solute_main_driver(
             if (FT_IsSaveTime(front))
 	    {
 		// Front standard output
-                FT_Save(front,out_name);
+                FT_Save(front);
 		// Problem specific output
 		c_cartesian.printFrontInteriorStates(out_name);
 		if (debugging("trace")) printf("Passed Crystal "
                                 "printFrontInteriorStates()\n");
 	    }
-            if (FT_IsMovieFrameTime(front))
+            if (FT_IsDrawTime(front))
 	    {
 		// Front standard output
-                FT_AddMovieFrame(front,out_name,binary);
+                FT_Draw(front);
 		if (dim == 2 && front->vtk_movie_var)
                     c_cartesian.vtk_plot_concentration2d(out_name);
 		if (dim == 1)

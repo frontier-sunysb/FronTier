@@ -68,7 +68,6 @@ char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 boolean ReadFromInput;
 int RestartStep;
-boolean binary = NO;
 
 
 /********************************************************************
@@ -192,9 +191,9 @@ static  void finance_driver(
             // Front standard output
 	    FT_ResetTime(front);
             FT_SetOutputCounter(front);
-            FT_Save(front,out_name);
+            FT_Save(front);
 	    cartesian.initMovieVariables();
-            FT_AddMovieFrame(front,out_name,binary);
+            FT_Draw(front);
 	    cartesian.printOptionPrice(out_name);
 
 	    if (debugging("trace"))
@@ -240,13 +239,13 @@ static  void finance_driver(
 	    cartesian.printTimeData(out_name);
             if (FT_IsSaveTime(front))
 	    {
-            	FT_Save(front,out_name);
+            	FT_Save(front);
 		cartesian.printOptionPrice(out_name);
 	    }
-            if (FT_IsMovieFrameTime(front))
+            if (FT_IsDrawTime(front))
 	    {
 	        cartesian.initMovieVariables();
-            	FT_AddMovieFrame(front,out_name,binary);
+            	FT_Draw(front);
 	    }
 
             if (FT_TimeLimitReached(front))

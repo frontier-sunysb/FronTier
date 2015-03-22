@@ -45,7 +45,6 @@ char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 boolean ReadFromInput;
 int RestartStep;
-boolean binary = YES;
 
 int main(int argc, char **argv)
 {
@@ -269,10 +268,10 @@ static  void subsurf_main_driver(
 	{
 	    FT_ResetTime(front);
 	    //Output the initial interface and data. 
-            FT_Save(front,out_name);
+            FT_Save(front);
             c_cartesian.printFrontInteriorStates(out_name);
             l_cartesian->printFrontInteriorStates(out_name);
-            FT_AddMovieFrame(front,out_name,binary);
+            FT_Draw(front);
             if (dim == 2 && front->vtk_movie_var)
                 c_cartesian.vtk_plot_concentration2d(out_name);
             if (dim == 2)
@@ -341,7 +340,7 @@ static  void subsurf_main_driver(
             if (FT_IsSaveTime(front))
 	    {
 		// Front standard output
-                FT_Save(front,out_name);
+                FT_Save(front);
 		// Problem specific output
 		c_cartesian.printFrontInteriorStates(out_name);
 	    	if (debugging("trace")) printf("Passed Crystal "
@@ -352,14 +351,14 @@ static  void subsurf_main_driver(
 	    }
 	    if (debugging("trace"))
 		printf("After print output()\n");
-            if (FT_IsMovieFrameTime(front))
+            if (FT_IsDrawTime(front))
 	    {
 		// Front standard output
 		if (dim != 1)
 		{
 		    if (debugging("trace"))
-                    	printf("Calling FT_AddMovieFrame()\n");
-                    FT_AddMovieFrame(front,out_name,binary);
+                    	printf("Calling FT_Draw()\n");
+                    FT_Draw(front);
 		    if (dim == 2 && front->vtk_movie_var)
                         c_cartesian.vtk_plot_concentration2d(out_name);
 		}

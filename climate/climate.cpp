@@ -3,9 +3,7 @@ FronTier is a set of libraries that implements differnt types of Front
 Traking algorithms. Front Tracking is a numerical method for the solution 
 of partial differential equations whose solutions have discontinuities.  
 
-
 Copyright (C) 1999 by The University at Stony Brook. 
- 
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -227,7 +225,7 @@ static  void melting_flow_driver(
 	    FT_ResetTime(front);
             FT_SetOutputCounter(front);
             /* Front standard output*/
-	   /* FT_Save(front,out_name);
+	   /* FT_Save(front);
             t_cartesian->printFrontInteriorState(out_name);
             v_cartesian->printFrontInteriorState(out_name);
             l_cartesian->printFrontInteriorStates(out_name);
@@ -276,7 +274,7 @@ static  void melting_flow_driver(
                 vtk_plot_scatter(front);
 	        //vtk_plot_sample_traj(front);
 	    }
-            FT_AddMovieFrame(front,out_name,YES);
+            FT_Draw(front);
 	    /*plot trajectory of sample droplet*/
         }
         else
@@ -286,7 +284,7 @@ static  void melting_flow_driver(
             v_cartesian->initMovieVariables();
             if (eqn_params->prob_type == PARTICLE_TRACKING)
                 vtk_plot_scatter(front);
-            FT_AddMovieFrame(front,out_name,YES);
+            FT_Draw(front);
 	}
 
 	FT_TimeControlFilter(front);
@@ -358,7 +356,7 @@ static  void melting_flow_driver(
 		else
 		    macro_solver->output();
 		// Front standard output
-                //FT_Save(front,out_name);
+                //FT_Save(front);
 		// Problem specific output
 		/*t_cartesian->printFrontInteriorState(out_name);
 		  v_cartesian->printFrontInteriorState(out_name);
@@ -366,7 +364,7 @@ static  void melting_flow_driver(
 		  if (eqn_params->prob_type == PARTICLE_TRACKING)
 	            printDropletsStates(front,out_name);*/
 	    }
-            if (FT_IsMovieFrameTime(front))
+            if (FT_IsDrawTime(front))
 	    {
 		printf("Output movie frame\n");
 		// Front standard output
@@ -375,14 +373,14 @@ static  void melting_flow_driver(
 		    vtk_plot_scatter(front);
 		    vtk_plot_sample_traj(front);
 		}
-                FT_AddMovieFrame(front,out_name,YES);
+                FT_Draw(front);
 	    }
 
             if (FT_TimeLimitReached(front))
 	    {
 		if(movie_option->plot_particles == YES)
                     vtk_plot_scatter(front);
-	    	FT_AddMovieFrame(front,out_name,YES);
+	    	FT_Draw(front);
                 break;
 	    }
 	    /* Output section, next dt may be modified */

@@ -174,7 +174,7 @@ int main(int argc, char **argv)
 	    }
 
 	    /* Movie frame */
-	    if (FT_IsMovieFrameTime(&front))
+	    if (FT_IsDrawTime(&front))
 	    {
 		/* Numerical solution */
 		x_movie = x+buffer_size;

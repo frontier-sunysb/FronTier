@@ -35,7 +35,6 @@ typedef struct {
 
 static void initSingleModule(Front*);
 static void initMultiModule(Front*,int);
-static void initRigidBody(Front*);
 static void MergeTwoIntfc(INTERFACE*,INTERFACE*);
 static void CopyNodeInfo(INTERFACE*,INTERFACE*);
 static void modifyCanopySet(FILE*,Front*,SURFACE*);
@@ -332,7 +331,7 @@ static void modifyCanopySet(
 	    I_SphericalRotatePoint(nodes[i]->posn,center,phi,theta,NO);
 }	/* end modifyCanopySet */
 
-static void initRigidBody(
+extern void initRigidBody(
 	Front *front)
 {
 	FILE *infile = fopen(InName(front),"r");

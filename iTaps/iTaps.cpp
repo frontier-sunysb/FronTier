@@ -43,7 +43,6 @@ static void iMesh_test(Front*);
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 int RestartStep;
-boolean binary = YES;
 
 /********************************************************************
  *	Level function parameters for the initial interface 	    *
@@ -111,8 +110,8 @@ int main(int argc, char **argv)
 	    FT_InitIntfc(&front,&level_func_pack);
 	}
         redistribute(&front,YES,NO);
-        FT_AddMovieFrame(&front,out_name,binary);
-	FT_Save(&front,out_name);
+        FT_Draw(&front);
+	FT_Save(&front);
 	
 #ifdef IMESH
 	iMesh_test(&front);

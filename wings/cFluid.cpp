@@ -40,7 +40,6 @@ char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 boolean ReadFromInput;
 int RestartStep;
-boolean binary = NO;
 
 int main(int argc, char **argv)
 {
@@ -166,7 +165,7 @@ static  void gas_driver(
 	    FT_Propagate(front);
 	    g_cartesian.solve(front->dt);
 
-	    FT_Save(front,out_name);
+	    FT_Save(front);
             g_cartesian.printFrontInteriorStates(out_name);
             if (compare_with_base_data(front))
             {
@@ -174,7 +173,7 @@ static  void gas_driver(
                 g_cartesian.freeBaseFront();
             }
             g_cartesian.initMovieVariables();
-            FT_AddMovieFrame(front,out_name,binary);
+            FT_Draw(front);
 	    recordWingVar(front);
 
 	    FT_SetTimeStep(front);
@@ -231,7 +230,7 @@ static  void gas_driver(
 
             if (FT_IsSaveTime(front))
 	    {
-            	FT_Save(front,out_name);
+            	FT_Save(front);
 		g_cartesian.printFrontInteriorStates(out_name);
 		if (compare_with_base_data(front))
 		{
@@ -239,10 +238,10 @@ static  void gas_driver(
 		    g_cartesian.freeBaseFront();
 		}
 	    }
-            if (FT_IsMovieFrameTime(front))
+            if (FT_IsDrawTime(front))
 	    {
 	        g_cartesian.initMovieVariables();
-            	FT_AddMovieFrame(front,out_name,binary);
+            	FT_Draw(front);
 	    	recordWingVar(front);
 	    }
 
@@ -250,13 +249,13 @@ static  void gas_driver(
 	    {
 		if (!FT_IsSaveTime(front))
 		{
-            	    FT_Save(front,out_name);
+            	    FT_Save(front);
 		    g_cartesian.printFrontInteriorStates(out_name);
 		}
-		if (!FT_IsMovieFrameTime(front))
+		if (!FT_IsDrawTime(front))
 		{
                     g_cartesian.initMovieVariables();
-                    FT_AddMovieFrame(front,out_name,binary);
+                    FT_Draw(front);
 	    	    recordWingVar(front);
 		}
 	    	FT_PrintTimeStamp(front);

@@ -141,7 +141,7 @@ int main(int argc, char **argv)
                                 front.time,front.step);
 
 	    /* Movie frame */
-            if (FT_IsMovieFrameTime(&front))
+            if (FT_IsDrawTime(&front))
             {
                 /* Numerical solution */
                 x_movie = x;

@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 	FT_MakeEllipticSurf(&front,center,radii,
 		exterior_component(front.interf),2,FIRST_PHYSICS_WAVE_TYPE,
 		1,&surf);
-	FT_Save(&front,f_basic.out_name);
+	FT_Save(&front);
 	delete_surface(surf);
 	FT_AddTimeStepToCounter(&front);
 
@@ -94,13 +94,13 @@ int main(int argc, char **argv)
 	FT_MakeDumbBellSurf(&front,x0,x1,y0,z0,R,r,
 		exterior_component(front.interf),2,FIRST_PHYSICS_WAVE_TYPE,
 		&surf);
-	FT_Save(&front,f_basic.out_name);
+	FT_Save(&front);
 	FT_AddTimeStepToCounter(&front);
 	// Test rotate the dumbbell surface
 	phi = 30.0/180.0*PI;
 	theta = 40.0/180.0*PI;
 	FT_RotateSurface(surf,center,phi,theta);
-	FT_Save(&front,f_basic.out_name);
+	FT_Save(&front);
 	FT_AddTimeStepToCounter(&front);
 	delete_surface(surf);
 
@@ -112,13 +112,13 @@ int main(int argc, char **argv)
 	FT_MakeProjectileSurf(&front,center,R,r,h,
 		exterior_component(front.interf),2,FIRST_PHYSICS_WAVE_TYPE,
                 &surf);
-	FT_Save(&front,f_basic.out_name);
+	FT_Save(&front);
 	FT_AddTimeStepToCounter(&front);
 	// Test rotate the projectile surface
 	phi = 30.0/180.0*PI;
 	theta = 40.0/180.0*PI;
 	FT_RotateSurface(surf,center,phi,theta);
-	FT_Save(&front,f_basic.out_name);
+	FT_Save(&front);
 	FT_AddTimeStepToCounter(&front);
 	delete_surface(surf);
 
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 	FT_MakeCuboidSurf(&front,center,edge,
 		exterior_component(front.interf),2,FIRST_PHYSICS_WAVE_TYPE,
 		&surf);
-	FT_Save(&front,f_basic.out_name);
+	FT_Save(&front);
 	delete_surface(surf);
 	FT_AddTimeStepToCounter(&front);
 
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 	FT_MakeCylinderSurf(&front,center,radius,height,
 		exterior_component(front.interf),2,FIRST_PHYSICS_WAVE_TYPE,
 		&surf);
-	FT_Save(&front,f_basic.out_name);
+	FT_Save(&front);
 	delete_surface(surf);
 	FT_AddTimeStepToCounter(&front);
 
@@ -153,7 +153,7 @@ int main(int argc, char **argv)
 	FT_MakeConeSurf(&front,center,slope,height,
 		exterior_component(front.interf),2,FIRST_PHYSICS_WAVE_TYPE,
                 &surf);
-	FT_Save(&front,f_basic.out_name);
+	FT_Save(&front);
 	delete_surface(surf);
 	FT_AddTimeStepToCounter(&front);
 
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
         FT_MakeTetrahedronSurf(&front,center,tedge,
                 exterior_component(front.interf),2,FIRST_PHYSICS_WAVE_TYPE,
                 &surf);
-        FT_Save(&front,f_basic.out_name);
+        FT_Save(&front);
         delete_surface(surf);
 
 	clean_up(0);

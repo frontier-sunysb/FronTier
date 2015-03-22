@@ -34,7 +34,6 @@ char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 boolean ReadFromInput;
 int RestartStep;
-boolean binary = NO;
 
 int main(int argc, char **argv)
 {
@@ -251,12 +250,12 @@ static  void ifluid_driver(
 
             if (FT_IsSaveTime(front))
 	    {
-            	FT_Save(front,out_name);
+            	FT_Save(front);
 		l_cartesian->printFrontInteriorStates(out_name);
 	    }
-            if (FT_IsMovieFrameTime(front))
+            if (FT_IsDrawTime(front))
 	    {
-            	FT_AddMovieFrame(front,out_name,binary);
+            	FT_Draw(front);
 	    }
 	    //recordBdryEnergyFlux(front,out_name);
 

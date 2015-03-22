@@ -232,7 +232,7 @@ static  void melting_flow_driver(
 	    FT_ResetTime(front);
             FT_SetOutputCounter(front);
             // Front standard output
-            FT_Save(front,out_name);
+            FT_Save(front);
 	    if (dim == 1)
 	    	cartesian.oneDimPlot(out_name);
 	    else if (dim == 2)
@@ -251,7 +251,7 @@ static  void melting_flow_driver(
 	    // Problem specific output
 
 	    FT_ResetTime(front);
-	    FT_Save(front,out_name);
+	    FT_Save(front);
             cartesian.printFrontInteriorState(out_name);
 	    if (eqn_params->no_fluid == NO)
             	l_cartesian->printFrontInteriorStates(out_name);
@@ -268,12 +268,12 @@ static  void melting_flow_driver(
 	    	l_cartesian->setAdvectionDt();
 	    	front->dt = std::min(front->dt,CFL*l_cartesian->max_dt);
 	    }
-	    FT_AddMovieFrame(front,out_name,YES);
+	    FT_Draw(front);
         }
         else
 	{
 	    FT_SetOutputCounter(front);
-            FT_AddMovieFrame(front,out_name,YES);
+            FT_Draw(front);
 	}
 
 	if (pp_mynode() == 0 && dim != 1)
@@ -312,16 +312,16 @@ static  void melting_flow_driver(
             if (FT_IsSaveTime(front))
 	    {
 		// Front standard output
-                FT_Save(front,out_name);
+                FT_Save(front);
 		// Problem specific output
 		cartesian.printFrontInteriorState(out_name);
 	    	if (eqn_params->no_fluid == NO)
 		    l_cartesian->printFrontInteriorStates(out_name);
 	    }
-            if (FT_IsMovieFrameTime(front))
+            if (FT_IsDrawTime(front))
 	    {
 		// Front standard output
-                FT_AddMovieFrame(front,out_name,YES);
+                FT_Draw(front);
 		if (dim == 1)
 	    	    cartesian.oneDimPlot(out_name);
 		else if (dim == 2)
@@ -352,7 +352,7 @@ static  void melting_flow_driver(
 		if (dim == 1)
 		    plot_growth_data(out_name,growth_data,count);
 	    	FT_PrintTimeStamp(front);
-	    	FT_AddMovieFrame(front,out_name,YES);
+	    	FT_Draw(front);
                 break;
 	    }
 	    /* Output section, next dt may be modified */

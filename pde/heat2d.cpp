@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 	    }
 
 	    /* Movie frame */
-	    if (FT_IsMovieFrameTime(&front))
+	    if (FT_IsDrawTime(&front))
 	    {
 	    }
 	    /* Output date control */

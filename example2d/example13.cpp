@@ -181,8 +181,8 @@ static  void test_propagate(
 	    front->step = 0;
 
 	    // Always output the initial interface.
-	    FT_Save(front,out_name);
-            FT_AddMovieFrame(front,out_name,binary);
+	    FT_Save(front);
+            FT_Draw(front);
             ip = im = 1;
 
 	    // This is a virtual propagation to get maximum front 
@@ -223,9 +223,9 @@ static  void test_propagate(
             fflush(stdout);
 
 	    if (FT_IsSaveTime(front))
-                FT_Save(front,out_name);
-            if (FT_IsMovieFrameTime(front))
-                FT_AddMovieFrame(front,out_name,binary);
+                FT_Save(front);
+            if (FT_IsDrawTime(front))
+                FT_Draw(front);
 
 	    if (FT_TimeLimitReached(front))
             {

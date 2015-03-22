@@ -31,7 +31,6 @@ char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 boolean ReSetTime;
 int RestartStep;
-boolean binary = YES;
 
 static void CIM_flowThroughBoundaryState(double*,HYPER_SURF*,Front*,
 			POINTER,POINTER);
@@ -140,8 +139,8 @@ static boolean cim_driver(
 	    c_cartesian.compareWithExacySoln();
 
 	c_cartesian.initMovieVariables();
-	FT_AddMovieFrame(front,out_name,NO);
-	FT_Save(front,out_name);
+	FT_Draw(front);
+	FT_Save(front);
 	c_cartesian.printFrontInteriorStates(out_name);
 
 	viewTopVariable(front,field->u,NO,0.0,0.0,

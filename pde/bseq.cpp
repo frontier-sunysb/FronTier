@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 	    /* Update boundary condition */
 
 	    /* Movie frame */
-	    if (FT_IsMovieFrameTime(&front))
+	    if (FT_IsDrawTime(&front))
 	    {
 		/* Numerical solution */
 		if (bs_params.num_scheme != EXACT_SOLUTION_ONLY)

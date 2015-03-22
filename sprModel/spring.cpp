@@ -42,7 +42,6 @@ char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
 boolean ReSetTime;
 int RestartStep;
-boolean binary = YES;
 int constrained_propagate;
 
 int main(int argc, char **argv)
@@ -141,11 +140,11 @@ static  void spring_driver(
 
 	    // Always output the initial interface.
 	    setStressColor(front);
-	    FT_Save(front,out_name);
+	    FT_Save(front);
 
 	    printAfExtraDada(front,out_name);
 
-            FT_AddMovieFrame(front,out_name,binary);
+            FT_Draw(front);
 
 	    FT_Propagate(front);
 	    print_airfoil_stat(front,out_name);
@@ -191,12 +190,12 @@ static  void spring_driver(
             if (FT_IsSaveTime(front))
 	    {
 		setStressColor(front);
-		FT_Save(front,out_name);
+		FT_Save(front);
 	    	printAfExtraDada(front,out_name);
 	    }
-            if (FT_IsMovieFrameTime(front))
+            if (FT_IsDrawTime(front))
 	    {
-                FT_AddMovieFrame(front,out_name,binary);
+                FT_Draw(front);
 	    }
 
             if (FT_TimeLimitReached(front))

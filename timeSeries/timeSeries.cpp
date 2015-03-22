@@ -98,7 +98,7 @@ static void time_driver(
 	    FT_AddTimeStepToCounter(front);
 	    front->dt = dt;
 
-	    if (FT_IsMovieFrameTime(front))
+	    if (FT_IsDrawTime(front))
             {
 		makeSolnMovie(out_name,ts_time,ts_events,n,tmin,tmax,
 				umin,umax,front->time,caption);

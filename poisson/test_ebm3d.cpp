@@ -237,7 +237,7 @@ static  void test_propagate(
 
 	    // Always output the initial interface.
 	    FT_Save(front,out_name);
-            FT_AddMovieFrame(front,out_name);
+            FT_Draw(front,out_name);
             ip = im = 1;
 
 	    // This is a virtual propagation to get maximum front 

@@ -483,22 +483,22 @@ EXPORT	void	FT_Init(
 	}
 }	/* end FrontInitStatndardIO */
 
-EXPORT	void FT_AddMovieFrame(
-	Front *front,
-	char *out_name,
-	boolean print_in_binary)
+EXPORT	void FT_Draw(
+	Front *front)
 {
+	char *out_name = OutName(front);
+	
         if (debugging("trace"))
-            (void) printf("Entering FT_AddMovieFrame()\n");
-	show_front_output(front,out_name,print_in_binary);
+            (void) printf("Entering FT_Draw()\n");
+	show_front_output(front,out_name,YES);
         if (debugging("trace"))
-            (void) printf("Leaving FT_AddMovieFrame()\n");
-}	/* end FT_AddMovieFrame */
+            (void) printf("Leaving FT_Draw()\n");
+}	/* end FT_Draw */
 
 EXPORT	void FT_Save(
-	Front *front,
-	char *out_name)
+	Front *front)
 {
+	char *out_name = OutName(front);
         if (debugging("trace"))
             (void) printf("Entering FT_Save()\n");
 	print_front_output(front,out_name);
@@ -3132,13 +3132,13 @@ EXPORT boolean FT_IsSaveTime(Front *front)
 	    return NO;
 }	/* end FT_IsSaveTime */
 
-EXPORT boolean FT_IsMovieFrameTime(Front *front)
+EXPORT boolean FT_IsDrawTime(Front *front)
 {
 	if (front->is_movie_time || front->time_limit_reached) 
 	    return YES;
 	else
 	    return NO;
-}	/* end FT_IsMovieFrameTime */
+}	/* end FT_IsDrawTime */
 
 EXPORT boolean FT_TimeLimitReached(Front *front)
 {
