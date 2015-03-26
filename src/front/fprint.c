@@ -1402,7 +1402,7 @@ LOCAL	void show_front_gv(
 
 	if (dim == 1) return;
 	gv_intfc = front->interf;
-	if (dim == 3 && pp_numnodes() > 1)
+	if (dim == 3 && pp_numnodes() > 1 && static_mesh(front->interf))
 	{
 	    int owner[3];
 	    owner[0] = owner[1] = owner[2] = 0;
@@ -1436,7 +1436,8 @@ LOCAL	void show_front_gv(
 	}
 	if (dim != 2)
 	{
-	    if (pp_numnodes() > 1 && gv_intfc != NULL)
+	    if (pp_numnodes() > 1 && gv_intfc != NULL && 
+		static_mesh(front->interf))
 		delete_interface(gv_intfc);
 	    return;
 	}
