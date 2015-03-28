@@ -22,10 +22,7 @@ if test $seaborgg = 'yes'; then
         module load gcc
 fi
 
-AC_ARG_ENABLE(linpak, [  --enable-linpak               Turns on the building and linking of the linpak library],[build_linpak=1],[build_linpak=0])
-
 ########################### BUILD GAS ##############################
-pakyesorno=" "
 subgrid=" "
 rotsym=" "
 gascleann=" "
@@ -258,10 +255,6 @@ else
 	AC_SUBST(PETSC_INCLUDE,${PETSC_INCLUDE})
        	
     fi
-    if test ${build_linpak} -eq 0; then
-        echo "Building LINPAK because petsc requires it"
-        build_linpak=1
-    fi
 fi
 
 AC_SUBST(iFluid, ${iFluid})
@@ -459,7 +452,6 @@ AC_SUBST(otherlibsinc,$scriptotherlibsinc)
 AC_SUBST(randy,$RANLIB)
 AC_SUBST_FILE(ftbuild)
 ftbuild=./src/util/ftrules
-AC_SUBST(build_linpak, ${build_linpak})
 
 
 
@@ -499,8 +491,6 @@ inverse/Makefile
 solver/Makefile
 weno/Makefile
 proj/Makefile
-src/pak/linpak/Makefile
-src/pak/blas/Makefile
 devel-deps.inc
 iMesh-Defs.inc'
 fi
@@ -517,8 +507,6 @@ cFluid/Makefile
 iFluid/Makefile
 solver/Makefile
 crystal/Makefile
-src/pak/linpak/Makefile
-src/pak/blas/Makefile
 devel-deps.inc
 iMesh-Defs.inc'
 fi
@@ -532,8 +520,6 @@ src/intfc/Makefile
 example2d/Makefile
 example3d/Makefile
 cFluid/Makefile
-src/pak/linpak/Makefile
-src/pak/blas/Makefile
 devel-deps.inc
 iMesh-Defs.inc'
 fi

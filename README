@@ -56,7 +56,6 @@ The src/        dir contains source code subdirectories:
 src/front/          code for front tracking in FronTier++
 src/intfc/          code for interface geometry in FronTier++
 src/util/           code for utility functions in FronTier++
-src/pak/            contains linear algebra solvers
 example2d/        2d examples showing usage of the FronTier++ API.
 example3d/        3d examples showing usage of the FronTier++ API.
 

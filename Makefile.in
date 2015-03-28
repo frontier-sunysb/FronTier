@@ -171,11 +171,6 @@ $$ME/src/util/mkdep.pl \
 $$ME/src/util/mkfiles.pl \
 $$ME/src/util/ftrules \
 $$ME/src/util/gasrules \
-$$ME/src/pak/Makefile.in \
-$$ME/src/pak/linpak/Makefile.in \
-$$ME/src/pak/linpak/*.f \
-$$ME/src/pak/blas/Makefile.in \
-$$ME/src/pak/blas/*.f \
 $$ME/configure.in \
 $$ME/Makefile.in \
 $$ME/src/Makefile.in \
@@ -327,11 +322,6 @@ $$ME/src/util/mkdep.pl \
 $$ME/src/util/mkfiles.pl \
 $$ME/src/util/ftrules \
 $$ME/src/util/gasrules \
-$$ME/src/pak/Makefile.in \
-$$ME/src/pak/linpak/Makefile.in \
-$$ME/src/pak/linpak/*.f \
-$$ME/src/pak/blas/Makefile.in \
-$$ME/src/pak/blas/*.f \
 $$ME/configure.in \
 $$ME/Makefile.in \
 $$ME/src/Makefile.in \
@@ -394,11 +384,6 @@ $$ME/src/util/mkdep.pl \
 $$ME/src/util/mkfiles.pl \
 $$ME/src/util/ftrules \
 $$ME/src/util/gasrules \
-$$ME/src/pak/Makefile.in \
-$$ME/src/pak/linpak/Makefile.in \
-$$ME/src/pak/linpak/*.f \
-$$ME/src/pak/blas/Makefile.in \
-$$ME/src/pak/blas/*.f \
 $$ME/configure.in \
 $$ME/Makefile.in \
 $$ME/src/Makefile.in \

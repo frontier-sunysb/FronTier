@@ -2,21 +2,13 @@ CC=@CC@
 F77=@F77@
 all:
 	cd front  && $(MAKE)
-	if [ @build_linpak@ -eq 1 ]; then cd pak/linpak && $(MAKE); fi
-	if [ @build_linpak@ -eq 1 ]; then cd pak/blas && $(MAKE); fi
 
 clean:
 	cd util && $(MAKE) clean
 	cd front && $(MAKE) clean
 	cd intfc && $(MAKE) clean
-	if [ @build_linpak@ -eq 1 ]; then cd pak/linpak && $(MAKE) clean; fi
-	if [ @build_linpak@ -eq 1 ]; then cd pak/blas && $(MAKE) clean; fi
 
 diff:
-	cd driver && $(MAKE) diff
 	cd util && $(MAKE) diff 
 	cd front && $(MAKE) diff
-	cd hyp && $(MAKE) diff
 	cd intfc && $(MAKE) diff
-	cd tri  &&  $(MAKE) diff
-	cd gas  &&  $(MAKE) diff
