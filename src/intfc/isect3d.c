@@ -274,16 +274,8 @@ LIB_LOCAL  boolean  i_intersections3d(
 			}
 		    }
 		    
-		    static int count = 0;
 		    if ((cbond = test_cross(ct0,ct1,&status,intfc)) != NULL)
 		    {
-			/*
-			char dirname[100];
-			sprintf(dirname,"cross-tris-%d",count++);
-			gview_plot_crossing_tris(dirname,&ct0,1,&ct1,1);
-			printf("test_cross() positive\n");
-			if (count == 1) clean_up(0);
-			*/
 			(void) add_to_pointers(cbond,&Tri_cross_list(ct0));
 			(void) add_to_pointers(cbond,&Tri_cross_list(ct1));
 			if (DEBUG)
@@ -565,8 +557,6 @@ LOCAL C_BOND *test_cross(
 		}
 	    }
 	}
-	printf("\nTest step 1\n");
-	printf("num_com_vertex = %d\n",num_com_vertex);
 
 	if (num_com_vertex == 3)
 	{
@@ -947,9 +937,6 @@ LOCAL C_BOND *test_cross(
 		}
 	    }
 	}	
-	static int count = 0;
-	count++;
-	printf("count = %d\n",count);
 	x[0].order = 0.0;
 	for (i = 1; i < 4; ++i)
 	{
@@ -960,14 +947,6 @@ LOCAL C_BOND *test_cross(
 	    }
 	    x[i].order = Dot3d(v,line);
 	}
-	printf("Test step 2\n");
-	printf("num_t0_touching = %d\n",num_t0_touching);
-	printf("num_t0_crossing = %d\n",num_t0_crossing);
-	printf("x[0].order = %20.14f\n",x[0].order);
-	printf("x[1].order = %20.14f\n",x[1].order);
-	printf("x[2].order = %20.14f\n",x[2].order);
-	printf("x[3].order = %20.14f\n",x[3].order);
-
 		/* Non-Intersecting Cases */
 
 	switch (num_t0_touching)
@@ -1027,9 +1006,6 @@ LOCAL C_BOND *test_cross(
 	}
 
 
-	printf("Test step 3\n");
-	printf("num_t1_touching = %d\n",num_t1_touching);
-	printf("num_t1_crossing = %d\n",num_t1_crossing);
 	switch (num_t1_touching)
 	{
 	case 0:
@@ -1111,7 +1087,6 @@ LOCAL C_BOND *test_cross(
 
 		/* Create new C_BOND */
 
-	printf("Test step 4\n");
 	new_cb = CBond(NULL,NULL,NULL,t0,t1);
 
 	    /* start side of new_cb */
