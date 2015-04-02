@@ -783,7 +783,6 @@ LOCAL C_BOND *test_cross(
 		}
 		Cross3d(v,v1,cp1);
 		Cross3d(v,v2,cp2);
-		printf("Dot = %20.14f\n",Dot3d(cp1,cp2));
 		x[0].label = j0;
 		x[0].edge_vertex = YES;
 	    }
@@ -1076,10 +1075,6 @@ LOCAL C_BOND *test_cross(
 	    l1 = 2;  u1 = 3;
 	}
 
-	printf("order l0 %d: %20.14f\n",l0,x[l0].order);
-	printf("order u0 %d: %20.14f\n",u0,x[u0].order);
-	printf("order l1 %d: %20.14f\n",l1,x[l1].order);
-	printf("order u1 %d: %20.14f\n",u1,x[u1].order);
 	if (x[u0].order <= (x[l1].order + cr_tol))
 	    return NULL;
 	if (x[u1].order <= (x[l0].order + cr_tol))
@@ -1093,7 +1088,6 @@ LOCAL C_BOND *test_cross(
 
 	if (fabs(x[l0].order - x[l1].order) <= cr_tol)
 	{
-	    printf("Position 1 for start side\n");
 	    if (x[l0].edge_vertex && x[l1].edge_vertex)
 	    {
 		for (i= 0; i< 3; ++i)
@@ -1133,7 +1127,6 @@ LOCAL C_BOND *test_cross(
 	}
 	else if (x[l0].order > x[l1].order)
 	{
-	    printf("Position 2 for start side\n");
 	    start = x[l0].coords;
 	    new_cb->s[1].prev_t = t1;
 
@@ -1149,7 +1142,6 @@ LOCAL C_BOND *test_cross(
 	}
 	else  /* if (x[l1].order > x[l0].order) */
 	{
-	    printf("Position 3 for start side\n");
 	    start = x[l1].coords;
 	    new_cb->s[0].prev_t = t0;
 
@@ -1168,7 +1160,6 @@ LOCAL C_BOND *test_cross(
 
 	if (fabs(x[u0].order - x[u1].order) <= cr_tol)
 	{
-	    printf("Position 1 for end side\n");
 	    if (x[u0].edge_vertex && x[u1].edge_vertex)
 	    {
 		for (i= 0; i< 3; ++i)
@@ -1208,7 +1199,6 @@ LOCAL C_BOND *test_cross(
 	}
 	else if (x[u0].order < x[u1].order)
 	{
-	    printf("Position 2 for end side\n");
 	    end = x[u0].coords;		
 	    new_cb->s[1].next_t = t1;
 
@@ -1224,7 +1214,6 @@ LOCAL C_BOND *test_cross(
 	}
 	else  /* if (x[u1].order < x[u0].order) */
 	{
-	    printf("Position 3 for end side\n");
 	    end = x[u1].coords;
 	    new_cb->s[0].next_t = t0;
 

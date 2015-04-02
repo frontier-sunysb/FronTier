@@ -1453,15 +1453,14 @@ LOCAL int struct_advance_front3d(
 	init_intfc_curvature3d(*newfront,(*newfront)->interf);
 	if (front->interior_propagate != NULL)
 	    (*front->interior_propagate)(*newfront,dt);
+	init_intfc_curvature3d(*newfront,(*newfront)->interf);
 	stop_clock("interior_propagate");
-
-	/*
+	
 	printf("Before resolve_collision()\n");
         printf("interface_reconstructed(intfc) = %d\n",
                 interface_reconstructed((*newfront)->interf));
         resolve_collision(*newfront);
 	printf("After resolve_collision()\n");
-	*/
 
 	start_clock("scatter_front");
 	if (!scatter_front(*newfront))

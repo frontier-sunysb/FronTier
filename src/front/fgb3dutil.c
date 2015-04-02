@@ -116,7 +116,6 @@ LOCAL void enforce_single_crossing(int*,int*,GRID_DIRECTION,struct Table*,
 LOCAL boolean is_subdomain_end(int*,int*,GRID_DIRECTION,INTERFACE*);
 
 LOCAL   void   check_curve_connect(CURVE*, SURFACE*);
-void   print_edge_crossings(int *, int*, INTERFACE *);
 
 #if defined(__cplusplus)
 extern "C" {
@@ -2314,71 +2313,6 @@ EXPORT	void adjust_crossings(
 	    (void) printf("Leaving adjust_crossings()\n");
 }		/*end adjust_crossings */
 
-	
- 	void print_edge_crossings(
-	int      *smin,
-	int      *smax,
-	INTERFACE *intfc)
-{
-	RECT_GRID      *gr = &topological_grid(intfc);
-	int 	       ix,iy,iz;
-	GRID_DIRECTION 	dir[6] = {WEST,EAST,SOUTH,NORTH,LOWER,UPPER};
-	int 	       ip[3],i,k,j,m,nc,list1, d0, d1;
-	CRXING 	       *crx1;
-	double 	       grid_crds;
-	double 	       *L = gr->L;
-	double 	       *h = gr->h;
-	Table	       *T = table_of_interface(intfc);
-	COMPONENT      *comp = T->components;
-	int		*gmax = gr->gmax;
-
-	for (iz = smin[2]; iz <= smax[2]; ++iz)
-	{
-	    ip[2] = iz;
-	    for (iy = smin[1]; iy <= smax[1]; ++iy)
-	    {
-	        ip[1] = iy;
-	        for (ix = smin[0]; ix <= smax[0]; ++ix)
-	        {
-	            ip[0] = ix;
-	            for (i = 0; i < 6; ++i)
-	            {
-	                if (ix == smax[0] && dir[i] == EAST)
-	                    continue;
-	                if (iy == smax[1] && dir[i] == NORTH)
-	                    continue;
-	                if (iz == smax[2] && dir[i] == UPPER)
-	                    continue;
-			if (ix == smin[0] && dir[i] == WEST)
-	                    continue;
-	                if (iy == smin[1] && dir[i] == SOUTH)
-	                    continue;
-	                if (iz == smin[2] && dir[i] == LOWER)
-	                    continue;
-
-	                k = seg_index3d(ix,iy,iz,dir[i],gmax);
-	                nc = T->seg_crx_count[k];
-
-			if((ip[0] == 11 && ip[1] == 19 && ip[2] == 24 
-			    && pp_mynode() == 9) ||
-			    (ip[0] == 5 && ip[1] == 8 && ip[2] == 2 
-			    && pp_mynode() == 13) )
-			{
-			    print_int_vector("#ip found", ip, 3, "\n");
-			    
-			    for(j=0; j<nc; j++)
-			    {
-			        list1 = T->seg_crx_lists[k][j];
-	                        crx1 = T->crx_store+list1;
-	                        print_wall_crx("fc ", ip, dir[i], k, crx1);
-			    }
-			} 
-	            }
-	        }
-	    }
-	}
-}		/*end adjust_crossings */
-
 LOCAL	void eliminate_same_crossings(
 	int      *smin,
 	int      *smax,
@@ -2462,8 +2396,8 @@ LOCAL void adjust_for_min_spacing(
 	pmax = crds_end - mgs;
 	for (i = 0; i < n_crx; i++)
 	{
-	      ps = min(Coords(crxings[i].pt)[dir],ps);
-	      pe = max(Coords(crxings[i].pt)[dir],pe);
+	    ps = min(Coords(crxings[i].pt)[dir],ps);
+	    pe = max(Coords(crxings[i].pt)[dir],pe);
 	}
 	if ((pmin <= ps) && (pe <= pmax))
 	    return;
@@ -4252,6 +4186,11 @@ LOCAL int add_to_edge_list(
 	    {
 	    	for (i = 0; i < *nc; ++i)
 	    	{
+		    if (crx_list[i].vertex != NULL) 
+			continue;
+		    if (crx_list[i].edge[0] != NULL ||
+			crx_list[i].edge[1] != NULL) 
+			continue;
 	    	    if ((crx_list[i].coords[ic] == crds_crx[ic]) &&
 		        same_sign(Tri_normal(tri)[ic],crx_list[i].coords[3]))
 		    	return 0;
@@ -4583,21 +4522,49 @@ LOCAL	void add_to_crx_list(
 	int	i;
 	
 	p = Point_of_tri(tri);
-	if (iv != ERROR)
-	{
-	    if (*nc != 0)
+	if (*nc != 0)
+        {
+	    if (iv != ERROR)
 	    {
 	    	for (i = 0; i < *nc; ++i)
 		{
-		    POINT *ptmp = crx_list[i].pt;
 		    if (crx_tmp_store[i].vertex == p[iv])
 			return;
+		    /* Don't know why we need this
+		    POINT *ptmp = crx_list[i].pt;
 		    if (crds_crx[(ic+1)%3] == Coords(ptmp)[(ic+1)%3] &&
 			crds_crx[(ic+2)%3] == Coords(ptmp)[(ic+2)%3] &&
 			Coords(p[iv])[ic] == Coords(ptmp)[ic])
 			return;
+		    */
 		}
 	    }
+	    else if (ie != ERROR)
+	    {
+	    	for (i = 0; i < *nc; ++i)
+		{
+		    if ((crx_tmp_store[i].edge[0] == p[ie] &&
+			 crx_tmp_store[i].edge[1] == p[(ie+1)%3]) ||
+		        (crx_tmp_store[i].edge[1] == p[ie] &&
+			 crx_tmp_store[i].edge[0] == p[(ie+1)%3]))
+			return;
+		}
+	    }
+	    else
+	    {
+	    	for (i = 0; i < *nc; ++i)
+		{
+		    if ((Coords(crx_list[i].pt)[ic] == crds_crx[ic]) &&
+			((Tri_normal(tri)[ic] > 0 && 
+			  crx_list[i].lcomp == negative_component(surf)) ||
+			 (Tri_normal(tri)[ic] < 0 &&
+			 crx_list[i].lcomp == positive_component(surf))))
+			return;
+		}
+	    }
+	}
+	if (iv != ERROR)
+	{
 	    if (!set_comp_at_vertex(&crx_list[*nc],p[iv],tri,surf,ic))
 	    	return;
 
@@ -4620,18 +4587,6 @@ LOCAL	void add_to_crx_list(
 	}
 	else if (ie != ERROR)
 	{
-	    if (*nc != 0)
-	    {
-	    	for (i = 0; i < *nc; ++i)
-		{
-		    if ((crx_tmp_store[i].edge[0] == p[ie] &&
-			 crx_tmp_store[i].edge[1] == p[(ie+1)%3])
-			 ||
-		        (crx_tmp_store[i].edge[1] == p[ie] &&
-			 crx_tmp_store[i].edge[0] == p[(ie+1)%3]))
-			return;
-		}
-	    }
 	    if (!is_side_bdry(tri,ie))
 	    {
 		TRI 	*nbtri = Tri_on_side(tri,ie);
@@ -4666,18 +4621,6 @@ LOCAL	void add_to_crx_list(
 	}
 	else
 	{
-	    if (*nc != 0)
-	    {
-	    	for (i = 0; i < *nc; ++i)
-		{
-		    if ((Coords(crx_list[i].pt)[ic] == crds_crx[ic]) &&
-			((Tri_normal(tri)[ic] > 0 && 
-			  crx_list[i].lcomp == negative_component(surf)) ||
-			 (Tri_normal(tri)[ic] < 0 &&
-			 crx_list[i].lcomp == positive_component(surf))))
-			return;
-		}
-	    }
 	    crx_list[*nc].pt = Point(crds_crx);
 	    interpolate_crx_pt_states_on_tri(intfc,crx_list[*nc].pt,tri,surf);
 	    
@@ -4948,14 +4891,13 @@ EXPORT 	int insert_grid_intfc_crossings3d(
 	    insert_block_crossings(grid_intfc,rgr,crx_store,seg_crx_lists,
 			seg_crx_count,t,s,nt,icrds,&crx_index);
 	}
-	
-	if(debugging("tst_param"))
+	if (crx_index != T->n_crx)
 	{
-	    int	smin[3] = {0,0,0};
-	    printf("#af ins\n");
-	    print_edge_crossings(smin,rgr->gmax,grid_intfc);
+	    (void) printf("ERROR: counted number of crossings does not"
+			  " equal to inserted number of crossings!\n");
+	    clean_up(ERROR);
 	}
-
+	
 	DEBUG_LEAVE(insert_grid_intfc_crossings)
 	return GOOD_STEP;
 }               /*end insert_grid_intfc_crossings*/

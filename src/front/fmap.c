@@ -49,6 +49,7 @@ EXPORT	void FT_Propagate(
 {
 	double dt_frac;
 	Front *newfront;
+	double *xtest;
 
 	if (debugging("trace"))
 	{

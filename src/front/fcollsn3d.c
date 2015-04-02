@@ -52,11 +52,10 @@ EXPORT	void	resolve_collision(
 	int c_type;
 	char fname[100];
 	int count = 0;
+	double *x;
 
-	printf("Entering resolve_collision()\n");
 	start_clock("intersection");
 	intersections(intfc,&cross,NO);
-	printf("cross = %p\n",(void*)cross);
 	stop_clock("intersection");
 	if (cross == NULL) return;
 	for (i = 0, cr = cross; cr != NULL; ++i, cr = cr->next)
@@ -205,7 +204,6 @@ LOCAL void fabric_rigid_collision(
 		}
 		if (Dot3d(v,nor) > 0.0)
 		    check_add_pt(&pr_list,p,&num_prs,&max_num_prs);
-		printf("Dot[%d][%d] = %f\n",i,k,Dot3d(v,nor));
 	    }
 	}
 	add_to_debug("tri_cluster");
@@ -225,7 +223,6 @@ LOCAL void fabric_rigid_collision(
 	    sprintf(dirname,"cross-tris/before-leaving-%d",front->step);
 	    gview_plot_crossing_tris(dirname,tr_list,num_trs,tf_list,num_tfs);
 	}
-	printf("num_prs = %d\n",num_prs);
 	free_these(4,tr_list,tf_list,pf_list,newpts);
 }	/* end fabric_rigid_collision */
 
@@ -452,7 +449,6 @@ LOCAL void set_tr_tf_pf_list(
 		if (pointer_in_list((POINTER)p,npf,(POINTER*)pf))
 		    continue;
 		comp = component_wrt_tri_cluster(Coords(p),sr,tr,ntr);
-		printf("comp = %d ext_comp = %d\n",comp,ext_comp);
 		if (comp == ext_comp)
             	{
 		    check_add_pt(&pf,p,&npf,&max_npf);
