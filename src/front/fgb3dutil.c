@@ -81,14 +81,16 @@ LOCAL	int	rm_unphy_crx_along_grid_line(INTERFACE*,int*,int*,int*,int*,
 			     	GRID_DIRECTION,CRX_TYPE,int*,int**);
 
 /*insert grid crxings */
-LOCAL   int     count_block_crossings(RECT_GRID*,int*,TRI**,int,int*);
-LOCAL   int     add_to_edge_list(TRI*,int,CRX_STORE*,int*,double*,int,int);
+LOCAL   int     count_block_crossings(RECT_GRID*,int*,SURFACE**,TRI**,int,int*);
+LOCAL   int     add_to_edge_list(SURFACE*,TRI*,int,CRX_STORE*,int*,double*,
+				int,int);
 LOCAL   void    add_to_crx_list(int*,int,INTERFACE*,TRI*,SURFACE*,CRXING*,
                                 CRX_STORE*,int*,int*,double*,int,int);
 LOCAL   void    insert_block_crossings(INTERFACE*,RECT_GRID*,CRXING*,int**,
                                 int*,TRI**,SURFACE**,int,int*,int*);
 LOCAL   void    linear_interp_coefs_3d_tri(double*,double*,TRI*);
-LOCAL   boolean    set_comp_at_vertex(CRXING*,POINT*,TRI*,SURFACE*,int);
+LOCAL   boolean set_comp_at_vertex(CRXING*,POINT*,TRI*,SURFACE*,int);
+LOCAL 	boolean two_side_vertex(POINT*,TRI*,SURFACE*,int);
 
 /*grid based reconstruction */
 LOCAL	void	 fill_block_crx(int,int,int,BLK_CRX*,int*,
@@ -3881,6 +3883,7 @@ EXPORT	int count_grid_intfc_crossings3d(
 	RECT_GRID	*rgr = &topological_grid(grid_intfc);
 	struct Table	*T = table_of_interface(grid_intfc);
 	TRI		**t;
+	SURFACE		**s;
 	int		i,j,k;
 	int		nt;
 	int		icrds[MAXD];
@@ -3904,8 +3907,9 @@ EXPORT	int count_grid_intfc_crossings3d(
 	    nt = T->num_of_tris[k][j][i];
 	    if (nt == 0) continue;
 	    t = T->tris[k][j][i];
+	    s = T->surfaces[k][j][i];
 	    icrds[0] = i; icrds[1] = j; icrds[2] = k;
-	    n_crx += count_block_crossings(rgr,seg_crx_count,t,nt,icrds);
+	    n_crx += count_block_crossings(rgr,seg_crx_count,s,t,nt,icrds);
 	}
 	DEBUG_LEAVE(count_grid_crossings3d)
 	return n_crx;
@@ -3916,6 +3920,7 @@ enum { MAX_EDGE_CRX = 20 }; /*TOLERANCE*/
 LOCAL int count_block_crossings(
 	RECT_GRID	*rgr,
 	int		*seg_crx_count,
+	SURFACE		**surfs,
 	TRI		**tris,
 	int		num_tris,
 	int		*ic)
@@ -3950,7 +3955,7 @@ LOCAL int count_block_crossings(
 	{
 	    if (tri_edge_crossing(tris[i],coords,crds_crx,0,&iv,&ie,h))
 	    {
-		n_blk_crx += add_to_edge_list(tris[i],0,crx_list,
+		n_blk_crx += add_to_edge_list(surfs[i],tris[i],0,crx_list,
 				              &n_ecrx,crds_crx,iv,ie);
 	    }
 	}
@@ -3964,7 +3969,7 @@ LOCAL int count_block_crossings(
 	{
 	    if (tri_edge_crossing(tris[i],coords,crds_crx,1,&iv,&ie,h))
 	    {
-		n_blk_crx += add_to_edge_list(tris[i],1,crx_list,
+		n_blk_crx += add_to_edge_list(surfs[i],tris[i],1,crx_list,
 				              &n_ecrx,crds_crx,iv,ie);
 	    }
 	}
@@ -3978,7 +3983,7 @@ LOCAL int count_block_crossings(
 	{
 	    if (tri_edge_crossing(tris[i],coords,crds_crx,2,&iv,&ie,h))
 	    {
-		n_blk_crx += add_to_edge_list(tris[i],2,crx_list,
+		n_blk_crx += add_to_edge_list(surfs[i],tris[i],2,crx_list,
 				              &n_ecrx,crds_crx,iv,ie);
 	    }
 	}
@@ -4000,7 +4005,7 @@ LOCAL int count_block_crossings(
 	    {
 	    	if (tri_edge_crossing(tris[i],coords,crds_crx,1,&iv,&ie,h))
 		{
-		    n_blk_crx += add_to_edge_list(tris[i],1,crx_list,
+		    n_blk_crx += add_to_edge_list(surfs[i],tris[i],1,crx_list,
 				                  &n_ecrx,crds_crx,iv,ie);
 		}
 	    }
@@ -4011,7 +4016,7 @@ LOCAL int count_block_crossings(
 	    {
 	    	if (tri_edge_crossing(tris[i],coords,crds_crx,2,&iv,&ie,h))
 		{
-		    n_blk_crx += add_to_edge_list(tris[i],2,crx_list,
+		    n_blk_crx += add_to_edge_list(surfs[i],tris[i],2,crx_list,
 				                  &n_ecrx,crds_crx,iv,ie);
 		}
 	    }
@@ -4029,7 +4034,7 @@ LOCAL int count_block_crossings(
 	    {
 	    	if (tri_edge_crossing(tris[i],coords,crds_crx,0,&iv,&ie,h))
 		{
-		    n_blk_crx += add_to_edge_list(tris[i],0,crx_list,
+		    n_blk_crx += add_to_edge_list(surfs[i],tris[i],0,crx_list,
 				                  &n_ecrx,crds_crx,iv,ie);
 		}
 	    }
@@ -4040,7 +4045,7 @@ LOCAL int count_block_crossings(
 	    {
 	    	if (tri_edge_crossing(tris[i],coords,crds_crx,2,&iv,&ie,h))
 		{
-		    n_blk_crx += add_to_edge_list(tris[i],2,crx_list,
+		    n_blk_crx += add_to_edge_list(surfs[i],tris[i],2,crx_list,
 				                  &n_ecrx,crds_crx,iv,ie);
 		}
 	    }
@@ -4058,7 +4063,7 @@ LOCAL int count_block_crossings(
 	    {
 	    	if (tri_edge_crossing(tris[i],coords,crds_crx,0,&iv,&ie,h))
 		{
-		    n_blk_crx += add_to_edge_list(tris[i],0,crx_list,
+		    n_blk_crx += add_to_edge_list(surfs[i],tris[i],0,crx_list,
 						  &n_ecrx,crds_crx,iv,ie);
 		}
 	    }
@@ -4069,8 +4074,8 @@ LOCAL int count_block_crossings(
 	    {
 	    	if (tri_edge_crossing(tris[i],coords,crds_crx,1,&iv,&ie,h))
 		{
-		    n_blk_crx += add_to_edge_list(tris[i],1,crx_list,&n_ecrx,
-						  crds_crx,iv,ie);
+		    n_blk_crx += add_to_edge_list(surfs[i],tris[i],1,crx_list,
+						  &n_ecrx,crds_crx,iv,ie);
 		}
 	    }
 	    index = seg_index3d(ic[0],ic[1],ic[2],NORTH,gmax);
@@ -4089,7 +4094,7 @@ LOCAL int count_block_crossings(
 	    {
 	    	if (tri_edge_crossing(tris[i],coords,crds_crx,2,&iv,&ie,h))
 		{
-		    n_blk_crx += add_to_edge_list(tris[i],2,crx_list,
+		    n_blk_crx += add_to_edge_list(surfs[i],tris[i],2,crx_list,
 				                  &n_ecrx,crds_crx,iv,ie);
 		}
 	    }
@@ -4111,7 +4116,7 @@ LOCAL int count_block_crossings(
 	    {
 	    	if (tri_edge_crossing(tris[i],coords,crds_crx,1,&iv,&ie,h))
 		{
-		    n_blk_crx += add_to_edge_list(tris[i],1,crx_list,
+		    n_blk_crx += add_to_edge_list(surfs[i],tris[i],1,crx_list,
 				                  &n_ecrx,crds_crx,iv,ie);
 		}
 	    }
@@ -4133,7 +4138,7 @@ LOCAL int count_block_crossings(
 	    {
 	    	if (tri_edge_crossing(tris[i],coords,crds_crx,0,&iv,&ie,h))
 		{
-		    n_blk_crx += add_to_edge_list(tris[i],0,crx_list,
+		    n_blk_crx += add_to_edge_list(surfs[i],tris[i],0,crx_list,
 				                  &n_ecrx,crds_crx,iv,ie);
 		}
 	    }
@@ -4149,6 +4154,7 @@ LOCAL int count_block_crossings(
 }		/*end count_block_crossings*/
 
 LOCAL int add_to_edge_list(
+	SURFACE		*surf,
 	TRI		*tri,
 	int		ic,
 	CRX_STORE	*crx_list,
@@ -4199,6 +4205,8 @@ LOCAL int add_to_edge_list(
 	}
 	if (iv != ERROR)
 	{
+	    if (!two_side_vertex(Point_of_tri(tri)[iv],tri,surf,ic))
+		return 0;
 	    crx_list[*nc].vertex = Point_of_tri(tri)[iv];
 	    crx_list[*nc].edge[0] = NULL;
 	    crx_list[*nc].edge[1] = NULL;
@@ -5938,3 +5946,54 @@ LOCAL void debug_comp_on_grid_line(
                         ip1[0],ip1[1],ip1[2],grid_direction_name(dirs[idir]));
         print_comp_along_grid_line(ip1,ip2,dirs[idir],T,gmax,smin,smax);
 }       /* end debug_comp_on_grid_line */
+
+LOCAL boolean two_side_vertex(
+	POINT   *p,
+	TRI     *tri,
+	SURFACE *surf,
+	int     dir)
+{
+	int i,v,num_tris;
+	TRI **tri_list;
+	double *p0,*p1,*p2,dp1[2],dp2[2];
+	double dp1_len,dp2_len,sin_arg,cos_arg;
+	double angle,accum_angle;
+	double pi_2 = PI/2.0;
+
+	num_tris = set_tri_list_around_point(p,tri,&tri_list,surf->interface);
+	accum_angle = 0.0;
+	for (i = 0; i < num_tris; ++i)
+	{
+	    v = Vertex_of_point(tri_list[i],p);
+	    p0 = Coords(Point_of_tri(tri_list[i])[v]);
+	    p1 = Coords(Point_of_tri(tri_list[i])[Next_m3(v)]);
+	    p2 = Coords(Point_of_tri(tri_list[i])[Prev_m3(v)]);
+	    dp1[0] = p1[Next_m3(dir)] - p0[Next_m3(dir)];
+	    dp2[0] = p2[Next_m3(dir)] - p0[Next_m3(dir)];
+	    dp1[1] = p1[Prev_m3(dir)] - p0[Prev_m3(dir)];
+	    dp2[1] = p2[Prev_m3(dir)] - p0[Prev_m3(dir)];
+	    dp1_len = sqrt(dp1[0]*dp1[0] + dp1[1]*dp1[1]);
+	    dp2_len = sqrt(dp2[0]*dp2[0] + dp2[1]*dp2[1]);
+	    if (dp1_len == 0.0 || dp2_len == 0.0) continue;
+	    sin_arg = (dp1[0]*dp2[1] - dp1[1]*dp2[0])/dp1_len/dp2_len;
+	    cos_arg = (dp1[0]*dp2[0] + dp1[1]*dp2[1]);
+	    if (sin_arg >  1.0) sin_arg =  1.0;
+	    if (sin_arg < -1.0) sin_arg = -1.0;
+	    angle = asin(sin_arg);
+	    if (cos_arg < 0.0) 
+	    {
+	        if (sin_arg > 0.0)
+	    	angle =  PI - angle;
+	        else
+	    	angle = -PI - angle;
+	    }
+	    accum_angle += angle;
+	}
+	if (accum_angle > pi_2 - 0.01)
+	    return YES;
+	else if (accum_angle < -pi_2 + 0.01)
+	    return YES;
+	else
+	    return NO;
+}		/*end set_comp_at_vertex*/
+
