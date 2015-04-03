@@ -1586,3 +1586,131 @@ EXPORT void FT_PrintTimeStamp(Front *front)
 	fflush(stdout);
 }	/* end FT_PrintTimeStamp */
 
+EXPORT  void FT_MakeCrossCylinderSurf(
+        Front *front,
+        double *center1,
+	double *center2,
+        double radius1,
+	double radius2,
+        double height1,
+	double height2,
+        COMPONENT neg_comp,
+        COMPONENT pos_comp,
+        int w_type,
+        SURFACE **surf)
+{
+        RECT_GRID *rgr = front->rect_grid;
+        CROSSCYLINDER_PARAMS crosscylinder_params;
+        int i,dim = rgr->dim;
+
+        for (i = 0; i < dim; ++i)
+        {
+            crosscylinder_params.center1[i] = center1[i];
+	    crosscylinder_params.center2[i] = center2[i];
+        }
+	
+	crosscylinder_params.radius1 = radius1;
+	crosscylinder_params.radius2 = radius2;
+        crosscylinder_params.height1 = height1;
+	crosscylinder_params.height2 = height2;
+
+        make_level_surface(rgr,front->interf,neg_comp,pos_comp,
+			crosscylinder_func,
+			(POINTER)&crosscylinder_params,surf);
+        wave_type(*surf) = w_type;
+        front->interf->modified = YES;
+
+}        /*end FT_MakeCrossCylinderSurf*/
+
+EXPORT  void FT_MakeBowlSurf(
+        Front *front,
+        double *center,
+        double radius1,
+        double radius2,
+	double radius3,
+        double height1,
+	double height2,
+        COMPONENT neg_comp,
+        COMPONENT pos_comp,
+        int w_type,
+        SURFACE **surf)
+{
+        RECT_GRID *rgr = front->rect_grid;
+        BOWL_PARAMS bowl_params;
+        int i,dim = rgr->dim;
+
+        for (i = 0; i < dim; ++i)
+        {
+            bowl_params.center[i] = center[i];
+        }
+        bowl_params.radius1 = radius1;
+        bowl_params.radius2 = radius2;
+	bowl_params.radius3 = radius3;
+        bowl_params.height1 = height1;
+	bowl_params.height2 = height2;
+
+        make_level_surface(rgr,front->interf,neg_comp,pos_comp,
+                        bowl_func,(POINTER)&bowl_params,surf);
+        wave_type(*surf) = w_type;
+        front->interf->modified = YES;
+
+}        /*end FT_MakeBowlSurf*/
+
+EXPORT  void FT_MakeStellatedOctahedronSurf(
+        Front *front,
+        double *center,
+        double edge,
+        COMPONENT neg_comp,
+        COMPONENT pos_comp,
+        int w_type,
+        SURFACE **surf)
+{
+        RECT_GRID *rgr = front->rect_grid;
+        STELLATEDOCTAHEDRON_PARAMS stellatedoctahedron_params;
+        int i,dim = rgr->dim;
+
+        for (i = 0; i < dim; ++i)
+        {
+            stellatedoctahedron_params.center[i] = center[i];
+        }
+	
+	stellatedoctahedron_params.edge = edge;
+
+        make_level_surface(rgr,front->interf,neg_comp,pos_comp,
+                        stellatedoctahedron_func,
+			(POINTER)&stellatedoctahedron_params,
+			surf);
+        wave_type(*surf) = w_type;
+        front->interf->modified = YES;
+
+}        /*end FT_MakeStellatedOctahedronSurf */
+
+EXPORT  void FT_MakePlatformSurf(
+	Front *front,
+	double *center,
+	double radius,
+	double height, 
+	double slope, 
+	COMPONENT neg_comp,
+        COMPONENT pos_comp,
+        int w_type,
+        SURFACE **surf)
+{
+	RECT_GRID *rgr = front->rect_grid;
+        PLATFORM_PARAMS platform_params;
+        int i,dim = rgr->dim;
+
+        for (i = 0; i < dim; ++i)
+        {
+            platform_params.center[i] = center[i];
+        }
+
+	platform_params.slope = slope;
+        platform_params.height = height;
+	platform_params.radius = radius; 
+
+        make_level_surface(rgr,front->interf,neg_comp,pos_comp,
+                        platform_func,(POINTER)&platform_params,surf);
+        wave_type(*surf) = w_type;
+        front->interf->modified = YES;	
+}	/* end FT_MakePlatformSurf */

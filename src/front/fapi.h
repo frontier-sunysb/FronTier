@@ -1596,6 +1596,107 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 
    IMPORT  void FT_PrintTimeStamp(Front *front);
 
+/*! \fn void FT_MakeCrossCylinderSurf(Front *front,double *center1,double * center2, double radius1, double radius2,  double height1, double height2, COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf)
+ *  \ingroup INSERT
+    \brief This function inserts a surface in which a cylinder go through another cylinder into the front with given
+     information of its parameters, components, and wave type.
+    \param front @b inout Pointer to the front in which surface is inserted.
+    \param center1 @b in center of one cylinder.
+    \param center2 @b in center of another cylinder.
+    \param radius1 @b in radius of one cylinder.
+    \param radius2 @b in radius of another cylinder.
+    \param height1 @b in height of one cylinder.
+    \param height2 @b in height of another cylinder.
+    \param neg_comp @b in index for negative side of the surface (inner side).
+    \param pos_comp @b in index for positive side of the surface (outer side).
+    \param w_type @b in wave type of the surface.
+    \param surf @b out surface made by this function
+*/
+    IMPORT void FT_MakeCrossCylinderSurf(Front *front,
+				double *center1,
+				double *center2,
+				double radius1,
+				double radius2,
+				double height1,
+				double height2, 
+				COMPONENT neg_comp,
+				COMPONENT pos_comp,
+				int w_type,
+				SURFACE **surf);
+
+/*! \fn void FT_MakeBowlSurf(Front *front,double *center,double radius1,double radius2,double radius3,double height1,double height2,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf)
+ *  \ingroup INSERT
+    \brief This function inserts a bowl surface into the front with given
+     information of its parameters, components, and wave type.
+    \param front @b inout Pointer to the front in which surface is inserted.
+    \param center @b in center of the sphere.
+    \param radius1 @b in radius of the outer sphere.
+    \param radius2 @b in radius of the cylinder.
+    \param radius3 @b in radius of the inner sphere.
+    \param height1 @b in height of body of the bowl.
+    \param height2 @b in height of bottom of the bowl.
+    \param neg_comp @b in index for negative side of the surface (inner side).
+    \param pos_comp @b in index for positive side of the surface (outer side).
+    \param w_type @b in wave type of the surface.
+    \param surf @b out surface made by this function
+*/
+    IMPORT void FT_MakeBowlSurf(Front *front,
+				double *center,
+				double radius1,
+				double radius2,
+				double radius3,
+				double height1,
+				double height2, 
+				COMPONENT neg_comp,
+				COMPONENT pos_comp,
+				int w_type,
+				SURFACE **surf);
+
+/*! \fn void FT_MakePlatformSurf(Front *front,double *center,double radius, double height, double slope, COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf)
+ *  \ingroup INSERT
+    \bridf This function inserts a platform surface derived by cutting the head of the cone curface into the front with given information of its parameters, components, and wave type.
+    \param front @b inout Pointer to the front in which surface is inserted.
+    \param center @b in center of the bottom of the platform.
+    \param radius @b in radius of the bottom of the platform. 
+    \param height @b in height of the platform.
+    \param slope @b in slope of the platform.
+    \param neg_comp @b in index for negative side of the surface (inner side).
+    \param pos_comp @b in index for positive side of the surface (outer side).
+    \param w_type @b in wave type of the surface.
+    \param surf @b out surface made by this function
+*/
+
+    IMPORT void FT_MakePlatformSurf(Front *front,
+			double *center,
+			double radius, 
+			double height, 
+			double slope, 
+			COMPONENT neg_comp,
+			COMPONENT pos_comp,
+			int w_type,
+			SURFACE **surf);
+
+/*! \fn void FT_MakeStellatedoctahedronSurf(Front *front, double *center,double edge,COMPONENT neg_comp, COMPONENT pos_comp, int w_type,SURFACE **surf)
+ *  \ingroup INSERT
+    \brief This function inserts a cristal surface into the front with given
+     information of its parameters, components, and wave type.
+    \param front @b inout Pointer to the front in which surface is inserted.
+    \param center @b in center of the upper tetrahedron.
+    \param edge @b in edge of the tetrahedron.
+    \param neg_comp @b in index for negative side of the surface (inner side).
+    \param pos_comp @b in index for positive side of the surface (outer side).
+    \param w_type @b in wave type of the surface.
+    \param surf @b out surface made by this function
+*/
+
+    IMPORT void FT_MakeStellatedOctahedronSurf(Front *front,
+			double *center,
+			double edge,
+			COMPONENT neg_comp,
+			COMPONENT pos_comp,
+			int w_type,
+			SURFACE **surf);
+
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif

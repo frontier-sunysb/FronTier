@@ -520,6 +520,24 @@ typedef struct {
 } CONE_PARAMS;
 
 typedef struct {
+	double center1[3];
+	double center2[3];
+	double radius1;
+	double radius2;
+	double height1;
+	double height2;
+} CROSSCYLINDER_PARAMS;
+
+typedef struct {
+	double center[3];
+	double radius1;
+	double radius2;
+	double radius3;
+	double height1;
+	double height2;
+} BOWL_PARAMS;
+
+typedef struct {
 	double center[3];
 	double edge;
 } TETRAHEDRON_PARAMS;
@@ -531,6 +549,18 @@ typedef struct {
         double phi;
         double z0;
 } SINE_PARAMS;
+
+typedef struct {
+	double center[3];
+	double slope; 
+	double height;
+	double radius; 
+} PLATFORM_PARAMS;
+
+typedef struct {
+	double center[3];
+	double edge;
+} STELLATEDOCTAHEDRON_PARAMS;
 
 enum _PROXIMITY {
         FLOOR = 1,

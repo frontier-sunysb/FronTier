@@ -812,7 +812,11 @@ IMPORT  double  four_slotted_circle_func(POINTER,double*);
 IMPORT  double  cuboid_func(POINTER,double*);
 IMPORT  double  cylinder_func(POINTER,double*);
 IMPORT  double  cone_func(POINTER,double*);
+IMPORT  double  crosscylinder_func(POINTER,double*);
+IMPORT  double  bowl_func(POINTER,double*);
 IMPORT  double  tetrahedron_func(POINTER,double*);
+IMPORT  double  stellatedoctahedron_func(POINTER,double*);
+IMPORT  double  platform_func(POINTER,double*);
 IMPORT  void  	adjust_rectangle_params(RECTANGLE_PARAMS*,RECT_GRID*);
 
 /*      imksurf.c */

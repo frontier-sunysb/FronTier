@@ -5136,3 +5136,196 @@ EXPORT boolean plane_constr_func(
 	}
 }	/* end plane_constr_func */
 
+EXPORT  double crosscylinder_func(
+        POINTER func_params,
+        double *coords)
+{
+        CROSSCYLINDER_PARAMS *d_params = (CROSSCYLINDER_PARAMS*)func_params;
+        double *c1,*c2;
+        double x1,y1,z1,x2,y2,z2,r1,r2,h1,h2,arg;
+
+        c1 = d_params->center1;
+	c2 = d_params->center2;
+        r1 = d_params->radius1;
+	r2 = d_params->radius2;
+        h1 = d_params->height1;
+	h2 = d_params->height2;
+
+        x1 = coords[0] - c1[0];
+        y1 = coords[1] - c1[1];
+        z1 = coords[2] - c1[2];
+	x2 = coords[0] - c2[0];
+        y2 = coords[1] - c2[1];
+        z2 = coords[2] - c2[2];
+
+        if((x2 < -h2 || x2 > h2) || (z1 < -h1 || z1 > h1))
+	{
+		arg = 1;
+	}
+	else if((sqr(x1) + sqr(y1) - sqr(r1) < 0) || 
+		(sqr(y2) + sqr(z2) - sqr(r2) < 0))
+	{
+		arg = -1;
+	}
+	else 
+	{
+		arg = 1; 
+	}
+	
+        return arg;
+}      /*end crosscylinder_func*/
+
+EXPORT  double bowl_func(
+	POINTER func_params,
+	double *coords)
+{
+	BOWL_PARAMS *d_params = (BOWL_PARAMS*)func_params;
+	double *c;
+	double x,y,z,R,r,RR,h1,h2,f1,f2,arg;
+
+	c = d_params->center;
+	R = d_params->radius1;
+	r = d_params->radius2;
+	RR = d_params->radius3;
+	h1 = d_params->height1;
+	h2 = d_params->height2;
+	
+	x = coords[0] - c[0];
+	y = coords[1] - c[1];
+	z = coords[2] - c[2];
+
+	f1 = c[2] - (sqrt(sqr(R)-sqr(r))-h1);
+	f2 = c[2] - sqrt(sqr(R)-sqr(r)); 
+
+	if(coords[2] > f1 || coords[2] < (f2 - h2))
+	{
+		arg = -1;
+	}
+	else if (coords[2] < f1 && coords[2] > f2)
+	{
+		if (sqr(x)+sqr(y)+sqr(z)-sqr(R) > 0 || 
+		    sqr(x)+sqr(y)+sqr(z)-sqr(RR) < 0)
+		{
+			arg = -1;
+		}
+		else
+		{
+			arg = 1;
+		}
+	}
+	else 
+	{	
+		arg = -(sqr(x)+sqr(y)-sqr(r));
+	}
+
+	return arg;
+}	/* end bowl_func */
+
+EXPORT  double stellatedoctahedron_func(
+        POINTER func_params,
+        double *coords)
+{
+        STELLATEDOCTAHEDRON_PARAMS *d_params = 
+			(STELLATEDOCTAHEDRON_PARAMS*)func_params;
+        int i,j;
+        double p[3];
+        double a = d_params->edge;
+        double r = a/sqrt(24); 	/* distance between center and surface */
+        double inner_prod, dis, cos_arg, d;
+        double MAX_COS = -1;
+        double temp_vec[3];
+        double nor_vec1[4][3]={{1, 1, 1}, {1, -1, -1},
+                              {-1, 1, -1}, {-1, -1, 1}};
+        double nor_vec2[4][3]={{-1, -1, -1}, {-1, 1, 1},
+		 	       {1, -1 ,1}, {1, 1, -1}};
+	for (i = 0; i < 3; i++)
+        {    
+		p[i] = coords[i] - d_params->center[i];
+	}
+
+        if(Mag3d(p) == 0)
+        {
+            dis = -10000;
+            printf("origin point detected!\ndis = %f\n",dis);
+            return dis;
+        }
+        else
+        {
+	    for (i = 0; i < 4; ++i)
+            for (j = 0; j < 3; ++j)
+            {
+               	nor_vec1[i][j] = nor_vec1[i][j]*2/a;
+            }
+            for (i = 0; i < 4; i++)
+            {
+               	for (j = 0; j < 3; j++)
+               	temp_vec[j] = nor_vec1[i][j];
+
+               	inner_prod = Dot3d(p,temp_vec);
+               	cos_arg = inner_prod/(Mag3d(p)*Mag3d(temp_vec));
+
+		if (cos_arg > MAX_COS)
+               	    MAX_COS = cos_arg;
+            }
+
+	    d = r/MAX_COS;
+	    dis = Mag3d(p) - d;
+
+	    if (dis <= 0) return dis;
+	    else
+	    {
+		MAX_COS = -1;
+		for(i = 0 ; i < 4 ; i++)
+		for(j = 0 ; j < 3 ; j++)
+		{
+		    nor_vec2[i][j] = nor_vec2[i][j]*2/a;
+		}
+			
+		for(i = 0 ; i < 4 ; i++)
+		{
+		    for(j = 0 ; j < 3 ; j++)
+		    temp_vec[j] = nor_vec2[i][j];
+                        	
+		    inner_prod = Dot3d(p,temp_vec);
+                    cos_arg = inner_prod/(Mag3d(p)*Mag3d(temp_vec));
+
+                    if (cos_arg > MAX_COS)
+                    	MAX_COS = cos_arg;
+                }
+                d = r/MAX_COS;
+                dis = Mag3d(p) - d;
+                return dis;
+            }
+        }
+}       /*end stellatedoctahedron_func*/
+
+EXPORT  double platform_func(
+        POINTER func_params,
+        double *coords)
+{
+        PLATFORM_PARAMS *d_params = (PLATFORM_PARAMS*)func_params;
+        double *c;
+        double x,y,z,s,h,r,arg;
+
+        c = d_params->center;
+        s = d_params->slope;
+        h = d_params->height;
+	r = d_params->radius;
+
+        x = coords[0] - c[0];
+        y = coords[1] - c[1];
+        z = coords[2] - c[2];
+
+        if (z > 0 && z < h)
+        {
+            arg = sqr(r - s * z) - sqr(y)- sqr(x);
+            if (arg < 0) arg = -1;
+            else arg = 1;
+        }
+        else
+        {
+            arg = -1;
+        }
+        return arg;
+
+}       /*end platform_func*/
