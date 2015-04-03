@@ -4895,6 +4895,8 @@ EXPORT 	int insert_grid_intfc_crossings3d(
 	{
 	    (void) printf("ERROR: counted number of crossings does not"
 			  " equal to inserted number of crossings!\n");
+	    (void) printf(" Counted number of crossings: %d\n",T->n_crx);
+	    (void) printf("Inserted number of crossings: %d\n",crx_index);
 	    clean_up(ERROR);
 	}
 	
