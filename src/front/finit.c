@@ -2052,6 +2052,8 @@ LOCAL   void FT_InitIntfc3d(
 	    else
 	    	wave_type(surf) = FIRST_PHYSICS_WAVE_TYPE;
 	}
+	else
+	    intfc->default_comp = level_func_pack->pos_component;
 
 	set_topological_grid(intfc,computational_grid(intfc));
 

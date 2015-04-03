@@ -851,19 +851,23 @@ extern void ifluid_point_propagate(
 	switch(wave_type(oldhs))
 	{
         case SUBDOMAIN_BOUNDARY:
-            return;
+	    printf("Test position 1\n");
+	    break;
 	case NEUMANN_BOUNDARY:
 	case MOVABLE_BODY_BOUNDARY:
 	case GROWING_BODY_BOUNDARY:
-	    return neumann_point_propagate(front,wave,oldp,newp,oldhse,
+	    neumann_point_propagate(front,wave,oldp,newp,oldhse,
 					oldhs,dt,V);
+	    break;
 	case DIRICHLET_BOUNDARY:
-	    return dirichlet_point_propagate(front,wave,oldp,newp,oldhse,
+	    dirichlet_point_propagate(front,wave,oldp,newp,oldhse,
 					oldhs,dt,V);
+	    break;
 	default:
-	    return contact_point_propagate(front,wave,oldp,newp,oldhse,
+	    contact_point_propagate(front,wave,oldp,newp,oldhse,
 					oldhs,dt,V);
 	}
+	return;
 }       /* ifluid_point_propagate */
 
 extern boolean isDirichletPresetBdry(
