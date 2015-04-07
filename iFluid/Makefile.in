@@ -37,11 +37,11 @@ hyperb.o : ../solver/solver.h ../solver/hyperb.cpp
 	${CXX} -c ../solver/hyperb.cpp $(incsloc) $(incs) ${Petsc_Include}
 parab.o : ../solver/solver.h ../solver/parab.cpp
 	${CXX} -c ../solver/parab.cpp $(incsloc) $(incs) ${Petsc_Include}
-iFsub.o : iFluid.h ifluid_basic.h iFsub.cpp
+iFsub.o : iFluid.h iFsub.cpp
 	${CXX} -c iFsub.cpp $(incsloc) $(incs) ${Petsc_Include}
-iFinit.o : iFluid.h ifluid_basic.h iFinit.cpp
+iFinit.o : iFluid.h iFinit.cpp
 	${CXX} -c iFinit.cpp $(incsloc) $(incs) ${Petsc_Include}
-iFluid: iFluid.h ifluid_basic.h iFluid.cpp iFsub.o iFinit.o ../lib/libiF.a ../lib/libSolver.a
+iFluid: iFluid.h iFluid.cpp iFsub.o iFinit.o ../lib/libiF.a ../lib/libSolver.a
 	${CXX} -c iFluid.cpp $(incsloc) $(incs) ${Petsc_Include}
 	$(CXX) -o iFluid iFluid.o iFsub.o iFinit.o -I../include -L../lib/${build_cpu} -liF -lSolver ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
 

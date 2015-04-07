@@ -40,7 +40,7 @@ cim_ellip.o : ../solver/solver.h ../solver/cim_ellip.cpp
 	${CXX} -c ../solver/cim_ellip.cpp $(incsloc) $(incs) ${Petsc_Include}
 dual_ellip.o : ../solver/solver.h ../solver/dual_ellip.cpp
 	${CXX} -c ../solver/dual_ellip.cpp $(incsloc) $(incs) ${Petsc_Include}
-iFsub.o : ../iFluid/iFluid.h ../iFluid/ifluid_basic.h ../iFluid/iFsub.cpp
+iFsub.o : ../iFluid/iFluid.h ../iFluid/iFsub.cpp
 	${CXX} -c ../iFluid/iFsub.cpp $(incsloc) $(incs) ${Petsc_Include}
 afprop.o : ../airfoil/airfoil.h ../iFluid/iFluid.h ../airfoil/afprop.cpp
 	${CXX} -c ../airfoil/afprop.cpp $(incsloc) $(incs) ${Petsc_Include}

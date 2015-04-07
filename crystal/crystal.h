@@ -6,6 +6,9 @@
 #define _FT_CRYSTAL_H_
 
 #include <FronTier.h>
+#if !defined(_FT_IFLUID_H_)
+#include "crystal_state.h"
+#endif /* !defined(_FT_IFLUID_H_) */
 #include <vector>
 #include <petscksp.h>
 #include <assert.h>

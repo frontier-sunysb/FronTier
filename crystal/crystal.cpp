@@ -1,5 +1,5 @@
 /***************************************************************
-FronTier is a set of libraries that implements differnt types of 
+FronTier is a set of libraries that implements different types of 
 Front Traking algorithms. Front Tracking is a numerical method for 
 the solution of partial differential equations whose solutions have 
 discontinuities.  
@@ -29,7 +29,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
 #include "crystal.h"
-#include "crystal_basic.h"
 
 #define		MAX_NUM_VERTEX_IN_CELL		20
 

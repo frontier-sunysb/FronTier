@@ -1,12 +1,6 @@
 
 #include <FronTier.h>
 
-enum _PROB_TYPE {
-        ERROR_TYPE = -1,
-	FLUID_CRYSTAL
-};
-typedef enum _PROB_TYPE PROB_TYPE;
-
 enum {
 	CRYSTAL_BOUNDARY	= FIRST_PHYSICS_WAVE_TYPE
 };

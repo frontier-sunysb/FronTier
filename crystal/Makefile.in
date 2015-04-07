@@ -29,7 +29,7 @@ ccartsn.o : crystal.h ../solver/solver.h ccartsn.cpp
 crysub.o : crystal.h ../solver/solver.h crysub.cpp
 	${CXX} -c crysub.cpp $(incsloc) $(incs) ${Petsc_Include}
 
-crystal: crystal.h crystal_basic.h crystal.cpp solver.o parab.o ccartsn.o crysub.o
+crystal: crystal.h crystal_state.h crystal.cpp solver.o parab.o ccartsn.o crysub.o
 	${CXX} -c crystal.cpp -I../include $(incs) ${Petsc_Include}
 	$(CXX) -o crystal crystal.o -I../include -L../lib/${build_cpu} solver.o parab.o ccartsn.o crysub.o ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
 

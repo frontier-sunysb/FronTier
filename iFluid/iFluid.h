@@ -12,26 +12,6 @@
 #include "FronTier.h"
 #include "solver.h"
 
-#define         SOLID_COMP		1
-#define         LIQUID_COMP1		2
-#define         LIQUID_COMP2		3
-#define		LIQUID_COMP		3
-
-#define		ifluid_comp(comp)   (((comp) == LIQUID_COMP1 || 	\
-		comp == LIQUID_COMP2) ? YES : NO)
-
-enum EBM_COORD
-{
-    COORD_X = 0,  COORD_Y = 1,  COORD_Z = 2
-};
-
-enum _DOMAIN_STATUS {
-        NOT_SOLVED      =       0,
-        TO_SOLVE,
-        SOLVED
-};
-typedef enum _DOMAIN_STATUS DOMAIN_STATUS;
-
 struct _STATE {
         double dens;                    /* Density */
         double pres;                    /* Pressure */
@@ -46,6 +26,53 @@ struct _STATE {
 	double mu;			/* For eddy viscosity */
 };
 typedef struct _STATE STATE;
+
+#define         SOLID_COMP		1
+#define         LIQUID_COMP1		2
+#define         LIQUID_COMP2		3
+#define		LIQUID_COMP		3
+
+#define		ifluid_comp(comp)   (((comp) == LIQUID_COMP1 || 	\
+		comp == LIQUID_COMP2) ? YES : NO)
+
+enum _IF_PROB_TYPE {
+        ERROR_TYPE = -1,
+	BEE_3D = 1,
+        BUBBLE_SURFACE,
+	CHANNEL_FLOW,
+        FLUID_CRYSTAL,
+        FLUID_RIGID_BODY,
+        FLUID_SOLID_CIRCLE,
+	FLUID_SOLID_CONE,
+        FLUID_SOLID_CYLINDER,
+        FLUID_SOLID_RECT,
+        FLUID_SOLID_TRIANGLE,
+	HELICOPTER_3D,
+	OPEN_ROTOR,
+	PRESSURE_PUMP,
+	RANDOM_FLOW,
+        ROTOR_ONE_FLUID,
+        ROTOR_TWO_FLUID,
+	TAYLOR_GREEN_VORTEX,
+        TWO_FLUID_BUBBLE,
+        TWO_FLUID_KH,
+        TWO_FLUID_RT,
+	WINDMILL_2D,
+        WINDMILL_3D
+};
+typedef enum _IF_PROB_TYPE IF_PROB_TYPE;
+
+enum EBM_COORD
+{
+    COORD_X = 0,  COORD_Y = 1,  COORD_Z = 2
+};
+
+enum _DOMAIN_STATUS {
+        NOT_SOLVED      =       0,
+        TO_SOLVE,
+        SOLVED
+};
+typedef enum _DOMAIN_STATUS DOMAIN_STATUS;
 
 struct _IF_FIELD {
 	double **vel;			/* Velocities */
@@ -573,4 +600,18 @@ extern void set_rgbody_params(RG_PARAMS,HYPER_SURF*);
 extern void ifluid_compute_force_and_torque(Front*,HYPER_SURF*,double,double*,
                         double*);
 extern void initInnerBoundary(Front*,LEVEL_FUNC_PACK*);
+extern void restart_set_dirichlet_bdry_function(Front*);
+extern void iF_flowThroughBoundaryState(double*,HYPER_SURF*,Front*,POINTER,
+                        POINTER);
+extern void iF_timeDependBoundaryState(double*,HYPER_SURF*,Front*,POINTER,
+                        POINTER);
+extern void ifluid_point_propagate(Front*,POINTER,POINT*,POINT*,
+                        HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
+extern void ifluid_compute_force_and_torque(Front*,CURVE*,double,double*,
+                        double*);
+extern void setInitialIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
+extern void init_fluid_state_func(Incompress_Solver_Smooth_Basis*,IF_PROB_TYPE);
+extern void read_iFparams(char*,IF_PARAMS*);
+extern void read_iF_prob_type(char*,IF_PROB_TYPE*);
+extern void recordBdryEnergyFlux(Front*,char*);
 #endif

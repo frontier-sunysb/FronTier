@@ -1,5 +1,5 @@
 /***************************************************************
-FronTier is a set of libraries that implements differnt types of 
+FronTier is a set of libraries that implements different types of 
 Front Traking algorithms. Front Tracking is a numerical method for 
 the solution of partial differential equations whose solutions 
 have discontinuities.  

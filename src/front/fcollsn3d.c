@@ -1,5 +1,5 @@
 /***************************************************************
-FronTier is a set of libraries that implements differnt types of 
+FronTier is a set of libraries that implements different types of 
 Front Traking algorithms. Front Tracking is a numerical method for 
 the solution of partial differential equations whose solutions have 
 discontinuities.  
@@ -382,58 +382,66 @@ LOCAL void set_tr_tf_pf_list(
 	t = find_inner_seed_tri(cc,sr,tr,ntr);
 	if (debugging("collision"))
 	{
+	    int ns = (t == NULL) ? 0 : 1;
 	    sprintf(dirname,"cross-tris/rigid-seed-%d",front->step);
-	    gview_plot_crossing_tris(dirname,tr,ntr,&t,1);
+	    gview_plot_crossing_tris(dirname,tr,ntr,&t,ns);
 	}
 
 	/* Fill tr list with tris inside the ring */
-	seed_queue = add_to_pointer_queue(NULL,NULL);
-	seed_queue->pointer = (POINTER)t;
-	check_add_tri(&tr,t,&ntr,&max_ntr);
-	while (seed_queue)
+	if (t != NULL)
 	{
-	    pq = head_of_pointer_queue(seed_queue);
-	    t = (TRI*)(pq->pointer);
-	    for (i = 0; i < 3; ++i)
+	    seed_queue = add_to_pointer_queue(NULL,NULL);
+	    seed_queue->pointer = (POINTER)t;
+	    check_add_tri(&tr,t,&ntr,&max_ntr);
+	    while (seed_queue)
 	    {
-		if (is_side_bdry(t,i)) continue;
-		nbt = Tri_on_side(t,i);
-		if (pointer_in_list((POINTER)nbt,ntr,(POINTER*)tr))
-		    continue;
-		seed_queue = add_to_pointer_queue(NULL,seed_queue);
-		seed_queue->pointer = (POINTER)nbt;
-		check_add_tri(&tr,nbt,&ntr,&max_ntr);
+	    	pq = head_of_pointer_queue(seed_queue);
+	    	t = (TRI*)(pq->pointer);
+	    	for (i = 0; i < 3; ++i)
+	    	{
+		    if (is_side_bdry(t,i)) continue;
+		    nbt = Tri_on_side(t,i);
+		    if (pointer_in_list((POINTER)nbt,ntr,(POINTER*)tr))
+		    	continue;
+		    seed_queue = add_to_pointer_queue(NULL,seed_queue);
+		    seed_queue->pointer = (POINTER)nbt;
+		    check_add_tri(&tr,nbt,&ntr,&max_ntr);
+	    	}
+	    	seed_queue = delete_from_pointer_queue(pq);
 	    }
-	    seed_queue = delete_from_pointer_queue(pq);
 	}
 
 	/* Find seed tri inside the fabric surface ring */
 	t = find_inner_seed_tri(cc,sf,tf,ntf);
 	if (debugging("collision"))
 	{
+	    int ns = (t == NULL) ? 0 : 1;
 	    sprintf(dirname,"cross-tris/fabric-seed-%d",front->step);
-	    gview_plot_crossing_tris(dirname,tf,ntf,&t,1);
+	    gview_plot_crossing_tris(dirname,tf,ntf,&t,ns);
 	}
 
 	/* Fill tf list with tris inside the ring */
-	seed_queue = add_to_pointer_queue(NULL,NULL);
-	seed_queue->pointer = (POINTER)t;
-	check_add_tri(&tf,t,&ntf,&max_ntf);
-	while (seed_queue)
+	if (t != NULL)
 	{
-	    pq = head_of_pointer_queue(seed_queue);
-	    t = (TRI*)(pq->pointer);
-	    for (i = 0; i < 3; ++i)
+	    seed_queue = add_to_pointer_queue(NULL,NULL);
+	    seed_queue->pointer = (POINTER)t;
+	    check_add_tri(&tf,t,&ntf,&max_ntf);
+	    while (seed_queue)
 	    {
-		if (is_side_bdry(t,i)) continue;
-		nbt = Tri_on_side(t,i);
-		if (pointer_in_list((POINTER)nbt,ntf,(POINTER*)tf))
-		    continue;
-		seed_queue = add_to_pointer_queue(NULL,seed_queue);
-		seed_queue->pointer = (POINTER)nbt;
-		check_add_tri(&tf,nbt,&ntf,&max_ntf);
+	    	pq = head_of_pointer_queue(seed_queue);
+	    	t = (TRI*)(pq->pointer);
+	    	for (i = 0; i < 3; ++i)
+	    	{
+		    if (is_side_bdry(t,i)) continue;
+		    nbt = Tri_on_side(t,i);
+		    if (pointer_in_list((POINTER)nbt,ntf,(POINTER*)tf))
+		    	continue;
+		    seed_queue = add_to_pointer_queue(NULL,seed_queue);
+		    seed_queue->pointer = (POINTER)nbt;
+		    check_add_tri(&tf,nbt,&ntf,&max_ntf);
+	    	}
+	    	seed_queue = delete_from_pointer_queue(pq);
 	    }
-	    seed_queue = delete_from_pointer_queue(pq);
 	}
 	if (debugging("collision"))
 	{

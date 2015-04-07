@@ -1,5 +1,5 @@
 /***************************************************************
-FronTier is a set of libraries that implements differnt types of 
+FronTier is a set of libraries that implements different types of 
 Front Traking algorithms. Front Tracking is a numerical method for 
 the solution of partial differential equations whose solutions have 
 discontinuities.  
@@ -31,13 +31,12 @@ static void make_rigid_body2d(Front*,char*,POINTER,
 static void make_rigid_body3d(Front*,char*,POINTER,
 		double(*func)(POINTER,double*),COMPONENT,COMPONENT,int);
 static POINTER get_propeller_params(FILE *);
-static void zero_state(COMPONENT,double*,IF_FIELD*,int,int,IF_PARAMS*);
-static void initRotorIntfc(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
-static void initWindMillIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
-static void initBeeIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
-static void initApacheIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
-static void initConeIntfc(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
-static void initPressurePump(Front*,LEVEL_FUNC_PACK*,char*,RG_PROB_TYPE);
+static void initRotorIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
+static void initWindMillIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
+static void initBeeIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
+static void initApacheIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
+static void initConeIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
+static void initPressurePump(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
 /*TMP*/
 static	void insert_surface_tris_into_another(SURFACE*,SURFACE*);
 
@@ -45,7 +44,7 @@ static void initConeIntfc(
         Front *front,
         LEVEL_FUNC_PACK *level_func_pack,
         char *inname,
-        RG_PROB_TYPE prob_type)
+        IF_PROB_TYPE prob_type)
 {
         IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
         FILE *infile = fopen(inname,"r");
@@ -86,7 +85,7 @@ static void initRotorIntfc(
 	Front *front,
 	LEVEL_FUNC_PACK *level_func_pack,
 	char *inname,
-	RG_PROB_TYPE prob_type)
+	IF_PROB_TYPE prob_type)
 {
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
 	FILE *infile = fopen(inname,"r");
@@ -176,7 +175,7 @@ static void initWindMillIntfc3d(
 	Front *front,
 	LEVEL_FUNC_PACK *level_func_pack,
 	char *inname,
-	RG_PROB_TYPE prob_type)
+	IF_PROB_TYPE prob_type)
 {
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
 	FILE *infile = fopen(inname,"r");
@@ -265,7 +264,7 @@ static void initFluidRgb(
 	Front *front,
 	LEVEL_FUNC_PACK *level_func_pack,
 	char *inname,
-	RG_PROB_TYPE prob_type)
+	IF_PROB_TYPE prob_type)
 {
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
 	FILE *infile = fopen(inname,"r");
@@ -305,7 +304,7 @@ extern void init_moving_bodies(
         Front *front,
         LEVEL_FUNC_PACK *level_func_pack,
         char *inname,
-        RG_PROB_TYPE prob_type)
+        IF_PROB_TYPE prob_type)
 {
         IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
         iFparams->m_comp2 = LIQUID_COMP2;
@@ -346,27 +345,6 @@ extern void init_moving_bodies(
 	    clean_up(ERROR);
 	}
 }	/* init_moving_bodies */
-
-extern void init_fluid_state_func(
-	Incompress_Solver_Smooth_Basis *cartesian, 
-	RG_PROB_TYPE prob_type)
-{
-	cartesian->getInitialState = zero_state;
-}	/* end init_fluid_state_func */
-
-static void zero_state(
-        COMPONENT comp,
-        double *coords,
-        IF_FIELD *field,
-        int index,
-        int dim,
-        IF_PARAMS *iFparams)
-{
-        int i;
-        double **vel = field->vel;
-        for (i = 0; i < dim; ++i)
-            vel[i][index] = 0.0;
-}       /* end zero_state */
 
 static void make_rigid_body(
 	Front *front,
@@ -499,7 +477,7 @@ static void initBeeIntfc3d(
 	Front *front,
 	LEVEL_FUNC_PACK *level_func_pack,
 	char *inname,
-	RG_PROB_TYPE prob_type)
+	IF_PROB_TYPE prob_type)
 {
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
 	FILE *infile = fopen(inname,"r");
@@ -578,7 +556,7 @@ static void initApacheIntfc3d(
 	Front *front,
 	LEVEL_FUNC_PACK *level_func_pack,
 	char *inname,
-	RG_PROB_TYPE prob_type)
+	IF_PROB_TYPE prob_type)
 {
 	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
 	FILE *infile = fopen(inname,"r");
@@ -638,7 +616,7 @@ static void initPressurePump(
 	Front *front,
 	LEVEL_FUNC_PACK *level_func_pack,
 	char *inname,
-	RG_PROB_TYPE prob_type)
+	IF_PROB_TYPE prob_type)
 {
 	FILE *infile = fopen(inname,"r");
 	int i,num_nodes;

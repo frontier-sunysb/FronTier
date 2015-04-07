@@ -1,5 +1,5 @@
 /***************************************************************
-FronTier is a set of libraries that implements differnt types of 
+FronTier is a set of libraries that implements different types of 
 Front Traking algorithms. Front Tracking is a numerical method for 
 the solution of partial differential equations whose solutions have 
 discontinuities.  
@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
 	static IF_PARAMS iFparams;
-	RG_PROB_TYPE prob_type;
+	IF_PROB_TYPE prob_type;
 
 	/* Initialize basic computational data */
 
@@ -477,7 +477,7 @@ extern void record_moving_body_data(
 
 extern void read_rg_prob_type(
 	char *inname,
-	RG_PROB_TYPE *prob_type)
+	IF_PROB_TYPE *prob_type)
 {
 	char string[100];
 	FILE *infile = fopen(inname,"r");

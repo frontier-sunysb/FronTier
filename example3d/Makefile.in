@@ -49,6 +49,10 @@ example08: @devel@ example08.cpp
 	$(CXX) -c -I../include $(incs) example08.cpp
 	$(CXX) example08.o -I../include -L../lib/@build_cpu@ $(libincs) -lFronTier -lm $(libs) -o example08
 
+example09: @devel@ example09.cpp
+	$(CXX) -c -I../include $(incs) example09.cpp
+	$(CXX) example09.o -I../include -L../lib/@build_cpu@ $(libincs) -lFronTier -lm $(libs) -o example09
+
 clean:
 	rm -rf *.o example[0-9][0-9] 
 tagsfile:

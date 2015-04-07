@@ -1,5 +1,5 @@
 /***************************************************************
-FronTier is a set of libraries that implements differnt types of 
+FronTier is a set of libraries that implements different types of 
 Front Traking algorithms. Front Tracking is a numerical method for 
 the solution of partial differential equations whose solutions have 
 discontinuities.  
@@ -30,7 +30,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
 #include "crystal.h"
-#include "crystal_basic.h"
 #include<solver.h>
 
 static int find_state_at_crossing(Front*,int*,GRID_DIRECTION,int,
@@ -339,7 +338,6 @@ void C_CARTESIAN::setIndexMap(void)
 
 void C_CARTESIAN::computeAdvection(void)
 {
-	if (debugging("trace")) printf("Entering computeAdvection()\n");
 	switch (cRparams->num_scheme)
 	{
 	case UNSPLIT_EXPLICIT:
@@ -374,8 +372,8 @@ void C_CARTESIAN::computeAdvectionCN(void)
 	if (m_dt < 0.1*sqr(hmin)/D/(double)dim)
 	    return computeAdvectionExplicit();
 
-	start_clock("computeAdvectionCN");
 	if (debugging("trace")) printf("Entering computeAdvectionCN()\n");
+	start_clock("computeAdvectionCN");
 
 	for (i = 0; i < dim; ++i) gmin[i] = 0;
 
@@ -663,8 +661,8 @@ void C_CARTESIAN::computeAdvectionCN(void)
 	stop_clock("scatter_data");
 	FT_FreeThese(1,x);
 
-	if (debugging("trace")) printf("Leaving computeAdvectionCN()\n");
 	stop_clock("computeAdvectionCN");
+	if (debugging("trace")) printf("Leaving computeAdvectionCN()\n");
 }	/* end computeAdvectionCN */
 
 void C_CARTESIAN::computeAdvectionImplicit(void)
@@ -675,6 +673,8 @@ void C_CARTESIAN::computeAdvectionImplicit(void)
         if (m_dt < 0.1*sqr(hmin)/cRparams->D/(double)dim)
             return computeAdvectionExplicit();
 
+	if (debugging("trace")) 
+	    printf("Entering computeAdvectionImplicit()\n");
 	start_clock("computeAdvectionIM");
         setIndexMap();
 
@@ -711,7 +711,8 @@ void C_CARTESIAN::computeAdvectionImplicit(void)
 	}
 	parab_solver.runge_kutta();
 	stop_clock("computeAdvectionIM");
-
+	if (debugging("trace")) 
+	    printf("Leaving computeAdvectionImplicit()\n");
 }	/* end computeAdvectionImplicit */
 
 void C_CARTESIAN::solve(double dt)
@@ -1336,6 +1337,8 @@ void C_CARTESIAN::computeAdvectionExplicit(void)
 	double coords[MAXD];
 	double v[MAXD],**vel,v_plus[MAXD],v_minus[MAXD];
 
+	if (debugging("trace")) 
+	    printf("Entering computeAdvectionExplicit()\n");
 	start_clock("computeAdvectionExplicit");
 
 	coef = cRparams->D*m_dt;
@@ -1404,7 +1407,8 @@ void C_CARTESIAN::computeAdvectionExplicit(void)
 		    grad_plus[l] = (solute_nb[1] - solute)/top_h[l];
 		    grad_minus[l] = (solute - solute_nb[0])/top_h[l];
                     
-		    array[ic] += coef*dgrad[l]/top_h[l]-m_dt*(v_plus[l]*grad_minus[l]+v_minus[l]*grad_plus[l]);
+		    array[ic] += coef*dgrad[l]/top_h[l]-
+			m_dt*(v_plus[l]*grad_minus[l]+v_minus[l]*grad_plus[l]);
                 }
             }
             break;
@@ -1465,7 +1469,8 @@ void C_CARTESIAN::computeAdvectionExplicit(void)
 		    grad_plus[l] = (solute_nb[1] - solute)/top_h[l];
 		    grad_minus[l] = (solute - solute_nb[0])/top_h[l];
 
-		    array[ic] += coef*dgrad[l]/top_h[l] - m_dt*(v_plus[l]*grad_minus[l]+v_minus[l]*grad_plus[l]);
+		    array[ic] += coef*dgrad[l]/top_h[l] - 
+			m_dt*(v_plus[l]*grad_minus[l]+v_minus[l]*grad_plus[l]);
 		}
 	    }
 	    break;
@@ -1529,7 +1534,8 @@ void C_CARTESIAN::computeAdvectionExplicit(void)
 		    grad_plus[l] = (solute_nb[1] - solute)/top_h[l];
 		    grad_minus[l] = (solute - solute_nb[0])/top_h[l];
 
-		    array[ic] += coef*dgrad[l]/top_h[l] - m_dt*(v_plus[l]*grad_minus[l]+v_minus[l]*grad_plus[l]);
+		    array[ic] += coef*dgrad[l]/top_h[l] - 
+			m_dt*(v_plus[l]*grad_minus[l]+v_minus[l]*grad_plus[l]);
 		}
 	    }
 	    break;
@@ -1564,6 +1570,8 @@ void C_CARTESIAN::computeAdvectionExplicit(void)
 	}
 
 	stop_clock("computeAdvectionExplicit");
+	if (debugging("trace")) 
+	    printf("Leaving computeAdvectionExplicit()\n");
 }	/* computeAdvectionExplicit */
 
 void C_CARTESIAN::oneDimPlot(char *outname)
