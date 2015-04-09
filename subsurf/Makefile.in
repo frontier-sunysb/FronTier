@@ -6,8 +6,10 @@ incs =  @ftlibincs@
 libincs = @otherlibsinc@
 libs = @otherlibs@
 build_cpu = @build_cpu@
-incsloc = -I. -I../include -I../iFluid -I../solver -I../crystal
+incsloc = -I. -I../include -I../solver -I../iFluid -I../crystal
 
+IFLUID_STATE = yes
+incs += -DIFLUID_STATE
 PETSC = yes
 PETSC_ARCH=@PETSC_ARCH@
 PETSC_DIR=@PETSC_DIR@
