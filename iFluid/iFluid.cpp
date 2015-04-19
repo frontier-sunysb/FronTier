@@ -133,9 +133,9 @@ int main(int argc, char **argv)
 	velo_func_pack.func_params = (POINTER)l_cartesian;
 	velo_func_pack.func = l_cartesian_vel;
 	velo_func_pack.point_propagate = ifluid_point_propagate;
-	FT_InitVeloFunc(&front,&velo_func_pack);
+	FT_InitFrontVeloFunc(&front,&velo_func_pack);
 	if (debugging("trace"))
-	    printf("Passed FT_InitVeloFunc()\n");
+	    printf("Passed FT_InitFrontVeloFunc()\n");
 
 	l_cartesian->initMesh();
 	l_cartesian->initMovieVariables();

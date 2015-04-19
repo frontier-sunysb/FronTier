@@ -35,7 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include<stdlib.h>
 
 	/*  Function Declarations */
-static void test_propagate(Front*);
+static void propagation_driver(Front*);
 static double msphere_func(POINTER,double*);
 static int norm_vel_func(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
 	                       HYPER_SURF*,double*);
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
 	velo_func_pack.func_params = (POINTER)&norm_params;
 	velo_func_pack.func = norm_vel_func;
 
-	FT_InitVeloFunc(&front,&velo_func_pack);
+	FT_InitFrontVeloFunc(&front,&velo_func_pack);
 
 	/* For geometry-dependent velocity, use first 
 	* order point propagation function, higher order
@@ -173,17 +173,17 @@ int main(int argc, char **argv)
 	* the assigned fourth_order_point_propagate.
 	*/
 
-	front._point_propagate = first_order_point_propagate;
+	PointPropagationFunction(&front) = first_order_point_propagate;
 
 	/* Propagate the front */
 
-	test_propagate(&front);
+	propagation_driver(&front);
 
 	clean_up(0);
 	return 0;
 }
 
-static  void test_propagate(
+static  void propagation_driver(
         Front *front)
 {
         double CFL;
@@ -253,7 +253,7 @@ static  void test_propagate(
 	    FT_TimeControlFilter(front);
 	}
         (void) delete_interface(front->interf);
-}       /* end test_propagate */
+}       /* end propagation_driver */
 
 /********************************************************************
  *	Sample (dummbell 3D) level function for the initial interface    *

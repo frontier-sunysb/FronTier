@@ -177,8 +177,7 @@ struct _CURVE
 	double max_bond_length;
 	int global_index;
 	/* The folllowing are used for curve propagation */
-	POINTER vparams;
-	void (*vfunc)(POINTER,double*);
+	POINTER vel_pack;
 };
 typedef struct _CURVE CURVE;
 
@@ -219,8 +218,7 @@ struct _NODE
 	struct _CURVE **out_curves;	/* Pointer to Set of Out Curves */
 	POINTER extra;			/* For special use */
 	int size_of_extra;
-	POINTER vparams;
-        void (*vfunc)(POINTER,double*);
+	POINTER vel_pack;
 };
 typedef struct _NODE NODE;
 
@@ -343,8 +341,7 @@ struct _SURFACE
 	POINTER extra;
 	int global_index;
 	/* The folllowing are used for surface propagation */
-	POINTER vparams;
-	void (*vfunc)(POINTER,double*);
+	POINTER vel_pack;
 };
 typedef struct _SURFACE SURFACE;
 

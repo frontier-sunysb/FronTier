@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 	velo_func_pack.func_params = (POINTER)&rv_params;
         velo_func_pack.func = radial_motion_vel;
 	velo_func_pack.point_propagate = inverse_point_propagate;
-	FT_InitVeloFunc(&front,&velo_func_pack);
+	FT_InitFrontVeloFunc(&front,&velo_func_pack);
 
 	cim_driver(&front,c_cartesian);
 	clean_up(0);

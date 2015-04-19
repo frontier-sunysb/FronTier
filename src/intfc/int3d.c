@@ -304,6 +304,8 @@ EXPORT SURFACE *i_make_surface(
 	last_tri(news) = head_of_tri_list(news);
 	news->num_tri = 0;
 	news->redist_order = 1;		/*default */
+	news->vel_pack = NULL;
+        news->extra = NULL;
 	surface_for_head_of_tri_list(head_of_tri_list(news)) = news;
 	return news;
 }		/*end i_make_surface*/
@@ -357,8 +359,7 @@ EXPORT SURFACE *i_copy_surface(
 
 	user_copy_hyper_surf(Hyper_surf(news),Hyper_surf(s));
 	news->extra = s->extra;
-	news->vparams = s->vparams;
-	news->vfunc = s->vfunc;
+	news->vel_pack = s->vel_pack;
 	Gindex(news) = Gindex(s);
 	debug_print("copy_surface","Left copy_surface\n");
 	return news;

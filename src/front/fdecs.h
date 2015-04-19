@@ -722,6 +722,7 @@ typedef struct _Front Front;
 #define RestartRun(front)  (front)->f_basic->RestartRun
 #define RestartStep(front)  (front)->f_basic->RestartStep
 #define TwoStepIntfc(front)  (front)->two_step_interface
+#define PointPropagationFunction(front)  (front)->_point_propagate
 
 	/*
 	*  Data structure for keeping tracking of the maximum wave speed

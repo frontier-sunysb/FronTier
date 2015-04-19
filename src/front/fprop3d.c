@@ -975,6 +975,9 @@ EXPORT void second_order_point_propagate(
 {
         double vel[MAXD],vm1[MAXD],s;
         int i, dim = front->rect_grid->dim;
+	POINTER vparams;
+        int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
+                                double*);
 
         if (wave_type(oldhs) < MOVABLE_BODY_BOUNDARY)
         {
@@ -984,13 +987,44 @@ EXPORT void second_order_point_propagate(
 	    }
             return;
         }
+	if (front->vfunc == NULL)
+	{
+	    VELO_FUNC_PACK *vel_func_pack;
+	    if (dim == 2)
+	    {
+		CURVE *curve = Curve_of_hs(oldhs);
+		if (curve->vel_pack == NULL) return;
+		else
+		{
+		    vel_func_pack = (VELO_FUNC_PACK*)curve->vel_pack;
+		    vparams = vel_func_pack->func_params;
+		    vfunc = vel_func_pack->func;
+		}
+	    }
+	    else if (dim == 3)
+	    {
+		SURFACE *surf = Surface_of_hs(oldhs);
+		if (surf->vel_pack == NULL) return;
+		else
+		{
+		    vel_func_pack = (VELO_FUNC_PACK*)surf->vel_pack;
+		    vparams = vel_func_pack->func_params;
+		    vfunc = vel_func_pack->func;
+		}
+	    }
+	}
+	else
+	{
+	    vparams = front->vparams;
+	    vfunc = front->vfunc;
+	}
 
         /* Use fourth order Runge Kutta method */
 
-        (*front->vfunc)(front->vparams,front,oldp,oldhse,oldhs,vel);
+        (*vfunc)(vparams,front,oldp,oldhse,oldhs,vel);
         for (i = 0; i < dim; ++i)
             Coords(newp)[i] = Coords(oldp)[i] + dt*vel[i];
-        (*front->vfunc)(front->vparams,front,newp,oldhse,oldhs,vm1);
+        (*vfunc)(vparams,front,newp,oldhse,oldhs,vm1);
 
         for (i = 0; i < dim; ++i)
         {
@@ -1015,6 +1049,9 @@ EXPORT void fourth_order_point_propagate(
 {
         double vel[MAXD],vm1[MAXD],vm2[MAXD],vm3[MAXD],s;
         int i, dim = front->rect_grid->dim;
+	POINTER vparams;
+        int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
+                                double*);
 
         if (wave_type(oldhs) < MOVABLE_BODY_BOUNDARY)
         {
@@ -1024,19 +1061,50 @@ EXPORT void fourth_order_point_propagate(
 	    }
             return;
         }
+	if (front->vfunc == NULL)
+	{
+	    VELO_FUNC_PACK *vel_func_pack;
+	    if (dim == 2)
+	    {
+		CURVE *curve = Curve_of_hs(oldhs);
+		if (curve->vel_pack == NULL) return;
+		else
+		{
+		    vel_func_pack = (VELO_FUNC_PACK*)curve->vel_pack;
+		    vparams = vel_func_pack->func_params;
+		    vfunc = vel_func_pack->func;
+		}
+	    }
+	    else if (dim == 3)
+	    {
+		SURFACE *surf = Surface_of_hs(oldhs);
+		if (surf->vel_pack == NULL) return;
+		else
+		{
+		    vel_func_pack = (VELO_FUNC_PACK*)surf->vel_pack;
+		    vparams = vel_func_pack->func_params;
+		    vfunc = vel_func_pack->func;
+		}
+	    }
+	}
+	else
+	{
+	    vparams = front->vparams;
+	    vfunc = front->vfunc;
+	}
 
         /* Use fourth order Runge Kutta method */
 
-        (*front->vfunc)(front->vparams,front,oldp,oldhse,oldhs,vel);
+        (*vfunc)(vparams,front,oldp,oldhse,oldhs,vel);
         for (i = 0; i < dim; ++i)
             Coords(newp)[i] = Coords(oldp)[i] + 0.5*dt*vel[i];
-        (*front->vfunc)(front->vparams,front,newp,oldhse,oldhs,vm1);
+        (*vfunc)(vparams,front,newp,oldhse,oldhs,vm1);
         for (i = 0; i < dim; ++i)
             Coords(newp)[i] = Coords(oldp)[i] + 0.5*dt*vm1[i];
-        (*front->vfunc)(front->vparams,front,newp,oldhse,oldhs,vm2);
+        (*vfunc)(vparams,front,newp,oldhse,oldhs,vm2);
         for (i = 0; i < dim; ++i)
             Coords(newp)[i] = Coords(oldp)[i] + dt*vm2[i];
-        (*front->vfunc)(front->vparams,front,newp,oldhse,oldhs,vm3);
+        (*vfunc)(vparams,front,newp,oldhse,oldhs,vm3);
 
         for (i = 0; i < dim; ++i)
         {
@@ -1062,6 +1130,9 @@ EXPORT  void first_order_point_propagate(
 {
         double vel[MAXD],s;
         int i, dim = front->rect_grid->dim;
+	POINTER vparams;
+	int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
+				double*);
 
         if (wave_type(oldhs) < MOVABLE_BODY_BOUNDARY)
         {
@@ -1072,7 +1143,37 @@ EXPORT  void first_order_point_propagate(
             return;
         }
 
-        (*front->vfunc)(front->vparams,front,oldp,oldhse,oldhs,vel);
+	if (front->vfunc == NULL)
+	{
+	    VELO_FUNC_PACK *vel_func_pack;
+	    if (dim == 2)
+	    {
+		CURVE *curve = Curve_of_hs(oldhs);
+		if (curve->vel_pack == NULL) return;
+		else
+		{
+		    vel_func_pack = (VELO_FUNC_PACK*)curve->vel_pack;
+		    vparams = vel_func_pack->func_params;
+		    vfunc = vel_func_pack->func;
+		    (*vfunc)(vparams,front,oldp,oldhse,oldhs,vel);
+		}
+	    }
+	    else if (dim == 3)
+	    {
+		SURFACE *surf = Surface_of_hs(oldhs);
+		if (surf->vel_pack == NULL) return;
+		else
+		{
+		    vel_func_pack = (VELO_FUNC_PACK*)surf->vel_pack;
+		    vparams = vel_func_pack->func_params;
+		    vfunc = vel_func_pack->func;
+		    (*vfunc)(vparams,front,oldp,oldhse,oldhs,vel);
+		}
+	    }
+	}
+	else
+            (*front->vfunc)(front->vparams,front,oldp,oldhse,oldhs,vel);
+
         for (i = 0; i < dim; ++i)
         {
             Coords(newp)[i] = Coords(oldp)[i] + dt*vel[i];

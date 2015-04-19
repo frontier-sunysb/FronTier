@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 	velo_func_pack.func_params = (POINTER)&iFparams;
 	velo_func_pack.func = NULL;
 
-	FT_InitVeloFunc(&front,&velo_func_pack);
+	FT_InitFrontVeloFunc(&front,&velo_func_pack);
         cartesian.initMesh();
         cartesian.initMovieVariables();
 	if (eqn_params.no_fluid == NO)
@@ -180,9 +180,9 @@ int main(int argc, char **argv)
 	if (eqn_params.no_fluid == NO)
 	    eqn_params.field->vel = iFparams.field->vel;
 
-	FT_InitVeloFunc(&front,&velo_func_pack);
+	FT_InitFrontVeloFunc(&front,&velo_func_pack);
 
-	if (debugging("trace")) printf("Passed FT_InitVeloFunc()\n");
+	if (debugging("trace")) printf("Passed FT_InitFrontVeloFunc()\n");
 
         /* For geometry-dependent velocity, use first
         * order point propagation function, higher order

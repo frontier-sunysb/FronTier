@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <FronTier.h>
 
 	/*  Function Declarations */
-static void test_propagate(Front*);
+static void propagation_driver(Front*);
 static double test_ellipoid_func(POINTER,double*);
 static int test_double_vortex_vel(POINTER,Front*,POINT*,
 			HYPER_SURF_ELEMENT*,HYPER_SURF*,double*);
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 	velo_func_pack.func_params = (POINTER)&dv_params;
 	velo_func_pack.func = test_double_vortex_vel;
 
-	FT_InitVeloFunc(&front,&velo_func_pack);
+	FT_InitFrontVeloFunc(&front,&velo_func_pack);
 
 	/* For geometry-dependent velocity, use first 
 	* order point propagation function, higher order
@@ -146,13 +146,13 @@ int main(int argc, char **argv)
 
 	/* Propagate the front */
 
-	test_propagate(&front);
+	propagation_driver(&front);
 
 	clean_up(0);
 	return 0;
 }
 
-static  void test_propagate(
+static  void propagation_driver(
         Front *front)
 {
         double CFL;
@@ -222,7 +222,7 @@ static  void test_propagate(
 	    FT_TimeControlFilter(front);
 	}
         (void) delete_interface(front->interf);
-}       /* end test_propagate */
+}       /* end propagation_driver */
 
 /********************************************************************
  *	Sample (Ellipsoid) level function for the initial interface    *

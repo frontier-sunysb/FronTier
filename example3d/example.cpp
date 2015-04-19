@@ -35,7 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 	/*  Function Declarations */
 static void initInteriorSurfaces(Front*);
 static void initVelocityField(Front*);
-static void test_propagate(Front*);
+static void propagation_driver(Front*);
 
 char *restart_name,*in_name,*out_name;
 boolean RestartRun;
@@ -74,15 +74,15 @@ int main(int argc, char **argv)
 	* the assigned fourth_order_point_propagate.
 	*/
 
-	front._point_propagate = first_order_point_propagate;
+	PointPropagationFunction(&front) = first_order_point_propagate;
 
 	/* Propagate the front */
 
-	test_propagate(&front);
+	propagation_driver(&front);
 	clean_up(0);
 }
 
-static  void test_propagate(
+static  void propagation_driver(
         Front *front)
 {
         double CFL;
@@ -143,7 +143,7 @@ static  void test_propagate(
 	    FT_PrintTimeStamp(front);
 	}
 	FT_FreeMainIntfc(front);
-}       /* end test_propagate */
+}       /* end propagation_driver */
 
 /*
 static void initInteriorSurfaces(

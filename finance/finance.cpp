@@ -148,9 +148,9 @@ int main(int argc, char **argv)
 	eqn_params.option_price = NULL;
 	cartesian.initMesh();
 
-	FT_InitVeloFunc(&front,&velo_func_pack);
+	FT_InitFrontVeloFunc(&front,&velo_func_pack);
 
-	if (debugging("trace")) printf("Passed FT_InitVeloFunc()\n");
+	if (debugging("trace")) printf("Passed FT_InitFrontVeloFunc()\n");
 
 	/* Propagate the front */
 

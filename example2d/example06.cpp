@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 	velo_func_pack.func = tdouble_vortex_vel;
 	velo_func_pack.point_propagate = fourth_order_point_propagate;
 
-	FT_InitVeloFunc(&front,&velo_func_pack);
+	FT_InitFrontVeloFunc(&front,&velo_func_pack);
 
 	/* Propagate the front */
 

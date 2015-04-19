@@ -111,7 +111,7 @@ extern "C" {
  */
    IMPORT  void FT_ClipIntfcToSubdomain(Front *front);
 
-/*! \fn void FT_InitVeloFunc(Front *front,
+/*! \fn void FT_InitFrontVeloFunc(Front *front,
                    VELO_FUNC_PACK *velo_func_pack)
     \ingroup INITIALIZATION
     \brief Initialize front velocity function for front point propagation.
@@ -120,7 +120,7 @@ extern "C" {
     \param front @b inout	Pointer to Front.
     \param velo_func_pack @b in	Structure containing velocity function and parameters.
  */
-   IMPORT  void    FT_InitVeloFunc(Front *front ,
+   IMPORT  void    FT_InitFrontVeloFunc(Front *front ,
  				 VELO_FUNC_PACK *velo_func_pack );
 
 
@@ -1696,6 +1696,46 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 			COMPONENT pos_comp,
 			int w_type,
 			SURFACE **surf);
+
+/*! \fn void FT_InitSurfVeloFunc(SURFACE *surf,POINTER vparams,int (*)vfunc(POINTER,struct _Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
+    \ingroup INITIALIZATION
+    \brief Initialize surface velocity function for propagation.
+     The velocity function use point and other related structures as input,
+     must also supply parameters needed for the velocity function.
+    \param surf @b inout Pointer to the surface.
+    \param vparams @b in Pointer to velocity function parameters.
+    \param vfunc @b in Pointer to velocity function.
+ */
+   IMPORT  void    FT_InitSurfVeloFunc(SURFACE *surf,
+			POINTER vparams,
+			int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
+
+/*! \fn void FT_InitCurveVeloFunc(CURVE *curve,POINTER vparams,int (*)vfunc(POINTER,struct _Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
+    \ingroup INITIALIZATION
+    \brief Initialize curve velocity function for propagation.
+     The velocity function use point and other related structures as input,
+     must also supply parameters needed for the velocity function.
+    \param curve @b inout Pointer to the curve.
+    \param vparams @b in Pointer to velocity function parameters.
+    \param vfunc @b in Pointer to velocity function.
+ */
+   IMPORT  void    FT_InitCurveVeloFunc(CURVE *curve,
+			POINTER vparams,
+			int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
+
+/*! \fn void FT_InitNodeVeloFunc(NODE *node,POINTER vparams,int (*)vfunc(POINTER,struct _Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
+    \ingroup INITIALIZATION
+    \brief Initialize node velocity function for propagation.
+     The velocity function use point and other related structures as input,
+     must also supply parameters needed for the velocity function.
+    \param node @b inout Pointer to the node.
+    \param vparams @b in Pointer to velocity function parameters.
+    \param vfunc @b in Pointer to velocity function.
+ */
+   IMPORT  void    FT_InitNodeVeloFunc(NODE *node,
+			POINTER vparams,
+			int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
+
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }

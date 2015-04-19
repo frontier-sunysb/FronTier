@@ -34,48 +34,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <FronTier.h>
 
 	/*  Function Declarations */
-static void test_propagate(Front*);
-static double sphere_func(POINTER,double*);
-static int test_curvature_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
-			HYPER_SURF*,double*);
+static void propagation_driver(Front*);
 
-char *in_name,*restart_state_name,*restart_name,*out_name;
+char *restart_name;
 boolean RestartRun;
 int RestartStep;
-
-/********************************************************************
- *	Level function parameters for the initial interface 	    *
- ********************************************************************/
-//Dummbell shape interface, two spheres of radius R centered at (x0,y,z)
-//and (x1,y,z) connected by a cylinder of radius rr along x0->x1. Assume
-//x0<x1;
-typedef struct {
-        double center[3];
-	double radius;
-} TEST_SPHERE_PARAMS;
-
-
-typedef struct {
-	int dim;
-	double coeff;
-	double epsilon;
-} TEST_CURV_PARAMS;
-
-/********************************************************************
- *	Velocity function parameters for the front	 	    *
- ********************************************************************/
-
 
 int main(int argc, char **argv)
 {
 	static Front front;
-	static RECT_GRID comp_grid;
 	static F_BASIC_DATA f_basic;
-	TEST_SPHERE_PARAMS s_params;
 	static LEVEL_FUNC_PACK level_func_pack;
 	static VELO_FUNC_PACK velo_func_pack;
-	TEST_CURV_PARAMS curv_params; /* velocity function parameters */
-	Locstate  sl;
+	NORV_PARAMS curv_params; /* velocity function parameters */
+	SURFACE *surf;
 
 	f_basic.dim = 3;	
 	FT_Init(argc,argv,&f_basic);
@@ -90,9 +62,6 @@ int main(int argc, char **argv)
 	f_basic.boundary[2][0] = f_basic.boundary[2][1] = DIRICHLET_BOUNDARY;
 	f_basic.size_of_intfc_state = 0;
 
-	 in_name                 = f_basic.in_name;
-         restart_state_name      = f_basic.restart_state_name;
-         out_name                = f_basic.out_name;
          restart_name            = f_basic.restart_name;
          RestartRun              = f_basic.RestartRun;
          RestartStep             = f_basic.RestartStep;
@@ -107,19 +76,22 @@ int main(int argc, char **argv)
 
 	if (!RestartRun)
 	{
-	    /* Initialize interface through level function */
-	    s_params.center[0] = 0.5;
-	    s_params.center[1] = 0.5;
-	    s_params.center[2] = 0.5;
-	    s_params.radius = 0.2;
 
-	    level_func_pack.neg_component = 1;
-	    level_func_pack.pos_component = 2;
-	    level_func_pack.func_params = (POINTER)&s_params;
-	    level_func_pack.func = sphere_func;
-	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
+	    double center[MAXD];	// Center of the sphere
+	    double R[MAXD];			// Radius of the sphere
 
+	    /* Initialize domain */
+            level_func_pack.pos_component = 2;
 	    FT_InitIntfc(&front,&level_func_pack);
+
+	    /* Initialize interface through level function */
+	    center[0] = center[1] = center[2] = 0.5;
+	    R[0] = R[1] = R[2] = 0.2;
+	    FT_MakeEllipticSurf(&front,center,R,
+			1,2,	// negative and positive components
+			FIRST_PHYSICS_WAVE_TYPE,
+			1,	// refinement level
+			&surf);
 	}
 
 	/* Initialize velocity field function */
@@ -128,10 +100,10 @@ int main(int argc, char **argv)
 	curv_params.coeff = 0.1;
 	curv_params.epsilon = 0.0001;
 
-	velo_func_pack.func_params = (POINTER)&curv_params;
-	velo_func_pack.func = test_curvature_vel;
-
-	FT_InitVeloFunc(&front,&velo_func_pack);
+	front.vfunc = NULL;
+	FT_InitSurfVeloFunc(surf,
+			(POINTER)&curv_params,
+			curvature_vel);
 
 	/* For geometry-dependent velocity, use first 
 	* order point propagation function, higher order
@@ -140,17 +112,16 @@ int main(int argc, char **argv)
 	* the assigned fourth_order_point_propagate.
 	*/
 
-	front._point_propagate = first_order_point_propagate;
+	PointPropagationFunction(&front) = first_order_point_propagate;
 
 	/* Propagate the front */
 
-	test_propagate(&front);
+	propagation_driver(&front);
 
 	clean_up(0);
-	return 0;
 }
 
-static  void test_propagate(
+static  void propagation_driver(
         Front *front)
 {
         double CFL;
@@ -205,10 +176,7 @@ static  void test_propagate(
 
 	    /* Output section */
 
-            printf("\ntime = %f   step = %5d   next dt = %f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
-
+	    FT_PrintTimeStamp(front);
             if (FT_IsSaveTime(front))
 		FT_Save(front);
             if (FT_IsDrawTime(front))
@@ -220,55 +188,4 @@ static  void test_propagate(
 	    FT_TimeControlFilter(front);
 	}
         (void) delete_interface(front->interf);
-}       /* end test_propagate */
-
-/********************************************************************
- *	Sample (dummbell 3D) level function for the initial interface    *
- ********************************************************************/
-
-static double sphere_func(
-        POINTER func_params,
-        double *coords)
-{
-        TEST_SPHERE_PARAMS *s_params = (TEST_SPHERE_PARAMS*)func_params;
-	double x0,y0,z0,R;
-	double distance;
-
-        x0 = s_params->center[0];
-        y0 = s_params->center[1];
-        z0 = s_params->center[2];
-	R = s_params->radius;
-
-	distance = sqrt(sqr(coords[0] - x0) + sqr(coords[1] - y0) +
-			sqr(coords[2] - z0)) - R;
-
-        return distance;
-
-}       /* end sphere_func */
-
-static int test_curvature_vel(
-        POINTER params,
-        Front *front,
-        POINT *p,
-        HYPER_SURF_ELEMENT *hse,
-        HYPER_SURF *hs,
-        double *vel)
-{
-	TEST_CURV_PARAMS *curv_params = (TEST_CURV_PARAMS*) params;
-        int i;
-        double coeff,epsilon,eps;
-        double kappa;
-        double nor[MAXD];
-
-        coeff = curv_params->coeff;
-        epsilon = curv_params->epsilon;
-
-        normal(p,hse,hs,nor,front);
-        kappa = fabs(mean_curvature_at_point(p,hse,hs,front));
-
-        for (i = 0; i < curv_params->dim; ++i)
-        {
-            vel[i] = nor[i]*(coeff - epsilon*kappa);
-        }
-}
-
+}       /* end propagation_driver */

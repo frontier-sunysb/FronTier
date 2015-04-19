@@ -1731,7 +1731,6 @@ EXPORT NODE *i_make_node(
 	if (! add_to_pointers(newnod,&cur_intfc->nodes))
 	    return NULL;
 
-	newnod->extra = NULL;
 	newnod->obj = newnod;
 	newnod->posn = p;
 	newnod->interface = cur_intfc;
@@ -1748,6 +1747,8 @@ EXPORT NODE *i_make_node(
 	    break;
 	}
 	newnod->in_curves = newnod->out_curves = NULL;
+	newnod->vel_pack = NULL;
+	newnod->extra = NULL;
 	cur_intfc->modified = YES;
 	return newnod;
 }		/*end i_make_node*/
@@ -1778,8 +1779,7 @@ EXPORT NODE *i_copy_node(
 	Boundary(newnode) = Boundary(node);
 	newnode->extra = node->extra;
 	newnode->size_of_extra = node->size_of_extra;
-	newnode->vparams = node->vparams;
-        newnode->vfunc = node->vfunc;
+	newnode->vel_pack = node->vel_pack;
 
 	return newnode;
 }		/*end i_copy_node*/
@@ -2174,6 +2174,8 @@ EXPORT CURVE *i_make_curve(
 	curve->num_points = 2;
 	set_not_bdry(curve);
 	Gindex(curve) = -1;
+	curve->vel_pack = NULL;
+	curve->extra = NULL;
 	return curve;
 }		/*end i_make_curve*/
 
@@ -2255,8 +2257,7 @@ EXPORT CURVE *i_copy_curve(
 	    new_curve->redist_order = curve->redist_order;
 	}
 	new_curve->extra = curve->extra;
-	new_curve->vparams = curve->vparams;
-	new_curve->vfunc = curve->vfunc;
+	new_curve->vel_pack = curve->vel_pack;
 	Gindex(new_curve) = Gindex(curve);
 	return new_curve;
 }		/*end i_copy_curve*/

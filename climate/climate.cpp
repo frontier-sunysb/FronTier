@@ -137,7 +137,7 @@ int main(int argc, char **argv)
 	velo_func_pack.func = rgbody_vel;
 	velo_func_pack.point_propagate = melt_flow_point_propagate;
 
-	FT_InitVeloFunc(&front,&velo_func_pack);
+	FT_InitFrontVeloFunc(&front,&velo_func_pack);
 
 
         t_cartesian->initMesh();
@@ -181,9 +181,9 @@ int main(int argc, char **argv)
                 printf("Passed vcartesian setInitialCondition()\n");
 	}
 
-	FT_InitVeloFunc(&front,&velo_func_pack);
+	FT_InitFrontVeloFunc(&front,&velo_func_pack);
 
-	if (debugging("trace")) printf("Passed FT_InitVeloFunc()\n");
+	if (debugging("trace")) printf("Passed FT_InitFrontVeloFunc()\n");
 
 	FT_SetGlobalIndex(&front);
 	/* Propagate the front */

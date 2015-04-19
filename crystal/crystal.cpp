@@ -134,7 +134,7 @@ int main(int argc, char **argv)
 	velo_func_pack.func_params = (POINTER)&cRparams;
 	velo_func_pack.func = NULL;
 
-	FT_InitVeloFunc(&front,&velo_func_pack);
+	FT_InitFrontVeloFunc(&front,&velo_func_pack);
 
         c_cartesian.initMesh();
         c_cartesian.initMovieVariables();

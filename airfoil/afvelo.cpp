@@ -577,7 +577,7 @@ static void initVelocityFunc(
 		break;
             }	
 	}
-	FT_InitVeloFunc(front,&velo_func_pack);
+	FT_InitFrontVeloFunc(front,&velo_func_pack);
 }	/* end initVelocityFunc */
 
 static int zero_velo(

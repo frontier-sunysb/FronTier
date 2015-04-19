@@ -1714,3 +1714,165 @@ EXPORT  void FT_MakePlatformSurf(
         wave_type(*surf) = w_type;
         front->interf->modified = YES;	
 }	/* end FT_MakePlatformSurf */
+
+EXPORT void FT_InitSurfVeloFunc(
+	SURFACE *surf,
+	POINTER vparams,
+	int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
+			HYPER_SURF*,double*))
+{
+	VELO_FUNC_PACK *vel_func_pack;
+	scalar(&vel_func_pack,sizeof(VELO_FUNC_PACK));
+	vel_func_pack->func_params = vparams;
+	vel_func_pack->func = vfunc;
+	surf->vel_pack = (POINTER)vel_func_pack;
+}	/* end FT_InitSurfVeloFunc */
+
+EXPORT void FT_InitCurveVeloFunc(
+	CURVE *curve,
+	POINTER vparams,
+	int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
+			HYPER_SURF*,double*))
+{
+	VELO_FUNC_PACK *vel_func_pack;
+	scalar(&vel_func_pack,sizeof(VELO_FUNC_PACK));
+	vel_func_pack->func_params = vparams;
+	vel_func_pack->func = vfunc;
+	curve->vel_pack = (POINTER)vel_func_pack;
+}	/* end FT_InitCurveVeloFunc */
+
+EXPORT void FT_InitNodeVeloFunc(
+	NODE *node,
+	POINTER vparams,
+	int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
+			HYPER_SURF*,double*))
+{
+	VELO_FUNC_PACK *vel_func_pack;
+	scalar(&vel_func_pack,sizeof(VELO_FUNC_PACK));
+	vel_func_pack->func_params = vparams;
+	vel_func_pack->func = vfunc;
+	node->vel_pack = (POINTER)vel_func_pack;
+}	/* end FT_InitNodeVeloFunc */
+
+
+EXPORT void FT_InitFrontVeloFunc(
+	Front *front,
+	VELO_FUNC_PACK *velo_func_pack)
+{
+	char s[100];
+	int dim = front->rect_grid->dim;
+
+	/* Initialize front velocity field */
+
+	if (debugging("trace")) 
+	    (void) printf("Entering FT_InitFrontVeloFunc()\n");
+	if (velo_func_pack == NULL)
+	{
+	    screen("\n\t\tSpecifying Velocity Field\n\n");
+	    screen("Supported velocity fields are \n"
+	       "\tTranslation (t)\n"
+	       "\tRadial motion (r)\n"
+	       "\tShear motion (s)\n"
+	       "\tSinusiodal motion (w)\n"
+	       "\tCircular rotation (c)\n"
+	       "\tNormal motion (n)\n"
+	       "\tCurvature dependent motion (k)\n"
+	       "\tFlame motion (f)\n"
+	       "\tBurgers equation solver (b)\n"
+	       "\tBi-Polar velocity (h)\n"
+	       "\tVortex velocity (v)\n"
+	       "\tDouble vortex velocity (d)\n"
+	       "Enter choice: ");
+	    (void) Scanf("%s\n",s);
+	    switch (s[0])
+	    {
+	    case 'T':
+	    case 't':
+	    	front->vfunc = translation_vel;
+	    	init_translation_params(&front->vparams,dim);
+	    	front->_point_propagate = fourth_order_point_propagate;
+	    	break;
+	    case 'R':
+	    case 'r':
+	    	front->vfunc = radial_motion_vel;
+	    	init_radial_motion_params(&front->vparams,dim);
+	    	front->_point_propagate = fourth_order_point_propagate;
+	    	break;
+	    case 'S':
+	    case 's':
+	    	front->vfunc = shear_motion_vel;
+	    	init_shear_motion_params(&front->vparams,dim);
+	    	front->_point_propagate = fourth_order_point_propagate;
+	    	break;
+	    case 'W':
+	    case 'w':
+	    	front->vfunc = sine_motion_vel;
+	    	init_sine_motion_params(&front->vparams,dim);
+	    	front->_point_propagate = fourth_order_point_propagate;
+	    break;
+	    case 'C':
+	    case 'c':
+	    	front->vfunc = circular_rotation_vel;
+	    	init_circular_rotation_params(&front->vparams,dim);
+	    	front->_point_propagate = fourth_order_point_propagate;
+	    	break;
+	    case 'B':
+	    case 'b':
+	    	front->vfunc = burgers_vel;
+	    	init_burgers_params(&front->vparams,dim);
+	    	front->_point_propagate = fourth_order_point_propagate;
+	    break;
+	    case 'H':
+	    case 'h':
+	    	front->vfunc = bipolar_vel;
+	    	init_bipolar_params(&front->vparams,dim);
+	    	front->_point_propagate = fourth_order_point_propagate;
+	    	break;
+	    case 'N':
+	    case 'n':
+	    	front->vfunc = normal_vel;
+	    	init_norv_params(&front->vparams,dim);
+	    	front->_point_propagate = first_order_point_propagate;
+	    	break;
+	    case 'K':
+	    case 'k':
+	    	front->vfunc = curvature_vel;
+	    	init_curvature_params(&front->vparams,dim);
+	    	front->_point_propagate = first_order_point_propagate;
+	    	break;
+	    case 'F':
+	    case 'f':
+	    	front->vfunc = flame_vel;
+	    	init_flame_params(&front->vparams,dim);
+	    	front->_point_propagate = first_order_point_propagate;
+	    	break;
+	    case 'V':
+	    case 'v':
+	    	front->vfunc = vortex_vel;
+	    	init_vortex_params(&front->vparams,dim);
+	    	front->_point_propagate = fourth_order_point_propagate;
+	    	break;
+	    case 'D':
+	    case 'd':
+	    	front->vfunc = double_vortex_vel;
+	    	init_bipolar_params(&front->vparams,dim);
+	    	front->_point_propagate = fourth_order_point_propagate;
+	    	break;
+	    default:
+	    	screen("Unsupported velocity field for first "	
+		       "order point propagation\n");
+	    	clean_up(ERROR);
+	    }
+	}
+	else
+	{
+	    front->vfunc = velo_func_pack->func;
+	    front->vparams = velo_func_pack->func_params;
+	    if (velo_func_pack->point_propagate != NULL)
+	    	front->_point_propagate = velo_func_pack->point_propagate;
+	    else
+	    	front->_point_propagate = first_order_point_propagate;
+	}
+	if (debugging("trace")) 
+	    (void) printf("Leaving FT_InitFrontVeloFunc()\n");
+}	/* end FT_InitFrontVeloFunc_function */

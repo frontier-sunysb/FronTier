@@ -34,47 +34,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <FronTier.h>
 
 	/*  Function Declarations */
-static void test_propagate(Front*);
-static double test_ellipoid_func(POINTER,double*);
-static int test_translation_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*);
+static void propagation_driver(Front*);
 
-
-char *in_name,*restart_state_name,*restart_name,*out_name;
+char *restart_name;
 boolean RestartRun;
 int RestartStep;
-
-/********************************************************************
- *	Level function parameters for the initial interface 	    *
- ********************************************************************/
-//Dummbell shape interface, two spheres of radius R centered at (x0,y,z)
-//and (x1,y,z) connected by a cylinder of radius rr along x0->x1. Assume
-//x0<x1;
-typedef struct {
-        double cen[3];
-	double rad[3];
-} TEST_ELLIPSOID_PARAMS;
-
-
-typedef struct {
-	int dim;
-	double vel[3];
-} TEST_TRANS_PARAMS;
-
-/********************************************************************
- *	Velocity function parameters for the front	 	    *
- ********************************************************************/
-
 
 int main(int argc, char **argv)
 {
 	static Front front;
-	static RECT_GRID comp_grid;
 	static F_BASIC_DATA f_basic;
-	TEST_ELLIPSOID_PARAMS s_params;
 	static LEVEL_FUNC_PACK level_func_pack;
-	static VELO_FUNC_PACK velo_func_pack;
-	TEST_TRANS_PARAMS curv_params; /* velocity function parameters */
-	Locstate  sl;
+	TRANS_PARAMS trans_params; /* velocity function parameters */
+	double center[MAXD],radius[MAXD];
+	SURFACE *surf;
 
 	f_basic.dim = 3;	
 	FT_Init(argc,argv,&f_basic);
@@ -89,9 +62,6 @@ int main(int argc, char **argv)
 	f_basic.boundary[2][0] = f_basic.boundary[2][1] = PERIODIC_BOUNDARY;
 	f_basic.size_of_intfc_state = 0;
 
-        in_name                 = f_basic.in_name;
-        restart_state_name      = f_basic.restart_state_name;
-        out_name                = f_basic.out_name;
         restart_name            = f_basic.restart_name;
         RestartRun              = f_basic.RestartRun;
         RestartStep             = f_basic.RestartStep;
@@ -104,55 +74,44 @@ int main(int argc, char **argv)
 
 	FT_StartUp(&front,&f_basic);
 
-	/* Start testing */
-
-	front.step = 0;
-
+	/* Initialize domain */
+	level_func_pack.pos_component = 2;
+	FT_InitIntfc(&front,&level_func_pack);
 
 	/* Initialize interface through level function */
-	s_params.cen[0] = 0.5;
-	s_params.cen[1] = 0.5;
-	s_params.cen[2] = 0.5;
-	s_params.rad[0] = 0.3;
-	s_params.rad[1] = 0.2;
-	s_params.rad[2] = 0.1;
-
-	level_func_pack.neg_component = 1;
-	level_func_pack.pos_component = 2;
-	level_func_pack.func_params = (POINTER)&s_params;
-	level_func_pack.func = test_ellipoid_func;
-	level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
-
-	FT_InitIntfc(&front,&level_func_pack);
+	center[0] = 0.5;
+	center[1] = 0.5;
+	center[2] = 0.5;
+	radius[0] = 0.3;
+	radius[1] = 0.2;
+	radius[2] = 0.1;
+	FT_MakeEllipticSurf(&front,center,radius,
+                        1,2,    // negative and positive components
+                        FIRST_PHYSICS_WAVE_TYPE,
+                        1,      // refinement level
+                        &surf);
 
 	/* Initialize velocity field function */
 
-	curv_params.dim = 3;
-	curv_params.vel[0] = 0.1;
-	curv_params.vel[1] = 0.22;
-	curv_params.vel[2] = 0.153;
+	trans_params.dim = 3;
+	trans_params.vel[0] = 0.1;
+	trans_params.vel[1] = 0.22;
+	trans_params.vel[2] = 0.153;
 
-	velo_func_pack.func_params = (POINTER)&curv_params;
-	velo_func_pack.func = test_translation_vel;
-
-	FT_InitVeloFunc(&front,&velo_func_pack);
-
-	/* For geometry-dependent velocity, use first 
-	* order point propagation function, higher order
-	* propagation requires surface propagate, currently
-	* in writing, not yet in use. The following override
-	* the assigned fourth_order_point_propagate.
-	*/
+	front.vfunc = NULL;
+        FT_InitSurfVeloFunc(surf,
+                        (POINTER)&trans_params,
+                        translation_vel);
 
 	/* Propagate the front */
 
-	test_propagate(&front);
+	PointPropagationFunction(&front) = fourth_order_point_propagate;
+	propagation_driver(&front);
 
 	clean_up(0);
-	return 0;
-}
+}	/* end main */
 
-static  void test_propagate(
+static  void propagation_driver(
         Front *front)
 {
 	double CFL;
@@ -206,10 +165,7 @@ static  void test_propagate(
 
 	    /* Output section */
 
-            printf("\ntime = %f   step = %5d   next dt = %f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
-
+	    FT_PrintTimeStamp(front);
             if (FT_IsSaveTime(front))
 		FT_Save(front);
             if (FT_IsDrawTime(front))
@@ -220,44 +176,4 @@ static  void test_propagate(
 
 	    FT_TimeControlFilter(front);
 	}
-        (void) delete_interface(front->interf);
-}       /* end test_propagate */
-
-/********************************************************************
- *	Sample (dummbell 3D) level function for the initial interface    *
- ********************************************************************/
-
-static double test_ellipoid_func(
-        POINTER func_params,
-        double *coords)
-{
-        TEST_ELLIPSOID_PARAMS *e_params = (TEST_ELLIPSOID_PARAMS*)func_params;
-        const double *cen,*rad;         
-	double arg;          
-
-	cen = e_params->cen;         
-	rad = e_params->rad; 
-        arg = 1.0 -
-                sqr(coords[0] - cen[0])/sqr(rad[0]) -
-                sqr(coords[1] - cen[1])/sqr(rad[1]) -
-                sqr(coords[2] - cen[2])/sqr(rad[2]);
-
-        return -arg;
-}       /* end test_ellipoid_func */
-
-static int test_translation_vel(
-        POINTER params,
-        Front *front,
-        POINT *p,
-        HYPER_SURF_ELEMENT *hse,
-        HYPER_SURF *hs,
-        double *vel)
-{
-	TEST_TRANS_PARAMS *trans_params = (TEST_TRANS_PARAMS*) params;
-	int i;
-        for (i = 0; i < trans_params->dim; ++i)
-        {
-            vel[i] = trans_params->vel[i];
-        }
-}
-
+}       /* end propagation_driver */

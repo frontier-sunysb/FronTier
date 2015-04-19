@@ -155,8 +155,8 @@ int main(int argc, char **argv)
 	velo_func_pack.func_params = (POINTER)&iFparams;
 	velo_func_pack.func = NULL;
 
-	FT_InitVeloFunc(&front,&velo_func_pack);
-	if (debugging("trace")) printf("Passed FT_InitVeloFunc()\n");
+	FT_InitFrontVeloFunc(&front,&velo_func_pack);
+	if (debugging("trace")) printf("Passed FT_InitFrontVeloFunc()\n");
 	if (debugging("trace")) printf("Before initMesh()\n");
         c_cartesian.initMesh();
 	if (debugging("trace")) printf("Passed Crystal initMesh()\n");

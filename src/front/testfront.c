@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 
 	front.step = 0;
 	FT_InitIntfc(&front,NULL);
-	FT_InitVeloFunc(&front,NULL);
+	FT_InitFrontVeloFunc(&front,NULL);
 
 	test_propagate(&front);
 

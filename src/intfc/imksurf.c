@@ -2137,7 +2137,7 @@ EXPORT 	double dumbbell_func(
             arg = sqrt(sqr(coords[0]-x1)+sqr(coords[1]-y)+sqr(coords[2]-z))-R;
         else
             arg = sqrt(sqr(coords[1]-y)+sqr(coords[2]-z))-rr;
-        return -arg;
+        return arg;
 
 }       /* end dumbbell_func */
 

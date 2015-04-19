@@ -34,52 +34,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <FronTier.h>
 
 	/*  Function Declarations */
-static void test_propagate(Front*);
-static double tdumbbell_func(POINTER,double*);
-static int test_curvature_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*);
+static void propagation_driver(Front*);
 
-
-char *in_name,*restart_state_name,*restart_name,*out_name;
+char *restart_name;
 boolean RestartRun;
 int RestartStep;
-
-/********************************************************************
- *	Level function parameters for the initial interface 	    *
- ********************************************************************/
-//Dummbell shape interface, two spheres of radius R centered at (x0,y,z)
-//and (x1,y,z) connected by a cylinder of radius rr along x0->x1. Assume
-//x0<x1;
-typedef struct {
-        double x0;
-	double x1;
-        double y;
-	double z;
-	double R;
-        double rr;
-} TDUMBBELL_PARAMS;
-
-
-typedef struct {
-	int dim;
-	double coeff;
-	double epsilon;
-} TEST_CURV_PARAMS;
-
-/********************************************************************
- *	Velocity function parameters for the front	 	    *
- ********************************************************************/
-
 
 int main(int argc, char **argv)
 {
 	static Front front;
-	static RECT_GRID comp_grid;
 	static F_BASIC_DATA f_basic;
-	TDUMBBELL_PARAMS d_params;
 	static LEVEL_FUNC_PACK level_func_pack;
-	static VELO_FUNC_PACK velo_func_pack;
-	TEST_CURV_PARAMS curv_params; /* velocity function parameters */
-	Locstate  sl;
+	NORV_PARAMS curv_params; /* velocity function parameters */
+	SURFACE *surf;
 
 	f_basic.dim = 3;	
 	FT_Init(argc,argv,&f_basic);
@@ -94,9 +61,6 @@ int main(int argc, char **argv)
 	f_basic.boundary[2][0] = f_basic.boundary[2][1] = DIRICHLET_BOUNDARY;
 	f_basic.size_of_intfc_state = 0;
 
-        in_name                 = f_basic.in_name;
-        restart_state_name      = f_basic.restart_state_name;
-        out_name                = f_basic.out_name;
         restart_name            = f_basic.restart_name;
         RestartRun              = f_basic.RestartRun;
         RestartStep             = f_basic.RestartStep;
@@ -111,33 +75,38 @@ int main(int argc, char **argv)
 
         if (!RestartRun)
 	{
-	    /* Initialize interface through level function */
-	    d_params.x0 = 0.25;
-	    d_params.x1 = 0.75;
-            d_params.y = 0.25;
-            d_params.z = 0.25;
-            d_params.R = 0.15;
-            d_params.rr = 0.075;
+	    double x0,x1; // x-coordinates of the dumbbell centers
+	    double y,z;   // y and z coordinate of the dumbbell centers
+	    double R;	  // radius of the connecting cylunder
+	    double r;	  // radius of the two end spheres
 
-	    level_func_pack.neg_component = 1;
+	    /* Initialize domain */
 	    level_func_pack.pos_component = 2;
-	    level_func_pack.func_params = (POINTER)&d_params;
-	    level_func_pack.func = tdumbbell_func;
-	    level_func_pack.wave_type = FIRST_PHYSICS_WAVE_TYPE;
-
 	    FT_InitIntfc(&front,&level_func_pack);
+
+	    /* Initialize interior surface */
+	    x0 = 0.25;		x1 = 0.75;
+	    y = 0.25;
+	    z = 0.25;
+	    R = 0.15;
+	    r = 0.075;
+	    FT_MakeDumbBellSurf(&front,
+			x0,x1,y,z,R,r,
+			1,2,		// negative and positive components
+			FIRST_PHYSICS_WAVE_TYPE, // wave type
+			&surf);
 	}
 
 	/* Initialize velocity field function */
 
 	curv_params.dim = 3;
-	curv_params.coeff = 0.1;
-	curv_params.epsilon = 0.0001;
+	curv_params.coeff = -0.1;
+	curv_params.epsilon = -0.0001;
 
-	velo_func_pack.func_params = (POINTER)&curv_params;
-	velo_func_pack.func = test_curvature_vel;
-
-	FT_InitVeloFunc(&front,&velo_func_pack);
+	front.vfunc = NULL;
+        FT_InitSurfVeloFunc(surf,
+                        (POINTER)&curv_params,
+                        curvature_vel);
 
 	/* For geometry-dependent velocity, use first 
 	* order point propagation function, higher order
@@ -146,17 +115,16 @@ int main(int argc, char **argv)
 	* the assigned fourth_order_point_propagate.
 	*/
 
-	front._point_propagate = first_order_point_propagate;
+	PointPropagationFunction(&front) = first_order_point_propagate;
 
 	/* Propagate the front */
 
-	test_propagate(&front);
+	propagation_driver(&front);
 
 	clean_up(0);
-	return 0;
 }
 
-static  void test_propagate(
+static  void propagation_driver(
         Front *front)
 {
         double CFL;
@@ -211,10 +179,7 @@ static  void test_propagate(
 
 	    /* Output section */
 
-            printf("\ntime = %f   step = %5d   next dt = %f\n",
-                        front->time,front->step,front->dt);
-            fflush(stdout);
-
+	    FT_PrintTimeStamp(front);
             if (FT_IsSaveTime(front))
 		FT_Save(front);
             if (FT_IsDrawTime(front))
@@ -225,71 +190,4 @@ static  void test_propagate(
 
 	    FT_TimeControlFilter(front);
 	}
-
-        (void) delete_interface(front->interf);
-}       /* end test_propagate */
-
-/********************************************************************
- *	Sample (dummbell 3D) level function for the initial interface    *
- ********************************************************************/
-
-static double tdumbbell_func(
-        POINTER func_params,
-        double *coords)
-{
-        TDUMBBELL_PARAMS *d_params = (TDUMBBELL_PARAMS*)func_params;
-	double x0,x1,y,z,f0,f1,R,rr;
-	double arg;
-
-        x0 = d_params->x0;
-        y = d_params->y;
-	z = d_params->z;
-        x1  = d_params->x1;
-	R = d_params->R;
-        rr  = d_params->rr;
-
-	f0 = x0+sqrt(R*R-rr*rr);
-	f1 = x1-sqrt(R*R-rr*rr);
-
-	if (coords[0]<f0)
-	{
-	    arg = sqrt(sqr(coords[0]-x0)+sqr(coords[1]-y)+sqr(coords[2]-z))-R;
-        }
-        else if(coords[0] > f1)
-        {
-            arg = sqrt(sqr(coords[0]-x1)+sqr(coords[1]-y)+sqr(coords[2]-z))-R;
-        }
-        else
-        {
-            arg = sqrt(sqr(coords[1]-y)+sqr(coords[2]-z))-rr;
-        }
-        return -arg;
-
-}       /* end tdumbbell_func */
-
-static int test_curvature_vel(
-        POINTER params,
-        Front *front,
-        POINT *p,
-        HYPER_SURF_ELEMENT *hse,
-        HYPER_SURF *hs,
-        double *vel)
-{
-	TEST_CURV_PARAMS *curv_params = (TEST_CURV_PARAMS*) params;
-        int i;
-        double coeff,epsilon,eps;
-        double kappa;
-        double nor[MAXD];
-
-        coeff = curv_params->coeff;
-        epsilon = curv_params->epsilon;
-
-        normal(p,hse,hs,nor,front);
-        kappa = mean_curvature_at_point(p,hse,hs,front);
-
-        for (i = 0; i < curv_params->dim; ++i)
-        {
-            vel[i] = nor[i]*(coeff - epsilon*kappa);
-        }
-}
-
+}       /* end propagation_driver */

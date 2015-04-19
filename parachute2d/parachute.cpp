@@ -139,7 +139,7 @@ int main(int argc, char **argv)
         velo_func_pack.func_params = (POINTER)l_cartesian;
         velo_func_pack.func = l_cartesian_vel;
         velo_func_pack.point_propagate = ifluid_point_propagate;
-        FT_InitVeloFunc(&front,&velo_func_pack);
+        FT_InitFrontVeloFunc(&front,&velo_func_pack);
 	l_cartesian->findStateAtCrossing = ifluid_find_state_at_crossing;
 	l_cartesian->getInitialState = zero_state;
 	l_cartesian->initMesh();

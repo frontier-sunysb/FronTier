@@ -131,7 +131,7 @@ int main(int argc, char **argv)
 	velo_func_pack.func = test_vel;
 	velo_func_pack.point_propagate = first_order_point_propagate;
 
-	FT_InitVeloFunc(&front,&velo_func_pack);
+	FT_InitFrontVeloFunc(&front,&velo_func_pack);
 
 	/* Propagate the front */
 

@@ -35,7 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <FronTier.h>
 
 	/*  Function Declarations */
-static void test_propagate(Front*);
+static void propagation_driver(Front*);
 static double sphere_func(POINTER,double*);
 static int test_curvature_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*);
 static void computeError_surface(Front*);

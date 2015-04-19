@@ -150,7 +150,7 @@ int main(int argc, char **argv)
 	velo_func_pack.func_params = (POINTER)&norv_params;
 	velo_func_pack.func = cell_vel;
 
-	FT_InitVeloFunc(&front,&velo_func_pack);
+	FT_InitFrontVeloFunc(&front,&velo_func_pack);
 
 	/* For geometry-dependent velocity, use first 
 	* order point propagation function, higher order
