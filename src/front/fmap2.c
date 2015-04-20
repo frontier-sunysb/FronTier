@@ -1876,3 +1876,51 @@ EXPORT void FT_InitFrontVeloFunc(
 	if (debugging("trace")) 
 	    (void) printf("Leaving FT_InitFrontVeloFunc()\n");
 }	/* end FT_InitFrontVeloFunc_function */
+
+EXPORT boolean FT_CheckSurfCompConsistency(
+	Front *front,
+	SURFACE *surf)
+{
+	INTERFACE *intfc = front->interf;
+	INTERFACE *test_intfc = copy_interface(intfc);
+	SURFACE *test_surf;
+	SURFACE **ss,**ts;
+	TRI *tri;
+	POINT *p;
+	int outer_comp = positive_component(surf);
+	int test_comp;
+	int i;
+
+	for (ss = intfc->surfaces, ts = test_intfc->surfaces; 
+	     ss && *ss; ++ss, ++ts)
+	{
+	    if (*ss == surf)
+	    {
+		test_surf = *ts;
+		break;
+	    }
+	}
+	delete_surface(test_surf);
+	reset_surface_points(surf);
+	surf_tri_loop(surf,tri)
+	{
+	    for (i = 0; i < 3; ++i)
+	    {
+		p = Point_of_tri(tri)[i];
+		if (sorted(p)) continue;
+		test_comp = component(Coords(p),test_intfc);
+		if (outer_comp != test_comp)
+		{
+		    (void) printf("Inconsistent component at (%f %f %f)\n",
+				Coords(p)[0],Coords(p)[1],Coords(p)[2]);
+		    (void) printf("Surface outer component = %d\n",outer_comp);
+		    (void) printf("Ambient component = %d\n",test_comp);
+		    delete_interface(test_intfc);
+		    return NO;
+		}
+		sorted(p) = YES;
+	    }
+	}
+	delete_interface(test_intfc);
+	return YES;
+}	/* end FT_CheckSurfCompConsistency */

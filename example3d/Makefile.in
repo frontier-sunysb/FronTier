@@ -7,7 +7,7 @@ incs =  @exampleincs@
 libincs = @otherlibsinc@
 libs = @otherlibs@
 
-all: example00 example01 example02 example03 example04 example05 example06 example07 example08
+all: example00 example01 example02 example03 example04 example05 example06 example07 example08 example09
 
 example: @devel@ example.cpp
 	$(CXX) -c -I../include $(incs) example.cpp

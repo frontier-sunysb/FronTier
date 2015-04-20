@@ -12,6 +12,7 @@
  *  \defgroup OPTIMIZATION      FronTier Interface Optimization Functions
  *  \defgroup BOUNDARY          FronTier Boundary Setting Functions
  *  \defgroup QUERY          	FronTier Interface Query Functions
+ *  \defgroup CHECK          	FronTier Interface Check Functions
  *  \defgroup PARALLEL          FronTier Parallel Communication Functions
  *  \defgroup FIELD          	FronTier Field (State) Functions
  *  \defgroup MEMORY          	FronTier Memory Management Functions
@@ -1736,6 +1737,18 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 			POINTER vparams,
 			int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
 
+
+/*! \fn boolean FT_CheckSurfCompConsistency(Front *front, SURFACE *surf)
+ *  \ingroup CHECK
+    \brief This function check if the outer (positive) component of a 
+     surface is consistent with the ambient component.
+    \param front @b in Pointer to the front.
+    \param surf @b in Pointer to surface to be checked.
+ */
+
+   IMPORT  boolean FT_CheckSurfCompConsistency(
+			Front *front,
+			SURFACE *surf);
 
 #if defined(c_plusplus) || defined(__cplusplus)
 }
