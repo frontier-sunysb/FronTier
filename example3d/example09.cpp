@@ -77,7 +77,7 @@ static void initInteriorSurfaces(
 	w_type = FIRST_PHYSICS_WAVE_TYPE;
 
 	center[0] = center[1] = center[2] = 0.4;
-	radius[0] = radius[1] = radius[2] = 0.3;
+	radius[0] = radius[1] = radius[2] = 0.1;
 	FT_MakeEllipticSurf(front,center,radius,neg_comp,pos_comp,
 			w_type,2,&surf);
 	if (FT_CheckSurfCompConsistency(front,surf) == YES)
@@ -85,7 +85,7 @@ static void initInteriorSurfaces(
 	    printf("Surface component is consistent!\n");	
 	}
 	center[0] = center[1] = center[2] = 0.6;
-	radius[0] = radius[1] = radius[2] = 0.2;
+	radius[0] = radius[1] = radius[2] = 0.1;
 	FT_MakeEllipticSurf(front,center,radius,neg_comp,pos_comp,
 			w_type,2,&surf);
 	if (FT_CheckSurfCompConsistency(front,surf) == YES)

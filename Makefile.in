@@ -24,6 +24,7 @@ all:
 	cd rgbody && $(MAKE)
 	cd climate && $(MAKE)
 	cd iFluid && $(MAKE)
+	cd vFluid && $(MAKE)
 	cd melting && $(MAKE)
 	cd pde && $(MAKE)
 	cd MonteCarlo && $(MAKE)
@@ -59,6 +60,7 @@ clean:
 	-cd example3d && $(MAKE) clean
 	-cd iFluid && $(MAKE) clean
 	-cd cFluid && $(MAKE) clean
+	-cd vFluid && $(MAKE) clean
 	-cd wings && $(MAKE) clean
 	-cd cim && $(MAKE) clean
 	-cd inverse && $(MAKE) clean
@@ -194,6 +196,9 @@ $$ME/airfoil/*.cuh \
 $$ME/airfoil/Makefile.in \
 $$ME/airfoil/input-*/* \
 $$ME/airfoil/mrun* \
+$$ME/vFluid/*.cpp \
+$$ME/vFluid/*.h \
+$$ME/vFluid/Makefile.in \
 $$ME/parachute/*.cpp \
 $$ME/parachute/Makefile.in \
 $$ME/parachute/input-*/* \

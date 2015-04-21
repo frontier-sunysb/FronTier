@@ -1,0 +1,58 @@
+CXX=@CXX@
+F77=@F77@
+F77_LIBS=@F77_LIBS@
+libext = @libext@
+incs =  @ftlibincs@
+libincs = @otherlibsinc@
+libs = @otherlibs@
+build_cpu = @build_cpu@
+incsloc = -I. -I../include -I../solver
+
+PETSC = yes
+PETSC_ARCH=@PETSC_ARCH@
+PETSC_DIR=@PETSC_DIR@
+
+Petsc_Include=@PETSC_INCLUDE@
+Petsc_Lib=@PETSC_LIB@
+
+USEGPU = no
+
+all: vFluid
+
+vFluid : @devel@
+
+vcartsn.o: vcartsn.h vcartsn.cpp
+	${CXX} -c vcartsn.cpp $(incsloc) $(incs) ${Petsc_Include}
+hyperb.o : ../solver/solver.h ../solver/hyperb.cpp
+	${CXX} -c ../solver/hyperb.cpp $(incsloc) $(incs) ${Petsc_Include}
+vFluid.o : vcartsn.h vFluid.cpp
+	${CXX} -c vFluid.cpp $(incsloc) $(incs) ${Petsc_Include}
+
+ifeq ($(USEGPU),no)
+vFluid: ../solver/solver.h vFluid.cpp vcartsn.o
+	${CXX} -c vFluid.cpp $(incsloc) $(incs) ${Petsc_Include}
+	$(CXX) -o vFluid vcartsn.o vFluid.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} -frounding-math -L/usr/lib64 -lgmp -lmpfr
+else
+vFluid: vcartsn.h ../solver/solver.h vFluid.cpp vcartsn.o hyperb.o
+	${CXX} -c vFluid.cpp $(incsloc) $(incs) ${Petsc_Include}
+	$(CXX) -o vFluid vcartsn.o vFluid.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so -frounding-math -L/usr/lib64 -lgmp -lmpfr 
+endif
+
+-include ../devel-deps.inc
+
+clean:
+	rm -rf *.o vFluid 
+output :
+	rm -rf out/*
+
+gif :
+	hdf2gif out/intfc.hdf out/intfc.gif
+
+TagsFile:
+	ctags *.cpp ../solver/solver.h ../solver/*.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+
+tagsfile:
+	ctags *.cpp ../solver/solver.h ../solver/*.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+
+etagsfile:
+	etags *.cpp ../solver/solver.h ../solver/*.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
