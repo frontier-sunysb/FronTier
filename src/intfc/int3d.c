@@ -307,6 +307,7 @@ EXPORT SURFACE *i_make_surface(
 	news->vel_pack = NULL;
         news->extra = NULL;
 	surface_for_head_of_tri_list(head_of_tri_list(news)) = news;
+	Gindex(news) = -1;
 	return news;
 }		/*end i_make_surface*/
 

@@ -1096,11 +1096,28 @@ extern "C" {
 
 /*! \fn void FT_SetGlobalIndex(Front *front)
  *  \ingroup INITIALIZATION
-    \brief This function set global index for all point in the interface.
+    \brief This function set global index for all point, curves, surfaces 
+     in the interface.
     \param n @b in Number of items whose memory are to be freed.
     \param ... @b Pointers to the addresses of these items.
  */
    IMPORT  void FT_SetGlobalIndex(Front *front);
+
+/*! \fn void FT_SetSurfGlobalIndex(Front *front)
+ *  \ingroup INITIALIZATION
+    \brief This function set global index for all surfaces in the interface.
+    \param n @b in Number of items whose memory are to be freed.
+    \param ... @b Pointers to the addresses of these items.
+ */
+   IMPORT  void FT_SetSurfGlobalIndex(Front *front);
+
+/*! \fn void FT_SetCurveGlobalIndex(Front *front)
+ *  \ingroup INITIALIZATION
+    \brief This function set global index for all curves in the interface.
+    \param n @b in Number of items whose memory are to be freed.
+    \param ... @b Pointers to the addresses of these items.
+ */
+   IMPORT  void FT_SetCurveGlobalIndex(Front *front);
 
 /*! \fn void FT_FreeThese(int n, ...)
  *  \ingroup MEMORY

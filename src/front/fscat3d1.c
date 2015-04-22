@@ -2013,28 +2013,6 @@ LOCAL 	int append_adj_intfc_to_buffer1(
 	static int      len_p_table = 0;
 	boolean      	corr_surf_found;
 
-	DEBUG_ENTER(append_adj_intfc_to_buffer1)
-
-	if (DEBUG)
-	{
-	    char dname[256];
-	    static int ntimes[3][2];
-	    static const char *strdir[3] = { "X", "Y", "Z" };
-	    static const char *strnb[2] = { "LOWER", "UPPER" };
-
-	    (void) sprintf(dname,"fscatter/"
-				 "append_adj_intfc_to_buffer1/Data%d-%s_%s/%s",
-			         ntimes[dir][nb],strdir[dir],strnb[nb],
-				 "intfc_gv");
-	    gview_plot_interface(dname,intfc);
-	    (void) sprintf(dname,"fscatter/"
-				 "append_adj_intfc_to_buffer1/Data%d-%s_%s/%s",
-			         ntimes[dir][nb],strdir[dir],strnb[nb],
-				 "adj_intfc_gv");
-	    gview_plot_interface(dname,adj_intfc);
-
-	    ++ntimes[dir][nb];
-	}
 	if (debugging("append_curves"))
 	{
 	    (void) printf("Entering append_adj_intfc_to_buffer1()\n");
@@ -2059,12 +2037,6 @@ LOCAL 	int append_adj_intfc_to_buffer1(
 	for (as = adj_intfc->surfaces; as && *as; ++as)
 	{
 	    corr_surf_found = NO;
-	    if (wave_type(*as) == FIRST_SCALAR_PHYSICS_WAVE_TYPE && 
-		debugging("step_out"))
-	    {    
-		add_to_debug("out_matching");
-	        printf("#out_mathcing\n");
-	    }
 	    for (s = intfc->surfaces; s && *s; ++s)
 	    {
 		/*
@@ -4357,10 +4329,20 @@ EXPORT 	boolean surfaces_matched(
 	SURFACE *as,
 	SURFACE *s)
 {
+	if (Gindex(as) != -1 && Gindex(s) != -1)
+	    return (Gindex(as) == Gindex(s)) ? YES : NO;
+	else if ((Gindex(as) == -1 && Gindex(s) != -1) ||
+		 (Gindex(as) != -1 && Gindex(s) == -1))
+	{
+	    (void) printf("In surfaces_matched(): "
+			  "Gindex incompletely assigned\n");
+	    clean_up(ERROR);	
+	}
+	/* The following is for cases without Gindex */
 	if (is_bdry(as) && is_bdry(s)) 
 	    return (Hyper_surf_index(as) == Hyper_surf_index(s)) ? YES : NO;
 	else if (negative_component(as) == negative_component(s) &&
-	    positive_component(as) == positive_component(s))
+	    	 positive_component(as) == positive_component(s))
 	{
 	    if (wave_type(s) == ICE_PARTICLE_BOUNDARY ||
 		wave_type(as) == ICE_PARTICLE_BOUNDARY)

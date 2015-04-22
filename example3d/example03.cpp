@@ -231,7 +231,7 @@ static  void propagation_driver(
 }       /* end propagation_driver */
 
 /********************************************************************
- *	Sample (dummbell 3D) level function for the initial interface    *
+ *	Sample (plate 3D) level function for the initial interface    *
  ********************************************************************/
 
 static double plate_func(
@@ -256,7 +256,6 @@ static double plate_func(
 	    r0 = -(coords[2] - z)*w1 / h;
 	    r1 = -(coords[2] - z)*w2 / h;
 	}
-
 	if ((coords[0] - x) >=0 ){
 	    rx0 = (coords[0] - x)*w2 / w1;
 	    rx1 = (coords[0] - x)*h / w1;
@@ -264,7 +263,6 @@ static double plate_func(
 	    rx0 = -(coords[0] - x)*2 / w1;
 	    rx1 = -(coords[0] - x)*h / w1;
 	}
-
 	if ((coords[1] - y) >=0 ){
 	    ry0 = (coords[1] - y)*w1 / w2;
 	    ry1 = (coords[1] - y)*h / w2;
@@ -272,33 +270,34 @@ static double plate_func(
 	    ry0 = -(coords[1] - y)*w1 / w2;
 	    ry1 = -(coords[1] - y)*h / w2;
 	}
-
 	if ((x - r0) <= coords[0] && coords[0] <= (x + r0) )
 	{
 	    if ((y - r1) <= coords[1] && coords[1] <= (y + r1) ){
-	    	if (coords[2] >= z) arg = sqrt(h*(coords[2] - z)/2.0) - h/2.0;
-		else                arg = sqrt(-h*(coords[2] - z)/2.0) - h/2.0;
+	    	if (coords[2] >= z) 
+		    arg = sqrt(h*(coords[2] - z)/2.0) - h/2.0;
+		else                
+		    arg = sqrt(-h*(coords[2] - z)/2.0) - h/2.0;
 	    }
         }
-	
 	if ((y - rx0) <= coords[1] && coords[1] <= (y + rx0) )
 	{
 	    if ((z - rx1) <= coords[2] && coords[2] <= (z + rx1) ){
-	    	if (coords[0] >= x) arg = sqrt(w1*(coords[0] - x)/2.0) - w1/2.0;
-		else                arg = sqrt(-w1*(coords[0] - x)/2.0) - w1/2.0;
+	    	if (coords[0] >= x) 
+		    arg = sqrt(w1*(coords[0] - x)/2.0) - w1/2.0;
+		else                
+		    arg = sqrt(-w1*(coords[0] - x)/2.0) - w1/2.0;
 	    }
         }
-	
 	if ((x - ry0) <= coords[0] && coords[0] <= (x + ry0) )
 	{
 	    if ((z - ry1) <= coords[2] && coords[2] <= (z + ry1) ){
-	    	if (coords[1] >= y) arg = sqrt(w2*(coords[1] - y)/2.0) - w2/2.0;
-		else                arg = sqrt(-w2*(coords[1] - y)/2.0) - w2/2.0;
+	    	if (coords[1] >= y) 
+		    arg = sqrt(w2*(coords[1] - y)/2.0) - w2/2.0;
+		else                
+		    arg = sqrt(-w2*(coords[1] - y)/2.0) - w2/2.0;
 	    }
         }
-	
-	
-	return -arg;
+	return arg;
 }       /* end plate_func */
 
 static int test_rotation_vel(

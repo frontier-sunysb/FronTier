@@ -519,6 +519,18 @@ EXPORT	void FT_SetGlobalIndex(
 	set_curve_gindex(front);
 }	/* end FT_SetGlobalIndex */
 
+EXPORT void FT_SetSurfGlobalIndex(
+        Front *front)   
+{
+        set_surface_gindex(front);
+}       /* end FT_SetSurfGlobalIndex */
+
+EXPORT void FT_SetCurveGlobalIndex(
+        Front *front)   
+{
+        set_curve_gindex(front);
+}       /* end FT_SetCurveGlobalIndex */
+
 EXPORT  CURVE *FT_MakeNodeArrayCurve(
         Front *front,   
         int num_nodes,
