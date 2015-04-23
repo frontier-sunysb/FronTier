@@ -162,6 +162,12 @@ EXPORT	void init_clean_up(
 }		/*end inti_clean_up*/
 
 
+LOCAL char run_name[256];
+
+EXPORT void set_runname(const char *exname)
+{
+	strcpy(run_name,exname);
+}	/* end set_runname */
 
 
 /*
@@ -174,6 +180,7 @@ EXPORT	void init_clean_up(
 *	the argument are reserved for software and hardware failures.
 */
 
+#include <execinfo.h>	/* Needed for tracking function calls */
 EXPORT void clean_upp(
 	int		error)
 {
@@ -181,7 +188,37 @@ EXPORT void clean_upp(
 	int		call_printout;
 	time_t		tvec;
 	const char      *errstring;
+#define SIZE 20 
+        void *buffer[SIZE];
+        char **strings;
+        int nptrs, j;
+	char syscom[256];
+        FILE* pipe;
 
+	if (debugging("trace"))
+	{
+	    nptrs = backtrace(buffer,SIZE);
+            printf("backtrace() returned %d addresses\n",nptrs);
+            strings = backtrace_symbols(buffer,nptrs);
+            if (strings == NULL){
+            	perror("backtrace_symbols");
+            }
+            else 
+	    {
+            	for (j = 0; j < nptrs; j++)
+            	{
+                    printf("%s\n", strings[j],buffer[j]);
+                    if (buffer[j] != NULL)
+                    sprintf(syscom,"addr2line %p -e %s",buffer[j],
+					run_name);
+                    pipe = popen(syscom,"r");
+                    while(fgets(syscom,sizeof(syscom),pipe) != 0)
+                    	printf("%s",syscom);
+                    pclose(pipe);
+            	}
+            	free(strings);
+            }
+	}
 	errstring = strerror(errno);
 	debug_enter(clean_up)
 

@@ -46,6 +46,7 @@ IMPORT	void	init_clean_up(void(*)(void),void(*)(int));
 IMPORT	void	print_call_stack(const char*);
 IMPORT	void	print_storage(const char*,const char*);
 IMPORT	void	set_dump_core(boolean);
+IMPORT	void	set_runname(const char*);
 
 /* debug.c */
 IMPORT	DEBUG_PARAMS	*init_debug(const DEBUG_MODE);
