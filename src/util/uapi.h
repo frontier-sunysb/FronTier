@@ -40,14 +40,6 @@ extern "C" {
 /*! \defgroup DEBUG    Utility of Debugging Functions
  **/
 
-/*! \fn void U_SetExcutableName(const char *exname)
- *  \ingroup INITIALIZATION
-    \brief Initialize strings for debugging option of the problem,
-     read the input file.
-    \param exname @b in The name of the excutable
- */
-   IMPORT  void U_SetExcutableName(const char *exname);
-
 #if defined(c_plusplus) || defined(__cplusplus)
 }
 #endif

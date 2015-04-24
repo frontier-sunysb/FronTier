@@ -83,8 +83,6 @@ int main(int argc, char **argv)
 	FT_StartUp(&front,&f_basic);
 	FT_InitDebug(in_name);
 
-	if (debugging("trace")) U_SetExcutableName(argv[0]);
-	clean_up(0);
 	if (debugging("trace")) printf("Passed FT_StartUp()\n");
 	iFparams.dim = f_basic.dim;
 	front.extra1 = (POINTER)&iFparams;

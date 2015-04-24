@@ -30,7 +30,3 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include <util/cdecs.h>		/* includes cdecs.h */
 #include <util/vmalloc.h>	/* includes vmalloc.h */
 
-EXPORT void U_SetExcutableName(const char *exname)
-{
-	set_runname(exname);
-}	/* end U_SetExcutableName */

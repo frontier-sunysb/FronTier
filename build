@@ -28,7 +28,7 @@ export BASECODE="no"
 
     for arg in $@ ; do
         if [[ "$arg" == "-d" ]]; then
-	    OPTS="-g"
+	    OPTS="-g -rdynamic"
 	    COPTS_GCC="-fopenmp -pedantic -Wno-long-long"
 	    COPTS_ICC="-Wall"
         elif [[ "$arg" == "-n" ]]; then
