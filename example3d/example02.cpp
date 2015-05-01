@@ -100,6 +100,7 @@ int main(int argc, char **argv)
 
 	front.vfunc = NULL;
         FT_InitSurfVeloFunc(surf,
+			"translation_velocity",
                         (POINTER)&trans_params,
                         translation_vel);
 

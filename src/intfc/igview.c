@@ -41,8 +41,9 @@ LOCAL	char	*get_list_file_name(char*,const char*,const char*,size_t*);
 LOCAL	char	*set_ppfname(char*,const char*,size_t*);
 LOCAL	void	gview_plot_cube(const char*,const char*,const double*,
 	                        const double*,const double*,const double*);
-LOCAL   void    gview_plot_curves(INTERFACE*,const double*,const double*,
-	                          const char*,const char*,SURFACE_COLOR,int);
+LOCAL   void    gview_plot_curves(INTERFACE*,RECT_GRID*,const double*,
+				    const double*,const char*,const char*,
+				    SURFACE_COLOR,int);
 LOCAL	void	gview_plot_surfaces(INTERFACE*,RECT_GRID*,const double*,
 	                            const double*,boolean,
 				    const char*,const char*,
@@ -1191,7 +1192,7 @@ EXPORT void geomview_interface_plot(
 	gview_plot_surfaces(intfc,gr,BBL,BBU,YES,dname,"bdry",
 			    YES,pBLUE,pGREEN);
 
-	gview_plot_curves(intfc,BBL,BBU,dname,"curves",pYELLOW,1);
+	gview_plot_curves(intfc,gr,BBL,BBU,dname,"curves",pYELLOW,1);
 
 	gview_plot_surfs_and_curves(intfc,gr,BBL,BBU,dname,"interior",
 			    pRED,pRED,pYELLOW,1);
@@ -1225,7 +1226,7 @@ EXPORT void gview_plot_color_scaled_interface(
 	gview_plot_surfaces(intfc,gr,BBL,BBU,YES,dname,"bdry",
 			    YES,pBLUE,pGREEN);
 
-	gview_plot_curves(intfc,BBL,BBU,dname,"curves",pYELLOW,1);
+	gview_plot_curves(intfc,gr,BBL,BBU,dname,"curves",pYELLOW,1);
 }		/*end gview_plot_color_scaled_interface*/
 
 /*	This function plots two rings of triangles around the point  *
@@ -1357,7 +1358,7 @@ EXPORT  void gview_plot_color_interface(
                             NO,pRED,pRED);
             gview_plot_surfaces(intfc,gr,BBL,BBU,YES,dname,"bdry",
                             YES,pBLUE,pGREEN);
-            gview_plot_curves(intfc,BBL,BBU,dname,"curves",pYELLOW,5);
+            gview_plot_curves(intfc,gr,BBL,BBU,dname,"curves",pYELLOW,5);
         }
 }               /*end gview_plot_color_interface*/
 
@@ -2269,8 +2270,9 @@ LOCAL void gview_plot_cube(
 
 LOCAL   void    gview_plot_curves(
         INTERFACE     *intfc,
-	const double   *BBL,
-	const double   *BBU,
+	RECT_GRID     *gr,
+	const double  *BBL,
+	const double  *BBU,
         const char    *dname,
         const char    *name,
 	SURFACE_COLOR color,
@@ -2281,9 +2283,12 @@ LOCAL   void    gview_plot_curves(
         CURVE             **c;
         BOND              *b;
         static const char *indent = "    ";
-        int               num_bonds,i;
+        int               num_bonds,i,dim;
 	static char       *fname = NULL;
 	static size_t     fname_len = 0;
+	double            L[MAXD],U[MAXD],tol[MAXD];
+	boolean point_outside;
+	int		  num_outside;
 
 	fname = get_list_file_name(fname,dname,name,&fname_len);
 
@@ -2298,9 +2303,36 @@ LOCAL   void    gview_plot_curves(
 
 	gview_bounding_box(file,BBL,BBU,1,indent);
 
+	dim = gr->dim;
+	for (i = 0; i < dim; i++)
+	{
+	    L[i] = gr->L[i] - 0.5*gr->h[i];
+	    U[i] = gr->U[i] + 0.5*gr->h[i];
+	    tol[i] = 0.00001*gr->h[i];
+	}
         for (c = intfc->curves; c && *c; ++c)
         {
-            num_bonds = (*c)->num_points - 1;
+	    num_outside = 0;
+            for (b = (*c)->first; b; b = b->next)
+            {
+                ps = b->start;
+                pe = b->end;
+		point_outside = NO;
+		for (i = 0; i < dim; ++i)
+		{
+		    if (Coords(ps)[i] > U[i] - tol[i])
+			point_outside = YES;
+		    if (Coords(pe)[i] > U[i] - tol[i])
+			point_outside = YES;
+		    if (Coords(ps)[i] < L[i] + tol[i])
+			point_outside = YES;
+		    if (Coords(pe)[i] < L[i] + tol[i])
+			point_outside = YES;
+		}
+		if (point_outside) num_outside++;
+	    }
+            num_bonds = (*c)->num_points - 1 - num_outside;
+	    if (num_bonds == 0) continue;
             (void) fprintf(file,"%s{appearance{*linewidth %d}\n"
 			   "%s%sVECT\n%s%s%6d %6d %6d\n",
 			   indent,width,indent,indent,indent,indent,
@@ -2322,6 +2354,19 @@ LOCAL   void    gview_plot_curves(
             {
                 ps = b->start;
                 pe = b->end;
+		point_outside = NO;
+		for (i = 0; i < dim; ++i)
+		{
+		    if (Coords(ps)[i] > U[i] - tol[i])
+			point_outside = YES;
+		    if (Coords(pe)[i] > U[i] - tol[i])
+			point_outside = YES;
+		    if (Coords(ps)[i] < L[i] + tol[i])
+			point_outside = YES;
+		    if (Coords(pe)[i] < L[i] + tol[i])
+			point_outside = YES;
+		}
+		if (point_outside) continue;
                 (void) fprintf(file,"%s%s%-9g %-9g %-9g %-9g %-9g %-9g\n",
 			       indent,indent,Coords(ps)[0], Coords(ps)[1],
 			       Coords(ps)[2],Coords(pe)[0],Coords(pe)[1],
@@ -5475,7 +5520,7 @@ LOCAL	void	gview_plot_surfs_and_curves(
         CURVE             **c;
 	TRI	          *tri;
         BOND              *b;
-	boolean           plot_surf,plot_tri,plot_bond;
+	boolean           plot_surf,plot_tri;
 	double 	          D, intensity = .5;
 	double            L[MAXD],U[MAXD],tol[MAXD];
 	double	          *crds;
@@ -5487,6 +5532,8 @@ LOCAL	void	gview_plot_surfs_and_curves(
 	static int        alloc_len_verts = 0, alloc_len_pts = 0;
 	static char       *fname = NULL;
 	static size_t     fname_len = 0;
+	boolean		  point_outside;
+	int		  num_outside;
 
 	fname = get_list_file_name(fname,dname,name,&fname_len);
 
@@ -5598,7 +5645,27 @@ LOCAL	void	gview_plot_surfs_and_curves(
 
         for (c = intfc->curves; c && *c; ++c)
         {
-            num_bonds = (*c)->num_points - 1;
+	    num_outside = 0;
+            for (b = (*c)->first; b; b = b->next)
+            {
+                ps = b->start;
+                pe = b->end;
+		point_outside = NO;
+		for (i = 0; i < 3; ++i)
+		{
+		    if (Coords(ps)[i] > U[i] - tol[i])
+			point_outside = YES;
+		    if (Coords(pe)[i] > U[i] - tol[i])
+			point_outside = YES;
+		    if (Coords(ps)[i] < L[i] + tol[i])
+			point_outside = YES;
+		    if (Coords(pe)[i] < L[i] + tol[i])
+			point_outside = YES;
+		}
+		if (point_outside) num_outside++;
+	    }
+            num_bonds = (*c)->num_points - 1 - num_outside;
+	    if (num_bonds == 0) continue;
             (void) fprintf(file,"%s{appearance{*linewidth %d}\n"
 			   "%s%sVECT\n%s%s%6d %6d %6d\n",
 			   indent,width,indent,indent,indent,indent,
@@ -5620,26 +5687,20 @@ LOCAL	void	gview_plot_surfs_and_curves(
             {
                 ps = b->start;
                 pe = b->end;
-		plot_bond = YES;
-	        for (l = 0; l < 3; ++l)
+		point_outside = NO;
+		for (i = 0; i < 3; ++i)
 		{
-		    if ((Coords(ps)[l] < L[l] - tol[l]) ||
-		        (Coords(ps)[l] > U[l] + tol[l]))
-			break;
+		    if (Coords(ps)[i] > U[i] - tol[i])
+			point_outside = YES;
+		    if (Coords(pe)[i] > U[i] - tol[i])
+			point_outside = YES;
+		    if (Coords(ps)[i] < L[i] + tol[i])
+			point_outside = YES;
+		    if (Coords(pe)[i] < L[i] + tol[i])
+			point_outside = YES;
 		}
-		if (l == 3) plot_bond = YES;
-		else
-		{
-	            for (l = 0; l < 3; ++l)
-		    {
-		    	if ((Coords(pe)[l] < L[l] - tol[l]) ||
-		            (Coords(pe)[l] > U[l] + tol[l]))
-			    break;
-		    }
-		    if (l == 3) plot_bond = YES;
-		}
-		if (debugging("gview_full")) plot_bond = YES;
-		if (!plot_bond) continue;
+		if (debugging("gview_full")) point_outside = NO;
+		if (point_outside) continue;
                 (void) fprintf(file,"%s%s%-9g %-9g %-9g %-9g %-9g %-9g\n",
 			       indent,indent,Coords(ps)[0], Coords(ps)[1],
 			       Coords(ps)[2],Coords(pe)[0],Coords(pe)[1],

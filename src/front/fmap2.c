@@ -647,6 +647,27 @@ EXPORT	void FT_MakeEllipticSurf(
 	interface_reconstructed(front->interf) = NO;
 }	/* end FT_MakeEllipticSurf */
 
+EXPORT	void FT_MakeSphericalSurf(
+	Front *front,
+	double *center,
+	double radius,
+	COMPONENT   neg_comp,
+        COMPONENT   pos_comp,
+	int w_type,
+	int refinement_level,
+	SURFACE **surf)
+{
+	double radii[MAXD];
+	RECT_GRID *rgr = front->rect_grid;
+	int i,dim = rgr->dim;
+
+	for (i = 0; i < dim; ++i)
+	{
+	    radii[i] = radius;
+	}
+	FT_MakeEllipticSurf(front,center,radii,neg_comp,pos_comp,
+			w_type,refinement_level,surf);
+}	/* end FT_MakeSphericalSurf */
 
 EXPORT	void FT_MakeDumbBellSurf(
 	Front *front,
@@ -1729,12 +1750,14 @@ EXPORT  void FT_MakePlatformSurf(
 
 EXPORT void FT_InitSurfVeloFunc(
 	SURFACE *surf,
+	const char *vfunc_name,
 	POINTER vparams,
 	int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
 			HYPER_SURF*,double*))
 {
 	VELO_FUNC_PACK *vel_func_pack;
 	scalar(&vel_func_pack,sizeof(VELO_FUNC_PACK));
+	strcpy(surf->vfunc_name,vfunc_name);
 	vel_func_pack->func_params = vparams;
 	vel_func_pack->func = vfunc;
 	surf->vel_pack = (POINTER)vel_func_pack;
@@ -1742,11 +1765,13 @@ EXPORT void FT_InitSurfVeloFunc(
 
 EXPORT void FT_InitCurveVeloFunc(
 	CURVE *curve,
+	const char *vfunc_name,
 	POINTER vparams,
 	int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
 			HYPER_SURF*,double*))
 {
 	VELO_FUNC_PACK *vel_func_pack;
+	strcpy(curve->vfunc_name,vfunc_name);
 	scalar(&vel_func_pack,sizeof(VELO_FUNC_PACK));
 	vel_func_pack->func_params = vparams;
 	vel_func_pack->func = vfunc;
@@ -1755,12 +1780,14 @@ EXPORT void FT_InitCurveVeloFunc(
 
 EXPORT void FT_InitNodeVeloFunc(
 	NODE *node,
+	const char *vfunc_name,
 	POINTER vparams,
 	int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
 			HYPER_SURF*,double*))
 {
 	VELO_FUNC_PACK *vel_func_pack;
 	scalar(&vel_func_pack,sizeof(VELO_FUNC_PACK));
+	strcpy(node->vfunc_name,vfunc_name);
 	vel_func_pack->func_params = vparams;
 	vel_func_pack->func = vfunc;
 	node->vel_pack = (POINTER)vel_func_pack;

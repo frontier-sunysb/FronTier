@@ -102,6 +102,7 @@ int main(int argc, char **argv)
 
 	front.vfunc = NULL;
 	FT_InitSurfVeloFunc(surf,
+			"curvature_dependent_velocity",
 			(POINTER)&curv_params,
 			curvature_vel);
 

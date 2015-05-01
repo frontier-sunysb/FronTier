@@ -1747,6 +1747,7 @@ EXPORT NODE *i_make_node(
 	    break;
 	}
 	newnod->in_curves = newnod->out_curves = NULL;
+	zero_scalar(newnod->vfunc_name,256);
 	newnod->vel_pack = NULL;
 	newnod->extra = NULL;
 	cur_intfc->modified = YES;
@@ -1779,6 +1780,7 @@ EXPORT NODE *i_copy_node(
 	Boundary(newnode) = Boundary(node);
 	newnode->extra = node->extra;
 	newnode->size_of_extra = node->size_of_extra;
+	strcpy(newnode->vfunc_name,node->vfunc_name);
 	newnode->vel_pack = node->vel_pack;
 
 	return newnode;
@@ -2175,6 +2177,7 @@ EXPORT CURVE *i_make_curve(
 	set_not_bdry(curve);
 	Gindex(curve) = -1;
 	curve->vel_pack = NULL;
+	zero_scalar(curve->vfunc_name,256);
 	curve->extra = NULL;
 	return curve;
 }		/*end i_make_curve*/
@@ -2257,6 +2260,7 @@ EXPORT CURVE *i_copy_curve(
 	    new_curve->redist_order = curve->redist_order;
 	}
 	new_curve->extra = curve->extra;
+	strcpy(new_curve->vfunc_name,curve->vfunc_name);
 	new_curve->vel_pack = curve->vel_pack;
 	Gindex(new_curve) = Gindex(curve);
 	return new_curve;

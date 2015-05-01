@@ -2753,6 +2753,8 @@ EXPORT	void	f_user_fprint_surface(
 	    (void) fprintf(file,"%s\n",hypersurface_normal_name(s));
 	else
 	    (void) fprintf(file,"none\n");
+	fprintf(file,"\tVelocity function name = %s\n",s->vfunc_name);
+	fprintf(file,"\tGlobal index = %d\n",Gindex(s));
 }		/*end f_user_fprint_surface*/
 
 EXPORT	void f_user_read_surface(
@@ -2822,6 +2824,10 @@ EXPORT	void f_user_read_print_surface(
 	    set_normal_function(s,&hypersurface_normal_function(surf),
 		                surf->interface);
 	}
+	(void) fgetstring(file,"Velocity function name = ");
+        fscanf(file,"%s",surf->vfunc_name);
+	(void) fgetstring(file,"Global index = ");
+        fscanf(file,"%d",&surf->global_index);
 }		/*end f_user_read_print_surface*/
 
 EXPORT	BOND_TRI *f_link_tri_to_bond(

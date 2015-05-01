@@ -1234,6 +1234,23 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 
    IMPORT  void FT_MakeEllipticSurf(Front *front,double *center,double *radius,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,int refinement_level,SURFACE **surf);
 
+/*! \fn void FT_MakeSphericalSurf(Front *front, double *center, double radius, COMPONENT neg_comp, COMPONENT pos_comp, int w_type,int refinement_level,SURFACE **surf)
+ *  \ingroup INSERT
+    \brief This function inserts an spherical surface into the front with given
+     information of center, radii, components, and wave type.
+    
+    \param front @b inout Pointer to the front in which surface is inserted.
+    \param center @b in center of the sphere.
+    \param radius @b in radius of the sphere.
+    \param neg_comp @b in index for negative side of the surface (inner side).
+    \param pos_comp @b in index for positive side of the surface (outer side).
+    \param w_type @b int wave type of the surface.
+    \param refinement_level @b int refinement level of the surface.
+    \param surf @b out surface made by this function.
+ */
+
+   IMPORT  void FT_MakeSphericalSurf(Front *front,double *center,double radius,COMPONENT neg_comp,COMPONENT pos_comp,int w_type,int refinement_level,SURFACE **surf);
+
 /*! \fn void FT_MakeDumbBellSurf(Front *front, double x0, double x1,double y0,double z0,double R,double r,COMPONENT neg_comp, COMPONENT pos_comp, int w_type,SURFACE **surf)
  *  \ingroup INSERT
     \brief This function inserts a dumbbell surface into the front with given
@@ -1715,7 +1732,7 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 			int w_type,
 			SURFACE **surf);
 
-/*! \fn void FT_InitSurfVeloFunc(SURFACE *surf,POINTER vparams,int (*)vfunc(POINTER,struct _Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
+/*! \fn void FT_InitSurfVeloFunc(SURFACE *surf,const char* vfunc_name,POINTER vparams,int (*)vfunc(POINTER,struct _Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
     \ingroup INITIALIZATION
     \brief Initialize surface velocity function for propagation.
      The velocity function use point and other related structures as input,
@@ -1724,11 +1741,13 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
     \param vparams @b in Pointer to velocity function parameters.
     \param vfunc @b in Pointer to velocity function.
  */
-   IMPORT  void    FT_InitSurfVeloFunc(SURFACE *surf,
+   IMPORT  void    FT_InitSurfVeloFunc(
+			SURFACE *surf,
+			const char *vfunc_name,
 			POINTER vparams,
 			int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
 
-/*! \fn void FT_InitCurveVeloFunc(CURVE *curve,POINTER vparams,int (*)vfunc(POINTER,struct _Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
+/*! \fn void FT_InitCurveVeloFunc(CURVE *curve,const char* vfunc_name,POINTER vparams,int (*)vfunc(POINTER,struct _Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
     \ingroup INITIALIZATION
     \brief Initialize curve velocity function for propagation.
      The velocity function use point and other related structures as input,
@@ -1737,11 +1756,13 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
     \param vparams @b in Pointer to velocity function parameters.
     \param vfunc @b in Pointer to velocity function.
  */
-   IMPORT  void    FT_InitCurveVeloFunc(CURVE *curve,
+   IMPORT  void    FT_InitCurveVeloFunc(
+			CURVE *curve,
+			const char *vfunc_name,
 			POINTER vparams,
 			int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
 
-/*! \fn void FT_InitNodeVeloFunc(NODE *node,POINTER vparams,int (*)vfunc(POINTER,struct _Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
+/*! \fn void FT_InitNodeVeloFunc(NODE *node,const char* vfunc_name,POINTER vparams,int (*)vfunc(POINTER,struct _Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
     \ingroup INITIALIZATION
     \brief Initialize node velocity function for propagation.
      The velocity function use point and other related structures as input,
@@ -1750,7 +1771,9 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
     \param vparams @b in Pointer to velocity function parameters.
     \param vfunc @b in Pointer to velocity function.
  */
-   IMPORT  void    FT_InitNodeVeloFunc(NODE *node,
+   IMPORT  void    FT_InitNodeVeloFunc(
+			NODE *node,
+			const char *vfunc_name,
 			POINTER vparams,
 			int (*vfunc)(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,double*));
 

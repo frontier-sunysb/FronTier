@@ -35,14 +35,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 /*  Function Declarations */
 typedef struct{
-	unsigned short int seeds[3]; /*seed for rand number generation*/
 	long num_bubbles; 	     /*number of bubbles in domain*/
-	double mean_rad;	     /*mean radius of the bubbles*/
-	double dev_rad;		     /*deviation of the radius*/
-} RAND_BUBBLE_PARAMS;
+	double **center;	     /*center of the bubbles*/
+	double *radius;		     /*radius of the bubbles*/
+} BUBBLE_PARAMS;
 
-static void initRandomBubbles(Front*,const RAND_BUBBLE_PARAMS*);
-static void readRandBubbleParams(Front*, RAND_BUBBLE_PARAMS*);
+static void initBubbles(Front*,const BUBBLE_PARAMS*);
+static void readBubbleParams(Front*, BUBBLE_PARAMS*);
+static void setRestartBubbleVelocity(Front*);
 static void propagation_driver(Front*);
 
 char *restart_name,*in_name,*out_name;
@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 	static Front front;
 	static F_BASIC_DATA f_basic;
 	static LEVEL_FUNC_PACK level_func_pack;
-	RAND_BUBBLE_PARAMS params;
+	BUBBLE_PARAMS params;
 
 	FT_Init(argc,argv,&f_basic);
 
@@ -64,16 +64,31 @@ int main(int argc, char **argv)
         RestartRun              = f_basic.RestartRun;
         RestartStep             = f_basic.RestartStep;
 
+        sprintf(restart_name,"%s/intfc-ts%s",restart_name,
+                        right_flush(RestartStep,7));
+        if (pp_numnodes() > 1)
+        {
+            sprintf(restart_name,"%s-nd%s",restart_name,
+                        right_flush(pp_mynode(),4));
+        }
+
 	FT_ReadSpaceDomain(in_name,&f_basic);
 	FT_StartUp(&front,&f_basic);
 	FT_InitDebug(in_name);
 
 	level_func_pack.pos_component = 2; /* default component*/
-	FT_InitIntfc(&front,&level_func_pack);
 
-	readRandBubbleParams(&front,&params);
-	initRandomBubbles(&front,&params);
+	if (!RestartRun)
+	{
+	    FT_InitIntfc(&front,&level_func_pack);
+	    readBubbleParams(&front,&params);
+	    initBubbles(&front,&params);
+	}
+	else
+	    setRestartBubbleVelocity(&front);
+	PointPropagationFunction(&front) = first_order_point_propagate;
 	FT_Draw(&front);
+
 
 	/* Propagate the front */
         propagation_driver(&front);
@@ -145,107 +160,92 @@ static  void propagation_driver(
 
 }
 
-static void initRandomBubbles(
+static void initBubbles(
 	Front *front,
-	const RAND_BUBBLE_PARAMS* params)
+	const BUBBLE_PARAMS* params)
 {
-	double R,x,center[MAXD],radius[MAXD];
-	int neg_comp,pos_comp,w_type,dim,j;
-	double *L = front->rect_grid->L;
-	double *U = front->rect_grid->U;
-	double *h = front->rect_grid->h;
-	double tol = 5*h[0];
+	int i,j,dim;
+	int w_type;
+	int neg_comp,pos_comp;
 	static NORV_PARAMS curv_params;
-	GAUSS_PARAMS gauss_params;
-        UNIFORM_PARAMS uniform_params;
 	SURFACE *surf;
 	dim = FT_Dimension();
 
 	curv_params.dim = 3;
-        curv_params.coeff = 0.01;
-        curv_params.epsilon = -0.001;
+        curv_params.coeff = 0.04;
+        curv_params.epsilon = 0.001;
         front->vfunc = NULL;
-
-	gauss_params.mu = params->mean_rad;
-        gauss_params.sigma = params->dev_rad;
-        uniform_params.a = 0.0;
-        uniform_params.b = 1.0;
 
 	neg_comp = 1;
 	pos_comp = 2;
 	w_type = FIRST_PHYSICS_WAVE_TYPE;
 
 	int count = 0, num_iter = 0;
-	while (count < params->num_bubbles)
+	for (i = 0; i < params->num_bubbles; ++i)
 	{
-		num_iter ++;
-		if (num_iter > 2*params->num_bubbles)
-		{
-			(void) printf("Too many times, "
-				      "try to reduce numbers or radius\n");
-			clean_up(ERROR);
-		}
-		R = gauss_center_limit((POINTER)&gauss_params,
-			   const_cast<RAND_BUBBLE_PARAMS*>(params)->seeds);	
-		for (j = 0; j < dim; ++j)
-            	{
-                    x = dist_uniform((POINTER)&uniform_params,
-			   const_cast<RAND_BUBBLE_PARAMS*>(params)->seeds);
-                    center[j] = L[j] + R + tol + x*(U[j] - L[j] - 2*(R+tol) );
-		    radius[j] = R;
-                }
-		
-		FT_MakeEllipticSurf(front,center,radius,neg_comp,pos_comp,
-			w_type,2,&surf);
-		FT_InitSurfVeloFunc(surf,"curvature_dependent_velocity",
+	    FT_MakeSphericalSurf(front,params->center[i],params->radius[i],
+			neg_comp,pos_comp,w_type,2,&surf);
+	    if (FT_CheckSurfCompConsistency(front,surf) == NO)
+	    {
+		(void) printf("Inconsistency, bubbles are intersecting!\n");
+		clean_up(ERROR);
+	    }
+	    FT_InitSurfVeloFunc(surf,"curvature_dependent_velocity",
 				(POINTER)&curv_params,curvature_vel);
-		if (FT_CheckSurfCompConsistency(front,surf) == NO)
-		{
-			/*delete surface*/
-			delete_surface(surf);
-			continue;
-		}
-		count ++;
 	}
 	FT_SetGlobalIndex(front);
-	PointPropagationFunction(front) = first_order_point_propagate;
-}	/* end initInteriorSurfaces */
+}	/* end initBubbles */
 
-static void readRandBubbleParams(Front* front, RAND_BUBBLE_PARAMS* params)
+static void setRestartBubbleVelocity(
+	Front *front)
+{
+	static NORV_PARAMS curv_params;
+	SURFACE **s;
+
+	curv_params.dim = 3;
+        curv_params.coeff = 0.04;
+        curv_params.epsilon = 0.001;
+        front->vfunc = NULL;
+	intfc_surface_loop(front->interf,s)
+	{
+	    if (strcmp((*s)->vfunc_name,"curvature_dependent_velocity") == 0)
+	    {
+	    	FT_InitSurfVeloFunc((*s),"curvature_dependent_velocity",
+				(POINTER)&curv_params,curvature_vel);
+	    }
+	}
+}	/* end setRestartBubbleVelocity */
+
+static void readBubbleParams(
+	Front* front, 
+	BUBBLE_PARAMS* params)
 {
 	char msg[200]; 
         char *inname = InName(front);
         FILE *infile = fopen(inname,"r");
-	int  num_bubbles;
-	unsigned short int seeds[3];
-	double r_bar, sigma;
+	int  i,num_bubbles;
+	double **center;
+	double *radius;
 
 	sprintf(msg,"Enter number of bubbles: ");
 	CursorAfterString(infile,msg);
         fscanf(infile,"%d",&num_bubbles);
         (void) printf("%d\n",num_bubbles);
 	params->num_bubbles = num_bubbles;
-
-	sprintf(msg,"Enter mean radius of bubbles: ");
-        CursorAfterString(infile,msg);
-        fscanf(infile,"%lf",&r_bar);
-        (void) printf("%f\n",r_bar);
-	params->mean_rad = r_bar;
-
-        sprintf(msg,"Enter standard deviation of radius: ");
-        CursorAfterString(infile,msg);
-        fscanf(infile,"%lf",&sigma);
-        (void) printf("%f\n",sigma);	
-	params->dev_rad = sigma;
-
-	sprintf(msg,"Enter seeds for random number generation: ");
-	CursorAfterString(infile,msg);
-	for (int j = 0; j < 3; ++j)
-        {
-            fscanf(infile,"%hu ",&seeds[j]);
-            (void) printf("%hu ",seeds[j]);
-	    params->seeds[j] = seeds[j];
-        }
-	(void) printf("\n");
+	FT_VectorMemoryAlloc((POINTER*)&radius,num_bubbles,sizeof(double));
+	FT_MatrixMemoryAlloc((POINTER*)&center,num_bubbles,3,sizeof(double));
+	params->center = center;
+	params->radius = radius;
+	for (i = 0; i < num_bubbles; ++i)
+	{
+	    sprintf(msg,"Enter center coordinate of bubble %d: ",i+1);
+            CursorAfterString(infile,msg);
+            fscanf(infile,"%lf %lf %lf",center[i],center[i]+1,center[i]+2);
+            (void) printf("%f %f %f\n",center[i][0],center[i][1],center[i][2]);
+	    sprintf(msg,"Enter radius of bubble %d: ",i+1);
+            CursorAfterString(infile,msg);
+            fscanf(infile,"%lf",radius+i);
+            (void) printf("%f\n",radius[i]);
+	}
 	fclose(infile);
-}
+}	/* end readBubbleParams */
