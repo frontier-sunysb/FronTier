@@ -282,7 +282,7 @@ public:
 				IF_PARAMS*);
 	/*set initial velocity with one function, no loop needed*/
 	void (*setInitialVelocity)(COMPONENT,int*,double*,double*,double*,
-                                int,IF_PARAMS*);
+                                RECT_GRID*,IF_PARAMS*);
  	int (*findStateAtCrossing)(Front*,int*,GRID_DIRECTION,int,
 				POINTER*,HYPER_SURF**,double*);
 	int (*findStateAtCGCrossing)(Front*,int*,GRID_DIRECTION,int,

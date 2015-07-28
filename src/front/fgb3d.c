@@ -4,9 +4,7 @@ Front Traking algorithms. Front Tracking is a numerical method
 for the solution of partial differential equations whose solutions 
 have discontinuities.
 
-
 Copyright (C) 1999 by The University at Stony Brook.
-
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -92,8 +90,6 @@ LOCAL   boolean crx_out_tris_twice(TRI**,int,TRI**,int,TRI*,INTERFACE*,
 				RECT_BOX*);
 LOCAL	boolean ip_connected(int **, int, int*);
 LOCAL	boolean overlapping_boxes(RECT_BOX*, RECT_BOX*);
-LOCAL	void 	tecplot_show_box(char*,RECT_BOX*,FILE*);
-LOCAL	void	tecplot_show_null_tris(TRI**, POINT**, int, FILE*);
 LOCAL	void 	remove_crx_tri_on_edge(TRI*,TRI*,int,TRI**,int*);
 LOCAL	boolean	check_adjecant_constrain0(POINT*,POINT*,POINT*,POINT*,
 				TRI**,int);
@@ -173,8 +169,6 @@ typedef struct _FBOX FBOX;
 	    }
 	}
 }
-
-void	show_tris_bound_tris(char*,char*,TRI**,int,INTERFACE*);
 
 #define	MAX_SMOOTH_TRIS	2000
 
@@ -369,22 +363,7 @@ if(debugging("smotribox"))
 	    
 	    printf("#show tris in box %s\n", fname);
 	    
-	    fp = fopen(fname, "w");
-	    fprintf(fp,"TITLE = \"tecplot tris\"\n"
-		     "VARIABLES = \"x\", \"y\", \"z\"\n");
-
-	    tecplot_box(NULL, fp, gr->L, gr->U);
-	    for(box=fboxes; box!=NULL; box=box->next)
-	    {
-		tecplot_box(NULL, fp, box->f[0], box->f[1]);
-	    }
-	    fclose(fp);
-
-	    show_tris_bound_tris("con", fname, tris, nt, intfc);
-
 	    smooth_tris(tris, nt);
-	    
-	    show_tris_bound_tris("smo_con", fname, tris, nt, intfc);
 	    
 	    remove_from_debug("box_intfc");
 	}
@@ -624,10 +603,6 @@ boolean	check_two_tris_cond(TRI*,TRI*,INTERFACE*);
 		tris[i*2] = crx1->tri;
 		tris[i*2+1] = crx2->tri;
 	    }
-
-	    fp = fopen(fname, "w");
-	    tecplot_show_tris("merge", tris, num*2, fp);
-	    fclose(fp);
 
 	    free(tris);
 	}
@@ -978,6 +953,7 @@ LOCAL void communicate_box_recon(
 		DEBUG_LEAVE(track_comp_and_repair3d)
 	        return;
 	    }
+	    merge_surfaces(intfc);
 	    
 	    box_index++;
 	}
@@ -1085,36 +1061,6 @@ EXPORT	boolean	check_normal_on_intfc(
 	return YES;
 }
 
-void	tecplot_debug_tris(const char*,char*,TRI**,int,INTERFACE*);
-
-	void	tecplot_debug_tris(
-	const char	*tname,
-	char		*fname,
-	TRI		**tris,
-	int		num_tris,
-	INTERFACE	*intfc)
-{
-	FILE	*file;
-
-	if(!debugging("box_intfc") && !debugging("dbmgtris"))
-	    return;
-	/*
-	if(!debugging("no_valid_test"))
-	{
-	    printf("#check valid tris %s \n", tname);
-	    if(!check_valid_tris(tris, num_tris, intfc))
-	    {
-		printf("#check valid tris, invalid tris %s\n",
-		       tname);
-	    }
-	}
-	*/
-
-	file = fopen(fname,"a");
-	tecplot_show_tris(tname, tris, num_tris, file);
-	fclose(file);
-}
-
 	boolean	set_tri_area_tol(double);
 
 LOCAL	boolean grid_based_box_untangle(
@@ -1185,19 +1131,8 @@ LOCAL	boolean grid_based_box_untangle(
 	    cnt++;
 	    printf("\n Enter grid_based_box_untangle, file name: %s\n", fname);
 	    
-	    if(pp_mynode() == 6)
-		set_shift_for_tecplot(0.0, -1.0, 0.0);
-	    else
-		set_shift_for_tecplot(0.0, 0.0, 0.0);
-
-	    /* open the tecplot debug file and output test_tris */
-	    file = fopen(fname,"w");
-	    fclose(file);
-	   
 	    /* output tris with intersection. */
 	    nstris = tris_intersection(sect_tris, test_tris, num_test_tris);
-	    
-	    tecplot_debug_tris("sect_tris", fname, sect_tris, nstris, intfc);
 	}
 
 	/* finding ref_tris */
@@ -1211,7 +1146,6 @@ LOCAL	boolean grid_based_box_untangle(
 	    if(!tri_recorded(tri,ref_tris,num_ref_tris))
 		ref_tris[num_ref_tris++] = tri;
 	}
-	tecplot_debug_tris("ref_tris", fname, ref_tris, num_ref_tris, intfc);
 	
 	/* finding out_tris */
 
@@ -1221,22 +1155,15 @@ LOCAL	boolean grid_based_box_untangle(
 	for(i=0; i<num_ref_tris; i++)
 	    remove_tri_from_surface(ref_tris[i],ref_tris[i]->surf,NO);
 	
-	tecplot_debug_tris("out_tris", fname, out_tris, num_out_tris,intfc);
-	
-	if (debugging("box_intfc"))
-	{
-	    file = fopen(fname,"a");
-	    tecplot_interface_in_box("removed_surf",file,kmin,kmax,intfc);
-	    fclose(file);
-	}
-
 	/* finding in_tris */
 	i = 0;
+	printf("Before calling reconstruct_intfc3d_in_box_lgb()\n");
 	for(surfs=intfc->surfaces; surfs && *surfs; ++surfs)
 	{
 	    last_tris[i] = last_tri(*surfs);
 	    ref_surfs[i] = *surfs;
 	    i++;
+	    printf("(*surf)->num_tri = %d\n",(*surfs)->num_tri);
 	}
 	num_surfs = i;
 	reconstruct_intfc3d_in_box_lgb(intfc,smin,smax,NO,NULL);
@@ -1258,53 +1185,21 @@ LOCAL	boolean grid_based_box_untangle(
 		in_tris[num_in_tris++] = tri;
 	    i++;
 	}
-	tecplot_debug_tris("in_tris", fname, in_tris, num_in_tris,intfc);
 	
 	/*NOTE: The following part only has relations with in_tris, out_tris, 
 	  ref_tris. It can be extended to a more general form.
 	  sep double loops for out_tris
 	*/
-	if (debugging("box_intfc"))
-	    printf("#count in out ref tris  %d %d %d \n", 
-		 num_in_tris, num_out_tris, num_ref_tris);
 	
 	sep_common_point_from_loop(out_tris, num_out_tris, 
 				   ref_tris, &num_ref_tris, intfc);
-	if (debugging("box_intfc"))
-	    tecplot_debug_tris("sep comm pt out_tris", fname, 
-			   out_tris, num_out_tris,intfc);
 	
-	if(debugging("comm_pt_inout"))
-	{
-	    num_new_tris = 0;
-	    num_new_tris = merge_tris_set(new_tris, num_new_tris, 
-					  out_tris, num_out_tris);
-	    num_new_tris = merge_tris_set(new_tris, num_new_tris, 
-					  in_tris, num_in_tris);
-	    printf("#check in and out common point.\n");
-	    if(!check_valid_tris(new_tris, num_new_tris, intfc))
-	    {
-		printf("ERROR grid_based_box_untangle "
-		       "in_tris and out_tris share points.\n");
-		tecplot_tris("in_tris", in_tris, num_in_tris);
-		tecplot_tris("out_tris", out_tris, num_out_tris);
-		clean_up(ERROR);
-	    }
-	}
-
 	/* remove degenerated loops */
 	num_deg_tris = 0;
 	num_in_tris = seal_all_loops_wo_constraint(deg_tris, &num_deg_tris, 
 					in_tris, num_in_tris, 1, YES);
-	tecplot_debug_tris("in_tris deg", fname, in_tris, num_in_tris,intfc);
-	
 	num_out_tris = seal_all_loops_wo_constraint(deg_tris, &num_deg_tris, 
 					out_tris, num_out_tris, 1, YES);
-	tecplot_debug_tris("out_tris deg", fname, 
-			     out_tris, num_out_tris, intfc);
-	
-	tecplot_debug_tris("deg_tris", fname, deg_tris, num_deg_tris, intfc);
-
 	/* linking suitable pairs */
 	if(debugging("pairsfix"))
 	{
@@ -1320,34 +1215,20 @@ LOCAL	boolean grid_based_box_untangle(
 		ref_tris, num_ref_tris);
 	}
 
-	tecplot_debug_tris("new_tris pairs", fname, 
-			   new_tris, num_new_tris, intfc);
-
 	/*merge all current tris, do not merge deg_tris because 
 	  they do not have null sides */
 	num_new_tris = merge_tris_set(new_tris, num_new_tris, 
 				      in_tris, num_in_tris);
 	num_new_tris = merge_tris_set(new_tris, num_new_tris, 
 				      out_tris, num_out_tris);
-	tecplot_debug_tris("merge in out new tris", fname, 
-			    new_tris, num_new_tris, intfc);
-
 	/*removing all linking non-null edges in loops */
 	num_new_tris = sep_common_edge_from_tris(&sep_new_tris, new_tris, 
 						 num_new_tris, intfc);
-	tecplot_debug_tris("sep comm edge merge", fname,
-			    sep_new_tris, num_new_tris, intfc);
-
 	/* sealing all the null loops */
 	num_seal_tris = 0;
 	num_new_tris = seal_all_loops_wo_constraint(new_tris, &num_seal_tris, 
 					sep_new_tris, num_new_tris, 1, NO);
 	
-	tecplot_debug_tris("seal_all_loops sep_new_tris", fname,
-			     sep_new_tris, num_new_tris, intfc);
-	tecplot_debug_tris("seal_all_loops new_tris", fname,
-			     new_tris, num_seal_tris, intfc);
-
 	/* combining everything */
 	num_new_tris = merge_tris_set(new_tris, num_seal_tris, 
 				      sep_new_tris, num_new_tris);
@@ -1357,22 +1238,11 @@ LOCAL	boolean grid_based_box_untangle(
 	/* smoothing in_tris because they are grid based */
 	if(num_in_tris > 0)
 	    smooth_tris(in_tris, num_in_tris);
-	tecplot_debug_tris("smooth in_tris", fname,
-			    new_tris, num_new_tris, intfc);
 
 	if(tri_tag)
 	{
 	    for(i=0; i<num_new_tris; i++)
 	      Tri_index(new_tris[i]) = 0;
-	}
-
-	if(debugging("box_intfc"))
-	{
-	    num_test_tris = tris_set_in_top_box(new_tris, max_n_new,
-					    kmin, kmax, intfc);
-	    file = fopen(fname,"a");
-	    tecplot_show_tris("recon tris",new_tris,num_test_tris,file);
-	    fclose(file);
 	}
 
 delete_s:
@@ -1556,10 +1426,6 @@ boolean	compute_average_point(SMOOTH_PARA*,POINT*,TRI*,SURFACE*,SMOOTH_TOL*);
 
 		sprintf(s, "seal_null_%d", pp_mynode());
 		printf("ERROR in seal_null_loop, two new tris do not share points, filename %s.\n", s);
-	
-		fp = fopen(s, "w");
-		tecplot_show_null_tris(null_tris, pts, num_null_sides, fp);
-		fclose(fp);
 	
 		clean_up(ERROR);
 	    }
@@ -2681,96 +2547,6 @@ LOCAL	void gview_show_box_tri(
 	(void) fprintf(file,"%s}\n",indent);
 	(void) fprintf(file,"}\n");
 }	/* end gview_show_box_tri */
-
-
-LOCAL	void tecplot_show_box(
-	char	 *bname,
-	RECT_BOX *box,
-	FILE 	 *file)
-{
-	int 	i;
-	double	lc[3], rc[3];
-	double 	*L = box->grid->L;
-	double 	*U = box->grid->U;
-	double 	*h = box->grid->h;
-
-	for(i=0; i<3; i++)
-	{
-	    lc[i] = L[i] + box->bmin[i]*h[i];
-	    rc[i] = L[i] + box->bmax[i]*h[i];
-	}
-
-	fprintf(file, "ZONE T=\"%s\" I=16\n", bname);
-	
-	fprintf(file, "%-9g  %-9g  %-9g\n", lc[0], lc[1], lc[2]);
-	fprintf(file, "%-9g  %-9g  %-9g\n", lc[0], rc[1], lc[2]);
-	fprintf(file, "%-9g  %-9g  %-9g\n", rc[0], rc[1], lc[2]);
-	fprintf(file, "%-9g  %-9g  %-9g\n", rc[0], lc[1], lc[2]);
-	fprintf(file, "%-9g  %-9g  %-9g\n", lc[0], lc[1], lc[2]);
-	
-	fprintf(file, "%-9g  %-9g  %-9g\n", lc[0], lc[1], rc[2]);
-	
-	fprintf(file, "%-9g  %-9g  %-9g\n", lc[0], rc[1], rc[2]);
-	fprintf(file, "%-9g  %-9g  %-9g\n", lc[0], rc[1], lc[2]);
-	fprintf(file, "%-9g  %-9g  %-9g\n", lc[0], rc[1], rc[2]);
-	
-	fprintf(file, "%-9g  %-9g  %-9g\n", rc[0], rc[1], rc[2]);
-	fprintf(file, "%-9g  %-9g  %-9g\n", rc[0], rc[1], lc[2]);
-	fprintf(file, "%-9g  %-9g  %-9g\n", rc[0], rc[1], rc[2]);
-
-
-	fprintf(file, "%-9g  %-9g  %-9g\n", rc[0], lc[1], rc[2]);
-	fprintf(file, "%-9g  %-9g  %-9g\n", rc[0], lc[1], lc[2]);
-	fprintf(file, "%-9g  %-9g  %-9g\n", rc[0], lc[1], rc[2]);
-	
-	fprintf(file, "%-9g  %-9g  %-9g\n", lc[0], lc[1], rc[2]);
-
-}
-
-/*
-	void tecplot_show_box_tri(
-	char		*tname,
-	RECT_BOX	*box,
-	TRI		**tris,
-	int		num_tris,
-	FILE 		*file)
-{
-	int 	i,j;
-	double	lc[3], rc[3];
-	double 	*L = box->grid->L;
-	double 	*U = box->grid->U;
-	double	*h = box->grid->h;
-
-	for(i=0; i<3; i++)
-	{
-	    lc[i] = L[i] + box->bmin[i]*h[i];
-	    rc[i] = L[i] + box->bmax[i]*h[i];
-	}
-	fprintf(file,"TITLE = \"tecplot tris\"\n"
-		     "VARIABLES = \"x\", \"y\", \"z\"\n");
-
-	tecplot_box(NULL, file, lc, rc);
-	tecplot_show_tris(tname, tris, num_tris, file);
-}
-*/
-
-LOCAL	void tecplot_show_null_tris(
-	TRI	**tris,
-	POINT	**pts,
-	int	num_tris,
-	FILE 	*file)
-{
-int	i;
-
-	tecplot_show_tris("null_tris", tris, num_tris, file);
-	
-	fprintf(file, "ZONE T=\"pts\" I=%d\n", num_tris);
-	for (i = 0; i < num_tris; ++i)
-	{
-	    fprintf(file, "%-9g %-9g %-9g\n",
-		    	Coords(pts[i])[0],Coords(pts[i])[1],Coords(pts[i])[2]);
-	}
-}
 
 LOCAL   boolean null_sides_sharing_same_vertex(
         TRI *tri,
@@ -5675,7 +5451,6 @@ void	rbox_buffer_box(
 }
 
 boolean	rbox_communication_interface(RECON_BOX*,int,RECON_BOX*,GGRID*,Front*);
-void	tecplot_rboxes(char*, GGRID*,RECON_BOX*,int,boolean);
 
 boolean	rbox_one_box_communication(
 	RECON_BOX	*b1,
@@ -5732,8 +5507,6 @@ boolean	rbox_one_box_communication(
 	/* must be called TWICE so each box knows which procs it belongs to */
 	nbox = recon_box_communication(rbox,nbox,ggr,fr);
 
-	tecplot_rboxes("rbox", ggr, rbox, nbox, YES);
-	
 	add_time_start(12);
 	if(recon)
 	  rbox_communication_interface(rbox, nbox, &rbox[0], ggr, fr);
@@ -5753,58 +5526,6 @@ boolean	rbox_one_box_communication(
 	}
 
 	return YES;
-}
-
-void	tecplot_rboxes(
-	char		*bname,
-	GGRID		*ggr,
-	RECON_BOX	*rbox,
-	int		nbox,
-	boolean		info)
-{
-	int	i, j;
-	char	fname[128];
-	FILE	*fp;
-	
-	printf("nbox = %d\n", nbox);
-	for(i=0; i<nbox; i++)
-	{
-	  printf("%s %2d number %2d proc %5d  procs (%2d):  ", 
-	        bname, i, rbox[i].number, rbox[i].proc, rbox[i].np);
-	  
-	  for(j=0; j<rbox[i].np; j++)
-	    printf("%5d(%2d%2d%2d) %3d", rbox[i].procs[j],
-	          rbox[i].shift[j][0], rbox[i].shift[j][1], rbox[i].shift[j][2],
-		  rbox[i].bd_sum[j]);
-	  printf("\n");
-	  
-	  print_int_vector("bmin", rbox[i].bmin, 3, "\n");
-	  print_int_vector("bmax", rbox[i].bmax, 3, "\n");
-	}
-	
-	if(info)
-	  return;
-
-	if(nbox == 0)
-	  return;
-
-	sprintf(fname, "%s_%07d.plt", bname, pp_mynode());
-	fp = fopen(fname, "w");
-	if(fp == NULL)
-	{
-	  printf("ERROR tecplot_rboxes, can not open %s\n", fname);
-	  clean_up(ERROR);
-	}
-	printf("box file name %s nbox = %d\n", fname, nbox);
-
-	fprintf(fp,"TITLE = \"tecplot box\"\n"
-	   	"VARIABLES = \"x\", \"y\", \"z\"\n");
-
-	tecplot_box(NULL, fp, ggr->rbox.fmin, ggr->rbox.fmax);
-	for(i=0; i<nbox; i++)
-	  tecplot_box(NULL, fp, rbox[i].fmin, rbox[i].fmax);
-	
-	fclose(fp);
 }
 
 EXPORT	INTERFACE  *bboxes_make_patch_intfc(RECON_BOX*,INTERFACE*,GGRID*);
@@ -5841,8 +5562,6 @@ boolean	communicate_boxes(
 	/*2. each rbox will know which procs it belongs to */
 	nbox = recon_box_communication(rbox, nbox, &ggr, fr);
 
-	tecplot_rboxes("rbox", &ggr, rbox, nbox, NO);
-	
 	printf("#rbox one comm bf nbox = %d\n", nbox);
 	
 	clean_up(0);
@@ -5867,7 +5586,6 @@ boolean	communicate_boxes(
 	pp_global_imax(&max_nbox, 1);
 	printf("#rbox one comm max_nbox = %d nbox = %d\n", max_nbox, nbox);
 
-	tecplot_rboxes("rbox", &ggr, rbox, nbox, YES);
 	}
 
 	add_time_end(11);
@@ -6229,7 +5947,6 @@ void 	bbox_set(BBOX*,RECON_BOX*,GGRID*,double);
 EXPORT	INTERFACE  *bboxes_intfc_sect(BBOX*,INTERFACE*,TRI_POS);
 EXPORT void bboxes_intfc_cut(BBOX*,INTERFACE*,TRI_POS);
 boolean	merge_buffer_interface(INTERFACE*,INTERFACE*,int);
-void	tecplot_merge_surfaces(char*,INTERFACE*,INTERFACE**,int,int);
 void	cut_intfc_in_grid(INTERFACE*,RECT_GRID*);
 
 boolean	recon_communication_intfc(
@@ -6377,7 +6094,6 @@ boolean	recon_communication_intfc(
 	    {
 	      INTERFACE	*intfcs[2];
 	      intfcs[0] = recv_intfc;
-	      tecplot_merge_surfaces("bpintfc", intfc, intfcs, 1, pp_mynode());
 	    }
 
 	    add_time_start(324);
@@ -6604,8 +6320,6 @@ boolean	rbox_communication_boxes(
 	/* global index of boxes */
 	rbox_global_number(rbox, nbox);
 	
-	tecplot_rboxes("rbox", &ggr, rbox, nbox, YES);
-	
 	/* 3. how many procs a box belongs to and get dbox */
 	nbox = recon_box_communication(rbox, nbox, &ggr, fr);
 	nbox = recon_box_communication(rbox, nbox, &ggr, fr);
@@ -6622,8 +6336,6 @@ boolean	rbox_communication_boxes(
 	
 	printf("#nbox 3 = %d ndbox = %d\n", nbox, ndbox);
 	
-	tecplot_rboxes("rboxa", &ggr, rbox, nbox, NO);
-	tecplot_rboxes("dbox", &ggr, dbox, ndbox, NO);
 	fflush(NULL);
 	
 	/* print out box info */

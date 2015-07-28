@@ -4,9 +4,7 @@ Front Traking algorithms. Front Tracking is a numerical method for
 the solution of partial differential equations whose solutions have 
 discontinuities.  
 
-
 Copyright (C) 1999 by The University at Stony Brook. 
- 
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -31,10 +29,28 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 *
 */
 
+#define 		MAX_XGRAPH_COLOR			14
+
+const char xgraph_color[][100] ={"red",
+			"blue",
+			"green",
+			"violet",
+			"orange",
+			"yellow",
+			"pink",
+			"cyan",
+			"light-gray",
+			"dark-gray",
+			"fuchsia",
+			"aqua",
+			"gold",
+			"navy"};
+
 
 #include <intfc/iloc.h>
 
-LOCAL	void 	xgraph_curve_within_range(FILE*,CURVE*,double*,double,char*);
+LOCAL	void 	xgraph_curve_within_range(FILE*,CURVE*,double*,double,
+				const char*);
 LOCAL   void    xgraph_surface_tris(const char*,const char*,SURFACE*,
 				    const COORDINATE_PLANE);
 LOCAL   void 	xgraph_grid(const char*,RECT_GRID*,
@@ -102,50 +118,44 @@ EXPORT	void xgraph_2d_intfc_within_range(
 	RECT_GRID *gr = &topological_grid(intfc);
 	double *h = gr->h;
 	int i,j,nrad = irint(radius/h[0]);
-	static char **sample_color;
-
-	if (sample_color == NULL)
-        {
-            FT_MatrixMemoryAlloc((POINTER*)&sample_color,10,20,sizeof(char));
-            sprintf(sample_color[0],"red");
-            sprintf(sample_color[1],"blue");
-            sprintf(sample_color[2],"green");
-            sprintf(sample_color[3],"violet");
-            sprintf(sample_color[4],"orange");
-            sprintf(sample_color[5],"yellow");
-            sprintf(sample_color[6],"pink");
-            sprintf(sample_color[7],"cyan");
-            sprintf(sample_color[8],"light-gray");
-            sprintf(sample_color[9],"dark-gray");
-        }
 
 	file = fopen(filename,"w");
 	for (i = 0, c = intfc->curves; c && *c; ++c, ++i)
 	    xgraph_curve_within_range(file,*c,center,radius,
-			sample_color[i%10]);
+			xgraph_color[i%MAX_XGRAPH_COLOR]);
 	if (draw_grid)
 	{
+	    double *L = gr->L;
+	    double coords[MAXD];
+	    int icrds[MAXD];
+	    for (i = 0; i < 2; ++i)
+	    {
+	    	icrds[i] = irint((center[i] - L[i])/h[i]);
+		coords[i] = L[i] + icrds[i]*h[i];
+	    }
 	    fprintf(file,"\n");
 	    fprintf(file,"Next\n");
-            fprintf(file,"color=black\n");
+            fprintf(file,"color=blue\n");
             fprintf(file,"thickness=1.0\n");
 	    for (i = -nrad; i <= nrad; ++i)
 	    {
 	    	for (j = -nrad; j <= nrad; ++j)
 	    	{
-		    fprintf(file,"%20.14f %20.14f\n",center[0]+i*h[0],
-					center[1]+j*h[1]);
+		    fprintf(file,"%20.14f %20.14f\n",coords[0]+i*h[0],
+					coords[1]+j*h[1]);
 	    	}
 	        fprintf(file,"\n");
+	    	fprintf(file,"Next\n");
 	    }
 	    for (j = -nrad; j <= nrad; ++j)
 	    {
 	    	for (i = -nrad; i <= nrad; ++i)
 	    	{
-		    fprintf(file,"%20.14f %20.14f\n",center[0]+i*h[0],
-					center[1]+j*h[1]);
+		    fprintf(file,"%20.14f %20.14f\n",coords[0]+i*h[0],
+					coords[1]+j*h[1]);
 	    	}
 	        fprintf(file,"\n");
+	    	fprintf(file,"Next\n");
 	    }
 	}
 	fclose(file);
@@ -156,7 +166,7 @@ LOCAL	void xgraph_curve_within_range(
 	CURVE *c,
 	double *center,
 	double radius,
-	char *color)
+	const char *color)
 {
 	POINT *p;
 	BOND *b;
@@ -656,3 +666,26 @@ EXPORT	boolean point_within_range(
 	dist = sqrt(dist);
 	return (dist < radius) ? YES : NO;
 }
+
+EXPORT void xgraph_function(
+	FILE *xfile,
+	double *x,
+	double *y,
+	int num_pts,
+	int color_index,
+	char *color)
+{
+	int i;
+
+	fprintf(xfile,"Next\n");
+	if (color != NULL)
+            fprintf(xfile,"color=%s\n",color);
+	else
+            fprintf(xfile,"color=%s\n",
+		xgraph_color[color_index%MAX_XGRAPH_COLOR]);
+        fprintf(xfile,"thickness=1.0\n");
+	for (i = 0; i < num_pts; ++i)
+	{
+	    fprintf(xfile,"%24.18g  %24.18g\n",x[i],y[i]);
+	}
+}	/* end xgraph_function */

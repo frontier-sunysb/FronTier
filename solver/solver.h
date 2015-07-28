@@ -18,6 +18,7 @@ enum {
         CONST_P_PDE_BOUNDARY,
         NEUMANN_PDE_BOUNDARY,
         DIRICHLET_PDE_BOUNDARY,
+        MOVING_BOUNDARY,
         MIXED_PDE_BOUNDARY
 };
 
@@ -138,6 +139,7 @@ public:
 	int ilower;
 	int iupper;
 	int order;		/* order of Runge-Kutta */
+	CELL_PART *cell_part;	/* Cell partition structure */
 
 	COMPONENT soln_comp;
 	COMPONENT obst_comp;
@@ -148,17 +150,35 @@ public:
 	double D;
 	double *nu;             /* Variable diffusion coefficient */
 	double var_obst;	/* default solution in obst_comp */
+	double bdry_influx;
 	double (*getStateVarFunc)(POINTER);
 	void set_solver_domain(void);
-	void runge_kutta(void);
+
+	void solveEX(void);
+	void solveCN(void);
 	void solve(double *var_in,double *var_out);
 	void solve1d(double *var_in,double *var_out);
 	void solve2d(double *var_in,double *var_out);
 	void solve3d(double *var_in,double *var_out);
+	void solveIM(void);
+
+	void solveCEX(void);
+	void solveCCN(void);
+	void solveCIM(void);
+	void Csolve(double *var_in,double *var_out);
+	void Csolve1d(double *var_in,double *var_out);
+	void Csolve2d(double *var_in,double *var_out);
+	void Csolve3d(double *var_in,double *var_out);
+
+	double compBdryFlux(double*,double);
 	void addMeshState(double *ans,double C1,double *var1,double C2,
 				double *var2);
 	int (*findStateAtCrossing)(Front*,int*,GRID_DIRECTION,int,
                                 POINTER*,HYPER_SURF**,double*);
+	int (*findCrossingInfo)(Front*,int*,GRID_DIRECTION,int,
+                                double*,	// crx_old
+				double*,	// crx_new
+				double*);	// flux
 private:
         // Dimension
         int dim;
@@ -540,4 +560,6 @@ private:
 };
 
 extern void viewTopVariable(Front*,double*,boolean,double,double,char*,char*);
+extern double   compBdryFlux(Front*,double*,double,int,double,
+		double(*)(POINTER));
 #endif

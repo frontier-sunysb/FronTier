@@ -449,13 +449,13 @@ EXPORT	double	f_max_front_time_step(
 	switch (dim)
 	{
 	case 1:
-	    dim_fac = 0.50;	/* sqrt(0.5^2/1) */
+	    dim_fac = 0.45;	/* sqrt(0.45^2/1) */
 	    break;
 	case 2:
-	    dim_fac = 0.35; 	/* sqrt(0.5^2/2) */
+	    dim_fac = 0.318; 	/* sqrt(0.45^2/2) */
 	    break;
 	case 3:
-	    dim_fac = 0.28; 	/* sqrt(0.5^2/3) */
+	    dim_fac = 0.259; 	/* sqrt(0.45^2/3) */
 	}
 	for (i = 0; i < dim; ++i)
 	{

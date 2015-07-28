@@ -15,17 +15,20 @@ Available reaction types are:
         DISSOLUTION_ONLY
         REVERSIBLE_REACTION
 Enter reaction type: DEPOSITION_ONLY
-Diffusion coefficient: 0.1
+Diffusion coefficient: 0.06
 Growth rate: 100.0
 Equilibrium concentration: 1.0
 Ambient concentration: 2
 Crystal density: 4
 Initial gap: 0.05
-Choose numerical scheme
+Choose PDE scheme
         Unsplit explicit (EX)
         Unsplit implicit (IM)
         Crank-Nicolson (CN)
-Enter scheme: IM
+        Conservative explicit (CE)
+        Conservative implicit (CI)
+        Conservative Crank-Nicolson (CC)
+Enter scheme: CEX
 Choose point propagation scheme
         Explicit Euler (EX)
         Implicit Euler (IM)
@@ -33,7 +36,7 @@ Choose point propagation scheme
 Enter scheme: MP
 Enter yes to add curvature effect: no
 Max time: 1.0
-Max step: 50000
+Max step: 1000000
 Print interval: 0.1
 Movie frame interval: 0.05
 CFL factor: 0.5
@@ -43,7 +46,7 @@ Type y to make movie of solute: y
 
 ************Debugging options*****************
 
-Enter yes for debugging: yes
+Enter yes for debugging: no
 Enter the debugging string: trace
 Enter the debugging string: CLOCK
 Enter the debugging string: step_size

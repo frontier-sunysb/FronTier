@@ -3856,6 +3856,7 @@ EXPORT	void communicate_default_comp(
 	COMPONENT    save_default_comp = intfc->default_comp;
 	int	     max_G;
 
+	if (pp_numnodes() == 1) return;
 	dim = intfc->dim;
 	myid = pp_mynode();
         G = pp_grid->gmax;

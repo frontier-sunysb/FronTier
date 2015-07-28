@@ -2966,23 +2966,6 @@ void	tecplot_debug_tris(const char*,char*,TRI**,int,INTERFACE*);
 int	around_tris_set(TRI**,TRI**,int,int,INTERFACE*);
 
 #define	MAX_OUT_TRIS	1000
-void	show_tris_bound_tris(char*,char*,TRI**,int,INTERFACE*);
-
-void	show_tris_bound_tris(
-	char		*tname,
-	char		*fname,
-	TRI		**tris,
-	int		nt,
-	INTERFACE	*intfc)
-{
-	int	nt1;
-	TRI	*out_tris[MAX_OUT_TRIS];
-
-	nt1 = around_tris_set(out_tris, tris, nt, MAX_OUT_TRIS, intfc);
-	tecplot_debug_tris(tname, fname, tris, nt, intfc);
-	tecplot_debug_tris("bound", fname, out_tris, nt1, intfc);
-}
-
 	void 	smooth_tris(TRI **,int);
 int	neighbor_tri_side(TRI*, TRI*);
 boolean	connect_tris_holes(TRI*,TRI*,INTERFACE*, char*);
@@ -3110,9 +3093,6 @@ boolean	connect_tris_holes(
 	    }
 	}
 
-	if(debugging("dbmgtris"))
-	    show_tris_bound_tris("org", fname, tris, 2, intfc);
-	
 	printf("#conn tris\n");
 
 	/* construct tri pairs to connect to holes. */
@@ -3152,9 +3132,6 @@ boolean	connect_tris_holes(
 	smooth_tris(new_tris, n_new);
 	smooth_tris(new_tris, n_new);
 	smooth_tris(new_tris, n_new);
-	
-	if(debugging("dbmgtris"))
-	    show_tris_bound_tris("con", fname, new_tris, n_new, intfc);
 	
 	DEBUG_LEAVE(connect_tris_holes)
 	return YES;

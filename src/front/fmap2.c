@@ -38,6 +38,7 @@ LOCAL void FT_ComputeGridVolumeFraction2d(Front*,COMPONENT,POINTER*);
 LOCAL double FT_ComputeTotalVolumeFraction2d(Front*,COMPONENT);
 LOCAL void forward_curve_seg_len_constr(CURVE*,BOND*,BOND*,int,double);
 LOCAL void backward_curve_seg_len_constr(CURVE*,BOND*,BOND*,int,double);
+static boolean find_nearest_ring2_cell_with_comp(int*,int*,int*,int*,int);
 
 EXPORT double FT_ComputeTotalVolumeFraction(
 	Front *front,
@@ -1963,3 +1964,839 @@ EXPORT boolean FT_CheckSurfCompConsistency(
 	delete_interface(test_intfc);
 	return YES;
 }	/* end FT_CheckSurfCompConsistency */
+
+EXPORT boolean FT_NextTopGridIcoordsInDir(
+	Front *front,
+	int *icoords,
+	GRID_DIRECTION dir,
+	int *icoords_next)
+{
+	RECT_GRID *rgr = &topological_grid(front->grid_intfc);
+	int gmin[3] = {0,0,0};
+	int *gmax = rgr->gmax;
+	boolean status;
+	status = next_ip_in_dir(icoords,dir,icoords_next,gmin,gmax);
+	return status;
+}	/* end FT_NextTopGridIcoordsInDir */
+
+EXPORT boolean FT_AdjTopGridIcoords(
+	Front *front,
+	int *icoords,
+	GRID_DIRECTION *dir,
+	int *icoords_next)
+{
+	RECT_GRID *rgr = &topological_grid(front->grid_intfc);
+	int gmin[3] = {0,0,0};
+	int *gmax = rgr->gmax;
+	boolean status;
+	int ic_tmp[MAXD];
+	int i,dim = rgr->dim;
+	for (i = 0; i < dim; ++i)
+	    ic_tmp[i] = icoords[i];
+	status = YES;
+	for (i = 0; i < dim; ++i)
+	{
+	    if (dir[i] != CENTER)
+	    	status = next_ip_in_dir(ic_tmp,dir[i],ic_tmp,gmin,gmax);
+	    if (!status) return NO;
+	}
+	for (i = 0; i < dim; ++i)
+	    icoords_next[i] = ic_tmp[i];
+	return YES;
+}	/* end FT_AdjTopGridIcoords */
+
+EXPORT boolean FT_NearestGridIcoordsWithComp(
+	Front *front,
+	int *icoords,
+	int comp,
+	int *comp_map,
+	int *gmax,
+	int *icoords_next)
+{
+	boolean status;
+	status = find_nearest_ring2_cell_with_comp(icoords,icoords_next,
+                      gmax,comp_map,comp);
+	return status;
+}	/* end FT_NearestGridIcoordsWithComp */
+
+struct _CELL_INFO_2D {
+	/* Input vatiables */
+	boolean is_corner;
+	int comp[2][2];
+	int icrds[2][2][MAXD];
+	double crds[2][2][MAXD];
+	int soln_comp;
+	int cell_comp;
+	double crx_coords[2][2][MAXD];
+	int nv;
+	/* output variables */
+	int side_flag;		/* used in corner case association */
+	boolean nb_flag[3][3];	/* Yes for side of legal transfer */
+	double nb_frac[3][3];
+	double orphan;
+	double full_cell_vol;
+};
+typedef struct _CELL_INFO_2D CELL_INFO_2D;
+
+struct _CELL_INFO_1D {
+	/* Input vatiables */
+	int comp[2];
+	int icrds[2][MAXD];
+	double crds[2][MAXD];
+	int soln_comp;
+	int cell_comp;
+	double crx_coords[MAXD];
+	int nv;
+	/* output variables */
+	double nb_frac[3];
+	boolean nb_flag[3];
+	double full_cell_vol;
+};
+typedef struct _CELL_INFO_1D CELL_INFO_1D;
+
+static void cell_area(CELL_INFO_2D*);
+static void cell_length(CELL_INFO_1D*);
+static void rotate_cell(CELL_INFO_2D*,boolean);
+static void reverse_cell(CELL_INFO_2D*);
+
+EXPORT void FT_ComputeVolumeFraction(
+	Front *front,
+	int num_phases,
+	COMPONENT *comps,
+	CELL_PART *cell_part)
+{
+	INTERFACE *grid_intfc,*comp_grid_intfc;
+	RECT_GRID *top_grid,*comp_grid;
+	int *top_comp,*comp_comp;
+	int *top_gmax,*comp_gmax;
+	double *top_L,*top_h,*comp_L,*comp_U,*comp_h;
+	Table *T,*compT;
+	int *lbuf,*ubuf;
+	int imin[MAXD],imax[MAXD];
+	int dim;
+
+	int i,j,k,ii,jj,kk,l,m,n,nr,ns;
+	int ic,icn,icc,icc1,icc2;
+	HYPER_SURF *hs;
+	static CELL_INFO_2D cell2d;
+	static CELL_INFO_1D cell1d;
+	int lm[MAXD],um[MAXD]; 	/* lower and upper margin */
+	int icoords[MAXD],ipn[MAXD];
+	static boolean first = YES;
+	const GRID_DIRECTION dir[3][3] = {{WEST,CENTER,EAST},
+					  {SOUTH,CENTER,NORTH},
+					  {LOWER,CENTER,UPPER}};
+	double S,Sn,new_S,v_old,v_oldn;
+	double full_cell_vol;
+	GRID_DIRECTION dirs[MAXD];
+	int size;
+
+	if (debugging("trace"))
+	    (void) printf("Entering computeVolumeFraction()\n");
+
+	if (num_phases > 2)
+	{
+	    (void) printf("Too many phases %d, code needed\n",num_phases);
+	    (void) printf("Current code can only handle two phases!\n");
+	    clean_up(ERROR);
+	}
+	/* Set dual grid parameters */
+	grid_intfc = front->grid_intfc;
+        top_grid = &topological_grid(grid_intfc);
+	top_gmax = top_grid->gmax;
+        lbuf = front->rect_grid->lbuf;
+        ubuf = front->rect_grid->ubuf;
+        top_L = top_grid->L;
+        top_h = top_grid->h;
+        dim = grid_intfc->dim;
+        T = table_of_interface(grid_intfc);
+        top_comp = T->components;
+
+	/* Set computational grid parameters */
+	comp_grid_intfc = front->comp_grid_intfc;
+	comp_comp = table_of_interface(comp_grid_intfc)->components;
+	comp_grid = &topological_grid(comp_grid_intfc);
+	comp_L = comp_grid->L;
+	comp_U = comp_grid->U;
+	comp_h = comp_grid->h;
+	comp_gmax = comp_grid->gmax;
+	size = 1;
+	for (i = 0; i < dim; ++i)
+	{
+	    lm[i] = (lbuf[i] == 0) ? 0 : 1;
+	    um[i] = (ubuf[i] == 0) ? 0 : 1;
+            imin[i] = (lbuf[i] == 0) ? 1 : lbuf[i];
+            imax[i] = (ubuf[i] == 0) ? top_gmax[i] - 1 : top_gmax[i] - ubuf[i];
+	    size *= (top_gmax[i] + 1);
+	}
+	for (ic = 0; ic < size; ++ic)
+	{
+	    cell_part[ic].nr_new = 0;
+	    cell_part[ic].ns_new = 0;
+	    for (i = 0; i < 2; ++i)
+	    {
+	    	cell_part[ic].vol_old[i] = cell_part[ic].vol_new[i];
+	    	cell_part[ic].vol_new[i] = 0.0;
+	    }
+	}
+
+      for (n = 0; n < num_phases; ++n)
+      {
+	switch (dim)
+	{
+	case 1:
+	    cell1d.soln_comp = comps[n];
+	    cell1d.full_cell_vol = full_cell_vol = comp_h[0];
+	    for (i = imin[0] - lm[0]; i <= imax[0] + um[0]; ++i)
+	    {
+		icoords[0] = i;
+		ic = d_index(icoords,top_gmax,dim);
+		cell1d.cell_comp = top_comp[ic];
+		cell1d.nv = 0;
+	    	for (l = 0; l < 3; ++l)
+		{
+		    cell1d.nb_flag[l] = NO;
+		    cell1d.nb_frac[l] = 0.0;
+		}
+	    	for (ii = 0; ii < 2; ++ii)
+		{
+		    cell1d.icrds[ii][0] = i + ii - 1;
+		    cell1d.crds[ii][0] = comp_L[0] + (i + ii - 1)*comp_h[0];
+		    icc = d_index(cell1d.icrds[ii],comp_gmax,dim);
+		    cell1d.comp[ii] = comp_comp[icc];
+		    if (comp_comp[icc] == cell1d.soln_comp) 
+		    {
+		    	cell1d.nv++;
+			for (l = ii; l < ii+2; ++l)
+			    cell1d.nb_flag[l] = YES;
+		    }
+		}
+		if (cell1d.nv == 0 || cell1d.nv == 2)
+		{
+		    if (top_comp[ic] == comps[n])
+		    {
+			cell_part[ic].vol_new[n] += full_cell_vol;
+		    }
+		    continue;
+		}
+		icc1 = d_index(cell1d.icrds[0],comp_gmax,dim);
+		icc2 = d_index(cell1d.icrds[1],comp_gmax,dim);
+		cell1d.crx_coords[0] = HUGE;
+		if (comp_comp[icc1] != comp_comp[icc2])
+		{
+		    boolean status;
+		    icc1 = d_index(cell1d.icrds[0],comp_gmax,dim);
+		    status = FT_CoordsAtGridCrossing(front,comp_grid_intfc,
+		    		cell1d.icrds[0],EAST,comp_comp[icc1],
+				&hs,cell1d.crx_coords);
+		}
+	    	for (l = 0; l < 3; ++l)
+		{
+		    if (cell1d.nb_flag[l] == NO) continue;
+		    dirs[0] = dir[0][l];
+		    if (!FT_AdjTopGridIcoords(front,icoords,dirs,ipn))
+		    	cell1d.nb_flag[l] = NO;
+		    icn = d_index(ipn,top_gmax,dim);
+		    if (top_comp[icn] != comps[n])
+		    	cell1d.nb_flag[l] = NO;
+		}
+		cell_length(&cell1d);
+		for (l = 0; l < 3; ++l)
+		{
+		    if (cell1d.nb_frac[l] == 0.0) continue;
+		    dirs[0] = dir[0][l];
+		    FT_AdjTopGridIcoords(front,icoords,dirs,ipn);
+		    icn = d_index(ipn,top_gmax,dim);
+                    cell_part[icn].vol_new[n] += cell1d.nb_frac[l];
+		    if (ic != icn)
+		    {
+		    	nr = cell_part[icn].nr_new;
+                    	cell_part[icn].icn_new[nr] = ic;
+		    	cell_part[icn].nr_new++;
+		    	ns = cell_part[ic].ns_new;
+                    	cell_part[ic].icn_new_send[ns] = icn;
+		    	cell_part[ic].ns_new++;
+		    }
+		}
+	    }
+	    break;
+	case 2:
+	    cell2d.soln_comp = comps[n];
+	    cell2d.full_cell_vol = full_cell_vol = comp_h[0]*comp_h[1];
+	    for (i = imin[0] - lm[0]; i <= imax[0] + um[0]; ++i)
+	    for (j = imin[1] - lm[1]; j <= imax[1] + um[1]; ++j)
+	    {
+		icoords[0] = i;
+		icoords[1] = j;
+		ic = d_index(icoords,top_gmax,dim);
+		cell2d.cell_comp = top_comp[ic];
+		cell2d.nv = 0;
+		cell2d.orphan = 0.0;
+		cell2d.is_corner = NO;
+	    	for (l = 0; l < 3; ++l)
+	    	for (m = 0; m < 3; ++m)
+		{
+		    cell2d.nb_flag[l][m] = NO;
+		    cell2d.nb_frac[l][m] = 0.0;
+		}
+	    	for (ii = 0; ii < 2; ++ii)
+	    	for (jj = 0; jj < 2; ++jj)
+		{
+		    cell2d.icrds[ii][jj][0] = i + ii - 1;
+		    cell2d.icrds[ii][jj][1] = j + jj - 1;
+		    cell2d.crds[ii][jj][0] = comp_L[0] + (i + ii - 1)*comp_h[0];
+		    cell2d.crds[ii][jj][1] = comp_L[1] + (j + jj - 1)*comp_h[1];
+		    icc = d_index(cell2d.icrds[ii][jj],comp_gmax,dim);
+		    cell2d.comp[ii][jj] = comp_comp[icc];
+		    if (comp_comp[icc] == cell2d.soln_comp) 
+		    {
+		    	cell2d.nv++;
+			for (l = ii; l < ii+2; ++l)
+			for (m = jj; m < jj+2; ++m)
+			    cell2d.nb_flag[l][m] = YES;
+		    }
+		}
+		if (cell2d.nv == 0 || cell2d.nv == 4)
+		{
+		    if (top_comp[ic] == comps[n])
+		    {
+			cell_part[ic].vol_new[n]  += full_cell_vol;
+		    }
+		    continue;
+		}
+	    	for (ii = 0; ii < 2; ++ii)
+		{
+		    icc1 = d_index(cell2d.icrds[0][ii],comp_gmax,dim);
+		    icc2 = d_index(cell2d.icrds[1][ii],comp_gmax,dim);
+		    cell2d.crx_coords[0][ii][0] = cell2d.crx_coords[0][ii][1] 
+		    			= HUGE;
+		    if (comp_comp[icc1] != comp_comp[icc2])
+		    {
+		    	FT_CoordsAtGridCrossing(front,comp_grid_intfc,
+		    		cell2d.icrds[0][ii],EAST,comp_comp[icc1],
+				&hs,cell2d.crx_coords[0][ii]);
+		    }
+		    icc1 = d_index(cell2d.icrds[ii][0],comp_gmax,dim);
+		    icc2 = d_index(cell2d.icrds[ii][1],comp_gmax,dim);
+		    cell2d.crx_coords[1][ii][0] = cell2d.crx_coords[1][ii][1] 
+		    			= HUGE;
+		    if (comp_comp[icc1] != comp_comp[icc2])
+		    {
+		    	FT_CoordsAtGridCrossing(front,comp_grid_intfc,
+		    		cell2d.icrds[ii][0],NORTH,comp_comp[icc1],
+				&hs,cell2d.crx_coords[1][ii]);
+		    }
+		}
+	    	for (l = 0; l < 3; ++l)
+	    	for (m = 0; m < 3; ++m)
+		{
+		    if (cell2d.nb_flag[l][m] == NO) continue;
+		    dirs[0] = dir[0][l];
+		    dirs[1] = dir[1][m];
+		    if (!FT_AdjTopGridIcoords(front,icoords,dirs,ipn))
+		    	cell2d.nb_flag[l][m] = NO;
+		    icn = d_index(ipn,top_gmax,dim);
+		    if (top_comp[icn] != comps[n])
+		    	cell2d.nb_flag[l][m] = NO;
+		}
+		if ((i == imin[0] || i == imax[0]) && 
+		    (j == imin[1] || j == imax[1]))
+		    cell2d.is_corner = YES;
+		cell_area(&cell2d);
+		for (l = 0; l < 3; ++l)
+		for (m = 0; m < 3; ++m)
+		{
+		    if (cell2d.nb_frac[l][m] == 0.0) continue;
+		    dirs[0] = dir[0][l];
+		    dirs[1] = dir[1][m];
+		    FT_AdjTopGridIcoords(front,icoords,dirs,ipn);
+		    icn = d_index(ipn,top_gmax,dim);
+		    cell_part[icn].vol_new[n] += cell2d.nb_frac[l][m];
+		    if (icn != ic)
+		    {
+		    	nr = cell_part[icn].nr_new;
+		    	cell_part[icn].icn_new[nr] = ic;
+		    	cell_part[icn].nr_new++;
+		    	ns = cell_part[ic].ns_new;
+                    	cell_part[ic].icn_new_send[ns] = icn;
+		    	cell_part[ic].ns_new++;
+		    }
+		}
+		if (cell2d.orphan != 0.0)
+		{
+		    if (!find_nearest_ring2_cell_with_comp(icoords,ipn,
+		    		top_gmax,top_comp,comps[n]))
+		    {
+		    	printf("Cannot find parent cell in ring 2!\n");
+			clean_up(ERROR);
+		    }
+		    icn = d_index(ipn,top_gmax,dim);
+		    cell_part[icn].vol_new[n] += cell2d.orphan;
+		    nr = cell_part[icn].nr_new;
+		    cell_part[ic].icn_new[nr] = icn;
+		    cell_part[icn].nr_new++;
+		    ns = cell_part[ic].ns_new;
+                    cell_part[ic].icn_new_send[ns] = icn;
+		    cell_part[ic].ns_new++;
+		}
+	    }
+	    break;
+	case 3:
+	    for (i = imin[0] - lm[0]; i <= imax[0] + um[0]; ++i)
+	    for (j = imin[1] - lm[1]; j <= imax[1] + um[1]; ++j)
+	    for (k = imin[2] - lm[2]; k <= imax[2] + um[2]; ++k)
+	    {
+	    	(void) printf("In computeVolumeFraction(), 3D code needed!\n");
+		clean_up(ERROR);
+	    }
+	    break;
+	default:
+	    (void) printf("Unknown dimension\n");
+	    clean_up(ERROR);
+	}
+      }
+
+	/*
+	FT_ParallelExchGridStructArrayBuffer((POINTER)cell_part,front,
+				sizeof(CELL_PART));
+	*/
+	if (first)
+	{
+	    for (i = 0; i < size; ++i)
+	    {
+		cell_part[i].vol_old[0] = cell_part[i].vol_new[0];
+		cell_part[i].vol_old[1] = cell_part[i].vol_new[1];
+	    }
+	}
+	first = NO;
+	if (debugging("trace"))
+	    (void) printf("Leaving computeVolumeFraction()\n");
+}	/* end computeVolumeFraction */
+
+static boolean find_nearest_ring2_cell_with_comp(
+	int *icoords,
+	int *ipn,
+	int *top_gmax,
+	int *top_comp,
+	int soln_comp)
+{
+	int i,j,ic;
+	int dist,min_dist = 100;
+	int ip[MAXD];
+	boolean status = NO;
+
+	for (i = -8; i <= 8; ++i)
+	for (j = -8; j <= 8; ++j)
+	{
+	    ip[0] = icoords[0] + i;
+	    ip[1] = icoords[1] + j;
+	    if (ip[0] < 0 || ip[0] > top_gmax[0]) continue;
+	    if (ip[1] < 0 || ip[1] > top_gmax[1]) continue;
+	    ic = d_index(ip,top_gmax,2);
+	    if (top_comp[ic] != soln_comp) continue;
+	    status = YES;
+	    dist = i*i + j*j;
+	    if (dist < min_dist)
+	    {
+	    	min_dist = dist;
+		ipn[0] = ip[0];
+		ipn[1] = ip[1];
+	    }
+	}
+	return status;
+}	/* end find_nearest_ring2_cell_with_comp */
+
+static double nv1_area(CELL_INFO_2D *cell)
+{
+	double a,h;
+	int i;
+	a = h = 0.0;
+	for (i = 0; i < 2; ++i)
+	{
+	    a += fabs(cell->crx_coords[0][0][i] - cell->crds[0][0][i]);
+	    h += fabs(cell->crx_coords[1][0][i] - cell->crds[0][0][i]);
+	    if (cell->crx_coords[0][0][i] == HUGE ||
+	    	cell->crx_coords[1][0][i] == HUGE)
+	    {
+	    	printf("ERROR in nv1_area(), crx_coords unassigned!\n");
+		clean_up(ERROR);
+	    }
+	}
+	if (a > h) cell->side_flag = 0;
+	else cell->side_flag = 1;
+	return 0.5*a*h;
+}	/* end nv1_area */
+
+static double nv2_area(CELL_INFO_2D *cell)
+{
+	double a,b,h;
+	int i;
+	a = b = h = 0.0;
+	for (i = 0; i < 2; ++i)
+	{
+	    a += fabs(cell->crx_coords[1][0][i] - cell->crds[0][0][i]);
+	    b += fabs(cell->crx_coords[1][1][i] - cell->crds[1][0][i]);
+	    h += fabs(cell->crds[1][0][i] - cell->crds[0][0][i]);
+	    if (cell->crx_coords[1][0][i] == HUGE ||
+	    	cell->crx_coords[1][1][i] == HUGE)
+	    {
+	    	printf("ERROR in nv2_area(), crx_coords unassigned!\n");
+		clean_up(ERROR);
+	    }
+	}
+	if (a > b) cell->side_flag = 0;
+	else cell->side_flag = 1;
+	return 0.5*(a + b)*h;
+}	/* end nv2_area */
+
+static double nv3_area(CELL_INFO_2D *cell)
+{
+	double a,h,l1,l2;
+	int i;
+	a = h = l1 = l2 = 0.0;
+	for (i = 0; i < 2; ++i)
+	{
+	    a += fabs(cell->crx_coords[0][0][i] - cell->crds[0][0][i]);
+	    h += fabs(cell->crx_coords[1][0][i] - cell->crds[0][0][i]);
+	    l1 += fabs(cell->crds[1][0][i] - cell->crds[0][0][i]);
+	    l2 += fabs(cell->crds[0][1][i] - cell->crds[0][0][i]);
+	    if (cell->crx_coords[0][0][i] == HUGE ||
+	    	cell->crx_coords[1][0][i] == HUGE)
+	    {
+	    	printf("ERROR in nv3_area(), crx_coords unassigned!\n");
+		clean_up(ERROR);
+	    }
+	}
+	if (a > h) cell->side_flag = 0;
+	else cell->side_flag = 1;
+	return l1*l2 - 0.5*a*h;
+}	/* end nv3_area */
+
+static void cell_area(
+	CELL_INFO_2D *cell)
+{
+	double area;
+	double a,b,h;
+	int i,j;
+	boolean flag[3][3];
+	double frac[3][3];
+	boolean first = YES;
+	boolean rotate_vfrac = NO;
+
+	for (i = 0; i < 2; ++i)
+	for (j = 0; j < 2; ++j)
+	    cell->nb_frac[i][j] = 0.0;
+	cell->orphan = 0.0;
+
+	if (cell->nv == 1)
+	{
+	    if (cell->is_corner)
+	    {
+	    	cell->nb_frac[1][1] = (cell->cell_comp == cell->soln_comp) ?
+			cell->full_cell_vol : 0.0;
+	    	return;
+	    }
+	    for (i = 0; i < 4; ++i)
+	    {
+	    	if (cell->comp[0][0] == cell->soln_comp)
+		{
+	    	    area = nv1_area(cell);
+		    if (cell->cell_comp == cell->soln_comp)
+		    	area = 0.5*cell->full_cell_vol;
+		    if (cell->cell_comp == cell->soln_comp)
+		    	cell->nb_frac[1][1] = area;
+		    else if ((cell->side_flag == 0 || !cell->nb_flag[0][1])
+			&& cell->nb_flag[1][0])
+		    	cell->nb_frac[1][0] = area;
+		    else if (cell->nb_flag[0][1])
+		    	cell->nb_frac[0][1] = area;
+		    else if (cell->nb_flag[0][0])
+		    	cell->nb_frac[0][0] = area;
+		    else
+		    	cell->orphan = area;
+		    if (cell->nb_frac[1][1] != 0.0 || cell->orphan != 0.0)
+		    	break;
+		    for (j = 0; j < i; ++j)
+		    	reverse_cell(cell);
+		    break;
+		}
+		rotate_cell(cell,NO);
+	    }
+	}
+	else if (cell->nv == 2)
+	{
+	    double area_sum = 0.0;
+	    for (i = 0; i < 4; ++i)
+	    {
+	    	if (cell->comp[0][0] == cell->soln_comp &&
+	    	    cell->comp[1][0] == cell->soln_comp)
+	    	{
+	    	    area = nv2_area(cell);
+		    if (cell->cell_comp == cell->soln_comp &&
+		    	area < 0.5*cell->full_cell_vol)
+		    	area = 0.5*cell->full_cell_vol;
+		    if (cell->cell_comp != cell->soln_comp &&
+		    	area > 0.5*cell->full_cell_vol)
+		    	area = 0.5*cell->full_cell_vol;
+
+		    if (cell->cell_comp == cell->soln_comp)
+		    	cell->nb_frac[1][1] = area;
+		    else if (cell->nb_flag[1][0])
+		    	cell->nb_frac[1][0] = area;
+		    else if ((cell->side_flag == 0 || !cell->nb_flag[2][1]) &&
+		    	cell->nb_flag[0][1])
+		    	cell->nb_frac[0][1] = area;
+		    else if (cell->nb_flag[2][1])
+		    	cell->nb_frac[2][1] = area;
+		    else if (cell->nb_flag[0][0])
+		    	cell->nb_frac[0][0] = area;
+		    else if (cell->nb_flag[2][0])
+		    	cell->nb_frac[2][0] = area;
+		    else
+    		    	cell->orphan = area;
+		    if (cell->nb_frac[1][1] != 0.0 || cell->orphan != 0.0)
+		    	break;
+		    for (j = 0; j < i; ++j)
+		    	reverse_cell(cell);
+		    break;
+	    	}
+	    	else if (cell->comp[0][0] == cell->soln_comp &&
+	    	         cell->comp[1][1] == cell->soln_comp && 
+		        !cell->nb_flag[1][1])
+	    	{
+		    rotate_vfrac = YES;
+	    	    area = nv1_area(cell);
+		    area_sum += area;
+		    if ((cell->side_flag == 0 || !cell->nb_flag[0][1])
+			&& cell->nb_flag[1][0])
+		    	cell->nb_frac[1][0] = area;
+		    else if (cell->nb_flag[0][1])
+		    	cell->nb_frac[0][1] = area;
+		    else if (cell->nb_flag[0][0])
+		    	cell->nb_frac[0][0] = area;
+		    else
+		    	cell->orphan = area;
+		    if (first) 
+		    	first = NO;
+		    else 
+		    {
+		    	for (j = 0; j < i; ++j)
+		    	    reverse_cell(cell);
+		    	break;
+		    }
+		}
+	    	else if (cell->comp[0][0] != cell->soln_comp &&
+	    	         cell->comp[1][1] != cell->soln_comp && 
+		         cell->nb_flag[1][1])
+	    	{
+		    rotate_vfrac = YES;
+		    if (first) 
+		    {
+		    	first = NO;
+			cell->nb_frac[1][1] = nv3_area(cell);
+		    }
+		    else 
+		    {
+			cell->nb_frac[1][1] -= nv1_area(cell);
+		    	area_sum = cell->nb_frac[1][1];
+		    	break;
+		    }
+		}
+	    	rotate_cell(cell,rotate_vfrac);
+	    }
+	    if (rotate_vfrac)
+	    {
+		if (debugging("DD"))
+		{
+		    printf("cell->cell_comp = %d cell->soln_comp = %d\n",
+			cell->cell_comp,cell->soln_comp);
+		    printf("area_sum = %20.14f\n",area_sum);
+		    printf("half_vol = %20.14f\n",0.5*cell->full_cell_vol);
+		}
+	    	if ((cell->cell_comp != cell->soln_comp &&
+		     area_sum > 0.5*cell->full_cell_vol) ||
+		    (cell->cell_comp == cell->soln_comp &&
+		     area_sum < 0.5*cell->full_cell_vol))
+		{
+		    double lambda = 0.5*cell->full_cell_vol/area_sum;
+		    if (debugging("DD"))
+		    	printf("Case caught: half cell vol = %20.14f\n",
+		    		0.5*cell->full_cell_vol);
+		    for (i = 0; i < 3; ++i)
+		    for (j = 0; j < 3; ++j)
+		    {
+		    	cell->nb_frac[i][j] *= lambda;
+		    }
+		    cell->orphan *= lambda;
+		}
+	    }
+	}
+	else if (cell->nv == 3)
+	{
+	    for (i = 0; i < 4; ++i)
+	    {
+	    	if (cell->comp[0][0] != cell->soln_comp)
+	    	{
+		    area = nv3_area(cell);
+		    if (cell->cell_comp != cell->soln_comp)
+		    	area = 0.5*cell->full_cell_vol;
+		    if (cell->cell_comp == cell->soln_comp)
+	    	    	cell->nb_frac[1][1] = area;
+		    else
+		    {
+		    	if ((cell->side_flag == 0 || !cell->nb_flag[2][1])
+		    	    && cell->nb_flag[1][2])
+		    	    cell->nb_frac[1][2] = area;
+		    	else if (cell->nb_flag[2][1])
+		    	    cell->nb_frac[2][1] = area;
+		    	else if ((cell->side_flag == 0 || !cell->nb_flag[0][1])
+		    	    && cell->nb_flag[1][0])
+		    	    cell->nb_frac[1][0] = area;
+		    	else if (cell->nb_flag[0][1])
+		    	    cell->nb_frac[0][1] = area;
+		    	else
+			     cell->orphan = area;
+		    }
+		    if (cell->nb_frac[1][1] != 0.0 || cell->orphan != 0.0)
+		    	break;
+		    for (j = 0; j < i; ++j)
+			reverse_cell(cell);
+		    break;
+	    	}
+	    	rotate_cell(cell,NO);
+	    }
+	}
+}	/* end cell_area */
+
+static void reverse_cell(
+	CELL_INFO_2D *cell)
+{
+	boolean tmp_flag;
+	double tmp_frac;
+	/* Rotate corners */
+	tmp_flag = cell->nb_flag[0][0];
+	tmp_frac = cell->nb_frac[0][0];
+	cell->nb_flag[0][0] = cell->nb_flag[2][0];
+	cell->nb_frac[0][0] = cell->nb_frac[2][0];
+	cell->nb_flag[2][0] = cell->nb_flag[2][2];
+	cell->nb_frac[2][0] = cell->nb_frac[2][2];
+	cell->nb_flag[2][2] = cell->nb_flag[0][2];
+	cell->nb_frac[2][2] = cell->nb_frac[0][2];
+	cell->nb_flag[0][2] = tmp_flag;
+	cell->nb_frac[0][2] = tmp_frac;
+	/* Rotate sides */
+	tmp_flag = cell->nb_flag[1][0];
+	tmp_frac = cell->nb_frac[1][0];
+	cell->nb_flag[1][0] = cell->nb_flag[2][1];
+	cell->nb_frac[1][0] = cell->nb_frac[2][1];
+	cell->nb_flag[2][1] = cell->nb_flag[1][2];
+	cell->nb_frac[2][1] = cell->nb_frac[1][2];
+	cell->nb_flag[1][2] = cell->nb_flag[0][1];
+	cell->nb_frac[1][2] = cell->nb_frac[0][1];
+	cell->nb_flag[0][1] = tmp_flag;
+	cell->nb_frac[0][1] = tmp_frac;
+}	/* end reverse_cell */
+
+static void rotate_cell(	/* Rotate cell counter-clock wise */
+	CELL_INFO_2D *cell,
+	boolean rotate_vfrac)
+{
+	int tmp_comp;
+	double tmp_crds[MAXD];
+	boolean tmp_flag;
+	double tmp_frac;
+	int i;
+
+	/* Rotate cornres */
+	tmp_comp = cell->comp[0][0];
+	cell->comp[0][0] = cell->comp[0][1];
+	cell->comp[0][1] = cell->comp[1][1];
+	cell->comp[1][1] = cell->comp[1][0];
+	cell->comp[1][0] = tmp_comp;
+
+	for (i = 0; i < 2; ++i)
+	{
+	    tmp_crds[i] = cell->crds[0][0][i];
+	    cell->crds[0][0][i] = cell->crds[0][1][i];
+	    cell->crds[0][1][i] = cell->crds[1][1][i];
+	    cell->crds[1][1][i] = cell->crds[1][0][i];
+	    cell->crds[1][0][i] = tmp_crds[i];
+
+	/* Rotate edges */
+	    tmp_crds[i] = cell->crx_coords[0][0][i];
+	    cell->crx_coords[0][0][i] = cell->crx_coords[1][0][i];
+	    cell->crx_coords[1][0][i] = cell->crx_coords[0][1][i];
+	    cell->crx_coords[0][1][i] = cell->crx_coords[1][1][i];
+	    cell->crx_coords[1][1][i] = tmp_crds[i];
+	}
+
+	/* Rotate neighbors */
+
+	/* Rotate corners */
+	tmp_flag = cell->nb_flag[0][0];
+	cell->nb_flag[0][0] = cell->nb_flag[0][2];
+	cell->nb_flag[0][2] = cell->nb_flag[2][2];
+	cell->nb_flag[2][2] = cell->nb_flag[2][0];
+	cell->nb_flag[2][0] = tmp_flag;
+	/* Rotate sides */
+	tmp_flag = cell->nb_flag[1][0];
+	cell->nb_flag[1][0] = cell->nb_flag[0][1];
+	cell->nb_flag[0][1] = cell->nb_flag[1][2];
+	cell->nb_flag[1][2] = cell->nb_flag[2][1];
+	cell->nb_flag[2][1] = tmp_flag;
+
+	if (rotate_vfrac)	/* Needed for diagonal case */
+	{
+	    /* Rotate corners */
+	    tmp_frac = cell->nb_frac[0][0];
+	    cell->nb_frac[0][0] = cell->nb_frac[0][2];
+	    cell->nb_frac[0][2] = cell->nb_frac[2][2];
+	    cell->nb_frac[2][2] = cell->nb_frac[2][0];
+	    cell->nb_frac[2][0] = tmp_frac;
+	    /* Rotate sides */
+	    tmp_frac = cell->nb_frac[1][0];
+	    cell->nb_frac[1][0] = cell->nb_frac[0][1];
+	    cell->nb_frac[0][1] = cell->nb_frac[1][2];
+	    cell->nb_frac[1][2] = cell->nb_frac[2][1];
+	    cell->nb_frac[2][1] = tmp_frac;
+	}
+
+}	/* end rotate_cell */
+
+static void cell_length(
+	CELL_INFO_1D *cell)
+{
+	double length;
+
+	if (cell->crx_coords[0] == HUGE)
+	{
+	    printf("ERROR in cell_length(), crx_coords unassigned!\n");
+	    clean_up(ERROR);
+	}
+	if (cell->comp[0] == cell->soln_comp)
+	{
+	    length = fabs(cell->crx_coords[0] - cell->crds[0][0]);
+	    if (cell->nb_flag[1])
+	    	cell->nb_frac[1] = length;
+	    else if (cell->nb_flag[0])
+	    	cell->nb_frac[0] = length;
+	    else
+	    {
+	    	printf("In cell_length(): case 11\n");
+		clean_up(ERROR);
+	    }
+	}
+	else if (cell->comp[1] == cell->soln_comp)
+	{
+	    length = fabs(cell->crx_coords[0] - cell->crds[1][0]);
+	    if (cell->nb_flag[1])
+	    	cell->nb_frac[1] = length;
+	    else if (cell->nb_flag[2])
+	    	cell->nb_frac[2] = length;
+	    else
+	    {
+	    	printf("In cell_length(): case 12\n");
+		clean_up(ERROR);
+	    }
+	}
+}	/* end cell_length */

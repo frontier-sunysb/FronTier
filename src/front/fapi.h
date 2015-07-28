@@ -458,6 +458,46 @@ extern "C" {
    				HYPER_SURF **hs ,
    				double *crx_coords );
 
+/*! \fn void FT_ComputeVolumeFraction(Front *front, int num_phases, COMPONENT *compsCELL_PART *cell_part)
+ *  \ingroup GRIDINTFC
+    \brief  This function compute fraction volume of each grid cell of
+    a conservative variable on topological grid. The conservative
+    variable is marked by the solution component as an input variable.
+    \param front @b in	Pointer to Front.
+    \param num_phases @b in number of phases in the domain..
+    \param comps @b in component index of each phase..
+    \param cell_part @b inout Cell partition structure.
+ */
+
+   IMPORT  void FT_ComputeVolumeFraction(Front *front ,
+   				int num_phases,
+				COMPONENT *comps,
+				CELL_PART *cell_part);
+
+/*! \fn boolean FT_CoordsAtGridCrossing(Front *front, int *icoords, GRID_DIRECTION dir, int comp, HYPER_SURF **hs, double *crx_coords)
+ *  \ingroup GRIDINTFC
+    \brief Standing at grid icoords, looking to the direction dir, this
+     function looks for the nearest interface cross on the grid line segment.
+     The function returns YES if the crossing exists, in such case, the
+     crossing coordinates are copied to crx_coords, the corresponding
+     hyper surface (curce in 2D and surface in 3D) is assigned to hs,
+     If no crossing exists, the function return NO;
+    \param front @b in	Pointer to Front.
+    \param icoords @b in	Grid point coordinate indices.
+    \param dir @b in	Direction to which the crossing is to be found.
+    \param comp @b in	Component (domain index) of the grid point at icoord.
+    \param hs @b out	Crossing hyper surface (curve in 2D and surface in 3D).
+    \param crx_coords @b out	Crossing coordinates.
+ */
+
+   IMPORT  boolean FT_CoordsAtGridCrossing(Front *front ,
+				INTERFACE *grid_intfc,
+   				int *icoords,
+   				GRID_DIRECTION  dir,
+   				int  comp,
+   				HYPER_SURF **hs,
+   				double *crx_coords);
+
 /*! \fn boolean FT_StateStructAtGridCrossing(Front *front, int *icoords, GRID_DIRECTION dir, int comp, POINTER *state, HYPER_SURF **hs, double *crx_coords)
  *  \ingroup GRIDINTFC
     \brief Standing at grid icoords, looking to the direction dir, this
@@ -511,6 +551,30 @@ extern "C" {
 				double *ans ,
    				double *crx_coords );
 
+/*! \fn boolean FT_StateVarAtPrevStepCrossing(Front *front, INTERFACE *grid_intfc, int *icoords, GRID_DIRECTION dir, int comp, double (*state_func)(Locstate), double *ans, double *crx_coords)
+ *  \ingroup GRIDINTFC
+    \brief This function performs the same way as the function
+     FT_StateVarAtGridCrossing() except it checks the grid_intfc 
+     of previous time step. 
+    \param front @b in	Pointer to Front.
+    \param grid_intfc @b in	Pointer to the grid_intfc.
+    \param icoords @b in	Grid point coordinate indices.
+    \param dir @b in	Direction to which the crossing is to be found.
+    \param comp @b in	Component (domain index) of the grid point at icoord.
+    \param state_func @b in	State function for the requested state variable.
+
+    \param ans @b 
+    \param crx_coords @b out	Crossing coordinates.
+ */
+
+   IMPORT  boolean FT_StateVarAtPrevStepCrossing(Front *front ,
+   				int *icoords ,
+   				GRID_DIRECTION  dir ,
+   				int  comp ,
+				double (*state_func)(Locstate) ,
+				double *ans ,
+   				double *crx_coords );
+
 /*! \fn HYPER_SURF *FT_HyperSurfAtGridCrossing(Front *front, int *icoords, GRID_DIRECTION dir,int wave_type)
  *  \ingroup GRIDINTFC
     \brief Sitting at icoords and look to the direction dir, this function 
@@ -527,6 +591,23 @@ extern "C" {
    				int *icoords ,
    				GRID_DIRECTION  dir,
 				int wave_type);
+
+/*! \fn void FT_GetCrossingHistory(Front *front, int *icoords, GRID_DIRECTION dir,double *crx_coords_new,double *crx_coords_old)
+ *  \ingroup GRIDINTFC
+    \brief Sitting at icoords and look to the direction dir, this function 
+     find the crossing history, the current and past crossing potitions
+    \param front @b in	Pointer to Front.
+    \param icoords @b in	Grid point coordinate indices.
+    \param dir @b in	Direction to which the crossing is to be found.
+    \param crx_coords_new @b out current crossing coordinates.
+    \param crx_coords_old @b out previous crossing coordinates.
+ */
+
+   IMPORT  void FT_GetCrossingHistory(Front *front ,
+   				int *icoords ,
+   				GRID_DIRECTION  dir,
+				double *crx_coords_new,
+				double *crx_coords_old);
 
 /*! \fn boolean FT_IntrpStateVarAtCoords(Front *front, int comp, double *coords, double *var_array, double (*state_func)(POINTER), double *ans, double *default_ans)
  *  \ingroup GRIDINTFC
@@ -879,6 +960,22 @@ extern "C" {
    IMPORT  void FT_ParallelExchGridArrayBuffer(double *grid_array ,
    				Front* front ,
 				int* symmetry);
+
+/*! \fn void FT_ParallelExchGridStructArrayBuffer(POINTER pstruct, Front *front, int psize)
+ *  \ingroup PARALLEL
+    \brief This is a parallel communication function for a struct array
+     on the expanded dual grid of the grid_intfc in front. It will cut 
+     the old buffer parts of the array and patch it with new buffer parts 
+     received from other subdomains or periodically shifted sides. This is a 
+     synchronous function and must be called synchronously by every processor.
+    \param pstruct @b inout pointer to the struct array on expanded duel grid.
+    \param front @b in	Pointer to Front.
+    \param psize @b in size of data struct in byte.
+ */
+   IMPORT  void FT_ParallelExchGridStructArrayBuffer(POINTER pstruct ,
+   				Front* front ,
+				int psize);
+
 
 /*! \fn void FT_ParallelExchGridIntArrayBuffer(int *iarray, Front *front)
  *  \ingroup PARALLEL
@@ -1515,6 +1612,63 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
  */
 
    IMPORT  RECT_GRID *FT_GridIntfcTopGrid(Front*);
+
+/*! \fn boolean FT_NextTopGridIcoordsInDir(Front*,int *icoords,GRID_DIRECTION dir,int *icoords_next)
+ *  \ingroup GRIDINTFC
+    \brief This function find the next coordinate index while standing at the
+    input icoords and looking to the direction dir. It returns NO if the
+    the input icoords is already at the edge of the domain.
+    \param front @b in Pointer to front.
+    \param icoords @b in input coordinate index.
+    \param dir @b in direction to which of the next grid point.
+    \param icoords_next @b out the next coordinate index.
+ */
+
+   IMPORT  boolean FT_NextTopGridIcoordsInDir(
+   	Front*,
+	int *icoords,
+	GRID_DIRECTION dir,
+	int *icoords_next);
+
+/*! \fn boolean FT_AdjTopGridIcoords(Front*,int *icoords,GRID_DIRECTION *dir,int *icoords_next)
+ *  \ingroup GRIDINTFC
+    \brief This function find the adjacent coordinate index while standing at 
+    the input icoords and looking to all directions dir. It returns NO if the
+    the input icoords is already at the edge of the domain. The number of
+    directions depends on the dimension. 
+    \param front @b in Pointer to front.
+    \param icoords @b in input coordinate index.
+    \param dir @b in directions to which of adjacent next grid point.
+    \param icoords_next @b out the next coordinate index.
+ */
+
+   IMPORT  boolean FT_AdjTopGridIcoords(
+   	Front*,
+	int *icoords,
+	GRID_DIRECTION *dir,
+	int *icoords_next);
+
+/*! \fn boolean FT_NearestGridIcoordsWithComp(Front*,int *icoords,COMPONENT comp,COMPONENT comp, int *gmax, int *icoords_next)
+ *  \ingroup GRIDINTFC
+    \brief This function find the nearest coordinate index while standing at 
+    the input icoords and looking to all directions dir. It returns NO if the
+    the input icoords is already at the edge of the domain. 
+    \param front @b in Pointer to front.
+    \param icoords @b in input coordinate index.
+    \param comp @b in component of the cell to be searched.
+    \param comp_map @b in the coomponent map of the grid.
+    \param gmax @b in upper index bounds in all directions.
+    \param icoords_next @b out the next coordinate index.
+ */
+
+   IMPORT  boolean FT_NearestGridIcoordsWithComp(
+	Front *front,
+	int *icoords,
+        COMPONENT comp,
+        COMPONENT *comp_map,
+        int *gmax,
+        int *icoords_next);
+
 
 /*! \fn void FT_AddHdfMovieVariable(
  * 	Front *front,

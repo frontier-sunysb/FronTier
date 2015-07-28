@@ -107,14 +107,10 @@ int main(int argc, char **argv)
 	FT_StartUp(&front,&f_basic);
 	FT_InitDebug(in_name);
 
-	fflush(stdout);
-
 	cRparams.dim = f_basic.dim;
 	iFparams.dim = f_basic.dim;
 	front.extra1 = (POINTER)&iFparams;
 	front.extra2 = (POINTER)&cRparams;
-
-        if (debugging("trace")) printf("Passed read_ifluid_params()\n");
 
 	if (!RestartRun)
 	{
@@ -127,16 +123,10 @@ int main(int argc, char **argv)
 	    /* Initialize interface through level function */
 	    setInitialIntfc(&front,&level_func_pack,in_name);
 
-	    if (debugging("trace")) printf("Passed setting intfc params()\n");
 	    FT_InitIntfc(&front,&level_func_pack);
-	    if (debugging("trace")) printf("Passed FT_InitIntfc()\n");
 	    read_ss_dirichlet_bdry_data(in_name,&front,f_basic);
-	    if (debugging("trace")) 
-	    	printf("Passed read_ss_dirichlet_bdry_data()\n");
 	    if (f_basic.dim != 3)
 	    	FT_ClipIntfcToSubdomain(&front);
-	    if (debugging("trace")) 
-	    	printf("Passed FT_ClipIntfcToSubdomain()\n");
 	}
 	else
 	{
@@ -145,9 +135,7 @@ int main(int argc, char **argv)
 	}
 
 	read_crystal_params(in_name,&cRparams);
-	if (debugging("trace")) printf("Passed read_crystal_params()\n");
 	read_fluid_params(in_name,&iFparams);
-	if (debugging("trace")) printf("Passed read_fluid_params()\n");
 	FT_ReadTimeControl(in_name,&front);
 
 	/* Initialize velocity field function */
@@ -156,13 +144,9 @@ int main(int argc, char **argv)
 	velo_func_pack.func = NULL;
 
 	FT_InitFrontVeloFunc(&front,&velo_func_pack);
-	if (debugging("trace")) printf("Passed FT_InitFrontVeloFunc()\n");
-	if (debugging("trace")) printf("Before initMesh()\n");
         c_cartesian.initMesh();
-	if (debugging("trace")) printf("Passed Crystal initMesh()\n");
         c_cartesian.initMovieVariables();
         l_cartesian->initMesh();
-	if (debugging("trace")) printf("Passed iFluid initMesh()\n");
         l_cartesian->initMovieVariables();
 	l_cartesian->findStateAtCrossing = ifluid_find_state_at_crossing;
 	if (debugging("sample_velocity"))
@@ -189,13 +173,9 @@ int main(int argc, char **argv)
 	{
 	    initFrontStates(&front);
 	    c_cartesian.setInitialCondition();
-	    if (debugging("trace")) 
-		printf("Passed Crystal setInitialCondition()\n");
 	    FT_FreeGridIntfc(&front);
 	    init_fluid_state_func(&front,l_cartesian);
 	    l_cartesian->setInitialCondition();
-	    if (debugging("trace")) 
-		printf("Passed iFluid setInitialCondition()\n");
 	}
 	cRparams.field->vel = iFparams.field->vel;
 
@@ -213,16 +193,8 @@ static  void subsurf_main_driver(
 	Incompress_Solver_Smooth_Basis *l_cartesian)
 {
         int  dim = front->rect_grid->dim;
-	IF_PARAMS *iFparams;
-	CRT_PARAMS *cRparams;
-	double frac_dim,radius;
-	FILE *Radius_file,*FracDim_file;
 	boolean bdry_reached = NO;
-	double **growth_data = NULL;
-	int count = 0;
 	double CFL;
-	Radius_file = FracDim_file = NULL;
-	SEED_PARAMS *s_params;
 
 	if (debugging("trace"))
 	    printf("Entering subsurf_main_driver()\n");
@@ -230,192 +202,75 @@ static  void subsurf_main_driver(
 	Curve_redistribution_function(front) = expansion_redistribute;
         CFL = Time_step_factor(front);
 
-	iFparams = (IF_PARAMS*)front->extra1;
-	cRparams = (CRT_PARAMS*)front->extra2;
-	s_params = (SEED_PARAMS*)cRparams->func_params;
-
-	if (dim == 1)
-	    c_cartesian.oneDimPlot(out_name);
-
-	if (dim == 1)
-	{
-	    bdry_reached = NO;
-	    record_1d_growth(front,&growth_data,&count);
-	}
-	else if (s_params != NULL)
-	{
-	    bdry_reached = fractal_dimension(front,*s_params,&frac_dim,
-						&radius);
-	}
-
-	if (pp_mynode() == 0 && dim != 1)
-	{
-	    char fname[200];
-	    sprintf(fname,"%s/radius",out_name);
-	    Radius_file = fopen(fname,"w");
-	    sprintf(fname,"%s/FracDim",out_name);
-	    FracDim_file = fopen(fname,"w");
-
-	    fprintf(Radius_file,"\"Crystal radius\"\n\n");
-	    fprintf(Radius_file,"%f  %f\n",front->time,radius);
-	    fprintf(FracDim_file,"\"Fractal dimension\"\n\n");
-	    fprintf(FracDim_file,"%f  %f\n",front->time,frac_dim);
-	    fflush(Radius_file);
-	    fflush(FracDim_file);
-	}
-
 	if (!RestartRun)
 	{
 	    FT_ResetTime(front);
-	    //Output the initial interface and data. 
-            FT_Save(front);
-            c_cartesian.printFrontInteriorStates(out_name);
-            l_cartesian->printFrontInteriorStates(out_name);
-            FT_Draw(front);
-            if (dim == 2 && front->vtk_movie_var)
-                c_cartesian.vtk_plot_concentration2d(out_name);
-            if (dim == 2)
-                print_area_density(front,out_name);
-
-	    if (debugging("trace"))
-		printf("Before FT_Propagate() front->dt = %f\n",front->dt);
 	    FT_Propagate(front);
-	    if (debugging("trace")) printf("Calling Crystal solve()\n");
 	    c_cartesian.solve(front->dt);
-	    if (debugging("trace")) printf("Calling iFluid solve()\n");
 	    l_cartesian->solve(front->dt);
-	    FT_SetOutputCounter(front);
+	    c_cartesian.timeStepAnalysis(NO);
+
 	    FT_SetTimeStep(front);
 	    c_cartesian.setAdvectionDt();
 	    front->dt = std::min(front->dt,CFL*c_cartesian.max_dt);
 	    l_cartesian->setAdvectionDt();
 	    front->dt = std::min(front->dt,CFL*l_cartesian->max_dt);
+
+	    FT_Save(front);
+            c_cartesian.printFrontInteriorStates();
+            l_cartesian->printFrontInteriorStates(out_name);
+
+	    FT_SetOutputCounter(front);
         }
 	else
         {
             FT_SetOutputCounter(front);
         }
-	if (debugging("trace"))
-	    printf("Passed second restart check()\n");
 
 	FT_TimeControlFilter(front);
 	FT_PrintTimeStamp(front);
 
         for (;;)
         {
-	    if (debugging("trace")) printf("Before FT_Propagate()\n");
 	    FT_Propagate(front);
-            if (debugging("trace")) printf("Passed FT_Propagate()\n");
-
-	    if (debugging("trace")) printf("Calling Cystal solve()\n");
 	    c_cartesian.solve(front->dt);
-	    if (debugging("trace")) printf("Passed Cystal solve()\n");
-
-	    if (debugging("trace")) printf("Calling iFluid solve()\n");
 	    l_cartesian->solve(front->dt);
-	    if (debugging("trace")) printf("Passed iFluid solve()\n");
-
-	    if (debugging("trace"))
-            {
-                printf("After solve()\n");
-                print_storage("at end of time step","trace");
-            }
-
 	    FT_AddTimeStepToCounter(front);
-	    if (dim == 2)
-                //calculate perimeter & area
-                print_area_density(front,out_name);
 
 	    FT_SetTimeStep(front);
-
-	    if (debugging("step_size"))
-		printf("Time step from FrontHypTimeStep(): %f\n",front->dt);
 	    front->dt = std::min(front->dt,CFL*c_cartesian.max_dt);
-	    if (debugging("step_size"))
-		printf("Time step from c_cartesian.max_dt(): %f\n",front->dt);
 	    front->dt = std::min(front->dt,CFL*l_cartesian->max_dt);
-	    if (debugging("step_size"))
-		printf("Time step from l_cartesian->max_dt(): %f\n",front->dt);
 
             if (FT_IsSaveTime(front))
 	    {
-		// Front standard output
                 FT_Save(front);
-		// Problem specific output
-		c_cartesian.printFrontInteriorStates(out_name);
-	    	if (debugging("trace")) printf("Passed Crystal "
-				"printFrontInteriorStates()\n");
+		c_cartesian.printFrontInteriorStates();
 		l_cartesian->printFrontInteriorStates(out_name);
-	    	if (debugging("trace")) printf("Passed iFluid "
-				"printFrontInteriorStates()\n");
 	    }
-	    if (debugging("trace"))
-		printf("After print output()\n");
             if (FT_IsDrawTime(front))
 	    {
-		// Front standard output
-		if (dim != 1)
-		{
-		    if (debugging("trace"))
-                    	printf("Calling FT_Draw()\n");
-                    FT_Draw(front);
-		    if (dim == 2 && front->vtk_movie_var)
-                        c_cartesian.vtk_plot_concentration2d(out_name);
-		}
-	    	else
-	    	    c_cartesian.oneDimPlot(out_name);
-	    }
-	    if (debugging("trace"))
-		printf("After make movie frame()\n");
-	    if (dim == 1)
-	    {
-	    	bdry_reached = NO;
-		record_1d_growth(front,&growth_data,&count);
-	    }
-	    else if (s_params != NULL)
-	    	bdry_reached = fractal_dimension(front,*s_params,&frac_dim,
-					&radius);
-	    if (debugging("trace"))
-		printf("After auxilary output()\n");
-
-	    if (bdry_reached) front->time_limit_reached = YES;
-	    if (s_params != NULL)
-	    {
-	        if (pp_mynode() == 0 && dim != 1 && !s_params->grow_from_floor)
-	        {
-		    fprintf(Radius_file,"%f  %f\n",front->time,radius);
-		    fprintf(FracDim_file,"%f  %f\n",front->time,frac_dim);
-		    fflush(Radius_file);
-		    fflush(FracDim_file);
-		}
+                FT_Draw(front);
+		c_cartesian.crystalDraw();
 	    }
 
-            if (FT_TimeLimitReached(front))
+            if (FT_TimeLimitReached(front) || bdryReached(front))
 	    {
+		c_cartesian.timeStepAnalysis(YES);
 		FT_PrintTimeStamp(front);
-		if (dim == 1)
-		    plot_growth_data(out_name,growth_data,count);
+		FT_Draw(front);
+		FT_Save(front);
+		c_cartesian.printFrontInteriorStates();
+		l_cartesian->printFrontInteriorStates(out_name);
                 break;
 	    }
-	    if (debugging("trace"))
-		printf("After time output()\n");
-	    /* Output section, next dt may be modified */
 
+	    if (FT_IsDrawTime(front))
+                c_cartesian.timeStepAnalysis(YES);
+	    else
+	    	c_cartesian.timeStepAnalysis(NO);
 	    FT_TimeControlFilter(front);
 	    FT_PrintTimeStamp(front);
-
-	    if (debugging("step_size"))
-		printf("Time step from FrontOutputTimeControl(): %f\n",
-					front->dt);
         }
-	if (s_params != NULL)
-	{
-	    if (pp_mynode() == 0 && dim != 1 && !s_params->grow_from_floor)
-	    {
-	        fclose(Radius_file);
-	        fclose(FracDim_file);
-	    }
-	}
 }       /* end subsurf_main_driver */
 
 static  void solute_point_propagate(

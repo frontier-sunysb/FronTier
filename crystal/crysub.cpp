@@ -166,30 +166,14 @@ static  void dirichlet_point_propagate(
        	    FT_GetStatesAtPoint(oldp,oldhse,oldhs,(POINTER*)&sl,(POINTER*)&sr);
 	    state =  (STATE*)left_state(newp);
 	    state->solute = bstate->solute;
-	    if (cRparams->max_solute < state->solute)
-		cRparams->max_solute = state->solute;
-	    if (cRparams->min_solute > state->solute)
-		cRparams->min_solute = state->solute;
 	    state =  (STATE*)right_state(newp);
 	    state->solute = bstate->solute;
-	    if (cRparams->max_solute < state->solute)
-		cRparams->max_solute = state->solute;
-	    if (cRparams->min_solute > state->solute)
-		cRparams->min_solute = state->solute;
 	}
 	else
 	{
        	    FT_GetStatesAtPoint(oldp,oldhse,oldhs,(POINTER*)&sl,(POINTER*)&sr);
 	    state =  (STATE*)left_state(newp);
-	    if (cRparams->max_solute < state->solute)
-		cRparams->max_solute = state->solute;
-	    if (cRparams->min_solute > state->solute)
-		cRparams->min_solute = state->solute;
 	    state =  (STATE*)right_state(newp);
-	    if (cRparams->max_solute < state->solute)
-		cRparams->max_solute = state->solute;
-	    if (cRparams->min_solute > state->solute)
-		cRparams->min_solute = state->solute;
 	}
         return;
 }       /* dirichlet_point_propagate */
@@ -336,10 +320,6 @@ static  void reaction_point_propagate(
 			(STATE*)left_state(newp) : (STATE*)right_state(newp);
         s0 = state->solute = ans;
 
-	if (cRparams->max_solute < state->solute)
-		cRparams->max_solute = state->solute;
-	if (cRparams->min_solute > state->solute)
-		cRparams->min_solute = state->solute;
 	nor_speed = 0.0;
         for (i = 0; i < dim; ++i)
         {
@@ -539,6 +519,12 @@ extern	void read_crystal_params(
 		(void) printf("%f\n",cRparams->rho_s);
 	      }
 	    }
+	    else
+	    {
+		CursorAfterString(infile,"Crystal density:");
+		fscanf(infile,"%lf",&cRparams->rho_s);
+		(void) printf("%f\n",cRparams->rho_s);
+	    }
 	}
 	else
 	{
@@ -551,9 +537,17 @@ extern	void read_crystal_params(
 	fscanf(infile,"%lf",&cRparams->gap);
 	(void) printf("%f\n",cRparams->gap);
 	cRparams->num_scheme = UNSPLIT_IMPLICIT;	/* default */
-	cRparams->pde_order = 2;	/* default */
+	cRparams->pde_order = 1;	/* default */
+	(void) printf("The default scheme is second order Implicit\n");
 	if (CursorAfterStringOpt(infile,"Choose PDE scheme"))
 	{
+	    (void) printf("\nAvailable PDE schemes are\n");
+	    (void) printf("\tExplicit (EX)\n");
+	    (void) printf("\tImplicit (IM)\n");
+	    (void) printf("\tCrank-Nicolson (CN)\n");
+	    (void) printf("\tConservative Explicit (CE)\n");
+	    (void) printf("\tConservative Implicit (CI)\n");
+	    (void) printf("\tConservative Crank-Nicolson (CC)\n");
 	    CursorAfterString(infile,"Enter scheme:");
 	    fscanf(infile,"%s",string);
 	    (void) printf("%s\n",string);
@@ -566,8 +560,18 @@ extern	void read_crystal_params(
 	    else if ((string[0] == 'C' || string[0] == 'c') &&
 	    	(string[1] == 'N' || string[1] == 'n')) 
 	    	cRparams->num_scheme = CRANK_NICOLSON;
+	    else if ((string[0] == 'C' || string[0] == 'c') &&
+	    	(string[1] == 'E' || string[1] == 'e')) 
+	    	cRparams->num_scheme = CONSERVATIVE_EXPLICIT;
+	    else if ((string[0] == 'C' || string[0] == 'c') &&
+	    	(string[1] == 'I' || string[1] == 'i')) 
+	    	cRparams->num_scheme = CONSERVATIVE_IMPLICIT;
+	    else if ((string[0] == 'C' || string[0] == 'c') &&
+	    	(string[1] == 'C' || string[1] == 'C')) 
+	    	cRparams->num_scheme = CONSERVATIVE_CRANK_NICOLSON;
 	}
-	if (cRparams->num_scheme == UNSPLIT_IMPLICIT)
+	if (cRparams->num_scheme == UNSPLIT_IMPLICIT || 
+	    cRparams->num_scheme == CONSERVATIVE_IMPLICIT)
 	{
 	    if (CursorAfterStringOpt(infile,"Choose order of PDE scheme:"))
 	    {
@@ -607,55 +611,48 @@ extern	void read_crystal_params(
 	fclose(infile);
 }
 
-extern boolean fractal_dimension(
+extern void fractal_dimension(
 	Front *front,
-	SEED_PARAMS s_params,
+	SEED_PARAMS *s_params,
 	double *frac_dim,
 	double *radius)
 {
 	double coords[MAXD],*center;
-	double dist,r_sqr,r_max,r_min = s_params.seed_radius;
-	INTERFACE *grid_intfc,*intfc = front->interf;
-	int i,j,k,*gmax,dim = intfc->dim;
+	double dist,r_sqr,r_max,r_min;
+	INTERFACE *grid_intfc,*intfc;
+	int i,j,k,*gmax,dim = FT_Dimension();
 	POINT *p;
         HYPER_SURF *hs;
         HYPER_SURF_ELEMENT *hse;
 	struct Table *T;
 	RECT_GRID *grid;
-	double *L,*U,*h;
+	double *L,*h;
 	COMPONENT *gr_comp,comp;
 	int N,Nc;
 	boolean crystal_exist = NO;
 	double ratio;
-	boolean bdry_reached = NO;
-	double margin[MAXD];
 
-	if (s_params.grow_from_floor || s_params.grow_from_ceiling)
-	    return bdry_reached;
-	center = s_params.space_center[0];
-	/* Find maximum radius of crystal growth */
+	if (s_params == NULL) return;
+
+	center = s_params->space_center[0];
+	r_min = s_params->seed_radius;
 	r_max = 0.0;
-	grid = computational_grid(intfc);
-	L = grid->GL;
-	U = grid->GU;
-	for (i = 0; i < dim; ++i)
-	    margin[i] = 0.01*(U[i] - L[i]);
-	bdry_reached = NO;
+
+	/* Find maximum radius of crystal growth */
+	intfc = front->interf;
 	next_point(intfc,NULL,NULL,NULL);
         while (next_point(intfc,&p,&hse,&hs))
         {
-	    if (wave_type(hs) < FIRST_PHYSICS_WAVE_TYPE)
+	    if (wave_type(hs) != GROWING_BODY_BOUNDARY)
 	    	continue;
 	    crystal_exist = YES;
-	    r_sqr = 0.0;
-	    for (i = 0; i < dim; ++i)
+	    if (s_params != NULL)
 	    {
-		if (Coords(p)[i] >= U[i] - margin[i] ||
-		    Coords(p)[i] <= L[i] + margin[i])
-		    bdry_reached = YES;
-	    	r_sqr += sqr(Coords(p)[i] - center[i]);
+	    	r_sqr = 0.0;
+	    	for (i = 0; i < dim; ++i)
+	    	    r_sqr += sqr(Coords(p)[i] - center[i]);
+	    	if (r_max < r_sqr) r_max = r_sqr;
 	    }
-	    if (r_max < r_sqr) r_max = r_sqr;
 	}
 	r_max = sqrt(r_max);
 	*radius = r_max;
@@ -664,7 +661,7 @@ extern boolean fractal_dimension(
 	crystal_exist = pp_max_status(crystal_exist);
 #endif /* defined (__MPI__) */
 	if (!crystal_exist)
-	    return NO;
+	    return;
 
 	/* Preparation for counting */
 
@@ -723,36 +720,21 @@ extern boolean fractal_dimension(
 #endif /* defined (__MPI__) */
 	ratio = ((double)N)/((double)Nc);
 	*frac_dim = (double)dim + log(ratio)/log(h[0]);
-	return pp_max_status(bdry_reached);
+	return;
 }	/* end fractal_dimension */
 	
-extern void	record_1d_growth(
+extern void intfc_1d_data(
 	Front *front,
-	double ***growth_data,
-	int *count)
+	double *intfc_posn,
+	double *intfc_solute)
 {
 	INTERFACE *intfc = front->interf;
 	int i,j;
 	POINT *p;
 	HYPER_SURF *hs;
 	HYPER_SURF_ELEMENT *hse;
-	static int total_length = 0;
 	STATE *sl,*sr;
 	
-	if (*count >= total_length)
-	{
-	    static double **tmp_data;
-	    total_length += 1000;
-	    FT_MatrixMemoryAlloc((POINTER*)&tmp_data,total_length,3,sizeof(double));
-	    for (i = 0; i < *count; ++i)
-	    for (j = 0; j < 3; ++j)
-	    	tmp_data[i][j] = (*growth_data)[i][j];
-	    FT_FreeThese(1,*growth_data);
-	    *growth_data = tmp_data;
-	}
-
-	(*growth_data)[*count][0] = front->time;
-
 	/* Initialize states at the interface */
 	next_point(intfc,NULL,NULL,NULL);
 	while (next_point(intfc,&p,&hse,&hs))
@@ -761,41 +743,16 @@ extern void	record_1d_growth(
 	    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
 	    if (negative_component(hs) == SOLUTE_COMP)
 	    {
-		(*growth_data)[*count][1] = Coords(p)[0];
-		(*growth_data)[*count][2] = sl->solute;
+		*intfc_posn = Coords(p)[0];
+		*intfc_solute = sl->solute;
 	    }
 	    else if (positive_component(hs) == SOLUTE_COMP)
 	    {
-		(*growth_data)[*count][1] = Coords(p)[0];
-		(*growth_data)[*count][2] = sr->solute;
+		*intfc_posn = Coords(p)[0];
+		*intfc_solute = sr->solute;
 	    }
 	}
-	*count += 1;
-}	/* end record_1d_growth */
-
-extern void plot_growth_data(
-	char out_name[100],
-	double **growth_data,
-	int count)
-{
-	char fname[100];
-	FILE *ofile;
-	int i;
-
-	sprintf(fname,"%s/posn.xg",out_name);
-	ofile = fopen(fname,"w");
-	fprintf(ofile,"\"Interface position vs. time\"\n");
-	for (i = 0; i < count; ++i)
-	    fprintf(ofile,"%f  %f\n",growth_data[i][0],growth_data[i][1]);
-	fclose(ofile);
-
-	sprintf(fname,"%s/solt.xg",out_name);
-	ofile = fopen(fname,"w");
-	fprintf(ofile,"\"Interface solute vs. time\"\n");
-	for (i = 0; i < count; ++i)
-	    fprintf(ofile,"%f  %f\n",growth_data[i][0],growth_data[i][2]);
-	fclose(ofile);
-}	/* end plot_growth_data */
+}	/* end intfc_1d_data */
 
 extern	void read_seed_params(
 	int dim,
@@ -933,8 +890,6 @@ extern void read_crt_dirichlet_bdry_data(
 	HYPER_SURF *hs;
 	int i_surf;
 
-	if (debugging("trace")) 
-	    printf("Entering read_crt_dirichlet_bdry_data()\n");
 	for (i = 0; i < dim; ++i)
 	{
 	    if (f_basic.boundary[i][0] == DIRICHLET_BOUNDARY)
@@ -995,8 +950,6 @@ extern void read_crt_dirichlet_bdry_data(
 	    }
 	}
 	fclose(infile);
-	if (debugging("trace")) 
-	    printf("Leaving read_crt_dirichlet_bdry_data()\n");
 }	/* end read_crt_dirichlet_bdry_data */
 
 
@@ -1025,10 +978,9 @@ extern void initFrontStates(
             if (positive_component(hs) == SOLUTE_COMP)
 	    {
 		if (wave_type(hs) == GROWING_BODY_BOUNDARY)
-		    sr->solute = cRparams->C_0; 
-	    	    //no gap for dissolution, C_eq for precipitation
+		    sr->solute = cRparams->C_eq; 
 		else
-		    sr->solute = cRparams->C_0;
+		    sl->solute = cRparams->C_eq;
 	    }
             else if (positive_component(hs) == CRYSTAL_COMP)
                 sr->solute = rho_s;
@@ -1038,10 +990,9 @@ extern void initFrontStates(
 	    if (negative_component(hs) == SOLUTE_COMP)
 	    {
 		if (wave_type(hs) == GROWING_BODY_BOUNDARY)
-		    sl->solute = cRparams->C_0;	
-	            //no gap for dissolution, C_eq for precipitation
+		    sr->solute = cRparams->C_eq; 
 		else
-		    sl->solute = cRparams->C_0;
+		    sl->solute = cRparams->C_eq;
 	    }
             else if (negative_component(hs) == CRYSTAL_COMP)
                 sl->solute = rho_s;
@@ -1086,13 +1037,21 @@ static void setInitialIntfc1d(
 	CRT_PARAMS *cRparams = (CRT_PARAMS*)front->extra2;
 	static double **point;
 
-	FT_MatrixMemoryAlloc((POINTER*)&point,1,1,FLOAT);
-        level_func_pack->num_points = 1;
-        level_func_pack->point_array = point;
 
-	CursorAfterString(infile,"Enter phase transition point coordinate:");
-	fscanf(infile,"%lf",&point[0][0]);
-	(void) printf("%f\n",point[0][0]);
+	if (CursorAfterStringOpt(infile,
+	    "Enter phase transition point coordinate:"))
+	{
+	    FT_MatrixMemoryAlloc((POINTER*)&point,1,1,FLOAT);
+            level_func_pack->num_points = 1;
+            level_func_pack->point_array = point;
+	    fscanf(infile,"%lf",&point[0][0]);
+	    (void) printf("%f\n",point[0][0]);
+	}
+	else
+	{
+	    level_func_pack->num_points = 0;
+	    level_func_pack->point_array = NULL;
+	}
 
 	fclose(infile);
 }	/* end setInitialIntfc1d */
@@ -1113,6 +1072,12 @@ static void setInitialIntfc2d(
 	static SAMPLE_BDRY_PARAMS sb_params;
 	CRT_PARAMS *cRparams = (CRT_PARAMS*)front->extra2;
 
+	level_func_pack->pos_component = SOLUTE_COMP;	// default
+        level_func_pack->func = NULL;
+        level_func_pack->point_array = NULL;
+	cRparams->func_params = NULL;
+	cRparams->func = NULL;
+
 	(void) printf("Available initial interface types are:\n");
 	(void) printf("\tSeed (SE)\n");
 	(void) printf("\tSlotted circle (SL)\n");
@@ -1120,7 +1085,8 @@ static void setInitialIntfc2d(
 	(void) printf("\tRectangle (R)\n");
 	(void) printf("\tCircle with four slots (F)\n");
 	(void) printf("\tORNL Sample (O)\n");
-	CursorAfterString(infile,"Enter initial interface type: ");
+	if (!CursorAfterStringOpt(infile,"Enter initial interface type: "))
+	    return;
 	fscanf(infile,"%s",string);
 	(void) printf("%s\n",string);
 	switch (string[0])
@@ -1276,7 +1242,14 @@ static void setInitialIntfc3d(
 	static RECT_BOX_PARAMS r_params;
 	CRT_PARAMS *cRparams = (CRT_PARAMS*)front->extra2;
 
-	CursorAfterString(infile,"Enter initial interface type: ");
+	level_func_pack->pos_component = SOLUTE_COMP;	// default
+        level_func_pack->func = NULL;
+        level_func_pack->point_array = NULL;
+	cRparams->func_params = NULL;
+	cRparams->func = NULL;
+
+	if (!CursorAfterStringOpt(infile,"Enter initial interface type: "))
+	    return;
 	fscanf(infile,"%s",string);
 	(void) printf("%s\n",string);
 	switch (string[0])
@@ -1440,8 +1413,6 @@ extern boolean sample_func(
             int quad[4];
             int **icoords_quad;						
 	    
-	    if (debugging("trace"))
-	        (void) printf("Entering sample_func() first time\n");
             first = NO;
             for (i = 0; i < 2; ++i)
             {
@@ -1802,3 +1773,113 @@ extern	void read_restart_params(
             cRparams->func = seed_func;
 	}
 }	/* end read_restart_params */
+
+extern	void solute_print_front_states(
+	FILE *outfile,
+	Front *front)
+{
+	INTERFACE *intfc = front->interf;
+	STATE *sl,*sr;
+        POINT *p;
+        HYPER_SURF *hs;
+        HYPER_SURF_ELEMENT *hse;
+
+        /* Initialize states at the interface */
+        fprintf(outfile,"Interface solute states:\n");
+        int count = 0;
+        next_point(intfc,NULL,NULL,NULL);
+        while (next_point(intfc,&p,&hse,&hs))
+        {
+            count++;
+            FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+            fprintf(outfile,"%24.18g %24.18g\n",sl->solute,sr->solute);
+        }
+}	/* end solute_print_front_states */
+
+extern	void solute_read_front_states(
+	FILE *infile,
+	Front *front)
+{
+        INTERFACE *intfc = front->interf;
+        STATE *sl,*sr;
+        POINT *p;
+        HYPER_SURF *hs;
+        HYPER_SURF_ELEMENT *hse;
+        double x;
+
+
+        /* Initialize states at the interface */
+        next_output_line_containing_string(infile,"Interface solute states:");
+        next_point(intfc,NULL,NULL,NULL);
+        while (next_point(intfc,&p,&hse,&hs))
+        {
+            FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+            fscanf(infile,"%lf",&x);
+            sl->solute = x;
+            fscanf(infile,"%lf",&x);
+            sr->solute = x;
+        }
+}	/* end solute_read_front_states */
+
+extern boolean bdryReached(
+	Front *front)
+{
+	double coords[MAXD],*center;
+	double coords_min[MAXD],coords_max[MAXD];
+	INTERFACE *grid_intfc,*intfc = front->interf;
+	int i,j,k,*gmax,dim = intfc->dim;
+	POINT *p;
+        HYPER_SURF *hs;
+        HYPER_SURF_ELEMENT *hse;
+	RECT_GRID *grid;
+	double *L,*U,*h;
+	boolean crystal_exist = NO;
+	boolean bdry_reached = NO;
+
+	/* Find maximum radius of crystal growth */
+	grid = computational_grid(intfc);
+	L = grid->GL;
+	U = grid->GU;
+	h = grid->h;
+	for (i = 0; i < dim; ++i)
+	{
+	    coords_min[i] = HUGE;
+	    coords_max[i] = -HUGE;
+	}
+	bdry_reached = NO;
+	next_point(intfc,NULL,NULL,NULL);
+        while (next_point(intfc,&p,&hse,&hs))
+        {
+	    if (wave_type(hs) != GROWING_BODY_BOUNDARY)
+	    	continue;
+	    crystal_exist = YES;
+	    for (i = 0; i < dim; ++i)
+	    {
+	    	if (coords_min[i] > Coords(p)[i])
+		    coords_min[i] = Coords(p)[i];
+	    	if (coords_max[i] < Coords(p)[i])
+		    coords_max[i] = Coords(p)[i];
+	    }
+	}
+#if defined (__MPI__)
+	pp_global_max(coords_max,dim);
+	pp_global_min(coords_min,dim);
+	crystal_exist = pp_max_status(crystal_exist);
+#endif /* defined (__MPI__) */
+	if (!crystal_exist)
+	    return NO;
+	for (i = 0; i < dim; ++i)
+	{
+	    if (FT_RectBoundaryType(front,i,0) == PERIODIC_BOUNDARY)
+	    	continue;
+	    if (coords_min[i] - L[i] < 2*h[i] ||
+	    	U[i] - coords_max[i] < 2*h[i]) 
+	    	bdry_reached = YES;
+	}
+#if defined (__MPI__)
+	bdry_reached = pp_max_status(bdry_reached);
+	if (bdry_reached)
+	    printf("Crystal growth has reached boundary.\n");
+#endif /* defined (__MPI__) */
+	return bdry_reached;
+}	/* end bdryReached */

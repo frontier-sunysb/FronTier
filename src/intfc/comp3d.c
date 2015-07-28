@@ -4551,3 +4551,21 @@ EXPORT COMPONENT component_wrt_tri_cluster(
 	
 	return comp;
 }	/* end component_wrt_tri_cluster */
+
+EXPORT boolean mergable_surfaces(
+	SURFACE *s1,
+	SURFACE *s2)
+{
+	INTERFACE *intfc = s1->interface;
+
+	printf("Calling mergable_surfaces()\n");
+	if (positive_component(s1) == exterior_component(intfc) ||
+	    positive_component(s2) == exterior_component(intfc) ||
+	    negative_component(s1) == exterior_component(intfc) ||
+	    negative_component(s2) == exterior_component(intfc))
+	    return NO;
+	if (positive_component(s1) == positive_component(s2) &&
+	    negative_component(s1) == negative_component(s2))
+	    return YES;
+	return NO;
+}	/* end mergable_surfaces */

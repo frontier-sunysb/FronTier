@@ -408,10 +408,7 @@ EXPORT 	boolean reconstruct_intfc3d_in_box_lgb(
 		first_tri(*s)->prev = head_of_tri_list(*s);
 	    }
 	}
-	for (i = 0, s = intfc->surfaces; s && *s; ++i, ++s)
-	    if ((*s)->num_tri == 0)
-	    	delete_surface(*s);
-
+	merge_surfaces(intfc);
 	free_these(4, blk_mem, blk_mem_store,
 		blk_info.surfs, blk_info.cur_tris);
 
@@ -1216,7 +1213,6 @@ EXPORT 	boolean track_comp_through_crxings3d(
 
 	/* annihilate unphysical clusters */
 	start_clock("remove_unphysical_crxings");
-	remove_unphysical_crxings(smin,smax,gmax,intfc,crx_type,&num_ip,ips);
 
 	while(unset_comp_exist(smin,smax,intfc))
 	{
@@ -1739,7 +1735,7 @@ EXPORT	void remove_unphysical_crxings(
 			continue;
 		    
 		    /* Only release it when debugging line removal
-		    if (ix == 57 && iy == 12)
+		    if (ix == 38 && iy == 39)
 		    {
 			(void) printf("Before z removal:\n");
 			show_line_components3d(ip,smin,smax,2,intfc);
@@ -1752,7 +1748,7 @@ EXPORT	void remove_unphysical_crxings(
 				     gmax,ip,UPPER,crx_type,num_ip,ips);
 		    iz += step;
 		    /* Only release it when debugging line removal
-		    if (ix == 57 && iy == 12)
+		    if (debugging("seg_comp"))
 		    {
 			(void) printf("After z removal:\n");
 			show_line_components3d(ip,smin,smax,2,intfc);
@@ -1768,6 +1764,8 @@ EXPORT	void remove_unphysical_crxings(
 	    (void) printf("Component-crossing after z-sweep:\n");
 	    show_grid_components(smin,smax,1,intfc);
 	}
+	if (debugging("trace"))
+	    (void) printf("Passed z-sweep\n");
 
 	unset_comp_along_grid_line(intfc,smin,smax,gmax,1);
 	for (iz = smin[2]; iz <= smax[2]; ++iz)
@@ -1820,6 +1818,8 @@ EXPORT	void remove_unphysical_crxings(
 	    (void) printf("Component-crossing after y-sweep:\n");
 	    show_grid_components(smin,smax,0,intfc);
 	}
+	if (debugging("trace"))
+	    (void) printf("Passed y-sweep\n");
 
 	unset_comp_along_grid_line(intfc,smin,smax,gmax,0);
 	for (iy = smin[1]; iy <= smax[1]; ++iy)
@@ -1871,6 +1871,8 @@ EXPORT	void remove_unphysical_crxings(
 	    show_grid_components(smin,smax,2,intfc);
 	}
 	if (debugging("trace"))
+	    (void) printf("Passed x-sweep\n");
+	if (debugging("trace"))
 	    (void) printf("Leaving remove_unphysical_crxings()\n");
 }	/* end remove_unphysical_crxings */
 
@@ -1916,6 +1918,8 @@ EXPORT	boolean next_ip_in_dir(
 	    if (ip[2] >= smax[2])
 	        return NO;
 	    ipn[2] += 1;
+	case CENTER:
+	    break;
 	}
 	return YES;
 }	/* end next_ip_in_dir */
@@ -4310,6 +4314,14 @@ LOCAL void insert_block_crossings(
 
 		/* Count UPPER face crossings */
 
+	/* To release when debugging 
+	if (icrds[0] == 35 && icrds[1] == 37 && icrds[2] == 34)
+	if (icrds[0] == 38 && icrds[1] == 39)
+	{
+	    add_to_debug("block_crossing");
+	    printf("icrds = %d %d %d dir = UPPER\n",icrds[0],icrds[1],icrds[2]);
+	}
+	*/
 	k = seg_index3d(icrds[0],icrds[1],icrds[2],UPPER,gmax);
 	edge_list = seg_crx_lists[k];
 	crx_list = crx_store + *index;
@@ -4318,12 +4330,22 @@ LOCAL void insert_block_crossings(
 	{
 	    if (tri_edge_crossing(tris[i],coords,crds_crx,2,&iv,&ie,h))
 	    {
+		/* To release when debugging
+		if (debugging("block_crossing"))
+		    printf("iv = %d  ie = %d\n",iv,ie);
+		*/
 		add_to_crx_list(index,2,intfc,tris[i],surfs[i],crx_list,
 				crx_tmp_store,edge_list,&n_ecrx,crds_crx,iv,ie);
 	    }
 	}
-
 	seg_crx_count[k] = n_ecrx;
+	/*
+	if (debugging("block_crossing"))
+	{
+	    printf("n_ecrx = %d\n",n_ecrx);
+	    remove_from_debug("block_crossing");
+	}
+	*/
 
 	if (icrds[0] != xmax-1 && icrds[1] != ymax-1 && icrds[2] != zmax-1)
 	    return;
@@ -4538,13 +4560,6 @@ LOCAL	void add_to_crx_list(
 		{
 		    if (crx_tmp_store[i].vertex == p[iv])
 			return;
-		    /* Don't know why we need this
-		    POINT *ptmp = crx_list[i].pt;
-		    if (crds_crx[(ic+1)%3] == Coords(ptmp)[(ic+1)%3] &&
-			crds_crx[(ic+2)%3] == Coords(ptmp)[(ic+2)%3] &&
-			Coords(p[iv])[ic] == Coords(ptmp)[ic])
-			return;
-		    */
 		}
 	    }
 	    else if (ie != ERROR)
@@ -4646,6 +4661,15 @@ LOCAL	void add_to_crx_list(
 		crx_list[*nc].lcomp = positive_component(surf);
 		crx_list[*nc].ucomp = negative_component(surf);
 	    }
+	}
+	if (debugging("block_crossing"))
+	{
+	    printf("crx pt: %20.14f %20.14f %20.14f\n",
+				Coords(crx_list[*nc].pt)[0],
+				Coords(crx_list[*nc].pt)[1],
+				Coords(crx_list[*nc].pt)[2]);
+	    printf("crossing lcomp = %d ucomp = %d\n",
+			crx_list[*nc].lcomp,crx_list[*nc].ucomp);
 	}
 
 	crx_list[*nc].hs = Hyper_surf(surf);
@@ -5047,16 +5071,12 @@ LOCAL void unset_comp_along_grid_line(
 		    {
 			ll = seg_index3d(ip[0],ip[1],ip[2],opp_dir,gmax);
 			nnc = T->seg_crx_count[ll];
-			ii;
 			if (nnc != 0) break;
 		    	ic = d_index3d(ipn[0],ipn[1],ipn[2],gmax);
-		    	if (comp[ic] != crx->lcomp)
-			{
-		    	    if (crx->lcomp == exterior_component(intfc))
-		    		comp[ic] = crx->lcomp;
-		    	    else
-		    		comp[ic] = NO_COMP;
-			}
+		    	if (crx->lcomp == exterior_component(intfc))
+		    	    comp[ic] = crx->lcomp;
+		    	else
+		    	    comp[ic] = NO_COMP;
 			for (ii = 0; ii < 3; ++ii)
 			    ip[ii] = ipn[ii];
 		    }
@@ -5073,6 +5093,17 @@ LOCAL void unset_comp_along_grid_line(
 		    {
 			if (comp[ic] != exterior_component(intfc))
 		    	    comp[ic] = NO_COMP;
+		    }
+		    while (next_ip_in_dir(ip,opp_dir,ipn,smin,smax))
+		    {
+			ll = seg_index3d(ip[0],ip[1],ip[2],opp_dir,gmax);
+			nnc = T->seg_crx_count[ll];
+			if (nnc != 0) break;
+		    	ic = d_index3d(ipn[0],ipn[1],ipn[2],gmax);
+			if (comp[ic] != crx->lcomp)
+		    	    comp[ic] = NO_COMP;
+			for (ii = 0; ii < 3; ++ii)
+			    ip[ii] = ipn[ii];
 		    }
 		}
 		ip[0] = i; ip[1] = j; ip[2] = k;

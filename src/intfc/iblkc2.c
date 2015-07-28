@@ -239,16 +239,28 @@ EXPORT	int construct_comp2_blk(
 	{
 	    if (crxs[i]->s != crxs[0]->s)
 	    {  
-		printf("surface_numbe of crxs[0]->s = %llu\n",
+		if (mergable_surfaces(crxs[i]->s,crxs[0]->s))
+		{
+		    unique_add_to_pointers(crxs[0]->s,&crxs[i]->s->merge_surfs);
+		    unique_add_to_pointers(crxs[i]->s,&crxs[0]->s->merge_surfs);
+		    printf("crxs[0]->s->merge_surfs = %p\n",
+				(POINTER)crxs[0]->s->merge_surfs);
+		    printf("crxs[i]->s->merge_surfs = %p\n",
+				(POINTER)crxs[i]->s->merge_surfs);
+		}
+		else
+		{
+		    printf("surface_numbe of crxs[0]->s = %llu\n",
 			(long long unsigned int)surface_number(crxs[0]->s));    
-		printf("surface_numbe of crxs[i]->s = %llu\n",
+		    printf("surface_numbe of crxs[i]->s = %llu\n",
 			(long long unsigned int)surface_number(crxs[i]->s));
-	        screen("ERROR in construct_comp2_blk(), more than "
-	               "one surface in a block, code needed\n");
-		(void) printf("crx[%d]->hs = %p  crx[0] = %p\n",
+	            screen("ERROR in construct_comp2_blk(), more than "
+	               "one non-mergable surface in a block, code needed\n");
+		    (void) printf("crx[%d]->hs = %p  crx[0] = %p\n",
 		              i,(void*)crxs[i]->s,(void*)crxs[0]->s);
-                (void) printf("i = %d,num_crx = %d\n",i,num_crx);
-		clean_up(ERROR);
+                    (void) printf("i = %d,num_crx = %d\n",i,num_crx);
+		    clean_up(ERROR);
+		}
 	    }
 	}
 	if (blk_crx->nv[0] > 4)

@@ -266,6 +266,7 @@ struct _TRI
 	    int		   _icoords[3];
 	    boolean           _projection_computed;
 	    boolean	   _modified;
+	    boolean	    _sorted;
 	    /* The following is used in ellip for 3d tetrahedral mesh */
 	    struct
             {
@@ -345,6 +346,7 @@ struct _SURFACE
 	/* The folllowing are used for surface propagation */
 	char vfunc_name[256];
 	POINTER vel_pack;
+	struct _SURFACE **merge_surfs;
 };
 typedef struct _SURFACE SURFACE;
 
@@ -849,6 +851,7 @@ enum {
         /* NOTE: These side and corner definitions allow bitwise comparisons */        /* ie:   NORTH_WEST == NORTH & WEST,  etc */
 
 enum _GRID_DIRECTION {
+	CENTER = 0x00,
         EAST  = 0x01,
         WEST  = 0x02,
         NORTH = 0x04,

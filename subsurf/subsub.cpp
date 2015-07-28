@@ -309,54 +309,6 @@ void read_dirichlet_bdry_data(
 	fclose(infile);
 }	/* end read_dirichlet_bdry_data */
 
-void solute_read_front_states(
-	FILE *infile,
-	Front *front)
-{
-        INTERFACE *intfc = front->interf;
-        STATE *sl,*sr;
-        POINT *p;
-        HYPER_SURF *hs;
-        HYPER_SURF_ELEMENT *hse;
-        double x;
-
-
-        /* Initialize states at the interface */
-        next_output_line_containing_string(infile,"Interface solute states:");
-        next_point(intfc,NULL,NULL,NULL);
-        while (next_point(intfc,&p,&hse,&hs))
-        {
-            FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-            fscanf(infile,"%lf",&x);
-            sl->solute = x;
-            fscanf(infile,"%lf",&x);
-            sr->solute = x;
-        }
-	FT_MakeGridIntfc(front);
-}	/* end solute_read_front_states */
-
-void solute_print_front_states(
-	FILE *outfile,
-	Front *front)
-{
-	INTERFACE *intfc = front->interf;
-	STATE *sl,*sr;
-        POINT *p;
-        HYPER_SURF *hs;
-        HYPER_SURF_ELEMENT *hse;
-
-        /* Initialize states at the interface */
-        fprintf(outfile,"Interface solute states:\n");
-        int count = 0;
-        next_point(intfc,NULL,NULL,NULL);
-        while (next_point(intfc,&p,&hse,&hs))
-        {
-            count++;
-            FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-            fprintf(outfile,"%24.18g %24.18g\n",sl->solute,sr->solute);
-        }
-}	/* end solute_print_front_states */
-
 void read_ss_dirichlet_bdry_data(
 	char *inname,
         Front *front,
@@ -851,7 +803,6 @@ extern void ifluid_point_propagate(
 	switch(wave_type(oldhs))
 	{
         case SUBDOMAIN_BOUNDARY:
-	    printf("Test position 1\n");
 	    break;
 	case NEUMANN_BOUNDARY:
 	case MOVABLE_BODY_BOUNDARY:

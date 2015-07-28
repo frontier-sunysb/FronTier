@@ -452,6 +452,7 @@ IMPORT  boolean    is_tri_outside(INTERFACE*,TRI*,RECT_GRID*);
 IMPORT  boolean    is_tri_outside_box(TRI*, double **);
 IMPORT  boolean    is_outside_surface(INTERFACE*,SURFACE*,RECT_GRID*);
 IMPORT  boolean    is_outside_surfaces(INTERFACE*,RECT_GRID*);
+IMPORT  boolean    mergable_surfaces(SURFACE*,SURFACE*);
 IMPORT  void    delete_outside_surface(INTERFACE *);
 IMPORT  COMPONENT component_wrt_tri_cluster(double*,SURFACE*,TRI**,int);
 IMPORT  SIDE    nearest_point_to_tri_cluster(double*,COMPONENT,SURFACE*,
@@ -969,7 +970,11 @@ IMPORT  void 	xgraph_new_data_set(FILE*);
 IMPORT  void 	xgraph_point(FILE*,double*,const COORDINATE_PLANE,const char*);
 IMPORT  void 	xgraph_tri(FILE*,TRI*,const COORDINATE_PLANE);
 IMPORT  void 	xgraph_tris_list(FILE*,TRI**,int,const COORDINATE_PLANE);
+IMPORT  void 	xgraph_function(FILE*,double*,double*,int,int,char*);
 IMPORT  boolean    point_within_range(POINT*,double*,double,int);
+
+/*	itopo.c*/
+IMPORT	void 	merge_surfaces(INTERFACE*);
 
 #ifdef IMESH
 /*   iMesh.c auxilary */

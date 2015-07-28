@@ -61,18 +61,26 @@ EXPORT	void FT_Propagate(
             {
                 if (front->old_grid_intfc != NULL)
                     FT_FreeOldGridIntfc(front);
-                front->old_grid_intfc = front->grid_intfc;
             }
-	    else
-	    	FT_MakeGridIntfc(front);
+	    FT_MakeGridIntfc(front);
 	}
 	FrontAdvance(front->dt,&dt_frac,front,&newfront,
                                 (POINTER)NULL);
         assign_interface_and_free_front(front,newfront);
 	if (front->grid_intfc != NULL)
 	{
-	    FT_FreeGridIntfc(front);
-	    FT_MakeGridIntfc(front);
+	    if (TwoStepIntfc(front) == YES)
+	    {
+                if (front->old_grid_intfc != NULL)
+                    FT_FreeOldGridIntfc(front);
+		front->old_grid_intfc = front->grid_intfc;
+	    	FT_MakeGridIntfc(front);
+	    }
+	    else
+	    {
+	    	FT_FreeGridIntfc(front);
+	    	FT_MakeGridIntfc(front);
+	    }
 	}
 	if (front->comp_grid_intfc != NULL)
 	{
@@ -363,11 +371,12 @@ EXPORT	void	FT_Init(
 	char file_name[256];
 	FILE *ifile;
 
+        pp_init(&argc,&argv);
+	if (f_basic == NULL) return;
+
 	f_basic->ReadFromInput = NO;
 	f_basic->RestartRun = NO;
     	f_basic->dim = 1;
-
-        pp_init(&argc,&argv);
 
 	argc--;
 	argv++;
@@ -590,6 +599,14 @@ EXPORT	void FT_ParallelExchGridArrayBuffer(
 	scatter_top_grid_float_array(DUAL_GRID,grid_array,front,symmetry);
 }	/* end FT_ParallelExchGridArrayBuffer */
 
+EXPORT	void FT_ParallelExchGridStructArrayBuffer(
+	POINTER pstruct,
+	Front *front,
+	int psize)
+{
+	scatter_top_grid_struct_array(DUAL_GRID,pstruct,front,psize);
+}	/* end FT_ParallelExchGridStructArrayBuffer */
+
 EXPORT	void FT_ParallelExchGridIntArrayBuffer(
 	int *iarray,
 	Front *front)
@@ -661,6 +678,32 @@ EXPORT	boolean FT_StateVarAtGridCrossing(
 	*ans = (*state_func)(state);
 	return YES;
 }	/* end FT_StateVarAtGridCrossing */
+
+EXPORT	boolean FT_StateVarAtPrevStepCrossing(
+	Front *front,
+	int *icoords,
+	GRID_DIRECTION dir,
+	COMPONENT comp,
+	double (*state_func)(Locstate),
+	double *ans,
+	double *crx_coords)
+{
+	Locstate state;
+	HYPER_SURF *hs;
+	INTERFACE *grid_intfc = front->old_grid_intfc;
+
+	if (!TwoStepIntfc(front)) 
+	{
+	    (void) printf("ERROR: FT_StateVarAtPrevStepCrossing() requires "
+	    		  "setting TwoStepIntfc(front) to YES\n");
+	    clean_up(ERROR);
+	}
+	if (!FT_StateStructAtGridCrossing(front,grid_intfc,icoords,dir,comp,
+		&state,&hs,crx_coords))
+	    return NO;
+	*ans = (*state_func)(state);
+	return YES;
+}	/* end FT_StateVarAtPrevStepCrossing */
 
 EXPORT	boolean FT_NormalAtGridCrossing(
 	Front *front,
@@ -824,6 +867,34 @@ EXPORT	boolean FT_StateStructAtGridCrossing2(
 	}
 	return YES;
 }	/* end FT_StateStructAtGridCrossing2 */
+
+EXPORT	boolean FT_CoordsAtGridCrossing(
+	Front *front,
+	INTERFACE *grid_intfc,
+	int *icoords,
+	GRID_DIRECTION dir,
+	COMPONENT comp,
+	HYPER_SURF **hs,
+	double *crx_coords)
+{
+        int j;
+	int crx_index;
+	static CRXING *crxs[MAX_NUM_CRX];
+	int i,nc,dim = grid_intfc->dim;
+
+	crx_index = 0;
+	nc = GridSegCrossing(crxs,icoords,dir,grid_intfc);
+	if (nc == 0) return NO;
+	if (dir == EAST || dir == NORTH || dir == UPPER)
+	    crx_index = 0;
+	else
+	    crx_index = nc - 1;
+
+	*hs = crxs[crx_index]->hs;
+	for (i = 0; i < dim; ++i)
+	    crx_coords[i] = Coords(crxs[crx_index]->pt)[i];
+	return YES;
+}	/* end FT_CoordsAtGridCrossing */
 
 LOCAL double lin_cell_tol;
 
@@ -3205,6 +3276,8 @@ EXPORT	void FT_SetTimeStep(
 	pp_global_min(&max_dt,1);
 #endif /* defined(__MPI__) */
 	front->dt = max_dt;
+	if (debugging("step_size"))
+            printf("Time step from FT_SetTimeStep(): %f\n",front->dt);
 }	/* end FT_SetTimeStep */
 
 EXPORT	void FT_InitDebug(char *inname)

@@ -15,19 +15,24 @@
 #include <petscksp.h>
 #include <assert.h>
 
-#define         CRYSTAL_COMP            1
+#define         CRYSTAL_COMP            0
 #define         SOLUTE_COMP             3
 
 enum _DF_SCHEME {
 	UNSPLIT_EXPLICIT = 1,
 	UNSPLIT_IMPLICIT,
-	CRANK_NICOLSON
+	CRANK_NICOLSON,
+	CONSERVATIVE_EXPLICIT,
+	CONSERVATIVE_IMPLICIT,
+	CONSERVATIVE_CRANK_NICOLSON
 };
 typedef enum _DF_SCHEME DF_SCHEME;
 
 struct _CRT_FIELD {
         double *solute;
 	double **vel;
+	double *source;
+	CELL_PART *cell_part;
 };
 typedef struct _CRT_FIELD CRT_FIELD;
 
@@ -85,6 +90,11 @@ struct _FUEL_SAMPLE_PARAMS {
 };
 typedef struct _FUEL_SAMPLE_PARAMS FUEL_SAMPLE_PARAMS;
 
+#define		is_conservative(num_scheme) 			\
+		((num_scheme) == CONSERVATIVE_EXPLICIT ||	\
+		 (num_scheme) == CONSERVATIVE_IMPLICIT ||	\
+		 (num_scheme) == CONSERVATIVE_CRANK_NICOLSON)
+
 extern double   half_moon_density(POINTER,double*);
 extern double   perturbed_density(POINTER,double*);
 extern double   fuel_sample_density(POINTER,double*);
@@ -141,6 +151,7 @@ public:
 	double *top_L,*top_U,*top_h,hmin;
 	int *top_gmax;
 	COMPONENT *top_comp;
+	COMPONENT *top_comp_old;	// Save for new time step
 	CRT_PARAMS *cRparams;
 	CRT_FIELD *field;
 
@@ -148,10 +159,16 @@ public:
 	int *i_to_I,*I_to_i;		// Index mapping for 1D
 	int **ij_to_I,**I_to_ij;	// Index mapping for 2D
 	int ***ijk_to_I,**I_to_ijk;	// Index mapping for 3D
+	double **time_data;
+	double accum_influx;
+	double total_solute0;
+	double total_matter0;
+	double total_crystl0;
 
 	// Sweeping limites
 	int imin,jmin,kmin;
 	int imax,jmax,kmax;
+	int mesh_size;
 
 	// member data: mesh storage
 	std::vector<C_RECTANGLE> 	cell_center;
@@ -172,22 +189,23 @@ public:
 	void setComponent(void);	// init components	
 	void setAdvectionDt(void);	// compute time step 	
 	void setBoundary(void);		// set up boundary conditions 	
-	void printFrontInteriorStates(char*);
+	void printFrontInteriorStates();
 	void copySolute(void);
 
 	void computeAdvection(void);
 
-	void computeAdvectionCN(void);
-	void computeAdvectionExplicit(void);
-	void computeAdvectionImplicit(void);
 	void computeAdvectionIM1d(void);
 	void computeAdvectionIM2d(void);
 	void computeAdvectionIM3d(void);
+	void conservativeIntfcCrossing(int);
+	void computeSource(void);
+	void computeCellSource(int,double*);
 
 	// interface functions
 	void setDomain();
 
 	// Extra plot functions
+	void crystalDraw();
 	void oneDimPlot(char*);
 	void xgraphOneDimPlot(char*);
 	void vtk_plot_concentration2d(char*);
@@ -195,6 +213,8 @@ public:
         void sampleSolute();
         void sampleSolute2d();
         void sampleSolute3d();
+        void timeStepAnalysis(boolean);
+        double computeTotalMass(double*,double*,double*,double*,boolean);
 
 	// Extra movie functions
         void initMovieVariables(void);
@@ -228,25 +248,26 @@ public:
 
 	void getRectangleIndex(int indexRectangle, int &i, int &j);
 	void getRectangleIndex(int indexRectangle, int &i, int &j, int &k);
+	void getRectangleIndex(int indexRectangle, int*);
 	void getRectangleCenter(int index, double *coords);
 	void getRectangleCenter(int index0, int index1, double *coords);
 	
 	void save(char *filename);
 };
 
-extern double   getStateSolute(POINTER);
+//crysub.cpp
 extern void 	solute_print_front_states(FILE*,Front*);
 extern void 	solute_read_front_states(FILE*,Front*);
-extern void	read_crystal_params(char*,CRT_PARAMS*);
+extern double   getStateSolute(POINTER);
 extern void	crystal_point_propagate(Front*,POINTER,POINT*,POINT*,	
 			HYPER_SURF_ELEMENT*,HYPER_SURF*,double,double*);
-extern void	record_1d_growth(Front*,double***,int*);
-extern void 	plot_growth_data(char*,double**,int);
+extern void	read_crystal_params(char*,CRT_PARAMS*);
+extern void	intfc_1d_data(Front*,double*,double*);
 extern void 	read_seed_params(int,FILE*,SEED_PARAMS*);
 extern void 	read_crt_dirichlet_bdry_data(char*,Front*,F_BASIC_DATA);
-extern boolean 	fractal_dimension(Front*,SEED_PARAMS,double*,double*);
+extern void 	fractal_dimension(Front*,SEED_PARAMS*,double*,double*);
 extern void	setInitialIntfc(Front*,LEVEL_FUNC_PACK*,char*);
 extern void	initFrontStates(Front*);
 extern void 	read_restart_params(int,char*,Front*);
-
+extern boolean  bdryReached(Front*);
 #endif

@@ -36,6 +36,7 @@ isect2d.$(OBJEXT) \
 isect3d.$(OBJEXT) \
 isub.$(OBJEXT) \
 isurgery.$(OBJEXT) \
+itopo.$(OBJEXT) \
 iuserintfc.$(OBJEXT) \
 map.$(OBJEXT) \
 ppcopy.$(OBJEXT) \

@@ -3214,8 +3214,7 @@ LOCAL	void	hdf_plot_var2d(
 	int ic,size,max_size;
 	boolean data_in_domain = NO;
 	COMPONENT c;
-	static int count = 0;
-	count++;
+	int ic_min[MAXD],ic_max[MAXD];
 
 	if (debugging("hdf"))
 	{
@@ -3298,9 +3297,17 @@ LOCAL	void	hdf_plot_var2d(
 	    FT_IntrpStateVarAtCoords(front,c,coords,var,get_state_var,
 					var_val+k,NULL);
 	    if (var_val[k] < min_val)
+	    {
 		min_val = var_val[k];
+		ic_min[0] = i;
+		ic_min[1] = j;
+	    }
 	    if (var_val[k] > max_val)
+	    {
 		max_val = var_val[k];
+		ic_max[0] = i;
+		ic_max[1] = j;
+	    }
             k++;
 	}
 #if defined(__MPI__)
@@ -3345,8 +3352,10 @@ LOCAL	void	hdf_plot_var2d(
 #endif /* defined(__MPI__) */
 	    if (debugging("hdf"))
 	    {
-	    	printf("Maximum variable value: %f\n",max_val);
-	    	printf("Minimum variable value: %f\n",min_val);
+	    	printf("Maximum value: %f at (%d,%d)\n",max_val,
+				ic_max[0],ic_max[1]);
+	    	printf("Minimum value: %f at (%d,%d)\n",min_val,
+				ic_min[0],ic_min[1]);
 	    }
 	    if (preset_bound)
 	    {

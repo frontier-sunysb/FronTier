@@ -4,9 +4,7 @@ Front Traking algorithms. Front Tracking is a numerical method for
 the solution of partial differential equations whose solutions 
 have discontinuities.  
 
-
 Copyright (C) 1999 by The University at Stony Brook. 
- 
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -492,6 +490,20 @@ struct _VTK_MOVIE_VAR {
 	char *intfc_var_name;
 };
 typedef struct _VTK_MOVIE_VAR VTK_MOVIE_VAR;
+
+struct _CELL_PART {			/* Cell partition data structure */
+	double vol_old[2];
+	double vol_new[2];
+	int nr_old;		/* Number of received neighbor volumes */
+	int nr_new;		/* Number of received neighbor volumes */
+	int ns_old;		/* Number of neighbors sent */
+	int ns_new;		/* Number of neighbors sent */
+	int icn_old[8];		/* For current code, maximum of 8 */
+	int icn_new[8];		/* For current code, maximum of 8 */
+	int icn_old_send[8];
+	int icn_new_send[8];
+};
+typedef struct _CELL_PART CELL_PART;
 
 struct _Front {
 		/* Grid Specification */

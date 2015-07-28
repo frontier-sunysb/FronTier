@@ -342,7 +342,7 @@ EXPORT POINTER array_T(
 	space = HEADER_OFFSET +  /* Size of header in bytes */
 	        num_aligns(num_pointers*sizeof(POINTER))*sizeof(ALIGN) +
 		                 /* Size of storage for row pointers in bytes */
-		num_elements*size + /* Size of storage for data in bytes */
+		num_elements*(size_t)size + /* Size of storage for data in bytes */
 		sizeof(ALIGN);      /* Storage for tail block */
 	naligns = num_aligns(space);
 	space = sizeof(ALIGN)*naligns;

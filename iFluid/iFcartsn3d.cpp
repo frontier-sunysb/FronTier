@@ -1709,7 +1709,7 @@ void Incompress_Solver_Smooth_3D_Cartesian::
 	    parab_solver.var = vel[l];
 	    parab_solver.soln = vel[l];
 	    parab_solver.getStateVarFunc = getStateVel[l];
-	    parab_solver.runge_kutta();
+	    parab_solver.solveIM();
 	}
 
 	if (debugging("trace"))
@@ -1973,10 +1973,10 @@ void Incompress_Solver_Smooth_3D_Cartesian::setParallelVelocity(void)
             uni_array(&GV_buff,G_size,sizeof(double));
             uni_array(&GW_buff,G_size,sizeof(double));
 
-	    if (getInitialState != NULL)
+	    if (setInitialVelocity != NULL)
                 (*setInitialVelocity)(comp,pp_grid->Global_grid.gmax,
 				   GU_buff,GV_buff,GW_buff,
-				   dim,iFparams);
+				   &(pp_grid->Global_grid),iFparams);
             for (id = 0; id < numprocs; id++)
             {
                 find_Cartesian_coordinates(id,pp_grid,pp_icoords);

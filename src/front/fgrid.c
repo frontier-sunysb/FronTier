@@ -93,7 +93,7 @@ LOCAL	int set_grid_intfc_components1d(
 	{
 	    for (; ix <= xmax; ++ix)
 	    {
-	        if (edges[ix] < Coords(*p)[0])
+	        if (edges[ix] <= Coords(*p)[0])
 	            comps[ix] = negative_component(*p);
 	        else
 	            break;
