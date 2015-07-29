@@ -23,13 +23,13 @@ function parse_arguments {
     WITHHYPRE=1
     WITHHDF=1
     WITHGD=1
-    COPTS_GCC="-fopenmp"
+    COPTS_GCC="-fopenmp -Wno-unused-result"
 export BASECODE="no"
 
     for arg in $@ ; do
         if [[ "$arg" == "-d" ]]; then
 	    OPTS="-g -rdynamic"
-	    COPTS_GCC="-fopenmp -pedantic -Wno-long-long"
+	    COPTS_GCC="-fopenmp -pedantic -Wno-long-long -Wno-unused-result"
 	    COPTS_ICC="-Wall"
         elif [[ "$arg" == "-n" ]]; then
 	    NOMAKE=1
