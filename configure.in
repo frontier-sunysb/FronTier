@@ -492,6 +492,7 @@ inverse/Makefile
 solver/Makefile
 weno/Makefile
 proj/Makefile
+swap/Makefile
 devel-deps.inc
 iMesh-Defs.inc'
 fi

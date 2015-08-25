@@ -31,6 +31,7 @@ all:
 	cd timeSeries && $(MAKE)
 	cd poisson && $(MAKE)
 	cd subsurf && $(MAKE)
+	cd swap && $(MAKE)
 else ifeq ($(BASECODE),adv)
 all:
 	cd src && $(MAKE)
@@ -295,6 +296,9 @@ $$ME/poisson/*.h \
 $$ME/poisson/Makefile.in \
 $$ME/iTaps/*.cpp \
 $$ME/iTaps/Makefile.in \
+$$ME/swap/*.cpp \
+$$ME/swap/*.h \
+$$ME/swap/Makefile.in \
 $$ME/src/intfc/*.c \
 $$ME/src/intfc/*.h  \
 $$ME/src/intfc/*.cu \

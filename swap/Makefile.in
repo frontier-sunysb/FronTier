@@ -1,0 +1,50 @@
+CC=@CXX@
+CXX=@CXX@
+F77=@F77@
+F77_LIBS=@F77_LIBS@
+
+libext = @libext@
+incs =  @ftlibincs@
+libincs = @otherlibsinc@
+libs = @otherlibs@ -lboost_system
+build_cpu = @build_cpu@
+incsloc = -I. -I../include
+
+PETSC = yes
+PETSC_ARCH=@PETSC_ARCH@
+PETSC_DIR=@PETSC_DIR@
+
+
+Petsc_Include=@PETSC_INCLUDE@ 
+Petsc_Lib=@PETSC_LIB@ 
+
+USEGPU = @USEGPU@
+
+swap : @devel@
+
+sim.o : swap.h sim.cpp
+	${CXX} -c sim.cpp $(incsloc) $(incs) ${Petsc_Include}
+sub.o : swap.h sub.cpp
+	${CXX} -c sub.cpp $(incsloc) $(incs) ${Petsc_Include}
+web.o : swap.h web.cpp
+	${CXX} -c web.cpp $(incsloc) $(incs) ${Petsc_Include}
+
+swap: swap.h swap.cpp sim.o sub.o web.o
+	${CXX} -c swap.cpp $(incsloc) $(incs) ${Petsc_Include}
+	$(CXX) -o swap swap.o sim.o sub.o web.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
+
+-include ../devel-deps.inc
+
+clean:
+	rm -rf *.o swap 
+output :
+	rm -rf out/*
+
+TagsFile:
+	ctags *.cpp *.h ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+
+tagsfile:
+	ctags *.cpp *.h ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]
+
+etagsfile:
+	etags *.cpp *.h ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]

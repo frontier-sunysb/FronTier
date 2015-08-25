@@ -1045,16 +1045,16 @@ extern void InstallNewLoadNode(
 		nb = (int)spacing/(0.25*h[0]);
 		spacing /= (double)nb;
 		bond = string_curves[i]->first;
-		bond->length0 = spacing;
 		for (j = 1; j < nb; ++j)
 		{
 		    for (k = 0; k < 3; ++k)
                     	coords[k] = Coords((*n)->posn)[k] +
                                         j*dir[k]*spacing;
                     insert_point_in_bond(Point(coords),bond,string_curves[i]);
-                    bond = bond->next;
 		    bond->length0 = spacing;
+                    bond = bond->next;
 		}
+		bond->length0 = spacing;
 		i++;
 	    }
 	}	
