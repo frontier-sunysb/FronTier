@@ -58,6 +58,11 @@ int main(int argc, char **argv)
                 argc -= 2;
                 argv += 2;
                 break;
+	    case 't':
+		trade_data = YES;
+		argc -= 1;
+                argv += 1;
+                break;
 	    }
 	}
 
@@ -90,8 +95,8 @@ int main(int argc, char **argv)
 	    DataCompare(data);
 	if (trade_data)
 	{
-	    printf("To trade data\n");
-	    exit(0);
+	    InvestShares(data);
+	    TradeShares(data);
 	}
 
 	if (simulate_data)

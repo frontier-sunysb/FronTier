@@ -10,6 +10,7 @@
 using namespace std;
 
 #define         MAX_TRACE               212
+#define         MAX_NUM_TRADE           200
 
 const char Xcolor[][100] ={"red","orange","blue",
 			   "green","violet","navy",
@@ -38,10 +39,25 @@ struct _DATA_SET
 	char **date;
 	boolean new_data;
 	boolean *data_map;
+	int *shares;
+	int num_trades;
+	struct _TRADE *trades;
+};
+
+struct _TRADE
+{
+	boolean closed;
+	int index_buy[2];
+	int index_sell[2];
+	int num_shares_buy[2];
+	int num_shares_sell[2];
+	double price_buy[2];
+	double price_sell[2];
 };
 
 typedef struct _ASSET ASSET;
 typedef struct _DATA_SET DATA_SET;
+typedef struct _TRADE TRADE;
 
 /* sim.cpp */
 extern void InvestSimulation(DATA_SET*);
@@ -61,6 +77,8 @@ extern void DataInfo(DATA_SET*);
 extern void DataCompare(DATA_SET*);
 extern void DataTrend(DATA_SET*);
 extern void PromptForDataMap(DATA_SET*);
+extern void InvestShares(DATA_SET*);
+extern void TradeShares(DATA_SET*);
 extern DATA_SET *CopyData(DATA_SET*);
 
 /* web.cpp */

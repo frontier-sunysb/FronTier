@@ -615,11 +615,35 @@ extern void ReadData(
 		data->assets[j].value[i] = ave_value/data->num_assets;
 		data->assets[j].norm_value[i] = ave_value/data->num_assets;
 	    }
-	    /*
-	    if (CursorAfterStringOpt(infile,"Investment Portfolio"))
-	    {
-	    }
-	    */
+	    if (fgetstring(infile,"Investment Portfolio"))
+            {
+                FT_VectorMemoryAlloc((POINTER*)&data->shares,data->num_assets,
+                                        sizeof(int));
+                for (j = 0; j < data->num_assets; ++j)
+                    fscanf(infile,"%d",data->shares+j);
+            }
+            if (fgetstring(infile,"Trading Record"))
+            {
+                FT_VectorMemoryAlloc((POINTER*)&data->trades,MAX_NUM_TRADE,
+                                        sizeof(TRADE));
+                fscanf(infile,"%d",&data->num_trades);
+                for (j = 0; j < data->num_trades; ++j)
+		{
+                    fscanf(infile,"%d",(int*)&data->trades[j].closed);
+                    fscanf(infile,"%d %d\n",data->trades[j].index_buy,
+                                data->trades[j].index_buy+1);
+                    fscanf(infile,"%d %d\n",data->trades[j].index_sell,
+                                data->trades[j].index_sell+1);
+                    fscanf(infile,"%d %d\n",data->trades[j].num_shares_buy,
+                                data->trades[j].num_shares_buy+1);
+                    fscanf(infile,"%d %d\n",data->trades[j].num_shares_sell,
+                                data->trades[j].num_shares_sell+1);
+                    fscanf(infile,"%lf %lf\n",data->trades[j].price_buy,
+                                data->trades[j].price_buy+1);
+                    fscanf(infile,"%lf %lf\n",data->trades[j].price_sell,
+                                data->trades[j].price_sell+1);
+		}
+            }
 	    fclose(infile);
 	}
 }	/* end ReadData */
@@ -658,6 +682,33 @@ extern void WriteData(
 		fprintf(outfile,"%f ",data->assets[j].value[i]);
 	    }
 	    fprintf(outfile,"\n");
+	}
+	if (data->shares)
+	{
+	    fprintf(outfile,"Investment Portfolio\n");
+	    for (j = 0; j < data->num_assets; ++j)
+		fprintf(outfile,"%d\n",data->shares[j]);
+	}
+	if (data->num_trades != 0)
+	{
+	    fprintf(outfile,"Trading Record\n");
+	    fprintf(outfile,"%d\n",data->num_trades);
+	    for (j = 0; j < data->num_trades; ++j)
+	    {
+	    	fprintf(outfile,"%d\n",data->trades[j].closed);
+	    	fprintf(outfile,"%d %d\n",data->trades[j].index_buy[0],
+				data->trades[j].index_buy[1]);
+	    	fprintf(outfile,"%d %d\n",data->trades[j].index_sell[0],
+				data->trades[j].index_sell[1]);
+	    	fprintf(outfile,"%d %d\n",data->trades[j].num_shares_buy[0],
+				data->trades[j].num_shares_buy[1]);
+	    	fprintf(outfile,"%d %d\n",data->trades[j].num_shares_sell[0],
+				data->trades[j].num_shares_sell[1]);
+	    	fprintf(outfile,"%f %f\n",data->trades[j].price_buy[0],
+				data->trades[j].price_buy[1]);
+	    	fprintf(outfile,"%f %f\n",data->trades[j].price_sell[0],
+				data->trades[j].price_sell[1]);
+	    }
 	}
 	fclose(outfile);
 }	/* end WriteData */
