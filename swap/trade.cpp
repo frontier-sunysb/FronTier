@@ -1,6 +1,7 @@
 #include "swap.h"
 
 static void PrintOpenTrade(DATA_SET*);
+static void PrintClosedTrade(FILE*,TRADE,DATA_SET*);
 
 #define 	MAX_NUM_TRADE		200
 
@@ -134,3 +135,99 @@ static void PrintOpenTrade(
 				data->assets[ib].asset_name,100*(npb-nps));
 	}
 }	/* PrintOpenTrade */
+
+extern void PrintProfitableTrade(
+	DATA_SET *data)
+{
+	TRADE trade;
+	int i,is,ib;
+	int n = data->num_days - 1;
+	double ps[2],pb[2];
+	double ratio;
+
+	for (i = 0; i < data->num_trades; ++i)
+	{
+	    if (data->trades[i].closed) continue;
+	    ft_assign(&trade,&data->trades[i],sizeof(TRADE));
+	    trade.closed = YES;
+	    ib = data->trades[i].index_buy[0];
+	    is = data->trades[i].index_sell[0];
+	    trade.index_buy[1] = is;
+	    trade.index_sell[1] = ib;
+	    pb[0] = trade.price_buy[0];
+	    ps[0] = trade.price_sell[0];
+	    pb[1] = trade.price_buy[1] = data->assets[is].value[n];
+	    ps[1] = trade.price_sell[1] = data->assets[ib].value[n];
+	    trade.num_shares_sell[1] = trade.num_shares_buy[0];
+	    trade.num_shares_buy[1] = (int)trade.num_shares_sell[1]*ps[1]/pb[1];
+	    ratio = ps[0]*ps[1]/pb[0]/pb[1];
+	    printf("Amplification factor of open trade %4s/%-4s= %f\n",
+				data->assets[is].asset_name,
+				data->assets[ib].asset_name,ratio);
+	    if (ratio > 1.0)
+	    	PrintClosedTrade(NULL,trade,data);
+	}
+}	/* end PrintProfitableTrade */
+
+static void PrintClosedTrade(
+	FILE *outfile,
+	TRADE trade,
+	DATA_SET *data)
+{
+	int *is,*ib;
+	int *ns,*nb;
+	double *ps,*pb;
+	is = trade.index_sell;
+	ib = trade.index_buy;
+	ns = trade.num_shares_sell;
+	nb = trade.num_shares_buy;
+	ps = trade.price_sell;
+	pb = trade.price_buy;
+
+	if (outfile == NULL)
+	{
+	    printf(" Forward trade: Sell  %-4s %d at %7.3f | ",
+                        data->assets[is[0]].asset_name,ns[0],ps[0]);
+            printf("Buy %-4s %d at %7.3f\n",
+                        data->assets[ib[0]].asset_name,nb[0],pb[0]);	    
+	    printf("Backward trade: Sell  %-4s %d at %7.3f | ",
+                        data->assets[is[1]].asset_name,ns[1],ps[1]);
+            printf("Buy %-4s %d at %7.3f\n",
+                        data->assets[ib[1]].asset_name,nb[1],pb[1]);	    
+	    if (is[0] != ib[1] || is[1] != ib[0])
+	    {
+	    	printf("Warning: not a matched trade!\n\n");
+		return;
+	    }
+	    printf("Gain: %-4s %d; %-4s %d; Cash: %f Amp-ratio: %f\n",
+			data->assets[is[0]].asset_name,
+			nb[1]-ns[0],
+			data->assets[is[1]].asset_name,
+			nb[0]-ns[1],
+			ns[0]*ps[0]+ns[1]*ps[1]-nb[0]*pb[0]-nb[1]*pb[1],
+			ps[0]*ps[1]/pb[0]/pb[1]);
+	}
+	else
+	{
+	    if (is[0] != ib[1] || is[1] != ib[0])
+	    {
+	    	printf("Warning: not a matched trade!\n\n");
+		return;
+	    }
+	    fprintf(outfile," Forward trade: Sell  %-4s %d at %7.3f | ",
+                        data->assets[is[0]].asset_name,ns[0],ps[0]);
+            fprintf(outfile,"Buy %-4s %d at %7.3f\n",
+                        data->assets[ib[0]].asset_name,nb[0],pb[0]);	    
+	    fprintf(outfile,"Backward trade: Sell  %-4s %d at %7.3f | ",
+                        data->assets[is[1]].asset_name,ns[1],ps[1]);
+            fprintf(outfile,"Buy %-4s %d at %7.3f\n",
+                        data->assets[ib[1]].asset_name,nb[1],pb[1]);	    
+	    fprintf(outfile,"Gain: %-4s %d; %-4s %d; Cash: %f Amp-ratio: %f\n",
+			data->assets[is[0]].asset_name,
+			nb[1]-ns[0],
+			data->assets[is[1]].asset_name,
+			nb[0]-ns[1],
+			ns[0]*ps[0]+ns[1]*ps[1]-nb[0]*pb[0]+nb[1]*pb[1],
+			ps[0]*ps[1]/pb[0]/pb[1]);
+	}
+}	/* end PrintClosedTrade */

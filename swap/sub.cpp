@@ -246,10 +246,15 @@ extern void AdjustBase(
 	int i,j,N = 10;
 	int num_days = data->num_days;
 	int is;
+	double ave_value = 0.0;
 
 	is = (data->num_days < data->num_backtrace) ? 0 :
 			data->num_days - data->num_backtrace;
-	data->assets[istar].base_value = data->assets[istar].value[is];
+	for (i = is; i < num_days; ++i)
+	    ave_value += data->assets[istar].value[i];
+
+	data->assets[istar].base_value = ave_value/(num_days-is);
+	//data->assets[istar].base_value = data->assets[istar].value[is];
 	data->assets[iplnt].base_value = data->assets[iplnt].value[is];
 
 	xl = xu = data->assets[iplnt].base_value;
@@ -848,45 +853,50 @@ extern void DataInfo(
 	int num_ave = 0;
 	int is_first,is_last;
 
-	printf("Type yes to get data information: ");
+	printf("Type yes to get rate of change: ");
 	scanf("%s",string);
-	if (string[0] != 'y' && string[0] != 'Y')
-	    return;
+	if (string[0] == 'y' || string[0] == 'Y')
+	{
+
+	    printf("\n");
+	    printf("          Immediate   "
+	       		"     One-day     "
+	       		"          Two-Day\n");
+	    printf("               L    "
+	       		"   L      Q      M"
+	       		"       L      Q      M\n");
+	    n = data->num_days - 1;
+	    for (i = 0; i < M; ++i)
+	    {
+	    	if (data->data_map[i] != YES)
+	    	    continue;
+	    	base_value = data->assets[i].base_value;
+	    	printf("%2d  %5s: ",i,data->assets[i].asset_name);
+	    	L[0] = (data->assets[i].norm_value[n] - 
+			data->assets[i].norm_value[n-1])/0.25;
+	    	printf(" %6.2f ",100*L[0]);
+	    	GetLeastSquare(data,i,5,Q,L);
+	    	fit_value = base_value*(Q[0]+Q[1]+Q[2]);
+	    	printf("|%6.2f ",100*L[0]);
+	    	printf("%6.2f ",100*Q[0]);
+	    	printf("%6.2f ",fit_value);
+	    	GetLeastSquare(data,i,9,Q,L);
+	    	fit_value = base_value*(Q[0]*sqr(2.0)+Q[1]*2.0+Q[2]);
+	    	printf("|%6.2f ",100*L[0]);
+	    	printf("%6.2f ",100*Q[0]);
+	    	printf("%6.2f ",fit_value);
+	    	printf("\n");
+	    }
+	}
 
 	printf("\n");
-	printf("          Immediate   "
-	       "     One-day     "
-	       "          Two-Day\n");
-	printf("               L    "
-	       "   L      Q      M"
-	       "       L      Q      M\n");
-	n = data->num_days - 1;
-	for (i = 0; i < M; ++i)
+	FT_VectorMemoryAlloc((POINTER*)&isort,M,sizeof(int));
+	for (i = 0; i < M; ++i) 
 	{
-	    if (data->data_map[i] != YES)
-	    	continue;
+	    isort[i] = i;
 	    num_ave++;
 	    mean_norm_value += data->assets[i].norm_value[n];
-	    base_value = data->assets[i].base_value;
-	    printf("%2d  %5s: ",i,data->assets[i].asset_name);
-	    L[0] = (data->assets[i].norm_value[n] - 
-			data->assets[i].norm_value[n-1])/0.25;
-	    printf(" %6.2f ",100*L[0]);
-	    GetLeastSquare(data,i,5,Q,L);
-	    fit_value = base_value*(Q[0]+Q[1]+Q[2]);
-	    printf("|%6.2f ",100*L[0]);
-	    printf("%6.2f ",100*Q[0]);
-	    printf("%6.2f ",fit_value);
-	    GetLeastSquare(data,i,9,Q,L);
-	    fit_value = base_value*(Q[0]*sqr(2.0)+Q[1]*2.0+Q[2]);
-	    printf("|%6.2f ",100*L[0]);
-	    printf("%6.2f ",100*Q[0]);
-	    printf("%6.2f ",fit_value);
-	    printf("\n");
 	}
-	printf("\n");
-	FT_VectorMemoryAlloc((POINTER*)&isort,M,sizeof(int));
-	for (i = 0; i < M; ++i) isort[i] = i;
 
 	for (i = 0; i < M-1; ++i)
 	for (j = i+1; j < M; ++j)
@@ -943,6 +953,10 @@ extern void DataInfo(
 	    }
 	    printf("\n");
 	}
+	printf("Type to print profitable tradings: ");
+	scanf("%s",string);
+	if (string[0] == 'y' || string[0] == 'Y')
+	    PrintProfitableTrade(data);
 	printf("\nCurrent average normalized value: %7.4f\n",
 			mean_norm_value/num_ave);
 	FT_FreeThese(1,isort);
@@ -952,9 +966,11 @@ extern void DataCompare(
 	DATA_SET *data)
 {
 	int i1,i2,j;
-	double value1,value2;
+	double nu1,nu2;
+	double mu1,mu2;
 	double norm_value1,norm_value2,dvalue;
 	char string[100];
+	int is,ie;
 
 	for (j = 0; j < data->num_assets; ++j)
 	{
@@ -963,20 +979,60 @@ extern void DataCompare(
 	}
 	printf("Enter indices of two assets: ");
 	scanf("%d %d",&i1,&i2);
-	printf("Enter values of two assets: ");
-	scanf("%lf %lf",&value1,&value2);
-	norm_value1 = 100.0*value1/data->assets[i1].base_value;
-	norm_value2 = 100.0*value2/data->assets[i2].base_value;
-	dvalue = norm_value1 - norm_value2;
-	if (dvalue > 0.0)
+	printf("Type yes to calculate normalized difference: ");
+	scanf("%s",string);
+	if (string[0] == 'y' || string[0] == 'Y')
 	{
-	    printf("\n%4s > %4s  %5.2f percent\n\n",data->assets[i1].asset_name,
+	    printf("Enter values of two assets: ");
+	    scanf("%lf %lf",&nu1,&nu2);
+	    norm_value1 = 100.0*nu1/data->assets[i1].base_value;
+	    norm_value2 = 100.0*nu2/data->assets[i2].base_value;
+	    dvalue = norm_value1 - norm_value2;
+	    if (dvalue > 0.0)
+	    {
+	    	printf("\n%4s > %4s  %5.2f percent\n\n",
+				data->assets[i1].asset_name,
 				data->assets[i2].asset_name,dvalue);
-	}
-	else
-	{
-	    printf("\n%4s < %4s  %5.2f percent\n\n",data->assets[i1].asset_name,
+	    }
+	    else
+	    {
+	    	printf("\n%4s < %4s  %5.2f percent\n\n",
+				data->assets[i1].asset_name,
 				data->assets[i2].asset_name,-dvalue);
+	    }
+	}
+	printf("Type yes to calculate amplification factor: ");
+	scanf("%s",string);
+	if (string[0] == 'y' || string[0] == 'Y')
+	{
+	    printf("Enter old values of two assets: ");
+	    scanf("%lf %lf",&nu1,&nu2);
+	    printf("Enter new values of two assets: ");
+	    scanf("%lf %lf",&mu1,&mu2);
+	    printf("The amplification factor = %f\n",nu1*mu2/nu2/mu1);
+	}
+	printf("Type yes to plot initiation ratio: ");
+	scanf("%s",string);
+	if (string[0] == 'y' || string[0] == 'Y')
+	{
+	    char fname[200];
+	    int i;
+	    FILE *xfile;
+	    double time,ratio;
+	    is = (data->num_days < data->num_backtrace) ? 0 :
+                	data->num_days - data->num_backtrace;
+	    ie = data->num_days;
+	    create_directory("xg",NO);
+	    sprintf(fname,"xg/I-ratio.xg");
+	    xfile = fopen(fname,"w");
+            fprintf(xfile,"color=red\n");
+            fprintf(xfile,"thickness = 1.5\n");
+	    for (i = is; i < ie; ++i)
+            {
+                time = (double)i;
+		ratio = data->assets[i1].value[i]/data->assets[i2].value[i];
+                fprintf(xfile,"%f %f\n",time,ratio);
+            }
 	}
 }	/* end DataCompare */
 

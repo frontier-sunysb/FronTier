@@ -77,11 +77,14 @@ extern void DataInfo(DATA_SET*);
 extern void DataCompare(DATA_SET*);
 extern void DataTrend(DATA_SET*);
 extern void PromptForDataMap(DATA_SET*);
-extern void InvestShares(DATA_SET*);
-extern void TradeShares(DATA_SET*);
 extern DATA_SET *CopyData(DATA_SET*);
 
 /* web.cpp */
 extern string GetWebData(const std::string& server,const std::string& file);
 extern void GetStockFile(DATA_SET*);
 extern void SaveStockFile(DATA_SET*);
+
+/* trade.cpp */
+extern void InvestShares(DATA_SET*);
+extern void TradeShares(DATA_SET*);
+extern void PrintProfitableTrade(DATA_SET*);
