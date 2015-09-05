@@ -96,8 +96,8 @@ extern void SaveStockFile(DATA_SET*);
 /* trade.cpp */
 extern void InvestShares(DATA_SET*);
 extern void TradeShares(DATA_SET*);
-extern void PrintProfitableTrade(DATA_SET*);
+extern void PrintOpenTrade(DATA_SET*);
 extern void PrintClosedTrade(FILE*,TRADE,DATA_SET*);
-extern void SaveDeleteClosedTrade(DATA_SET*);
 extern void PrintClosedTradeLoop(FILE*,TRADE,DATA_SET*);
 extern void SaveDeleteClosedTradeLoop(DATA_SET*);
+extern void SortTradeOrder(DATA_SET*);

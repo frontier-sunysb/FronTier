@@ -3,7 +3,6 @@
 #include <iostream>
 #include <locale>
 
-static void PrintOpenTrade(DATA_SET*);
 static double AmpRatio(TRADE,DATA_SET*,int);
 static double currentAmpRatio(TRADE,DATA_SET*,int);
 static int StartIndex(TRADE);
@@ -48,6 +47,7 @@ extern void TradeShares(
 	boolean to_trade = YES;
 	int i,n,is,ib,ns,nb;
 	char string[100];
+	double ps,pb;
 
 	printf("The current open trades are:\n");
 	PrintOpenTrade(data);
@@ -99,23 +99,29 @@ extern void TradeShares(
 		printf("Select index of open trade: ");
 		scanf("%d",&n);
 		nstage = data->trades[n].num_stages;
-	    	printf("Enter equity index, number of shares "
-			"and price to sell: ");
-		scanf("%d %d %lf",&data->trades[n].index_sell[nstage],
-				&data->trades[n].num_shares_sell[nstage],
-				&data->trades[n].price_sell[nstage]);
-	    	printf("Enter equity index, number of shares "
-			"and price to buy: ");
-		scanf("%d %d %lf",&data->trades[n].index_buy[nstage],
-				&data->trades[n].num_shares_buy[nstage],
-				&data->trades[n].price_buy[nstage]);
+		printf("Enter sell and buy indices: ");
+		scanf("%d %d",&data->trades[n].index_sell[nstage],
+			      &data->trades[n].index_buy[nstage]);  
 		if (data->trades[n].index_buy[nstage-1] != 
 		    data->trades[n].index_sell[nstage])
 		{
 		    printf("Invalid matching trade!\n");
 		    continue;
 		}
+		printf("Enter current sell and buy prices: ");
+		scanf("%lf %lf",&ps,&pb);
+		printf("Recommended number of shares to sell and buy: %d %d\n",
+			data->trades[n].num_shares_buy[nstage-1],
+			irint(data->trades[n].num_shares_buy[nstage-1]*ps/pb));
 		is = data->trades[n].index_sell[nstage];
+	    	printf("Enter realized number of shares "
+			"and price to sell: ");
+		scanf("%d %lf",&data->trades[n].num_shares_sell[nstage],
+				&data->trades[n].price_sell[nstage]);
+	    	printf("Enter realized number of shares "
+			"and price to buy: ");
+		scanf("%d %lf",&data->trades[n].num_shares_buy[nstage],
+				&data->trades[n].price_buy[nstage]);
 		ns = data->trades[n].num_shares_sell[nstage];
 		ib = data->trades[n].index_buy[nstage];
 		nb = data->trades[n].num_shares_buy[nstage];
@@ -144,53 +150,10 @@ extern void TradeShares(
 	    printf("%-4s: %d\n",data->assets[i].asset_name,data->shares[i]);
 }	/* end TradeShares */
 
-static void PrintOpenTrade(
+extern void PrintOpenTrade(
 	DATA_SET *data)
 {
-	int i,j;
-	int ib,is;
-	int nb,ns;
-	double pb,ps;
-	double npb,nps;
-	for (i = 0; i < data->num_trades; ++i)
-	{
-	    if (data->trades[i].status == CLOSED) continue;
-	    ib = data->trades[i].index_buy[0];
-	    is = data->trades[i].index_sell[0];
-	    nb = data->trades[i].num_shares_buy[0];
-	    ns = data->trades[i].num_shares_sell[0];
-	    pb = data->trades[i].price_buy[0];
-	    ps = data->trades[i].price_sell[0];
-	    npb = data->trades[i].price_buy[0]/data->assets[ib].base_value;
-	    nps = data->trades[i].price_sell[0]/data->assets[is].base_value;
-	    printf("%2d: Sell  %-4s %d at %7.3f | ",i,
-			data->assets[is].asset_name,ns,ps);
-	    printf("Buy %-4s %d at %7.3f",
-			data->assets[ib].asset_name,nb,pb);
-	    printf("  A = %f\n",
-			currentAmpRatio(data->trades[i],data,0));
-	    for (j = 1; j < data->trades[i].num_stages; ++j)
-	    {
-	    	ib = data->trades[i].index_buy[j];
-	    	is = data->trades[i].index_sell[j];
-	    	nb = data->trades[i].num_shares_buy[j];
-	    	ns = data->trades[i].num_shares_sell[j];
-	    	pb = data->trades[i].price_buy[j];
-	    	ps = data->trades[i].price_sell[j];
-	    	printf("    Sell  %-4s %d at %7.3f | ",
-			data->assets[is].asset_name,ns,ps);
-	    	printf("Buy %-4s %d at %7.3f",
-			data->assets[ib].asset_name,nb,pb);
-	    	printf("  A = %6.4f\n",
-			currentAmpRatio(data->trades[i],data,j));
-	    }
-	}
-}	/* PrintOpenTrade */
-
-extern void PrintProfitableTrade(
-	DATA_SET *data)
-{
-	int i,j,ns,is,ib;
+	int i,j,is,ib,ns,nsell,nbuy;
 	double ratio;
 	TRADE trade;
 
@@ -205,125 +168,18 @@ extern void PrintProfitableTrade(
 	    for (j = 0; j < ns; ++j)
 	    {
 	    	is = data->trades[i].index_buy[ns-1];
+	    	nsell = data->trades[i].num_shares_buy[ns-1];
 	    	ib = data->trades[i].index_sell[j];
+	    	nbuy = data->trades[i].num_shares_sell[j];
 	    	ratio = currentAmpRatio(trade,data,j);
 		if (j > 0) printf("   ");
 		else printf("%2d ",i);
-	    	printf("Amp factor of open trade %4s(S)/%-4s(B) = %f\n",
-				data->assets[is].asset_name,
-				data->assets[ib].asset_name,ratio);
+	    	printf("Open trade (%d/%d) (Sell)%4s/%-4s (%4d/%4d) Amp = %f\n",
+				is,ib,data->assets[is].asset_name,
+				data->assets[ib].asset_name,nsell,nbuy,ratio);
 	    }
 	}
-}	/* end PrintProfitableTrade */
-
-extern void PrintClosedTrade(
-	FILE *outfile,
-	TRADE trade,
-	DATA_SET *data)
-{
-	int *is,*ib;
-	int *ns,*nb;
-	double *ps,*pb;
-	double cash_gain;
-	double net_gain;
-
-	printf("Entering PrintClosedTrade()\n");
-	is = trade.index_sell;
-	ib = trade.index_buy;
-	ns = trade.num_shares_sell;
-	nb = trade.num_shares_buy;
-	ps = trade.price_sell;
-	pb = trade.price_buy;
-	cash_gain = ns[0]*ps[0] + ns[1]*ps[1] - nb[0]*pb[0] - nb[1]*pb[1];
-	net_gain = pb[1]*(nb[1]-ns[0]) + ps[1]*(nb[0]-ns[1]) + cash_gain;
-
-	if (trade.status != CLOSED) return;
-
-	if (outfile == NULL)
-	{
-	    if (is[0] != ib[1] || is[1] != ib[0])
-	    {
-	    	printf("Warning: not a matched trade!\n\n");
-		clean_up(ERROR);
-	    }
-	    printf("\n");
-	    printf(" Forward trade: Sell  %-4s %5d at %7.3f | ",
-                        data->assets[is[0]].asset_name,ns[0],ps[0]);
-            printf("Buy %-4s %5d at %7.3f\n",
-                        data->assets[ib[0]].asset_name,nb[0],pb[0]);	    
-	    printf("Backward trade: Sell  %-4s %5d at %7.3f | ",
-                        data->assets[is[1]].asset_name,ns[1],ps[1]);
-            printf("Buy %-4s %5d at %7.3f\n",
-                        data->assets[ib[1]].asset_name,nb[1],pb[1]);	    
-	    printf("Gain: %-4s %d; %-4s %d; Cash: %f Amp-ratio: %f\n",
-			data->assets[is[0]].asset_name,
-			nb[1]-ns[0],
-			data->assets[is[1]].asset_name,
-			nb[0]-ns[1],
-			cash_gain,
-			ps[0]*ps[1]/pb[0]/pb[1]);
-	    printf("Net gain at present prices: $%f\n",net_gain);
-	}
-	else
-	{
-	    char date[200];
-	    std::time_t t = std::time(NULL);
-	    strftime(date,100*sizeof(char),"%D",std::localtime(&t));
-	    if (is[0] != ib[1] || is[1] != ib[0])
-	    {
-	    	printf("Warning: not a matched trade!\n\n");
-		return;
-	    }
-	    fprintf(outfile,"Date: %s\n",date);
-	    fprintf(outfile," Forward trade: Sell  %-4s %5d at %7.3f | ",
-                        data->assets[is[0]].asset_name,ns[0],ps[0]);
-            fprintf(outfile,"Buy %-4s %5d at %7.3f\n",
-                        data->assets[ib[0]].asset_name,nb[0],pb[0]);	    
-	    fprintf(outfile,"Backward trade: Sell  %-4s %5d at %7.3f | ",
-                        data->assets[is[1]].asset_name,ns[1],ps[1]);
-            fprintf(outfile,"Buy %-4s %5d at %7.3f\n",
-                        data->assets[ib[1]].asset_name,nb[1],pb[1]);	    
-	    fprintf(outfile,"Gain: %-4s %d; %-4s %d; Cash: %f Amp-ratio: %f\n",
-			data->assets[is[0]].asset_name,
-			nb[1]-ns[0],
-			data->assets[is[1]].asset_name,
-			nb[0]-ns[1],
-			cash_gain,
-			ps[0]*ps[1]/pb[0]/pb[1]);
-	    fprintf(outfile,"Net gain at present prices: $%f\n",net_gain);
-	    fprintf(outfile,"\n");
-	}
-}	/* end PrintClosedTrade */
-
-extern void SaveDeleteClosedTrade(
-	DATA_SET *data)
-{
-	char fname[200];
-	FILE *sfile;
-	int i,j;
-
-	create_directory("record",NO);
-	sprintf(fname,"record/%s",data->data_name);
-	sfile = fopen(fname,"r");
-	if (sfile != NULL)
-	{
-	    fclose(sfile);
-	    sfile = fopen(fname,"a");
-	}
-	else
-	    sfile = fopen(fname,"w");
-	for (i = 0; i < data->num_trades; ++i)
-	{
-	    if (!data->trades[i].status == CLOSED) continue;
-	    PrintClosedTrade(sfile,data->trades[i],data);
-	    for (j = i+1; j < data->num_trades; ++j)
-	    	ft_assign(&data->trades[j-1],&data->trades[j],sizeof(TRADE));
-
-	    data->num_trades--;
-	    i--;
-	}
-	fclose(sfile);
-}	/* end SaveDeleteClosedTrade */
+}	/* end PrintOpenTrade */
 
 static double AmpRatio(
 	TRADE trade,
@@ -500,3 +356,24 @@ extern void SaveDeleteClosedTradeLoop(
 	fclose(sfile);
 }	/* end SaveDeleteClosedTradeLoop */
 
+extern void SortTradeOrder(
+	DATA_SET *data)
+{
+	int i,j;
+	TRADE tmp_trade;
+
+	if (data->num_trades == 0) return;
+	for (i = 0; i < data->num_trades-1; ++i)
+	{
+            for (j = i+1; j < data->num_trades; ++j)
+            {
+                if (currentAmpRatio(data->trades[i],data,0) >
+                    currentAmpRatio(data->trades[j],data,0))
+                {
+                    ft_assign(&tmp_trade,&data->trades[i],sizeof(TRADE));
+                    ft_assign(&data->trades[i],&data->trades[j],sizeof(TRADE));
+                    ft_assign(&data->trades[j],&tmp_trade,sizeof(TRADE));
+                }
+            }
+	}
+}	/* end SortTradeOrder */

@@ -3,6 +3,7 @@
 static double NormDiff(DATA_SET*,int,int);
 static void AddAssets(DATA_SET*);
 static void DeleteAssets(DATA_SET*);
+static void PrintRateOfChange(DATA_SET*);
 
 extern double GetLeastSquare(
 	DATA_SET *data,
@@ -516,16 +517,18 @@ extern void PromptForDataMap(
 {
 	int i;
 	char string[100];
-	for (i = 0; i < data->num_assets; ++i)
-	    data->data_map[i] = YES;
-	printf("Print data information of all assets? ");
+
+	printf("Type yes to change data map: ");
 	scanf("%s",string);
-	if (string[0] == 'y') return;
+	if (string[0] != 'y' && string[0] != 'Y') return;
+
 	for (i = 0; i < data->num_assets; ++i)
 	{
 	    printf("Include asset %s ? ",data->assets[i].asset_name);
 	    scanf("%s",string);
-	    if (string[0] != 'y')
+	    if (string[0] == 'y' || string[0] == 'Y')
+	    	data->data_map[i] = YES;
+	    else
 	    	data->data_map[i] = NO;
 	}
 }	/* end PromptForDataMap */
@@ -602,6 +605,7 @@ extern void ReadData(
 		fscanf(infile,"%s\n",data->assets[j].asset_name);
 		fscanf(infile,"%s\n",data->assets[j].color);
 		fscanf(infile,"%lf\n",&data->assets[j].base_value);
+	    	fscanf(infile,"%d\n",(int*)&data->data_map[j]);
 		FT_VectorMemoryAlloc((POINTER*)&data->assets[j].value,
 				data->num_days+10,sizeof(double));
 		FT_VectorMemoryAlloc((POINTER*)&data->assets[j].norm_value,
@@ -697,6 +701,7 @@ extern void WriteData(
 	    fprintf(outfile,"%s\n",data->assets[j].asset_name);
 	    fprintf(outfile,"%s\n",data->assets[j].color);
 	    fprintf(outfile,"%f\n",data->assets[j].base_value);
+	    fprintf(outfile,"%d\n",data->data_map[j]);
 	}
 	for (i = 0; i < data->num_days; ++i)
 	{
@@ -714,6 +719,7 @@ extern void WriteData(
 	}
 	if (data->num_trades != 0)
 	{
+	    SortTradeOrder(data);
 	    fprintf(outfile,"Trading Record\n");
 	    fprintf(outfile,"%d\n",data->num_trades);
 	    for (j = 0; j < data->num_trades; ++j)
@@ -869,44 +875,8 @@ extern void DataInfo(
 	double mean_norm_value = 0.0;
 	int num_ave = 0;
 	int is_first,is_last;
+	boolean closed_trade_exist = NO;
 
-	printf("Type yes to get rate of change: ");
-	scanf("%s",string);
-	if (string[0] == 'y' || string[0] == 'Y')
-	{
-
-	    printf("\n");
-	    printf("          Immediate   "
-	       		"     One-day     "
-	       		"          Two-Day\n");
-	    printf("               L    "
-	       		"   L      Q      M"
-	       		"       L      Q      M\n");
-	    n = data->num_days - 1;
-	    for (i = 0; i < M; ++i)
-	    {
-	    	if (data->data_map[i] != YES)
-	    	    continue;
-	    	base_value = data->assets[i].base_value;
-	    	printf("%2d  %5s: ",i,data->assets[i].asset_name);
-	    	L[0] = (data->assets[i].norm_value[n] - 
-			data->assets[i].norm_value[n-1])/0.25;
-	    	printf(" %6.2f ",100*L[0]);
-	    	GetLeastSquare(data,i,5,Q,L);
-	    	fit_value = base_value*(Q[0]+Q[1]+Q[2]);
-	    	printf("|%6.2f ",100*L[0]);
-	    	printf("%6.2f ",100*Q[0]);
-	    	printf("%6.2f ",fit_value);
-	    	GetLeastSquare(data,i,9,Q,L);
-	    	fit_value = base_value*(Q[0]*sqr(2.0)+Q[1]*2.0+Q[2]);
-	    	printf("|%6.2f ",100*L[0]);
-	    	printf("%6.2f ",100*Q[0]);
-	    	printf("%6.2f ",fit_value);
-	    	printf("\n");
-	    }
-	}
-
-	printf("\n");
 	FT_VectorMemoryAlloc((POINTER*)&isort,M,sizeof(int));
 	for (i = 0; i < M; ++i) 
 	{
@@ -970,35 +940,26 @@ extern void DataInfo(
 	    }
 	    printf("\n");
 	}
-	printf("Type yes to print profitable tradings: ");
-	scanf("%s",string);
-	if (string[0] == 'y' || string[0] == 'Y')
+
+	PrintOpenTrade(data);
+	for (i = 0; i < data->num_trades; ++i)
 	{
-	    PrintProfitableTrade(data);
-	}
-	printf("Type yes to print closed tradings: ");
-	scanf("%s",string);
-	if (string[0] == 'y' || string[0] == 'Y')
-	{
-	    boolean closed_trade_exist = NO;
-	    for (i = 0; i < data->num_trades; ++i)
+	    if (data->trades[i].status != OPEN)
 	    {
-		if (data->trades[i].status != OPEN)
-		{
-	    	    PrintClosedTradeLoop(NULL,data->trades[i],data);
-		    closed_trade_exist = YES;
-		}
-	    }
-	    if (closed_trade_exist)
-	    {
-	    	printf("Type yes to save and delete closed tradings: ");
-	    	scanf("%s",string);
-	    	if (string[0] == 'y' || string[0] == 'Y')
-		{
-		    SaveDeleteClosedTradeLoop(data);
-		}
+	    	PrintClosedTradeLoop(NULL,data->trades[i],data);
+		closed_trade_exist = YES;
 	    }
 	}
+	if (closed_trade_exist)
+	{
+	    printf("Type yes to save and delete closed tradings: ");
+	    scanf("%s",string);
+	    if (string[0] == 'y' || string[0] == 'Y')
+	    {
+		SaveDeleteClosedTradeLoop(data);
+	    }
+	}
+
 	printf("\nCurrent average normalized value: %7.4f\n",
 			mean_norm_value/num_ave);
 	FT_FreeThese(1,isort);
@@ -1295,3 +1256,43 @@ extern DATA_SET *CopyData(
 	}
 	return copy_data;
 }	/* end CopyData */
+
+static void PrintRateOfChange(
+	DATA_SET *data)
+{
+	int i,n,M;
+	double base_value,fit_value;
+	double Q[3],L[2];
+
+	n = data->num_days-1;
+	M = data->num_assets;
+
+	printf("\n");
+	printf("          Immediate   "
+	       		"     One-day     "
+	       		"          Two-Day\n");
+	printf("               L    "
+	       		"   L      Q      M"
+	       		"       L      Q      M\n");
+	for (i = 0; i < M; ++i)
+	{
+	    if (data->data_map[i] != YES)
+	        continue;
+	    base_value = data->assets[i].base_value;
+	    printf("%2d  %5s: ",i,data->assets[i].asset_name);
+	    L[0] = (data->assets[i].norm_value[n] - 
+			data->assets[i].norm_value[n-1])/0.25;
+	    printf(" %6.2f ",100*L[0]);
+	    GetLeastSquare(data,i,5,Q,L);
+	    fit_value = base_value*(Q[0]+Q[1]+Q[2]);
+	    printf("|%6.2f ",100*L[0]);
+	    printf("%6.2f ",100*Q[0]);
+	    printf("%6.2f ",fit_value);
+	    GetLeastSquare(data,i,9,Q,L);
+	    fit_value = base_value*(Q[0]*sqr(2.0)+Q[1]*2.0+Q[2]);
+	    printf("|%6.2f ",100*L[0]);
+	    printf("%6.2f ",100*Q[0]);
+	    printf("%6.2f ",fit_value);
+	    printf("\n");
+	}
+}	/* end PrintRateOfChange */
