@@ -10,6 +10,7 @@ int main(int argc, char **argv)
 	boolean trade_data = NO;
 	boolean get_web_data = NO;
 	boolean input_data = NO;
+	char string[100];
 
 	FT_Init(argc,argv,NULL);
 	FT_ScalarMemoryAlloc((POINTER*)&data,sizeof(DATA_SET));

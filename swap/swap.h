@@ -15,8 +15,14 @@ using namespace std;
 const char Xcolor[][100] ={"red","orange","blue",
 			   "green","violet","navy",
 			   "cyan","yellow","fuchsia",
-			   "light-grey","dark-gray","aqua",
-			   "gold","pink"};
+			   "gold","pink","aqua"};
+
+enum _TRADE_STATUS {
+	OPEN			= 0,
+	CLOSED,
+	PARTIAL_CLOSED
+};
+typedef enum _TRADE_STATUS TRADE_STATUS;
 
 struct _ASSET
 {
@@ -35,6 +41,7 @@ struct _DATA_SET
 	int num_days;
 	int num_assets;
 	int num_backtrace;
+	int istar;
 	struct _ASSET *assets;
 	char **date;
 	boolean new_data;
@@ -44,15 +51,17 @@ struct _DATA_SET
 	struct _TRADE *trades;
 };
 
+#define		MAX_NUM_STAGES		20
 struct _TRADE
 {
-	boolean closed;
-	int index_buy[2];
-	int index_sell[2];
-	int num_shares_buy[2];
-	int num_shares_sell[2];
-	double price_buy[2];
-	double price_sell[2];
+	int num_stages;
+	TRADE_STATUS status;
+	int index_buy[MAX_NUM_STAGES];
+	int index_sell[MAX_NUM_STAGES];
+	int num_shares_buy[MAX_NUM_STAGES];
+	int num_shares_sell[MAX_NUM_STAGES];
+	double price_buy[MAX_NUM_STAGES];
+	double price_sell[MAX_NUM_STAGES];
 };
 
 typedef struct _ASSET ASSET;
@@ -88,3 +97,7 @@ extern void SaveStockFile(DATA_SET*);
 extern void InvestShares(DATA_SET*);
 extern void TradeShares(DATA_SET*);
 extern void PrintProfitableTrade(DATA_SET*);
+extern void PrintClosedTrade(FILE*,TRADE,DATA_SET*);
+extern void SaveDeleteClosedTrade(DATA_SET*);
+extern void PrintClosedTradeLoop(FILE*,TRADE,DATA_SET*);
+extern void SaveDeleteClosedTradeLoop(DATA_SET*);

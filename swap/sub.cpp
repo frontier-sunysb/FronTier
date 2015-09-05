@@ -387,6 +387,7 @@ extern void ModifyData(
 	    	printf("\t%s (%d)\n",data->assets[j].asset_name,j);
 	    printf("Enter center asset index: ");
 	    scanf("%d",&istar);
+	    data->istar = istar;
 	    for (j = 0; j < data->num_assets; ++j)	
 	    {
 		if (j == istar) continue;
@@ -589,6 +590,7 @@ extern void ReadData(
 	    fscanf(infile,"%d",&data->num_assets);
 	    fscanf(infile,"%d",&data->num_days);
 	    fscanf(infile,"%d",&data->num_backtrace);
+	    fscanf(infile,"%d",&data->istar);
 	    FT_VectorMemoryAlloc((POINTER*)&data->assets,data->num_assets+1,
 				sizeof(ASSET));
 	    FT_VectorMemoryAlloc((POINTER*)&data->data_map,data->num_assets+1,
@@ -634,19 +636,20 @@ extern void ReadData(
                 fscanf(infile,"%d",&data->num_trades);
                 for (j = 0; j < data->num_trades; ++j)
 		{
-                    fscanf(infile,"%d",(int*)&data->trades[j].closed);
-                    fscanf(infile,"%d %d\n",data->trades[j].index_buy,
-                                data->trades[j].index_buy+1);
-                    fscanf(infile,"%d %d\n",data->trades[j].index_sell,
-                                data->trades[j].index_sell+1);
-                    fscanf(infile,"%d %d\n",data->trades[j].num_shares_buy,
-                                data->trades[j].num_shares_buy+1);
-                    fscanf(infile,"%d %d\n",data->trades[j].num_shares_sell,
-                                data->trades[j].num_shares_sell+1);
-                    fscanf(infile,"%lf %lf\n",data->trades[j].price_buy,
-                                data->trades[j].price_buy+1);
-                    fscanf(infile,"%lf %lf\n",data->trades[j].price_sell,
-                                data->trades[j].price_sell+1);
+                    fscanf(infile,"%d",&data->trades[j].num_stages);
+                    fscanf(infile,"%d",(int*)&data->trades[j].status);
+		    for (i = 0; i < data->trades[j].num_stages; ++i)
+		    {
+                    	fscanf(infile,"%d %d\n",
+				&data->trades[j].index_sell[i],
+                                &data->trades[j].index_buy[i]);
+                    	fscanf(infile,"%d %d\n",
+				&data->trades[j].num_shares_sell[i],
+                                &data->trades[j].num_shares_buy[i]);
+                    	fscanf(infile,"%lf %lf\n",
+				&data->trades[j].price_sell[i],
+                                &data->trades[j].price_buy[i]);
+		    }
 		}
             }
 	    fclose(infile);
@@ -667,12 +670,27 @@ extern void WriteData(
 	    scanf("%s",string);
 	    if (string[0] != 'y' && string[0] != 'Y')
 	    	data->num_days--;
+	    else
+	    {
+	    	printf("Adjust data base? ");
+	    	scanf("%s",string);
+	    	if (string[0] == 'y' || string[0] == 'Y')
+		{
+		    int m;
+	    	    for (m = 0; m < data->num_assets; ++m)	
+	    	    {
+			if (m == data->istar) continue;
+			AdjustBase(data,data->istar,m);
+	    	    }
+		}
+	    }
 	}
 	outfile = fopen(data_name,"w");
 	fprintf(outfile,"%s\n",data->data_name);
 	fprintf(outfile,"%d\n",data->num_assets);
 	fprintf(outfile,"%d\n",data->num_days);
 	fprintf(outfile,"%d\n",data->num_backtrace);
+	fprintf(outfile,"%d\n",data->istar);
 	printf("\n\n");
 	for (j = 0; j < data->num_assets+1; ++j)
 	{
@@ -700,19 +718,18 @@ extern void WriteData(
 	    fprintf(outfile,"%d\n",data->num_trades);
 	    for (j = 0; j < data->num_trades; ++j)
 	    {
-	    	fprintf(outfile,"%d\n",data->trades[j].closed);
-	    	fprintf(outfile,"%d %d\n",data->trades[j].index_buy[0],
-				data->trades[j].index_buy[1]);
-	    	fprintf(outfile,"%d %d\n",data->trades[j].index_sell[0],
-				data->trades[j].index_sell[1]);
-	    	fprintf(outfile,"%d %d\n",data->trades[j].num_shares_buy[0],
-				data->trades[j].num_shares_buy[1]);
-	    	fprintf(outfile,"%d %d\n",data->trades[j].num_shares_sell[0],
-				data->trades[j].num_shares_sell[1]);
-	    	fprintf(outfile,"%f %f\n",data->trades[j].price_buy[0],
-				data->trades[j].price_buy[1]);
-	    	fprintf(outfile,"%f %f\n",data->trades[j].price_sell[0],
-				data->trades[j].price_sell[1]);
+	    	fprintf(outfile,"%d\n",data->trades[j].num_stages);
+	    	fprintf(outfile,"%d\n",data->trades[j].status);
+		for (i = 0; i < data->trades[j].num_stages; ++i)
+		{
+	    	    fprintf(outfile,"%d %d\n",data->trades[j].index_sell[i],
+				data->trades[j].index_buy[i]);
+	    	    fprintf(outfile,"%d %d\n",
+				data->trades[j].num_shares_sell[i],
+				data->trades[j].num_shares_buy[i]);
+	    	    fprintf(outfile,"%f %f\n",data->trades[j].price_sell[i],
+				data->trades[j].price_buy[i]);
+		}
 	    }
 	}
 	fclose(outfile);
@@ -953,10 +970,35 @@ extern void DataInfo(
 	    }
 	    printf("\n");
 	}
-	printf("Type to print profitable tradings: ");
+	printf("Type yes to print profitable tradings: ");
 	scanf("%s",string);
 	if (string[0] == 'y' || string[0] == 'Y')
+	{
 	    PrintProfitableTrade(data);
+	}
+	printf("Type yes to print closed tradings: ");
+	scanf("%s",string);
+	if (string[0] == 'y' || string[0] == 'Y')
+	{
+	    boolean closed_trade_exist = NO;
+	    for (i = 0; i < data->num_trades; ++i)
+	    {
+		if (data->trades[i].status != OPEN)
+		{
+	    	    PrintClosedTradeLoop(NULL,data->trades[i],data);
+		    closed_trade_exist = YES;
+		}
+	    }
+	    if (closed_trade_exist)
+	    {
+	    	printf("Type yes to save and delete closed tradings: ");
+	    	scanf("%s",string);
+	    	if (string[0] == 'y' || string[0] == 'Y')
+		{
+		    SaveDeleteClosedTradeLoop(data);
+		}
+	    }
+	}
 	printf("\nCurrent average normalized value: %7.4f\n",
 			mean_norm_value/num_ave);
 	FT_FreeThese(1,isort);

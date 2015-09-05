@@ -193,24 +193,16 @@ extern void SaveStockFile(
 	fprintf(outfile,"%d\n",back_trace_days);
 	for(i = 0; i < file_num; i++)
 	{
-	    printf("Enter your color for Asset %s: ",filename[i].c_str());
-	    scanf("%s", color_name);
 	    fprintf(outfile,"%s\n",filename[i].c_str());
-	    fprintf(outfile,"%s\n",color_name);
+	    fprintf(outfile,"%s\n",Xcolor[i%12]);
 	    fprintf(outfile,"%f\n",stock_data[(i + 1) * stock_days-1][4]);
 			// try to get each stocks first data, ie, 
 			// base value (Inverse order)
 	}
-	printf("Enter your name for Mean Asset: ");
-	scanf("%s", mean_name);
-	printf("Enter your color for Mean Asset: ");
-	scanf("%s", color_name);
-	printf("Enter your base value for Mean Asset: ");
-	scanf("%f", &mean_basevalue);
 	
-	fprintf(outfile,"%s\n", mean_name);
-	fprintf(outfile,"%s\n", color_name);
-	fprintf(outfile,"%f\n", mean_basevalue);
+	fprintf(outfile,"Mean\n");
+	fprintf(outfile,"aqua\n");
+	fprintf(outfile,"1.0\n");
 	
 	for(i = stock_days; i > 0; i--)
 	{
