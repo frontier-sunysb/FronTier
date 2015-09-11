@@ -434,6 +434,41 @@ void C_CARTESIAN::computeAdvection(void)
 	    (void) printf("Unknown PDE scheme\n");
 	    clean_up(ERROR);
 	}
+	if (debugging("neg_solute"))
+	{
+	    int i,j,k,ic;
+	    switch(dim)
+	    {
+	    case 1:
+		for (i = imin; i <= imax; ++i)
+		{
+		    ic = d_index1d(i,top_gmax);
+		    if (field->solute[ic] < 0.0)
+		    {
+			printf("At i = %d: solute = %f\n",i,
+				field->solute[ic]);
+			clean_up(ERROR);
+		    }	    
+		}
+		break;
+	    case 2:
+		for (i = imin; i <= imax; ++i)
+		for (j = jmin; j <= jmax; ++j)
+		{
+		    ic = d_index2d(i,j,top_gmax);
+		    if (field->solute[ic] < 0.0)
+		    {
+			printf("At i = %d j = %d: solute = %f\n",i,j,
+				field->solute[ic]);
+			clean_up(ERROR);
+		    }	    
+		}
+		break;
+	    default:
+		printf("Checking for dim = %d not implemented\n",dim);
+		clean_up(ERROR);
+	    }
+	}
 
 	accum_influx += parab_solver.bdry_influx;
 }	/* end computeAdvection */

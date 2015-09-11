@@ -2498,7 +2498,7 @@ extern void initRigidBody(
             neg_comp = SOLID_COMP;
             pos_comp = LIQUID_COMP2;
             if (CursorAfterStringOpt(infile,
-                                "Type yes is the rigid body is fixed:"))
+                                "Type yes if the rigid body is fixed:"))
             {
                 fscanf(infile,"%s",string);
                 (void) printf("%s\n",string);
@@ -2522,14 +2522,14 @@ extern void initRigidBody(
             neg_comp = SOLID_COMP;
             pos_comp = LIQUID_COMP2;
             if (CursorAfterStringOpt(infile,
-                                "Type yes is the rigid body is fixed:"))
+                                "Type yes if the rigid body is fixed:"))
             {
                 fscanf(infile,"%s",string);
                 (void) printf("%s\n",string);
                 if (string[0] == 'y' || string[0] == 'Y')
                     w_type = NEUMANN_BOUNDARY;
             }
-            FT_MakeCuboidSurf(front,cen,edge,neg_comp,pos_comp,w_type,&surf);
+            FT_MakeCuboidSurf(front,cen,edge,neg_comp,pos_comp,w_type,1,&surf);
             installStringtoBox(front,cen,edge,surf);
             break;
         default:

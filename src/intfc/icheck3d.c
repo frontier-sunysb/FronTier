@@ -230,7 +230,6 @@ LOCAL	boolean i_consistent_interface3d(
 	const char         *warn = "WARNING in i_consistent_interface(), ";
 
 	/* Check Nodes */
-	printf("Test consistent_interface()\n");
 	for (n = intfc->nodes; n && *n; ++n)
 	{
 	    if ((*n)->interface != intfc)

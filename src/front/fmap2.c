@@ -636,8 +636,8 @@ EXPORT	void FT_MakeEllipticSurf(
 	    U[i] = center[i] + radius[i];
 	    gmax[i] = rint((U[i] - L[i])/h[i]);
 	    dh = gmax[i]*h[i] - (U[i] - L[i]);
-	    L[i] -= 0.5*dh;
-	    U[i] += 0.5*dh;
+	    L[i] -= sqrt(0.5)*dh;
+	    U[i] += sqrt(0.5)*dh;
 	    gmax[i] = refinement_level*rint((U[i] - L[i])/h[i]);
 	}
 	set_box_rect_grid(L,U,gmax,NULL,NULL,dim,&box_rg);
@@ -768,22 +768,35 @@ EXPORT  void FT_MakeCuboidSurf(
 	COMPONENT neg_comp,
 	COMPONENT pos_comp,
 	int w_type,
+	int refinement_level,
 	SURFACE **surf)
 {
 	RECT_GRID *rgr = front->rect_grid;
+	RECT_GRID box_rg;
 	CUBOID_PARAMS cuboid_params;
 	int i,dim = rgr->dim;
+	double L[MAXD],U[MAXD],dh;
+        int gmax[MAXD];
+        double *h = rgr->h;
 	
 	for (i = 0; i < dim; ++i)
 	{
 	    cuboid_params.center[i] = center[i];
 	    cuboid_params.edge[i] = edge[i];
+	    L[i] = center[i] - edge[i];
+            U[i] = center[i] + edge[i];
+            gmax[i] = rint((U[i] - L[i])/h[i]);
+            dh = gmax[i]*h[i] - (U[i] - L[i]);
+            L[i] -= sqrt(0.5)*dh;
+            U[i] += sqrt(0.5)*dh;
+            gmax[i] = refinement_level*rint((U[i] - L[i])/h[i]);
 	}
-	make_level_surface(rgr,front->interf,neg_comp,pos_comp,
+	set_box_rect_grid(L,U,gmax,NULL,NULL,dim,&box_rg);
+	make_level_surface(&box_rg,front->interf,neg_comp,pos_comp,
 			cuboid_func,(POINTER)&cuboid_params,surf);
         wave_type(*surf) = w_type;
         front->interf->modified = YES;
-
+	interface_reconstructed(front->interf) = NO;
 }	 /*end FT_MakeCuboidSurf*/
 
 EXPORT  void FT_MakeCylinderSurf(

@@ -3165,6 +3165,8 @@ LOCAL	void	hdf_plot_cross_sectional_comp(
 	debug_print("HDF","Left hdf_plot_cross_sectional_comp().\n");
 }	/* end hdf_plot_cross_sectional_comp */
 
+#define 		MAX_HDF_VAR2D		20
+
 LOCAL	void	hdf_plot_var2d( 
 	Front	*front, 
 	char	*dirname,
@@ -3215,12 +3217,23 @@ LOCAL	void	hdf_plot_var2d(
 	boolean data_in_domain = NO;
 	COMPONENT c;
 	int ic_min[MAXD],ic_max[MAXD];
+	static double run_max[MAX_HDF_VAR2D],run_min[MAX_HDF_VAR2D];
 
 	if (debugging("hdf"))
 	{
 	    (void) printf("Entered hdf_plot_var2d().\n");
 	    (void) printf("Plotting: %s\n",var_name);
 	    (void) printf("Resolution level: %d\n",resolution_level);
+	    if (front->step == 0)
+	    {
+		if (ivar >= MAX_HDF_VAR2D)
+		{
+		    (void) printf("In hdf_plot_var2d(): ivar too large\n");
+		    clean_up(ERROR);
+		}
+		run_max[ivar] = -HUGE;
+		run_min[ivar] = HUGE;
+	    }
 	}
 	L = gr->L;
 	U = gr->U;
@@ -3301,12 +3314,16 @@ LOCAL	void	hdf_plot_var2d(
 		min_val = var_val[k];
 		ic_min[0] = i;
 		ic_min[1] = j;
+		if (run_min[ivar] > min_val)
+		    run_min[ivar] = min_val;
 	    }
 	    if (var_val[k] > max_val)
 	    {
 		max_val = var_val[k];
 		ic_max[0] = i;
 		ic_max[1] = j;
+		if (run_max[ivar] < max_val)
+		    run_max[ivar] = max_val;
 	    }
             k++;
 	}
@@ -3356,6 +3373,8 @@ LOCAL	void	hdf_plot_var2d(
 				ic_max[0],ic_max[1]);
 	    	printf("Minimum value: %f at (%d,%d)\n",min_val,
 				ic_min[0],ic_min[1]);
+		printf("%s: Run-min = %f  Run-max = %f\n",var_name,
+				run_min[ivar],run_max[ivar]);
 	    }
 	    if (preset_bound)
 	    {

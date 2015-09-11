@@ -4340,7 +4340,11 @@ EXPORT 	boolean surfaces_matched(
 	    clean_up(ERROR);	
 	}
 	/* The following is for cases without Gindex */
-	if (is_bdry(as) && is_bdry(s)) 
+	if (wave_type(s) != wave_type(as))
+	    return NO;
+	else if ((is_bdry(as) && !is_bdry(s)) || (is_bdry(s) && !is_bdry(as)))
+	    return NO;
+	else if (is_bdry(as) && is_bdry(s)) 
 	    return (Hyper_surf_index(as) == Hyper_surf_index(s)) ? YES : NO;
 	else if (negative_component(as) == negative_component(s) &&
 	    	 positive_component(as) == positive_component(s))

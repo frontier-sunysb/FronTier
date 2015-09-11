@@ -1739,7 +1739,6 @@ extern void installStringtoBox(
         double length,len_fac;
         double spacing,*h = computational_grid(intfc)->h;
         int nb, flag = 0;
-        double EPS = 0.1 * h[0];
         boolean found;
 
         FT_VectorMemoryAlloc((POINTER*)&string_curves,num_strings,
@@ -1755,11 +1754,11 @@ extern void installStringtoBox(
                 for (j = 0; j < 3; j++)
                 {
                     temp = tri->__pts[j];
-                    if (fabs(Coords(tri->__pts[j])[0] - out_nodes_coords[i])
-                        < EPS && fabs(Coords(tri->__pts[j])[1] -
-                        out_nodes_coords[num_strings + i]) < EPS &&
-                        fabs(Coords(tri->__pts[j])[2] - (cen[2] + edge[2]))
-                        < EPS)
+		    if (fabs(Coords(temp)[2] - (cen[2] + edge[2])) > 0.1 * h[2])
+                        continue;
+		    if (fabs(Coords(tri->__pts[j])[0] - out_nodes_coords[i])
+                        < h[0] && fabs(Coords(tri->__pts[j])[1] -
+                        out_nodes_coords[num_strings + i]) < h[1])
                     {
                         found = YES;
                         flag++;
@@ -1776,6 +1775,18 @@ extern void installStringtoBox(
             printf("Cannot find enough string nodes on box!\n");
             clean_up(ERROR);
         }
+	intfc_node_loop(intfc,node)
+        {
+            nload = *node;
+            extra = (AF_NODE_EXTRA*)(nload->extra);
+            if (extra == NULL)
+                continue;
+            if (extra->af_node_type == LOAD_NODE)
+            {   
+                extra->af_node_type = THR_LOAD_NODE;
+                break;
+            }
+        }
         FT_VectorMemoryAlloc((POINTER*)&string_nodes,num_strings,sizeof(NODE*));
         for (i = 0; i < num_strings; i++)
         {
@@ -1784,15 +1795,6 @@ extern void installStringtoBox(
                                sizeof(AF_NODE_EXTRA));
             extra->af_node_type = STRING_NODE;
             string_nodes[i]->extra = (POINTER)extra;
-        }
-        intfc_node_loop(intfc,node)
-        {
-            nload = *node;
-            extra = (AF_NODE_EXTRA*)(nload->extra);
-            if (extra == NULL)
-                continue;
-            if (extra->af_node_type == LOAD_NODE)
-                break;
         }
 
         length = HUGE;
