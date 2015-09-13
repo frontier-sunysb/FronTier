@@ -17,6 +17,7 @@ all:
 	cd cFluid && $(MAKE)
 	cd wings && $(MAKE)
 	cd cim && $(MAKE)
+	cd DG && $(MAKE)
 	cd inverse && $(MAKE)
 	cd crystal && $(MAKE)
 	cd curvature && $(MAKE)
@@ -64,6 +65,7 @@ clean:
 	-cd vFluid && $(MAKE) clean
 	-cd wings && $(MAKE) clean
 	-cd cim && $(MAKE) clean
+	-cd DG && $(MAKE) clean
 	-cd inverse && $(MAKE) clean
 	-cd airfoil && $(MAKE) clean
 	-cd parachute && $(MAKE) clean
@@ -279,6 +281,10 @@ $$ME/finance/mrun* \
 $$ME/cell/*.cpp \
 $$ME/cell/*.h \
 $$ME/cell/Makefile.in \
+$$ME/DG/*.cpp \
+$$ME/DG/*.h \
+$$ME/DG/Makefile.in \
+$$ME/DG/in-* \
 $$ME/pde/*.cpp \
 $$ME/pde/in-* \
 $$ME/pde/Makefile.in \

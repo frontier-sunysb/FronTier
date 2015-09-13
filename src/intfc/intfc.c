@@ -1748,6 +1748,7 @@ EXPORT NODE *i_make_node(
 	}
 	newnod->in_curves = newnod->out_curves = NULL;
 	zero_scalar(newnod->vfunc_name,256);
+	strcpy(newnod->vfunc_name,"NULL");
 	newnod->vel_pack = NULL;
 	newnod->extra = NULL;
 	cur_intfc->modified = YES;
@@ -2178,6 +2179,7 @@ EXPORT CURVE *i_make_curve(
 	Gindex(curve) = -1;
 	curve->vel_pack = NULL;
 	zero_scalar(curve->vfunc_name,256);
+	strcpy(curve->vfunc_name,"NULL");
 	curve->extra = NULL;
 	return curve;
 }		/*end i_make_curve*/

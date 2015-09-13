@@ -306,6 +306,7 @@ EXPORT SURFACE *i_make_surface(
 	news->redist_order = 1;		/*default */
 	news->vel_pack = NULL;
 	zero_scalar(news->vfunc_name,256);
+	strcpy(news->vfunc_name,"NULL");
         news->extra = NULL;
 	surface_for_head_of_tri_list(head_of_tri_list(news)) = news;
 	Gindex(news) = -1;

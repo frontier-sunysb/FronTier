@@ -488,6 +488,7 @@ poisson/Makefile
 cFluid/Makefile
 wings/Makefile
 cim/Makefile
+DG/Makefile
 inverse/Makefile
 solver/Makefile
 weno/Makefile

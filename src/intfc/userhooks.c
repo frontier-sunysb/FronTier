@@ -959,6 +959,7 @@ EXPORT	void user_read_print_surface(
 {
 	if (s == NULL || s->interface == NULL)
 	    return;
+	/* Linked to f_user_read_print_surface() */
 	(*i_user_interface(s->interface)._user_read_print_surface)(s,io_type,
 	                                                           overlay);
 }		/*end user_read_print_surface*/
