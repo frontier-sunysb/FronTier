@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 #include <cFluid.h>
 
-static double intfcPertHeight(FOURIER_POLY*,double*);
 static void getRTState(STATE*,EQN_PARAMS*,double*,COMPONENT);
 static void getRMState(STATE*,EQN_PARAMS*,double*,COMPONENT);
 static void getBubbleState(STATE*,EQN_PARAMS*,double*,COMPONENT);
@@ -32,6 +31,8 @@ static void getBlastState(STATE*,EQN_PARAMS*,double*,COMPONENT);
 static void getShockSineWaveState(STATE*,EQN_PARAMS*,double*,COMPONENT);
 static void getAccuracySineWaveState(STATE*,EQN_PARAMS*,double*,COMPONENT);
 static void behind_state(int,double,double*,int,STATE*,STATE*);
+static double intfcPertHeight(FOURIER_POLY*,double*);
+static double getStationaryVelocity(EQN_PARAMS*);
 
 void G_CARTESIAN::initSinePertIntfc(
 	LEVEL_FUNC_PACK *level_func_pack,
@@ -281,10 +282,6 @@ void G_CARTESIAN::setRichtmyerMeshkovParams(char *inname)
 	CursorAfterString(infile,"Enter direction of shock:");
 	fscanf(infile,"%d",&eqn_params->shock_dir);
 	(void) printf("%d\n",eqn_params->shock_dir);
-	CursorAfterString(infile,"Enter contact velocity "
-                                 "after shock interaction:");
-        fscanf(infile,"%lf",&eqn_params->contact_vel);
-	(void) printf("%f\n",eqn_params->contact_vel);
 	CursorAfterString(infile,"Type yes to track the interface:");
 	fscanf(infile,"%s",s);
 	(void) printf("%s\n",s);
@@ -292,6 +289,18 @@ void G_CARTESIAN::setRichtmyerMeshkovParams(char *inname)
 	    eqn_params->tracked = YES;
 	else
 	    eqn_params->tracked = NO;
+	if (CursorAfterStringOpt(infile,"Type yes for stationary contact: "))
+        {
+	    fscanf(infile,"%s",s);
+	    (void) printf("%s\n",s);
+            if (s[0] == 'y' || s[0] == 'Y')
+	    {
+                eqn_params->contact_stationary = YES;
+		eqn_params->contact_vel = getStationaryVelocity(eqn_params);
+	    }
+            else
+                eqn_params->contact_stationary = NO;
+        }
 	fclose(infile);
 }	/* end setRayleiTaylorParams */
 
@@ -2212,3 +2221,54 @@ extern void set_rgbody_params(
         }
 }       /* end set_rgbody_params */
 
+static double getStationaryVelocity(
+	EQN_PARAMS *eqn_params)
+{
+	RIEMANN_INPUT input;
+	RIEMANN_SOLN riem_soln;
+	int shock_dir = eqn_params->shock_dir;
+	STATE state;
+	double shock_speed,contact_speed;
+	double Mach_number = eqn_params->Mach_number;
+	int dim = eqn_params->dim;
+
+	input.left_state.d = eqn_params->rho1;
+	input.right_state.d = eqn_params->rho2;
+	input.left_state.gamma = eqn_params->eos[GAS_COMP1].gamma;
+	input.right_state.gamma = eqn_params->eos[GAS_COMP2].gamma;
+
+	input.left_state.p = input.right_state.p = eqn_params->p0;
+	input.left_state.u = input.right_state.u = 0.0;
+	state.dim = dim;
+	if (shock_dir == 1)
+	{
+	    state.dens = eqn_params->rho1;
+	    state.pres = eqn_params->p0;
+	    state.eos = &(eqn_params->eos[GAS_COMP1]);
+	    state.engy = EosInternalEnergy(&state);
+	}
+	else if (shock_dir == -1)
+	{
+	    state.dens = eqn_params->rho2;
+	    state.pres = eqn_params->p0;
+	    state.eos = &(eqn_params->eos[GAS_COMP2]);
+	    state.engy = EosInternalEnergy(&state);
+	}
+	behind_state(SHOCK_MACH_NUMBER,Mach_number,&shock_speed,					shock_dir,&state,&state);
+
+	if (shock_dir == 1)
+        {
+	    input.left_state.d = state.dens;
+	    input.left_state.p = state.pres;
+	    input.left_state.u = state.vel[dim-1];
+	}
+        else if (shock_dir == -1)
+        {
+	    input.right_state.d = state.dens;
+	    input.right_state.p = state.pres;
+	    input.right_state.u = state.vel[dim-1];
+	}
+	RiemannSolution(input,&riem_soln);
+	contact_speed = riem_soln.contact.speed_contact;
+	return contact_speed;
+}	/* end getStationaryVelocity */

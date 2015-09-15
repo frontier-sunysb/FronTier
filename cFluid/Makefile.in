@@ -40,25 +40,28 @@ cFinit.o : cFluid.h cFinit.cpp
 cFeos.o : cFluid.h cFeos.cpp
 	${CXX} -c cFeos.cpp $(incsloc) $(incs)
 
+cFriem.o : cFluid.h cFriem.cpp
+	${CXX} -c cFriem.cpp $(incsloc) $(incs)
+
 cFluid.o : cFluid.h cFluid.cpp
 	${CXX} -c cFluid.cpp -I../include $(incs)
 
 ifeq ($(USEGPU),no)
 
-cFluid: cFluid.h cFluid.o cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o
-	$(CXX) -o cFluid cFluid.o -g -I../include -L../lib/${build_cpu}  cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
+cFluid: cFluid.h cFluid.o cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o cFriem.o
+	$(CXX) -o cFluid cFluid.o -g -I../include -L../lib/${build_cpu}  cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o cFriem.o -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
 
 else
 
 cFweno_gpu.o: cFweno_gpu.cuh cFweno_gpu.cu
 	nvcc -arch sm_20 -c -I. -I../include cFweno_gpu.cu
 
-cFluid: cFluid.h cFweno_gpu.cuh cFluid.o cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o cFweno_gpu.o
-	$(CXX) -o cFluid cFluid.o -g -I../include -L../lib/${build_cpu}  cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o cFweno_gpu.o -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so
+cFluid: cFluid.h cFweno_gpu.cuh cFluid.o cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o cFriem.o cFweno_gpu.o
+	$(CXX) -o cFluid cFluid.o -g -I../include -L../lib/${build_cpu}  cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o cFriem.o cFweno_gpu.o -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so
 
 endif
 
-../lib/libcF.a: cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o
+../lib/libcF.a: cFtvd.o cFweno.o cFsub.o cFcartsn.o cFbase.o cFphys.o cFinit.o cFeos.o cFriem.o
 	$(AR) cru libcF.a $<
 	ranlib libcF.a; mv libcF.a ../lib/$(build_cpu)/libcF.a
 

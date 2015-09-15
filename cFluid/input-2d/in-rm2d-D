@@ -41,8 +41,8 @@ Enter pressure at interface: 1
 Enter Mach number of shock: 2
 Enter position of shock: 1.8
 Enter direction of shock: 1
-Enter contact velocity after shock interaction: 1.20777034
 Type yes to track the interface: y
+Type yes for stationary contact: y
 
 Type y to make movie of density: y
 Type y to make movie of pressure: y

@@ -93,6 +93,7 @@ typedef struct {
 	EOS_PARAMS      eos[MAX_COMP];
 	boolean tracked;
 	boolean articomp;
+	boolean contact_stationary;
 	int shock_dir;
 	double p0;
         double p1;
@@ -183,6 +184,51 @@ struct _VAR_BDRY_PARAMS {
 };
 typedef struct _VAR_BDRY_PARAMS VAR_BDRY_PARAMS;
 
+/*********************************************************************
+*	Definition and structures for Riemann solution.              *
+**********************************************************************/
+
+#define         GAMMA_PLUS              2
+#define         GAMMA_MINUS             3
+#define         LF_SHOCK                4
+#define         RF_SHOCK                5
+#define         CONTACT                 6
+#define         VACUUM                  7
+
+struct _RIEM_STATE
+{
+        double d,p,u;
+        double gamma;
+};
+typedef struct _RIEM_STATE RIEM_STATE;
+
+struct _CENTERED_WAVE
+{
+        int wave_type;                                  /* simple wave or shock */
+        double  speed_leading_edge,speed_trailing_edge; /* for simple wave */
+        double  speed_shock;                            /* for shock */
+        double  speed_contact;                          /* for contact line */
+};
+typedef struct _CENTERED_WAVE CENTERED_WAVE;
+
+struct _RIEMANN_SOLN
+{
+        RIEM_STATE left_state;
+        RIEM_STATE right_state;
+        RIEM_STATE left_center_state;
+        RIEM_STATE right_center_state;
+        CENTERED_WAVE left_wave;
+        CENTERED_WAVE right_wave;
+        CENTERED_WAVE contact;
+};
+typedef struct _RIEMANN_SOLN RIEMANN_SOLN;
+
+struct _RIEMANN_INPUT
+{
+        RIEM_STATE left_state;
+        RIEM_STATE right_state;
+};
+typedef struct _RIEMANN_INPUT RIEMANN_INPUT;
 
 /******************************************************************************
  * 		lcartsn.h
@@ -498,6 +544,11 @@ extern double EosMaxBehindShockPres(double,STATE*);
 extern void   EosSetTVDParams(SCHEME_PARAMS*,EOS_PARAMS*);
 extern void   CovertVstToState(STATE*,SWEEP*,EOS_PARAMS*,int,int);
 extern void findGhostState(STATE,STATE,STATE*);
+
+	/* Riemann solution functions */
+/* cFriem.cpp */
+extern boolean RiemannSolution(RIEMANN_INPUT,RIEMANN_SOLN*);
+extern boolean RiemannSolnAtXi(RIEMANN_SOLN*,RIEM_STATE*,double);
 
 	/* Structures and functions for TVD scheme */
 
