@@ -44,6 +44,7 @@ int main(int argc, char **argv)
 	static VELO_FUNC_PACK velo_func_pack;
 	static IF_PARAMS iFparams;
 	IF_PROB_TYPE prob_type;
+	RG_PARAMS *rg_params;
 
 	/* Initialize basic computational data */
 
@@ -148,7 +149,12 @@ int main(int argc, char **argv)
 	cartesian->findStateAtCrossing = ifluid_find_state_at_crossing;
 
 	if (RestartRun)
+	{
 	    cartesian->readFrontInteriorStates(restart_state_name);
+	    FT_ScalarMemoryAlloc((POINTER*)&rg_params, sizeof(RG_PARAMS));
+	    prompt_for_rigid_body_params(f_basic.dim,in_name,rg_params);
+	    front.extra3 = (POINTER)rg_params;
+	}
 	else
 	    cartesian->setInitialCondition();
 

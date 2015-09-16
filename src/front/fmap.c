@@ -2662,7 +2662,8 @@ LOCAL void FrontPreAdvance2d(
 		    motion_type(*c) == PRESET_TRANSLATION ||
 		    motion_type(*c) == PRESET_ROTATION) 
 		{
-		    vel_func(*c)(front,vparams(*c),NULL,
+		    if (vparams(*c) != NULL)
+		    	vel_func(*c)(front,vparams(*c),NULL,
 				center_of_mass_velo(*c));
 		    if (debugging("rigid_body"))
 		    {

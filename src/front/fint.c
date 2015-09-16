@@ -4,10 +4,8 @@ Front Traking algorithms. Front Tracking is a numerical method for
 the solution of partial differential equations whose solutions have 
 discontinuities.  
 
-
 Copyright (C) 1999 by The University at Stony Brook. 
  
-
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
 License as published by the Free Software Foundation; either
@@ -2742,6 +2740,28 @@ EXPORT	void	f_user_fprint_surface(
             (void) fprintf(file,"\tAngular velocity = ");
             (void) fprintf(file,"%"FFMT"\n",
                                 angular_velo(Hyper_surf(s)));
+	    (void) fprintf(file,"\tPrincipal Moment of inertial = ");
+	    (void) fprintf(file,"%"FFMT" %"FFMT" %"FFMT"\n", 
+				p_mom_inertial(Hyper_surf(s))[0], 
+				p_mom_inertial(Hyper_surf(s))[1], 
+				p_mom_inertial(Hyper_surf(s))[2]);
+	    (void) fprintf(file,"\tPrincipal Angular Velocity = ");
+	    (void) fprintf(file,"%"FFMT" %"FFMT" %"FFMT"\n",
+				p_angular_velo(Hyper_surf(s))[0], 
+				p_angular_velo(Hyper_surf(s))[1],
+				p_angular_velo(Hyper_surf(s))[2]);
+	    (void) fprintf(file,"\tEuler Parameters = ");
+	    (void) fprintf(file,"%"FFMT" %"FFMT" %"FFMT" %"FFMT"\n",
+				euler_params(Hyper_surf(s))[0], 
+				euler_params(Hyper_surf(s))[1], 
+				euler_params(Hyper_surf(s))[2],
+				euler_params(Hyper_surf(s))[3]);
+	    (void) fprintf(file,"\tOld Euler Parameters = ");
+	    (void) fprintf(file,"%"FFMT" %"FFMT" %"FFMT" %"FFMT"\n",
+				old_euler_params(Hyper_surf(s))[0], 
+				old_euler_params(Hyper_surf(s))[1], 
+				old_euler_params(Hyper_surf(s))[2],
+				old_euler_params(Hyper_surf(s))[3]);
             (void) fprintf(file,"\tMotion type = %d\n",
                                motion_type(Hyper_surf(s)));
             (void) fprintf(file,"\tRadius = ");
@@ -2809,6 +2829,22 @@ EXPORT	void f_user_read_print_surface(
                             fread_float(NULL,io_type);
             angular_velo(Hyper_surf(surf)) =
                         read_print_float("Angular velocity = ",1.0,io_type);
+	    fgetstring(file,"Principal Moment of inertial = ");
+	    for (i = 0; i < 3; ++i)
+		p_mom_inertial(Hyper_surf(surf))[i] = 
+			    fread_float(NULL,io_type);
+	    fgetstring(file,"Principal Angular Velocity = ");
+	    for (i = 0; i < 3; ++i)
+		p_angular_velo(Hyper_surf(surf))[i] =
+                            fread_float(NULL,io_type);
+	    fgetstring(file,"Euler Parameters = ");
+	    for (i = 0; i < 4; ++i)
+		euler_params(Hyper_surf(surf))[i] =
+                            fread_float(NULL,io_type);
+	    fgetstring(file,"Old Euler Parameters = ");
+            for (i = 0; i < 4; ++i)
+                old_euler_params(Hyper_surf(surf))[i] =
+                            fread_float(NULL,io_type);
             fgetstring(file,"Motion type = ");
             /* FIXME: the size of enum is compiler dependent */
             status = fscanf(file,"%d",(int*)&motion_type(Hyper_surf(surf)));

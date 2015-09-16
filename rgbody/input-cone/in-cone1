@@ -37,6 +37,7 @@ Enter density and viscosity of the fluid: 1.0 0.00628
 
 ************Rigid body parameters*************
 
+Entering yes to turn off fluid solver: yes
 Type yes if motion is preset: n
 Enter type of dynamic motion: ROTATION
 Enter the total mass for rigid body: 1.0

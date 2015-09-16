@@ -27,7 +27,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 static void ifluid_driver(Front*,Incompress_Solver_Smooth_Basis*);
 static int l_cartesian_vel(POINTER,Front*,POINT*,HYPER_SURF_ELEMENT*,
                         HYPER_SURF*,double*);
-static void rgb_init(Front*,RG_PARAMS);
 
 char *in_name,*restart_state_name,*restart_name,*out_name;
 boolean RestartRun;
@@ -293,39 +292,3 @@ static int l_cartesian_vel(
 	((Incompress_Solver_Smooth_Basis*)params)->getVelocity(coords, vel);
 	return YES;
 }	/* end l_cartesian_vel */
-
-static void rgb_init(Front *front,
-        RG_PARAMS rgb_params)
-{
-        CURVE **c;
-        SURFACE **s;
-
-	rgb_params.no_fluid = NO;	/* default */
-        if (FT_Dimension() == 1) return;
-        else if (FT_Dimension() == 2)
-        {
-            for (c = front->interf->curves; c && *c; ++c)
-            {
-                if (wave_type(*c) == MOVABLE_BODY_BOUNDARY)
-                {
-                    prompt_for_rigid_body_params(front->f_basic->dim,
-				front->f_basic->in_name,&rgb_params);
-                    body_index(*c) = 0;
-                    set_rgbody_params(rgb_params,Hyper_surf(*c));
-                }
-            }
-        }
-        else
-        {
-            for (s = front->interf->surfaces; s && *s; ++s)
-            {
-                if (wave_type(*s) == MOVABLE_BODY_BOUNDARY)
-                {
-                    prompt_for_rigid_body_params(front->f_basic->dim,
-				front->f_basic->in_name,&rgb_params);
-                    body_index(*s) = 0;
-                    set_rgbody_params(rgb_params,Hyper_surf(*s));
-                }
-            }
-        }
-} 	/* end rgb_init */

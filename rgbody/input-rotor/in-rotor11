@@ -48,6 +48,7 @@ Enter the outer radius: 0.9
 
 ************Rigid body parameters*************
 
+Entering yes to turn off fluid solver: no
 Type yes if motion is preset: y
 Available preset motion types are:
         PRESET_TRANSLATION

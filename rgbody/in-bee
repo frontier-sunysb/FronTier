@@ -38,6 +38,7 @@ Enter density and viscosity of the fluid: 1.0 0.00628
 
 ************Rigid body parameters*************
 
+Entering yes to turn off fluid solver: no
 Type yes if motion is preset: yes
 Enter type of preset motion: PRESET_ROTATION
 Enter direction of the axis: 0.0 0.0 1.0

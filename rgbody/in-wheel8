@@ -46,6 +46,7 @@ Enter gravity: 0.0 0.0
 
 ************Rigid body parameters*************
 
+Entering yes to turn off fluid solver: no
 Type yes if motion is preset: y
 Enter type of preset motion: PRESET_ROTATION
 Enter rotation center: 1.0 2.0
