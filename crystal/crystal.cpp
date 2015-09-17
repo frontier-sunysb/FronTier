@@ -181,6 +181,7 @@ static  void crystal_driver(
             FT_Save(front);
 	    c_cartesian.printFrontInteriorStates();
 	    FT_SetOutputCounter(front);
+            FT_Draw(front);
         }
         else
         {

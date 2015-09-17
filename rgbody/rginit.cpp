@@ -37,6 +37,7 @@ static void initBeeIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
 static void initApacheIntfc3d(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
 static void initConeIntfc(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
 static void initPressurePump(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
+static void initHumanBody3d(Front*,LEVEL_FUNC_PACK*,char*,IF_PROB_TYPE);
 /*TMP*/
 static	void insert_surface_tris_into_another(SURFACE*,SURFACE*);
 
@@ -339,6 +340,10 @@ extern void init_moving_bodies(
 	case PRESSURE_PUMP:
             iFparams->m_comp1 = SOLID_COMP;
             initPressurePump(front,level_func_pack,inname,prob_type);
+            break;
+	case HUMAN_BODY_3D:
+            iFparams->m_comp1 = SOLID_COMP;
+            initHumanBody3d(front,level_func_pack,inname,prob_type);
             break;
 	default:
 	    (void) printf("ERROR: wrong type in init_moving_bodies!\n");
@@ -651,3 +656,54 @@ static void initPressurePump(
 	prompt_for_rigid_body_params(dim,inname,&rg_params);
 	set_rgbody_params(rg_params,Hyper_surf(pump));
 }	/* end initPressurePump */
+
+static void initHumanBody3d(
+        Front *front,
+        LEVEL_FUNC_PACK *level_func_pack,
+        char *inname,
+        IF_PROB_TYPE prob_type)
+{
+        IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+        FILE *infile = fopen(inname,"r");
+        INTERFACE *intfc = front->interf;
+        RECT_GRID *gr = front->rect_grid;
+        COMPONENT neg_comp;
+        COMPONENT pos_comp;
+        int dim = gr->dim;
+        char msg[100];
+        SURFACE *human_body;
+        char vtk_name[100],string[100];
+        static RG_PARAMS rgb_params;
+
+        sprintf(string,"Enter the vtk file name for human body:");
+        CursorAfterString(infile,string);
+        fscanf(infile,"%s",vtk_name);
+        (void) printf("%s\n",vtk_name);
+        neg_comp = SOLID_COMP;
+        pos_comp = LIQUID_COMP2;
+        read_vtk_surface(intfc,neg_comp,pos_comp,vtk_name,&human_body);
+        wave_type(human_body) = MOVABLE_BODY_BOUNDARY;
+        rgb_params.no_fluid = YES;
+        front->extra3 = (POINTER)&rgb_params;
+        if (debugging("human_body"))
+        {
+            (void) printf("Hunam body surface read from vtk file %s\n",
+                                        vtk_name);
+            (void) gview_plot_interface("g-human-body",intfc);
+        }
+
+        prompt_for_rigid_body_params(dim,inname,&rgb_params);
+        rgb_params.dim = 3;
+        set_rgbody_params(rgb_params,Hyper_surf(human_body));
+
+        if (debugging("human_body"))
+            (void) printf("Passed prompt_for_rigid_body()\n");
+
+        sprintf(msg,"Enter density and viscosity of the fluid:");
+        CursorAfterString(infile,msg);
+        fscanf(infile,"%lf %lf",&iFparams->rho2,&iFparams->mu2);
+        (void) printf("%f %f\n",iFparams->rho2,iFparams->mu2);
+
+        fclose(infile);
+        FT_ParallelExchIntfcBuffer(front);
+}       /* end initWindMillIntfc3d */

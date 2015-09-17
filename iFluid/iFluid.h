@@ -44,7 +44,8 @@ enum _IF_PROB_TYPE {
         TWO_FLUID_KH,
         TWO_FLUID_RT,
 	WINDMILL_2D,
-        WINDMILL_3D
+        WINDMILL_3D,
+	HUMAN_BODY_3D
 };
 typedef enum _IF_PROB_TYPE IF_PROB_TYPE;
 

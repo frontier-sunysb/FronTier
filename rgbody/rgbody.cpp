@@ -536,7 +536,10 @@ extern void read_rg_prob_type(
 	}
         else if (string[0] == 'H' || string[0] == 'h')
 	{
-            *prob_type = HELICOPTER_3D;
+	    if (string[1] == 'E' || string[1] == 'e')
+                *prob_type = HELICOPTER_3D;
+            else if (string[1] == 'U' || string[1] == 'u')
+                *prob_type = HUMAN_BODY_3D;
 	}
 	else if (string[0] == 'O' || string[0] == 'o')
             *prob_type = OPEN_ROTOR;
