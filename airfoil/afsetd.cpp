@@ -44,15 +44,11 @@ static void count_surf_neighbors(SURFACE*,SPRING_VERTEX*,int*);
 static void count_curve_neighbors(CURVE*,SPRING_VERTEX*,int*);
 static void count_node_neighbors(NODE*,SPRING_VERTEX*,int*);
 
-static void set_surf_impulse(ELASTIC_SET*,SURFACE*,SPRING_VERTEX*,int*);
-static void set_curve_impulse(ELASTIC_SET*,CURVE*,SPRING_VERTEX*,int*);
-static void set_node_impulse(ELASTIC_SET*,NODE*,SPRING_VERTEX*,int*);
-
 static void get_point_value_from(POINT*,GLOBAL_POINT**);
 static void put_point_value_to(POINT*,GLOBAL_POINT**);
-static void new_set_node_impulse(ELASTIC_SET*,NODE*,GLOBAL_POINT**);
-static void new_set_curve_impulse(ELASTIC_SET*,CURVE*,GLOBAL_POINT**);
-static void new_set_surf_impulse(ELASTIC_SET*,SURFACE*,GLOBAL_POINT**);
+static void set_node_impulse(ELASTIC_SET*,NODE*,GLOBAL_POINT**);
+static void set_curve_impulse(ELASTIC_SET*,CURVE*,GLOBAL_POINT**);
+static void set_surf_impulse(ELASTIC_SET*,SURFACE*,GLOBAL_POINT**);
 
 static void reorder_string_curves(NODE*);
 
@@ -72,9 +68,15 @@ static void count_node_neighbors(
 	dim = Dimension(node->interface);
 	num_nb = 0;
 	for (c = node->out_curves; c && *c; ++c)
+	{
+	    if (hsbdry_type(*c) == PASSIVE_HSBDRY) continue;
 	    num_nb++;
+	}
 	for (c = node->in_curves; c && *c; ++c)
+	{
+	    if (hsbdry_type(*c) == PASSIVE_HSBDRY) continue;
 	    num_nb++;
+	}
 	sv[*n].ix = node->posn->indx = *n;
 	if (dim == 3)
 	{
@@ -87,6 +89,7 @@ static void count_node_neighbors(
 	    p = node->posn;
 	    for (c = node->out_curves; c && *c; ++c)
 	    {
+	    	if (hsbdry_type(*c) == PASSIVE_HSBDRY) continue;
 		b = (*c)->first;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
@@ -101,6 +104,7 @@ static void count_node_neighbors(
 	    }
 	    for (c = node->in_curves; c && *c; ++c)
 	    {
+	    	if (hsbdry_type(*c) == PASSIVE_HSBDRY) continue;
 		b = (*c)->last;
 		for (btris = Btris(b); btris && *btris; ++btris)
 		{
@@ -139,6 +143,8 @@ static void count_curve_neighbors(
 	int i,j;
 	BOND *b;
 	int dim = Dimension(curve->interface);
+
+	if (curve->first == curve->last) return; // no interior point
 
 	i = *n;
 	for (b = curve->first; b != curve->last; b = b->next)
@@ -344,10 +350,6 @@ extern void generic_spring_solver(
             {
                 x_new[i][j] += (sv[i].ext_impul[j]
                                 + 0.5*sv[i].ext_accel[j]*dt)*dt;
-		if (isnan(sv[i].ext_impul[j]))
-		{
-		    printf("sv[%d].ext_impul[%d] = NaN\n",i,j);
-		}
                 sv[i].ext_impul[j] += sv[i].ext_accel[j]*dt;
             }
 	    for (i = 0; i < size; ++i)
@@ -374,104 +376,6 @@ extern void generic_spring_solver(
 	if (debugging("trace"))
 	    (void) printf("Leaving generic_spring_solver()\n");
 }	/* end generic_spring_solver */
-
-extern void set_vertex_impulse(
-        ELASTIC_SET *geom_set,
-        SPRING_VERTEX *sv)
-{
-        int i,n,ns,nc,nn;
-
-        ns = geom_set->num_surfs;
-        nc = geom_set->num_curves;
-        nn = geom_set->num_nodes;
-        n = 0;
-        for (i = 0; i < ns; ++i)
-            set_surf_impulse(geom_set,geom_set->surfs[i],sv,&n);
-        for (i = 0; i < nc; ++i)
-            set_curve_impulse(geom_set,geom_set->curves[i],sv,&n);
-        for (i = 0; i < nn; ++i)
-            set_node_impulse(geom_set,geom_set->nodes[i],sv,&n);
-
-}       /* end set_vertex_impulse */
-
-static void set_node_impulse(
-	ELASTIC_SET *geom_set,
-	NODE *node,
-	SPRING_VERTEX *sv,
-	int *n)
-{
-	int i,dim;
-	STATE *sl,*sr;
-
-	dim = FT_Dimension();
-	sl = (STATE*)left_state(node->posn);
-	sr = (STATE*)right_state(node->posn);
-	for (i = 0; i < dim; ++i)
-	    sl->impulse[i] = sr->impulse[i] = sv[*n].ext_impul[i];
-	(*n)++;
-}	/* end set_node_impulse */
-
-static void set_curve_impulse(
-	ELASTIC_SET *geom_set,
-	CURVE *curve,
-	SPRING_VERTEX *sv,
-	int *n)
-{
-	int i,j,dim;
-	STATE *sl,*sr;
-	BOND *b;
-
-	dim = FT_Dimension();
-
-	i = *n;
-	for (b = curve->first; b != curve->last; b = b->next)
-	{
-	    sl = (STATE*)left_state(b->end);
-	    sr = (STATE*)right_state(b->end);
-            for (j = 0; j < dim; ++j)
-            {
-	    	sl->impulse[j] = sr->impulse[j] = sv[i].ext_impul[j];
-	    }
-	    ++i;
-	}
-	*n = i;
-}	/* end set_curve_impulse */
-
-static void set_surf_impulse(
-	ELASTIC_SET *geom_set,
-	SURFACE *surf,
-	SPRING_VERTEX *sv,
-	int *n)
-{
-	int i,j,k;
-	TRI *tri;
-	POINT *p;
-	HYPER_SURF *hs;
-	HYPER_SURF_ELEMENT *hse;
-	STATE *sl,*sr;
-
-	unsort_surf_point(surf);
-	hs = Hyper_surf(surf);
-	i = *n;
-	for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
-			tri = tri->next)
-	{
-	    hse = Hyper_surf_element(tri);
-	    for (j = 0; j < 3; ++j)
-	    {
-		p = Point_of_tri(tri)[j];
-		if (sorted(p) || Boundary_point(p)) continue;
-		sorted(p) = YES;
-		FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-            	for (k = 0; k < 3; ++k)
-            	{
-	    	    sl->impulse[k] = sr->impulse[k] = sv[i].ext_impul[k];
-	    	}
-	    	++i;
-	    }
-	}
-	*n = i;
-}	/* end set_surf_impulse */
 
 extern void count_vertex_neighbors(
 	ELASTIC_SET *geom_set,
@@ -515,8 +419,10 @@ extern void link_point_set(
 	    link_surf_point_set(geom_set,geom_set->surfs[i],point_set,
 				point_set_store,&n);
 	for (i = 0; i < nc; ++i)
+	{
 	    link_curve_point_set(geom_set,geom_set->curves[i],point_set,
 				point_set_store,&n);
+	}
 	for (i = 0; i < nn; ++i)
 	    link_node_point_set(geom_set,geom_set->nodes[i],point_set,
 				point_set_store,&n);
@@ -570,6 +476,7 @@ static void link_curve_point_set(
 	long gindex;
 	int i = *n;
 
+	if (curve->first == curve->last) return;	// Treated as nodes
 	for (b = curve->first; b != curve->last; b = b->next)
 	{
 	    p = b->end;
@@ -697,10 +604,8 @@ extern void set_node_spring_vertex(
 	    sv[*n].m = mass;
 	    if (dim == 3)
 	    {
-		if (is_fixed)
+		if (is_fixed || is_load_node(node) || is_rg_string_node(node))
 		    sv[*n].k[nn] = 0.0;
-		else if (is_load_node(node) == YES)
-		    sv[*n].k[nn] = kl;
 		else if (hsbdry_type(*c) == STRING_HSBDRY)
 		    sv[*n].k[nn] = kl;
 		else if (hsbdry_type(*c) == MONO_COMP_HSBDRY)
@@ -723,10 +628,8 @@ extern void set_node_spring_vertex(
 	    sv[*n].m = mass;
 	    if (dim == 3)
 	    {
-		if (is_fixed)
+		if (is_fixed || is_load_node(node) || is_rg_string_node(node))
 		    sv[*n].k[nn] = 0.0;
-		else if (is_load_node(node) == YES)
-		    sv[*n].k[nn] = kl;
 		else if (hsbdry_type(*c) == STRING_HSBDRY)
 		    sv[*n].k[nn] = kl;
 		else if (hsbdry_type(*c) == MONO_COMP_HSBDRY)
@@ -797,11 +700,7 @@ extern void set_node_spring_vertex(
 		    }
 		}
 	    }
-	    if (!is_load_node(node))
-	    {
-		sv[*n].lambda = lambda_s;
-	    }
-	    if (is_fixed) 
+	    if (is_fixed || is_load_node(node) || is_rg_string_node(node)) 
 	    {
 		sv[*n].lambda = 0.0;
 	    	for (i = 0; i < sv[*n].num_nb; ++i)
@@ -816,7 +715,8 @@ extern void set_node_spring_vertex(
 	{
             for (i = 0; i < dim; ++i)
             {
-		if (is_fixed || g == NULL)
+		if (is_fixed || is_load_node(node) ||
+		    is_rg_string_node(node) || g == NULL)
 	    	    sv[*n].ext_accel[i] = 0;
 		else
 	    	    sv[*n].ext_accel[i] = g[i];
@@ -1319,6 +1219,7 @@ extern void assembleParachuteSet(
 	    {
 	    	node_in_curve_loop(nodes[i],c)
 	    	{
+		    if (hsbdry_type(*c) == PASSIVE_HSBDRY) continue;
 		    if (!pointer_in_list(*c,nc,(POINTER*)curves))
 		    {
 		    	curves[nc++] = *c;
@@ -1330,6 +1231,7 @@ extern void assembleParachuteSet(
 	    	}
 	    	node_out_curve_loop(nodes[i],c)
 	    	{
+		    if (hsbdry_type(*c) == PASSIVE_HSBDRY) continue;
 		    if (!pointer_in_list(*c,nc,(POINTER*)curves))
 		    {
 		    	curves[nc++] = *c;
@@ -1352,11 +1254,13 @@ extern void assembleParachuteSet(
 	geom_set->num_verts += nn;
 	geom_set->load_node = NULL;
 	for (i = 0; i < nn; ++i)
-	    if (is_load_node(nodes[i]))
+	{
+	    if (is_load_node(nodes[i]) || is_rg_string_node(nodes[i]))
 	    {
 		geom_set->load_node = nodes[i];
 		reorder_string_curves(nodes[i]);
 	    }
+	}
 }	/* end assembleParachuteSet */
 
 extern void copy_from_client_point_set(
@@ -1460,7 +1364,7 @@ static void reorder_string_curves(NODE *node)
 	FT_FreeThese(2,string_curves,nb_points);
 }	/* end reorder_string_curves */
 
-extern void new_set_vertex_impulse(
+extern void set_vertex_impulse(
         ELASTIC_SET *geom_set,
         GLOBAL_POINT **point_set)
 {
@@ -1470,15 +1374,15 @@ extern void new_set_vertex_impulse(
         nc = geom_set->num_curves;
         nn = geom_set->num_nodes;
         for (i = 0; i < ns; ++i)
-            new_set_surf_impulse(geom_set,geom_set->surfs[i],point_set);
+            set_surf_impulse(geom_set,geom_set->surfs[i],point_set);
         for (i = 0; i < nc; ++i)
-            new_set_curve_impulse(geom_set,geom_set->curves[i],point_set);
+            set_curve_impulse(geom_set,geom_set->curves[i],point_set);
         for (i = 0; i < nn; ++i)
-            new_set_node_impulse(geom_set,geom_set->nodes[i],point_set);
+            set_node_impulse(geom_set,geom_set->nodes[i],point_set);
 
 }       /* end set_vertex_impulse */
 
-static void new_set_node_impulse(
+static void set_node_impulse(
 	ELASTIC_SET *geom_set,
 	NODE *node,
         GLOBAL_POINT **point_set)
@@ -1494,7 +1398,7 @@ static void new_set_node_impulse(
 	    sl->impulse[i] = sr->impulse[i] = point_set[gindex]->impuls[i];
 }	/* end set_node_impulse */
 
-static void new_set_curve_impulse(
+static void set_curve_impulse(
 	ELASTIC_SET *geom_set,
 	CURVE *curve,
         GLOBAL_POINT **point_set)
@@ -1518,7 +1422,7 @@ static void new_set_curve_impulse(
 	}
 }	/* end set_curve_impulse */
 
-static void new_set_surf_impulse(
+static void set_surf_impulse(
 	ELASTIC_SET *geom_set,
 	SURFACE *surf,
         GLOBAL_POINT **point_set)

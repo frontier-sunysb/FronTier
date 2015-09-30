@@ -1566,7 +1566,7 @@ extern void fourth_order_elastic_curve_propagate(
 
 	stop_clock("spring_model");
 	put_point_set_to(&geom_set,point_set);
-	set_vertex_impulse(&geom_set,sv);
+	set_vertex_impulse(&geom_set,point_set);
 
 	/* End intensive computation */
 	
@@ -1845,7 +1845,7 @@ extern void fourth_order_elastic_surf_propagate(
 	    generic_spring_solver(sv,dim,size,n_sub,dt);
 
 	put_point_set_to(&geom_set,point_set);
-	set_vertex_impulse(&geom_set,sv);
+	set_vertex_impulse(&geom_set,point_set);
 
 	stop_clock("spring_model");
 

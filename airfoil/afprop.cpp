@@ -31,6 +31,7 @@ static void string_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
 static void mono_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
 static void gore_curve_propagation(Front*,POINTER,CURVE*,CURVE*,double);
 static void gore_point_propagate(Front*,POINTER,POINT*,POINT*,BOND*,double);
+static void load_node_propagate(Front*,NODE*,NODE*,double);
 static void coating_mono_hyper_surf2d(Front*);
 static void coating_mono_hyper_surf3d(Front*);
 static	int arrayOfMonoHsbdry(INTERFACE*,CURVE**);
@@ -71,7 +72,9 @@ extern void elastic_point_propagate(
 	    return;
 	}
 
-	FT_GetStatesAtPoint(oldp,oldhse,oldhs,(POINTER*)&sl,(POINTER*)&sr);
+	//FT_GetStatesAtPoint(oldp,oldhse,oldhs,(POINTER*)&sl,(POINTER*)&sr);
+	sl = (STATE*)left_state(oldp);
+	sr = (STATE*)right_state(oldp);
 	newsl = (STATE*)left_state(newp);
 	newsr = (STATE*)right_state(newp);
 
@@ -204,15 +207,21 @@ static void string_curve_propagation(
 	BOND *oldb,*newb;
 	POINT *oldp,*newp;
 
-	oldp = oldc->start->posn;
-	newp = newc->start->posn;
-	ft_assign(left_state(newp),left_state(oldp),front->sizest);
-	ft_assign(right_state(newp),right_state(oldp),front->sizest);
+	if (!is_load_node(oldc->start))
+	{
+	    oldp = oldc->start->posn;
+	    newp = newc->start->posn;
+	    ft_assign(left_state(newp),left_state(oldp),front->sizest);
+	    ft_assign(right_state(newp),right_state(oldp),front->sizest);
+	}
 
-	oldp = oldc->end->posn;
-	newp = newc->end->posn;
-	ft_assign(left_state(newp),left_state(oldp),front->sizest);
-	ft_assign(right_state(newp),right_state(oldp),front->sizest);
+	if (!is_load_node(oldc->end))
+	{
+	    oldp = oldc->end->posn;
+	    newp = newc->end->posn;
+	    ft_assign(left_state(newp),left_state(oldp),front->sizest);
+	    ft_assign(right_state(newp),right_state(oldp),front->sizest);
+	}
 
 	for (oldb = oldc->first, newb = newc->first; oldb != oldc->last;
 		oldb = oldb->next, newb = newb->next)
@@ -492,6 +501,15 @@ extern boolean is_load_node(NODE *n)
         return NO;
 }       /* end is_load_node */
 
+extern boolean is_rg_string_node(NODE *n)
+{
+        AF_NODE_EXTRA *af_node_extra;
+        if (n->extra == NULL) return NO;
+        af_node_extra = (AF_NODE_EXTRA*)n->extra;
+        if (af_node_extra->af_node_type == RG_STRING_NODE) return YES;
+        return NO;
+}       /* end is_rg_string_node */
+
 static int getGoreNodes(
 	INTERFACE *intfc,
 	NODE **gore_nodes)
@@ -539,6 +557,7 @@ static void mono_curve_propagation(
 	    (void) printf("Entering mono_curve_propagation()\n");
 	}
 
+	/*
 	oldb = oldc->first;
 	newb = newc->first;
 	oldp = oldb->start;
@@ -549,6 +568,7 @@ static void mono_curve_propagation(
 	    oldp->hs = oldhs = Hyper_surf((*btris)->surface);
 	    elastic_point_propagate(front,wave,oldp,newp,oldhse,oldhs,dt,V);
 	}
+	*/
 	for (oldb = oldc->first, newb = newc->first; oldb != NULL;
 		oldb = oldb->next, newb = newb->next)
 	{
@@ -823,3 +843,103 @@ static void coating_mono_hyper_surf3d(
 	if (debugging("trace"))
 	    (void) printf("Leaving coating_mono_hyper_surf3d()\n");
 }	/* end coating_mono_hyper_surf3d */
+
+static void load_node_propagate(
+	Front *front,
+	NODE *oldn,
+	NODE *newn,
+	double dt)
+{
+	IF_PARAMS *iFparams = (IF_PARAMS*)front->extra1;
+	AF_PARAMS *af_params = (AF_PARAMS*)front->extra2;
+	POINT *oldp,*newp;
+	double *g = iFparams->gravity;
+	double f[MAXD],accel[MAXD];
+	double kl = af_params->kl;
+	double mass = af_params->payload;
+	CURVE **c;
+	STATE *sl,*sr,*newsl,*newsr;
+	double vec[MAXD],vec_mag;
+	BOND *b;
+	int i,dim = FT_Dimension();
+
+	if (!is_load_node(oldn)) return;
+	oldp = oldn->posn;
+	newp = newn->posn;
+	sl = (STATE*)left_state(oldp);
+	sr = (STATE*)right_state(oldp);
+	newsl = (STATE*)left_state(newp);
+	newsr = (STATE*)right_state(newp);
+
+	if (debugging("trace"))
+	{
+	    (void)printf("\nEntering load_node_propagate()\n");
+	}
+	for (i = 0; i < dim; ++i)
+	    f[i] = 0.0;
+	node_out_curve_loop(oldn,c)
+	{
+	    b = (*c)->first;
+	    for (i = 0; i < dim; ++i)
+	    {
+		vec[i] = Coords(b->end)[i] - Coords(b->start)[i];
+		vec[i] /= bond_length(b);
+		f[i] += kl*(bond_length(b) - bond_length0(b))*vec[i];
+	    }
+	}
+	node_in_curve_loop(oldn,c)
+	{
+	    b = (*c)->last;
+	    for (i = 0; i < dim; ++i)
+	    {
+		vec[i] = Coords(b->start)[i] - Coords(b->end)[i];
+		vec[i] /= bond_length(b);
+		f[i] += kl*(bond_length(b) - bond_length0(b))*vec[i];
+	    }
+	}
+	for (i = 0; i < dim; ++i)
+	{
+	    accel[i] = f[i]/mass + g[i];
+	    newsl->impulse[i] = newsr->impulse[i] = 
+			sl->impulse[i] + accel[i]*dt;
+	    //Coords(newp)[i] = Coords(oldp)[i] + newsl->vel[i]*dt;
+	}
+	node_out_curve_loop(newn,c)
+	{
+	    b = (*c)->first;
+	    set_bond_length(b,dim);
+	}
+	node_in_curve_loop(newn,c)
+	{
+	    b = (*c)->last;
+	    set_bond_length(b,dim);
+	}
+	
+	if (debugging("trace"))
+	{
+	    (void)printf("old_impuls = %f %f %f\n",sl->impulse[0],
+				sl->impulse[1],sl->impulse[2]);
+	    (void)printf("new_impuls = %f %f %f\n",newsl->impulse[0],
+				newsl->impulse[1],newsl->impulse[2]);
+	    (void)printf("accel = %f %f %f\n",accel[0],accel[1],
+				accel[2]);
+	    (void)printf("Leaving load_node_propagate()\n\n");
+	}
+}	/* end load_node_propagate */
+
+extern int airfoil_node_propagate(
+	Front *front,
+	POINTER wave,
+	NODE *oldn,
+	NODE *newn,
+	RPROBLEM        **rp,
+        double          dt,
+        double          *dt_frac,
+        NODE_FLAG       flag,
+        POINTER         user)
+{
+	if (!is_load_node(oldn)) 
+	    return GOOD_NODE;
+	load_node_propagate(front,oldn,newn,dt);
+	return GOOD_NODE;
+}	/* end airfoil_node_propagate */

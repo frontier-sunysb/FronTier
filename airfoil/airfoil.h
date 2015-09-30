@@ -32,6 +32,7 @@ typedef enum _STRING_NODE_TYPE STRING_NODE_TYPE;
 enum _AF_NODE_TYPE {
 	UNKNOWN_AF_NODE = -1,
 	LOAD_NODE	= 1,
+	RG_STRING_NODE,
 	GORE_NODE,
 	STRING_NODE,
 	PRESET_NODE,
@@ -179,6 +180,7 @@ typedef struct {
 
 struct _AF_NODE_EXTRA {
 	AF_NODE_TYPE af_node_type;
+	double accum_impulse;
 };
 typedef struct _AF_NODE_EXTRA AF_NODE_EXTRA;
 
@@ -242,7 +244,10 @@ extern void coating_mono_hyper_surf(Front*);
 extern  int numOfGoreHsbdry(INTERFACE*);
 extern  int numOfMonoHsbdry(INTERFACE*);
 extern  int numOfGoreNodes(INTERFACE*);
+extern 	int airfoil_node_propagate(Front*,POINTER,NODE*,NODE*,RPROBLEM**,
+			double,double*,NODE_FLAG,POINTER);
 extern boolean is_load_node(NODE*);
+extern boolean is_rg_string_node(NODE*);
 extern boolean is_gore_node(NODE*);
 extern boolean is_bdry_node(NODE*);
 extern boolean is_string_node(NODE*);
@@ -314,8 +319,8 @@ extern void merge_global_point_set(GLOBAL_POINT**,GLOBAL_POINT*,int);
 extern void copy_from_client_point_set(GLOBAL_POINT**,GLOBAL_POINT*,int,
 				double*,double*);
 extern void copy_to_client_point_set(GLOBAL_POINT**,GLOBAL_POINT*,int);
-extern void new_set_vertex_impulse(ELASTIC_SET*,GLOBAL_POINT**);
-extern void new_set_geomset_velocity(ELASTIC_SET*,GLOBAL_POINT**);
+extern void set_vertex_impulse(ELASTIC_SET*,GLOBAL_POINT**);
+extern void set_geomset_velocity(ELASTIC_SET*,GLOBAL_POINT**);
 
 // afvelo.cpp
 extern void setMotionParams(Front*);

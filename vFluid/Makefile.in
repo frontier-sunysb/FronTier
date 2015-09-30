@@ -21,21 +21,32 @@ all: vFluid
 
 vFluid : @devel@
 
-vcartsn.o: vcartsn.h vcartsn.cpp
+vcartsn.o: vFluid.h vcartsn.cpp
 	${CXX} -c vcartsn.cpp $(incsloc) $(incs) ${Petsc_Include}
 hyperb.o : ../solver/solver.h ../solver/hyperb.cpp
 	${CXX} -c ../solver/hyperb.cpp $(incsloc) $(incs) ${Petsc_Include}
-vFluid.o : vcartsn.h vFluid.cpp
+vFluid.o : vFluid.h vFluid.cpp
 	${CXX} -c vFluid.cpp $(incsloc) $(incs) ${Petsc_Include}
+dsrc2c.o: dsrc2c.f90
+	$(F77) -c $<
+modGLB.o: modGLB.f90
+	$(F77) -c $<
+modMSH.o: modMSH.f90
+	$(F77) -c $<
+modSWE.o: modSWE.f90
+	$(F77) -c $<
+prjSWE.o: prjSWE.f90
+	$(F77) -c -ffree-form $<
+
 
 ifeq ($(USEGPU),no)
-vFluid: ../solver/solver.h vFluid.cpp vcartsn.o
+vFluid: ../solver/solver.h vFluid.cpp vcartsn.o modGLB.o modMSH.o modSWE.o dsrc2c.o prjSWE.o
 	${CXX} -c vFluid.cpp $(incsloc) $(incs) ${Petsc_Include}
-	$(CXX) -o vFluid vcartsn.o vFluid.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} -frounding-math -L/usr/lib64 -lgmp -lmpfr
+	$(CXX) -o vFluid vcartsn.o vFluid.o modGLB.o modMSH.o modSWE.o dsrc2c.o prjSWE.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} -frounding-math -L/usr/lib64 -lgmp -lmpfr
 else
-vFluid: vcartsn.h ../solver/solver.h vFluid.cpp vcartsn.o hyperb.o
+vFluid: vFluid.h ../solver/solver.h vFluid.cpp vcartsn.o modGLB.o modMSH.o modSWE.o dsrc2c.o prjSWE.o
 	${CXX} -c vFluid.cpp $(incsloc) $(incs) ${Petsc_Include}
-	$(CXX) -o vFluid vcartsn.o vFluid.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so -frounding-math -L/usr/lib64 -lgmp -lmpfr 
+	$(CXX) -o vFluid vcartsn.o vFluid.o modGLB.o modMSH.o modSWE.o dsrc2c.o prjSWE.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS} /usr/local/cuda/lib64/libcudart.so -frounding-math -L/usr/lib64 -lgmp -lmpfr 
 endif
 
 -include ../devel-deps.inc
@@ -44,9 +55,6 @@ clean:
 	rm -rf *.o vFluid 
 output :
 	rm -rf out/*
-
-gif :
-	hdf2gif out/intfc.hdf out/intfc.gif
 
 TagsFile:
 	ctags *.cpp ../solver/solver.h ../solver/*.cpp ../src/front/*.[ch] ../src/intfc/*.[ch] ../src/util/*.[ch]

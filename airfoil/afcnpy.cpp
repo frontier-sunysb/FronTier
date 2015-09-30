@@ -35,12 +35,9 @@ static void reduce_high_freq_vel(Front*,SURFACE*);
 static void smooth_vel(double*,POINT*,TRI*,SURFACE*);
 static boolean curve_in_pointer_list(CURVE*,CURVE**);
 static void set_string_impulse(ELASTIC_SET*,SPRING_VERTEX*);
-static void setNodeVelocity(ELASTIC_SET*,NODE*,double**,SPRING_VERTEX*,int*);
-static void setCurveVelocity(ELASTIC_SET*,CURVE*,double**,SPRING_VERTEX*,int*);
-static void setSurfVelocity(ELASTIC_SET*,SURFACE*,double**,SPRING_VERTEX*,int*);
-static void new_setNodeVelocity(ELASTIC_SET*,NODE*,double**,GLOBAL_POINT**);
-static void new_setCurveVelocity(ELASTIC_SET*,CURVE*,double**,GLOBAL_POINT**);
-static void new_setSurfVelocity(ELASTIC_SET*,SURFACE*,double**,GLOBAL_POINT**);
+static void setNodeVelocity(ELASTIC_SET*,NODE*,double**,GLOBAL_POINT**);
+static void setCurveVelocity(ELASTIC_SET*,CURVE*,double**,GLOBAL_POINT**);
+static void setSurfVelocity(ELASTIC_SET*,SURFACE*,double**,GLOBAL_POINT**);
 static void collectNodeExtra(Front*,INTERFACE*,int);
 
 #define 	MAX_NUM_RING1		30
@@ -1695,194 +1692,6 @@ static void reduce_high_freq_vel(
 	FT_FreeThese(1,vv);
 }	/* end reduce_high_freq_vel */
 
-static void setSurfVelocity(
-	ELASTIC_SET *geom_set,
-	SURFACE *surf,
-	SPRING_VERTEX *sv,
-	int *n)
-{
-	int i,j;
-	TRI *tri;
-	POINT *p;
-	STATE *sl,*sr;
-	HYPER_SURF_ELEMENT *hse;
-        HYPER_SURF         *hs;
-	Front *front = geom_set->front;
-	double nor[MAXD],nor_speed;
-	double *vel;
-	int gindex_max;
-
-	unsort_surf_point(surf);
-	hs = Hyper_surf(surf);
-	for (tri = first_tri(surf); !at_end_of_tri_list(tri,surf); 
-			tri = tri->next)
-	{
-	    hse = Hyper_surf_element(tri);
-	    for (i = 0; i < 3; ++i)
-	    {
-		p = Point_of_tri(tri)[i];
-		if (sorted(p) || Boundary_point(p)) continue;
-		FT_NormalAtPoint(p,front,nor,NO_COMP);
-		FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		vel = sv[*n].v;
-		nor_speed = scalar_product(vel,nor,3);
-		for (j = 0; j < 3; ++j)
-		{
-		    sl->vel[j] = sl->impulse[j] + nor_speed*nor[j];
-		    sr->vel[j] = sr->impulse[j] + nor_speed*nor[j];
-		}
-		sorted(p) = YES;
-		(*n)++;
-	    }
-	}
-	//reduce_high_freq_vel(front,surf);
-}	/* end setSurfVelocity */
-
-static void setCurveVelocity(
-	ELASTIC_SET *geom_set,
-	CURVE *curve,
-	SPRING_VERTEX *sv,
-	int *n)
-{
-	int i,j;
-	BOND *b;
-	POINT *p;
-	BOND_TRI **btris;
-	STATE *sl,*sr;
-	HYPER_SURF_ELEMENT *hse;
-        HYPER_SURF         *hs;
-	Front *front = geom_set->front;
-	double nor[MAXD],nor_speed;
-	double *vel;
-	double crds_max[MAXD];
-	int gindex_max;
-
-	for (b = curve->first; b != curve->last; b = b->next)
-        {
-            	p = b->end;
-		for (btris = Btris(b); btris && *btris; ++btris)
-            	{
-                    p->hse = hse = Hyper_surf_element((*btris)->tri);
-                    p->hs = hs = Hyper_surf((*btris)->surface);
-                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		    FT_NormalAtPoint(p,front,nor,NO_COMP);
-		    vel = sv[*n].v;
-		    nor_speed = scalar_product(vel,nor,3);
-                    for (j = 0; j < 3; ++j)
-		    	sl->vel[j] = sr->vel[j] = 
-				sl->impulse[j] + nor_speed*nor[j];
-            	}
-            	(*n)++;
-        }
-}	/* end setCurveVelocity */
-
-static void setNodeVelocity(
-	ELASTIC_SET *geom_set,
-	NODE *node,
-	SPRING_VERTEX *sv,
-	int *n)
-{
-	int i,j;
-	BOND *b;
-	POINT *p;
-	BOND_TRI **btris;
-	STATE *sl,*sr;
-	HYPER_SURF_ELEMENT *hse;
-        HYPER_SURF         *hs;
-	Front *front = geom_set->front;
-	CURVE **c;
-	double nor[MAXD],nor_speed,max_speed;
-	double *vel;
-	double crds_max[MAXD];
-	int gindex_max;
-
-	for (c = node->out_curves; c && *c; ++c)
-        {
-		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
-		    hsbdry_type(*c) != GORE_HSBDRY) 
-		    continue;
-                b = (*c)->first;
-                p = b->start;
-		for (btris = Btris(b); btris && *btris; ++btris)
-		{
-                    p->hse = hse = Hyper_surf_element((*btris)->tri);
-                    p->hs = hs = Hyper_surf((*btris)->surface);
-                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		    FT_NormalAtPoint(p,front,nor,NO_COMP);
-		    vel = sv[*n].v;
-		    nor_speed = scalar_product(vel,nor,3);
-		    if (max_speed < fabs(nor_speed)) 
-		    {
-		    	max_speed = fabs(nor_speed);
-		    	gindex_max = Gindex(p);
-		    	for (j = 0; j < 3; ++j)
-			    crds_max[j] = Coords(p)[j];
-		    }
-                    for (j = 0; j < 3; ++j)
-		    	sl->vel[j] = sr->vel[j] = 
-				sl->impulse[j] + nor_speed*nor[j];
-		}
-        }
-        for (c = node->in_curves; c && *c; ++c)
-        {
-		if (hsbdry_type(*c) != MONO_COMP_HSBDRY &&
-		    hsbdry_type(*c) != GORE_HSBDRY) 
-		    continue;
-                b = (*c)->last;
-                p = b->end;
-		for (btris = Btris(b); btris && *btris; ++btris)
-		{
-                    p->hse = hse = Hyper_surf_element((*btris)->tri);
-                    p->hs = hs = Hyper_surf((*btris)->surface);
-                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		    FT_NormalAtPoint(p,front,nor,NO_COMP);
-		    vel = sv[*n].v;
-		    nor_speed = scalar_product(vel,nor,3);
-		    if (max_speed < fabs(nor_speed)) 
-		    {
-		    	max_speed = fabs(nor_speed);
-		    	gindex_max = Gindex(p);
-		    	for (j = 0; j < 3; ++j)
-			    crds_max[j] = Coords(p)[j];
-		    }
-                    for (j = 0; j < 3; ++j)
-		    	sl->vel[j] = sr->vel[j] = 
-				sl->impulse[j] + nor_speed*nor[j];
-		    }
-        }
-	if (is_load_node(node))
-	{
-	    sl = (STATE*)left_state(node->posn);
-            sr = (STATE*)right_state(node->posn);
-	    vel = sv[*n].v;
-            for (j = 0; j < 3; ++j)
-            {
-            	sl->vel[j] = vel[j];
-            	sr->vel[j] = vel[j];
-            }
-	}
-	(*n)++;
-}	/* end setNodeVelocity */
-
-extern void set_geomset_velocity(
-	ELASTIC_SET *geom_set,
-	SPRING_VERTEX *sv)
-{
-	int i,n,ns,nc,nn;
-
-	ns = geom_set->num_surfs;
-	nc = geom_set->num_curves;
-	nn = geom_set->num_nodes;
-	n = 0;
-	for (i = 0; i < ns; ++i)
-	    setSurfVelocity(geom_set,geom_set->surfs[i],sv,&n);
-	for (i = 0; i < nc; ++i)
-	    setCurveVelocity(geom_set,geom_set->curves[i],sv,&n);
-	for (i = 0; i < nn; ++i)
-	    setNodeVelocity(geom_set,geom_set->nodes[i],sv,&n);
-
-}	/* end set_geomset_velocity */
-
 static void print_elastic_params(
 	ELASTIC_SET geom_set)
 {
@@ -2092,15 +1901,15 @@ extern void fourth_order_elastic_set_propagate(
 	/* Owner send and patch point_set_store from other processors */
 	put_point_set_to(&geom_set,point_set);
 
-	new_set_vertex_impulse(&geom_set,point_set);
-	new_set_geomset_velocity(&geom_set,point_set);
+	set_vertex_impulse(&geom_set,point_set);
+	set_geomset_velocity(&geom_set,point_set);
 	compute_center_of_mass_velo(&geom_set);
 
 	if (debugging("trace"))
 	    (void) printf("Leaving fourth_order_elastic_set_propagate()\n");
 }	/* end fourth_order_elastic_set_propagate() */
 
-static void new_setSurfVelocity(
+static void setSurfVelocity(
 	ELASTIC_SET *geom_set,
 	SURFACE *surf,
 	GLOBAL_POINT **point_set)
@@ -2143,7 +1952,7 @@ static void new_setSurfVelocity(
 	//reduce_high_freq_vel(front,surf);
 }	/* end setSurfVelocity */
 
-static void new_setCurveVelocity(
+static void setCurveVelocity(
 	ELASTIC_SET *geom_set,
 	CURVE *curve,
 	GLOBAL_POINT **point_set)
@@ -2161,27 +1970,29 @@ static void new_setCurveVelocity(
 	double crds_max[MAXD];
 	int gindex_max;
 	long gindex;
+	int dim = FT_Dimension();
 
 	for (b = curve->first; b != curve->last; b = b->next)
         {
-            	p = b->end;
-		for (btris = Btris(b); btris && *btris; ++btris)
-            	{
-                    p->hse = hse = Hyper_surf_element((*btris)->tri);
-                    p->hs = hs = Hyper_surf((*btris)->surface);
-		    gindex = Gindex(p);
-                    FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
-		    FT_NormalAtPoint(p,front,nor,NO_COMP);
-		    vel = point_set[gindex]->v;
-		    nor_speed = scalar_product(vel,nor,3);
-                    for (j = 0; j < 3; ++j)
-		    	sl->vel[j] = sr->vel[j] = 
-				sl->impulse[j] + nor_speed*nor[j];
-            	}
+            p = b->end;
+	    for (btris = Btris(b); btris && *btris; ++btris)
+            {
+                p->hse = hse = Hyper_surf_element((*btris)->tri);
+                p->hs = hs = Hyper_surf((*btris)->surface);
+		gindex = Gindex(p);
+                FT_GetStatesAtPoint(p,hse,hs,(POINTER*)&sl,(POINTER*)&sr);
+		FT_NormalAtPoint(p,front,nor,NO_COMP);
+		vel = point_set[gindex]->v;
+		nor_speed = scalar_product(vel,nor,3);
+                for (j = 0; j < 3; ++j)
+		    sl->vel[j] = sr->vel[j] = sl->impulse[j] + nor_speed*nor[j];
+            }
         }
+	for (b = curve->first; b != NULL; b = b->next)
+	    set_bond_length(b,dim);
 }	/* end setCurveVelocity */
 
-static void new_setNodeVelocity(
+static void setNodeVelocity(
 	ELASTIC_SET *geom_set,
 	NODE *node,
 	GLOBAL_POINT **point_set)
@@ -2271,7 +2082,7 @@ static void new_setNodeVelocity(
 	}
 }	/* end setNodeVelocity */
 
-extern void new_set_geomset_velocity(
+extern void set_geomset_velocity(
 	ELASTIC_SET *geom_set,
 	GLOBAL_POINT **point_set)
 {
@@ -2281,11 +2092,14 @@ extern void new_set_geomset_velocity(
 	nc = geom_set->num_curves;
 	nn = geom_set->num_nodes;
 	for (i = 0; i < ns; ++i)
-	    new_setSurfVelocity(geom_set,geom_set->surfs[i],point_set);
+	    setSurfVelocity(geom_set,geom_set->surfs[i],point_set);
 	for (i = 0; i < nc; ++i)
-	    new_setCurveVelocity(geom_set,geom_set->curves[i],point_set);
+	    setCurveVelocity(geom_set,geom_set->curves[i],point_set);
 	for (i = 0; i < nn; ++i)
-	    new_setNodeVelocity(geom_set,geom_set->nodes[i],point_set);
+	{
+	    if (is_load_node(geom_set->nodes[i])) continue;
+	    setNodeVelocity(geom_set,geom_set->nodes[i],point_set);
+	}
 
 }	/* end set_geomset_velocity */
 

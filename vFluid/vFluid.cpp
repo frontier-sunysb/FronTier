@@ -21,7 +21,7 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 *****************************************************************/
 
-#include "vcartsn.h"
+#include "vFluid.h"
 
 	/*  Function Declarations */
 static void vfluid_driver(Front*,CARTESIAN*);
@@ -42,6 +42,9 @@ int main(int argc, char **argv)
 	static PARAMS params;
 	static VELO_FUNC_PACK velo_func_pack;
 
+	SWE();
+	clean_up(0);
+	
 	FT_Init(argc,argv,&f_basic);
 	f_basic.dim = 2;
 	f_basic.size_of_intfc_state = sizeof(STATE);

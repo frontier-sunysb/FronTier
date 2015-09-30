@@ -91,13 +91,17 @@ extern void setMotionParams(
 	if (af_params->no_fluid == YES)
 	{
 	    front->curve_propagate = airfoil_curve_propagate;
+	    front->node_propagate = airfoil_node_propagate;
 	    initVelocityFunc(infile,front);
 	}
 	else
 	{
 	    front->_point_propagate = airfoil_point_propagate;
 	    if (dim == 3)
+	    {
 	    	front->curve_propagate = airfoil_curve_propagate;
+	    	front->node_propagate = airfoil_node_propagate;
+	    }
 	}
 
 	if (af_params->no_fluid == YES || 
@@ -399,6 +403,7 @@ static void initVelocityFunc(
 	if (af_params->no_fluid == YES)
 	{
 	    front->curve_propagate = airfoil_curve_propagate;
+	    front->node_propagate = airfoil_node_propagate;
 	    velo_func_pack.point_propagate = airfoil_point_propagate;
 	    (void) printf("Available velocity functions are:\n");
 	    (void) printf("\tVortex velocity (R)\n");

@@ -1793,7 +1793,7 @@ extern void installStringtoBox(
             string_nodes[i] = make_node(string_node_pts[i]);
             FT_ScalarMemoryAlloc((POINTER*)&extra,
                                sizeof(AF_NODE_EXTRA));
-            extra->af_node_type = STRING_NODE;
+            extra->af_node_type = RG_STRING_NODE;
             string_nodes[i]->extra = (POINTER)extra;
         }
 
