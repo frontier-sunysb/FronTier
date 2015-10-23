@@ -38,6 +38,7 @@ struct _ASSET
 struct _DATA_SET
 {
 	char data_name[258];
+	char account_name[258];
 	int num_days;
 	int num_assets;
 	int num_backtrace;
@@ -45,6 +46,16 @@ struct _DATA_SET
 	struct _ASSET *assets;
 	char **date;
 	boolean new_data;
+	boolean *data_map;
+	int *shares;
+	int num_trades;
+	struct _TRADE *trades;
+	double slope;
+};
+
+struct _PORTFOLIO
+{
+	char account_name[258];
 	boolean *data_map;
 	int *shares;
 	int num_trades;
@@ -67,6 +78,8 @@ struct _TRADE
 typedef struct _ASSET ASSET;
 typedef struct _DATA_SET DATA_SET;
 typedef struct _TRADE TRADE;
+typedef struct _PORTFOLIO PORTFOLIO;
+
 
 /* sim.cpp */
 extern void InvestSimulation(DATA_SET*);
@@ -76,28 +89,49 @@ extern double GetLeastSquare(DATA_SET*,int,int,double*,double*);
 extern double LeastSquareQuadr(double*,double*,int,double*,double*,double*);
 extern double LeastSquareLinear(double*,double*,int,double*,double*);
 extern void ContinueBaseAdjust(DATA_SET*);
-extern void AdjustBase(DATA_SET*,int,int);
+extern void AdjustBase(DATA_SET*);
 extern void ModifyData(DATA_SET*);
-extern void ReadData(DATA_SET*);
-extern void WriteData(DATA_SET*);
 extern void AddData(DATA_SET*);
 extern void XgraphData(DATA_SET*);
-extern void DataInfo(DATA_SET*);
+extern void TradeInfo(DATA_SET*);
 extern void DataCompare(DATA_SET*);
 extern void DataTrend(DATA_SET*);
 extern void PromptForDataMap(DATA_SET*);
 extern DATA_SET *CopyData(DATA_SET*);
+extern void FreeData(DATA_SET*);
+extern void ReadMarketData(DATA_SET*);
+extern void ReadAccountData(DATA_SET*);
+extern void WriteMarketData(DATA_SET*);
+extern void WriteAccountData(DATA_SET*);
+extern void RankData(DATA_SET*);
+extern void PrintAssetList(DATA_SET*);
+extern void InitTrade(DATA_SET*);
+extern void PrintEquityIndex(DATA_SET*);
+extern void PrintAccountValue(DATA_SET*);
 
 /* web.cpp */
 extern string GetWebData(const std::string& server,const std::string& file);
 extern void GetStockFile(DATA_SET*);
 extern void SaveStockFile(DATA_SET*);
+extern void GetCurrentPrice(char**,double*,int);
+extern void CreateJVM();
+extern void DestroyJVM();
 
 /* trade.cpp */
 extern void InvestShares(DATA_SET*);
-extern void TradeShares(DATA_SET*);
 extern void PrintOpenTrade(DATA_SET*);
 extern void PrintClosedTrade(FILE*,TRADE,DATA_SET*);
 extern void PrintClosedTradeLoop(FILE*,TRADE,DATA_SET*);
 extern void SaveDeleteClosedTradeLoop(DATA_SET*);
 extern void SortTradeOrder(DATA_SET*);
+extern void WrapPartialTradeLoop(DATA_SET*);
+extern boolean TradeShares(DATA_SET*);
+extern boolean ExperimentTrade(DATA_SET*);
+extern void PrintCurrentLinearProfile(DATA_SET*);
+
+#define		closing_out(data)				\
+		{						\
+			PrintAccountValue((data));		\
+			DestroyJVM();				\
+			exit(0);				\
+		}						

@@ -4818,3 +4818,14 @@ EXPORT BOND *bond_of_boundary_point(
 	}	
 	return NULL;
 }	/* end bond_of_boundary_point */
+
+EXPORT  void linear_22_equation(
+        double *a,
+        double *b,
+        double *c,
+        double *soln)
+{
+        double denom = Det2d(a,b);
+        soln[0] = Det2d(c,b)/denom;
+        soln[1] = Det2d(a,c)/denom;
+}       /* end linear_22_equation */

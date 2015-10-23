@@ -1,0 +1,3 @@
+#!/bin/csh -f
+
+xgraph xg/$1-$2-$3.xg

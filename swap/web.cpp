@@ -1,4 +1,5 @@
 #include "swap.h"
+#include <jni.h>  
 
 const int NUM_STOCKS = 100;
 int stock_days = 0;
@@ -219,6 +220,77 @@ extern void SaveStockFile(
 	printf("All the downloaded data will go to file: %s\n",
 			data->data_name);
 	fclose(outfile);
-	ReadData(data);
+	ReadMarketData(data);
 }	/* end SaveStockFile */
 
+	JNIEnv* env;
+	JavaVM *jvm;
+
+extern void GetCurrentPrice(
+	char **stock_names,
+	double *prices,
+	int num_stocks)
+{  
+	int i;
+	JavaVMOption options[1];
+	JavaVMInitArgs vm_args;  
+	char String[256];
+   
+	long status;  
+	jclass cls;  
+	jmethodID mid;  
+   
+	options->optionString = String;
+	sprintf(options[0].optionString,"-Djava.class.path=.:jsoup-1.8.3.jar");
+	memset(&vm_args, 0, sizeof(vm_args));
+	vm_args.version = JNI_VERSION_1_6;
+	vm_args.nOptions = 1;
+	vm_args.options = options;
+	// create java virtual machine
+	//status = JNI_CreateJavaVM(&jvm,(void**)&env,&vm_args);
+	if (status != JNI_ERR)
+	{
+	    cls = env->FindClass("DG"); //find class (java .class file) 
+	    if (cls != 0)
+	    {
+		mid = env->GetStaticMethodID(cls,"getRealTimePrice",
+				"(Ljava/lang/String;)D"); 
+					// the last para is method Sign Name 
+		if (mid != 0)
+		{	
+		    for (i = 0; i < num_stocks; i++)
+		    {
+			
+		    	jstring str_arg = env->NewStringUTF(stock_names[i]);
+			prices[i] = env->CallStaticDoubleMethod(cls,mid,
+						str_arg);
+
+		    }
+		}
+	    }
+	}
+	else
+	{
+	    printf("JVM Created failed!\n");
+	}
+}	/* GetCurrentPrice */
+
+extern void DestroyJVM()
+{
+	jvm->DestroyJavaVM();
+}	/* end DestroyJVM */
+
+extern void CreateJVM()
+{
+        JavaVMOption options[1];
+        JavaVMInitArgs vm_args;
+	char java_string[256];
+	sprintf(java_string,"-Djava.class.path=.:jsoup-1.8.3.jar");
+	options[0].optionString = java_string;
+        memset(&vm_args, 0, sizeof(vm_args));
+        vm_args.version = JNI_VERSION_1_6;
+        vm_args.nOptions = 1;
+        vm_args.options = options;
+        // create java virtual machine
+        JNI_CreateJavaVM(&jvm,(void**)&env,&vm_args);
+}	/* end CreateJVM */

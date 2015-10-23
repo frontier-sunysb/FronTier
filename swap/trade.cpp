@@ -23,14 +23,16 @@ extern void InvestShares(
 	    for (i = 0; i < data->num_assets; ++i)
 		data->shares[i] = 0;
 	}
+	for (i = 0; i < data->num_assets; ++i)
+	    printf("%-4s current share number %d\n",
+			data->assets[i].asset_name,data->shares[i]);
 	printf("Type yes to add investment: ");
 	scanf("%s",string);
 	if (string[0] == 'y' || string[0] == 'Y')
 	{
 	    for (i = 0; i < data->num_assets; ++i)
 	    {
-		printf("%-4s current share number %d, add: ",
-			data->assets[i].asset_name,data->shares[i]);
+		printf("%-4s add: ",data->assets[i].asset_name);
 		scanf("%d",&num_shares);
 		data->shares[i] += num_shares;
 	    }
@@ -41,22 +43,19 @@ extern void InvestShares(
 	}
 }	/* end InvestShares */
 
-extern void TradeShares(
+extern boolean TradeShares(
 	DATA_SET *data)
 {
 	boolean to_trade = YES;
-	int i,n,is,ib,ns,nb;
+	int i,n,is,ib,ns,nb,istart;
 	char string[100];
-	double ps,pb;
+	double ratio,ps,pb;
+	boolean traded = NO;
+	double prices[2];
+	char *stock_names[2];
 
-	printf("The current open trades are:\n");
-	PrintOpenTrade(data);
 	while (to_trade)
 	{
-	    printf("Type yes to trade: ");
-	    scanf("%s",string);
-	    if (string[0] != 'y' && string[0] != 'Y')
-		break;
 	    if (data->num_trades >= MAX_NUM_TRADE)
 	    {
 		printf("There are too many open trades!\n");
@@ -66,31 +65,42 @@ extern void TradeShares(
 	    scanf("%s",string);
 	    if (string[0] == 'y' || string[0] == 'Y')
 	    {
+		double total_cash;
 		n = data->num_trades;
 		for (i = 0; i < data->num_assets; ++i)
 		{
 	    	    printf("Index of assets are: %d for %4s\n",i,
 			    data->assets[i].asset_name);
 		}
-	    	printf("Enter equity index, number of shares "
-			"and price to sell: ");
-		scanf("%d %d %lf",&data->trades[n].index_sell[0],
-				&data->trades[n].num_shares_sell[0],
+	    	printf("Enter equity indices for sell and buy: ");
+		scanf("%d %d",&is,&ib);
+		printf("Enter total cash value of the trade: ");
+		scanf("%lf",&total_cash);
+		stock_names[0] = data->assets[is].asset_name;
+		stock_names[1] = data->assets[ib].asset_name;
+		GetCurrentPrice(stock_names,prices,2);
+		ps = prices[0];
+		pb = prices[1];
+		printf("Number of shares to sell and buy: %d %d\n",
+				irint(total_cash/ps),irint(total_cash/pb));
+	    	printf("Enter realized sell shares and price for %s: ",
+				stock_names[0]);
+		scanf("%d %lf",&data->trades[n].num_shares_sell[0],
 				&data->trades[n].price_sell[0]);
-	    	printf("Enter equity index, number of shares "
-			"and price to buy: ");
-		scanf("%d %d %lf",&data->trades[n].index_buy[0],
-				&data->trades[n].num_shares_buy[0],
+	    	printf("Enter realized buy shares and price for %s: ",
+				stock_names[1]);
+		scanf("%d %lf",&data->trades[n].num_shares_buy[0],
 				&data->trades[n].price_buy[0]);
 		data->trades[n].status = OPEN;
-		is = data->trades[n].index_sell[0];
+		data->trades[n].index_sell[0] = is;
+		data->trades[n].index_buy[0] = ib;
 		ns = data->trades[n].num_shares_sell[0];
-		ib = data->trades[n].index_buy[0];
 		nb = data->trades[n].num_shares_buy[0];
 		data->shares[is] -= ns;
 		data->shares[ib] += nb;
 		(data->num_trades)++;
 		data->trades[n].num_stages++;
+		traded = YES;
 	    }
 	    else
 	    {
@@ -99,6 +109,7 @@ extern void TradeShares(
 		printf("Select index of open trade: ");
 		scanf("%d",&n);
 		nstage = data->trades[n].num_stages;
+		PrintAssetList(data);
 		printf("Enter sell and buy indices: ");
 		scanf("%d %d",&data->trades[n].index_sell[nstage],
 			      &data->trades[n].index_buy[nstage]);  
@@ -108,18 +119,65 @@ extern void TradeShares(
 		    printf("Invalid matching trade!\n");
 		    continue;
 		}
-		printf("Enter current sell and buy prices: ");
-		scanf("%lf %lf",&ps,&pb);
-		printf("Recommended number of shares to sell and buy: %d %d\n",
-			data->trades[n].num_shares_buy[nstage-1],
-			irint(data->trades[n].num_shares_buy[nstage-1]*ps/pb));
 		is = data->trades[n].index_sell[nstage];
-	    	printf("Enter realized number of shares "
-			"and price to sell: ");
+		ib = data->trades[n].index_buy[nstage];
+		stock_names[0] = data->assets[is].asset_name;
+		stock_names[1] = data->assets[ib].asset_name;
+		istart = -1;
+		for (i = 0; i < nstage; ++i)
+		{
+		    if (data->trades[n].index_sell[i] == 
+			data->trades[n].index_buy[nstage])
+		    {
+			istart = i;
+			break;
+		    }
+		}
+		ratio = 1.0;
+		GetCurrentPrice(stock_names,prices,2);
+		ps = prices[0];
+		pb = prices[1];
+		ratio *= ps/pb;
+		if (istart != -1)
+		{
+		    const char *gain_loss;
+		    for (i = istart; i < data->trades[n].num_stages; ++i)
+        	    {
+        	    	ratio *= data->trades[n].price_sell[i]/
+				data->trades[n].price_buy[i];
+        	    }
+		    printf("Amp ratio: %f\n",ratio);
+		    gain_loss = (ratio > 1.0) ? "Gain" : "Loss";
+		    printf("Number of shares to sell and buy:\n");
+		    printf("Option 1: %d %d  %s in %s\n",
+			data->trades[n].num_shares_buy[nstage-1],
+			irint(data->trades[n].num_shares_sell[istart]*ratio),
+			gain_loss,data->assets[ib].asset_name);
+		    printf("Option 2: %d %d  %s in %s\n",
+			irint(data->trades[n].num_shares_buy[nstage-1]/ratio),
+			data->trades[n].num_shares_sell[istart],
+			gain_loss,data->assets[is].asset_name);
+		    printf("Option 3: %d %d  %s in Cash\n",
+			data->trades[n].num_shares_buy[nstage-1],
+			data->trades[n].num_shares_sell[istart],gain_loss);
+	    	    printf("Trade? ");
+	    	    scanf("%s",string);
+	    	    if (string[0] != 'y' && string[0] != 'Y')
+			break;
+		}
+		else
+		{
+		    printf("Number of shares to sell and buy: %d %d\n",
+			data->trades[n].num_shares_buy[nstage-1],
+			irint(data->trades[n].num_shares_buy[nstage-1]*ratio));
+		}
+		is = data->trades[n].index_sell[nstage];
+	    	printf("Enter realized shares "
+			"and price sold for %s: ",stock_names[0]);
 		scanf("%d %lf",&data->trades[n].num_shares_sell[nstage],
 				&data->trades[n].price_sell[nstage]);
-	    	printf("Enter realized number of shares "
-			"and price to buy: ");
+	    	printf("Enter realized shares "
+			"and price bought for %s: ",stock_names[1]);
 		scanf("%d %lf",&data->trades[n].num_shares_buy[nstage],
 				&data->trades[n].price_buy[nstage]);
 		ns = data->trades[n].num_shares_sell[nstage];
@@ -143,11 +201,18 @@ extern void TradeShares(
 		    }
 		}
 		data->trades[n].num_stages++;
+		traded = YES;
 	    }
+	    printf("Type yes to continue trading: ");
+	    scanf("%s",string);
+	    if (string[0] != 'y' && string[0] != 'Y')
+		break;
 	}
+	if (!traded) return NO;
 	printf("Investment update:\n");
 	for (i = 0; i < data->num_assets; ++i)
 	    printf("%-4s: %d\n",data->assets[i].asset_name,data->shares[i]);
+	return YES;
 }	/* end TradeShares */
 
 extern void PrintOpenTrade(
@@ -156,6 +221,19 @@ extern void PrintOpenTrade(
 	int i,j,is,ib,ns,nsell,nbuy;
 	double ratio;
 	TRADE trade;
+	char **stock_names;
+	double *prices;
+	int M = data->num_assets;
+	int n = data->num_days;
+
+	FT_VectorMemoryAlloc((POINTER*)&stock_names,M,sizeof(char*));
+	FT_VectorMemoryAlloc((POINTER*)&prices,M,sizeof(double));
+	for (i = 0; i < M; ++i)
+	    stock_names[i] = data->assets[i].asset_name;
+	GetCurrentPrice(stock_names,prices,M);
+	for (i = 0; i < M; ++i)
+	    data->assets[i].value[n] = prices[i];
+	data->num_days++;
 
 	for (i = 0; i < data->num_trades; ++i)
 	{
@@ -179,6 +257,8 @@ extern void PrintOpenTrade(
 				data->assets[ib].asset_name,nsell,nbuy,ratio);
 	    }
 	}
+	FT_FreeThese(2,stock_names,prices);
+	data->num_days--;
 }	/* end PrintOpenTrade */
 
 static double AmpRatio(
@@ -213,6 +293,8 @@ static double currentAmpRatio(
 	int ns = trade.num_stages;
 	int nd = data->num_days-1;
 	int is,ib;
+	char *stock_names[2];
+	double prices[2];
 
 	ft_assign(&cur_trade,&trade,sizeof(TRADE));
 	is = cur_trade.index_sell[ns] = trade.index_buy[ns-1];
@@ -295,16 +377,16 @@ extern void PrintClosedTradeLoop(
                         data->assets[ib[i]].asset_name,nb[i],pb[i],
 			share_gain[i]);	    
 	    }
-	    printf("Cash gain: %f Net gain: %f Amp ratio: %f\n",
-			cash_gain,net_gain,Amp_ratio);
+	    printf("Cash gain: %7.2f Share gain: %7.2f Total: %7.2f Amp: %f\n",
+			cash_gain,net_gain,cash_gain+net_gain,Amp_ratio);
 	}
 	else
 	{
 	    char date[200];
 	    std::time_t t = std::time(NULL);
 	    strftime(date,100*sizeof(char),"%D",std::localtime(&t));
-	    fprintf(outfile,"Date: %s\n",date);
-	    fprintf(outfile,"\nClosed sell loop:\n");
+	    fprintf(outfile,"\nDate: %s\n",date);
+	    fprintf(outfile,"Closed sell loop:\n");
 	    for (i = istart; i <= iend; ++i)
 	    {
 	    	fprintf(outfile,"%d: Sell  %-4s %5d at %7.3f | ",i,
@@ -313,8 +395,10 @@ extern void PrintClosedTradeLoop(
                         data->assets[ib[i]].asset_name,nb[i],pb[i],
 			share_gain[i]);	    
 	    }
-	    fprintf(outfile,"Cash gain: %f Net gain: %f Amp ratio: %f\n",
-			cash_gain,net_gain,Amp_ratio);
+	    fprintf(outfile,"Cash gain: %7.2f Share gain: %7.2f ",
+				cash_gain,net_gain);
+	    fprintf(outfile,"Total: %7.2f Amp: %5.3f\n",
+				cash_gain+net_gain,Amp_ratio);
 	}
 }	/* end PrintPartialClosedTrade */
 
@@ -326,7 +410,7 @@ extern void SaveDeleteClosedTradeLoop(
 	int i,j;
 
 	create_directory("record",NO);
-	sprintf(fname,"record/%s",data->data_name);
+	sprintf(fname,"record/%s",data->account_name);
 	sfile = fopen(fname,"r");
 	if (sfile != NULL)
 	{
@@ -377,3 +461,202 @@ extern void SortTradeOrder(
             }
 	}
 }	/* end SortTradeOrder */
+
+extern void WrapPartialTradeLoop(
+	DATA_SET *data)
+{
+	char fname[200];
+	FILE *sfile;
+	int i,j,is,ie;
+	double Amp_ratio,*ps,*pb;
+
+	for (i = 0; i < data->num_trades; ++i)
+	{
+	    if (data->trades[i].status == OPEN ||
+		data->trades[i].status == CLOSED) 
+		continue;
+	    PrintClosedTradeLoop(sfile,data->trades[i],data);
+	    is = StartIndex(data->trades[i]);
+	    ie = data->trades[i].num_stages - 1;
+	    ps = data->trades[i].price_sell;
+	    pb = data->trades[i].price_buy;
+	    Amp_ratio = 1.0;
+	    for (j = is; j <= ie; ++j)
+		Amp_ratio *= ps[j]/pb[j];
+	    data->trades[i].num_shares_buy[is-1] = 
+			data->trades[i].num_shares_buy[ie];
+	    data->trades[i].price_buy[is-1] /= Amp_ratio;
+	    data->trades[i].num_stages = StartIndex(data->trades[i]);
+	    data->trades[i].status = OPEN;
+	}
+}	/* end WrapPartialTradeLoop */
+
+extern boolean ExperimentTrade(
+	DATA_SET *data)
+{
+	boolean to_trade = YES;
+	int i,n,is,ib,ns,nb,istart;
+	int iday = data->num_days-1;
+	char string[100];
+	double ratio,ps,pb;
+	boolean traded = NO;
+
+	PrintCurrentLinearProfile(data);
+	if (strcmp(data->account_name,"pswap-data") == 0 ||
+	    strcmp(data->account_name,"etrade-data") == 0)
+	{
+	    printf("Cannot use real account to experiment!\n");
+	    return NO;
+	}
+	printf("Trade on current prices? ");
+    	scanf("%s",string);
+	if (string[0] != 'y' && string[0] != 'Y')
+	    return NO;
+
+	while (to_trade)
+	{
+	    if (data->num_trades >= MAX_NUM_TRADE)
+	    {
+		printf("There are too many open trades!\n");
+		break;
+	    }
+	    PrintOpenTrade(data);
+	    printf("Type yes if this is a new trade: ");
+	    scanf("%s",string);
+	    if (string[0] == 'y' || string[0] == 'Y')
+	    {
+		double total_cash;
+		n = data->num_trades;
+		for (i = 0; i < data->num_assets; ++i)
+		{
+	    	    printf("Index of assets are: %d for %4s\n",i,
+			    data->assets[i].asset_name);
+		}
+	    	printf("Enter equity indices for sell and buy: ");
+		scanf("%d %d",&is,&ib);
+		data->trades[n].index_sell[0] = is;
+		data->trades[n].index_buy[0] = ib;
+		printf("Enter total cash value of the trade: ");
+		scanf("%lf",&total_cash);
+		ps = data->assets[is].value[iday];
+		pb = data->assets[ib].value[iday];
+		printf("Number of shares to sell and buy: %d %d\n",
+				irint(total_cash/ps),irint(total_cash/pb));
+		data->trades[n].num_shares_sell[0] = irint(total_cash/ps);
+		data->trades[n].num_shares_buy[0] = irint(total_cash/pb);
+		data->trades[n].status = OPEN;
+		data->trades[n].price_sell[0] = ps;
+		data->trades[n].price_buy[0] = pb;
+		data->shares[is] -= data->trades[n].num_shares_sell[0];
+		data->shares[ib] += data->trades[n].num_shares_buy[0];
+		(data->num_trades)++;
+		data->trades[n].num_stages++;
+		traded = YES;
+	    }
+	    else
+	    {
+		int nstage;
+		printf("Select index of open trade: ");
+		scanf("%d",&n);
+		nstage = data->trades[n].num_stages;
+		PrintAssetList(data);
+		printf("Enter sell and buy indices: ");
+		scanf("%d %d",&data->trades[n].index_sell[nstage],
+			      &data->trades[n].index_buy[nstage]);  
+		if (data->trades[n].index_buy[nstage-1] != 
+		    data->trades[n].index_sell[nstage])
+		{
+		    printf("Invalid matching trade!\n");
+		    continue;
+		}
+		is = data->trades[n].index_sell[nstage];
+		ib = data->trades[n].index_buy[nstage];
+		istart = -1;
+		for (i = 0; i < nstage; ++i)
+		{
+		    if (data->trades[n].index_sell[i] == 
+			data->trades[n].index_buy[nstage])
+		    {
+			istart = i;
+			break;
+		    }
+		}
+		ratio = 1.0;
+		ps = data->assets[is].value[iday];
+		pb = data->assets[ib].value[iday];
+		ratio *= ps/pb;
+		if (istart != -1)
+		{
+		    const char *gain_loss;
+		    for (i = istart; i < data->trades[n].num_stages; ++i)
+        	    {
+        	    	ratio *= data->trades[n].price_sell[i]/
+				data->trades[n].price_buy[i];
+        	    }
+		    printf("Amp ratio: %f\n",ratio);
+		    gain_loss = (ratio > 1.0) ? "Gain" : "Loss";
+		    printf("Number of shares to sell and buy:\n");
+		    printf("Option 1: %d %d  %s in %s\n",
+			data->trades[n].num_shares_buy[nstage-1],
+			irint(data->trades[n].num_shares_sell[istart]*ratio),
+			gain_loss,data->assets[ib].asset_name);
+		    printf("Option 2: %d %d  %s in %s\n",
+			irint(data->trades[n].num_shares_buy[nstage-1]/ratio),
+			data->trades[n].num_shares_sell[istart],
+			gain_loss,data->assets[is].asset_name);
+		    printf("Option 3: %d %d  %s in Cash\n",
+			data->trades[n].num_shares_buy[nstage-1],
+			data->trades[n].num_shares_sell[istart],gain_loss);
+	    	    printf("Trade? ");
+	    	    scanf("%s",string);
+	    	    if (string[0] != 'y' && string[0] != 'Y')
+			break;
+		}
+		else
+		{
+		    printf("Number of shares to sell and buy: %d %d\n",
+			data->trades[n].num_shares_buy[nstage-1],
+			irint(data->trades[n].num_shares_buy[nstage-1]*ratio));
+		}
+		is = data->trades[n].index_sell[nstage];
+		ib = data->trades[n].index_buy[nstage];
+	    	printf("Enter number of shares to sell and buy: ");
+		scanf("%d %d",&ns,&nb);
+		data->trades[n].price_sell[nstage] = ps;
+		data->trades[n].price_buy[nstage] = pb;
+		data->trades[n].num_shares_sell[nstage] = ns;
+		data->trades[n].num_shares_buy[nstage] = nb;
+		data->shares[is] -= ns;
+		data->shares[ib] += nb;
+		if (data->trades[n].index_buy[nstage] ==
+		    data->trades[n].index_sell[0])
+		    data->trades[n].status = CLOSED;
+		else
+		{
+		    for (i = 1; i < data->trades[n].num_stages; ++i)
+		    {
+			if (data->trades[n].index_buy[nstage] ==
+                    	    data->trades[n].index_sell[i])
+			{
+		    	    data->trades[n].status = PARTIAL_CLOSED;
+			    break;
+			}
+		    }
+		}
+		data->trades[n].num_stages++;
+		traded = YES;
+	    }
+	    printf("Type yes to continue trading: ");
+	    scanf("%s",string);
+	    if (string[0] != 'y' && string[0] != 'Y')
+		break;
+	    printf("New profile:\n");
+	    PrintCurrentLinearProfile(data);
+	}
+	if (!traded) return NO;
+	printf("Investment update:\n");
+	for (i = 0; i < data->num_assets; ++i)
+	    printf("%-4s: %d\n",data->assets[i].asset_name,data->shares[i]);
+	return YES;
+}	/* end TradeShares */
+

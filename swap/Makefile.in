@@ -6,9 +6,10 @@ F77_LIBS=@F77_LIBS@
 libext = @libext@
 incs =  @ftlibincs@
 libincs = @otherlibsinc@
-libs = @otherlibs@ -lboost_system
+libs = @otherlibs@ -lboost_system -ljvm
 build_cpu = @build_cpu@
-incsloc = -I. -I../include
+incsloc = -I. -I../include -I/usr/lib/jvm/java-7-openjdk-amd64/include -I/usr/lib/jvm/java-7-openjdk-amd64/include/linux
+LFLAGS = -L/usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/server
 
 PETSC = yes
 PETSC_ARCH=@PETSC_ARCH@
@@ -30,15 +31,17 @@ web.o : swap.h web.cpp
 	${CXX} -c web.cpp $(incsloc) $(incs) ${Petsc_Include}
 trade.o : swap.h trade.cpp
 	${CXX} -c trade.cpp $(incsloc) $(incs) ${Petsc_Include}
+DG.class: DG.java
+	javac -cp .:jsoup-1.8.3.jar DG.java
 
-swap: swap.h swap.cpp sim.o sub.o web.o trade.o
+swap: swap.h swap.cpp sim.o sub.o web.o trade.o DG.class
 	${CXX} -c swap.cpp $(incsloc) $(incs) ${Petsc_Include}
-	$(CXX) -o swap swap.o sim.o sub.o web.o trade.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs)  $(libs) ${F77_LIBS}
+	$(CXX) -o swap swap.o sim.o sub.o web.o trade.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs) $(LFLAGS) $(libs) ${F77_LIBS}
 
 -include ../devel-deps.inc
 
 clean:
-	rm -rf *.o swap 
+	rm -rf *.o swap DG.class
 output :
 	rm -rf out/*
 
