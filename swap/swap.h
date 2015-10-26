@@ -83,6 +83,9 @@ typedef struct _PORTFOLIO PORTFOLIO;
 
 /* sim.cpp */
 extern void InvestSimulation(DATA_SET*);
+extern void CompareToFiveStates(DATA_SET*);
+extern void PrintCurrentLinearProfile(DATA_SET*);
+extern void PrintDataStates(DATA_SET*);
 
 /* sub.cpp */
 extern double GetLeastSquare(DATA_SET*,int,int,double*,double*);
@@ -127,11 +130,11 @@ extern void SortTradeOrder(DATA_SET*);
 extern void WrapPartialTradeLoop(DATA_SET*);
 extern boolean TradeShares(DATA_SET*);
 extern boolean ExperimentTrade(DATA_SET*);
-extern void PrintCurrentLinearProfile(DATA_SET*);
 
 #define		closing_out(data)				\
 		{						\
 			PrintAccountValue((data));		\
+			PrintDataStates((data));		\
 			DestroyJVM();				\
 			exit(0);				\
 		}						

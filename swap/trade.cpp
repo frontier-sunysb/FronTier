@@ -61,6 +61,10 @@ extern boolean TradeShares(
 		printf("There are too many open trades!\n");
 		break;
 	    }
+	    printf("Type yes to print liear profile: ");
+	    scanf("%s",string);
+	    if (string[0] == 'y' || string[0] == 'Y')
+		PrintCurrentLinearProfile(data);
 	    printf("Type yes if this is a new trade: ");
 	    scanf("%s",string);
 	    if (string[0] == 'y' || string[0] == 'Y')

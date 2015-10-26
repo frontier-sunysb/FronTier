@@ -1,9 +1,9 @@
 #include "swap.h"
 
-static double NormDiff(DATA_SET*,int,int);
 static void AddAssets(DATA_SET*);
 static void DeleteAssets(DATA_SET*);
 static void PrintRateOfChange(DATA_SET*);
+static double AssetTimeIntegral(DATA_SET*,int,int,int);
 
 extern double GetLeastSquare(
 	DATA_SET *data,
@@ -158,162 +158,69 @@ extern double LeastSquareLinear(
 extern void ContinueBaseAdjust(
         DATA_SET *data)
 {
-	int istar;		  /* center asset index */
 	int time_p;    /* time period */
-	int i, j, k, m;
+	int i,j,k,M = data->num_assets;
 	double ave_value;
-	DATA_SET * period_data;  /* time period DATA_SET */
-	FT_ScalarMemoryAlloc((POINTER*)&period_data,sizeof(DATA_SET));
+	int save_num_days = data->num_days;
+	int backtrace;
+	char fname[256],dirname[256];
+	FILE **bfiles;
+	double *base0;
+
+	FT_VectorMemoryAlloc((POINTER*)&bfiles,M,sizeof(FILE*));
+	FT_VectorMemoryAlloc((POINTER*)&base0,M,sizeof(double));
 
 	printf("There are total %d days of data\n",data->num_days);
-	printf("Enter number of days for base update: ");
-	scanf("%d", &time_p);
-	FT_VectorMemoryAlloc((POINTER*)&period_data->assets,data->num_assets+1,
-					sizeof(ASSET));
-	FT_MatrixMemoryAlloc((POINTER*)&period_data->date,data->num_days,100,
-					sizeof(char));
-	strcpy(period_data->account_name, "period_data");
-	period_data->num_days = time_p;
-	period_data->num_assets = data->num_assets;
-	period_data->num_backtrace = period_data->num_days;
-   	for (j = 0; j < data->num_assets+1; ++j)
-    	{
-	    FT_VectorMemoryAlloc((POINTER*)&period_data->assets[j].value,
-				period_data->num_days,sizeof(double));
-	    FT_VectorMemoryAlloc((POINTER*)&period_data->assets[j].norm_value,
-				period_data->num_days,sizeof(double));
-	}
-	for (i = 0; i < period_data->num_assets + 1; i++ )
+	printf("Enter backtrace for base update: ");
+	scanf("%d", &backtrace);
+	data->num_backtrace = backtrace;
+	sprintf(dirname,"simulation/%s",data->account_name);
+	create_directory(dirname,NO);
+	for (i = 0; i < M; ++i)
 	{
-	    strcpy(period_data->assets[i].asset_name, 
-				data->assets[i].asset_name);
-	    period_data->assets[i].base_value = data->assets[i].base_value;
-	    strcpy(period_data->assets[i].color, data->assets[i].color);
+	    sprintf(fname,"%s/%s",dirname,data->assets[i].asset_name);
+	    bfiles[i] = fopen(fname,"w");
+	    fprintf(bfiles[i],"Next\n");
+	    fprintf(bfiles[i],"color=%s\n",data->assets[i].color);
+	    fprintf(bfiles[i],"thickness = 1.5\n");
 	}
-	printf("Available assets are: \n");
-	PrintEquityIndex(data);
-	/*
-   	for (j = 0; j < data->num_assets; ++j)
-	    printf("\t%s (%d)\n",data->assets[j].asset_name,j);
-	*/
-	printf("Enter center asset index: ");
-	scanf("%d",&istar);
-	for (j = 0; j <= data->num_days - time_p; j++ )
-	{
-	    for (k = 0; k < time_p; k++)
-	    {
-		ave_value = 0;
-		for (i = 0; i < period_data->num_assets; i++)
-		{
-		    period_data->assets[i].value[k] = 
-				data->assets[i].value[j+k];
-		    period_data->assets[i].norm_value[k] = 
-				period_data->assets[i].value[k]/
-				period_data->assets[i].base_value;
-		    ave_value += period_data->assets[i].norm_value[k];
-		}
-		period_data->assets[i].value[k] = 
-				ave_value/period_data->num_assets;
-		period_data->assets[i].norm_value[k] = 
-				period_data->assets[i].value[k];
-	    }
 
-	    period_data->istar = istar;
-	    AdjustBase(period_data);
-	}
-	for (j = 0; j < data->num_days; j++)
+	for (j = 10; j <= save_num_days; j++)
 	{
-	    ave_value = 0;
-	    for (i = 0; i < period_data->num_assets ; i++)
+	    data->num_days = j;
+	    AdjustBase(data);
+	    for (i = 0; i < data->num_assets; i++)
 	    {
-		data->assets[i].base_value = period_data->assets[i].base_value;
-		data->assets[i].norm_value[j] = data->assets[i].value[j]/
-				data->assets[i].base_value;
-		ave_value += data->assets[i].norm_value[j];
+		if (j == 10)
+		    base0[i] = data->assets[i].base_value;
+		k = data->num_days-1;
+		data->assets[i].norm_value[k] =
+			data->assets[i].value[k]/data->assets[i].base_value;
+		fprintf(bfiles[i],"%f  %f\n",(double)j,
+			data->assets[i].base_value/base0[i]);
 	    }
 	}
-	data->assets[i].value[j] = ave_value / data->num_assets;
-	data->assets[i].norm_value[j] = data->assets[i].value[j];
+	for (i = 0; i < data->num_assets; i++)
+	    fclose(bfiles[i]);
+	FT_FreeThese(2,bfiles,base0);
+	data->num_days = save_num_days;
 }	/* end ContinueBaseAdjust */
 
 extern void AdjustBase(
 	DATA_SET *data)
 {
-	double xl,xu;
-	double yl,yu;
-	double save_base;
-	int i,j,N = 10;
-	int num_days = data->num_days;
-	int is;
-	double ave_star_value;
-	double ave_plnt_value;
-	int iplnt,istar = data->istar;
+	int i;
+	int is,N;
+	double I;
 
 	is = (data->num_days < data->num_backtrace) ? 0 :
 			data->num_days - data->num_backtrace;
+	N = data->num_days - is;
 
-	for (iplnt = 0; iplnt < data->num_assets; ++iplnt)	
+	for (i = 0; i < data->num_assets; ++i)	
 	{
-	  ave_star_value = 0.0;
-	  ave_plnt_value = 0.0;
-	  for (i = is; i < num_days; ++i)
-	  {
-	    ave_star_value += data->assets[istar].value[i];
-	    ave_plnt_value += data->assets[iplnt].value[i];
-	  }
-
-	  data->assets[istar].base_value = ave_star_value/(num_days-is);
-	  data->assets[iplnt].base_value = ave_plnt_value/(num_days-is);
-
-	  xl = xu = data->assets[iplnt].base_value;
-	  yl = yu = NormDiff(data,istar,iplnt);
-	  if (yl > 0.0)
-	  {
-	    for (i = 0; i < N; ++i)
-	    {
-		data->assets[iplnt].base_value *= 2.0;
-		if ((yl = NormDiff(data,istar,iplnt)) < 0.0)
-		{
-		    xl = data->assets[iplnt].base_value;
-		    break;
-		}
-	    }
-	  }
-	  else
-	  {
-	    for (i = 0; i < N; ++i)
-	    {
-		data->assets[iplnt].base_value /= 2.0;
-		if ((yu = NormDiff(data,istar,iplnt)) > 0.0)
-		{
-		    xu = data->assets[iplnt].base_value;
-		    break;
-		}
-	    }
-	  }
-	  if (i == 3)
-	  {
-	    printf("Cannot find two starting base\n");
-	    clean_up(ERROR);	
-	  }
-	  N += 22;
-	  for (i = 0; i < N; ++i)
-	  {
-	    save_base = data->assets[iplnt].base_value;
-	    data->assets[iplnt].base_value = 0.5*(xl + xu);
-	    for (j = 0; j < num_days; ++j)
-	    {
-		if (data->assets[iplnt].value[j] == save_base)
-		{
-		    data->assets[iplnt].value[j] = 0.5*(xl + xu);
-		    data->assets[iplnt].norm_value[j] = 1.0;
-		}
-	    }
-	    if (NormDiff(data,istar,iplnt) > 0.0)
-	    	xu = data->assets[iplnt].base_value;
-	    else
-	    	xl = data->assets[iplnt].base_value;
-	  }
+	    I = AssetTimeIntegral(data,i,is,data->num_days);
+	    data->assets[i].base_value = I/N;
 	}
 }	/* end AdjustBase */
 
@@ -358,44 +265,8 @@ extern void ModifyData(
 	scanf("%s",string);
 	if (string[0] != 'y' && string[0] != 'Y')
 	    return;
-
-	printf("Available assets are:\n");
-	for (j = 0; j < data->num_assets; ++j)
-	    printf("\t%s (%d)\n",data->assets[j].asset_name,j);
-	printf("Choose star index: ");
-	scanf("%d",&istar);
-	data->istar = istar;
 	AdjustBase(data);
 }	/* end ModifyData */
-
-static double NormDiff(
-	DATA_SET *data,
-	int istar,
-	int iplnt)
-{
-	int i,is;
-	double area = 0.0;
-
-	is = (data->num_days < data->num_backtrace) ? 0 :
-			data->num_days - data->num_backtrace;
-	data->assets[iplnt].norm_value[0] = 
-		data->assets[iplnt].value[0]/data->assets[iplnt].base_value;
-	for (i = is; i < data->num_days; ++i)
-	{
-	    data->assets[istar].norm_value[i] = 
-		data->assets[istar].value[i]/data->assets[istar].base_value;
-	    data->assets[iplnt].norm_value[i] = 
-		data->assets[iplnt].value[i]/data->assets[iplnt].base_value;
-	}
-	for (i = is+1; i < data->num_days; ++i)
-	{
-	    area += 0.5*(data->assets[iplnt].norm_value[i-1] -
-	    		 data->assets[istar].norm_value[i-1] +
-		 	 data->assets[iplnt].norm_value[i] -
-		 	 data->assets[istar].norm_value[i]);
-	}
-	return area;
-}	/* end NormDiff */
 
 static void AddAssets(
 	DATA_SET *data)
@@ -664,6 +535,10 @@ extern void TradeInfo(
 		WriteAccountData(data);
 	    }
 	}
+	printf("Type yes to print linear profile: ");
+	scanf("%s",string);
+	if (string[0] == 'y' || string[0] == 'Y')
+	    PrintCurrentLinearProfile(data);
 }	/* end TradeInfo */
 
 extern void DataCompare(
@@ -1008,6 +883,7 @@ extern void ReadMarketData(
 				data->num_days+10,sizeof(double));
 		FT_VectorMemoryAlloc((POINTER*)&data->assets[j].norm_value,
 				data->num_days+10,sizeof(double));
+		data->data_map[j] = YES;
 		if (j < data->num_assets)
 		{
 		    printf("Enter name of asset %d: ",j+1);
@@ -1084,14 +960,20 @@ extern void ReadAccountData(
 	FILE *infile = fopen(account_name,"r");
 	int i,j;
 	
+        FT_VectorMemoryAlloc((POINTER*)&data->shares,data->num_assets,
+				sizeof(int));
+        for (j = 0; j < data->num_assets; ++j)
+	    data->shares[j] = 0;
 	if (infile == NULL)
+	{
+            for (j = 0; j < data->num_assets; ++j)
+		data->data_map[j] = YES;
 	    return;
+	}
 	else
 	{
 	    if (fgetstring(infile,"Investment Portfolio"))
             {
-                FT_VectorMemoryAlloc((POINTER*)&data->shares,data->num_assets,
-                                        sizeof(int));
                 for (j = 0; j < data->num_assets; ++j)
                     fscanf(infile,"%d",data->shares+j);
             }
@@ -1504,3 +1386,19 @@ extern void PrintAccountValue(
 	}
 	printf("Total account market value: %f\n",market_value);
 }	/* end PrintAccountValue */
+
+static double AssetTimeIntegral(
+	DATA_SET *data,
+	int index,
+	int istart,
+	int iend)
+{
+	int i,j;
+	double I = 0.0;
+
+	for (i = istart+1; i < iend-1; ++i)
+	    I += data->assets[index].value[i]; 
+	I += 0.5*(data->assets[index].value[istart] +
+		  data->assets[index].value[iend-1]);
+	return I;
+}	/* end AssetTimeIntegral */

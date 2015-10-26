@@ -4,9 +4,11 @@ static void SlopeBasedTrade(DATA_SET*);
 static void Slope1BasedTrade(DATA_SET*);
 static void IntegralSlopeTrade(DATA_SET*);
 static void PyramidTrade(DATA_SET*);
-static void ComputePyramidParams(DATA_SET*,double*,double*);
+static void ComputePyramidParams(double*,double*,int*,int,double,double*,
+				double*);
 static void PrintDevLinearProfile(char**,double*,double*,double,double,
 				int*,int);
+static void GetDataStates(DATA_SET*,int*,int*,int*);
 
 extern void InvestSimulation(
 	DATA_SET *data)
@@ -475,6 +477,7 @@ static void PyramidTrade(
 	scanf("%s", string);
 	if (string[0] == 'Y' || string[0] == 'y')
 	   ContinueBaseAdjust(data);
+	exit(0);
 
 start_trade:
 	printf("Enter slope of the profile: ");
@@ -601,16 +604,18 @@ start_trade:
 
 extern void PrintCurrentLinearProfile(DATA_SET *data)
 {
-	double *price,*nprice;
+	double *price,*nprice,*bprice;
 	int *num_shares;
 	char **names;
 	double slope,b;
 	int i,id,n,M,N;
+
 	N = data->num_assets;
 	id = data->num_days - 1;
 
 	FT_VectorMemoryAlloc((POINTER*)&price,N,sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&nprice,N,sizeof(double));
+	FT_VectorMemoryAlloc((POINTER*)&bprice,N,sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&num_shares,N,sizeof(int));
 	FT_VectorMemoryAlloc((POINTER*)&names,N,sizeof(char*));
 	n = 0;
@@ -618,16 +623,23 @@ extern void PrintCurrentLinearProfile(DATA_SET *data)
 	{
 	    if (!data->data_map[i])
 		continue;
-	    price[n] = data->assets[i].value[id];
-	    nprice[n] = data->assets[i].norm_value[id];
+	    bprice[n] = data->assets[i].base_value;
 	    num_shares[n] = data->shares[i];
 	    names[n] = data->assets[i].asset_name;
 	    n++;
 	}
 	M = n;
-	ComputePyramidParams(data,&slope,&b);
+	GetCurrentPrice(names,price,M);
+
+	for (i = 0; i < N; ++i)
+	{
+	    nprice[i] = price[i]/bprice[i];
+	    printf("%d: %f %f %d\n",i,price[i],nprice[i],num_shares[i]);
+	}
+
+	ComputePyramidParams(price,nprice,num_shares,M,5.0,&slope,&b);
 	PrintDevLinearProfile(names,price,nprice,slope,b,num_shares,M);
-	FT_FreeThese(3,price,nprice,num_shares);
+	FT_FreeThese(4,names,price,nprice,num_shares);
 }	/* end PrintCurrentLinearProfile */
 
 static void PrintDevLinearProfile(
@@ -644,10 +656,17 @@ static void PrintDevLinearProfile(
 	double linear_value[100];
 	double current_value[100];
 	double market_value = 0.0;
+	double ave_nprice = 0.0;
 	int lin_num_shares[100];
+	int N_c,N_l;	// Number of normalized shares 
 
 	for (i = 0; i < M; ++i)
+	{
 	    isort[i] = i;
+	    ave_nprice += norm_price[i];
+	}
+	ave_nprice /= M;
+
 	for (i1 = 0; i1 < M-1; ++i1)
 	{
 	    for (i2 = i1 + 1; i2 < M; ++i2)
@@ -660,15 +679,21 @@ static void PrintDevLinearProfile(
 		} 
 	    }
 	}
+	N_c = 0;
 	for (i = 0; i < M; ++i)
+	{
 	    market_value += price[i]*num_shares[i];
+	    N_c += irint(price[i]*num_shares[i]/norm_price[i]);
+	}
 
 	market_value = 0.0;
+	N_l = 0;
 	for (i = 0; i < M; ++i)
 	{
 	    linear_value[i] = slope*norm_price[i] + b;
 	    lin_num_shares[i] = linear_value[i]/price[i];
 	    current_value[i] = num_shares[i]*price[i];
+	    N_l += irint(linear_value[i]/norm_price[i]);
 	}
 	printf("Equity NPrice   L-Val    C-Val    D-Val  "
 		"L-Share  C-Share  D-Share\n");
@@ -685,15 +710,143 @@ static void PrintDevLinearProfile(
 	}
 }	/* end PrintDevLinearProfile */
 
-static void ComputePyramidParams(
+
+extern void PrintDataStates(DATA_SET *data)
+{
+	int i,N;
+	int *ns_L,*ns_U,S[6];
+	char string[100];
+	double t_hrs0 = 4016381.0;
+
+	N = data->num_assets;
+
+	FT_VectorMemoryAlloc((POINTER*)&ns_L,N,sizeof(int));
+	FT_VectorMemoryAlloc((POINTER*)&ns_U,N,sizeof(int));
+	GetDataStates(data,ns_L,ns_U,S);
+
+	printf("\n");
+	printf("  Current   State-0   State-1   State-2   State-3   State-4\n");
+	printf("%9d %9d %9d %9d %9d %9d\n",S[5],S[0],S[1],S[2],S[3],S[4]);
+	printf("  State-C %9d %9d %9d %9d %9d\n",S[0]-S[5],S[1]-S[5],S[2]-S[5],
+					S[3]-S[5],S[4]-S[5]);
+	printf("\n");
+	printf("Type yes to record states: ");
+	scanf("%s",string);
+	if (string[0] == 'y' || string[0] == 'Y')
+	{
+	    char fname[256];
+	    FILE *sfile;
+	    const char scolor[][100] = {"yellow","green","pink","blue",
+					"red","aqua"};
+	    time_t t_second;
+	    double t_hrs;
+	    t_second = time(NULL);
+	    t_hrs = irint(t_second/360) - t_hrs0;
+	    create_directory("state",NO);
+	    for (i = 0; i < 6; ++i)
+	    {
+		sprintf(fname,"state/%s-state-%d",data->account_name,i);
+		sfile = fopen(fname,"r");
+		if (sfile != NULL)
+		{
+		    fclose(sfile);
+            	    sfile = fopen(fname,"a");
+		}
+		else
+		{
+            	    sfile = fopen(fname,"w");
+		    fprintf(sfile,"Next\n");
+		    fprintf(sfile,"color=%s\n",scolor[i]);
+		    fprintf(sfile,"thickness = 1.5\n");
+		}
+		fprintf(sfile,"%8.2f  %9d\n",t_hrs,S[i]);
+		fclose(sfile);
+	    }
+	}
+	FT_FreeThese(2,ns_L,ns_U);
+}	/* end PrintDataStates */
+
+static void GetDataStates(
 	DATA_SET *data,
+	int *ns_L,
+	int *ns_U,
+	int *S)
+{
+	double *price,*nprice,*bprice;
+	double np_min,np_max,np_ave;
+	double slope,b;
+	char **names;
+	int i,id,n,M,N;
+	int *num_shares;
+	int V_total,C;
+	char string[100];
+
+	N = data->num_assets;
+	id = data->num_days - 1;
+
+	FT_VectorMemoryAlloc((POINTER*)&price,N,sizeof(double));
+	FT_VectorMemoryAlloc((POINTER*)&nprice,N,sizeof(double));
+	FT_VectorMemoryAlloc((POINTER*)&bprice,N,sizeof(double));
+	FT_VectorMemoryAlloc((POINTER*)&num_shares,N,sizeof(int));
+	FT_VectorMemoryAlloc((POINTER*)&names,N,sizeof(char*));
+	n = 0;
+	np_max = -HUGE;
+	np_min = HUGE;
+	C = V_total = np_ave = 0.0;
+	for (i = 0; i < N; ++i)
+	{
+	    if (!data->data_map[i])
+		continue;
+	    bprice[n] = data->assets[i].base_value;
+	    num_shares[n] = data->shares[i];
+	    names[n] = data->assets[i].asset_name;
+	    n++;
+	}
+	M = n;
+
+	GetCurrentPrice(names,price,M);
+	for (i = 0; i < M; ++i)
+	{
+	    nprice[i] = price[i]/bprice[i];
+	    if (np_min > nprice[i]) np_min = nprice[i];
+	    if (np_max < nprice[i]) np_max = nprice[i];
+	    np_ave += nprice[i];
+	    V_total += price[i]*num_shares[i];
+	    C += irint(price[i]*num_shares[i]/nprice[i]);
+	}
+
+	np_ave /= M;
+	S[0] = irint(V_total/np_max);
+	S[2] = irint(V_total/np_ave);
+	S[4] = irint(V_total/np_min);
+	ComputePyramidParams(price,nprice,num_shares,M,0.2,&slope,&b);
+	S[1] = S[3] = 0.0;
+	for (i = 0; i < M; ++i)
+	{
+	    ns_U[i] = irint((slope*nprice[i] + b)/nprice[i]);
+	    S[1] += ns_U[i];
+	}
+	ComputePyramidParams(price,nprice,num_shares,M,5.0,&slope,&b);
+	for (i = 0; i < M; ++i)
+	{
+	    ns_L[i] = irint((slope*nprice[i] + b)/nprice[i]);
+	    S[3] += ns_L[i];
+	}
+	S[5] = C;
+	FT_FreeThese(4,names,price,nprice,num_shares);
+}	/* end PrintDataStates */
+
+static void ComputePyramidParams(
+	double *price,
+	double *nprice,
+	int *shares,
+	int M,
+	double m,
 	double *slope,
 	double *intercept)
 {
 	double a[2],b[2],c[2],x[2];
-	int i,N,M = data->num_assets;
-	int n = data->num_days - 1;
-	int m = 4;
+	int i,N;
 	double pmin,pmax;
 	int imin,imax;
 
@@ -704,23 +857,21 @@ static void ComputePyramidParams(
 	N = 0;
 	for (i = 0; i < M; ++i)
 	{
-	    if (!data->data_map[i]) continue;
-	    if (data->assets[i].norm_value[n] < pmin)
+	    if (nprice[i] < pmin)
 	    {
-		pmin = data->assets[i].norm_value[n];
+		pmin = nprice[i];
 		imin = i;
 	    }
-	    if (data->assets[i].norm_value[n] > pmax)
+	    if (nprice[i] > pmax)
 	    {
-		pmax = data->assets[i].norm_value[n];
+		pmax = nprice[i];
 		imax = i;
 	    }
-	    a[0] += data->assets[i].norm_value[n];
-	    c[0] += data->assets[i].value[n]*data->shares[i];
+	    a[0] += nprice[i];
+	    c[0] += price[i]*shares[i];
 	    N++;
 	}
-	a[1] = data->assets[imin].norm_value[n] - 
-			m*data->assets[imax].norm_value[n];
+	a[1] = nprice[imin] - m*nprice[imax];
 	b[0] = (double)N;	
 	b[1] = (1.0 - m);
 	linear_22_equation(a,b,c,x);
