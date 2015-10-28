@@ -664,3 +664,41 @@ extern boolean ExperimentTrade(
 	return YES;
 }	/* end TradeShares */
 
+extern void FragmentTrade(
+	DATA_SET *data)
+{
+	int i,ns,index;
+	double frac;
+	TRADE *new_trade;
+
+	PrintOpenTrade(data);
+	printf("Selcte the index of trade to slit: ");
+	scanf("%d",&index);
+	printf("Enter fraction of new trade: ");
+	scanf("%lf",&frac);
+	if (frac > 0.7)
+	{
+	    printf("Fraction number too large, should be less than 0.7\n");
+	    return;
+	}
+	new_trade = &data->trades[data->num_trades];
+	new_trade->status = data->trades[index].status;
+	ns = new_trade->num_stages = data->trades[index].num_stages;
+	for (i = 0; i < ns; ++i)
+	{
+	    new_trade->price_buy[i] = data->trades[index].price_buy[i];
+	    new_trade->price_sell[i] = data->trades[index].price_sell[i];
+	    new_trade->index_buy[i] = data->trades[index].index_buy[i];
+	    new_trade->index_sell[i] = data->trades[index].index_sell[i];
+	    new_trade->num_shares_buy[i] = 
+			irint(frac*data->trades[index].num_shares_buy[i]);
+	    new_trade->num_shares_sell[i] = 
+			irint(frac*data->trades[index].num_shares_sell[i]);
+	    data->trades[index].num_shares_buy[i] -=
+			new_trade->num_shares_buy[i];
+	    data->trades[index].num_shares_sell[i] -=
+			new_trade->num_shares_sell[i];
+	}
+	data->num_trades++;
+}	/* end FragmentTrade */
+

@@ -1018,6 +1018,10 @@ extern void ReadAccountData(
 		    }
 		}
             }
+            if (fgetstring(infile,"Index of Share Equivalence"))
+            {
+                fscanf(infile,"%d\n",&data->eindex);
+	    }
 	    fclose(infile);
 	}
 }	/* end ReadAccountData */
@@ -1131,6 +1135,8 @@ extern void WriteAccountData(
 		}
 	    }
 	}
+        fprintf(outfile,"Index of Share Equivalence");
+        fprintf(outfile,"%d\n",data->eindex);
 	fclose(outfile);
 }	/* end WriteAccountData */
 

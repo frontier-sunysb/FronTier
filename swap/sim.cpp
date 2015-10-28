@@ -11,7 +11,7 @@ static void ComputePyramidParams(double*,double*,int*,int,double,double*,
 				double*);
 static void PrintDevLinearProfile(char**,double*,double*,double,double,
 				int*,int);
-static void GetDataStates(DATA_SET*,int*,int*,int*);
+static double GetDataStates(DATA_SET*,int*,int*,int*);
 static double CurrentBusinessTime();
 static double AverageNormPrice(double*,int);
 
@@ -721,12 +721,15 @@ extern void PrintDataStates(DATA_SET *data)
 	int *ns_L,*ns_U,S[6];
 	char string[100];
 	double business_time;
+	double V_total;
+	int ie = data->eindex;
+	int id = data->num_days-1;
 
 	N = data->num_assets;
 
 	FT_VectorMemoryAlloc((POINTER*)&ns_L,N,sizeof(int));
 	FT_VectorMemoryAlloc((POINTER*)&ns_U,N,sizeof(int));
-	GetDataStates(data,ns_L,ns_U,S);
+	V_total = GetDataStates(data,ns_L,ns_U,S);
 
 	printf("\n");
 	printf("  Current   State-0   State-1   State-2   State-3   State-4\n");
@@ -742,6 +745,7 @@ extern void PrintDataStates(DATA_SET *data)
 	    FILE *sfile;
 	    const char scolor[][100] = {"yellow","green","pink","blue",
 					"red","aqua"};
+
 	    business_time = CurrentBusinessTime();
 	    create_directory("state",NO);
 	    for (i = 0; i < 6; ++i)
@@ -763,11 +767,29 @@ extern void PrintDataStates(DATA_SET *data)
 		fprintf(sfile,"%8.2f  %9d\n",business_time,S[i]);
 		fclose(sfile);
 	    }
+	    sprintf(fname,"Eshare/%s-%s",data->account_name,
+				data->assets[ie].asset_name);
+	    create_directory("Eshare",NO);
+	    sfile = fopen(fname,"r");
+	    if (sfile != NULL)
+	    {
+		fclose(sfile);
+            	sfile = fopen(fname,"a");
+	    }
+	    else
+	    {
+            	sfile = fopen(fname,"w");
+		fprintf(sfile,"Next\n");
+		fprintf(sfile,"color=%s\n",scolor[i]);
+		fprintf(sfile,"thickness = 1.5\n");
+	    }
+	    fprintf(sfile,"%8.2f  %9d\n",business_time,
+				irint(V_total/data->assets[ie].value[id]));
 	}
 	FT_FreeThese(2,ns_L,ns_U);
 }	/* end PrintDataStates */
 
-static void GetDataStates(
+static double GetDataStates(
 	DATA_SET *data,
 	int *ns_L,
 	int *ns_U,
@@ -836,6 +858,7 @@ static void GetDataStates(
 	}
 	S[5] = C;
 	FT_FreeThese(4,names,price,nprice,num_shares);
+	return V_total;
 }	/* end PrintDataStates */
 
 static void ComputePyramidParams(

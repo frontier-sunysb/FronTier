@@ -63,15 +63,16 @@ int main(int argc, char **argv)
 
 	printf("Available operations are\n");
 	printf("\tAdd data (a)\n");
-	printf("\tCompare data (c)\n");
-	printf("\tSimulate data (s)\n");
-	printf("\tModify data (m)\n");
 	printf("\tBuy shares (b)\n");
-	printf("\tTrade (t)\n");
-	printf("\tInitiation (i)\n");
-	printf("\tRank data (r)\n");
-	printf("\tPrint open trade (o)\n");
+	printf("\tCompare data (c)\n");
 	printf("\tExperiment (e)\n");
+	printf("\tFragment trade (f)\n");
+	printf("\tInitiation (i)\n");
+	printf("\tModify data (m)\n");
+	printf("\tPrint open trade (o)\n");
+	printf("\tRank data (r)\n");
+	printf("\tSimulate data (s)\n");
+	printf("\tTrade (t)\n");
 	printf("\tDo nothing (n)\n");
 	CreateJVM();
 
@@ -99,32 +100,36 @@ int main(int argc, char **argv)
 	    	InvestShares(data);
 		WriteAccountData(data);
 		break;
-	    case 't':
-	    	if (!TradeShares(data))
-		    closing_out(data);
-		WriteAccountData(data);
-		break;
 	    case 'c':
 	    	DataCompare(data);
-		closing_out(data);
-	    case 'i':
-		InitTrade(data);
-		closing_out(data);
-	    case 'r':
-		RankData(data);
-		closing_out(data);
-	    case 'o':
-	    	TradeInfo(data);
-		closing_out(data);
-	    case 's':
-	    	InvestSimulation(data);
 		closing_out(data);
 	    case 'e':
 	    	if (!ExperimentTrade(data))
 		    closing_out(data);
 		WriteAccountData(data);
-	    case 'n':
+	    case 'f':
+		FragmentTrade(data);
+		WriteAccountData(data);
+		closing_out(data);
+	    case 'i':
+		InitTrade(data);
+		closing_out(data);
+	    case 'o':
+	    	TradeInfo(data);
+		closing_out(data);
+	    case 'r':
+		RankData(data);
+		closing_out(data);
+	    case 's':
+	    	InvestSimulation(data);
+		closing_out(data);
+	    case 't':
+	    	if (!TradeShares(data))
+		    closing_out(data);
+		WriteAccountData(data);
 		break;
+	    case 'n':
+		closing_out(data);
 	    default:
 		printf("Unknown option\n");
 		break;

@@ -51,6 +51,7 @@ struct _DATA_SET
 	int num_trades;
 	struct _TRADE *trades;
 	double polar_ratio;
+	int eindex;		// Index of share equivalence
 };
 
 struct _PORTFOLIO
@@ -60,6 +61,8 @@ struct _PORTFOLIO
 	int *shares;
 	int num_trades;
 	struct _TRADE *trades;
+	double polar_ratio;
+	int eindex;		// Index of share equivalence
 };
 
 #define		MAX_NUM_STAGES		20
@@ -128,6 +131,7 @@ extern void PrintClosedTradeLoop(FILE*,TRADE,DATA_SET*);
 extern void SaveDeleteClosedTradeLoop(DATA_SET*);
 extern void SortTradeOrder(DATA_SET*);
 extern void WrapPartialTradeLoop(DATA_SET*);
+extern void FragmentTrade(DATA_SET*);
 extern boolean TradeShares(DATA_SET*);
 extern boolean ExperimentTrade(DATA_SET*);
 
