@@ -50,7 +50,7 @@ struct _DATA_SET
 	int *shares;
 	int num_trades;
 	struct _TRADE *trades;
-	double slope;
+	double polar_ratio;
 };
 
 struct _PORTFOLIO
@@ -133,8 +133,8 @@ extern boolean ExperimentTrade(DATA_SET*);
 
 #define		closing_out(data)				\
 		{						\
-			PrintAccountValue((data));		\
 			PrintDataStates((data));		\
+			PrintAccountValue((data));		\
 			DestroyJVM();				\
 			exit(0);				\
 		}						

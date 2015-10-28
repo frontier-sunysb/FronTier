@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 	    case 'm':
 	    	ModifyData(data);
 		WriteMarketData(data);
-    		PromptForDataMap(data);
+		WriteAccountData(data);
     		XgraphData(data);
     		DataTrend(data);
 		break;

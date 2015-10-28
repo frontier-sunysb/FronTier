@@ -1,4 +1,7 @@
 #include "swap.h"
+#include <ctime>
+#include <iostream>
+#include <locale>
 
 static void SlopeBasedTrade(DATA_SET*);
 static void Slope1BasedTrade(DATA_SET*);
@@ -9,6 +12,9 @@ static void ComputePyramidParams(double*,double*,int*,int,double,double*,
 static void PrintDevLinearProfile(char**,double*,double*,double,double,
 				int*,int);
 static void GetDataStates(DATA_SET*,int*,int*,int*);
+static double CurrentBusinessTime();
+static double AverageNormPrice(double*,int);
+
 
 extern void InvestSimulation(
 	DATA_SET *data)
@@ -607,11 +613,12 @@ extern void PrintCurrentLinearProfile(DATA_SET *data)
 	double *price,*nprice,*bprice;
 	int *num_shares;
 	char **names;
-	double slope,b;
+	double polar_ratio,slope,b;
 	int i,id,n,M,N;
 
 	N = data->num_assets;
 	id = data->num_days - 1;
+	polar_ratio = data->polar_ratio;
 
 	FT_VectorMemoryAlloc((POINTER*)&price,N,sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&nprice,N,sizeof(double));
@@ -630,14 +637,10 @@ extern void PrintCurrentLinearProfile(DATA_SET *data)
 	}
 	M = n;
 	GetCurrentPrice(names,price,M);
-
-	for (i = 0; i < N; ++i)
-	{
+	for (i = 0; i < M; ++i)
 	    nprice[i] = price[i]/bprice[i];
-	    printf("%d: %f %f %d\n",i,price[i],nprice[i],num_shares[i]);
-	}
 
-	ComputePyramidParams(price,nprice,num_shares,M,5.0,&slope,&b);
+	ComputePyramidParams(price,nprice,num_shares,M,polar_ratio,&slope,&b);
 	PrintDevLinearProfile(names,price,nprice,slope,b,num_shares,M);
 	FT_FreeThese(4,names,price,nprice,num_shares);
 }	/* end PrintCurrentLinearProfile */
@@ -656,16 +659,14 @@ static void PrintDevLinearProfile(
 	double linear_value[100];
 	double current_value[100];
 	double market_value = 0.0;
-	double ave_nprice = 0.0;
+	double ave_nprice;
 	int lin_num_shares[100];
 	int N_c,N_l;	// Number of normalized shares 
 
 	for (i = 0; i < M; ++i)
 	{
 	    isort[i] = i;
-	    ave_nprice += norm_price[i];
 	}
-	ave_nprice /= M;
 
 	for (i1 = 0; i1 < M-1; ++i1)
 	{
@@ -695,12 +696,14 @@ static void PrintDevLinearProfile(
 	    current_value[i] = num_shares[i]*price[i];
 	    N_l += irint(linear_value[i]/norm_price[i]);
 	}
+	ave_nprice = AverageNormPrice(norm_price,M);
+	printf("ave_nprice = %f\n",ave_nprice);
 	printf("Equity NPrice   L-Val    C-Val    D-Val  "
 		"L-Share  C-Share  D-Share\n");
 	for (i = 0; i < M; ++i)
 	{
 	    i1 = isort[i];
-	    printf("  %4s  %5.2f  %6.0f   %6.0f   %6.0f   %6d   %6d   %6d\n",
+	    printf("  %4s  %5.3f  %6.0f   %6.0f   %6.0f   %6d   %6d   %6d\n",
 				names[i1],norm_price[i1],
 				linear_value[i1],current_value[i1],
 				current_value[i1]-linear_value[i1],
@@ -708,6 +711,7 @@ static void PrintDevLinearProfile(
 				num_shares[i1]-lin_num_shares[i1]);
 			
 	}
+	printf("Average normalized price: %5.3f\n\n",ave_nprice);
 }	/* end PrintDevLinearProfile */
 
 
@@ -716,7 +720,7 @@ extern void PrintDataStates(DATA_SET *data)
 	int i,N;
 	int *ns_L,*ns_U,S[6];
 	char string[100];
-	double t_hrs0 = 4016381.0;
+	double business_time;
 
 	N = data->num_assets;
 
@@ -738,10 +742,7 @@ extern void PrintDataStates(DATA_SET *data)
 	    FILE *sfile;
 	    const char scolor[][100] = {"yellow","green","pink","blue",
 					"red","aqua"};
-	    time_t t_second;
-	    double t_hrs;
-	    t_second = time(NULL);
-	    t_hrs = irint(t_second/360) - t_hrs0;
+	    business_time = CurrentBusinessTime();
 	    create_directory("state",NO);
 	    for (i = 0; i < 6; ++i)
 	    {
@@ -759,7 +760,7 @@ extern void PrintDataStates(DATA_SET *data)
 		    fprintf(sfile,"color=%s\n",scolor[i]);
 		    fprintf(sfile,"thickness = 1.5\n");
 		}
-		fprintf(sfile,"%8.2f  %9d\n",t_hrs,S[i]);
+		fprintf(sfile,"%8.2f  %9d\n",business_time,S[i]);
 		fclose(sfile);
 	    }
 	}
@@ -780,9 +781,11 @@ static void GetDataStates(
 	int *num_shares;
 	int V_total,C;
 	char string[100];
+	double pratio;
 
 	N = data->num_assets;
 	id = data->num_days - 1;
+	pratio = data->polar_ratio;
 
 	FT_VectorMemoryAlloc((POINTER*)&price,N,sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&nprice,N,sizeof(double));
@@ -792,7 +795,7 @@ static void GetDataStates(
 	n = 0;
 	np_max = -HUGE;
 	np_min = HUGE;
-	C = V_total = np_ave = 0.0;
+	C = V_total = 0.0;
 	for (i = 0; i < N; ++i)
 	{
 	    if (!data->data_map[i])
@@ -810,23 +813,22 @@ static void GetDataStates(
 	    nprice[i] = price[i]/bprice[i];
 	    if (np_min > nprice[i]) np_min = nprice[i];
 	    if (np_max < nprice[i]) np_max = nprice[i];
-	    np_ave += nprice[i];
 	    V_total += price[i]*num_shares[i];
 	    C += irint(price[i]*num_shares[i]/nprice[i]);
 	}
 
-	np_ave /= M;
+	np_ave = AverageNormPrice(nprice,M);
 	S[0] = irint(V_total/np_max);
 	S[2] = irint(V_total/np_ave);
 	S[4] = irint(V_total/np_min);
-	ComputePyramidParams(price,nprice,num_shares,M,0.2,&slope,&b);
+	ComputePyramidParams(price,nprice,num_shares,M,1/pratio,&slope,&b);
 	S[1] = S[3] = 0.0;
 	for (i = 0; i < M; ++i)
 	{
 	    ns_U[i] = irint((slope*nprice[i] + b)/nprice[i]);
 	    S[1] += ns_U[i];
 	}
-	ComputePyramidParams(price,nprice,num_shares,M,5.0,&slope,&b);
+	ComputePyramidParams(price,nprice,num_shares,M,pratio,&slope,&b);
 	for (i = 0; i < M; ++i)
 	{
 	    ns_L[i] = irint((slope*nprice[i] + b)/nprice[i]);
@@ -878,3 +880,61 @@ static void ComputePyramidParams(
 	*slope = x[0];
 	*intercept = x[1];
 }	/* end ComputePyramidParams */
+
+static double CurrentBusinessTime()
+{
+	std::time_t t = std::time(NULL);
+	char string[100];
+	int year,week,day,hour,minute;
+	double business_time;
+
+	strftime(string,100*sizeof(char),"%G",std::localtime(&t));
+	year = atoi(string);
+	strftime(string,100*sizeof(char),"%U",std::localtime(&t));
+	week = atoi(string);
+	strftime(string,100*sizeof(char),"%u",std::localtime(&t));
+	day = atoi(string);
+	strftime(string,100*sizeof(char),"%H",std::localtime(&t));
+	hour = atoi(string);
+	strftime(string,100*sizeof(char),"%M",std::localtime(&t));
+	minute = atoi(string);
+	business_time = week*5 + day*6.5 + hour + minute/60.0 - 9.0;
+	
+	return business_time;
+}	/* end CurrentBusinessTime */
+
+static double AverageNormPrice(
+	double *nprice,
+	int M)
+{
+	int i,i1,i2;
+	int itmp,isort[100];
+	double ave_nprice = 0.0;
+
+	for (i = 0; i < M; ++i)
+	    isort[i] = i;
+
+	for (i1 = 0; i1 < M-1; ++i1)
+	{
+	    for (i2 = i1 + 1; i2 < M; ++i2)
+	    {
+	        if (nprice[isort[i1]] < nprice[isort[i2]]) 
+	        {
+		    itmp = isort[i1];
+		    isort[i1] = isort[i2];
+		    isort[i2] = itmp;
+		} 
+	    }
+	}
+	for (i = 0; i < M-1; ++i)
+	{
+	    i1 = isort[i];
+	    i2 = isort[i+1];
+	    ave_nprice += 0.5*(nprice[i1] + nprice[i2])*
+			fabs(nprice[i1] - nprice[i2]);
+	}
+	i1 = isort[0];
+	i2 = isort[M-1];
+	ave_nprice /= fabs(nprice[i1] - nprice[i2]);
+	return ave_nprice;
+}	/* end AverageNormPrice */

@@ -261,6 +261,16 @@ extern void ModifyData(
 	    scanf("%d",&data->num_backtrace);
 	}
 
+	printf("Type yes to change account profile slope: ");
+	scanf("%s",string);
+	if (string[0] == 'y' || string[0] == 'Y')
+	{
+	    printf("Current profile slope: %f\n",data->polar_ratio);
+	    printf("Enter account profile slope: ");
+	    scanf("%lf",&data->polar_ratio);
+	}
+   	PromptForDataMap(data);
+
 	printf("Type yes to modify data base: ");
 	scanf("%s",string);
 	if (string[0] != 'y' && string[0] != 'Y')
@@ -928,7 +938,6 @@ extern void ReadMarketData(
 		fscanf(infile,"%s\n",data->assets[j].asset_name);
 		fscanf(infile,"%s\n",data->assets[j].color);
 		fscanf(infile,"%lf\n",&data->assets[j].base_value);
-	    	fscanf(infile,"%d\n",(int*)&data->data_map[j]);
 		FT_VectorMemoryAlloc((POINTER*)&data->assets[j].value,
 				data->num_days+10,sizeof(double));
 		FT_VectorMemoryAlloc((POINTER*)&data->assets[j].norm_value,
@@ -972,6 +981,15 @@ extern void ReadAccountData(
 	}
 	else
 	{
+	    if (fgetstring(infile,"Account Investment Polarization Ratio ="))
+	    {
+		fscanf(infile,"%lf",&data->polar_ratio);
+	    }
+	    if (fgetstring(infile,"Data Map"))
+	    {
+                for (j = 0; j < data->num_assets; ++j)
+                    fscanf(infile,"%d",(int*)data->data_map+j);
+	    }
 	    if (fgetstring(infile,"Investment Portfolio"))
             {
                 for (j = 0; j < data->num_assets; ++j)
@@ -1059,7 +1077,6 @@ extern void WriteMarketData(
 	    fprintf(outfile,"%s\n",data->assets[j].asset_name);
 	    fprintf(outfile,"%s\n",data->assets[j].color);
 	    fprintf(outfile,"%f\n",data->assets[j].base_value);
-	    fprintf(outfile,"%d\n",data->data_map[j]);
 	}
 	for (i = 0; i < data->num_days; ++i)
 	{
@@ -1082,6 +1099,11 @@ extern void WriteAccountData(
 
 	outfile = fopen(account_name,"w");
 	fprintf(outfile,"%s\n",data->account_name);
+	fprintf(outfile,"Account Investment Polarization Ratio = %f\n",
+				data->polar_ratio);
+	fprintf(outfile,"Data Map\n");
+	for (i = 0; i < data->num_assets; ++i)
+	    fprintf(outfile,"%d\n",data->data_map[i]);
 	if (data->shares)
 	{
 	    fprintf(outfile,"Investment Portfolio\n");
@@ -1138,6 +1160,9 @@ start_ranking:
 	{
 	    isort[i] = i;
 	    num_ave++;
+	    copy_data->assets[i].norm_value[n] =
+			copy_data->assets[i].value[n]/
+			copy_data->assets[i].base_value;
 	    mean_norm_value += copy_data->assets[i].norm_value[n];
 	}
 
@@ -1378,6 +1403,7 @@ extern void PrintAccountValue(
 {
 	int i,M,n;
 	double market_value = 0.0;
+	char string[100];
 	M = data->num_assets;
 	n = data->num_days-1;
 	for (i = 0; i < M; ++i)
@@ -1385,6 +1411,14 @@ extern void PrintAccountValue(
 	    market_value += data->shares[i]*data->assets[i].value[n];
 	}
 	printf("Total account market value: %f\n",market_value);
+	printf("Type yes to print shares: ");
+	scanf("%s",string);
+	if (string[0] == 'y')
+	{
+	    for (i = 0; i < M; ++i)
+	    	printf("%4s:  %d\n",data->assets[i].asset_name,
+				data->shares[i]);
+	}
 }	/* end PrintAccountValue */
 
 static double AssetTimeIntegral(
