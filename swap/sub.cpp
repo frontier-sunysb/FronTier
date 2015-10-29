@@ -1135,7 +1135,7 @@ extern void WriteAccountData(
 		}
 	    }
 	}
-        fprintf(outfile,"Index of Share Equivalence");
+        fprintf(outfile,"Index of Share Equivalence\n");
         fprintf(outfile,"%d\n",data->eindex);
 	fclose(outfile);
 }	/* end WriteAccountData */

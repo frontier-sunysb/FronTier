@@ -332,7 +332,7 @@ static int StartIndex(		// Start index of partially closed trade
 	}
 }	/* end StartIndex */
 	
-extern void PrintClosedTradeLoop(
+extern double PrintClosedTradeLoop(
 	FILE *outfile,
 	TRADE trade,
 	DATA_SET *data)
@@ -344,8 +344,9 @@ extern void PrintClosedTradeLoop(
 	double *ps,*pb;
 	double cash_gain,net_gain,Amp_ratio;
 	double current_ib_value;
+	double fee = 0.0;			// trading cost
 
-	if (trade.status == OPEN) return;
+	if (trade.status == OPEN) return 0.0;
 
 	is = trade.index_sell;
 	ib = trade.index_buy;
@@ -368,6 +369,7 @@ extern void PrintClosedTradeLoop(
 	    share_gain[i] = nb[i] - ns[inext];
 	    net_gain += current_ib_value*share_gain[i];
 	    Amp_ratio *= ps[i]/pb[i];
+	    fee += 20.0;
 	}
 
 	if (outfile == NULL)
@@ -402,8 +404,9 @@ extern void PrintClosedTradeLoop(
 	    fprintf(outfile,"Cash gain: %7.2f Share gain: %7.2f ",
 				cash_gain,net_gain);
 	    fprintf(outfile,"Total: %7.2f Amp: %5.3f\n",
-				cash_gain+net_gain,Amp_ratio);
+				cash_gain+net_gain-fee,Amp_ratio);
 	}
+	return cash_gain+net_gain-fee;
 }	/* end PrintPartialClosedTrade */
 
 extern void SaveDeleteClosedTradeLoop(
@@ -472,24 +475,23 @@ extern void WrapPartialTradeLoop(
 	char fname[200];
 	FILE *sfile;
 	int i,j,is,ie;
-	double Amp_ratio,*ps,*pb;
+	double last_cost,profit;
 
 	for (i = 0; i < data->num_trades; ++i)
 	{
 	    if (data->trades[i].status == OPEN ||
 		data->trades[i].status == CLOSED) 
 		continue;
-	    PrintClosedTradeLoop(sfile,data->trades[i],data);
+	    profit = PrintClosedTradeLoop(sfile,data->trades[i],data);
 	    is = StartIndex(data->trades[i]);
 	    ie = data->trades[i].num_stages - 1;
-	    ps = data->trades[i].price_sell;
-	    pb = data->trades[i].price_buy;
-	    Amp_ratio = 1.0;
-	    for (j = is; j <= ie; ++j)
-		Amp_ratio *= ps[j]/pb[j];
+	    last_cost = data->trades[i].num_shares_buy[is-1]*
+			data->trades[i].price_buy[is-1];
+	    last_cost -= profit;
 	    data->trades[i].num_shares_buy[is-1] = 
 			data->trades[i].num_shares_buy[ie];
-	    data->trades[i].price_buy[is-1] /= Amp_ratio;
+	    data->trades[i].price_buy[is-1] = last_cost/
+			data->trades[i].num_shares_buy[is-1];
 	    data->trades[i].num_stages = StartIndex(data->trades[i]);
 	    data->trades[i].status = OPEN;
 	}

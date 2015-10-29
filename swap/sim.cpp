@@ -724,18 +724,21 @@ extern void PrintDataStates(DATA_SET *data)
 	double V_total;
 	int ie = data->eindex;
 	int id = data->num_days-1;
+	int Ne;
 
 	N = data->num_assets;
 
 	FT_VectorMemoryAlloc((POINTER*)&ns_L,N,sizeof(int));
 	FT_VectorMemoryAlloc((POINTER*)&ns_U,N,sizeof(int));
 	V_total = GetDataStates(data,ns_L,ns_U,S);
+	Ne = irint(V_total/data->assets[ie].value[id]);
 
-	printf("\n");
 	printf("  Current   State-0   State-1   State-2   State-3   State-4\n");
 	printf("%9d %9d %9d %9d %9d %9d\n",S[5],S[0],S[1],S[2],S[3],S[4]);
 	printf("  State-C %9d %9d %9d %9d %9d\n",S[0]-S[5],S[1]-S[5],S[2]-S[5],
 					S[3]-S[5],S[4]-S[5]);
+	printf("\n");
+	printf("Equivalent to %d %s shares\n",Ne,data->assets[ie].asset_name);
 	printf("\n");
 	printf("Type yes to record states: ");
 	scanf("%s",string);
@@ -783,8 +786,7 @@ extern void PrintDataStates(DATA_SET *data)
 		fprintf(sfile,"color=%s\n",scolor[i]);
 		fprintf(sfile,"thickness = 1.5\n");
 	    }
-	    fprintf(sfile,"%8.2f  %9d\n",business_time,
-				irint(V_total/data->assets[ie].value[id]));
+	    fprintf(sfile,"%8.2f  %9d\n",business_time,Ne);
 	}
 	FT_FreeThese(2,ns_L,ns_U);
 }	/* end PrintDataStates */

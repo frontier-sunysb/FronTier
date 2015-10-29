@@ -126,14 +126,13 @@ extern void DestroyJVM();
 /* trade.cpp */
 extern void InvestShares(DATA_SET*);
 extern void PrintOpenTrade(DATA_SET*);
-extern void PrintClosedTrade(FILE*,TRADE,DATA_SET*);
-extern void PrintClosedTradeLoop(FILE*,TRADE,DATA_SET*);
 extern void SaveDeleteClosedTradeLoop(DATA_SET*);
 extern void SortTradeOrder(DATA_SET*);
 extern void WrapPartialTradeLoop(DATA_SET*);
 extern void FragmentTrade(DATA_SET*);
 extern boolean TradeShares(DATA_SET*);
 extern boolean ExperimentTrade(DATA_SET*);
+extern double PrintClosedTradeLoop(FILE*,TRADE,DATA_SET*);
 
 #define		closing_out(data)				\
 		{						\
