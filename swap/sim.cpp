@@ -11,7 +11,7 @@ static void ComputePyramidParams(double*,double*,int*,int,double,double*,
 				double*);
 static void PrintDevLinearProfile(char**,double*,double*,double,double,
 				int*,int);
-static double GetDataStates(DATA_SET*,int*,int*,int*);
+static int GetDataStates(DATA_SET*,int*,int*,int*);
 static double CurrentBusinessTime();
 static double AverageNormPrice(double*,int);
 
@@ -721,7 +721,6 @@ extern void PrintDataStates(DATA_SET *data)
 	int *ns_L,*ns_U,S[6];
 	char string[100];
 	double business_time;
-	double V_total;
 	int ie = data->eindex;
 	int id = data->num_days-1;
 	int Ne;
@@ -730,8 +729,7 @@ extern void PrintDataStates(DATA_SET *data)
 
 	FT_VectorMemoryAlloc((POINTER*)&ns_L,N,sizeof(int));
 	FT_VectorMemoryAlloc((POINTER*)&ns_U,N,sizeof(int));
-	V_total = GetDataStates(data,ns_L,ns_U,S);
-	Ne = irint(V_total/data->assets[ie].value[id]);
+	Ne = GetDataStates(data,ns_L,ns_U,S);
 
 	printf("  Current   State-0   State-1   State-2   State-3   State-4\n");
 	printf("%9d %9d %9d %9d %9d %9d\n",S[5],S[0],S[1],S[2],S[3],S[4]);
@@ -783,7 +781,7 @@ extern void PrintDataStates(DATA_SET *data)
 	    {
             	sfile = fopen(fname,"w");
 		fprintf(sfile,"Next\n");
-		fprintf(sfile,"color=%s\n",scolor[i]);
+		fprintf(sfile,"color=%s\n",data->assets[ie].color);
 		fprintf(sfile,"thickness = 1.5\n");
 	    }
 	    fprintf(sfile,"%8.2f  %9d\n",business_time,Ne);
@@ -791,7 +789,7 @@ extern void PrintDataStates(DATA_SET *data)
 	FT_FreeThese(2,ns_L,ns_U);
 }	/* end PrintDataStates */
 
-static double GetDataStates(
+static int GetDataStates(
 	DATA_SET *data,
 	int *ns_L,
 	int *ns_U,
@@ -799,17 +797,18 @@ static double GetDataStates(
 {
 	double *price,*nprice,*bprice;
 	double np_min,np_max,np_ave;
-	double slope,b;
+	double slope,b,pratio;
 	char **names;
 	int i,id,n,M,N;
 	int *num_shares;
 	int V_total,C;
+	int eindex,Ne,ne;
 	char string[100];
-	double pratio;
 
 	N = data->num_assets;
 	id = data->num_days - 1;
 	pratio = data->polar_ratio;
+	eindex = data->eindex;
 
 	FT_VectorMemoryAlloc((POINTER*)&price,N,sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&nprice,N,sizeof(double));
@@ -827,6 +826,7 @@ static double GetDataStates(
 	    bprice[n] = data->assets[i].base_value;
 	    num_shares[n] = data->shares[i];
 	    names[n] = data->assets[i].asset_name;
+	    if (eindex == i) ne = n;
 	    n++;
 	}
 	M = n;
@@ -859,9 +859,13 @@ static double GetDataStates(
 	    S[3] += ns_L[i];
 	}
 	S[5] = C;
+	if (0 <= eindex && eindex < N)
+	    Ne = irint(V_total/price[ne]);
+	else
+	    Ne = 0;
 	FT_FreeThese(4,names,price,nprice,num_shares);
-	return V_total;
-}	/* end PrintDataStates */
+	return Ne;
+}	/* end GetDataStates */
 
 static void ComputePyramidParams(
 	double *price,
@@ -923,7 +927,7 @@ static double CurrentBusinessTime()
 	hour = atoi(string);
 	strftime(string,100*sizeof(char),"%M",std::localtime(&t));
 	minute = atoi(string);
-	business_time = week*5 + day*6.5 + hour + minute/60.0 - 9.0;
+	business_time = week*5 + day*6.5 + hour + minute/60.0 - 8.0;
 	
 	return business_time;
 }	/* end CurrentBusinessTime */

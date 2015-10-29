@@ -107,6 +107,7 @@ int main(int argc, char **argv)
 	    	if (!ExperimentTrade(data))
 		    closing_out(data);
 		WriteAccountData(data);
+		break;
 	    case 'f':
 		FragmentTrade(data);
 		WriteAccountData(data);
@@ -116,7 +117,8 @@ int main(int argc, char **argv)
 		closing_out(data);
 	    case 'o':
 	    	TradeInfo(data);
-		closing_out(data);
+		PrintDataStates(data);
+		break;
 	    case 'r':
 		RankData(data);
 		closing_out(data);
@@ -139,5 +141,5 @@ int main(int argc, char **argv)
 	    if (string[0] != 'y' && string[0] != 'Y')
 		break;
 	}
-	closing_out(data);
+	exit(0);
 }	/* end main */
