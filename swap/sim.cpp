@@ -927,7 +927,7 @@ static double CurrentBusinessTime()
 	hour = atoi(string);
 	strftime(string,100*sizeof(char),"%M",std::localtime(&t));
 	minute = atoi(string);
-	business_time = week*5 + day*6.5 + hour + minute/60.0 - 8.0;
+	business_time = week*5 + day*6.5 + hour + minute/60.0 - 7.0;
 	
 	return business_time;
 }	/* end CurrentBusinessTime */
@@ -967,3 +967,36 @@ static double AverageNormPrice(
 	ave_nprice /= fabs(nprice[i1] - nprice[i2]);
 	return ave_nprice;
 }	/* end AverageNormPrice */
+
+extern void ReportDataStates(DATA_SET *data)
+{
+	int i,N;
+	int *ns_L,*ns_U,S[6];
+	int ie = data->eindex;
+	int Ne;
+	int seconds;
+
+	N = data->num_assets;
+
+	FT_VectorMemoryAlloc((POINTER*)&ns_L,N,sizeof(int));
+	FT_VectorMemoryAlloc((POINTER*)&ns_U,N,sizeof(int));
+	printf("Enter number of minutes for reporting: ");
+	scanf("%d",&seconds);
+	seconds *= 60;	
+	while (YES)
+	{
+	    Ne = GetDataStates(data,ns_L,ns_U,S);
+
+	    printf("  Current   State-0   State-1   State-2"
+		   "   State-3   State-4\n");
+	    printf("%9d %9d %9d %9d %9d %9d\n",S[5],S[0],S[1],S[2],S[3],S[4]);
+	    printf("  State-C %9d %9d %9d %9d %9d\n",S[0]-S[5],S[1]-S[5],
+					S[2]-S[5],S[3]-S[5],S[4]-S[5]);
+	    printf("\n");
+	    printf("Equivalent to %d %s shares\n",Ne,
+					data->assets[ie].asset_name);
+	    printf("\n");
+	    sleep(seconds);
+	}
+	FT_FreeThese(2,ns_L,ns_U);
+}	/* end ReportDataStates */

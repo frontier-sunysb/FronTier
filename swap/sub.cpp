@@ -284,6 +284,7 @@ static void AddAssets(
 	int i,j,num_add;
 	ASSET *new_assets;
 	int new_num_assets;
+	boolean *new_data_map;
 
 	printf("Current number of assets: %d\n",data->num_assets);
 	printf("Enter number of assets to be added: ");
@@ -292,6 +293,8 @@ static void AddAssets(
 	new_num_assets = data->num_assets + num_add;
 	FT_VectorMemoryAlloc((POINTER*)&new_assets,new_num_assets+1,
                                 sizeof(ASSET));
+	FT_VectorMemoryAlloc((POINTER*)&new_data_map,new_num_assets+1,
+                                sizeof(boolean));
 	for (j = 0; j < new_num_assets+1; ++j)
         {
 	    FT_VectorMemoryAlloc((POINTER*)&new_assets[j].value,
@@ -308,6 +311,7 @@ static void AddAssets(
 		    new_assets[j].value[i] = data->assets[j].value[i];
 		    new_assets[j].norm_value[i] = data->assets[j].norm_value[i];
 		}
+		new_data_map[j] = data->data_map[j];
 	    }
 	    else if (j < new_num_assets)
 	    {
@@ -322,6 +326,7 @@ static void AddAssets(
 		    new_assets[j].value[i] = new_assets[j].base_value;
 		    new_assets[j].norm_value[i] = 1.0;
 		}
+		new_data_map[j] = YES;
 	    }
 	    else
 	    {
@@ -335,12 +340,16 @@ static void AddAssets(
 		    new_assets[j].norm_value[i] = 
 				data->assets[im].norm_value[i];
 		}
+		new_data_map[j] = YES;
 	    }
 	}
-
+	for (j = 0; j < data->num_assets+1; ++j)
+	    FT_FreeThese(2,data->assets[j].value,data->assets[j].norm_value);
+	FT_FreeThese(2,data->assets,data->data_map);
+	
 	data->assets = new_assets;
 	data->num_assets = new_num_assets;
-	FT_FreeThese(1,data->assets);
+	data->data_map = new_data_map;
 }	/* end AddAssets */
 
 static void DeleteAssets(

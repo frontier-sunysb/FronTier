@@ -7,6 +7,8 @@ vector < vector <float> > stock_data;
 vector < string > filename;
 char **stock_file_name;
 
+static boolean IsCash(char*);
+
 extern string GetWebData(
 	const std::string& server, 
 	const std::string& file)
@@ -246,8 +248,6 @@ extern void GetCurrentPrice(
 	vm_args.version = JNI_VERSION_1_6;
 	vm_args.nOptions = 1;
 	vm_args.options = options;
-	// create java virtual machine
-	//status = JNI_CreateJavaVM(&jvm,(void**)&env,&vm_args);
 	if (status != JNI_ERR)
 	{
 	    cls = env->FindClass("DG"); //find class (java .class file) 
@@ -261,9 +261,19 @@ extern void GetCurrentPrice(
 		    for (i = 0; i < num_stocks; i++)
 		    {
 			
+			int count = 0;
+			prices[i] = IsCash(stock_names[i]) ? 1.0 : 0.0;
 		    	jstring str_arg = env->NewStringUTF(stock_names[i]);
-			prices[i] = env->CallStaticDoubleMethod(cls,mid,
+			while (prices[i] == 0.0)
+			{
+			    prices[i] = env->CallStaticDoubleMethod(cls,mid,
 						str_arg);
+			    if (count++ > 5)
+			    {
+				printf("Cannot get data 5 times\n");
+				clean_up(ERROR);
+			    }
+			}
 
 		    }
 		}
@@ -294,3 +304,13 @@ extern void CreateJVM()
         // create java virtual machine
         JNI_CreateJavaVM(&jvm,(void**)&env,&vm_args);
 }	/* end CreateJVM */
+
+static boolean IsCash(char *name)
+{
+        if (strcmp(name,"cash") == 0 ||
+            strcmp(name,"CASH") == 0 ||
+            strcmp(name,"Cash") == 0)
+            return YES;
+        else
+            return NO;
+}       /* end IsCash */

@@ -70,6 +70,7 @@ int main(int argc, char **argv)
 	printf("\tInitiation (i)\n");
 	printf("\tModify data (m)\n");
 	printf("\tPrint open trade (o)\n");
+	printf("\tPeriodic report state (p)\n");
 	printf("\tRank data (r)\n");
 	printf("\tSimulate data (s)\n");
 	printf("\tTrade (t)\n");
@@ -86,13 +87,6 @@ int main(int argc, char **argv)
 	    	AddData(data);
 		WriteMarketData(data);
     		PromptForDataMap(data);
-    		XgraphData(data);
-    		DataTrend(data);
-		break;
-	    case 'm':
-	    	ModifyData(data);
-		WriteMarketData(data);
-		WriteAccountData(data);
     		XgraphData(data);
     		DataTrend(data);
 		break;
@@ -115,9 +109,19 @@ int main(int argc, char **argv)
 	    case 'i':
 		InitTrade(data);
 		closing_out(data);
+	    case 'm':
+	    	ModifyData(data);
+		WriteMarketData(data);
+		WriteAccountData(data);
+    		XgraphData(data);
+    		DataTrend(data);
+		break;
 	    case 'o':
 	    	TradeInfo(data);
 		PrintDataStates(data);
+		break;
+	    case 'p':
+		ReportDataStates(data);
 		break;
 	    case 'r':
 		RankData(data);

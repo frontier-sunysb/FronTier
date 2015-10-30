@@ -89,6 +89,7 @@ extern void InvestSimulation(DATA_SET*);
 extern void CompareToFiveStates(DATA_SET*);
 extern void PrintCurrentLinearProfile(DATA_SET*);
 extern void PrintDataStates(DATA_SET*);
+extern void ReportDataStates(DATA_SET*);
 
 /* sub.cpp */
 extern double GetLeastSquare(DATA_SET*,int,int,double*,double*);
@@ -126,6 +127,7 @@ extern void DestroyJVM();
 /* trade.cpp */
 extern void InvestShares(DATA_SET*);
 extern void PrintOpenTrade(DATA_SET*);
+extern void PrintOpenTradeForIndex(DATA_SET*,int);
 extern void SaveDeleteClosedTradeLoop(DATA_SET*);
 extern void SortTradeOrder(DATA_SET*);
 extern void WrapPartialTradeLoop(DATA_SET*);

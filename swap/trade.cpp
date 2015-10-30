@@ -108,15 +108,17 @@ extern boolean TradeShares(
 	    }
 	    else
 	    {
-		int nstage;
-		PrintOpenTrade(data);
-		printf("Select index of open trade: ");
-		scanf("%d",&n);
-		nstage = data->trades[n].num_stages;
+		int nstage,sindex;
 		PrintAssetList(data);
-		printf("Enter sell and buy indices: ");
-		scanf("%d %d",&data->trades[n].index_sell[nstage],
-			      &data->trades[n].index_buy[nstage]);  
+		printf("Enter sell index: ");
+		scanf("%d",&sindex);
+		PrintOpenTradeForIndex(data,sindex);
+		printf("Select number of open trade: ");
+		scanf("%d",&n);
+		data->trades[n].index_sell[nstage] = sindex;
+		nstage = data->trades[n].num_stages;
+		printf("Enter buy index: ");
+		scanf("%d",&data->trades[n].index_buy[nstage]);  
 		if (data->trades[n].index_buy[nstage-1] != 
 		    data->trades[n].index_sell[nstage])
 		{
@@ -191,7 +193,12 @@ extern boolean TradeShares(
 		data->shares[ib] += nb;
 		if (data->trades[n].index_buy[nstage] ==
 		    data->trades[n].index_sell[0])
-		    data->trades[n].status = CLOSED;
+		{
+		    printf("Loop is fully closed, type open to keep it open: ");
+		    scanf("%s",string);
+		    if (string[0] != 'o')
+		    	data->trades[n].status = CLOSED;
+		}
 		else
 		{
 		    for (i = 1; i < data->trades[n].num_stages; ++i)
@@ -320,7 +327,7 @@ static int StartIndex(		// Start index of partially closed trade
 	case CLOSED:
 	    return 0;
 	case PARTIAL_CLOSED:
-	    for (i = 0; i < N; ++i)
+	    for (i = 1; i < N; ++i)
 	    {
 		if (trade.index_sell[i] == trade.index_buy[N])
 		    break;
@@ -561,14 +568,17 @@ extern boolean ExperimentTrade(
 	    }
 	    else
 	    {
-		int nstage;
-		printf("Select index of open trade: ");
+		int nstage,sindex;
+		PrintAssetList(data);
+		printf("Enter sell index: ");
+		scanf("%d",&sindex);
+		PrintOpenTradeForIndex(data,sindex);
+		printf("Select number of open trade: ");
 		scanf("%d",&n);
 		nstage = data->trades[n].num_stages;
-		PrintAssetList(data);
-		printf("Enter sell and buy indices: ");
-		scanf("%d %d",&data->trades[n].index_sell[nstage],
-			      &data->trades[n].index_buy[nstage]);  
+		data->trades[n].index_sell[nstage] = sindex;
+		printf("Enter buy index: ");
+		scanf("%d",&data->trades[n].index_buy[nstage]);  
 		if (data->trades[n].index_buy[nstage-1] != 
 		    data->trades[n].index_sell[nstage])
 		{
@@ -636,7 +646,12 @@ extern boolean ExperimentTrade(
 		data->shares[ib] += nb;
 		if (data->trades[n].index_buy[nstage] ==
 		    data->trades[n].index_sell[0])
-		    data->trades[n].status = CLOSED;
+		{
+		    printf("Loop is closed, type open to keep it open: ");
+		    scanf("%s",string);
+		    if (string[0] != 'o')
+		    	data->trades[n].status = CLOSED;
+		}
 		else
 		{
 		    for (i = 1; i < data->trades[n].num_stages; ++i)
@@ -703,4 +718,49 @@ extern void FragmentTrade(
 	}
 	data->num_trades++;
 }	/* end FragmentTrade */
+
+extern void PrintOpenTradeForIndex(
+	DATA_SET *data,
+	int index)
+{
+	int i,j,is,ib,ns,nsell,nbuy;
+	double ratio;
+	TRADE trade;
+	char **stock_names;
+	double *prices;
+	int M = data->num_assets;
+	int n = data->num_days;
+
+	FT_VectorMemoryAlloc((POINTER*)&stock_names,M,sizeof(char*));
+	FT_VectorMemoryAlloc((POINTER*)&prices,M,sizeof(double));
+	for (i = 0; i < M; ++i)
+	    stock_names[i] = data->assets[i].asset_name;
+	GetCurrentPrice(stock_names,prices,M);
+	for (i = 0; i < M; ++i)
+	    data->assets[i].value[n] = prices[i];
+	data->num_days++;
+
+	for (i = 0; i < data->num_trades; ++i)
+	{
+	    if (data->trades[i].status != OPEN) continue;
+	    ft_assign(&trade,&data->trades[i],sizeof(TRADE));
+	    ns = data->trades[i].num_stages;
+	    is = data->trades[i].index_buy[ns-1];
+	    if (is != index) continue;
+	    for (j = 0; j < ns; ++j)
+	    {
+	    	nsell = data->trades[i].num_shares_buy[ns-1];
+	    	ib = data->trades[i].index_sell[j];
+	    	nbuy = data->trades[i].num_shares_sell[j];
+	    	ratio = currentAmpRatio(trade,data,j);
+		if (j > 0) printf("   ");
+		else printf("%2d ",i);
+	    	printf("Open trade (%d/%d) (Sell)%4s/%-4s (%4d/%4d) Amp = %f\n",
+				is,ib,data->assets[is].asset_name,
+				data->assets[ib].asset_name,nsell,nbuy,ratio);
+	    }
+	}
+	FT_FreeThese(2,stock_names,prices);
+	data->num_days--;
+}	/* end PrintOpenTrade */
 
