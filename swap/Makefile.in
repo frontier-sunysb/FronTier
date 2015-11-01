@@ -21,6 +21,8 @@ Petsc_Lib=@PETSC_LIB@
 
 USEGPU = @USEGPU@
 
+all : swap status record
+
 swap : @devel@
 
 sim.o : swap.h sim.cpp
@@ -38,10 +40,18 @@ swap: swap.h swap.cpp sim.o sub.o web.o trade.o DG.class
 	${CXX} -c swap.cpp $(incsloc) $(incs) ${Petsc_Include}
 	$(CXX) -o swap swap.o sim.o sub.o web.o trade.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs) $(LFLAGS) $(libs) ${F77_LIBS}
 
+status: swap.h status.cpp sim.o sub.o web.o trade.o DG.class
+	${CXX} -c status.cpp $(incsloc) $(incs) ${Petsc_Include}
+	$(CXX) -o status status.o sim.o sub.o web.o trade.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs) $(LFLAGS) $(libs) ${F77_LIBS}
+
+record: swap.h record.cpp sim.o sub.o web.o trade.o DG.class
+	${CXX} -c record.cpp $(incsloc) $(incs) ${Petsc_Include}
+	$(CXX) -o record record.o sim.o sub.o web.o trade.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs) $(LFLAGS) $(libs) ${F77_LIBS}
+
 -include ../devel-deps.inc
 
 clean:
-	rm -rf *.o swap DG.class
+	rm -rf *.o swap status record DG.class
 output :
 	rm -rf out/*
 

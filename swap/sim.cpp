@@ -3,24 +3,24 @@
 #include <iostream>
 #include <locale>
 
-static void SlopeBasedTrade(DATA_SET*);
-static void Slope1BasedTrade(DATA_SET*);
-static void IntegralSlopeTrade(DATA_SET*);
-static void PyramidTrade(DATA_SET*);
+static void SlopeBasedTrade(MARKET_DATA*);
+static void Slope1BasedTrade(MARKET_DATA*);
+static void IntegralSlopeTrade(MARKET_DATA*);
+static void PyramidTrade(MARKET_DATA*);
 static void ComputePyramidParams(double*,double*,int*,int,double,double*,
 				double*);
 static void PrintDevLinearProfile(char**,double*,double*,double,double,
 				int*,int);
-static int GetDataStates(DATA_SET*,int*,int*,int*);
+static int GetAccountStates(PORTFOLIO*,STATE_INFO*);
 static double CurrentBusinessTime();
 static double AverageNormPrice(double*,int);
 
 
 extern void InvestSimulation(
-	DATA_SET *data)
+	MARKET_DATA *data)
 {
 	int i_method;
-	DATA_SET *copy_data = CopyData(data);
+	MARKET_DATA *copy_data = CopyMarketData(data);
 	printf("Available trading methods are:\n");
 	printf("\tSlope-based trading (0)\n");
 	printf("\tLeast-Square-Slope-based trading (1)\n");
@@ -46,11 +46,11 @@ extern void InvestSimulation(
 	    printf("Unknown trading method\n");
 	    return;
 	}
-	FreeData(copy_data);
+	FreeMarketData(copy_data);
 }	/* end InvestSimulation */
 
 static void SlopeBasedTrade(
-	DATA_SET *data)
+	MARKET_DATA *data)
 {
 	int i,j,i1,i2,is,N;
 	int M = data->num_assets-1;
@@ -186,7 +186,7 @@ start_trade:
 }	/* end SlopeBasedTrade */
 
 static void Slope1BasedTrade(
-	DATA_SET *data)
+	MARKET_DATA *data)
 {
 	int i,j,i1,i2,is,N;
 	int M = data->num_assets-1;
@@ -323,7 +323,7 @@ start_trade:
 
 #define		MAX_SIM_NUM		100
 static void IntegralSlopeTrade(
-	DATA_SET *data)
+	MARKET_DATA *data)
 {
 	int i,j,i1,i2,is,N;
 	int M = data->num_assets;
@@ -461,7 +461,7 @@ start_trade:
 }	/* end IntegralSlopeTrade */
 
 static void PyramidTrade(
-	DATA_SET *data)
+	MARKET_DATA *data)
 {
 	int i, j, k, i1, i2;
 	int is, isf, N;
@@ -608,17 +608,18 @@ start_trade:
 	    goto start_trade;
 } 	/* end	PyramidTrade */
 
-extern void PrintCurrentLinearProfile(DATA_SET *data)
+extern void PrintCurrentLinearProfile(PORTFOLIO *account)
 {
 	double *price,*nprice,*bprice;
 	int *num_shares;
 	char **names;
 	double polar_ratio,slope,b;
 	int i,id,n,M,N;
+	MARKET_DATA *data = account->data;
 
 	N = data->num_assets;
 	id = data->num_days - 1;
-	polar_ratio = data->polar_ratio;
+	polar_ratio = account->polar_ratio;
 
 	FT_VectorMemoryAlloc((POINTER*)&price,N,sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&nprice,N,sizeof(double));
@@ -628,10 +629,10 @@ extern void PrintCurrentLinearProfile(DATA_SET *data)
 	n = 0;
 	for (i = 0; i < N; ++i)
 	{
-	    if (!data->data_map[i])
+	    if (!account->data_map[i])
 		continue;
 	    bprice[n] = data->assets[i].base_value;
-	    num_shares[n] = data->shares[i];
+	    num_shares[n] = account->shares[i];
 	    names[n] = data->assets[i].asset_name;
 	    n++;
 	}
@@ -715,21 +716,21 @@ static void PrintDevLinearProfile(
 }	/* end PrintDevLinearProfile */
 
 
-extern void PrintDataStates(DATA_SET *data)
+extern void PrintDataStates(PORTFOLIO *account)
 {
 	int i,N;
-	int *ns_L,*ns_U,S[6];
 	char string[100];
 	double business_time;
-	int ie = data->eindex;
+	MARKET_DATA *data = account->data;
+	int ie = account->eindex;
 	int id = data->num_days-1;
 	int Ne;
+	STATE_INFO sinfo;
+	int *S = sinfo.S;
 
 	N = data->num_assets;
 
-	FT_VectorMemoryAlloc((POINTER*)&ns_L,N,sizeof(int));
-	FT_VectorMemoryAlloc((POINTER*)&ns_U,N,sizeof(int));
-	Ne = GetDataStates(data,ns_L,ns_U,S);
+	Ne = GetAccountStates(account,&sinfo);
 
 	printf("  Current   State-0   State-1   State-2   State-3   State-4\n");
 	printf("%9d %9d %9d %9d %9d %9d\n",S[5],S[0],S[1],S[2],S[3],S[4]);
@@ -751,7 +752,7 @@ extern void PrintDataStates(DATA_SET *data)
 	    create_directory("state",NO);
 	    for (i = 0; i < 6; ++i)
 	    {
-		sprintf(fname,"state/%s-state-%d",data->account_name,i);
+		sprintf(fname,"state/%s-state-%d",account->account_name,i);
 		sfile = fopen(fname,"r");
 		if (sfile != NULL)
 		{
@@ -768,7 +769,7 @@ extern void PrintDataStates(DATA_SET *data)
 		fprintf(sfile,"%8.2f  %9d\n",business_time,S[i]);
 		fclose(sfile);
 	    }
-	    sprintf(fname,"Eshare/%s-%s",data->account_name,
+	    sprintf(fname,"Eshare/%s-%s",account->account_name,
 				data->assets[ie].asset_name);
 	    create_directory("Eshare",NO);
 	    sfile = fopen(fname,"r");
@@ -786,45 +787,46 @@ extern void PrintDataStates(DATA_SET *data)
 	    }
 	    fprintf(sfile,"%8.2f  %9d\n",business_time,Ne);
 	}
-	FT_FreeThese(2,ns_L,ns_U);
 }	/* end PrintDataStates */
 
-static int GetDataStates(
-	DATA_SET *data,
-	int *ns_L,
-	int *ns_U,
-	int *S)
+static int GetAccountStates(
+	PORTFOLIO *account,
+	STATE_INFO *sinfo)
 {
 	double *price,*nprice,*bprice;
 	double np_min,np_max,np_ave;
 	double slope,b,pratio;
 	char **names;
-	int i,id,n,M,N;
+	char string[100];
+	int i,id,n,M,N,idmin,idmax;
 	int *num_shares;
 	int V_total,C;
 	int eindex,Ne,ne;
-	char string[100];
+	int *ns_L,*ns_U;
+	MARKET_DATA *data = account->data;
 
 	N = data->num_assets;
 	id = data->num_days - 1;
-	pratio = data->polar_ratio;
-	eindex = data->eindex;
+	pratio = account->polar_ratio;
+	eindex = account->eindex;
 
 	FT_VectorMemoryAlloc((POINTER*)&price,N,sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&nprice,N,sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&bprice,N,sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&num_shares,N,sizeof(int));
 	FT_VectorMemoryAlloc((POINTER*)&names,N,sizeof(char*));
+	FT_VectorMemoryAlloc((POINTER*)&ns_L,N,sizeof(int));
+	FT_VectorMemoryAlloc((POINTER*)&ns_U,N,sizeof(int));
 	n = 0;
 	np_max = -HUGE;
 	np_min = HUGE;
 	C = V_total = 0.0;
 	for (i = 0; i < N; ++i)
 	{
-	    if (!data->data_map[i])
+	    if (!account->data_map[i])
 		continue;
 	    bprice[n] = data->assets[i].base_value;
-	    num_shares[n] = data->shares[i];
+	    num_shares[n] = account->shares[i];
 	    names[n] = data->assets[i].asset_name;
 	    if (eindex == i) ne = n;
 	    n++;
@@ -842,30 +844,50 @@ static int GetDataStates(
 	}
 
 	np_ave = AverageNormPrice(nprice,M);
-	S[0] = irint(V_total/np_max);
-	S[2] = irint(V_total/np_ave);
-	S[4] = irint(V_total/np_min);
+	sinfo->np_min = np_min;
+	sinfo->np_max = np_max;
+	sinfo->np_ave = np_ave;
+	sinfo->S[0] = irint(V_total/np_max);
+	sinfo->S[2] = irint(V_total/np_ave);
+	sinfo->S[4] = irint(V_total/np_min);
 	ComputePyramidParams(price,nprice,num_shares,M,1/pratio,&slope,&b);
-	S[1] = S[3] = 0.0;
+	sinfo->S[1] = sinfo->S[3] = 0.0;
 	for (i = 0; i < M; ++i)
 	{
 	    ns_U[i] = irint((slope*nprice[i] + b)/nprice[i]);
-	    S[1] += ns_U[i];
+	    sinfo->S[1] += ns_U[i];
 	}
 	ComputePyramidParams(price,nprice,num_shares,M,pratio,&slope,&b);
+	sinfo->svalue = sinfo->dvalue = 0.0;
 	for (i = 0; i < M; ++i)
 	{
-	    ns_L[i] = irint((slope*nprice[i] + b)/nprice[i]);
-	    S[3] += ns_L[i];
+	    double Vl,Vc;
+	    Vc = num_shares[i]*price[i];
+	    Vl = slope*nprice[i] + b;
+	    ns_L[i] = irint(Vl/nprice[i]);
+	    sinfo->S[3] += ns_L[i];
+	    if (Vc - Vl > sinfo->svalue)
+	    {
+		idmax = i;
+		sinfo->svalue = Vc - Vl;
+	    }
+	    if (Vc - Vl < sinfo->dvalue)
+	    {
+		idmin = i;
+		sinfo->dvalue = Vc - Vl;
+	    }
 	}
-	S[5] = C;
+	strncpy(sinfo->sname,names[idmax],20);
+	strncpy(sinfo->dname,names[idmin],20);
+	sinfo->dnp = (nprice[idmax] - nprice[idmin])/np_ave;
+	sinfo->C = C;
 	if (0 <= eindex && eindex < N)
 	    Ne = irint(V_total/price[ne]);
 	else
 	    Ne = 0;
 	FT_FreeThese(4,names,price,nprice,num_shares);
 	return Ne;
-}	/* end GetDataStates */
+}	/* end GetAccountStates */
 
 static void ComputePyramidParams(
 	double *price,
@@ -968,35 +990,59 @@ static double AverageNormPrice(
 	return ave_nprice;
 }	/* end AverageNormPrice */
 
-extern void ReportDataStates(DATA_SET *data)
+extern void ReportDataStates(
+	PORTFOLIO **accounts,
+	int num_accounts)
 {
-	int i,N;
-	int *ns_L,*ns_U,S[6];
-	int ie = data->eindex;
-	int Ne;
+	int i,ie,N,Ne;
 	int seconds;
+	MARKET_DATA *data = accounts[0]->data;
+	STATE_INFO sinfo;
+	int *S = sinfo.S;
+	std::time_t t;
+	int hour,minute;
+	char date[100],string[100];
 
 	N = data->num_assets;
 
-	FT_VectorMemoryAlloc((POINTER*)&ns_L,N,sizeof(int));
-	FT_VectorMemoryAlloc((POINTER*)&ns_U,N,sizeof(int));
 	printf("Enter number of minutes for reporting: ");
 	scanf("%d",&seconds);
 	seconds *= 60;	
 	while (YES)
 	{
-	    Ne = GetDataStates(data,ns_L,ns_U,S);
+ 	    t = std::time(NULL);
+	    strftime(string,100*sizeof(char),"%H",std::localtime(&t));
+            hour = atoi(string);
+	    strftime(string,100*sizeof(char),"%M",std::localtime(&t));
+            minute = atoi(string);
+	    strftime(date,100*sizeof(char),"%D",std::localtime(&t));
+	    printf("\n");
+	    printf("=====================%s %2d:%2d=======",
+				date,hour,minute);
+	    printf("=================\n");
+	    printf("\n");
+	    for (i = 0; i < num_accounts; ++i)
+	    {
+	    	Ne = GetAccountStates(accounts[i],&sinfo);
+		ie = accounts[i]->eindex;
 
-	    printf("  Current   State-0   State-1   State-2"
+		printf("Account %s at time: \n",accounts[i]->account_name);
+	    	printf("  Current   State-0   State-1   State-2"
 		   "   State-3   State-4\n");
-	    printf("%9d %9d %9d %9d %9d %9d\n",S[5],S[0],S[1],S[2],S[3],S[4]);
-	    printf("  State-C %9d %9d %9d %9d %9d\n",S[0]-S[5],S[1]-S[5],
+	    	printf("%9d %9d %9d %9d %9d %9d\n",S[5],S[0],S[1],S[2],S[3],
+					S[4]);
+	    	printf("  State-C %9d %9d %9d %9d %9d\n",S[0]-S[5],S[1]-S[5],
 					S[2]-S[5],S[3]-S[5],S[4]-S[5]);
-	    printf("\n");
-	    printf("Equivalent to %d %s shares\n",Ne,
+	    	printf("Equivalent to %d %s shares\n",Ne,
 					data->assets[ie].asset_name);
-	    printf("\n");
+		printf("Stock %4s has maximum surplus: %9.2f\n",
+				sinfo.sname,sinfo.svalue);
+		printf("Stock %4s has maximum deficit: %9.2f\n",
+				sinfo.dname,sinfo.dvalue);
+		printf("Percetage diff between surplus and deficit: %5.2f\n",
+				sinfo.dnp*100);
+	    	printf("\n");
+	    }
 	    sleep(seconds);
 	}
-	FT_FreeThese(2,ns_L,ns_U);
 }	/* end ReportDataStates */

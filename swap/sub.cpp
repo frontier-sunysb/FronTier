@@ -1,12 +1,12 @@
 #include "swap.h"
 
-static void AddAssets(DATA_SET*);
-static void DeleteAssets(DATA_SET*);
-static void PrintRateOfChange(DATA_SET*);
-static double AssetTimeIntegral(DATA_SET*,int,int,int);
+static void AddAssets(MARKET_DATA*);
+static void DeleteAssets(MARKET_DATA*);
+static void PrintRateOfChange(MARKET_DATA*,boolean*);
+static double AssetTimeIntegral(MARKET_DATA*,int,int,int);
 
 extern double GetLeastSquare(
-	DATA_SET *data,
+	MARKET_DATA *data,
 	int m,
 	int n,
 	double *Q,
@@ -156,15 +156,16 @@ extern double LeastSquareLinear(
 }	/* end LeastSquareLinear */
 
 extern void ContinueBaseAdjust(
-        DATA_SET *data)
+        MARKET_DATA *data)
 {
 	int time_p;    /* time period */
 	int i,j,k,M = data->num_assets;
-	double ave_value;
 	int save_num_days = data->num_days;
 	int backtrace;
+	char account_name[256];
 	char fname[256],dirname[256];
 	FILE **bfiles;
+	double ave_value;
 	double *base0;
 
 	FT_VectorMemoryAlloc((POINTER*)&bfiles,M,sizeof(FILE*));
@@ -174,7 +175,9 @@ extern void ContinueBaseAdjust(
 	printf("Enter backtrace for base update: ");
 	scanf("%d", &backtrace);
 	data->num_backtrace = backtrace;
-	sprintf(dirname,"simulation/%s",data->account_name);
+	printf("Enter simulation account name: ");
+	scanf("%s",account_name);
+	sprintf(dirname,"simulation/%s",account_name);
 	create_directory(dirname,NO);
 	for (i = 0; i < M; ++i)
 	{
@@ -207,7 +210,7 @@ extern void ContinueBaseAdjust(
 }	/* end ContinueBaseAdjust */
 
 extern void AdjustBase(
-	DATA_SET *data)
+	MARKET_DATA *data)
 {
 	int i;
 	int is,N;
@@ -224,8 +227,8 @@ extern void AdjustBase(
 	}
 }	/* end AdjustBase */
 
-extern void ModifyData(
-	DATA_SET *data)
+extern void ModifyMarketData(
+	MARKET_DATA *data)
 {
 	int i,j,m,n;
 	int istar;		/* center asset index */
@@ -261,6 +264,17 @@ extern void ModifyData(
 	    scanf("%d",&data->num_backtrace);
 	}
 
+	printf("Type yes to modify data base: ");
+	scanf("%s",string);
+	if (string[0] != 'y' && string[0] != 'Y')
+	    return;
+	AdjustBase(data);
+}	/* end ModifyMarketData */
+
+extern void ModifyAccount(
+	PORTFOLIO *data)
+{
+	char string[100];
 	printf("Type yes to change account profile slope: ");
 	scanf("%s",string);
 	if (string[0] == 'y' || string[0] == 'Y')
@@ -271,15 +285,10 @@ extern void ModifyData(
 	}
    	PromptForDataMap(data);
 
-	printf("Type yes to modify data base: ");
-	scanf("%s",string);
-	if (string[0] != 'y' && string[0] != 'Y')
-	    return;
-	AdjustBase(data);
-}	/* end ModifyData */
+}	/* end ModifyAccount */
 
 static void AddAssets(
-	DATA_SET *data)
+	MARKET_DATA *data)
 {
 	int i,j,num_add;
 	ASSET *new_assets;
@@ -311,7 +320,6 @@ static void AddAssets(
 		    new_assets[j].value[i] = data->assets[j].value[i];
 		    new_assets[j].norm_value[i] = data->assets[j].norm_value[i];
 		}
-		new_data_map[j] = data->data_map[j];
 	    }
 	    else if (j < new_num_assets)
 	    {
@@ -340,28 +348,27 @@ static void AddAssets(
 		    new_assets[j].norm_value[i] = 
 				data->assets[im].norm_value[i];
 		}
-		new_data_map[j] = YES;
 	    }
 	}
 	for (j = 0; j < data->num_assets+1; ++j)
 	    FT_FreeThese(2,data->assets[j].value,data->assets[j].norm_value);
-	FT_FreeThese(2,data->assets,data->data_map);
+	FT_FreeThese(1,data->assets);
 	
 	data->assets = new_assets;
 	data->num_assets = new_num_assets;
-	data->data_map = new_data_map;
 }	/* end AddAssets */
 
 static void DeleteAssets(
-        DATA_SET *data)
+        MARKET_DATA *data)
 {
 }       /* end DeleteAssets */
 
 extern void PromptForDataMap(
-	DATA_SET *data)
+	PORTFOLIO *account)
 {
 	int i;
 	char string[100];
+	MARKET_DATA *data = account->data;
 
 	printf("Type yes to change data map: ");
 	scanf("%s",string);
@@ -372,14 +379,14 @@ extern void PromptForDataMap(
 	    printf("Include asset %s ? ",data->assets[i].asset_name);
 	    scanf("%s",string);
 	    if (string[0] == 'y' || string[0] == 'Y')
-	    	data->data_map[i] = YES;
+	    	account->data_map[i] = YES;
 	    else
-	    	data->data_map[i] = NO;
+	    	account->data_map[i] = NO;
 	}
 }	/* end PromptForDataMap */
 
 extern void AddData(
-	DATA_SET *data)
+	MARKET_DATA *data)
 {
 	int j,m,M;
 	char string[100];
@@ -425,7 +432,8 @@ extern void AddData(
 }	/* end AddData */
 
 extern void XgraphData(
-	DATA_SET *data)
+	MARKET_DATA *data,
+	boolean *data_map)
 {
 	char fname[100];
 	FILE *xfile;
@@ -439,7 +447,7 @@ extern void XgraphData(
 		data->num_days - data->num_backtrace;
 	for (j = 0; j < M; ++j)
 	{
-	    if (data->data_map[j] != YES)
+	    if (data_map[j] != YES)
 	    	continue;
 	    sprintf(fname,"xg/N-%d-.xg",j);
 	    xfile = fopen(fname,"w");
@@ -457,7 +465,7 @@ extern void XgraphData(
 	for (j = 0; j < M-1; ++j)
 	for (k = j+1; k < M; ++k)
 	{
-	    if (data->data_map[j] != YES || data->data_map[k] != YES)
+	    if (data_map[j] != YES || data_map[k] != YES)
 	    	continue;
 	    sprintf(fname,"xg/M-%d-%d.xg",j,k);
 	    xfile = fopen(fname,"w");
@@ -476,7 +484,7 @@ extern void XgraphData(
 	for (j = 0; j < M-1; ++j)
 	for (k = j+1; k < M; ++k)
 	{
-	    if (data->data_map[j] != YES || data->data_map[k] != YES)
+	    if (data_map[j] != YES || data_map[k] != YES)
 	    	continue;
 	    sprintf(fname,"xg/D-%d-%d.xg",j,k);
 	    xfile = fopen(fname,"w");
@@ -509,23 +517,23 @@ extern void XgraphData(
 }	/* end XgraphData */
 
 extern void TradeInfo(
-	DATA_SET *data)
+	PORTFOLIO *account)
 {
 	int i,j;
 	char string[100];
 	boolean closed_trade_exist = NO;
 	boolean partial_loop_exist = NO;
 
-	SortTradeOrder(data);
-	PrintOpenTrade(data);
-	for (i = 0; i < data->num_trades; ++i)
+	SortTradeOrder(account);
+	PrintOpenTrade(account);
+	for (i = 0; i < account->num_trades; ++i)
 	{
-	    if (data->trades[i].status != OPEN)
+	    if (account->trades[i].status != OPEN)
 	    {
-	    	PrintClosedTradeLoop(NULL,data->trades[i],data);
-		if (data->trades[i].status == CLOSED)
+	    	PrintClosedTradeLoop(NULL,account->trades[i],account);
+		if (account->trades[i].status == CLOSED)
 		    closed_trade_exist = YES;
-		else if (data->trades[i].status == PARTIAL_CLOSED)
+		else if (account->trades[i].status == PARTIAL_CLOSED)
 		    partial_loop_exist = YES;
 	    }
 	}
@@ -535,8 +543,8 @@ extern void TradeInfo(
 	    scanf("%s",string);
 	    if (string[0] == 'y' || string[0] == 'Y')
 	    {
-		SaveDeleteClosedTradeLoop(data);
-		WriteAccountData(data);
+		SaveDeleteClosedTradeLoop(account);
+		WriteAccountData(account);
 	    }
 	}
 	if (partial_loop_exist)
@@ -545,23 +553,23 @@ extern void TradeInfo(
 	    scanf("%s",string);
 	    if (string[0] == 's' || string[0] == 'S')
 	    {
-		SaveDeleteClosedTradeLoop(data);
-		WriteAccountData(data);
+		SaveDeleteClosedTradeLoop(account);
+		WriteAccountData(account);
 	    }
 	    else if (string[0] == 'w' || string[0] == 'W')
 	    {
-		WrapPartialTradeLoop(data);
-		WriteAccountData(data);
+		WrapPartialTradeLoop(account);
+		WriteAccountData(account);
 	    }
 	}
 	printf("Type yes to print linear profile: ");
 	scanf("%s",string);
 	if (string[0] == 'y' || string[0] == 'Y')
-	    PrintCurrentLinearProfile(data);
+	    PrintCurrentLinearProfile(account);
 }	/* end TradeInfo */
 
 extern void DataCompare(
-	DATA_SET *data)
+	MARKET_DATA *data)
 {
 	int i1,i2,j;
 	double nu1,nu2;
@@ -605,7 +613,8 @@ extern void DataCompare(
 }	/* end DataCompare */
 
 extern void DataTrend(
-	DATA_SET *data)
+	MARKET_DATA *data,
+	boolean *data_map)
 {
 	int i,j,k,is,N;
 	int M = data->num_assets;
@@ -651,7 +660,7 @@ extern void DataTrend(
 	    num_data = 0;
 	    for (j = 0; j < M; ++j)
 	    {
-		if (!data->data_map[j]) continue;
+		if (!data_map[j]) continue;
 		value = data->assets[j].norm_value + is + i;
 		mean[i] += value[0];
 		value_ave = (0.5*(value[0] + value[-3]) +
@@ -665,7 +674,7 @@ extern void DataTrend(
 
 	for (i = 0; i < M; ++i)
 	{
-	    if (data->data_map[i] != YES)
+	    if (data_map[i] != YES)
 	    	continue;
 	    fprintf(sfile0,"color=%s\n",data->assets[i].color);
 	    fprintf(sfile0,"thickness = 1.5\n");
@@ -774,68 +783,9 @@ extern void DataTrend(
 	fclose(msfile2);
 }	/* end DataTrend */
 
-extern DATA_SET *CopyData(
-	DATA_SET *data)
-{
-	int i,j;
-	DATA_SET *copy_data;
-	double ave_value;
-	
-	FT_ScalarMemoryAlloc((POINTER*)&copy_data,sizeof(DATA_SET));
-	copy_data->num_assets = data->num_assets;
-	copy_data->num_days = data->num_days;
-	copy_data->num_backtrace = data->num_backtrace;
-	memcpy(copy_data->account_name,data->account_name,
-				strlen(data->account_name)+1);
-	FT_VectorMemoryAlloc((POINTER*)&copy_data->assets,data->num_assets+1,
-				sizeof(ASSET));
-	FT_VectorMemoryAlloc((POINTER*)&copy_data->data_map,data->num_assets+1,
-				sizeof(boolean));
-	FT_MatrixMemoryAlloc((POINTER*)&copy_data->date,data->num_days+10,100,
-				sizeof(char));
-	for (j = 0; j < data->num_assets+1; ++j)
-	{
-	    memcpy(copy_data->assets[j].asset_name,data->assets[j].asset_name,
-				strlen(data->assets[j].asset_name)+1);
-	    memcpy(copy_data->assets[j].color,data->assets[j].color,
-				strlen(data->assets[j].color)+1);
-	    copy_data->assets[j].base_value = data->assets[j].base_value;
-	    FT_VectorMemoryAlloc((POINTER*)&copy_data->assets[j].value,
-				data->num_days+10,sizeof(double));
-	    FT_VectorMemoryAlloc((POINTER*)&copy_data->assets[j].norm_value,
-				data->num_days+10,sizeof(double));
-	    copy_data->data_map[j] = data->data_map[j];
-	}
-	for (i = 0; i < data->num_days; ++i)
-	{
-	    	for (j = 0; j < data->num_assets+1; ++j)
-		{
-		    copy_data->assets[j].value[i] = data->assets[j].value[i];
-		    copy_data->assets[j].norm_value[i] = 
-			  data->assets[j].value[i]/data->assets[j].base_value;
-		    ave_value += data->assets[j].norm_value[i];
-		}
-		ave_value = 0.0;
-	    	for (j = 0; j < data->num_assets; ++j)
-		    ave_value += data->assets[j].norm_value[i];
-		copy_data->assets[j].value[i] = ave_value/data->num_assets;
-		copy_data->assets[j].norm_value[i] = ave_value/data->num_assets;
-	}
-	return copy_data;
-}	/* end CopyData */
-
-extern void FreeData(
-	DATA_SET *data)
-{
-	int i,j;
-	for (j = 0; j < data->num_assets+1; ++j)
-	    FT_FreeThese(2,data->assets[j].value,data->assets[j].norm_value);
-	FT_FreeThese(3,data->assets,data->data_map,data->date);
-	FT_FreeThese(1,data);
-}	/* end FreeData */
-
 static void PrintRateOfChange(
-	DATA_SET *data)
+	MARKET_DATA *data,
+	boolean *data_map)
 {
 	int i,n,M;
 	double base_value,fit_value;
@@ -853,7 +803,7 @@ static void PrintRateOfChange(
 	       		"       L      Q      M\n");
 	for (i = 0; i < M; ++i)
 	{
-	    if (data->data_map[i] != YES)
+	    if (data_map[i] != YES)
 	        continue;
 	    base_value = data->assets[i].base_value;
 	    printf("%2d  %5s: ",i,data->assets[i].asset_name);
@@ -875,7 +825,7 @@ static void PrintRateOfChange(
 }	/* end PrintRateOfChange */
 
 extern void ReadMarketData(
-	DATA_SET *data)
+	MARKET_DATA *data)
 {
 	char *data_name = data->data_name;
 	FILE *infile = fopen(data_name,"r");
@@ -893,8 +843,6 @@ extern void ReadMarketData(
 	    data->num_days = 1;
 	    FT_VectorMemoryAlloc((POINTER*)&data->assets,data->num_assets+1,
 				sizeof(ASSET));
-	    FT_VectorMemoryAlloc((POINTER*)&data->data_map,data->num_assets+1,
-				sizeof(boolean));
 
 	    for (j = 0; j < data->num_assets+1; ++j)
 	    {
@@ -902,7 +850,6 @@ extern void ReadMarketData(
 				data->num_days+10,sizeof(double));
 		FT_VectorMemoryAlloc((POINTER*)&data->assets[j].norm_value,
 				data->num_days+10,sizeof(double));
-		data->data_map[j] = YES;
 		if (j < data->num_assets)
 		{
 		    printf("Enter name of asset %d: ",j+1);
@@ -935,13 +882,8 @@ extern void ReadMarketData(
 	    fscanf(infile,"%d",&data->num_assets);
 	    fscanf(infile,"%d",&data->num_days);
 	    fscanf(infile,"%d",&data->num_backtrace);
-	    fscanf(infile,"%d",&data->istar);
 	    FT_VectorMemoryAlloc((POINTER*)&data->assets,data->num_assets+1,
 				sizeof(ASSET));
-	    FT_VectorMemoryAlloc((POINTER*)&data->data_map,data->num_assets+1,
-				sizeof(boolean));
-	    FT_MatrixMemoryAlloc((POINTER*)&data->date,data->num_days+10,100,
-				sizeof(char));
 	    for (j = 0; j < data->num_assets+1; ++j)
 	    {
 		fscanf(infile,"%s\n",data->assets[j].asset_name);
@@ -972,71 +914,74 @@ extern void ReadMarketData(
 }	/* end ReadMarketData */
 
 extern void ReadAccountData(
-	DATA_SET *data)
+	PORTFOLIO *account)
 {
-	char *account_name = data->account_name;
+	char *account_name = account->account_name;
 	FILE *infile = fopen(account_name,"r");
+	MARKET_DATA *data = account->data;
 	int i,j;
 	
-        FT_VectorMemoryAlloc((POINTER*)&data->shares,data->num_assets,
+        FT_VectorMemoryAlloc((POINTER*)&account->shares,data->num_assets+10,
 				sizeof(int));
+	FT_VectorMemoryAlloc((POINTER*)&account->data_map,data->num_assets+11,
+				sizeof(boolean));
         for (j = 0; j < data->num_assets; ++j)
-	    data->shares[j] = 0;
+	    account->shares[j] = 0;
 	if (infile == NULL)
 	{
             for (j = 0; j < data->num_assets; ++j)
-		data->data_map[j] = YES;
+		account->data_map[j] = YES;
 	    return;
 	}
 	else
 	{
 	    if (fgetstring(infile,"Account Investment Polarization Ratio ="))
 	    {
-		fscanf(infile,"%lf",&data->polar_ratio);
+		fscanf(infile,"%lf",&account->polar_ratio);
 	    }
 	    if (fgetstring(infile,"Data Map"))
 	    {
                 for (j = 0; j < data->num_assets; ++j)
-                    fscanf(infile,"%d",(int*)data->data_map+j);
+                    fscanf(infile,"%d",(int*)account->data_map+j);
 	    }
 	    if (fgetstring(infile,"Investment Portfolio"))
             {
                 for (j = 0; j < data->num_assets; ++j)
-                    fscanf(infile,"%d",data->shares+j);
+                    fscanf(infile,"%d",account->shares+j);
             }
-            FT_VectorMemoryAlloc((POINTER*)&data->trades,MAX_NUM_TRADE,
+            FT_VectorMemoryAlloc((POINTER*)&account->trades,MAX_NUM_TRADE,
                                         sizeof(TRADE));
             if (fgetstring(infile,"Trading Record"))
             {
-                fscanf(infile,"%d",&data->num_trades);
-                for (j = 0; j < data->num_trades; ++j)
+                fscanf(infile,"%d",&account->num_trades);
+                for (j = 0; j < account->num_trades; ++j)
 		{
-                    fscanf(infile,"%d",&data->trades[j].num_stages);
-                    fscanf(infile,"%d",(int*)&data->trades[j].status);
-		    for (i = 0; i < data->trades[j].num_stages; ++i)
+                    fscanf(infile,"%d",&account->trades[j].num_stages);
+                    fscanf(infile,"%d",(int*)&account->trades[j].status);
+		    for (i = 0; i < account->trades[j].num_stages; ++i)
 		    {
                     	fscanf(infile,"%d %d\n",
-				&data->trades[j].index_sell[i],
-                                &data->trades[j].index_buy[i]);
+				&account->trades[j].index_sell[i],
+                                &account->trades[j].index_buy[i]);
                     	fscanf(infile,"%d %d\n",
-				&data->trades[j].num_shares_sell[i],
-                                &data->trades[j].num_shares_buy[i]);
+				&account->trades[j].num_shares_sell[i],
+                                &account->trades[j].num_shares_buy[i]);
                     	fscanf(infile,"%lf %lf\n",
-				&data->trades[j].price_sell[i],
-                                &data->trades[j].price_buy[i]);
+				&account->trades[j].price_sell[i],
+                                &account->trades[j].price_buy[i]);
 		    }
 		}
             }
             if (fgetstring(infile,"Index of Share Equivalence"))
             {
-                fscanf(infile,"%d\n",&data->eindex);
+                fscanf(infile,"%d\n",&account->eindex);
 	    }
 	    fclose(infile);
 	}
 }	/* end ReadAccountData */
 
 extern void WriteMarketData(
-	DATA_SET *data)
+	MARKET_DATA *data)
 {
 	FILE *outfile;	
 	int i,j;
@@ -1084,7 +1029,6 @@ extern void WriteMarketData(
 	fprintf(outfile,"%d\n",data->num_assets);
 	fprintf(outfile,"%d\n",data->num_days);
 	fprintf(outfile,"%d\n",data->num_backtrace);
-	fprintf(outfile,"%d\n",data->istar);
 	for (j = 0; j < data->num_assets+1; ++j)
 	{
 	    fprintf(outfile,"%s\n",data->assets[j].asset_name);
@@ -1103,54 +1047,56 @@ extern void WriteMarketData(
 }	/* end WriteMarketData */
 
 extern void WriteAccountData(
-	DATA_SET *data)
+	PORTFOLIO *account)
 {
 	FILE *outfile;	
 	int i,j;
 	char string[100];
-	char *account_name = data->account_name;
+	char *account_name = account->account_name;
+	MARKET_DATA *data = account->data;
 
 	outfile = fopen(account_name,"w");
-	fprintf(outfile,"%s\n",data->account_name);
+	fprintf(outfile,"%s\n",account->account_name);
 	fprintf(outfile,"Account Investment Polarization Ratio = %f\n",
-				data->polar_ratio);
+				account->polar_ratio);
 	fprintf(outfile,"Data Map\n");
 	for (i = 0; i < data->num_assets; ++i)
-	    fprintf(outfile,"%d\n",data->data_map[i]);
-	if (data->shares)
+	    fprintf(outfile,"%d\n",account->data_map[i]);
+	if (account->shares)
 	{
 	    fprintf(outfile,"Investment Portfolio\n");
 	    for (j = 0; j < data->num_assets; ++j)
-		fprintf(outfile,"%d\n",data->shares[j]);
+		fprintf(outfile,"%d\n",account->shares[j]);
 	}
-	if (data->num_trades != 0)
+	if (account->num_trades != 0)
 	{
-	    SortTradeOrder(data);
+	    SortTradeOrder(account);
 	    fprintf(outfile,"Trading Record\n");
-	    fprintf(outfile,"%d\n",data->num_trades);
-	    for (j = 0; j < data->num_trades; ++j)
+	    fprintf(outfile,"%d\n",account->num_trades);
+	    for (j = 0; j < account->num_trades; ++j)
 	    {
-	    	fprintf(outfile,"%d\n",data->trades[j].num_stages);
-	    	fprintf(outfile,"%d\n",data->trades[j].status);
-		for (i = 0; i < data->trades[j].num_stages; ++i)
+	    	fprintf(outfile,"%d\n",account->trades[j].num_stages);
+	    	fprintf(outfile,"%d\n",account->trades[j].status);
+		for (i = 0; i < account->trades[j].num_stages; ++i)
 		{
-	    	    fprintf(outfile,"%d %d\n",data->trades[j].index_sell[i],
-				data->trades[j].index_buy[i]);
+	    	    fprintf(outfile,"%d %d\n",account->trades[j].index_sell[i],
+				account->trades[j].index_buy[i]);
 	    	    fprintf(outfile,"%d %d\n",
-				data->trades[j].num_shares_sell[i],
-				data->trades[j].num_shares_buy[i]);
-	    	    fprintf(outfile,"%f %f\n",data->trades[j].price_sell[i],
-				data->trades[j].price_buy[i]);
+				account->trades[j].num_shares_sell[i],
+				account->trades[j].num_shares_buy[i]);
+	    	    fprintf(outfile,"%f %f\n",account->trades[j].price_sell[i],
+				account->trades[j].price_buy[i]);
 		}
 	    }
 	}
         fprintf(outfile,"Index of Share Equivalence\n");
-        fprintf(outfile,"%d\n",data->eindex);
+        fprintf(outfile,"%d\n",account->eindex);
 	fclose(outfile);
 }	/* end WriteAccountData */
 
 extern void RankData(
-	DATA_SET *data)
+	MARKET_DATA *data,
+	boolean *data_map)
 {
 	int i,j;
 	int n = data->num_days-1;
@@ -1163,9 +1109,9 @@ extern void RankData(
 	double mean_norm_value = 0.0;
 	int num_ave = 0;
 	int is_first,is_last;
-	DATA_SET *copy_data;
+	MARKET_DATA *copy_data;
 
-	copy_data = CopyData(data);
+	copy_data = CopyMarketData(data);
 	printf("Number of backtrace: %d\n",copy_data->num_backtrace);
 
 start_ranking:
@@ -1195,23 +1141,23 @@ start_ranking:
 	is_first = is_last = -1;
 	for (i = 0; i < M; ++i)
 	{
-	    if (copy_data->data_map[isort[i]] == YES && is_first == -1)
+	    if (data_map[isort[i]] == YES && is_first == -1)
 		is_first = i;
-	    if (copy_data->data_map[isort[M-i-1]] == YES && is_last == -1)
+	    if (data_map[isort[M-i-1]] == YES && is_last == -1)
 		is_last = M-i-1;
 	}
 	printf("\t");
 	for (i = 0; i < M; ++i)
 	{
 	    if (i == is_first) continue;
-	    if (copy_data->data_map[isort[i]] != YES)
+	    if (data_map[isort[i]] != YES)
 	    	continue;
 	    printf("%6s  ",copy_data->assets[isort[i]].asset_name);
 	}
 	printf("\n");
 	for (i = 0; i < M; ++i)
 	{
-	    if (copy_data->data_map[isort[i]] != YES)
+	    if (data_map[isort[i]] != YES)
 	    	continue;
 	    if (i == is_last) 
 	    {
@@ -1222,13 +1168,13 @@ start_ranking:
 	    for (j = 0; j <= i; ++j)
 	    {
 	    	if (j == is_first) continue;
-	    	if (copy_data->data_map[isort[j]] != YES)
+	    	if (data_map[isort[j]] != YES)
 	    	    continue;
 		printf("        ");
 	    }
 	    for (j = i+1; j < M; ++j)
 	    {
-	    	if (copy_data->data_map[isort[j]] != YES)
+	    	if (data_map[isort[j]] != YES)
 	    	    continue;
 		double dvalue = (copy_data->assets[isort[i]].norm_value[n]
 			- copy_data->assets[isort[j]].norm_value[n])*100.0;
@@ -1246,12 +1192,12 @@ start_ranking:
 	    goto start_ranking;
 	}
 	FT_FreeThese(1,isort);
-	FreeData(copy_data);
+	FreeMarketData(copy_data);
 }	/* end RankData */
 
 
 extern void PrintAssetList(
-	DATA_SET *data)
+	MARKET_DATA *data)
 {
 	int i;
 	for (i = 0; i < data->num_assets; ++i)
@@ -1261,7 +1207,7 @@ extern void PrintAssetList(
 }	/* end PrintAssetList */
 
 extern void InitTrade(
-	DATA_SET *data)
+	MARKET_DATA *data)
 {
 	int i1,i2,j;
 	double nu1,nu2;
@@ -1397,7 +1343,7 @@ extern void InitTrade(
 				data->assets[i2].color);
 }	/* end InitTrade */
 
-extern void PrintEquityIndex(DATA_SET *data)
+extern void PrintEquityIndex(MARKET_DATA *data)
 {
 	int i;
 	int M = data->num_assets;
@@ -1414,8 +1360,9 @@ extern void PrintEquityIndex(DATA_SET *data)
 }	/* end PrintEquityIndex */
 
 extern void PrintAccountValue(
-	DATA_SET *data)
+	PORTFOLIO *account)
 {
+	MARKET_DATA *data = account->data;
 	int i,M,n;
 	double market_value = 0.0;
 	char string[100];
@@ -1423,7 +1370,7 @@ extern void PrintAccountValue(
 	n = data->num_days-1;
 	for (i = 0; i < M; ++i)
 	{
-	    market_value += data->shares[i]*data->assets[i].value[n];
+	    market_value += account->shares[i]*data->assets[i].value[n];
 	}
 	printf("Total account market value: %f\n",market_value);
 	printf("Type yes to print shares: ");
@@ -1432,12 +1379,12 @@ extern void PrintAccountValue(
 	{
 	    for (i = 0; i < M; ++i)
 	    	printf("%4s:  %d\n",data->assets[i].asset_name,
-				data->shares[i]);
+				account->shares[i]);
 	}
 }	/* end PrintAccountValue */
 
 static double AssetTimeIntegral(
-	DATA_SET *data,
+	MARKET_DATA *data,
 	int index,
 	int istart,
 	int iend)
@@ -1451,3 +1398,143 @@ static double AssetTimeIntegral(
 		  data->assets[index].value[iend-1]);
 	return I;
 }	/* end AssetTimeIntegral */
+
+extern MARKET_DATA *CopyMarketData(
+	MARKET_DATA *data)
+{
+	int i,j;
+	MARKET_DATA *copy_data;
+	double ave_value;
+	
+	FT_ScalarMemoryAlloc((POINTER*)&copy_data,sizeof(MARKET_DATA));
+	copy_data->num_assets = data->num_assets;
+	copy_data->num_days = data->num_days;
+	copy_data->num_backtrace = data->num_backtrace;
+	FT_VectorMemoryAlloc((POINTER*)&copy_data->assets,data->num_assets+1,
+				sizeof(ASSET));
+	for (j = 0; j < data->num_assets+1; ++j)
+	{
+	    memcpy(copy_data->assets[j].asset_name,data->assets[j].asset_name,
+				strlen(data->assets[j].asset_name)+1);
+	    memcpy(copy_data->assets[j].color,data->assets[j].color,
+				strlen(data->assets[j].color)+1);
+	    copy_data->assets[j].base_value = data->assets[j].base_value;
+	    FT_VectorMemoryAlloc((POINTER*)&copy_data->assets[j].value,
+				data->num_days+10,sizeof(double));
+	    FT_VectorMemoryAlloc((POINTER*)&copy_data->assets[j].norm_value,
+				data->num_days+10,sizeof(double));
+	}
+	for (i = 0; i < data->num_days; ++i)
+	{
+	    	for (j = 0; j < data->num_assets+1; ++j)
+		{
+		    copy_data->assets[j].value[i] = data->assets[j].value[i];
+		    copy_data->assets[j].norm_value[i] = 
+			  data->assets[j].value[i]/data->assets[j].base_value;
+		    ave_value += data->assets[j].norm_value[i];
+		}
+		ave_value = 0.0;
+	    	for (j = 0; j < data->num_assets; ++j)
+		    ave_value += data->assets[j].norm_value[i];
+		copy_data->assets[j].value[i] = ave_value/data->num_assets;
+		copy_data->assets[j].norm_value[i] = ave_value/data->num_assets;
+	}
+	return copy_data;
+}	/* end CopyMarketData */
+
+extern void FreeMarketData(
+	MARKET_DATA *data)
+{
+	int i,j;
+	for (j = 0; j < data->num_assets+1; ++j)
+	    FT_FreeThese(2,data->assets[j].value,data->assets[j].norm_value);
+	FT_FreeThese(1,data->assets);
+	FT_FreeThese(1,data);
+}	/* end FreeMarketData */
+
+extern void TimelyRecordMarketData(
+	MARKET_DATA *data)
+{
+	int i,j,m,M;
+	char string[100];
+	double ave_value;
+	char **stock_names;
+	double *current_price;
+	std::time_t t;
+	int day,hour;
+	char dirname[256],fname[256];
+        FILE *bfile,*outfile;
+	char *data_name = data->data_name;
+
+	M = data->num_assets;
+	FT_VectorMemoryAlloc((POINTER*)&stock_names,M,sizeof(char*));
+	FT_VectorMemoryAlloc((POINTER*)&current_price,M,sizeof(double));
+
+	while (YES)
+	{
+	    t = std::time(NULL);
+	    strftime(string,100*sizeof(char),"%u",std::localtime(&t));
+	    day = atoi(string);
+	    strftime(string,100*sizeof(char),"%H",std::localtime(&t));
+            hour = atoi(string);
+	    m = data->num_days;
+	    if (day >= 1 && day <= 5 && hour >= 10 && hour <= 17)
+	    {
+	    	for (j = 0; j < M; ++j)
+	    	    stock_names[j] = data->assets[j].asset_name;
+	    	GetCurrentPrice(stock_names,current_price,M);
+
+	    	ave_value = 0.0;
+	    	for (j = 0; j < M; ++j)
+	    	{
+	    	    data->assets[j].value[m] = current_price[j];
+	    	    data->assets[j].norm_value[m] = data->assets[j].value[m]/
+					data->assets[j].base_value;
+	    	    ave_value += data->assets[j].norm_value[m];
+	    	}
+	   	data->assets[j].base_value = 1.0;
+	    	data->assets[j].value[m] = ave_value/data->num_assets;
+	    	data->assets[j].norm_value[m] = data->assets[j].value[m];
+	    	data->num_days += 1;
+		AdjustBase(data);
+		sprintf(dirname,"base/%s",data->data_name);
+                create_directory(dirname,NO);
+		for (m = 0; m < data->num_assets; ++m)
+                {
+                    sprintf(fname,"%s/%s",dirname,
+                                        data->assets[m].asset_name);
+                    if ((bfile = fopen(fname,"r")) == NULL)
+                        bfile = fopen(fname,"w");
+                    else
+                    {
+                        fclose(bfile);
+                        bfile = fopen(fname,"a");
+                    }
+                    fprintf(bfile,"%f  %f\n",(double)data->num_days,
+                                        data->assets[m].base_value);
+                    fclose(bfile);
+                }
+		outfile = fopen(data_name,"w");
+                fprintf(outfile,"%s\n",data->data_name);
+                fprintf(outfile,"%d\n",data->num_assets);
+                fprintf(outfile,"%d\n",data->num_days);
+                fprintf(outfile,"%d\n",data->num_backtrace);
+                for (j = 0; j < data->num_assets+1; ++j)
+                {
+                    fprintf(outfile,"%s\n",data->assets[j].asset_name);
+                    fprintf(outfile,"%s\n",data->assets[j].color);
+                    fprintf(outfile,"%f\n",data->assets[j].base_value);
+                }
+                for (i = 0; i < data->num_days; ++i)
+                {
+                    for (j = 0; j < data->num_assets+1; ++j)
+                    {
+                        fprintf(outfile,"%f ",data->assets[j].value[i]);
+                    }
+                    fprintf(outfile,"\n");
+                }
+                fclose(outfile);
+	    }
+	    sleep(119*60);
+	}
+}	/* end TimelyRecordMarketData */

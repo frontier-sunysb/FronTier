@@ -2,13 +2,16 @@
 
 int main(int argc, char **argv)
 {
-	DATA_SET *data;
+	MARKET_DATA *data;
+	PORTFOLIO *account;
 	boolean input_data = NO;
 	boolean get_web_data = NO;
 	char string[100];
 
 	FT_Init(argc,argv,NULL);
-	FT_ScalarMemoryAlloc((POINTER*)&data,sizeof(DATA_SET));
+	FT_ScalarMemoryAlloc((POINTER*)&data,sizeof(MARKET_DATA));
+	FT_ScalarMemoryAlloc((POINTER*)&account,sizeof(PORTFOLIO));
+	account->data = data;
 
 	argc--;
 	argv++;
@@ -36,8 +39,8 @@ int main(int argc, char **argv)
                 break;
 	    case 'a':
 		input_data = YES;
-                zero_scalar(data->account_name,256);
-                strcpy(data->account_name,argv[1]);
+                zero_scalar(account->account_name,256);
+                strcpy(account->account_name,argv[1]);
                 argc -= 2;
                 argv += 2;
                 break;
@@ -47,7 +50,7 @@ int main(int argc, char **argv)
 	if (input_data)
 	{
 	    ReadMarketData(data);
-	    ReadAccountData(data);
+	    ReadAccountData(account);
 	}
 	else if (get_web_data)
         {
@@ -70,7 +73,6 @@ int main(int argc, char **argv)
 	printf("\tInitiation (i)\n");
 	printf("\tModify data (m)\n");
 	printf("\tPrint open trade (o)\n");
-	printf("\tPeriodic report state (p)\n");
 	printf("\tRank data (r)\n");
 	printf("\tSimulate data (s)\n");
 	printf("\tTrade (t)\n");
@@ -86,56 +88,54 @@ int main(int argc, char **argv)
 	    case 'a':
 	    	AddData(data);
 		WriteMarketData(data);
-    		PromptForDataMap(data);
-    		XgraphData(data);
-    		DataTrend(data);
+    		PromptForDataMap(account);
+    		XgraphData(data,account->data_map);
+    		DataTrend(data,account->data_map);
 		break;
 	    case 'b':
-	    	InvestShares(data);
-		WriteAccountData(data);
+	    	InvestShares(account);
+		WriteAccountData(account);
 		break;
 	    case 'c':
 	    	DataCompare(data);
-		closing_out(data);
+		closing_out(account);
 	    case 'e':
-	    	if (!ExperimentTrade(data))
-		    closing_out(data);
-		WriteAccountData(data);
+	    	if (!ExperimentTrade(account))
+		    closing_out(account);
+		WriteAccountData(account);
 		break;
 	    case 'f':
-		FragmentTrade(data);
-		WriteAccountData(data);
-		closing_out(data);
+		FragmentTrade(account);
+		WriteAccountData(account);
+		closing_out(account);
 	    case 'i':
 		InitTrade(data);
-		closing_out(data);
+		closing_out(account);
 	    case 'm':
-	    	ModifyData(data);
+	    	ModifyMarketData(data);
+    		PromptForDataMap(account);
 		WriteMarketData(data);
-		WriteAccountData(data);
-    		XgraphData(data);
-    		DataTrend(data);
+		WriteAccountData(account);
+    		XgraphData(data,account->data_map);
+    		DataTrend(data,account->data_map);
 		break;
 	    case 'o':
-	    	TradeInfo(data);
-		PrintDataStates(data);
-		break;
-	    case 'p':
-		ReportDataStates(data);
+	    	TradeInfo(account);
+		PrintDataStates(account);
 		break;
 	    case 'r':
-		RankData(data);
-		closing_out(data);
+		RankData(data,account->data_map);
+		closing_out(account);
 	    case 's':
 	    	InvestSimulation(data);
-		closing_out(data);
+		closing_out(account);
 	    case 't':
-	    	if (!TradeShares(data))
-		    closing_out(data);
-		WriteAccountData(data);
+	    	if (!TradeShares(account))
+		    closing_out(account);
+		WriteAccountData(account);
 		break;
 	    case 'n':
-		closing_out(data);
+		closing_out(account);
 	    default:
 		printf("Unknown option\n");
 		break;

@@ -60,7 +60,7 @@ extern string GetWebData(
 }	/* end GetWebData */
 
 extern void GetStockFile(
-	DATA_SET *data)
+	MARKET_DATA *data)
 {
 	string stocks[NUM_STOCKS];
 	string server_addr = "ichart.finance.yahoo.com";
@@ -123,7 +123,7 @@ extern void GetStockFile(
 }	/* end GetStockFile */
 
 extern void SaveStockFile(
-	DATA_SET *data)
+	MARKET_DATA *data)
 {	
 	int i = 0,j;
  	char p; //place holder, stores ","

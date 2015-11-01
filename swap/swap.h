@@ -35,28 +35,20 @@ struct _ASSET
 	double lambda;
 };
 
-struct _DATA_SET
+struct _MARKET_DATA
 {
 	char data_name[258];
-	char account_name[258];
 	int num_days;
 	int num_assets;
 	int num_backtrace;
-	int istar;
 	struct _ASSET *assets;
-	char **date;
 	boolean new_data;
-	boolean *data_map;
-	int *shares;
-	int num_trades;
-	struct _TRADE *trades;
-	double polar_ratio;
-	int eindex;		// Index of share equivalence
 };
 
 struct _PORTFOLIO
 {
-	char account_name[258];
+	struct _MARKET_DATA *data;
+	char account_name[256];
 	boolean *data_map;
 	int *shares;
 	int num_trades;
@@ -78,63 +70,79 @@ struct _TRADE
 	double price_sell[MAX_NUM_STAGES];
 };
 
+struct _STATE_INFO {
+	double np_min;         	// minimum normal price
+        double np_max;         	// maximum normal price
+        double np_ave;         	// average normal price
+        double svalue;         	// max surplus value
+        double dvalue;         	// max deficit value
+        double dnp;            	// np diff between surplue and deficit
+        char sname[20];         // name of stock with max surplus
+        char dname[20];         // name of stock with max deficit
+	int S[5];		// normalized share of five states
+	int C;			// current normalized shares
+};
+
 typedef struct _ASSET ASSET;
 typedef struct _DATA_SET DATA_SET;
 typedef struct _TRADE TRADE;
 typedef struct _PORTFOLIO PORTFOLIO;
+typedef struct _MARKET_DATA MARKET_DATA;
+typedef struct _STATE_INFO STATE_INFO;
 
 
 /* sim.cpp */
-extern void InvestSimulation(DATA_SET*);
-extern void CompareToFiveStates(DATA_SET*);
-extern void PrintCurrentLinearProfile(DATA_SET*);
-extern void PrintDataStates(DATA_SET*);
-extern void ReportDataStates(DATA_SET*);
+extern void InvestSimulation(MARKET_DATA*);
+extern void CompareToFiveStates(PORTFOLIO*);
+extern void PrintCurrentLinearProfile(PORTFOLIO*);
+extern void PrintDataStates(PORTFOLIO*);
+extern void ReportDataStates(PORTFOLIO**,int);
 
 /* sub.cpp */
-extern double GetLeastSquare(DATA_SET*,int,int,double*,double*);
+extern double GetLeastSquare(MARKET_DATA*,int,int,double*,double*);
+extern void XgraphData(MARKET_DATA*,boolean*);
+extern void DataTrend(MARKET_DATA*,boolean*);
+extern void ReadMarketData(MARKET_DATA*);
+extern void WriteMarketData(MARKET_DATA*);
+extern void AddData(MARKET_DATA*);
+extern void ContinueBaseAdjust(MARKET_DATA*);
+extern void AdjustBase(MARKET_DATA*);
+extern void ModifyMarketData(MARKET_DATA*);
+extern void DataCompare(MARKET_DATA*);
+extern void RankData(MARKET_DATA*,boolean*);
+extern void InitTrade(MARKET_DATA*);
+extern void PrintAssetList(MARKET_DATA*);
+extern void PrintEquityIndex(MARKET_DATA*);
+extern void TimelyRecordMarketData(MARKET_DATA*);
+extern void FreeMarketData(MARKET_DATA*);
+extern MARKET_DATA *CopyMarketData(MARKET_DATA*);
 extern double LeastSquareQuadr(double*,double*,int,double*,double*,double*);
 extern double LeastSquareLinear(double*,double*,int,double*,double*);
-extern void ContinueBaseAdjust(DATA_SET*);
-extern void AdjustBase(DATA_SET*);
-extern void ModifyData(DATA_SET*);
-extern void AddData(DATA_SET*);
-extern void XgraphData(DATA_SET*);
-extern void TradeInfo(DATA_SET*);
-extern void DataCompare(DATA_SET*);
-extern void DataTrend(DATA_SET*);
-extern void PromptForDataMap(DATA_SET*);
-extern DATA_SET *CopyData(DATA_SET*);
-extern void FreeData(DATA_SET*);
-extern void ReadMarketData(DATA_SET*);
-extern void ReadAccountData(DATA_SET*);
-extern void WriteMarketData(DATA_SET*);
-extern void WriteAccountData(DATA_SET*);
-extern void RankData(DATA_SET*);
-extern void PrintAssetList(DATA_SET*);
-extern void InitTrade(DATA_SET*);
-extern void PrintEquityIndex(DATA_SET*);
-extern void PrintAccountValue(DATA_SET*);
+extern void TradeInfo(PORTFOLIO*);
+extern void PromptForDataMap(PORTFOLIO*);
+extern void ReadAccountData(PORTFOLIO*);
+extern void WriteAccountData(PORTFOLIO*);
+extern void PrintAccountValue(PORTFOLIO*);
 
 /* web.cpp */
 extern string GetWebData(const std::string& server,const std::string& file);
-extern void GetStockFile(DATA_SET*);
-extern void SaveStockFile(DATA_SET*);
+extern void GetStockFile(MARKET_DATA*);
+extern void SaveStockFile(MARKET_DATA*);
 extern void GetCurrentPrice(char**,double*,int);
 extern void CreateJVM();
 extern void DestroyJVM();
 
 /* trade.cpp */
-extern void InvestShares(DATA_SET*);
-extern void PrintOpenTrade(DATA_SET*);
-extern void PrintOpenTradeForIndex(DATA_SET*,int);
-extern void SaveDeleteClosedTradeLoop(DATA_SET*);
-extern void SortTradeOrder(DATA_SET*);
-extern void WrapPartialTradeLoop(DATA_SET*);
-extern void FragmentTrade(DATA_SET*);
-extern boolean TradeShares(DATA_SET*);
-extern boolean ExperimentTrade(DATA_SET*);
-extern double PrintClosedTradeLoop(FILE*,TRADE,DATA_SET*);
+extern void InvestShares(PORTFOLIO*);
+extern void PrintOpenTrade(PORTFOLIO*);
+extern void PrintOpenTradeForIndex(PORTFOLIO*,int);
+extern void SaveDeleteClosedTradeLoop(PORTFOLIO*);
+extern void SortTradeOrder(PORTFOLIO*);
+extern void WrapPartialTradeLoop(PORTFOLIO*);
+extern void FragmentTrade(PORTFOLIO*);
+extern boolean TradeShares(PORTFOLIO*);
+extern boolean ExperimentTrade(PORTFOLIO*);
+extern double PrintClosedTradeLoop(FILE*,TRADE,PORTFOLIO*);
 
 #define		closing_out(data)				\
 		{						\
