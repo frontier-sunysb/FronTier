@@ -412,7 +412,6 @@ extern void AddData(
 	    FT_FreeThese(2,stock_names,current_price);
 	    return;
 	}
-	data->new_data = YES;
 
 	ave_value = 0.0;
 	for (j = 0; j < M; ++j)
@@ -428,6 +427,7 @@ extern void AddData(
 	data->assets[j].value[m] = ave_value/data->num_assets;
 	data->assets[j].norm_value[m] = data->assets[j].value[m];
 	data->num_days += 1;
+	data->new_data = YES;
 	FT_FreeThese(2,stock_names,current_price);
 }	/* end AddData */
 
@@ -911,6 +911,7 @@ extern void ReadMarketData(
 	    }
 	    fclose(infile);
 	}
+	data->new_data = NO;
 }	/* end ReadMarketData */
 
 extern void ReadAccountData(
@@ -983,46 +984,29 @@ extern void ReadAccountData(
 extern void WriteMarketData(
 	MARKET_DATA *data)
 {
-	FILE *outfile;	
-	int i,j;
+	int i,j,m;
 	char string[100];
 	char *data_name = data->data_name;
+	char dirname[256],fname[256];
+	FILE *bfile,*outfile;
 
-	if (data->new_data == YES)
-	{
-	    printf("Save new data? ");
-	    scanf("%s",string);
-	    if (string[0] != 'y' && string[0] != 'Y')
-	    	data->num_days--;
+	if (!data->new_data) return;
+	AdjustBase(data);
+	sprintf(dirname,"base/%s",data->data_name);
+	create_directory(dirname,NO);
+    	for (m = 0; m < data->num_assets; ++m)	
+    	{
+	    sprintf(fname,"%s/%s",dirname,data->assets[m].asset_name);
+	    if ((bfile = fopen(fname,"r")) == NULL)
+		bfile = fopen(fname,"w");
 	    else
 	    {
-	    	printf("Adjust data base? ");
-	    	scanf("%s",string);
-	    	if (string[0] == 'y' || string[0] == 'Y')
-		{
-		    char dirname[256],fname[256];
-		    FILE *bfile;
-		    int m;
-		    sprintf(dirname,"base/%s",data->data_name);
-		    create_directory(dirname,NO);
-		    AdjustBase(data);
-	    	    for (m = 0; m < data->num_assets; ++m)	
-	    	    {
-			sprintf(fname,"%s/%s",dirname,
-					data->assets[m].asset_name);
-			if ((bfile = fopen(fname,"r")) == NULL)
-			    bfile = fopen(fname,"w");
-			else
-			{
-			    fclose(bfile);
-			    bfile = fopen(fname,"a");
-			}
-			fprintf(bfile,"%f  %f\n",(double)data->num_days,
-					data->assets[m].base_value);
-			fclose(bfile);
-	    	    }
-		}
+		fclose(bfile);
+		bfile = fopen(fname,"a");
 	    }
+	    fprintf(bfile,"%f  %f\n",(double)data->num_days,
+				data->assets[m].base_value);
+	    fclose(bfile);
 	}
 	outfile = fopen(data_name,"w");
 	fprintf(outfile,"%s\n",data->data_name);
@@ -1044,6 +1028,7 @@ extern void WriteMarketData(
 	    fprintf(outfile,"\n");
 	}
 	fclose(outfile);
+	data->new_data = NO;
 }	/* end WriteMarketData */
 
 extern void WriteAccountData(
@@ -1462,13 +1447,12 @@ extern void TimelyRecordMarketData(
 	double *current_price;
 	std::time_t t;
 	int day,hour;
-	char dirname[256],fname[256];
-        FILE *bfile,*outfile;
-	char *data_name = data->data_name;
+	char data_name[256];
 
 	M = data->num_assets;
 	FT_VectorMemoryAlloc((POINTER*)&stock_names,M,sizeof(char*));
 	FT_VectorMemoryAlloc((POINTER*)&current_price,M,sizeof(double));
+	strcpy(data_name,data->data_name);
 
 	while (YES)
 	{
@@ -1480,6 +1464,10 @@ extern void TimelyRecordMarketData(
 	    m = data->num_days;
 	    if (day >= 1 && day <= 5 && hour >= 10 && hour <= 17)
 	    {
+		FreeMarketData(data);
+		FT_ScalarMemoryAlloc((POINTER*)&data,sizeof(MARKET_DATA));
+		strcpy(data->data_name,data_name);
+		ReadMarketData(data);
 	    	for (j = 0; j < M; ++j)
 	    	    stock_names[j] = data->assets[j].asset_name;
 	    	GetCurrentPrice(stock_names,current_price,M);
@@ -1496,44 +1484,8 @@ extern void TimelyRecordMarketData(
 	    	data->assets[j].value[m] = ave_value/data->num_assets;
 	    	data->assets[j].norm_value[m] = data->assets[j].value[m];
 	    	data->num_days += 1;
-		AdjustBase(data);
-		sprintf(dirname,"base/%s",data->data_name);
-                create_directory(dirname,NO);
-		for (m = 0; m < data->num_assets; ++m)
-                {
-                    sprintf(fname,"%s/%s",dirname,
-                                        data->assets[m].asset_name);
-                    if ((bfile = fopen(fname,"r")) == NULL)
-                        bfile = fopen(fname,"w");
-                    else
-                    {
-                        fclose(bfile);
-                        bfile = fopen(fname,"a");
-                    }
-                    fprintf(bfile,"%f  %f\n",(double)data->num_days,
-                                        data->assets[m].base_value);
-                    fclose(bfile);
-                }
-		outfile = fopen(data_name,"w");
-                fprintf(outfile,"%s\n",data->data_name);
-                fprintf(outfile,"%d\n",data->num_assets);
-                fprintf(outfile,"%d\n",data->num_days);
-                fprintf(outfile,"%d\n",data->num_backtrace);
-                for (j = 0; j < data->num_assets+1; ++j)
-                {
-                    fprintf(outfile,"%s\n",data->assets[j].asset_name);
-                    fprintf(outfile,"%s\n",data->assets[j].color);
-                    fprintf(outfile,"%f\n",data->assets[j].base_value);
-                }
-                for (i = 0; i < data->num_days; ++i)
-                {
-                    for (j = 0; j < data->num_assets+1; ++j)
-                    {
-                        fprintf(outfile,"%f ",data->assets[j].value[i]);
-                    }
-                    fprintf(outfile,"\n");
-                }
-                fclose(outfile);
+		data->new_data = YES;
+		WriteMarketData(data);
 	    }
 	    sleep(119*60);
 	}
