@@ -89,7 +89,7 @@ start_trade:
 	}
 
 	total_value0 = 0.0;
-	is = data->num_days - N;
+	is = data->num_segs - N;
 	for (i = 0; i < M; ++i)
 	{
 	    printf("For stock %s, enter starting number of shares: ",
@@ -99,7 +99,7 @@ start_trade:
 	}
 	printf("\nTotal starting value = %f\n",total_value0);
 	total_value = 0.0;
-	is = data->num_days - 1;
+	is = data->num_segs - 1;
 	for (i = 0; i < M; ++i)
 	{
 	    total_value += S0[i]*data->assets[i].value[is];
@@ -114,7 +114,7 @@ start_trade:
 
 	for (j = 0; j < N; ++j)
 	{
-	    is = data->num_days - N + j - (ns1 - 1);
+	    is = data->num_segs - N + j - (ns1 - 1);
 	    s0_max = s1_max = -HUGE;
 	    for (i = 0; i < M; ++i)
 	    {
@@ -168,7 +168,7 @@ start_trade:
 	    }
 	}
 	total_value = 0.0;
-	is = data->num_days - 1;
+	is = data->num_segs - 1;
 	for (i = 0; i < M; ++i)
 	{
 	    printf("For stock %s, end number of shares: %f\n",
@@ -225,7 +225,7 @@ start_trade:
 	}
 
 	total_value0 = 0.0;
-	is = data->num_days - N;
+	is = data->num_segs - N;
 	for (i = 0; i < M; ++i)
 	{
 	    printf("For stock %s, enter starting number of shares: ",
@@ -235,7 +235,7 @@ start_trade:
 	}
 	printf("\nTotal starting value = %f\n",total_value0);
 	total_value = 0.0;
-	is = data->num_days - 1;
+	is = data->num_segs - 1;
 	for (i = 0; i < M; ++i)
 	{
 	    total_value += S0[i]*data->assets[i].value[is];
@@ -249,7 +249,7 @@ start_trade:
 
 	for (j = 0; j < N; ++j)
 	{
-	    is = data->num_days - N + j - (ns1 - 1);
+	    is = data->num_segs - N + j - (ns1 - 1);
 	    s0_max = s1_max = -HUGE;
 	    for (i = 0; i < M; ++i)
 	    {
@@ -303,7 +303,7 @@ start_trade:
 	    }
 	}
 	total_value = 0.0;
-	is = data->num_days - 1;
+	is = data->num_segs - 1;
 	for (i = 0; i < M; ++i)
 	{
 	    printf("For stock %s, end number of shares: %f\n",
@@ -361,7 +361,7 @@ start_trade:
 	num_swap = 0;
 
 	total_value0 = 0.0;
-	is = data->num_days - N;
+	is = data->num_segs - N;
 	for (i = 0; i < M; ++i)
 	{
 	    printf("For stock %s, enter starting number of shares: ",
@@ -372,7 +372,7 @@ start_trade:
 	printf("\nTotal starting value = %f\n",total_value0);
 	fprintf(tfile,"\nTotal starting value = %f\n",total_value0);
 	total_value = 0.0;
-	is = data->num_days - 1;
+	is = data->num_segs - 1;
 	fprintf(tfile,"Starting assets:\n");
 	for (i = 0; i < M; ++i)
 	{
@@ -394,7 +394,7 @@ start_trade:
 
 	for (j = 0; j < N; ++j)
 	{
-	    is = data->num_days - N + j - (ns1 - 1);
+	    is = data->num_segs - N + j - (ns1 - 1);
 	    for (i = 0; i < M; ++i)
 	    {
 	    	value = data->assets[i].norm_value + is;
@@ -432,7 +432,7 @@ start_trade:
 	    }
 	}
 	total_value = 0.0;
-	is = data->num_days - 1;
+	is = data->num_segs - 1;
 	fprintf(tfile,"Ending assets:\n");
 	for (i = 0; i < M; ++i)
 	{
@@ -490,8 +490,8 @@ start_trade:
 	scanf("%lf",&slope);
 	N = data->num_backtrace;
 	if (N > MAX_TRACE) N = MAX_TRACE;
-	is = data->num_days - N;  /* starting date */
-	isf = data->num_days - 1; /* ending date */
+	is = data->num_segs - N;  /* starting date */
+	isf = data->num_segs - 1; /* ending date */
 
 	for (i = 0; i <= M; ++i)
 	{
@@ -618,7 +618,7 @@ extern void PrintCurrentLinearProfile(PORTFOLIO *account)
 	MARKET_DATA *data = account->data;
 
 	N = data->num_assets;
-	id = data->num_days - 1;
+	id = data->num_segs - 1;
 	polar_ratio = account->polar_ratio;
 
 	FT_VectorMemoryAlloc((POINTER*)&price,N,sizeof(double));
@@ -723,7 +723,7 @@ extern void PrintDataStates(PORTFOLIO *account)
 	double business_time;
 	MARKET_DATA *data = account->data;
 	int ie = account->eindex;
-	int id = data->num_days-1;
+	int id = data->num_segs-1;
 	int Ne;
 	STATE_INFO sinfo;
 	int *S = sinfo.S;
@@ -798,15 +798,15 @@ static int GetAccountStates(
 	double slope,b,pratio;
 	char **names;
 	char string[100];
-	int i,id,n,M,N,idmin,idmax;
+	int i,j,id,n,M,N,idmin,idmax;
 	int *num_shares;
 	int V_total,C;
 	int eindex,Ne,ne;
-	int *ns_L,*ns_U;
+	int *isort,*ns_L,*ns_U;
 	MARKET_DATA *data = account->data;
 
 	N = data->num_assets;
-	id = data->num_days - 1;
+	id = data->num_segs - 1;
 	pratio = account->polar_ratio;
 	eindex = account->eindex;
 
@@ -817,6 +817,7 @@ static int GetAccountStates(
 	FT_VectorMemoryAlloc((POINTER*)&names,N,sizeof(char*));
 	FT_VectorMemoryAlloc((POINTER*)&ns_L,N,sizeof(int));
 	FT_VectorMemoryAlloc((POINTER*)&ns_U,N,sizeof(int));
+	FT_VectorMemoryAlloc((POINTER*)&isort,N,sizeof(int));
 	n = 0;
 	np_max = -HUGE;
 	np_min = HUGE;
@@ -836,17 +837,32 @@ static int GetAccountStates(
 	GetCurrentPrice(names,price,M);
 	for (i = 0; i < M; ++i)
 	{
+	    isort[i] = i;
 	    nprice[i] = price[i]/bprice[i];
-	    if (np_min > nprice[i]) np_min = nprice[i];
-	    if (np_max < nprice[i]) np_max = nprice[i];
+	    if (np_min > nprice[i]) 
+		np_min = nprice[i];
+	    if (np_max < nprice[i]) 
+		np_max = nprice[i];
 	    V_total += price[i]*num_shares[i];
 	    C += irint(price[i]*num_shares[i]/nprice[i]);
 	}
 
 	np_ave = AverageNormPrice(nprice,M);
-	sinfo->np_min = np_min;
-	sinfo->np_max = np_max;
-	sinfo->np_ave = np_ave;
+	for (i = 0; i < M-1; ++i)
+        for (j = i+1; j < M; ++j)
+        {
+	    if (nprice[isort[i]] < nprice[isort[j]])
+	    {
+		int itmp = isort[j];
+                isort[j] = isort[i];
+                isort[i] = itmp;
+	    }
+	}
+	strcpy(sinfo->stock_max,names[isort[0]]);
+	strcpy(sinfo->stock_min,names[isort[M-1]]);
+	sinfo->dnp_max = (nprice[isort[0]] - nprice[isort[1]])/np_ave;
+	sinfo->dnp_min = (nprice[isort[M-2]] - nprice[isort[M-1]])/np_ave;
+
 	sinfo->S[0] = irint(V_total/np_max);
 	sinfo->S[2] = irint(V_total/np_ave);
 	sinfo->S[4] = irint(V_total/np_min);
@@ -936,20 +952,20 @@ static double CurrentBusinessTime()
 {
 	std::time_t t = std::time(NULL);
 	char string[100];
-	int year,week,day,hour,minute;
+	double year,week,day,hour,minute;
 	double business_time;
 
 	strftime(string,100*sizeof(char),"%G",std::localtime(&t));
-	year = atoi(string);
+	year = (double)atoi(string);
 	strftime(string,100*sizeof(char),"%U",std::localtime(&t));
-	week = atoi(string);
+	week = (double)atoi(string);
 	strftime(string,100*sizeof(char),"%u",std::localtime(&t));
-	day = atoi(string);
+	day = (double)atoi(string);
 	strftime(string,100*sizeof(char),"%H",std::localtime(&t));
-	hour = atoi(string);
+	hour = (double)atoi(string);
 	strftime(string,100*sizeof(char),"%M",std::localtime(&t));
-	minute = atoi(string);
-	business_time = week*5 + day*6.5 + hour + minute/60.0 - 7.0;
+	minute = (double)atoi(string);
+	business_time = week*5.0 + day*7.0 + hour + minute/60.0 - 9.0;
 	
 	return business_time;
 }	/* end CurrentBusinessTime */
@@ -1000,8 +1016,7 @@ extern void ReportDataStates(
 	STATE_INFO sinfo;
 	int *S = sinfo.S;
 	std::time_t t;
-	int hour,minute;
-	char date[100],string[100];
+	char date[100],hour[10],minute[10],string[100];
 
 	N = data->num_assets;
 
@@ -1011,22 +1026,20 @@ extern void ReportDataStates(
 	while (YES)
 	{
  	    t = std::time(NULL);
-	    strftime(string,100*sizeof(char),"%H",std::localtime(&t));
-            hour = atoi(string);
-	    strftime(string,100*sizeof(char),"%M",std::localtime(&t));
-            minute = atoi(string);
 	    strftime(date,100*sizeof(char),"%D",std::localtime(&t));
 	    printf("\n");
-	    printf("=====================%s %2d:%2d=======",
-				date,hour,minute);
+	    printf("========================%s==========",date);
 	    printf("=================\n");
-	    printf("\n");
 	    for (i = 0; i < num_accounts; ++i)
 	    {
+ 	    	t = std::time(NULL);
+	    	strftime(hour,100*sizeof(char),"%H",std::localtime(&t));
+	    	strftime(minute,100*sizeof(char),"%M",std::localtime(&t));
 	    	Ne = GetAccountStates(accounts[i],&sinfo);
 		ie = accounts[i]->eindex;
 
-		printf("Account %s at time: \n",accounts[i]->account_name);
+		printf("Account %s at time %s:%s \n",accounts[i]->account_name,
+				hour,minute);
 	    	printf("  Current   State-0   State-1   State-2"
 		   "   State-3   State-4\n");
 	    	printf("%9d %9d %9d %9d %9d %9d\n",S[5],S[0],S[1],S[2],S[3],
@@ -1035,12 +1048,14 @@ extern void ReportDataStates(
 					S[2]-S[5],S[3]-S[5],S[4]-S[5]);
 	    	printf("Equivalent to %d %s shares\n",Ne,
 					data->assets[ie].asset_name);
-		printf("Stock %4s has maximum surplus: %9.2f\n",
-				sinfo.sname,sinfo.svalue);
-		printf("Stock %4s has maximum deficit: %9.2f\n",
-				sinfo.dname,sinfo.dvalue);
+		printf("Top surplus (%4s): %8.2f | ",sinfo.sname,sinfo.svalue);
+		printf("Top deficit (%4s): %8.2f\n",sinfo.dname,sinfo.dvalue);
 		printf("Percetage diff between surplus and deficit: %5.2f\n",
 				sinfo.dnp*100);
+		printf("   Top stock %4s with gap to main body:%5.2f percent\n",
+				sinfo.stock_max,sinfo.dnp_max*100);
+		printf("Bottom stock %4s with gap to main body:%5.2f percent\n",
+				sinfo.stock_min,sinfo.dnp_min*100);
 	    	printf("\n");
 	    }
 	    sleep(seconds);

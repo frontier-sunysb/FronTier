@@ -238,7 +238,7 @@ extern void PrintOpenTrade(
 	double *prices;
 	MARKET_DATA *data = account->data;
 	int M = data->num_assets;
-	int n = data->num_days;
+	int n = data->num_segs;
 
 	FT_VectorMemoryAlloc((POINTER*)&stock_names,M,sizeof(char*));
 	FT_VectorMemoryAlloc((POINTER*)&prices,M,sizeof(double));
@@ -247,7 +247,7 @@ extern void PrintOpenTrade(
 	GetCurrentPrice(stock_names,prices,M);
 	for (i = 0; i < M; ++i)
 	    data->assets[i].value[n] = prices[i];
-	data->num_days++;
+	data->num_segs++;
 
 	for (i = 0; i < account->num_trades; ++i)
 	{
@@ -272,7 +272,7 @@ extern void PrintOpenTrade(
 	    }
 	}
 	FT_FreeThese(2,stock_names,prices);
-	data->num_days--;
+	data->num_segs--;
 }	/* end PrintOpenTrade */
 
 static double AmpRatio(
@@ -282,7 +282,7 @@ static double AmpRatio(
 {
 	MARKET_DATA *data = account->data;
 	double ratio;
-	int n = data->num_days-1;
+	int n = data->num_segs-1;
 	int ns = trade.num_stages-1;
 	int ib = trade.index_sell[istart];
 	int is = trade.index_buy[ns];
@@ -307,7 +307,7 @@ static double currentAmpRatio(
 	MARKET_DATA *data = account->data;
 	TRADE cur_trade;
 	int ns = trade.num_stages;
-	int nd = data->num_days-1;
+	int nd = data->num_segs-1;
 	int is,ib;
 	char *stock_names[2];
 	double prices[2];
@@ -369,7 +369,7 @@ extern double PrintClosedTradeLoop(
 	pb = trade.price_buy;
 	istart = StartIndex(trade);
 	iend = trade.num_stages - 1;
-	iday = data->num_days - 1;
+	iday = data->num_segs - 1;
 
 	cash_gain = 0.0;
 	net_gain = 0.0;
@@ -518,7 +518,7 @@ extern boolean ExperimentTrade(
 	MARKET_DATA *data = account->data;
 	boolean to_trade = YES;
 	int i,n,is,ib,ns,nb,istart;
-	int iday = data->num_days-1;
+	int iday = data->num_segs-1;
 	char string[100];
 	double ratio,ps,pb;
 	boolean traded = NO;
@@ -739,7 +739,7 @@ extern void PrintOpenTradeForIndex(
 	char **stock_names;
 	double *prices;
 	int M = data->num_assets;
-	int n = data->num_days;
+	int n = data->num_segs;
 
 	FT_VectorMemoryAlloc((POINTER*)&stock_names,M,sizeof(char*));
 	FT_VectorMemoryAlloc((POINTER*)&prices,M,sizeof(double));
@@ -748,7 +748,7 @@ extern void PrintOpenTradeForIndex(
 	GetCurrentPrice(stock_names,prices,M);
 	for (i = 0; i < M; ++i)
 	    data->assets[i].value[n] = prices[i];
-	data->num_days++;
+	data->num_segs++;
 
 	for (i = 0; i < account->num_trades; ++i)
 	{
@@ -771,6 +771,6 @@ extern void PrintOpenTradeForIndex(
 	    }
 	}
 	FT_FreeThese(2,stock_names,prices);
-	data->num_days--;
+	data->num_segs--;
 }	/* end PrintOpenTrade */
 

@@ -38,7 +38,7 @@ struct _ASSET
 struct _MARKET_DATA
 {
 	char data_name[258];
-	int num_days;
+	int num_segs;
 	int num_assets;
 	int num_backtrace;
 	struct _ASSET *assets;
@@ -71,9 +71,10 @@ struct _TRADE
 };
 
 struct _STATE_INFO {
-	double np_min;         	// minimum normal price
-        double np_max;         	// maximum normal price
-        double np_ave;         	// average normal price
+	char stock_max[20];	// name of stick with maximum normal price
+	char stock_min[20];	// name of stick with minimum normal price
+	double dnp_max;		// np diff between max and next to max
+	double dnp_min;		// np diff between min and next to min
         double svalue;         	// max surplus value
         double dvalue;         	// max deficit value
         double dnp;            	// np diff between surplue and deficit
@@ -104,7 +105,7 @@ extern void XgraphData(MARKET_DATA*,boolean*);
 extern void DataTrend(MARKET_DATA*,boolean*);
 extern void ReadMarketData(MARKET_DATA*);
 extern void WriteMarketData(MARKET_DATA*);
-extern void AddData(MARKET_DATA*);
+extern void AddData(MARKET_DATA*,boolean);
 extern void ContinueBaseAdjust(MARKET_DATA*);
 extern void AdjustBase(MARKET_DATA*);
 extern void ModifyMarketData(MARKET_DATA*);

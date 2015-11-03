@@ -76,6 +76,7 @@ int main(int argc, char **argv)
 	printf("\tRank data (r)\n");
 	printf("\tSimulate data (s)\n");
 	printf("\tTrade (t)\n");
+	printf("\tXgraph data (x)\n");
 	printf("\tDo nothing (n)\n");
 	CreateJVM();
 
@@ -86,11 +87,9 @@ int main(int argc, char **argv)
 	    switch(string[0])
 	    {
 	    case 'a':
-	    	AddData(data);
+	    	AddData(data,NO);
 		WriteMarketData(data);
     		PromptForDataMap(account);
-    		XgraphData(data,account->data_map);
-    		DataTrend(data,account->data_map);
 		break;
 	    case 'b':
 	    	InvestShares(account);
@@ -116,8 +115,6 @@ int main(int argc, char **argv)
     		PromptForDataMap(account);
 		WriteMarketData(data);
 		WriteAccountData(account);
-    		XgraphData(data,account->data_map);
-    		DataTrend(data,account->data_map);
 		break;
 	    case 'o':
 	    	TradeInfo(account);
@@ -136,6 +133,9 @@ int main(int argc, char **argv)
 		break;
 	    case 'n':
 		closing_out(account);
+	    case 'x':
+    		XgraphData(data,account->data_map);
+		break;
 	    default:
 		printf("Unknown option\n");
 		break;

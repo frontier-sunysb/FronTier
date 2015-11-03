@@ -22,8 +22,8 @@ extern double GetLeastSquare(
 	int id = (n-1)/4;
 	double base_value = data->assets[m].base_value;
 
-	is = (data->num_days < n) ? 0 : data->num_days - n;
-	N = data->num_days - is;
+	is = (data->num_segs < n) ? 0 : data->num_segs - n;
+	N = data->num_segs - is;
 	value = data->assets[m].norm_value + is;
 	FT_VectorMemoryAlloc((POINTER*)&time,N,sizeof(double));
 	for (i = 0; i < N; ++i) time[i] = i*0.25;
@@ -160,7 +160,7 @@ extern void ContinueBaseAdjust(
 {
 	int time_p;    /* time period */
 	int i,j,k,M = data->num_assets;
-	int save_num_days = data->num_days;
+	int save_num_segs = data->num_segs;
 	int backtrace;
 	char account_name[256];
 	char fname[256],dirname[256];
@@ -171,7 +171,7 @@ extern void ContinueBaseAdjust(
 	FT_VectorMemoryAlloc((POINTER*)&bfiles,M,sizeof(FILE*));
 	FT_VectorMemoryAlloc((POINTER*)&base0,M,sizeof(double));
 
-	printf("There are total %d days of data\n",data->num_days);
+	printf("There are total %d days of data\n",data->num_segs);
 	printf("Enter backtrace for base update: ");
 	scanf("%d", &backtrace);
 	data->num_backtrace = backtrace;
@@ -188,15 +188,15 @@ extern void ContinueBaseAdjust(
 	    fprintf(bfiles[i],"thickness = 1.5\n");
 	}
 
-	for (j = 10; j <= save_num_days; j++)
+	for (j = 10; j <= save_num_segs; j++)
 	{
-	    data->num_days = j;
+	    data->num_segs = j;
 	    AdjustBase(data);
 	    for (i = 0; i < data->num_assets; i++)
 	    {
 		if (j == 10)
 		    base0[i] = data->assets[i].base_value;
-		k = data->num_days-1;
+		k = data->num_segs-1;
 		data->assets[i].norm_value[k] =
 			data->assets[i].value[k]/data->assets[i].base_value;
 		fprintf(bfiles[i],"%f  %f\n",(double)j,
@@ -206,7 +206,7 @@ extern void ContinueBaseAdjust(
 	for (i = 0; i < data->num_assets; i++)
 	    fclose(bfiles[i]);
 	FT_FreeThese(2,bfiles,base0);
-	data->num_days = save_num_days;
+	data->num_segs = save_num_segs;
 }	/* end ContinueBaseAdjust */
 
 extern void AdjustBase(
@@ -216,13 +216,13 @@ extern void AdjustBase(
 	int is,N;
 	double I;
 
-	is = (data->num_days < data->num_backtrace) ? 0 :
-			data->num_days - data->num_backtrace;
-	N = data->num_days - is;
+	is = (data->num_segs < data->num_backtrace) ? 0 :
+			data->num_segs - data->num_backtrace;
+	N = data->num_segs - is;
 
 	for (i = 0; i < data->num_assets; ++i)	
 	{
-	    I = AssetTimeIntegral(data,i,is,data->num_days);
+	    I = AssetTimeIntegral(data,i,is,data->num_segs);
 	    data->assets[i].base_value = I/N;
 	}
 }	/* end AdjustBase */
@@ -307,15 +307,15 @@ static void AddAssets(
 	for (j = 0; j < new_num_assets+1; ++j)
         {
 	    FT_VectorMemoryAlloc((POINTER*)&new_assets[j].value,
-                                data->num_days+10,sizeof(double));
+                                data->num_segs+10,sizeof(double));
             FT_VectorMemoryAlloc((POINTER*)&new_assets[j].norm_value,
-                                data->num_days+10,sizeof(double));
+                                data->num_segs+10,sizeof(double));
 	    if (j < data->num_assets)
 	    {
 		new_assets[j].base_value = data->assets[j].base_value;
 		strcpy(new_assets[j].asset_name,data->assets[j].asset_name);
 		strcpy(new_assets[j].color,data->assets[j].color);
-		for (i = 0; i < data->num_days; ++i)
+		for (i = 0; i < data->num_segs; ++i)
 		{
 		    new_assets[j].value[i] = data->assets[j].value[i];
 		    new_assets[j].norm_value[i] = data->assets[j].norm_value[i];
@@ -329,7 +329,7 @@ static void AddAssets(
 		scanf("%s",new_assets[j].color);
 		printf("Enter base value of the new asset: ");
 		scanf("%lf",&new_assets[j].base_value);
-		for (i = 0; i < data->num_days; ++i)
+		for (i = 0; i < data->num_segs; ++i)
 		{
 		    new_assets[j].value[i] = new_assets[j].base_value;
 		    new_assets[j].norm_value[i] = 1.0;
@@ -342,7 +342,7 @@ static void AddAssets(
 		new_assets[j].base_value = data->assets[im].base_value;
 		strcpy(new_assets[j].asset_name,data->assets[im].asset_name);
 		strcpy(new_assets[j].color,data->assets[im].color);
-		for (i = 0; i < data->num_days; ++i)
+		for (i = 0; i < data->num_segs; ++i)
 		{
 		    new_assets[j].value[i] = data->assets[im].value[i];
 		    new_assets[j].norm_value[i] = 
@@ -386,7 +386,8 @@ extern void PromptForDataMap(
 }	/* end PromptForDataMap */
 
 extern void AddData(
-	MARKET_DATA *data)
+	MARKET_DATA *data,
+	boolean silence)
 {
 	int j,m,M;
 	char string[100];
@@ -394,7 +395,7 @@ extern void AddData(
 	char **stock_names;
 	double *current_price;
 
-	m = data->num_days;
+	m = data->num_segs;
 	M = data->num_assets;
 
 	FT_VectorMemoryAlloc((POINTER*)&stock_names,M,sizeof(char*));
@@ -402,15 +403,18 @@ extern void AddData(
 	for (j = 0; j < M; ++j)
 	    stock_names[j] = data->assets[j].asset_name;
 	GetCurrentPrice(stock_names,current_price,M);
-	printf("Current prices:\n");
-	for (j = 0; j < M; ++j)
-	    printf("\t%5s: %f\n",stock_names[j],current_price[j]);
-	printf("Type yes to add to database: ");
-	scanf("%s",string);
-	if (string[0] != 'y' && string[0] != 'Y')
+	if (!silence)
 	{
-	    FT_FreeThese(2,stock_names,current_price);
-	    return;
+	    printf("Current prices:\n");
+	    for (j = 0; j < M; ++j)
+	    	printf("\t%5s: %f\n",stock_names[j],current_price[j]);
+	    printf("Type yes to add to database: ");
+	    scanf("%s",string);
+	    if (string[0] != 'y' && string[0] != 'Y')
+	    {
+	    	FT_FreeThese(2,stock_names,current_price);
+	    	return;
+	    }
 	}
 
 	ave_value = 0.0;
@@ -426,13 +430,13 @@ extern void AddData(
 	data->assets[j].base_value = 1.0;
 	data->assets[j].value[m] = ave_value/data->num_assets;
 	data->assets[j].norm_value[m] = data->assets[j].value[m];
-	data->num_days += 1;
+	data->num_segs += 1;
 	data->new_data = YES;
 	FT_FreeThese(2,stock_names,current_price);
 }	/* end AddData */
 
 extern void XgraphData(
-	MARKET_DATA *data,
+	MARKET_DATA *ori_data,
 	boolean *data_map)
 {
 	char fname[100];
@@ -440,11 +444,13 @@ extern void XgraphData(
 	int i,j,k,M,is;
 	double time;
 	double *value,ave_value;
+	MARKET_DATA *data = CopyMarketData(ori_data);
 
+	AddData(data,YES);
 	create_directory("xg",NO);
 	M = data->num_assets;
-	is = (data->num_days < data->num_backtrace) ? 0 :
-		data->num_days - data->num_backtrace;
+	is = (data->num_segs < data->num_backtrace) ? 0 :
+		data->num_segs - data->num_backtrace;
 	for (j = 0; j < M; ++j)
 	{
 	    if (data_map[j] != YES)
@@ -454,7 +460,7 @@ extern void XgraphData(
 	    fprintf(xfile,"color=%s\n",data->assets[j].color);
 	    fprintf(xfile,"thickness = 1.5\n");
 	    value = data->assets[j].norm_value;
-	    for (i = is; i < data->num_days; ++i)
+	    for (i = is; i < data->num_segs; ++i)
 	    {
 		if (value[i] == 0.0) continue;
 		time = (double)i;
@@ -471,7 +477,7 @@ extern void XgraphData(
 	    xfile = fopen(fname,"w");
 	    fprintf(xfile,"color=green\n");
 	    fprintf(xfile,"thickness = 1.5\n");
-	    for (i = is; i < data->num_days; ++i)
+	    for (i = is; i < data->num_segs; ++i)
 	    {
 		if (value[i] == 0.0) continue;
 		time = (double)i;
@@ -491,7 +497,7 @@ extern void XgraphData(
 
 	    fprintf(xfile,"color=%s\n",data->assets[j].color);
 	    fprintf(xfile,"thickness = 1.5\n");
-	    for (i = is; i < data->num_days; ++i)
+	    for (i = is; i < data->num_segs; ++i)
 	    {
 		if (value[i] == 0.0) continue;
 		time = (double)i;
@@ -503,7 +509,7 @@ extern void XgraphData(
 	    fprintf(xfile,"Next\n");
 	    fprintf(xfile,"color=%s\n",data->assets[k].color);
 	    fprintf(xfile,"thickness = 1.5\n");
-	    for (i = is; i < data->num_days; ++i)
+	    for (i = is; i < data->num_segs; ++i)
 	    {
 		if (value[i] == 0.0) continue;
 		time = (double)i;
@@ -514,6 +520,8 @@ extern void XgraphData(
 	    }
 	    fclose(xfile);
 	}
+   	DataTrend(data,data_map);
+	FreeMarketData(data);
 }	/* end XgraphData */
 
 extern void TradeInfo(
@@ -652,7 +660,7 @@ extern void DataTrend(
 
 	for (i = 0; i < N; ++i) 
 	    time[i] = i*0.25;
-	is = data->num_days - N - 12;
+	is = data->num_segs - N - 12;
 	for (i = 0; i < N + 12; ++i) 
 	{
 	    mean[i] = 0.0;
@@ -703,7 +711,7 @@ extern void DataTrend(
 
 	    for (j = 0; j < N; ++j)
 	    {
-		is = data->num_days - N - 3;
+		is = data->num_segs - N - 3;
 		value = data->assets[i].norm_value + is + j;
 		pmean = mean + j + 9;
 		pmean_ave = mean_ave + j + 9;
@@ -736,7 +744,7 @@ extern void DataTrend(
 		if (j == N-1) s1[i] = LA;
 
 		/* Average slope of two days */
-		is = data->num_days - N - 7;
+		is = data->num_segs - N - 7;
 		value = data->assets[i].norm_value + is + j;
 
 		LeastSquareLinear(time,value,8,&LA,&LB);
@@ -765,7 +773,7 @@ extern void DataTrend(
 	fprintf(vfile0,"thickness = 2\n");
 	for (j = 0; j < N; ++j)
 	{
-	    is = data->num_days - N - 3;
+	    is = data->num_segs - N - 3;
 	    pmean = mean + j + 9;
 	    fprintf(vfile0,"%f  %f\n",time[j],100.0*pmean[3]);
 	}
@@ -791,7 +799,7 @@ static void PrintRateOfChange(
 	double base_value,fit_value;
 	double Q[3],L[2];
 
-	n = data->num_days-1;
+	n = data->num_segs-1;
 	M = data->num_assets;
 
 	printf("\n");
@@ -840,16 +848,16 @@ extern void ReadMarketData(
 	    sprintf(data_name,"%s",data->data_name);
 	    printf("Enter number of assets: ");
 	    scanf("%d",&data->num_assets);
-	    data->num_days = 1;
+	    data->num_segs = 1;
 	    FT_VectorMemoryAlloc((POINTER*)&data->assets,data->num_assets+1,
 				sizeof(ASSET));
 
 	    for (j = 0; j < data->num_assets+1; ++j)
 	    {
 		FT_VectorMemoryAlloc((POINTER*)&data->assets[j].value,
-				data->num_days+10,sizeof(double));
+				data->num_segs+10,sizeof(double));
 		FT_VectorMemoryAlloc((POINTER*)&data->assets[j].norm_value,
-				data->num_days+10,sizeof(double));
+				data->num_segs+10,sizeof(double));
 		if (j < data->num_assets)
 		{
 		    printf("Enter name of asset %d: ",j+1);
@@ -880,7 +888,7 @@ extern void ReadMarketData(
 	    double ave_value = 0.0;
 	    fscanf(infile,"%*s");
 	    fscanf(infile,"%d",&data->num_assets);
-	    fscanf(infile,"%d",&data->num_days);
+	    fscanf(infile,"%d",&data->num_segs);
 	    fscanf(infile,"%d",&data->num_backtrace);
 	    FT_VectorMemoryAlloc((POINTER*)&data->assets,data->num_assets+1,
 				sizeof(ASSET));
@@ -890,11 +898,11 @@ extern void ReadMarketData(
 		fscanf(infile,"%s\n",data->assets[j].color);
 		fscanf(infile,"%lf\n",&data->assets[j].base_value);
 		FT_VectorMemoryAlloc((POINTER*)&data->assets[j].value,
-				data->num_days+10,sizeof(double));
+				data->num_segs+10,sizeof(double));
 		FT_VectorMemoryAlloc((POINTER*)&data->assets[j].norm_value,
-				data->num_days+10,sizeof(double));
+				data->num_segs+10,sizeof(double));
 	    }
-	    for (i = 0; i < data->num_days; ++i)
+	    for (i = 0; i < data->num_segs; ++i)
 	    {
 	    	for (j = 0; j < data->num_assets+1; ++j)
 		{
@@ -1004,14 +1012,14 @@ extern void WriteMarketData(
 		fclose(bfile);
 		bfile = fopen(fname,"a");
 	    }
-	    fprintf(bfile,"%f  %f\n",(double)data->num_days,
+	    fprintf(bfile,"%f  %f\n",(double)data->num_segs,
 				data->assets[m].base_value);
 	    fclose(bfile);
 	}
 	outfile = fopen(data_name,"w");
 	fprintf(outfile,"%s\n",data->data_name);
 	fprintf(outfile,"%d\n",data->num_assets);
-	fprintf(outfile,"%d\n",data->num_days);
+	fprintf(outfile,"%d\n",data->num_segs);
 	fprintf(outfile,"%d\n",data->num_backtrace);
 	for (j = 0; j < data->num_assets+1; ++j)
 	{
@@ -1019,7 +1027,7 @@ extern void WriteMarketData(
 	    fprintf(outfile,"%s\n",data->assets[j].color);
 	    fprintf(outfile,"%f\n",data->assets[j].base_value);
 	}
-	for (i = 0; i < data->num_days; ++i)
+	for (i = 0; i < data->num_segs; ++i)
 	{
 	    for (j = 0; j < data->num_assets+1; ++j)
 	    {
@@ -1084,7 +1092,7 @@ extern void RankData(
 	boolean *data_map)
 {
 	int i,j;
-	int n = data->num_days-1;
+	int n = data->num_segs-1;
 	int M = data->num_assets;
 	double dvalue,d2value;
 	char string[100];
@@ -1209,9 +1217,9 @@ extern void InitTrade(
 	PrintAssetList(data);
 	printf("Enter indices of two assets: ");
 	scanf("%d %d",&i1,&i2);
-	is = (data->num_days < data->num_backtrace) ? 0 :
-                	data->num_days - data->num_backtrace;
-	ie = data->num_days;
+	is = (data->num_segs < data->num_backtrace) ? 0 :
+                	data->num_segs - data->num_backtrace;
+	ie = data->num_segs;
 	stock_names[0] = data->assets[i1].asset_name;
 	stock_names[1] = data->assets[i2].asset_name;
 	GetCurrentPrice(stock_names,v,2);
@@ -1281,8 +1289,8 @@ extern void InitTrade(
 	}
 	fclose(xfile);
 
-	is = data->num_days - data->num_backtrace;
-	ie = data->num_days;
+	is = data->num_segs - data->num_backtrace;
+	ie = data->num_segs;
 	sprintf(fname,"xg/Compare.xg");
 	xfile = fopen(fname,"w");
         fprintf(xfile,"color=%s\n",data->assets[i1].color);
@@ -1352,7 +1360,7 @@ extern void PrintAccountValue(
 	double market_value = 0.0;
 	char string[100];
 	M = data->num_assets;
-	n = data->num_days-1;
+	n = data->num_segs-1;
 	for (i = 0; i < M; ++i)
 	{
 	    market_value += account->shares[i]*data->assets[i].value[n];
@@ -1393,7 +1401,7 @@ extern MARKET_DATA *CopyMarketData(
 	
 	FT_ScalarMemoryAlloc((POINTER*)&copy_data,sizeof(MARKET_DATA));
 	copy_data->num_assets = data->num_assets;
-	copy_data->num_days = data->num_days;
+	copy_data->num_segs = data->num_segs;
 	copy_data->num_backtrace = data->num_backtrace;
 	FT_VectorMemoryAlloc((POINTER*)&copy_data->assets,data->num_assets+1,
 				sizeof(ASSET));
@@ -1405,11 +1413,11 @@ extern MARKET_DATA *CopyMarketData(
 				strlen(data->assets[j].color)+1);
 	    copy_data->assets[j].base_value = data->assets[j].base_value;
 	    FT_VectorMemoryAlloc((POINTER*)&copy_data->assets[j].value,
-				data->num_days+10,sizeof(double));
+				data->num_segs+10,sizeof(double));
 	    FT_VectorMemoryAlloc((POINTER*)&copy_data->assets[j].norm_value,
-				data->num_days+10,sizeof(double));
+				data->num_segs+10,sizeof(double));
 	}
-	for (i = 0; i < data->num_days; ++i)
+	for (i = 0; i < data->num_segs; ++i)
 	{
 	    	for (j = 0; j < data->num_assets+1; ++j)
 		{
@@ -1446,7 +1454,7 @@ extern void TimelyRecordMarketData(
 	char **stock_names;
 	double *current_price;
 	std::time_t t;
-	int day,hour;
+	int day,hour,minute;
 	char data_name[256];
 
 	M = data->num_assets;
@@ -1461,7 +1469,7 @@ extern void TimelyRecordMarketData(
 	    day = atoi(string);
 	    strftime(string,100*sizeof(char),"%H",std::localtime(&t));
             hour = atoi(string);
-	    m = data->num_days;
+	    m = data->num_segs;
 	    if (day >= 1 && day <= 5 && hour >= 10 && hour <= 17)
 	    {
 		FreeMarketData(data);
@@ -1483,10 +1491,11 @@ extern void TimelyRecordMarketData(
 	   	data->assets[j].base_value = 1.0;
 	    	data->assets[j].value[m] = ave_value/data->num_assets;
 	    	data->assets[j].norm_value[m] = data->assets[j].value[m];
-	    	data->num_days += 1;
+	    	data->num_segs += 1;
 		data->new_data = YES;
 		WriteMarketData(data);
+	    	sleep(6000);
 	    }
-	    sleep(119*60);
+	    sleep(60);
 	}
 }	/* end TimelyRecordMarketData */
