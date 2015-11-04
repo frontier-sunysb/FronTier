@@ -174,10 +174,15 @@ extern void ContinueBaseAdjust(
 	printf("There are total %d days of data\n",data->num_segs);
 	printf("Enter backtrace for base update: ");
 	scanf("%d", &backtrace);
+	if (backtrace > MAX_TRACE) 
+	{
+	    printf("backtrace too large, setting to %d\n",MAX_TRACE);
+	    backtrace = MAX_TRACE;
+	}
 	data->num_backtrace = backtrace;
 	printf("Enter simulation account name: ");
 	scanf("%s",account_name);
-	sprintf(dirname,"simulation/%s",account_name);
+	sprintf(dirname,"simulation/%s-base",account_name);
 	create_directory(dirname,NO);
 	for (i = 0; i < M; ++i)
 	{

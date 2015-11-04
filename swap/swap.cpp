@@ -123,9 +123,6 @@ int main(int argc, char **argv)
 	    case 'r':
 		RankData(data,account->data_map);
 		closing_out(account);
-	    case 's':
-	    	InvestSimulation(data);
-		closing_out(account);
 	    case 't':
 	    	if (!TradeShares(account))
 		    closing_out(account);

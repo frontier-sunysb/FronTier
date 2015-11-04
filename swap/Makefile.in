@@ -21,7 +21,7 @@ Petsc_Lib=@PETSC_LIB@
 
 USEGPU = @USEGPU@
 
-all : swap status record
+all : swap status record play
 
 swap : @devel@
 
@@ -48,10 +48,14 @@ record: swap.h record.cpp sim.o sub.o web.o trade.o DG.class
 	${CXX} -c record.cpp $(incsloc) $(incs) ${Petsc_Include}
 	$(CXX) -o record record.o sim.o sub.o web.o trade.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs) $(LFLAGS) $(libs) ${F77_LIBS}
 
+play: swap.h play.cpp sim.o sub.o web.o trade.o DG.class
+	${CXX} -c play.cpp $(incsloc) $(incs) ${Petsc_Include}
+	$(CXX) -o play play.o sim.o sub.o web.o trade.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs) $(LFLAGS) $(libs) ${F77_LIBS}
+
 -include ../devel-deps.inc
 
 clean:
-	rm -rf *.o swap status record DG.class
+	rm -rf *.o swap status record play DG.class
 output :
 	rm -rf out/*
 
