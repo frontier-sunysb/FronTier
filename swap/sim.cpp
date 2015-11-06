@@ -15,6 +15,7 @@ static void PrintDevLinearProfile(char**,double*,double*,double,double,
 static int GetAccountStates(PORTFOLIO*,STATE_INFO*);
 static double CurrentBusinessTime();
 static double AverageNormPrice(double*,int);
+static double MedianNormPrice(double*,int);
 
 
 extern void InvestSimulation(
@@ -698,7 +699,7 @@ static void PrintDevLinearProfile(
 	    current_value[i] = num_shares[i]*price[i];
 	    N_l += irint(linear_value[i]/norm_price[i]);
 	}
-	ave_nprice = AverageNormPrice(norm_price,M);
+	ave_nprice = MedianNormPrice(norm_price,M);
 	printf("ave_nprice = %f\n",ave_nprice);
 	printf("Equity NPrice   L-Val    C-Val    D-Val  "
 		"L-Share  C-Share  D-Share\n");
@@ -849,7 +850,7 @@ static int GetAccountStates(
 	    C += irint(price[i]*num_shares[i]/nprice[i]);
 	}
 
-	np_ave = AverageNormPrice(nprice,M);
+	np_ave = MedianNormPrice(nprice,M);
 	for (i = 0; i < M-1; ++i)
         for (j = i+1; j < M; ++j)
         {
@@ -1076,7 +1077,7 @@ static void GetFiveStates(
 	double slope,b;
 	int i;
 	double V,V_total;
-	double np_min,np_max,np_ave;
+	double np_min,np_max,np_mid;
 	double ns_L,ns_U;
 
 	S[5] = V_total = 0.0;
@@ -1089,9 +1090,9 @@ static void GetFiveStates(
 	    if (np_min > nprice[i]) np_min = nprice[i];
 	    if (np_max < nprice[i]) np_max = nprice[i];
 	}
-	np_ave = AverageNormPrice(nprice,M);
+	np_mid = MedianNormPrice(nprice,M);
 	S[0] = irint(V_total/np_max);
-	S[2] = irint(V_total/np_ave);
+	S[2] = irint(V_total/np_mid);
 	S[4] = irint(V_total/np_min);
 	ComputePyramidParams(price,nprice,shares,M,1/pratio,&slope,&b);
 	S[1] = S[3] = 0.0;
@@ -1136,9 +1137,9 @@ static void PyramidTrade(
 	FT_VectorMemoryAlloc((POINTER*)&nprice,M,sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&vL,M,sizeof(double));
 
-	ContinueBaseAdjust(data);
 
 start_trade:
+	ContinueBaseAdjust(data);
 	printf("Enter polarization ratio of the profile: ");
 	scanf("%lf",&pratio);
 
@@ -1244,8 +1245,10 @@ start_trade:
 		nprice[j] = data->assets[j].norm_value[i];
 	    }
 	    GetFiveStates(price,nprice,shares,M,pratio,S,vL);
-	    //if (S[5] < S[2] + 0.5*(S[2] - S[1]))
-	    if (S[5] < S[2])
+	    //if (S[5] < S[2] + 0.3*(S[2] - S[1]))
+	    //if (S[5] < S[2])
+	    //if (S[5] < S[2])
+	    if (S[5] < 0.5*(S[2] + S[3]))
 	    {
 		num_trades++;
 	    	for (j = 0; j < M; j++)    
@@ -1269,3 +1272,41 @@ start_trade:
 	if (string[0] == 'y' || string[0] == 'Y')
 	    goto start_trade;
 } 	/* end	PyramidTrade */
+
+static double MedianNormPrice(
+	double *nprice,
+	int M)
+{
+	int i,i1,i2;
+	int itmp,isort[100];
+	double mid_nprice;
+
+	for (i = 0; i < M; ++i)
+	    isort[i] = i;
+
+	for (i1 = 0; i1 < M-1; ++i1)
+	{
+	    for (i2 = i1 + 1; i2 < M; ++i2)
+	    {
+	        if (nprice[isort[i1]] < nprice[isort[i2]]) 
+	        {
+		    itmp = isort[i1];
+		    isort[i1] = isort[i2];
+		    isort[i2] = itmp;
+		} 
+	    }
+	}
+	if (M%2 == 1)
+	{
+	    i = (M - 1)/2;
+	    mid_nprice = nprice[isort[i]];
+	}
+	else
+	{
+	    i1 = M/2 - 1;
+	    i2 = M/2;
+	    mid_nprice = 0.5*(nprice[isort[i1]] + nprice[isort[i2]]);
+	}
+	return mid_nprice;
+}	/* end MedianNormPrice */
+

@@ -140,7 +140,7 @@ extern void PrintOpenTradeForIndex(PORTFOLIO*,int);
 extern void SaveDeleteClosedTradeLoop(PORTFOLIO*);
 extern void SortTradeOrder(PORTFOLIO*);
 extern void WrapPartialTradeLoop(PORTFOLIO*);
-extern void FragmentTrade(PORTFOLIO*);
+extern void ReOrganizeTrade(PORTFOLIO*);
 extern boolean TradeShares(PORTFOLIO*);
 extern boolean ExperimentTrade(PORTFOLIO*);
 extern double PrintClosedTradeLoop(FILE*,TRADE,PORTFOLIO*);

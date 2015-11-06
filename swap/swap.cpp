@@ -56,6 +56,7 @@ int main(int argc, char **argv)
         {
             GetStockFile(data);
             SaveStockFile(data);
+	    exit(0);
         }
 	else
 	{
@@ -69,7 +70,7 @@ int main(int argc, char **argv)
 	printf("\tBuy shares (b)\n");
 	printf("\tCompare data (c)\n");
 	printf("\tExperiment (e)\n");
-	printf("\tFragment trade (f)\n");
+	printf("\tRe-organize trade (f)\n");
 	printf("\tInitiation (i)\n");
 	printf("\tModify data (m)\n");
 	printf("\tPrint open trade (o)\n");
@@ -104,7 +105,7 @@ int main(int argc, char **argv)
 		WriteAccountData(account);
 		break;
 	    case 'f':
-		FragmentTrade(account);
+		ReOrganizeTrade(account);
 		WriteAccountData(account);
 		closing_out(account);
 	    case 'i':

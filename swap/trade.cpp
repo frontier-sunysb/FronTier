@@ -6,6 +6,10 @@
 static double AmpRatio(TRADE,PORTFOLIO*,int);
 static double currentAmpRatio(TRADE,PORTFOLIO*,int);
 static int StartIndex(TRADE);
+static void SplitTrade(PORTFOLIO*);
+static void MergeTrades(PORTFOLIO*);
+static void WrapMiddleTrades(PORTFOLIO*);
+static void WrapTrade(TRADE*);
 
 #define 	MAX_NUM_TRADE		200
 
@@ -117,8 +121,8 @@ extern boolean TradeShares(
 		PrintOpenTradeForIndex(account,sindex);
 		printf("Select number of open trade: ");
 		scanf("%d",&n);
-		account->trades[n].index_sell[nstage] = sindex;
 		nstage = account->trades[n].num_stages;
+		account->trades[n].index_sell[nstage] = sindex;
 		printf("Enter buy index: ");
 		scanf("%d",&account->trades[n].index_buy[nstage]);  
 		if (account->trades[n].index_buy[nstage-1] != 
@@ -690,44 +694,6 @@ extern boolean ExperimentTrade(
 	return YES;
 }	/* end TradeShares */
 
-extern void FragmentTrade(
-	PORTFOLIO *account)
-{
-	int i,ns,index;
-	double frac;
-	TRADE *new_trade;
-
-	PrintOpenTrade(account);
-	printf("Selcte the index of trade to slit: ");
-	scanf("%d",&index);
-	printf("Enter fraction of new trade: ");
-	scanf("%lf",&frac);
-	if (frac > 0.7)
-	{
-	    printf("Fraction number too large, should be less than 0.7\n");
-	    return;
-	}
-	new_trade = &account->trades[account->num_trades];
-	new_trade->status = account->trades[index].status;
-	ns = new_trade->num_stages = account->trades[index].num_stages;
-	for (i = 0; i < ns; ++i)
-	{
-	    new_trade->price_buy[i] = account->trades[index].price_buy[i];
-	    new_trade->price_sell[i] = account->trades[index].price_sell[i];
-	    new_trade->index_buy[i] = account->trades[index].index_buy[i];
-	    new_trade->index_sell[i] = account->trades[index].index_sell[i];
-	    new_trade->num_shares_buy[i] = 
-			irint(frac*account->trades[index].num_shares_buy[i]);
-	    new_trade->num_shares_sell[i] = 
-			irint(frac*account->trades[index].num_shares_sell[i]);
-	    account->trades[index].num_shares_buy[i] -=
-			new_trade->num_shares_buy[i];
-	    account->trades[index].num_shares_sell[i] -=
-			new_trade->num_shares_sell[i];
-	}
-	account->num_trades++;
-}	/* end FragmentTrade */
-
 extern void PrintOpenTradeForIndex(
 	PORTFOLIO *account,
 	int index)
@@ -774,3 +740,138 @@ extern void PrintOpenTradeForIndex(
 	data->num_segs--;
 }	/* end PrintOpenTrade */
 
+extern void ReOrganizeTrade(
+	PORTFOLIO *account)
+{
+	char string[100];
+	printf("Available operations are: \n");
+	printf("\tSplit trade (s)\n");
+	printf("\tMerge trades (m)\n");
+	printf("\tWrap up middle trades (w)\n");
+	printf("Enter choice: ");
+	scanf("%s",string);
+	switch (string[0])
+	{
+	case 's':
+	    SplitTrade(account);
+	    return;
+	case 'm':
+	    MergeTrades(account);
+	    return;
+	case 'w':
+	    WrapMiddleTrades(account);
+	    return;
+	default: 
+	    printf("Unknown option!\n");
+	    return;
+	}
+}	/* end FragmentTrade */
+
+static void WrapMiddleTrades(
+	PORTFOLIO *account)
+{
+	int i;
+	PrintOpenTrade(account);
+	printf("Selcte index of trade to wrap up: ");
+	scanf("%d",&i);
+	WrapTrade(&account->trades[i]);
+}	/* end WrapMiddleTrades */	
+
+static void WrapTrade(
+	TRADE *trade)
+{
+	int i,nstage;
+	double gain,last_buy;
+	
+	nstage = trade->num_stages;
+	for (i = 0; i < nstage-1; ++i)
+	{
+	    gain +=  trade->num_shares_sell[i+1]*trade->price_sell[i+1] -
+			trade->num_shares_buy[i]*trade->price_buy[i];
+	    gain -= 20.0;	// trading cost
+	}
+	last_buy = trade->price_buy[nstage-1]*trade->num_shares_buy[nstage-1];
+	last_buy -= gain;
+	trade->index_buy[0] = trade->index_buy[nstage-1];
+	trade->num_shares_buy[0] = trade->num_shares_buy[nstage-1];
+	trade->price_buy[0] = last_buy/trade->num_shares_buy[0];
+	trade->num_stages = 1;
+}	/* end WrapTrade */
+
+static void MergeTrades(
+	PORTFOLIO *account)
+{
+	int i,j,i1,i2;
+	int is1,ib1;
+	int is2,ib2;
+	int nstage1,nstage2;
+	int num_shares;
+	double buy_cost;
+
+	PrintOpenTrade(account);
+	printf("Selcte two indices of trades to merge: ");
+	scanf("%d %d",&i1,&i2);
+	nstage1 = account->trades[i1].num_stages;
+	nstage2 = account->trades[i2].num_stages;
+
+	is1 = account->trades[i1].index_sell[0];
+	ib1 = account->trades[i1].index_buy[nstage1-1];
+	is2 = account->trades[i2].index_sell[0];
+	ib2 = account->trades[i2].index_buy[nstage2-1];
+	if (is1 != is2 || ib1 != ib2)
+	{
+	    printf("Unmatched trades, cannot merge!\n");
+	    return;
+	}
+	WrapTrade(&account->trades[i1]);
+	WrapTrade(&account->trades[i2]);
+	num_shares = account->trades[i1].num_shares_buy[0] +
+			account->trades[i2].num_shares_buy[0];
+	buy_cost = account->trades[i1].num_shares_buy[0]*
+			account->trades[i1].price_buy[0] +
+			account->trades[i2].num_shares_buy[0]*
+			account->trades[i2].price_buy[0];
+	account->trades[i1].num_shares_buy[0] = num_shares;
+	account->trades[i1].price_buy[0] = buy_cost/num_shares;
+	for (i = i2+1; i < account->num_trades; ++i)
+	    ft_assign(&account->trades[i-1],&account->trades[i],sizeof(TRADE));
+	account->num_trades--;
+}	/* end MergeTrades */
+
+static void SplitTrade(
+	PORTFOLIO *account)
+{
+	int i,ns,index;
+	double frac;
+	TRADE *new_trade;
+
+	PrintOpenTrade(account);
+	printf("Selcte the index of trade to slit: ");
+	scanf("%d",&index);
+	printf("Enter fraction of new trade: ");
+	scanf("%lf",&frac);
+	if (frac > 0.7)
+	{
+	    printf("Fraction number too large, should be less than 0.7\n");
+	    return;
+	}
+	new_trade = &account->trades[account->num_trades];
+	new_trade->status = account->trades[index].status;
+	ns = new_trade->num_stages = account->trades[index].num_stages;
+	for (i = 0; i < ns; ++i)
+	{
+	    new_trade->price_buy[i] = account->trades[index].price_buy[i];
+	    new_trade->price_sell[i] = account->trades[index].price_sell[i];
+	    new_trade->index_buy[i] = account->trades[index].index_buy[i];
+	    new_trade->index_sell[i] = account->trades[index].index_sell[i];
+	    new_trade->num_shares_buy[i] = 
+			irint(frac*account->trades[index].num_shares_buy[i]);
+	    new_trade->num_shares_sell[i] = 
+			irint(frac*account->trades[index].num_shares_sell[i]);
+	    account->trades[index].num_shares_buy[i] -=
+			new_trade->num_shares_buy[i];
+	    account->trades[index].num_shares_sell[i] -=
+			new_trade->num_shares_sell[i];
+	}
+	account->num_trades++;
+}	/* end SplitTrade */
