@@ -4,7 +4,8 @@ int main(int argc, char **argv)
 {
 	MARKET_DATA *data;
 	PORTFOLIO *account;
-	boolean input_data = NO;
+	boolean input_market_data = NO;
+	boolean input_account_data = NO;
 	boolean get_web_data = NO;
 	char string[100];
 
@@ -31,14 +32,14 @@ int main(int argc, char **argv)
                 argv += 1;
                 break;
 	    case 'i':
-		input_data = YES;
+		input_market_data = YES;
                 zero_scalar(data->data_name,256);
                 strcpy(data->data_name,argv[1]);
                 argc -= 2;
                 argv += 2;
                 break;
 	    case 'a':
-		input_data = YES;
+		input_account_data = YES;
                 zero_scalar(account->account_name,256);
                 strcpy(account->account_name,argv[1]);
                 argc -= 2;
@@ -47,10 +48,11 @@ int main(int argc, char **argv)
 	    }
 	}
 
-	if (input_data)
+	if (input_market_data)
 	{
 	    ReadMarketData(data);
-	    ReadAccountData(account);
+	    if (input_account_data)
+	    	ReadAccountData(account);
 	}
 	else if (get_web_data)
         {
@@ -107,15 +109,17 @@ int main(int argc, char **argv)
 	    case 'f':
 		ReOrganizeTrade(account);
 		WriteAccountData(account);
-		closing_out(account);
+		break;
 	    case 'i':
 		InitTrade(data);
 		closing_out(account);
 	    case 'm':
 	    	ModifyMarketData(data);
-    		PromptForDataMap(account);
+		if (input_account_data)
+    		    PromptForDataMap(account);
 		WriteMarketData(data);
-		WriteAccountData(account);
+		if (input_account_data)
+		    WriteAccountData(account);
 		break;
 	    case 'o':
 	    	TradeInfo(account);

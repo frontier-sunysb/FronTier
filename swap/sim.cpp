@@ -1117,9 +1117,8 @@ static void PyramidTrade(
 {
 	char string[100];
 	char fname[256],dirname[256];
-	int i, j;
+	int i,j,n,M = data->num_assets;
 	int istart,iend,N;
-	int M = data->num_assets;
 	int *shares;
 	double V0,Vf;		   // initial and final value
 	double *price,*nprice,*vL; // price, normal price, linear value profile
@@ -1127,21 +1126,36 @@ static void PyramidTrade(
 	double pratio;		   // profile polarization ratio
 	const char scolor[][100] = {"yellow","green","pink","blue",
                                         "red","aqua"};
+	boolean *data_map;
+	double **value,**norm_value;
 	FILE *sfile[6];
 	int imax,imin;
 	double np_max,np_min;
 	int num_trades;
+	double lambda;
 	
 	FT_VectorMemoryAlloc((POINTER*)&shares,M,sizeof(int));
 	FT_VectorMemoryAlloc((POINTER*)&price,M,sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&nprice,M,sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&vL,M,sizeof(double));
-
+	FT_VectorMemoryAlloc((POINTER*)&data_map,M,sizeof(boolean));
+	FT_VectorMemoryAlloc((POINTER*)&value,M,sizeof(double*));
+	FT_VectorMemoryAlloc((POINTER*)&norm_value,M,sizeof(double*));
+	for (i = 0; i < data->num_assets; ++i)
+	{
+	    data_map[i] = NO;
+	    printf("Type yes to include %4s: ",data->assets[i].asset_name);
+	    scanf("%s",string);
+	    if (string[0] == 'y') data_map[i] = YES;
+	}
 
 start_trade:
 	ContinueBaseAdjust(data);
 	printf("Enter polarization ratio of the profile: ");
 	scanf("%lf",&pratio);
+	printf("Enter exchange level parameter: ");
+	scanf("%lf",&lambda);
+
 
 	iend = data->num_segs - 1; /* ending segment */
 	printf("Enter total trading segments (back from current): ");
@@ -1155,21 +1169,27 @@ start_trade:
 	scanf("%lf",&V0);
 	np_max = -HUGE;
 	np_min = HUGE;
-	for (i = 0; i < M; ++i)
+	n = 0;
+	for (i = 0; i < data->num_assets; ++i)
 	{
-	    price[i] = data->assets[i].value[istart];
-	    nprice[i] = data->assets[i].norm_value[istart];
-	    if (nprice[i] > np_max)
+	    if (!data_map[i]) continue;
+	    value[n] = data->assets[i].value;
+	    norm_value[n] = data->assets[i].norm_value;
+	    price[n] = value[n][istart];
+	    nprice[n] = norm_value[n][istart];
+	    if (nprice[n] > np_max)
 	    {
-		np_max = nprice[i];
-		imax = i;
+		np_max = nprice[n];
+		imax = n;
 	    }
-	    if (nprice[i] < np_min)
+	    if (nprice[n] < np_min)
 	    {
-		np_min = nprice[i];
-		imin = i;
+		np_min = nprice[n];
+		imin = n;
 	    }
+	    n++;
 	}
+	M = n;
 	printf("Choose initial portfolio profile: ");
 	printf("Avaliable profiles are:\n");
 	printf("\tAll in lowest normal share price (0)\n");
@@ -1220,12 +1240,13 @@ start_trade:
 
 	Vf = 0.0;
 	for (i = 0; i < M; ++i)
-	    Vf += shares[i]*data->assets[i].value[iend];
+	{
+	    Vf += shares[i]*value[i][iend];
+	}
 
 	printf("Total untraded end value = %f\n",Vf);
 	printf("Change: %f percent\n",100 * (Vf/V0 - 1.0));
 	printf("\n");
-
 
 	create_directory("simulation/state",NO);
 	for (i = 0; i < 6; i++)    
@@ -1241,14 +1262,11 @@ start_trade:
 	{			
 	    for (j = 0; j < M; j++)    
 	    {
-		price[j] = data->assets[j].value[i];
-		nprice[j] = data->assets[j].norm_value[i];
+		price[j] = value[j][i];
+		nprice[j] = norm_value[j][i];
 	    }
 	    GetFiveStates(price,nprice,shares,M,pratio,S,vL);
-	    //if (S[5] < S[2] + 0.3*(S[2] - S[1]))
-	    //if (S[5] < S[2])
-	    //if (S[5] < S[2])
-	    if (S[5] < 0.5*(S[2] + S[3]))
+	    if (S[5] < S[3] - lambda*(S[3] - S[1]))
 	    {
 		num_trades++;
 	    	for (j = 0; j < M; j++)    
@@ -1262,7 +1280,7 @@ start_trade:
 	Vf = 0.0;
 	for (i = 0; i < M ; i++)
 	{
-	    Vf += shares[i]*data->assets[i].value[iend];  
+	    Vf += shares[i]*value[i][iend];  
 	}
 	printf("Total traded end value = %f\n",Vf);
 	printf("Change: %f percent\n",100*(Vf/V0 - 1.0));

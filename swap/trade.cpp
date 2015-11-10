@@ -614,6 +614,7 @@ extern boolean ExperimentTrade(
 		ps = data->assets[is].value[iday];
 		pb = data->assets[ib].value[iday];
 		ratio *= ps/pb;
+		printf("ratio = %f\n",ratio);
 		if (istart != -1)
 		{
 		    const char *gain_loss;

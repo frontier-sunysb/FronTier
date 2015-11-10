@@ -3,6 +3,7 @@
 static void AddAssets(MARKET_DATA*);
 static void DeleteAssets(MARKET_DATA*);
 static void PrintRateOfChange(MARKET_DATA*,boolean*);
+static void DeleteOldData(MARKET_DATA*);
 static double AssetTimeIntegral(MARKET_DATA*,int,int,int);
 
 extern double GetLeastSquare(
@@ -66,7 +67,7 @@ extern double GetLeastSquare(
 	L[0] = LA;	L[1] = LB;
 }	/* end GetLeastSquare */
 
-extern double LeastSquareQuadr(
+extern void LeastSquareQuadr(
 	double *x,
 	double *y,
 	int N,
@@ -117,7 +118,7 @@ extern double LeastSquareQuadr(
 
 #define	Det2d(a,b) ((a)[0]*(b)[1] - (a)[1]*(b)[0]) 
 
-extern double LeastSquareLinear(
+extern void LeastSquareLinear(
 	double *x,
 	double *y,
 	int N,
@@ -220,6 +221,7 @@ extern void AdjustBase(
 	int i;
 	int is,N;
 	double I;
+	double *x,*y,a,b,c;
 
 	is = (data->num_segs < data->num_backtrace) ? 0 :
 			data->num_segs - data->num_backtrace;
@@ -230,6 +232,10 @@ extern void AdjustBase(
 	    I = AssetTimeIntegral(data,i,is,data->num_segs);
 	    data->assets[i].base_value = I/N;
 	}
+	/*
+	LeastSquareLinear(x,y,N,&a,&b);
+	LeastSquareQuadr(x,y,N,&a,&b,&c);
+	*/
 }	/* end AdjustBase */
 
 extern void ModifyMarketData(
@@ -258,6 +264,13 @@ extern void ModifyMarketData(
 	if (string[0] == 'y' || string[0] == 'Y')
 	{
 	    DeleteAssets(data);
+	}
+
+	printf("Type yes to delete old data: ");
+	scanf("%s",string);
+	if (string[0] == 'y' || string[0] == 'Y')
+	{
+	    DeleteOldData(data);
 	}
 
 	printf("Type yes to change number of back trace: ");
@@ -299,16 +312,24 @@ static void AddAssets(
 	ASSET *new_assets;
 	int new_num_assets;
 	boolean *new_data_map;
+	char **names;
 
 	printf("Current number of assets: %d\n",data->num_assets);
 	printf("Enter number of assets to be added: ");
 	scanf("%d",&num_add);
+	if (num_add > 10)
+	{
+	    printf("Cannot add more than 10 assets at once!\n");
+	    return;
+	}
 
 	new_num_assets = data->num_assets + num_add;
 	FT_VectorMemoryAlloc((POINTER*)&new_assets,new_num_assets+1,
                                 sizeof(ASSET));
 	FT_VectorMemoryAlloc((POINTER*)&new_data_map,new_num_assets+1,
                                 sizeof(boolean));
+	FT_MatrixMemoryAlloc((POINTER*)&names,new_num_assets+1,100,
+                                sizeof(char));
 	for (j = 0; j < new_num_assets+1; ++j)
         {
 	    FT_VectorMemoryAlloc((POINTER*)&new_assets[j].value,
@@ -330,10 +351,13 @@ static void AddAssets(
 	    {
 		printf("Enter name of the new asset: ");
 		scanf("%s",new_assets[j].asset_name);
-		printf("Enter color of the new asset: ");
-		scanf("%s",new_assets[j].color);
-		printf("Enter base value of the new asset: ");
-		scanf("%lf",&new_assets[j].base_value);
+		strcpy(new_assets[j].color,Xcolor[j%12]);
+		strcpy(names[j],new_assets[j].asset_name);
+		GetCurrentPrice(names+j,&new_assets[j].base_value,1);
+		printf("%s: color %s  base_value = %f\n",
+				new_assets[j].asset_name,
+				new_assets[j].color,
+				new_assets[j].base_value);
 		for (i = 0; i < data->num_segs; ++i)
 		{
 		    new_assets[j].value[i] = new_assets[j].base_value;
@@ -360,6 +384,7 @@ static void AddAssets(
 	FT_FreeThese(1,data->assets);
 	
 	data->assets = new_assets;
+	data->new_data = YES;
 	data->num_assets = new_num_assets;
 }	/* end AddAssets */
 
@@ -1504,3 +1529,19 @@ extern void TimelyRecordMarketData(
 	    sleep(60);
 	}
 }	/* end TimelyRecordMarketData */
+
+static void DeleteOldData(
+	MARKET_DATA *data)
+{
+	int i,nd;
+	printf("Current number of segments is: %d\n",data->num_segs);
+	printf("Enter number of old segments to be deleted: ");
+	scanf("%d",&nd);
+	data->num_segs -= nd;
+	for (i = 0; i < data->num_assets; ++i)
+	{
+	    data->assets[i].value += nd;
+	    data->assets[i].norm_value += nd;
+	}
+	data->new_data = YES;
+}	/* end DeleteOldData */

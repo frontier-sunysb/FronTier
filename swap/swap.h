@@ -31,6 +31,9 @@ struct _ASSET
 	double *value;
 	double *norm_value;
 	double base_value;
+	double a;		/* Base value fitting parameters 	*/
+	double b;		/* Vb = a*t^2 + b*t + c 		*/
+	double c;		/* to reflect the long term trend 	*/
 	double A;		/* fit norm_value to: y = A*exp(lambda*t) */
 	double lambda;
 };
@@ -117,8 +120,8 @@ extern void PrintEquityIndex(MARKET_DATA*);
 extern void TimelyRecordMarketData(MARKET_DATA*);
 extern void FreeMarketData(MARKET_DATA*);
 extern MARKET_DATA *CopyMarketData(MARKET_DATA*);
-extern double LeastSquareQuadr(double*,double*,int,double*,double*,double*);
-extern double LeastSquareLinear(double*,double*,int,double*,double*);
+extern void LeastSquareQuadr(double*,double*,int,double*,double*,double*);
+extern void LeastSquareLinear(double*,double*,int,double*,double*);
 extern void TradeInfo(PORTFOLIO*);
 extern void PromptForDataMap(PORTFOLIO*);
 extern void ReadAccountData(PORTFOLIO*);

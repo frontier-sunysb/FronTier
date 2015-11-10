@@ -191,7 +191,7 @@ $$ME/example3d/README \
 $$ME/subsurf/*.cpp \
 $$ME/subsurf/*.h \
 $$ME/subsurf/Makefile.in \
-$$ME/subsurf/in-* \
+$$ME/subsurf/input-2d/* \
 $$ME/airfoil/*.cpp \
 $$ME/airfoil/*.h \
 $$ME/airfoil/*.cu \
