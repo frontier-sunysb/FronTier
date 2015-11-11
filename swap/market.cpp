@@ -90,6 +90,9 @@ int main(int argc, char **argv)
 		break;
 	    case 'n':
 		break;
+	    case 's':
+		InvestSimulation(data);
+		break;
 	    case 'x':
     		XgraphData(data,NULL);
 		break;

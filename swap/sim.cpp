@@ -97,14 +97,14 @@ start_trade:
 	    printf("For stock %s, enter starting number of shares: ",
 				data->assets[i].asset_name);
 	    scanf("%lf",S0+i);
-	    total_value0 += S0[i]*data->assets[i].value[is];
+	    total_value0 += S0[i]*data->assets[i].price[is];
 	}
 	printf("\nTotal starting value = %f\n",total_value0);
 	total_value = 0.0;
 	is = data->num_segs - 1;
 	for (i = 0; i < M; ++i)
 	{
-	    total_value += S0[i]*data->assets[i].value[is];
+	    total_value += S0[i]*data->assets[i].price[is];
 	}
 	printf("Total number of steps = %d\n",N);
 	printf("Total untraded end value = %f\n",total_value);
@@ -120,9 +120,9 @@ start_trade:
 	    s0_max = s1_max = -HUGE;
 	    for (i = 0; i < M; ++i)
 	    {
-	    	value = data->assets[i].norm_value + is;
+	    	value = data->assets[i].norm_price + is;
 		s0[i] = value[ns1-1] - value[ns1-2];
-		S[i] = data->assets[i].value[is+(ns1-1)];
+		S[i] = data->assets[i].price[is+(ns1-1)];
 		LeastSquareLinear(time,value,ns1,&LA,&LB);
 		LeastSquareQuadr(time,value,ns1,&QA,&QB,&QC);
 		s1[i] = LA;
@@ -175,7 +175,7 @@ start_trade:
 	{
 	    printf("For stock %s, end number of shares: %f\n",
 				data->assets[i].asset_name,S0[i]);
-	    total_value += S0[i]*data->assets[i].value[is];
+	    total_value += S0[i]*data->assets[i].price[is];
 	}
 	total_value += cash;
 	printf("Total traded end value = %f\n",total_value);
@@ -233,14 +233,14 @@ start_trade:
 	    printf("For stock %s, enter starting number of shares: ",
 				data->assets[i].asset_name);
 	    scanf("%lf",S0+i);
-	    total_value0 += S0[i]*data->assets[i].value[is];
+	    total_value0 += S0[i]*data->assets[i].price[is];
 	}
 	printf("\nTotal starting value = %f\n",total_value0);
 	total_value = 0.0;
 	is = data->num_segs - 1;
 	for (i = 0; i < M; ++i)
 	{
-	    total_value += S0[i]*data->assets[i].value[is];
+	    total_value += S0[i]*data->assets[i].price[is];
 	}
 	printf("Total untraded end value = %f\n",total_value);
 	printf("Change: %f percent\n",100*(total_value/total_value0 - 1.0));
@@ -255,9 +255,9 @@ start_trade:
 	    s0_max = s1_max = -HUGE;
 	    for (i = 0; i < M; ++i)
 	    {
-	    	value = data->assets[i].norm_value + is;
+	    	value = data->assets[i].norm_price + is;
 		s0[i] = value[ns1-1] - value[ns1-2];
-		S[i] = data->assets[i].value[is+(ns1-1)];
+		S[i] = data->assets[i].price[is+(ns1-1)];
 		LeastSquareLinear(time,value,ns1,&LA,&LB);
 		LeastSquareQuadr(time,value,ns1,&QA,&QB,&QC);
 		s1[i] = LA;
@@ -310,7 +310,7 @@ start_trade:
 	{
 	    printf("For stock %s, end number of shares: %f\n",
 				data->assets[i].asset_name,S0[i]);
-	    total_value += S0[i]*data->assets[i].value[is];
+	    total_value += S0[i]*data->assets[i].price[is];
 	}
 	total_value += cash;
 	printf("Total traded end value = %f\n",total_value);
@@ -369,7 +369,7 @@ start_trade:
 	    printf("For stock %s, enter starting number of shares: ",
 				data->assets[i].asset_name);
 	    scanf("%lf",S0+i);
-	    total_value0 += S0[i]*data->assets[i].value[is];
+	    total_value0 += S0[i]*data->assets[i].price[is];
 	}
 	printf("\nTotal starting value = %f\n",total_value0);
 	fprintf(tfile,"\nTotal starting value = %f\n",total_value0);
@@ -378,10 +378,10 @@ start_trade:
 	fprintf(tfile,"Starting assets:\n");
 	for (i = 0; i < M; ++i)
 	{
-	    total_value += S0[i]*data->assets[i].value[is];
+	    total_value += S0[i]*data->assets[i].price[is];
 	    fprintf(tfile,"%5s   %f    %10.2f\n",
 				data->assets[i].asset_name,
-				S0[i],data->assets[i].value[is]);
+				S0[i],data->assets[i].price[is]);
 	}
 	printf("Total untraded end value = %f\n",total_value);
 	printf("Change: %f percent\n",100*(total_value/total_value0 - 1.0));
@@ -399,10 +399,10 @@ start_trade:
 	    is = data->num_segs - N + j - (ns1 - 1);
 	    for (i = 0; i < M; ++i)
 	    {
-	    	value = data->assets[i].norm_value + is;
+	    	value = data->assets[i].norm_price + is;
 		s0[i] = value[ns1-1] - value[ns1-2];
-		S[i] = data->assets[i].value[is+(ns1-1)];
-		nS[i] = data->assets[i].norm_value[is+(ns1-1)];
+		S[i] = data->assets[i].price[is+(ns1-1)];
+		nS[i] = data->assets[i].norm_price[is+(ns1-1)];
 		LeastSquareLinear(time,value,ns1,&LA,&LB);
 		s1[i] = LA;
 		isort[i] = i;
@@ -440,10 +440,10 @@ start_trade:
 	{
 	    printf("For stock %s, end number of shares: %f\n",
 				data->assets[i].asset_name,S0[i]);
-	    total_value += S0[i]*data->assets[i].value[is];
+	    total_value += S0[i]*data->assets[i].price[is];
 	    fprintf(tfile,"%5s   %f    %10.2f\n",
 				data->assets[i].asset_name,
-				S0[i],data->assets[i].value[is]);
+				S0[i],data->assets[i].price[is]);
 	}
 	fprintf(tfile,"Total traded end value = %f\n",total_value);
 	fprintf(tfile,"Change: %f percent\n",
@@ -498,9 +498,9 @@ start_trade:
 	for (i = 0; i <= M; ++i)
 	{
 	    isort[i] = i;
-	    tmp_os[i] = data->assets[i].value[is];
-	    tmp_nS[i] =  data->assets[i].norm_value[is];
-	    norm_price[i] = data->assets[i].norm_value;
+	    tmp_os[i] = data->assets[i].price[is];
+	    tmp_nS[i] =  data->assets[i].norm_price[is];
+	    norm_price[i] = data->assets[i].norm_price;
 	}
 	for (i1 = 0; i1 < M; ++i1)
 	{
@@ -527,7 +527,7 @@ start_trade:
 	b = total_value0;
 	for (i = 0; i <= M; ++i)
 	{
-	    b -= slope*data->assets[isort[i]].norm_value[is];
+	    b -= slope*data->assets[isort[i]].norm_price[is];
 	    percent[i] = ini_cash[i]/total_value0; 
 	}
 	b /= (M + 1);
@@ -537,14 +537,14 @@ start_trade:
 	total_value = 0.0;
 	for (i = 0; i <= M; ++i) 
 	{
-	    total_value += des_S0[isort[i]]*data->assets[isort[i]].value[isf];
-	    linear_value[i] = slope*data->assets[i].norm_value[is] + b;
+	    total_value += des_S0[isort[i]]*data->assets[isort[i]].price[isf];
+	    linear_value[i] = slope*data->assets[i].norm_price[is] + b;
 	}
 	printf("Sorted starting prices:\n");
 	for (i = 0; i <= M; ++i)
 	{
 	    printf("%4s: %f  %8.2f  %8f\n",data->assets[isort[i]].asset_name,
-				data->assets[isort[i]].norm_value[is],
+				data->assets[isort[i]].norm_price[is],
 				linear_value[isort[i]],
 				des_S0[isort[i]]*tmp_os[isort[i]]);
 	}
@@ -560,8 +560,8 @@ start_trade:
 	    total_value = 0;    
 	    for (j = 0; j <= M; j++)    
 	    {
-		tmp_nS[isort[j]] = data->assets[isort[j]].norm_value[i];
-		tmp_os[isort[j]] = data->assets[isort[j]].value[i];
+		tmp_nS[isort[j]] = data->assets[isort[j]].norm_price[i];
+		tmp_os[isort[j]] = data->assets[isort[j]].price[i];
 		old_value[j] = tmp_os[isort[j]] * des_S0[isort[j]];
 		total_value += old_value[j];
 	    }
@@ -599,7 +599,7 @@ start_trade:
 	/* Get total value in the last day */
 	for (i = 0; i <= M ; i++)
 	{
-	    total_value += des_S0[i] * data->assets[i].value[isf];  
+	    total_value += des_S0[i] * data->assets[i].price[isf];  
 	}
 	printf("Total traded end value = %f\n",total_value);
 	printf("Change: %f percent\n",100*(total_value/total_value0 - 1.0));
@@ -633,7 +633,7 @@ extern void PrintCurrentLinearProfile(PORTFOLIO *account)
 	{
 	    if (!account->data_map[i])
 		continue;
-	    bprice[n] = data->assets[i].base_value;
+	    bprice[n] = data->base[i];
 	    num_shares[n] = account->shares[i];
 	    names[n] = data->assets[i].asset_name;
 	    n++;
@@ -829,7 +829,7 @@ static int GetAccountStates(
 	{
 	    if (!account->data_map[i])
 		continue;
-	    bprice[n] = data->assets[i].base_value;
+	    bprice[n] = data->base[i];
 	    num_shares[n] = account->shares[i];
 	    names[n] = data->assets[i].asset_name;
 	    if (eindex == i) ne = n;
@@ -1127,7 +1127,7 @@ static void PyramidTrade(
 	const char scolor[][100] = {"yellow","green","pink","blue",
                                         "red","aqua"};
 	boolean *data_map;
-	double **value,**norm_value;
+	double **value,**norm_price;
 	FILE *sfile[6];
 	int imax,imin;
 	double np_max,np_min;
@@ -1140,7 +1140,7 @@ static void PyramidTrade(
 	FT_VectorMemoryAlloc((POINTER*)&vL,M,sizeof(double));
 	FT_VectorMemoryAlloc((POINTER*)&data_map,M,sizeof(boolean));
 	FT_VectorMemoryAlloc((POINTER*)&value,M,sizeof(double*));
-	FT_VectorMemoryAlloc((POINTER*)&norm_value,M,sizeof(double*));
+	FT_VectorMemoryAlloc((POINTER*)&norm_price,M,sizeof(double*));
 	for (i = 0; i < data->num_assets; ++i)
 	{
 	    data_map[i] = NO;
@@ -1173,10 +1173,10 @@ start_trade:
 	for (i = 0; i < data->num_assets; ++i)
 	{
 	    if (!data_map[i]) continue;
-	    value[n] = data->assets[i].value;
-	    norm_value[n] = data->assets[i].norm_value;
+	    value[n] = data->assets[i].price;
+	    norm_price[n] = data->assets[i].norm_price;
 	    price[n] = value[n][istart];
-	    nprice[n] = norm_value[n][istart];
+	    nprice[n] = norm_price[n][istart];
 	    if (nprice[n] > np_max)
 	    {
 		np_max = nprice[n];
@@ -1263,7 +1263,7 @@ start_trade:
 	    for (j = 0; j < M; j++)    
 	    {
 		price[j] = value[j][i];
-		nprice[j] = norm_value[j][i];
+		nprice[j] = norm_price[j][i];
 	    }
 	    GetFiveStates(price,nprice,shares,M,pratio,S,vL);
 	    if (S[5] < S[3] - lambda*(S[3] - S[1]))

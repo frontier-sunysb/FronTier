@@ -250,7 +250,7 @@ extern void PrintOpenTrade(
 	    stock_names[i] = data->assets[i].asset_name;
 	GetCurrentPrice(stock_names,prices,M);
 	for (i = 0; i < M; ++i)
-	    data->assets[i].value[n] = prices[i];
+	    data->assets[i].price[n] = prices[i];
 	data->num_segs++;
 
 	for (i = 0; i < account->num_trades; ++i)
@@ -292,8 +292,8 @@ static double AmpRatio(
 	int is = trade.index_buy[ns];
 	int i;
 
-	double st = data->assets[is].value[n];
-	double bt = data->assets[ib].value[n];
+	double st = data->assets[is].price[n];
+	double bt = data->assets[ib].price[n];
 	ratio = 1.0;
 	for (i = istart; i < trade.num_stages; ++i)
 	{
@@ -319,8 +319,8 @@ static double currentAmpRatio(
 	ft_assign(&cur_trade,&trade,sizeof(TRADE));
 	is = cur_trade.index_sell[ns] = trade.index_buy[ns-1];
 	ib = cur_trade.index_buy[ns] = trade.index_sell[istart];
-	cur_trade.price_sell[ns] = data->assets[is].value[nd];
-	cur_trade.price_buy[ns] = data->assets[ib].value[nd];
+	cur_trade.price_sell[ns] = data->assets[is].price[nd];
+	cur_trade.price_buy[ns] = data->assets[ib].price[nd];
 	cur_trade.num_stages++;
 	return AmpRatio(cur_trade,account,istart);
 }	/* end currentAmpRatio */ 
@@ -381,7 +381,7 @@ extern double PrintClosedTradeLoop(
 	for (i = istart; i <= iend; ++i)
 	{
 	    inext = (i == iend) ? istart : i+1;
-	    current_ib_value = data->assets[ib[i]].value[iday];
+	    current_ib_value = data->assets[ib[i]].price[iday];
 	    cash_gain += ns[i]*ps[i] - nb[i]*pb[i];
 	    share_gain[i] = nb[i] - ns[inext];
 	    net_gain += current_ib_value*share_gain[i];
@@ -564,8 +564,8 @@ extern boolean ExperimentTrade(
 		account->trades[n].index_buy[0] = ib;
 		printf("Enter total cash value of the trade: ");
 		scanf("%lf",&total_cash);
-		ps = data->assets[is].value[iday];
-		pb = data->assets[ib].value[iday];
+		ps = data->assets[is].price[iday];
+		pb = data->assets[ib].price[iday];
 		printf("Number of shares to sell and buy: %d %d\n",
 				irint(total_cash/ps),irint(total_cash/pb));
 		account->trades[n].num_shares_sell[0] = irint(total_cash/ps);
@@ -611,8 +611,8 @@ extern boolean ExperimentTrade(
 		    }
 		}
 		ratio = 1.0;
-		ps = data->assets[is].value[iday];
-		pb = data->assets[ib].value[iday];
+		ps = data->assets[is].price[iday];
+		pb = data->assets[ib].price[iday];
 		ratio *= ps/pb;
 		printf("ratio = %f\n",ratio);
 		if (istart != -1)
@@ -714,7 +714,7 @@ extern void PrintOpenTradeForIndex(
 	    stock_names[i] = data->assets[i].asset_name;
 	GetCurrentPrice(stock_names,prices,M);
 	for (i = 0; i < M; ++i)
-	    data->assets[i].value[n] = prices[i];
+	    data->assets[i].price[n] = prices[i];
 	data->num_segs++;
 
 	for (i = 0; i < account->num_trades; ++i)

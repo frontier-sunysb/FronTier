@@ -28,14 +28,9 @@ struct _ASSET
 {
 	char asset_name[100];
 	char color[20];
-	double *value;
-	double *norm_value;
-	double base_value;
-	double a;		/* Base value fitting parameters 	*/
-	double b;		/* Vb = a*t^2 + b*t + c 		*/
-	double c;		/* to reflect the long term trend 	*/
-	double A;		/* fit norm_value to: y = A*exp(lambda*t) */
-	double lambda;
+	double *price;
+	double *norm_price;
+	//double base;
 };
 
 struct _MARKET_DATA
@@ -45,6 +40,7 @@ struct _MARKET_DATA
 	int num_assets;
 	int num_backtrace;
 	struct _ASSET *assets;
+	double *base;
 	boolean new_data;
 };
 
@@ -118,10 +114,12 @@ extern void InitTrade(MARKET_DATA*);
 extern void PrintAssetList(MARKET_DATA*);
 extern void PrintEquityIndex(MARKET_DATA*);
 extern void TimelyRecordMarketData(MARKET_DATA*);
+extern void ComputeAllNormPrice(MARKET_DATA*,int);
 extern void FreeMarketData(MARKET_DATA*);
 extern MARKET_DATA *CopyMarketData(MARKET_DATA*);
 extern void LeastSquareQuadr(double*,double*,int,double*,double*,double*);
 extern void LeastSquareLinear(double*,double*,int,double*,double*);
+extern void LeastSquareConstant(double*,double*,int,double*);
 extern void TradeInfo(PORTFOLIO*);
 extern void PromptForDataMap(PORTFOLIO*);
 extern void ReadAccountData(PORTFOLIO*);
