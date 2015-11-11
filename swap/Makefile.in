@@ -21,7 +21,7 @@ Petsc_Lib=@PETSC_LIB@
 
 USEGPU = @USEGPU@
 
-all : swap status record play
+all : swap market status record play
 
 swap : @devel@
 
@@ -51,6 +51,10 @@ record: swap.h record.cpp sim.o sub.o web.o trade.o DG.class
 play: swap.h play.cpp sim.o sub.o web.o trade.o DG.class
 	${CXX} -c play.cpp $(incsloc) $(incs) ${Petsc_Include}
 	$(CXX) -o play play.o sim.o sub.o web.o trade.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs) $(LFLAGS) $(libs) ${F77_LIBS}
+
+market: swap.h market.cpp sim.o sub.o web.o trade.o DG.class
+	${CXX} -c market.cpp $(incsloc) $(incs) ${Petsc_Include}
+	$(CXX) -o market market.o sim.o sub.o web.o trade.o -I../include -L../lib/${build_cpu} ${Petsc_Lib} -L../lib/${build_cpu} -lFronTier $(libincs) $(LFLAGS) $(libs) ${F77_LIBS}
 
 -include ../devel-deps.inc
 

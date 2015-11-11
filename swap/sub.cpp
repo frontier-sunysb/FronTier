@@ -467,7 +467,7 @@ extern void AddData(
 
 extern void XgraphData(
 	MARKET_DATA *ori_data,
-	boolean *data_map)
+	boolean *account_data_map)
 {
 	char fname[100];
 	FILE *xfile;
@@ -475,10 +475,25 @@ extern void XgraphData(
 	double time;
 	double *value,ave_value;
 	MARKET_DATA *data = CopyMarketData(ori_data);
+	boolean *data_map = account_data_map;
 
+	
+	M = data->num_assets;
+	if (data_map == NULL)
+	{
+	    char string[10];
+	    FT_VectorMemoryAlloc((POINTER*)&data_map,M,sizeof(boolean));
+	    for (i = 0; i < M; ++i)
+	    {
+		data_map[i] = NO;
+		printf("Include %4s: ",data->assets[i].asset_name);
+		scanf("%s",string);
+		if (string[0] == 'y')
+		    data_map[i] = YES;
+	    }
+	}
 	AddData(data,YES);
 	create_directory("xg",NO);
-	M = data->num_assets;
 	is = (data->num_segs < data->num_backtrace) ? 0 :
 		data->num_segs - data->num_backtrace;
 	for (j = 0; j < M; ++j)
@@ -1119,7 +1134,7 @@ extern void WriteAccountData(
 
 extern void RankData(
 	MARKET_DATA *data,
-	boolean *data_map)
+	boolean *account_data_map)
 {
 	int i,j;
 	int n = data->num_segs-1;
@@ -1133,9 +1148,24 @@ extern void RankData(
 	int num_ave = 0;
 	int is_first,is_last;
 	MARKET_DATA *copy_data;
+	boolean *data_map = account_data_map;
 
 	copy_data = CopyMarketData(data);
 	printf("Number of backtrace: %d\n",copy_data->num_backtrace);
+
+	if (data_map == NULL)
+	{
+	    char string[10];
+	    FT_VectorMemoryAlloc((POINTER*)&data_map,M,sizeof(boolean));
+	    for (i = 0; i < M; ++i)
+	    {
+		data_map[i] = NO;
+		printf("Include %4s: ",data->assets[i].asset_name);
+		scanf("%s",string);
+		if (string[0] == 'y')
+		    data_map[i] = YES;
+	    }
+	}
 
 start_ranking:
 
