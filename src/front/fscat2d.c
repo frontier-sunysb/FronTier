@@ -1531,7 +1531,12 @@ LOCAL	void	point_on_cut_line(
 	    if (t > 1.0)
 	        t = 1.0;
 	    for (i = 0; i < dim; ++i)
-	        Coords(p)[i] = (1.0 - t)*crds_s[i] + t*crds_e[i];
+	    {
+		if (crds_s[i] == crds_e[i])
+                    Coords(p)[i] = crds_s[i];
+                else
+                    Coords(p)[i] = (1.0 - t)*crds_s[i] + t*crds_e[i];
+	    }
 	}
 	Coords(p)[dir] = cut;	/* this value must be exact */
 }		/*end point_on_cut_line*/

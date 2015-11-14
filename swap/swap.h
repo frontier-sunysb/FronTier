@@ -105,8 +105,6 @@ extern void DataTrend(MARKET_DATA*,boolean*);
 extern void ReadMarketData(MARKET_DATA*);
 extern void WriteMarketData(MARKET_DATA*);
 extern void AddData(MARKET_DATA*,boolean);
-extern void ContinueBaseAdjust(MARKET_DATA*);
-extern void AdjustBase(MARKET_DATA*);
 extern void ModifyMarketData(MARKET_DATA*);
 extern void DataCompare(MARKET_DATA*);
 extern void RankData(MARKET_DATA*,boolean*);

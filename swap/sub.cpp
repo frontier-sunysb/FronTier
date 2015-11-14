@@ -156,65 +156,6 @@ extern void LeastSquareLinear(
 	*B = Det2d(a,c)/dinom;
 }	/* end LeastSquareLinear */
 
-extern void ContinueBaseAdjust(
-        MARKET_DATA *data)
-{
-	int time_p;    /* time period */
-	int i,j,k,M = data->num_assets;
-	int save_num_segs = data->num_segs;
-	int backtrace;
-	char account_name[256];
-	char fname[256],dirname[256];
-	FILE **bfiles;
-	double ave_value;
-	double *base0;
-
-	FT_VectorMemoryAlloc((POINTER*)&bfiles,M,sizeof(FILE*));
-	FT_VectorMemoryAlloc((POINTER*)&base0,M,sizeof(double));
-
-	printf("There are total %d days of data\n",data->num_segs);
-	printf("Enter backtrace for base update: ");
-	scanf("%d", &backtrace);
-	if (backtrace > MAX_TRACE) 
-	{
-	    printf("backtrace too large, setting to %d\n",MAX_TRACE);
-	    backtrace = MAX_TRACE;
-	}
-	data->num_backtrace = backtrace;
-	printf("Enter simulation account name: ");
-	scanf("%s",account_name);
-	sprintf(dirname,"simulation/%s-base",account_name);
-	create_directory(dirname,NO);
-	for (i = 0; i < M; ++i)
-	{
-	    sprintf(fname,"%s/%s",dirname,data->assets[i].asset_name);
-	    bfiles[i] = fopen(fname,"w");
-	    fprintf(bfiles[i],"Next\n");
-	    fprintf(bfiles[i],"color=%s\n",data->assets[i].color);
-	    fprintf(bfiles[i],"thickness = 1.5\n");
-	}
-
-	for (j = 10; j <= save_num_segs; j++)
-	{
-	    data->num_segs = j;
-	    AdjustBase(data);
-	    for (i = 0; i < data->num_assets; i++)
-	    {
-		if (j == 10)
-		    base0[i] = data->base[i];
-		k = data->num_segs-1;
-		data->assets[i].norm_price[k] =
-			data->assets[i].price[k]/data->base[i];
-		fprintf(bfiles[i],"%f  %f\n",(double)j,
-			data->base[i]/base0[i]);
-	    }
-	}
-	for (i = 0; i < data->num_assets; i++)
-	    fclose(bfiles[i]);
-	FT_FreeThese(2,bfiles,base0);
-	data->num_segs = save_num_segs;
-}	/* end ContinueBaseAdjust */
-
 extern void ComputeNormalPrice(
 	MARKET_DATA *data,
 	int iseg,
@@ -322,29 +263,25 @@ extern void ComputeNormalPrice(
         	fprintf(xfile,"thickness = 1.5\n");
 		for (k = 0; k < N; ++k)
 			fprintf(xfile,"%f  %f\n",x[k],b*x[k] + c);
+		fprintf(xfile,"Next\n");
+        	fprintf(xfile,"color=aqua\n");
+        	fprintf(xfile,"thickness = 1.5\n");
+		n = 0;
+		for (j = is; j < is + N; ++j)
+		{
+		    y[n] = data->assets[i].price[j]/
+				data->assets[i].norm_price[j];
+		    n++;
+		}
+		for (k = 0; k < N; ++k)
+		{
+		    fprintf(xfile,"%f  %f\n",x[k],y[k]);
+		}
 		fclose(xfile);
 	    }
 	}
 	FT_FreeThese(2,x,y);
 }	/* end ComputeNormalPrice */
-
-extern void AdjustBase(
-	MARKET_DATA *data)
-{
-	int i;
-	int is,N;
-	double I;
-
-	is = (data->num_segs < data->num_backtrace) ? 0 :
-			data->num_segs - data->num_backtrace;
-	N = data->num_segs - is;
-
-	for (i = 0; i < data->num_assets; ++i)	
-	{
-	    I = AssetTimeIntegral(data,i,is,data->num_segs);
-	    data->base[i] = I/N;
-	}
-}	/* end AdjustBase */
 
 extern void ModifyMarketData(
 	MARKET_DATA *data)
@@ -364,7 +301,7 @@ extern void ModifyMarketData(
 	scanf("%s",string);
 	if (string[0] == 'y' || string[0] == 'Y')
 	{
-	    AddAssets(data);
+	    data->new_data = YES;
 	}
 
 	printf("Type yes to delete assets: ");
@@ -379,6 +316,7 @@ extern void ModifyMarketData(
 	if (string[0] == 'y' || string[0] == 'Y')
 	{
 	    DeleteOldData(data);
+	    data->new_data = YES;
 	}
 
 	printf("Type yes to change number of back trace: ");
@@ -388,13 +326,14 @@ extern void ModifyMarketData(
 	    printf("Current back trace: %d\n",data->num_backtrace);
 	    printf("Enter number of back trace: ");
 	    scanf("%d",&data->num_backtrace);
+	    data->new_data = YES;
 	}
 
 	printf("Type yes to modify data base: ");
 	scanf("%s",string);
 	if (string[0] != 'y' && string[0] != 'Y')
 	    return;
-	AdjustBase(data);
+	ComputeAllNormPrice(data,0);
 }	/* end ModifyMarketData */
 
 extern void ModifyAccount(
@@ -558,20 +497,22 @@ extern void AddData(
 	    }
 	}
 
-	ave_value = 0.0;
 	for (j = 0; j < M; ++j)
 	{
 	    data->assets[j].price[m] = current_price[j];
 	    if (data->assets[j].price[m] == -1)
 		data->assets[j].price[m] = data->assets[j].price[m-1];
-	    data->assets[j].norm_price[m] = data->assets[j].price[m]/
-					data->base[j];
-	    ave_value += data->assets[j].norm_price[m];
 	}
+	data->num_segs += 1;
+	ComputeAllNormPrice(data,0);
+
+	m = data->num_segs - 1;
+	ave_value = 0.0;
+	for (j = 0; j < M; ++j)
+	    ave_value += data->assets[j].norm_price[m];
 	data->base[j] = 1.0;
 	data->assets[j].price[m] = ave_value/data->num_assets;
 	data->assets[j].norm_price[m] = data->assets[j].price[m];
-	data->num_segs += 1;
 	data->new_data = YES;
 	FT_FreeThese(2,stock_names,current_price);
 }	/* end AddData */
@@ -783,11 +724,9 @@ extern void DataTrend(
 	int i,j,k,is,N;
 	int M = data->num_assets;
 	double QA,QB,QC,LA,LB,mLA,mLB;
-	FILE *sfile0,*sfile1,*sfile2;
-	FILE *qfile1,*qfile2;
+	FILE *sfile1,*sfile2;
 	FILE *vfile0,*vfile1;
 	FILE *mfile0,*mfile1;
-	FILE *msfile0,*msfile1,*msfile2;
 	double *value,time[MAX_TRACE],mean[MAX_TRACE];
 	double value_ave,mean_ave[MAX_TRACE];
 	double *pmean,*pmean_ave;
@@ -802,14 +741,8 @@ extern void DataTrend(
 	vfile1 = fopen("xg/v-1.xg","w");
 	mfile0 = fopen("xg/m-0.xg","w");
 	mfile1 = fopen("xg/m-1.xg","w");
-	sfile0 = fopen("xg/s-0.xg","w");
 	sfile1 = fopen("xg/s-1.xg","w");
 	sfile2 = fopen("xg/s-2.xg","w");
-	qfile1 = fopen("xg/c-1.xg","w");
-	qfile2 = fopen("xg/c-2.xg","w");
-	msfile0 = fopen("xg/ms-0.xg","w");
-	msfile1 = fopen("xg/ms-1.xg","w");
-	msfile2 = fopen("xg/ms-2.xg","w");
 
 	N = data->num_backtrace - 12;
 	if (N > MAX_TRACE - 12) N = MAX_TRACE - 12;
@@ -840,16 +773,10 @@ extern void DataTrend(
 	{
 	    if (data_map[i] != YES)
 	    	continue;
-	    fprintf(sfile0,"color=%s\n",data->assets[i].color);
-	    fprintf(sfile0,"thickness = 1.5\n");
 	    fprintf(sfile1,"color=%s\n",data->assets[i].color);
 	    fprintf(sfile1,"thickness = 1.5\n");
 	    fprintf(sfile2,"color=%s\n",data->assets[i].color);
 	    fprintf(sfile2,"thickness = 1.5\n");
-	    fprintf(qfile1,"color=%s\n",data->assets[i].color);
-	    fprintf(qfile1,"thickness = 1.5\n");
-	    fprintf(qfile2,"color=%s\n",data->assets[i].color);
-	    fprintf(qfile2,"thickness = 1.5\n");
 	    fprintf(vfile0,"color=%s\n",data->assets[i].color);
 	    fprintf(vfile0,"thickness = 1.5\n");
 	    fprintf(vfile1,"color=%s\n",data->assets[i].color);
@@ -858,12 +785,6 @@ extern void DataTrend(
 	    fprintf(mfile0,"thickness = 1.5\n");
 	    fprintf(mfile1,"color=%s\n",data->assets[i].color);
 	    fprintf(mfile1,"thickness = 1.5\n");
-	    fprintf(msfile0,"color=%s\n",data->assets[i].color);
-	    fprintf(msfile0,"thickness = 1.5\n");
-	    fprintf(msfile1,"color=%s\n",data->assets[i].color);
-	    fprintf(msfile1,"thickness = 1.5\n");
-	    fprintf(msfile2,"color=%s\n",data->assets[i].color);
-	    fprintf(msfile2,"thickness = 1.5\n");
 
 	    for (j = 0; j < N; ++j)
 	    {
@@ -878,26 +799,16 @@ extern void DataTrend(
 		value_ave = (0.5*(value[0] + value[3]) +
 				value[1] + value[2])/3.0;
 		fprintf(vfile1,"%f  %f\n",time[j],100.0*value_ave);
-		fprintf(sfile0,"%f  %f\n",time[j],
-				400.0*(value[3] - value[2]));
 		if (j == N-1) s0[i] = 100.0*(value[3] - value[2])/0.25;
 
 		fprintf(mfile0,"%f  %f\n",time[j],100.0*(value[3] - pmean[3]));
 		fprintf(mfile1,"%f  %f\n",time[j],
 				100.0*(value_ave - pmean_ave[3]));
-		fprintf(msfile0,"%f  %f\n",time[j],
-				400.0*((value[3] - value[2]) -
-				       (pmean[3] - pmean[2])));
 
 		/* Average slope of the day */
 		LeastSquareLinear(time,value,4,&LA,&LB);
-		LeastSquareLinear(time,pmean,4,&mLA,&mLB);
 		fprintf(sfile1,"%f  %f\n",time[j],100.0*LA);
-		fprintf(msfile1,"%f  %f\n",time[j],100.0*(LA - mLA));
 		/* Average concavity of the day */
-		LeastSquareQuadr(time,value,4,&QA,&QB,&QC);
-		fprintf(qfile1,"%f  %f\n",time[j],100.0*QA);
-		if (j == N-1) s1[i] = LA;
 
 		/* Average slope of two days */
 		is = data->num_segs - N - 7;
@@ -905,24 +816,15 @@ extern void DataTrend(
 
 		LeastSquareLinear(time,value,8,&LA,&LB);
 		fprintf(sfile2,"%f  %f\n",time[j],100.0*LA);
-		fprintf(msfile2,"%f  %f\n",time[j],100.0*(LA - mLA));
 		/* Average concavity of two days */
-		LeastSquareQuadr(time,value,8,&QA,&QB,&QC);
-		fprintf(qfile2,"%f  %f\n",time[j],100.0*QA);
 
 	    }
 	    fprintf(vfile0,"Next\n");
 	    fprintf(vfile1,"Next\n");
-	    fprintf(sfile0,"Next\n");
 	    fprintf(sfile1,"Next\n");
 	    fprintf(sfile2,"Next\n");
-	    fprintf(qfile1,"Next\n");
-	    fprintf(qfile2,"Next\n");
 	    fprintf(mfile0,"Next\n");
 	    fprintf(mfile1,"Next\n");
-	    fprintf(msfile0,"Next\n");
-	    fprintf(msfile1,"Next\n");
-	    fprintf(msfile2,"Next\n");
 	}
 	fprintf(vfile0,"Next\n");
 	fprintf(vfile0,"color=aqua\n");
@@ -935,16 +837,10 @@ extern void DataTrend(
 	}
 	fclose(vfile0);
 	fclose(vfile1);
-	fclose(sfile0);
 	fclose(sfile1);
 	fclose(sfile2);
-	fclose(qfile1);
-	fclose(qfile2);
 	fclose(mfile0);
 	fclose(mfile1);
-	fclose(msfile0);
-	fclose(msfile1);
-	fclose(msfile2);
 }	/* end DataTrend */
 
 static void PrintRateOfChange(
@@ -1070,7 +966,7 @@ extern void ReadMarketData(
 	    }
 	    fclose(infile);
 	}
-	ComputeAllNormPrice(data,2);
+	ComputeAllNormPrice(data,0);
 	for (i = 0; i < data->num_segs; ++i)
 	{
 	    double ave_value = 0.0;
@@ -1159,7 +1055,7 @@ extern void WriteMarketData(
 	FILE *bfile,*outfile;
 
 	if (!data->new_data) return;
-	AdjustBase(data);
+	ComputeAllNormPrice(data,0);
 	sprintf(dirname,"base/%s",data->data_name);
 	create_directory(dirname,NO);
     	for (m = 0; m < data->num_assets; ++m)	
@@ -1284,6 +1180,9 @@ extern void RankData(
 	}
 
 start_ranking:
+	printf("Enter new number of backtrace (current %d): ",
+				copy_data->num_backtrace);
+	scanf("%d",&copy_data->num_backtrace);
 	printf("Enter least square order: ");
 	scanf("%d",&order);
 	ComputeAllNormPrice(copy_data,order);
@@ -1355,8 +1254,6 @@ start_ranking:
 	scanf("%s",string);
 	if (string[0] == 'y')
 	{
-	    printf("Enter new number of backtrace: ");
-	    scanf("%d",&copy_data->num_backtrace);
 	    goto start_ranking;
 	}
 	FT_FreeThese(1,isort);
@@ -1647,7 +1544,7 @@ extern void TimelyRecordMarketData(
 	    strftime(string,100*sizeof(char),"%H",std::localtime(&t));
             hour = atoi(string);
 	    m = data->num_segs;
-	    if (day >= 1 && day <= 5 && hour >= 10 && hour <= 17)
+	    if (day >= 1 && day <= 5 && hour >= 10 && hour <= 16)
 	    {
 		FreeMarketData(data);
 		FT_ScalarMemoryAlloc((POINTER*)&data,sizeof(MARKET_DATA));

@@ -348,7 +348,7 @@ static void IntegralSlopeTrade(
 	printf("Type yes to adjust base: ");
 	scanf("%s",string);
 	if (string[0] == 'y' || string[0] == 'Y')
-	    ContinueBaseAdjust(data);
+	    ComputeAllNormPrice(data,1);
 start_trade:
 
 	create_directory("trade",NO);
@@ -484,7 +484,7 @@ static void PyramidTrade_old(
 	printf("Type yes to adjust base: ");
 	scanf("%s", string);
 	if (string[0] == 'Y' || string[0] == 'y')
-	   ContinueBaseAdjust(data);
+	   ComputeAllNormPrice(data,1);
 	exit(0);
 
 start_trade:
@@ -1150,7 +1150,7 @@ static void PyramidTrade(
 	}
 
 start_trade:
-	ContinueBaseAdjust(data);
+	ComputeAllNormPrice(data,1);
 	printf("Enter polarization ratio of the profile: ");
 	scanf("%lf",&pratio);
 	printf("Enter exchange level parameter: ");
