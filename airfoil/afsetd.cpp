@@ -561,7 +561,7 @@ extern void set_node_spring_vertex(
 	if (iFparams != NULL)
  	    g = iFparams->gravity;
 	else
-	    g == NULL;
+	    g = NULL;
 	if (dim == 3)
 	{
 	    AF_NODE_EXTRA *extra = (AF_NODE_EXTRA*)node->extra;
