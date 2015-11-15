@@ -169,9 +169,8 @@ LOCAL	void equi_redist_curve_seg_o1(
 	    if ((b->next != bend) ||
 	        (sc_len >= offset + MIN_SC_SEP(c->interface)))
 	    {
-	    	s = offset/sc_len;	oms = 1.0 - s;
-	    	coords[0] = oms * Coords(b->start)[0] + s * Coords(b->end)[0];
-	    	coords[1] = oms * Coords(b->start)[1] + s * Coords(b->end)[1];
+	    	s = offset/sc_len;
+		interpolate_coords(coords,Coords(b->start),Coords(b->end),s,2);
 	    	if (insert_point_in_bond(Point(coords),b,c) !=
 		    FUNCTION_SUCCEEDED)
 	    	{
@@ -1513,8 +1512,7 @@ EXPORT boolean redistribute_curve(
 		    if (ordered_bonds[j] == b || ordered_bonds[j] == b->prev)
 			ordered_bonds[j] = NULL;
 		}
-		for (j = 0; j < 3; ++j)
-		    newp[j] = 0.5*(Coords(b->start)[j] + Coords(b->end)[j]);
+		interpolate_coords(newp,Coords(b->start),Coords(b->end),0.5,3);
 		insert_point_in_bond(Point(newp),b,curve);
 	    }
 	}
@@ -1812,3 +1810,16 @@ LOCAL boolean will_form_foldback(
 	}
 	return NO;
 }	/* end will_form_foldback */
+
+EXPORT void interpolate_coords(
+	double *ans,
+	double *coords1,
+	double *coords2,
+	double t,
+	int dim)
+{
+	int i;
+	for (i = 0; i < dim; ++i)
+	    ans[i] = (coords1[i] == coords2[i]) ? coords1[i] :
+			(1.0 - t)*coords1[i] + t*coords2[i];
+}	/* end interpolate_coords */

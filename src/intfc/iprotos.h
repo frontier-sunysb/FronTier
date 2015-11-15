@@ -265,7 +265,6 @@ IMPORT boolean curve_in_interface(CURVE*,INTERFACE*);
 IMPORT boolean node_in_interface(NODE*,INTERFACE*);
 IMPORT void unit_vector(double*,double*,int);
 IMPORT BOND *bond_of_boundary_point(POINT*,TRI*);
-IMPORT void linear_22_equation(double*,double*,double*,double*);
 
 /*	iuserintfc.c*/
 IMPORT	I_USER_INTERFACE	*i_user_hook(int);
@@ -803,6 +802,7 @@ IMPORT  POINTER init_propeller_params(RECT_GRID*);
 IMPORT  double   propeller_func(POINTER,double*);
 IMPORT  double   multi_circle_func(POINTER,double*);
 IMPORT	double 	level_wave_func(POINTER,double*);
+IMPORT  double  level_cwave_func(POINTER,double*);
 IMPORT	double 	level_circle_func(POINTER,double*);
 IMPORT	double 	slotted_disk_func(POINTER,double*);
 IMPORT	double 	slotted_disk_func(POINTER,double*);
@@ -820,6 +820,7 @@ IMPORT  double  tetrahedron_func(POINTER,double*);
 IMPORT  double  stellatedoctahedron_func(POINTER,double*);
 IMPORT  double  platform_func(POINTER,double*);
 IMPORT  void  	adjust_rectangle_params(RECTANGLE_PARAMS*,RECT_GRID*);
+IMPORT  void  	interpolate_coords(double*,double*,double*,double,int);
 
 /*      imksurf.c */
 IMPORT  boolean 	make_bdry_surfaces(INTERFACE*,RECT_GRID*);

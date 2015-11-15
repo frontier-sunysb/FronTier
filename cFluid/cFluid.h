@@ -500,6 +500,7 @@ private:
 	void scatMeshGhost();
 	void GFMGhostState(int*,int,STATE*);
 	void checkCorrectForTolerance(STATE*);
+	void adjustGFMStates();
 };
 
 extern double getStateDens(POINTER);

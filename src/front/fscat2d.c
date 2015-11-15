@@ -1520,8 +1520,7 @@ LOCAL	void	point_on_cut_line(
 
 	if (pe == ps)
 	{
-	    for (i = 0; i < dim; ++i)
-		Coords(p)[i] = 0.5*(crds_s[i] + crds_e[i]);
+	    interpolate_coords(Coords(p),crds_s,crds_e,0.5,dim);
 	}
 	else
 	{
@@ -1532,10 +1531,7 @@ LOCAL	void	point_on_cut_line(
 	        t = 1.0;
 	    for (i = 0; i < dim; ++i)
 	    {
-		if (crds_s[i] == crds_e[i])
-                    Coords(p)[i] = crds_s[i];
-                else
-                    Coords(p)[i] = (1.0 - t)*crds_s[i] + t*crds_e[i];
+	    	interpolate_coords(Coords(p),crds_s,crds_e,t,dim);
 	    }
 	}
 	Coords(p)[dir] = cut;	/* this value must be exact */

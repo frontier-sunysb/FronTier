@@ -988,9 +988,8 @@ EXPORT boolean expand_redist_cur(
 	    	while (pts_added > 0)
 	    	{
 	    	    t = 1.0/((double)(pts_added-- + 1));
-	    	    for (i = 0; i < dim; ++i)
-	    		coords[i] = (1.0 - t)*Coords(b->start)[i]
-	    				 + t *Coords(b->end)[i];
+		    interpolate_coords(coords,Coords(b->start),Coords(b->end),
+					t,2);
 	    	    if (insert_point_in_bond(Point(coords),b,c) !=
 			FUNCTION_SUCCEEDED)
 	    	    {
@@ -1318,8 +1317,8 @@ Loop:
 	    scaled_length = scaled_bond_length(b,h,dim);
 	    if (scaled_length >= 0.5 * spacing)
 	    {
-	    	coords[0] = 0.5 * (Coords(b->start)[0] + Coords(b->end)[0]);
-		coords[1] = 0.5 * (Coords(b->start)[1] + Coords(b->end)[1]);
+		interpolate_coords(coords,Coords(b->start),Coords(b->end),
+						0.5,2);
 		if (insert_point_in_bond(Point(coords),b,c) !=
 		    FUNCTION_SUCCEEDED)
 		{
@@ -1367,8 +1366,8 @@ Loop:
 
 	    if (cos_angle <= -0.3) 
 	    {
-	    	coords[0] = 0.9*Coords(b->end)[0] + 0.1*Coords(b->start)[0];
-		coords[1] = 0.9*Coords(b->end)[1] + 0.1*Coords(b->start)[1];
+		interpolate_coords(coords,Coords(b->end),Coords(b->start),
+					0.1,2);
 		if (insert_point_in_bond(Point(coords),b,c) !=
 		    FUNCTION_SUCCEEDED)
 		{
@@ -1380,8 +1379,7 @@ Loop:
 		}
 		b = b->next;
 		(void) delete_start_of_bond(b->next,c);
-		coords[0] = 0.1*Coords(b->end)[0] + 0.9*p[0];
-		coords[1] = 0.1*Coords(b->end)[1] + 0.9*p[1];
+		interpolate_coords(coords,Coords(b->end),p,0.9,2);
 		if (insert_point_in_bond(Point(coords),b,c) !=
 		    FUNCTION_SUCCEEDED)
 		{

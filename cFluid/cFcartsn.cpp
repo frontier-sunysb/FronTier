@@ -155,6 +155,7 @@ void G_CARTESIAN::setComponent(void)
 	if(state == NULL)
 	    FT_ScalarMemoryAlloc((POINTER*)&state,sizeof(STATE));
 
+	adjustGFMStates();
 	for (i = 0; i < size; i++)
 	{
 	    icoords = cell_center[i].icoords;
@@ -4611,7 +4612,7 @@ boolean G_CARTESIAN::get_ave_state(
 {
 	int		i, j, k, l, num, ic1[3], dir;
 	float		gd, gp, gvel[3];
-	boolean		found;
+	boolean		found = NO;
 	double		**momn = m_vst.momn;
 	double		*dens = m_vst.dens;
 	double		*pres = m_vst.pres;
@@ -4620,21 +4621,23 @@ boolean G_CARTESIAN::get_ave_state(
 	double		**Gpres = eqn_params->Gpres;
 	int		index, index0;
 	int		icoords[MAXD];
+	int 		istart = std::max(0, ic[0] - 3);
+        int 		jstart = std::max(0, ic[1] - 3);
+        int 		kstart = std::max(0, ic[2] - 3);
+        int 		iend = std::min(top_gmax[0],ic[0]+3);
+        int 		jend = std::min(top_gmax[1],ic[1]+3);
+        int 		kend = std::min(top_gmax[2],ic[2]+3);
 
-	found = NO;
-
-	for(i=0; i<dim; i++)
-	    for(j=0; j<2; j++)
-	    {
-		dir = j == 0 ? -1 : 1;
-		ft_assign(ic1, ic, 3*INT);
-		ic1[i] = ic[i] + dir;
-
-		if(ic1[i] < 0 || ic1[i] > top_gmax[i])
-		    continue;
-		if(norset[ic1[0]][ic1[1]][ic1[2]] == 1)
-		    found = YES;
-	    }
+	for (i = istart; i <= iend; i++)
+        for (j = jstart; j <= jend; j++)
+        for (k = kstart; k <= kend; k++)
+        {
+             if (norset[i][j][k] == 1)
+             {
+                 found = YES;
+                 break;
+             }
+        }
 
 	if(!found)
 	    return NO;
@@ -4648,9 +4651,9 @@ boolean G_CARTESIAN::get_ave_state(
 	gvel[1] = 0.0;
 	gvel[2] = 0.0;
 
-	for (i = ic[0]-1; i <= ic[0]+1; i++)
-	for (j = ic[1]-1; j <= ic[1]+1; j++)
-	for (k = ic[2]-1; k <= ic[2]+1; k++)
+	for (i = istart; i <= iend; i++)
+        for (j = jstart; j <= jend; j++)
+        for (k = kstart; k <= kend; k++)
 	{
 	    icoords[0] = i;
 	    icoords[1] = j;
@@ -5389,3 +5392,82 @@ void G_CARTESIAN::errFunction()
 	    }
 	}
 }	/* end errFunction, check the accuracy in AccuracySineWave case */
+
+
+void G_CARTESIAN::adjustGFMStates()
+{
+        if(eqn_params->tracked)
+        {
+           double ***Gvel = eqn_params->Gvel;
+           double **Gdens = eqn_params->Gdens;
+           double **Gpres = eqn_params->Gpres;
+           int i,j,ii,jj,k,index,index1,ind;
+           int icoords[3];
+
+           for (i = 0; i <= top_gmax[0]; i++)
+           for (j = 0; j <= top_gmax[1]; j++)
+           for (k = 0; k <= top_gmax[2]; k++)
+           {
+                icoords[0] = i;
+                icoords[1] = j;
+                icoords[2] = k;
+                index = d_index(icoords,top_gmax,dim);
+
+                if (cell_center[index].comp != top_comp[index])
+                {
+                    if (top_comp[index] == GAS_COMP1)
+                        ind = 0;
+                    else
+                        ind = 1;
+
+                    for (jj = 0; (j+jj) <= top_gmax[1]; jj++)
+                    {
+                         icoords[1] = j+jj;
+                         index1 = d_index(icoords,top_gmax,dim);
+                         Gdens[ind][index] = Gdens[ind][index1];
+                         Gvel[ind][index] = Gvel[ind][index1];
+                         Gpres[ind][index] = Gpres[ind][index1];
+
+                         if (Gdens[ind][index] != 0)
+                             break;
+                    }
+
+                    for (jj = 0; (j+jj) >= 0; jj--)
+                    {
+                         icoords[1] = j+jj;
+                         index1 = d_index(icoords,top_gmax,dim);
+                         Gdens[ind][index] = Gdens[ind][index1];
+                         Gvel[ind][index] = Gvel[ind][index1];
+                         Gpres[ind][index] = Gpres[ind][index1];
+
+                         if (Gdens[ind][index] != 0)
+                             break;
+                    }
+
+                    for (ii = 0; (i+ii) >= 0; ii--)
+                    {
+                         icoords[0] = i+ii;
+                         index1 = d_index(icoords,top_gmax,dim);
+                         Gdens[ind][index] = Gdens[ind][index1];
+                         Gvel[ind][index] = Gvel[ind][index1];
+                         Gpres[ind][index] = Gpres[ind][index1];
+
+                         if (Gdens[ind][index] != 0)
+                             break;
+                    }
+
+                    for (ii = 0; (i+ii) <= top_gmax[0]; ii++)
+                    {
+                         icoords[0] = i+ii;
+                         index1 = d_index(icoords,top_gmax,dim);
+                         Gdens[ind][index] = Gdens[ind][index1];
+                         Gvel[ind][index] = Gvel[ind][index1];
+                         Gpres[ind][index] = Gpres[ind][index1];
+
+                         if (Gdens[ind][index] != 0)
+                             break;
+                    }
+                }
+           }
+        }
+}	/* end adjustGFMState */

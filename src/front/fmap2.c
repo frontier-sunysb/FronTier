@@ -345,9 +345,8 @@ static	void forward_curve_seg_len_constr(
 	    }
 	    if (sc_len > offset + space_tol)
 	    {
-	    	s = offset/sc_len;	oms = 1.0 - s;
-	    	coords[0] = oms*Coords(b->start)[0] + s*Coords(b->end)[0];
-	    	coords[1] = oms*Coords(b->start)[1] + s*Coords(b->end)[1];
+	    	s = offset/sc_len;
+		interpolate_coords(coords,Coords(b->start),Coords(b->end),s,2);
 		if (b == bend) reset_bend = YES;
 		else reset_bend = NO;
 	    	if (insert_point_in_bond(Point(coords),b,c) !=
@@ -386,9 +385,9 @@ static	void forward_curve_seg_len_constr(
 		b = bend;
 		while (total_offset/b_len > 2.0 - space_tol)
 		{
-	    	    s = b_len/total_offset;	oms = 1.0 - s;
-	    	    coords[0] = oms*Coords(b->start)[0] + s*Coords(b->end)[0];
-	    	    coords[1] = oms*Coords(b->start)[1] + s*Coords(b->end)[1];
+	    	    s = b_len/total_offset;
+		    interpolate_coords(coords,Coords(b->start),
+					Coords(b->end),s,2);
 	    	    if (insert_point_in_bond(Point(coords),b,c) !=
 		    	FUNCTION_SUCCEEDED)
 	    	    {
@@ -444,9 +443,8 @@ static	void backward_curve_seg_len_constr(
 	    }
 	    if (sc_len > offset + space_tol)
 	    {
-	    	s = offset/sc_len;	oms = 1.0 - s;
-	    	coords[0] = oms*Coords(b->end)[0] + s*Coords(b->start)[0];
-	    	coords[1] = oms*Coords(b->end)[1] + s*Coords(b->start)[1];
+	    	s = offset/sc_len;
+		interpolate_coords(coords,Coords(b->end),Coords(b->start),s,2);
 		if (b == bend) reset_bend = YES;
 		else reset_bend = NO;
 	    	if (insert_point_in_bond(Point(coords),b,c) !=
@@ -485,9 +483,9 @@ static	void backward_curve_seg_len_constr(
 		b = bstart;
 		while (total_offset/b_len > 2.0 - space_tol)
 		{
-	    	    s = b_len/total_offset;	oms = 1.0 - s;
-	    	    coords[0] = oms*Coords(b->start)[0] + s*Coords(b->end)[0];
-	    	    coords[1] = oms*Coords(b->start)[1] + s*Coords(b->end)[1];
+	    	    s = b_len/total_offset;
+		    interpolate_coords(coords,Coords(b->start),Coords(b->end),
+					s,2);
 	    	    if (insert_point_in_bond(Point(coords),b,c) !=
 		    	FUNCTION_SUCCEEDED)
 	    	    {
