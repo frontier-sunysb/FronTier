@@ -311,7 +311,7 @@ void PETSc::Solve_withPureNeumann_GMRES(void)
   	
 	
 	MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,PETSC_NULL,&nullsp);
-        KSPSetNullSpace(ksp,nullsp);
+        MatSetNullSpace(A,nullsp);
 	MatNullSpaceRemove(nullsp,b);
 
 	
@@ -352,7 +352,7 @@ void PETSc::Solve_withPureNeumann_HYPRE(void)
 
 
         MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,PETSC_NULL,&nullsp);
-        KSPSetNullSpace(ksp,nullsp);
+        MatSetNullSpace(A,nullsp);
         MatNullSpaceRemove(nullsp,b);
 
         KSPSetType(ksp,KSPBCGS);
@@ -386,7 +386,7 @@ void PETSc::Solve_withPureNeumann_BCGSL(void)
   	
 	
 	MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,PETSC_NULL,&nullsp);
-        KSPSetNullSpace(ksp,nullsp);
+        MatSetNullSpace(A,nullsp);
 	MatNullSpaceRemove(nullsp,b);
 	
         start_clock("PCG in pure neumann solver");
@@ -510,7 +510,7 @@ void PETSc::Solve_withPureNeumann_ML(void)
   	
 	
 	MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,PETSC_NULL,&nullsp);
-        KSPSetNullSpace(ksp,nullsp);
+        MatSetNullSpace(A,nullsp);
 	MatNullSpaceRemove(nullsp,b);
 	
         KSPSetOperators(ksp,A,A);
