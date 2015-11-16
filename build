@@ -421,7 +421,7 @@ function config_lambda {
 
     export scriptotherlibs="${scriptotherlibs} /usr/local/pkg/petsc/lib/libfblas.a /usr/lib/x86_64-linux-gnu/libgfortran.so.3"
 
-    export PETSC_DIR=/usr/local/pkg/petsc
+    export PETSC_DIR=/usr/local/pkg/petsc3.5
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
     export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
 

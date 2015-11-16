@@ -8,7 +8,6 @@
 #include <FronTier.h>
 #include <vector>
 #include <petscksp.h>
-#include <petscmg.h>
 #include <petscpc.h>
 #include <assert.h>
 
@@ -118,6 +117,7 @@ public:
 	void Solve_withPureNeumann_GMRES(void);
 	void Solve_withPureNeumann_BCGSL(void);
 	void Solve_withPureNeumann_HYPRE(void);
+	void Solve_withPureNeumann_ML(void);
 	virtual void Print_A(const char *filename);
         virtual void Print_b(const char *filename);
 };

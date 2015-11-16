@@ -1,5 +1,5 @@
 /***************************************************************
-FronTier is a set of libraries that implements different types of 
+FronTier is a set of libraries that implements differnt types of 
 Front Traking algorithms. Front Tracking is a numerical method for 
 the solution of partial differential equations whose solutions have 
 discontinuities.  
@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *  the storage of these three variables. 
 */ 
 #include "solver.h"
+#include "petscmat.h"
 
 PETSc::PETSc()
 {
@@ -74,7 +75,7 @@ void PETSc::Create(
 	iLower	= ilower;	
 	iUpper 	= iupper;	
 	
-	MatCreateMPIAIJ(PETSC_COMM_WORLD,n,n,PETSC_DECIDE,PETSC_DECIDE,
+	MatCreateAIJ(Comm,n,n,PETSC_DECIDE,PETSC_DECIDE,
 				d_nz,PETSC_NULL,o_nz,PETSC_NULL,&A);	
 	ierr = PetscObjectSetName((PetscObject) A, "A");
 	ierr = MatSetFromOptions(A);		
@@ -95,27 +96,27 @@ PETSc::~PETSc()
 {
 	if(x!=NULL)
 	{
-		VecDestroy(x);
+		VecDestroy(&x);
 		x = NULL;
 	}
 	if(b!=NULL)
 	{
-		VecDestroy(b);
+		VecDestroy(&b);
 		b = NULL;
 	}
 	if(A!=NULL)
 	{
-		MatDestroy(A);
+		MatDestroy(&A);
 		A = NULL;
 	}
 	if(ksp!=NULL)
 	{
-		KSPDestroy(ksp);
+		KSPDestroy(&ksp);
 		ksp = NULL;
 	}
 	if(nullsp!=NULL)
 	{
-		MatNullSpaceDestroy(nullsp);
+		MatNullSpaceDestroy(&nullsp);
 		nullsp = NULL;
 	}
 }
@@ -247,7 +248,7 @@ void PETSc::Solve_GMRES(void)
 	stop_clock("Assembly matrix and vector");
 
 
-        KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN);
+        KSPSetOperators(ksp,A,A);
 	KSPSetType(ksp,KSPGMRES);
 
         KSPSetFromOptions(ksp);
@@ -282,8 +283,7 @@ void PETSc::Solve_BCGSL(void)
   	ierr = VecAssemblyEnd(b);
 	stop_clock("Assembly matrix and vector");
 
-
-        KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN);
+        KSPSetOperators(ksp,A,A);
         KSPSetType(ksp,KSPBCGSL);
 	KSPBCGSLSetEll(ksp,2);
 
@@ -297,7 +297,9 @@ void PETSc::Solve_BCGSL(void)
 
 void PETSc::Solve_withPureNeumann_GMRES(void)
 {
-	printf("Entering Solve_withPureNeumann_GMRES()\n");
+	if (debugging("trace"))
+	    printf("Entering Solve_withPureNeumann_GMRES()\n");
+	PC pc;
     	ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
   	ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
   	
@@ -310,15 +312,17 @@ void PETSc::Solve_withPureNeumann_GMRES(void)
 	
 	MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,PETSC_NULL,&nullsp);
         KSPSetNullSpace(ksp,nullsp);
-	MatNullSpaceRemove(nullsp,b,PETSC_NULL);
+	MatNullSpaceRemove(nullsp,b);
 
 	
-        KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN);
-        
+        KSPSetOperators(ksp,A,A);
+
 	KSPSetType(ksp,KSPGMRES);
 
         KSPSetFromOptions(ksp);
+	start_clock("KSPSetUp in pure neumann solver");
         KSPSetUp(ksp);
+	stop_clock("KSPSetUp in pure neumann solver");
 	start_clock("Petsc Solve in pure neumann solver");
         KSPSolve(ksp,b,x);
 	stop_clock("Petsc Solve in pure neumann solver");
@@ -327,13 +331,15 @@ void PETSc::Solve_withPureNeumann_GMRES(void)
 
 void PETSc::Solve_withPureNeumann(void)
 {
-	Solve_withPureNeumann_HYPRE();
+	Solve_withPureNeumann_ML();
+	//Solve_withPureNeumann_GMRES();
 	//Solve_withPureNeumann_BCGSL();
 }	/* end Solve_withPureNeumann */
 
 void PETSc::Solve_withPureNeumann_HYPRE(void)
 {
         PC pc;
+	if (debugging("trace"))
         printf("Entering Solve_withPureNeumann_HYPRE()\n");
         ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
         ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
@@ -347,18 +353,21 @@ void PETSc::Solve_withPureNeumann_HYPRE(void)
 
         MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,PETSC_NULL,&nullsp);
         KSPSetNullSpace(ksp,nullsp);
-        MatNullSpaceRemove(nullsp,b,PETSC_NULL);
+        MatNullSpaceRemove(nullsp,b);
 
         KSPSetType(ksp,KSPBCGS);
-        KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN);
+        KSPSetOperators(ksp,A,A);
         KSPGetPC(ksp,&pc);
+	start_clock("HYPRE preconditioner");
         PCSetType(pc,PCHYPRE);
         PCHYPRESetType(pc,"boomeramg");
         KSPSetFromOptions(ksp);
         KSPSetUp(ksp);
+	stop_clock("HYPRE preconditioner");
         start_clock("Petsc Solve in pure neumann solver");
         KSPSolve(ksp,b,x);
         stop_clock("Petsc Solve in pure neumann solver");
+	if (debugging("trace"))
 	printf("Leaving Solve_withPureNeumann_HYPRE()\n");
 
 }
@@ -378,8 +387,13 @@ void PETSc::Solve_withPureNeumann_BCGSL(void)
 	
 	MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,PETSC_NULL,&nullsp);
         KSPSetNullSpace(ksp,nullsp);
+	MatNullSpaceRemove(nullsp,b);
 	
-        KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN);
+        start_clock("PCG in pure neumann solver");
+        KSPGetPC(ksp,&pc);
+        PCSetType(pc,PCGAMG);
+        stop_clock("PCG in pure neumann solver");
+        KSPSetOperators(ksp,A,A);
         
 	KSPSetType(ksp,KSPBCGSL);
 	KSPBCGSLSetEll(ksp,2);
@@ -400,7 +414,7 @@ void PETSc::Print_A(const char *filename)
         ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
         PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
         MatView(A, viewer);
-        PetscViewerDestroy(viewer);
+        PetscViewerDestroy(&viewer);
 }	/* end Print_A */
 
 void PETSc::Print_b(const char *filename)
@@ -464,7 +478,7 @@ void PETSc::Solve_HYPRE(void)
         stop_clock("Assembly matrix and vector");
 
 	KSPSetType(ksp,KSPBCGS);
-        KSPSetOperators(ksp,A,A,DIFFERENT_NONZERO_PATTERN);
+        KSPSetOperators(ksp,A,A);
         KSPGetPC(ksp,&pc);
 	PCSetType(pc,PCHYPRE);
         PCHYPRESetType(pc,"boomeramg");
@@ -477,6 +491,45 @@ void PETSc::Solve_HYPRE(void)
 
 }
 #endif // defined __HYPRE__
+
+void PETSc::Solve_withPureNeumann_ML(void)
+{
+	if (debugging("trace"))
+	    printf("Entering Solve_withPureNeumann_ML()\n");
+	PC pc;
+	start_clock("Assemble Matrix in pure neumann solver");
+    	ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
+  	ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
+  	
+  	ierr = VecAssemblyBegin(x);
+  	ierr = VecAssemblyEnd(x);
+  	
+  	ierr = VecAssemblyBegin(b);
+  	ierr = VecAssemblyEnd(b);
+	stop_clock("Assemble Matrix in pure neumann solver");
+  	
+	
+	MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,PETSC_NULL,&nullsp);
+        KSPSetNullSpace(ksp,nullsp);
+	MatNullSpaceRemove(nullsp,b);
+	
+        KSPSetOperators(ksp,A,A);
+
+        KSPGetPC(ksp,&pc);
+        PCSetType(pc,PCML);
+
+	KSPSetType(ksp,KSPGMRES);
+
+        KSPSetFromOptions(ksp);
+	start_clock("KSP setup in pure neumann solver");
+        KSPSetUp(ksp);
+	stop_clock("KSP setup in pure neumann solver");
+	start_clock("Petsc Solve in pure neumann solver");
+        KSPSolve(ksp,b,x);
+	stop_clock("Petsc Solve in pure neumann solver");
+	printf("Leaving Solve_withPureNeumann_ML()\n");
+}	/* end Solve_withPureNeumann_GMRES */
+
 
 void PETSc::Solve_LU(void)
 {
@@ -496,7 +549,7 @@ void PETSc::Solve_LU(void)
         KSPSetType(ksp,KSPPREONLY);
 	KSPGetPC(ksp,&pc);
 	PCSetType(pc,PCLU);
-        KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
+        KSPSetOperators(ksp,A,A);
         KSPSetFromOptions(ksp);
         KSPSetUp(ksp);
 
