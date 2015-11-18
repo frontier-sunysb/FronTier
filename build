@@ -522,7 +522,7 @@ function config_gentooORNL {
     export F77="mpif77 ${OPTS}"
     export CC="mpicc ${OPTS} ${COPTS_GCC}"
 
-    export PETSC_DIR=/home/dealmeida/codes-tryout/petsc-3.1-p8_ompi-1.4.3_gcc-4.4.4_lpt1
+    export PETSC_DIR=/usr/local/petsc
     export PETSC_INCLUDE="-I${PETSC_DIR}/include"
 
     export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -fopenmp -lm -L/usr/lib64 -lX11"
@@ -744,36 +744,6 @@ function config_cm {
     PMAKE="-j2"
 }
 
-#################
-function config_icestorm {
-    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
-    export F77="mpif77 ${OPTS}"
-    export CC="mpicc ${OPTS} ${COPTS_GCC}"
-
-    export PETSC_DIR=/home/dealvf/libs/petsc-3.1-p8_ompi_gcc-1.4.3_icestorm
-    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -fopenmp -lm -L/usr/X11R6/lib64 -lX11"
-
-    if [[ -n "$WITHHDF" ]]; then
-        CONF="$CONF --with-hdf=/usr/local/pkg/HDF4"
-    fi
-    if [[ -n "$WITHHDF5" ]]; then
-        CONF="$CONF --with-hdf5=/nfs/user01/duowang/hdf5-1.8.5"
-        #CONF="$CONF --with-hdf5=/usr/local/pkg/HDF5"
-    fi
-    if [[ -n "$WITHGD" ]]; then
-        CONF="$CONF --with-gd=/usr"
-    fi
-    if [[ -n "$WITHGSL" ]]; then
-        CONF="$CONF --with-gsl=/usr"
-    fi
-
-    export CONF="--with-openmpi=/usr/local/openmpi/openmpi-1.4.3/gcc-opt --with-petsc=${PETSC_DIR} --with-devel ${CONF}"
-    PMAKE="-j2"
-}
-
-
 ################# Main code starts here
 
 parse_arguments $*
@@ -841,15 +811,12 @@ elif [[ "${HOST}" == "jiao-pc3" ]]; then
 elif [[ "${HOST//[0-9]/}" == "honest.ncsa.uiuc.edu" ]]; then
     echo "Computer is recognized as NCSA Abe Linux cluster."
     config_abe
-elif [[ "${HOST}" == "lpt1" ]]; then
+elif [[ "${HOST}" == "macbook" ]]; then
     echo "Computer is recognized as Gentoo Linux for ORNL Laptop."
     config_gentooORNL
 elif [[ "${HOST}" == "flogin1" ]]; then
     echo "Computer is recognized as INL Fission."
     config_fission
-elif [[ "${HOST}" == "service0" ]]; then
-    echo "Computer is recognized as INL Icestorm."
-    config_icestorm
 elif [[ "${HOST}" == "ycshu-VirtualBox" ]]; then
     echo "Computer is recognized as blade."
     config_ycshu
