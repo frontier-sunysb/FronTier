@@ -1,3 +1,0 @@
-#!/bin/csh -f
-
-xgraph xg/Compare.xg

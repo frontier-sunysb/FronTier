@@ -528,17 +528,17 @@ function config_gentooORNL {
     export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -fopenmp -lm -L/usr/lib64 -lX11"
 
     if [[ -n "$WITHHDF" ]]; then
-        CONF="$CONF --with-hdf=/usr/local/pkg/HDF4"
+        CONF="$CONF --with-hdf=/usr/local/hdf4"
     fi
     if [[ -n "$WITHHDF5" ]]; then
         CONF="$CONF --with-hdf5=/nfs/user01/duowang/hdf5-1.8.5"
         #CONF="$CONF --with-hdf5=/usr/local/pkg/HDF5"
     fi
     if [[ -n "$WITHGD" ]]; then
-        CONF="$CONF --with-gd=/usr"
+        CONF="$CONF --with-gd=/usr/lib64"
     fi
     if [[ -n "$WITHGSL" ]]; then
-        CONF="$CONF --with-gsl=/usr"
+        CONF="$CONF --with-gsl=/usr/lib64"
     fi
 
     export CONF="--with-openmpi=/usr/local/ompi --with-petsc=${PETSC_DIR} --with-devel ${CONF}"
@@ -811,7 +811,7 @@ elif [[ "${HOST}" == "jiao-pc3" ]]; then
 elif [[ "${HOST//[0-9]/}" == "honest.ncsa.uiuc.edu" ]]; then
     echo "Computer is recognized as NCSA Abe Linux cluster."
     config_abe
-elif [[ "${HOST}" == "macbook" ]]; then
+elif [[ "${HOST}" == "xmacbook" ]]; then
     echo "Computer is recognized as Gentoo Linux for ORNL Laptop."
     config_gentooORNL
 elif [[ "${HOST}" == "flogin1" ]]; then

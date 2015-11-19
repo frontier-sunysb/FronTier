@@ -1,3 +1,0 @@
-#!/bin/csh -f
-
-xgraph xg/Fit-$1-$2-$3.xg

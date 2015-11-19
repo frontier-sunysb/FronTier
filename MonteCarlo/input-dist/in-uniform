@@ -1,8 +1,0 @@
-Domain limit in 0-th dimension: -3 3
-Computational grid: 201
-Lower boundary in 0-th dimension: DIRICHLET_BOUNDARY
-Upper boundary in 0-th dimension: DIRICHLET_BOUNDARY
-Enter name of distribution function: UNIFORM
-Enter the lower and upper bounds: -2 2
-Enter number of samples: 1000000
-Enter type of random seed: FIXED_SEED

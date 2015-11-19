@@ -1,9 +1,0 @@
-Domain limit in 0-th dimension: 0 10
-Computational grid: 201
-Lower boundary in 0-th dimension: DIRICHLET_BOUNDARY
-Upper boundary in 0-th dimension: DIRICHLET_BOUNDARY
-Enter name of distribution function: GAUSS_EXP
-Enter mathematical expectation: 0
-Enter standard deviation: 1.0
-Enter number of samples: 1000000
-Enter type of random seed: FIXED_SEED

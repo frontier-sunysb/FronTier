@@ -1,9 +1,0 @@
-Domain limit in 0-th dimension: -4 6
-Computational grid: 201
-Lower boundary in 0-th dimension: DIRICHLET_BOUNDARY
-Upper boundary in 0-th dimension: DIRICHLET_BOUNDARY
-Enter name of distribution function: CAUCHY
-Enter mathematical expectation: 1.0
-Enter standard deviation: 2.0
-Enter number of samples: 100000
-Enter type of random seed: FIXED_SEED
