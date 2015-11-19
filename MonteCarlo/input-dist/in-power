@@ -1,8 +1,0 @@
-Domain limit in 0-th dimension: -0.5 1.5
-Computational grid: 201
-Lower boundary in 0-th dimension: DIRICHLET_BOUNDARY
-Upper boundary in 0-th dimension: DIRICHLET_BOUNDARY
-Enter name of distribution function: POWER
-Enter the power: 1
-Enter number of samples: 100000
-Enter type of random seed: FIXED_SEED
