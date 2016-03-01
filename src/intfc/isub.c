@@ -4829,3 +4829,17 @@ EXPORT  void linear_22_equation(
         soln[0] = Det2d(c,b)/denom;
         soln[1] = Det2d(a,c)/denom;
 }       /* end linear_22_equation */
+
+EXPORT void invert_to_icoords(
+        int ic,
+        int *icoords,
+        int *gmax,
+        int dim)
+{
+        int i;
+        for (i = 0; i < dim; ++i)
+        {
+            icoords[i] = ic%(gmax[i] + 1);
+            ic = (ic - icoords[i])/(gmax[i] + 1);
+        }
+}       /* end invert_to_icoords */

@@ -2833,6 +2833,57 @@ EXPORT void gview_plot_tri_list(
 	(void) fclose(file);
 }               /*end gview_plot_tri_list*/
 
+EXPORT void gview_plot_colored_tri_list(
+	const char *dname,
+	TRI        **tris,
+	int        num_tris,
+	SURFACE_COLOR color)
+{
+	static const char *indent = "    ";
+	int        i,j;
+	char       fname[256];
+	FILE       *file;
+	POINT      *p;
+
+	if (create_directory(dname,YES) == FUNCTION_FAILED)
+	{
+	    screen("WARNING in gview_plot_tri_list(), "
+	           "directory %s doesn't exist and can't be created\n",dname);
+	    return;
+	}
+	(void) sprintf(fname,"%s/tri.list",dname);
+	if ((file = fopen(fname,"w")) == NULL)
+	{
+	    screen("WARNING in gview_plot_tri_list(), "
+	           "can't open %s\n",fname);
+	    return;
+	}
+	(void) fprintf(file,"{ LIST\n");
+	(void) fprintf(file,"%s{\n%s%sOFF\n%s%s%6d %6d %6d\n",
+			indent,indent,indent,
+			indent,indent,3*num_tris,num_tris,0);
+	for (i = 0; i < num_tris; ++i)
+	{
+	    for (j = 0; j < 3; ++j)
+	    {
+		p = Point_of_tri(tris[i])[j];
+		(void) fprintf(file, "%s%s%-9g %-9g %-9g\n",
+			indent,indent,
+			Coords(p)[0],Coords(p)[1],Coords(p)[2]);
+	    }
+	}
+	for (i = 0; i < num_tris; ++i)
+	{
+	    (void) fprintf(file,"%s%s%-4d %-4d %-4d %-4d ",indent,indent,
+		3,3*i,3*i+1,3*i+2);
+	    write_color(file,color,0.0);
+	    (void) fprintf(file,"\n");
+	}
+	(void) fprintf(file,"%s}\n",indent);
+	(void) fprintf(file,"}\n");
+	(void) fclose(file);
+}               /*end gview_plot_colored_tri_list*/
+
 EXPORT void gview_plot_tri_and_point_list(
 	const char    *dname,
 	TRI           **tris,
@@ -5210,6 +5261,25 @@ EXPORT void sdl_interface_plot(
 	}
 }	/*end sdl_interface_plot*/
 
+
+EXPORT void gview_plot_colored_surface(
+	const char *dname,
+	SURFACE *surf,
+	SURFACE_COLOR color)
+{
+	int i,j,num_tris;
+	TRI **tris,*t;
+		
+	num_tris = surf->num_tri;
+	uni_array(&tris,num_tris,sizeof(TRI*));
+	num_tris = 0;
+	for (t = first_tri(surf); !at_end_of_tri_list(t,surf); t = t->next)
+	{
+	    tris[num_tris++] = t;
+	}
+	gview_plot_colored_tri_list(dname,tris,num_tris,color);
+	free_these(1,tris);
+}	/* end gview_plot_surface*/
 
 EXPORT void gview_plot_surface(
 	const char *dname,

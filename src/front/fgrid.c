@@ -2058,8 +2058,6 @@ EXPORT	void show_line_components3d(
 
 	for (i = 0; i < 3; ++i)
 	    ipn[i] = ip[i];
-	printf("icoords = %d %d %d  dir = %s\n",ip[0],ip[1],ip[2],
-			grid_direction_name(dir));
 	for (ipn[idir] = smin[idir]; ipn[idir] <= smax[idir]; ++ipn[idir])
 	{
 	    if (ipn[idir] != smax[idir])

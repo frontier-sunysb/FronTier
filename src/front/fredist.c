@@ -53,6 +53,8 @@ EXPORT int redistribute(
 	int		dim = fr->rect_grid->dim;
 	int		status = BAD_REDISTRIBUTION;
 	
+	if (fr->step == 0)
+	    return GOOD_REDISTRIBUTION;
 	switch(dim)
 	{
 	case 1:

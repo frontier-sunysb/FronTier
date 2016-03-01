@@ -376,7 +376,8 @@ EXPORT	void	FT_Init(
 
 	f_basic->ReadFromInput = NO;
 	f_basic->RestartRun = NO;
-    	f_basic->dim = 1;
+	if (f_basic->dim == 0)
+    	    f_basic->dim = 1;
 
 	argc--;
 	argv++;
@@ -525,6 +526,8 @@ EXPORT	void FrontFreeAll(
 EXPORT	void FT_MakeGridIntfc(
 	Front *front)
 {
+	Table *T;
+        COMPONENT *comps;
 	if (Tracking_algorithm(front) == SIMPLE_TRACKING)
 	    return;
 	if (debugging("grid_line_comp"))
@@ -532,6 +535,10 @@ EXPORT	void FT_MakeGridIntfc(
 	communicate_default_comp(front);
 	front->grid_intfc = make_grid_intfc(front->interf,
 			EXPANDED_DUAL_GRID,NULL);
+	/* communicate the components */
+        T = table_of_interface(front->grid_intfc);
+        comps = T->components;
+        FT_ParallelExchGridIntArrayBuffer(comps,front);
 }	/* end FT_MakeGridIntfc */
 
 EXPORT	void FT_MakeCompGridIntfc(
@@ -797,10 +804,6 @@ EXPORT	boolean FT_StateStructAtGridCrossing(
 	crx_index = 0;
 	nc = GridSegCrossing(crxs,icoords,dir,grid_intfc);
 	if (nc == 0) return NO;
-	if (dir == EAST || dir == NORTH || dir == UPPER)
-	    crx_index = 0;
-	else
-	    crx_index = nc - 1;
 
 	*hs = crxs[crx_index]->hs;
 	if (comp == negative_component(*hs))
@@ -1856,6 +1859,10 @@ EXPORT void FT_ReadSpaceDomain(
 	    case 'm':
 	    	f_basic->boundary[i][0] = MIXED_TYPE_BOUNDARY;
 	    	break;
+	    case 'O':
+	    case 'o':
+	    	f_basic->boundary[i][0] = OPEN_BOUNDARY;
+	    	break;
 	    default:
 	    	printf("Unknown boundary!\n");
 		clean_up(ERROR);
@@ -1888,6 +1895,10 @@ EXPORT void FT_ReadSpaceDomain(
 	    case 'M':
 	    case 'm':
 	    	f_basic->boundary[i][1] = MIXED_TYPE_BOUNDARY;
+	    	break;
+	    case 'O':
+	    case 'o':
+	    	f_basic->boundary[i][1] = OPEN_BOUNDARY;
 	    	break;
 	    default:
 	    	printf("Unknown boundary!\n");
@@ -3789,7 +3800,8 @@ EXPORT	boolean FT_ReflectPointThroughBdry(
 	    wave_type(hs) != MOVABLE_BODY_BOUNDARY &&
 	    wave_type(hs) != GROWING_BODY_BOUNDARY &&
 	    wave_type(hs) != ICE_PARTICLE_BOUNDARY &&
-	    wave_type(hs) != ELASTIC_BOUNDARY)
+	    wave_type(hs) != ELASTIC_BOUNDARY &&
+	    wave_type(hs) != ELASTIC_STRING)
 	    return NO;
 
 	if (dim != 1)

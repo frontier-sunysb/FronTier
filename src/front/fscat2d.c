@@ -42,7 +42,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 */
 
 
-#define DEBUG_STRING	"fscatter"
 #include <front/fdecs.h>
 
 /* temp */
@@ -115,7 +114,6 @@ LOCAL	OVERLAP	*find_remnant_match(OVERLAP*,OVERLAP*,int);
 LOCAL	OVERLAP	*find_single_adj_bond_match(OVERLAP*,OVERLAP*,int,Front*);
 LOCAL	OVERLAP	*new_overlap(OVERLAP*,CURVE*,ORIENTATION,int);
 LOCAL	POINT	*bond_crosses_cut_line(BOND*,int,double,int);
-LOCAL	boolean	check_for_cut_nodes(INTERFACE*);
 LOCAL	boolean	delete_redundant_overlaps(OVERLAP*,INTERFACE*,int);
 LOCAL	boolean	is_half_remnant_degeneracy(OVERLAP*);
 LOCAL	boolean	match_overlaps(OVERLAP*,int,Front*);
@@ -139,6 +137,7 @@ LOCAL 	boolean 	delete_double_cut_curves(INTERFACE*);
 LOCAL 	boolean 	seal_cut_node_curves(CURVE*,INTERFACE*);
 LOCAL 	boolean 	separated_nodes(NODE*,NODE*,INTERFACE*);
 LOCAL	boolean 	is_interior_end_node(NODE*);
+LOCAL 	int 	num_cut_node(INTERFACE*);
 
 
 /* THIS "set_none_local" is exclusively used in cut_interface()
@@ -204,9 +203,8 @@ EXPORT boolean f_intfc_communication2d(
 	static int	**refl_lbuf = NULL, **refl_ubuf = NULL;
 	static int	**subd_lbuf = NULL, **subd_ubuf = NULL;
 
-	DEBUG_ENTER(f_intfc_communication2d)
-	DEBUG_INTERFACE("Interface into f_intfc_communication2d()",
-			intfc);
+	if (debugging("trace"))
+	    printf("Entering f_intfc_communication2d()\n");
 
 	if (refl_lbuf == NULL)
 	{
@@ -268,9 +266,6 @@ EXPORT boolean f_intfc_communication2d(
 	delete_subdomain_curves(intfc);
 	delete_passive_boundaries(intfc);
 
-	DEBUG_INTERFACE("Interface after delete subdomain and passive curves",
-			intfc);
-
 	for (dir = 0; dir < dim; ++dir)
 	{
 	    if (exists_subd[dir])
@@ -287,7 +282,8 @@ EXPORT boolean f_intfc_communication2d(
 	    if (!status)
 	    {
 		set_current_interface(sav_intfc);
-		DEBUG_LEAVE(f_intfc_communication2d)
+		if (debugging("trace"))
+		    printf("Leaving f_intfc_communication2d()\n");
 		return status;
 	    }
 	}
@@ -307,19 +303,13 @@ EXPORT boolean f_intfc_communication2d(
 	    if (!status)
 	    {
 		set_current_interface(sav_intfc);
-		DEBUG_LEAVE(f_intfc_communication2d)
+		if (debugging("trace"))
+		    printf("Leaving f_intfc_communication2d()\n");
 		return status;
 	    }
 	}
 	status = delete_double_cut_curves(intfc);
 	status = pp_min_status(status);
-	/*
-	char fname[100];
-	sprintf(fname,"test2d-%d.xg",pp_mynode());
-	xgraph_2d_intfc(fname,intfc);
-	print_interface(intfc);
-	clean_up(0);
-	*/
 	if (status == FUNCTION_FAILED)
 	{
 	    (void) printf("First call of check_for_cut_nodes() failed\n");
@@ -340,7 +330,8 @@ EXPORT boolean f_intfc_communication2d(
 	    	if (!status)
 	    	{
 		    set_current_interface(sav_intfc);
-		    DEBUG_LEAVE(f_intfc_communication2d)
+		    if (debugging("trace"))
+		    	printf("Leaving f_intfc_communication2d()\n");
 		    return status;
 	    	}
 	    }
@@ -360,7 +351,8 @@ EXPORT boolean f_intfc_communication2d(
 	    	if (!status)
 	    	{
 		    set_current_interface(sav_intfc);
-		    DEBUG_LEAVE(f_intfc_communication2d)
+		    if (debugging("trace"))
+		    	printf("Leaving f_intfc_communication2d()\n");
 		    return status;
 	    	}
 	    }
@@ -399,6 +391,7 @@ EXPORT boolean f_intfc_communication2d(
 	    status = FUNCTION_FAILED;
 	    (void) printf("WARNING in f_intfc_communication2d(), "
 	                  "check_for_cut_nodes() detected cut node\n");
+	    clean_up(ERROR);
 	}
 	else if (check_comps_at_nodes(fr->interf,&onode_list) != 0)
 	{
@@ -415,8 +408,8 @@ EXPORT boolean f_intfc_communication2d(
 	if (status == FUNCTION_FAILED) 
 	{
 	    set_current_interface(sav_intfc);
-	    DEBUG_INTERFACE("Interface after f_intfc_communication2d()",intfc);
-	    DEBUG_LEAVE(f_intfc_communication2d)
+	    if (debugging("trace"))
+	    	printf("Leaving f_intfc_communication2d()\n");
 	    return status;
 	}
 
@@ -431,8 +424,8 @@ EXPORT boolean f_intfc_communication2d(
 
 	set_current_interface(sav_intfc);
 
-	DEBUG_INTERFACE("Interface after f_intfc_communication2d()",intfc);
-	DEBUG_LEAVE(f_intfc_communication2d)
+	if (debugging("trace"))
+	    printf("Leaving f_intfc_communication2d()\n");
 	return status;
 }		/*end f_intfc_communication2d*/
 
@@ -473,17 +466,14 @@ LOCAL boolean perform_interface_communication(
 				 0.0, -1.0,  0.0,
 				 0.0,  0.0, -1.0};
 
-	DEBUG_ENTER(perform_interface_communication)
-	DEBUG_INTERFACE("Interface into perform_interface_communication()",
-			fr->interf);
+	if (debugging("trace"))
+	    printf("Entering perform_interface_communication()\n");
 
 	myid = pp_mynode();
 	find_Cartesian_coordinates(myid, pp_grid, me);
 
 	/* Throw out the old subdomains. */
 	clip_to_interior_region(intfc,lbuf,ubuf);
-
-	DEBUG_INTERFACE("Interface after clip_to_interior_region()",fr->interf);
 
 	for (side = 0; side < 2; ++side)
 	{
@@ -568,7 +558,8 @@ LOCAL boolean perform_interface_communication(
 		          "merge_interface() failed\n");
 	}
 
-	DEBUG_LEAVE(perform_interface_communication)
+	if (debugging("trace"))
+	    printf("Leaving perform_interface_communication()\n");
 	return status;
 }		/*end perform_interface_communication*/
 
@@ -604,7 +595,8 @@ EXPORT	void	clip_to_interior_region(
 	int		dir, dim = gr->dim;
         boolean            force_clip;
 
-	DEBUG_ENTER(clip_to_interior_region)
+	if (debugging("trace"))
+	    printf("Entering clip_to_interior_region()\n");
 
 	for (dir = 0; dir < dim; ++dir)
 	{
@@ -621,7 +613,8 @@ EXPORT	void	clip_to_interior_region(
 		        YES : NO);
 	    }
 	}
-	DEBUG_LEAVE(clip_to_interior_region)
+	if (debugging("trace"))
+	    printf("Leaving clip_to_interior_region()\n");
 }		/*end clip_to_interior_region*/
 
 
@@ -641,7 +634,8 @@ EXPORT	void	delete_subdomain_curves(
 	NODE		**delete_nodes = NULL;
 	NODE		**n;
 
-	DEBUG_ENTER(delete_subdomain_curves)
+	if (debugging("trace"))
+	    printf("Entering delete_subdomain_curves()\n");
 	delete_curves = NULL;
 	for (c = intfc->curves; c && *c; ++c)
 	{
@@ -674,7 +668,8 @@ EXPORT	void	delete_subdomain_curves(
 	}
 	for (n = delete_nodes; n && *n; ++n)
 	    (void) delete_node(*n);
-	DEBUG_LEAVE(delete_subdomain_curves)
+	if (debugging("trace"))
+	    printf("Leaving delete_subdomain_curves()\n");
 }		/*end delete_subdomain_curves*/
 
 
@@ -701,7 +696,8 @@ LOCAL INTERFACE *set_send_intfc(
 	double		cut;
 	boolean		sav_copy;
 
-	DEBUG_ENTER(set_send_intfc)
+	if (debugging("trace"))
+	    printf("Entering set_send_intfc()\n");
 	sav_intfc = current_interface();
 	sav_copy = copy_intfc_states();
 	set_size_of_intfc_state(size_of_state(intfc));
@@ -750,7 +746,8 @@ LOCAL INTERFACE *set_send_intfc(
 	set_current_interface(sav_intfc);
 	set_copy_intfc_states(sav_copy);
 
-	DEBUG_LEAVE(set_send_intfc)
+	if (debugging("trace"))
+	    printf("Leaving set_send_intfc()\n");
 	return send_intfc;
 }		/*end set_send_intfc*/
 
@@ -772,11 +769,13 @@ EXPORT	void	copy_interface_into(
 	boolean		sav_copy;
 	int		i;
 
-	DEBUG_ENTER(copy_interface_into)
+	if (debugging("trace"))
+	    printf("Entering copy_interface_into()\n");
 
 	if (recv_intfc->nodes == NULL)
 	{
-	    DEBUG_LEAVE(copy_interface_into)
+	    if (debugging("trace"))
+	    	printf("Leaving copy_interface_into()\n");
 	    return; /* Nothing to do */
 	}
 
@@ -807,7 +806,8 @@ EXPORT	void	copy_interface_into(
 	set_current_interface(sav_intfc);
 	set_copy_intfc_states(sav_copy);
 
-	DEBUG_LEAVE(copy_interface_into)
+	if (debugging("trace"))
+	    printf("Leaving copy_interface_into()\n");
 }		/*end copy_interface_into*/
 
 
@@ -969,8 +969,8 @@ EXPORT	void	cut_interface(
 	is_reflect_side = (rect_boundary_type(intfc,dir,side) 
 			== REFLECTION_BOUNDARY) ? YES: NO;
 
-	DEBUG_ENTER(cut_interface)
-	DEBUG_INTERFACE("Interface into cut_interface()",intfc);
+	if (debugging("trace"))
+	    printf("Entering cut_interface()\n");
 
         /* when cut interfaces for assembly and redistribution, it'd be
          * better not to alter the interface.
@@ -1250,8 +1250,6 @@ EXPORT	void	cut_interface(
 		 * reason for resetting SUBDOMAIN_NODE below.
 		 */
 
-		printf("node into this: %f %f\n",Coords(c->start->posn)[0],
-				Coords(c->start->posn)[1]);
 		if (save_interior)
 		{
 		    if (!is_interior_end_node(c->start))
@@ -1364,8 +1362,8 @@ EXPORT	void	cut_interface(
 	    }
 	}
 
-	DEBUG_INTERFACE("Interface at end of cut_interface()",intfc);
-	DEBUG_LEAVE(cut_interface)
+	if (debugging("trace"))
+	    printf("Leaving cut_interface()\n");
 }		/*end cut_interface*/
 
 LOCAL	void	set_interior_node_flags(
@@ -1414,7 +1412,8 @@ LOCAL	void	delete_curves_outside_of_cut_line(
 	NODE		**nn;
 	NODE		**delete_nodes;
 
-	DEBUG_ENTER(delete_curves_outside_of_cut_line)
+	if (debugging("trace"))
+	    printf("Entering delete_curves_outside_of_cut_line()\n");
 	delete_curves = NULL;
 	for (cc = intfc->curves; cc && *cc; ++cc)
 	{
@@ -1457,7 +1456,8 @@ LOCAL	void	delete_curves_outside_of_cut_line(
 	}
 	for (nn = delete_nodes; nn && *nn; ++nn)
 	    (void) delete_node(*nn);
-	DEBUG_LEAVE(delete_curves_outside_of_cut_line)
+	if (debugging("trace"))
+	    printf("Leaving delete_curves_outside_of_cut_line()\n");
 }		/*end delete_curves_outside_of_cut_line*/
 
 
@@ -1599,13 +1599,14 @@ EXPORT	boolean	merge_interface(
 	NODE	     	**n;
 	boolean 		sav_intrp = interpolate_intfc_states(intfc);
 
-	DEBUG_ENTER(merge_interface)
-	DEBUG_INTERFACE("Interface into merge_interface()",fr->interf);
+	if (debugging("trace"))
+	    printf("Entering merge_interface()\n");
 
 	if (intfc->curves == NULL)
 	{
 	    /* Nothing to do */
-	    DEBUG_LEAVE(merge_interface)
+	    if (debugging("trace"))
+	    	printf("Leaving merge_interface()\n");
 	    return FUNCTION_SUCCEEDED;
 	}
 
@@ -1613,7 +1614,8 @@ EXPORT	boolean	merge_interface(
 	{
 	    (void) printf("WARNING in merge_interface(), "
 		          "overlap_list() failed\n");
-	    DEBUG_LEAVE(merge_interface)
+	    if (debugging("trace"))
+	    	printf("Leaving merge_interface()\n");
 	    return FUNCTION_FAILED;
 	}
 
@@ -1624,19 +1626,18 @@ EXPORT	boolean	merge_interface(
 	    {
 	    	(void) printf("WARNING in merge_interface(), "
 	                  "merge_overlapping_bonds() failed\n");
-	    	DEBUG_LEAVE(merge_interface)
+	    	if (debugging("trace"))
+	    	    printf("Leaving merge_interface()\n");
 	    	return FUNCTION_FAILED;
 	    }
 	}
-
-	DEBUG_INTERFACE("Interface after merge_overlapping_bonds()",
-			fr->interf);
 
 	if (!merge_double_physical_cut_nodes(intfc,dir))
 	{
 	    (void) printf("WARNING in merge_interface(), "
 	                  "merge_double_physical_cut_nodes() failed\n");
-	    DEBUG_LEAVE(merge_interface)
+	    if (debugging("trace"))
+	    	printf("Leaving merge_interface()\n");
 	    return FUNCTION_FAILED;
 	}
 
@@ -1703,8 +1704,8 @@ delete_redundant_node:
 	    }
         }
 
-	DEBUG_INTERFACE("Interface at end merge_interface()",fr->interf);
-	DEBUG_LEAVE(merge_interface)
+	if (debugging("trace"))
+	    printf("Leaving merge_interface()\n");
 	return FUNCTION_SUCCEEDED;
 }		/*end merge_interface*/
 
@@ -1740,11 +1741,6 @@ LOCAL	boolean	overlap_list(
 	ol1 = &Olhead;
 	*olist = NULL;
 
-	if (debugging("missing_intfc"))
-	{
-	    printf("overlap_list step 0 num_points = %d\n",
-	    	NumOfInteriorPoints(fr->interf));
-	}
 	for (n = intfc->nodes; n && *n; ++n)
 	{
 	    if (DEBUG)
@@ -1776,11 +1772,6 @@ LOCAL	boolean	overlap_list(
 	}
 	ol1->prev = NULL;
 
-	if (debugging("missing_intfc"))
-	{
-	    printf("overlap_list step 1 num_points = %d\n",
-	    	NumOfInteriorPoints(fr->interf));
-	}
 	if (!match_overlaps(&Olhead,dir,fr))
 	{
 	    (void) printf("WARNING in overlap_list(), "
@@ -1792,11 +1783,6 @@ LOCAL	boolean	overlap_list(
 	    	    print_overlap(ol1);
 	    }
 	    return FUNCTION_FAILED;
-	}
-	if (debugging("missing_intfc"))
-	{
-	    printf("overlap_list step 2 num_points = %d\n",
-	    	NumOfInteriorPoints(fr->interf));
 	}
 
 	/* Drop duplicates */
@@ -1819,11 +1805,6 @@ LOCAL	boolean	overlap_list(
 	    }
 	    ol1->match = ol1;
 	}
-	if (debugging("missing_intfc"))
-	{
-	    printf("overlap_list step 3 num_points = %d\n",
-	    	NumOfInteriorPoints(fr->interf));
-	}
 
 	if (!delete_redundant_overlaps(&Olhead,intfc,dir))
 	{
@@ -1834,11 +1815,6 @@ LOCAL	boolean	overlap_list(
 	    }
 	    return FUNCTION_FAILED;
 	}  
-	if (debugging("missing_intfc"))
-	{
-	    printf("overlap_list step 4 num_points = %d\n",
-	    	NumOfInteriorPoints(fr->interf));
-	}
 
 
 	/* This is intended to combat a degeneracy caused by the redistribute,
@@ -1910,11 +1886,6 @@ LOCAL	boolean	overlap_list(
 	        }
 	    }
 	}
-	if (debugging("missing_intfc"))
-	{
-	    printf("overlap_list step 5 num_points = %d\n",
-	    	NumOfInteriorPoints(fr->interf));
-	}
 
 	/* Some nodes have retained their physical node_type to indicate
 	 * processing in merge_double_physical_cut_nodes().  If such a node
@@ -1943,11 +1914,6 @@ LOCAL	boolean	overlap_list(
 	    	    }
 	    	}
 	    }
-	}
-	if (debugging("missing_intfc"))
-	{
-	    printf("overlap_list step 6 num_points = %d\n",
-	    	NumOfInteriorPoints(fr->interf));
 	}
 
 	/* Merge components of matched curves
@@ -1978,11 +1944,6 @@ LOCAL	boolean	overlap_list(
 	    if (negative_component(ol->c1) != negative_component(ol->c2))
 	    	merge_components(negative_component(ol->c1),
 				 negative_component(ol->c2),fr->interf);
-	}
-	if (debugging("missing_intfc"))
-	{
-	    printf("overlap_list step 7 num_points = %d\n",
-	    	NumOfInteriorPoints(fr->interf));
 	}
 
 	if (DEBUG)
@@ -2018,14 +1979,10 @@ LOCAL	boolean match_overlaps(
 {
 	OVERLAP		*ol1, *ol2;
 	double		dist;
+	double tol = MACH_EPS*100.0;
 
 	DEBUG_ENTER(match_overlaps)
 
-	if (debugging("missing_intfc"))
-	{
-	    printf("match_overlap step 0 num_points = %d\n",
-	    	NumOfInteriorPoints(fr->interf));
-	}
 	/* Identify matching bonds */
 	for (ol1 = olhead->next; ol1 != NULL; ol1 = ol1->next)
 	{
@@ -2079,7 +2036,7 @@ LOCAL	boolean match_overlaps(
                  * side of the domain. This "> 0.0" is really not a good judge,
                  * because of the machine round-off error.
                  */
-                if (fabs(Coords(ol1->cr1)[dir] - Coords(ol2->cr1)[dir]) > 0.0)
+                if (fabs(Coords(ol1->cr1)[dir] - Coords(ol2->cr1)[dir]) > tol)
 		{
 	            if (DEBUG)
 		    {
@@ -2123,11 +2080,6 @@ LOCAL	boolean match_overlaps(
 		    ol1->dist = dist;
 	        }
 	    }
-	}
-	if (debugging("missing_intfc"))
-	{
-	    printf("match_overlap step 1 num_points = %d\n",
-	    	NumOfInteriorPoints(fr->interf));
 	}
 
 	/* Run a final consistency check, and handle the degenerate cases. */
@@ -2201,22 +2153,10 @@ LOCAL	boolean match_overlaps(
 	    }
 	    else if ((ol2 = find_remnant_match(ol1,olhead,dir)) != NULL)
 	    {
-		if (debugging("missing_intfc"))
-		{
-	    	    printf("match_overlap step 11 num_points = %d\n",
-	    	    NumOfInteriorPoints(fr->interf));
-		    printf("ol1->c1 = %p\n",(void*)ol1->c1);
-		    print_curve(ol1->c1);
-		}
 	        if (DEBUG)
 		    (void) printf("Remnant match\n");
 	    	if (!delete_curve(ol1->c1))
 		    return FUNCTION_FAILED;
-		if (debugging("missing_intfc"))
-		{
-	    	    printf("match_overlap step 12 num_points = %d\n",
-	    	    NumOfInteriorPoints(fr->interf));
-		}
 	    	(void) delete_node(ol1->n1);
 	    	(void) delete_node(ol2->n1);
 
@@ -3241,6 +3181,8 @@ LOCAL	boolean	merge_overlapping_bonds(
 	        for (c = ol->n1->in_curves; c && *c; ++c)
 	            (*c)->last->end = newp;
 	    }
+	    if (newc == NULL)
+		return FUNCTION_SUCCEEDED;
 	    for (ol1 = ol->prev; ol1 != NULL; ol1 = ol1->prev)
 	    {
 	        if (ol1 == ol)
@@ -3595,7 +3537,7 @@ LOCAL	boolean	set_subdomain_boundary(
 }		/*end set_subdomain_boundary*/
 
 
-LOCAL boolean check_for_cut_nodes(
+EXPORT boolean check_for_cut_nodes(
 	INTERFACE	*intfc)
 {
 	NODE		**n, **n2;
@@ -4703,11 +4645,26 @@ LOCAL boolean seal_cut_node_curves(
 			(void) print_curve(curve);
 		    }
 		    change_node_of_curve(curve,POSITIVE_ORIENTATION,ns);
-		    insert_point_in_bond(ne->posn,curve->first,curve);
+		    if (ne->posn != curve->first->start)
+		    	insert_point_in_bond(ne->posn,curve->first,curve);
 		    curve = join_curves(curve1,curve,negative_component(curve1),
 		    		positive_component(curve1),NULL);
-		    delete_node(ns);
-		    delete_node(ne);
+		    if (curve == NULL)
+                    {
+                        delete_node(ne);
+                        clear_node_flags(ns);
+                        if (debugging("cut_node"))
+                        {
+                            (void) printf("Curves joining at real node!\n");
+                            (void) print_curve(curve);
+                            (void) print_curve(curve1);
+                        }
+                    }
+                    else
+                    {
+                        delete_node(ns);
+                        delete_node(ne);
+                    }
 		    if (debugging("cut_node"))
 		    {
 		    	(void) printf("Matching curve after operation:\n");
@@ -4739,11 +4696,26 @@ LOCAL boolean seal_cut_node_curves(
 			(void) print_curve(curve);
 		    }
 		    change_node_of_curve(curve,NEGATIVE_ORIENTATION,ne);
-		    insert_point_in_bond(ns->posn,curve->last,curve);
+		    if (ns->posn != curve->last->end)
+		    	insert_point_in_bond(ns->posn,curve->last,curve);
 		    curve = join_curves(curve,curve1,negative_component(curve),
 		    		positive_component(curve),NULL);
-		    delete_node(ns);
-		    delete_node(ne);
+		    if (curve == NULL)
+                    {
+                        delete_node(ns);
+                        clear_node_flags(ne);
+                        if (debugging("cut_node"))
+                        {
+                            (void) printf("Curves joining at real node!\n");
+                            (void) print_curve(curve);
+                            (void) print_curve(curve1);
+                        }
+                    }
+                    else
+                    {
+                        delete_node(ns);
+                        delete_node(ne);
+                    }
 		    if (debugging("cut_node"))
 		    {
 		    	(void) printf("Matching curve after operation:\n");
@@ -4795,3 +4767,17 @@ LOCAL	boolean is_interior_end_node(NODE *n)
 	if (I_NumOfNodeCurves(n) > 1) return NO;
 	return YES;
 }	/* end is_interior_end_node */
+
+LOCAL int num_cut_node(INTERFACE *intfc)
+{
+	NODE **n;
+	int ncn = 0;
+        for (n = intfc->nodes; n && *n; ++n)
+            if (is_cut_node(*n)) 
+	    {
+		ncn++;
+		printf("position: %20.14f %20.14f\n",Coords((*n)->posn)[0],
+					Coords((*n)->posn)[1]);
+	    }
+	return ncn;
+}

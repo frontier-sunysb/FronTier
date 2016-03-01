@@ -1249,6 +1249,25 @@ EXPORT	int pp_node_propagate(
 	return GOOD_NODE;
 }		/*end pp_node_propagate*/
 
+static int string_node_propagate(
+	Front		*fr,
+	POINTER		wave,
+	NODE		*oldn,
+	NODE		*newn,
+	RPROBLEM	**rp,
+	double		dt,
+	double		*dt_frac,
+	NODE_FLAG	flag)
+{
+	POINT *oldp,*newp;
+
+        oldp = oldn->posn;
+        newp = newn->posn;
+        ft_assign(left_state(newp),left_state(oldp),fr->sizest);
+        ft_assign(right_state(newp),right_state(oldp),fr->sizest);
+        return GOOD_NODE;
+}
+
 /* 
 *		set_node_states_and_continue():
 *
@@ -1396,6 +1415,10 @@ EXPORT int f_node_propagate(
 
 	case NEUMANN_NODE: 
 	    status = B_node_propagate(fr,p2wave,oldn,newn,rp,dt,dt_frac,flag);
+	    break;
+
+	case MONO_STRING_NODE:
+	    status = string_node_propagate(fr,p2wave,oldn,newn,rp,dt,dt_frac,flag);
 	    break;
 
 	default:

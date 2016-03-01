@@ -703,6 +703,7 @@ IMPORT	void	delete_subdomain_curves(INTERFACE*);
 IMPORT  boolean    merge_interface(Front*,int);
 IMPORT  void    clip_to_interior_region(INTERFACE*,int*,int*);
 IMPORT  void    copy_interface_into(INTERFACE*,INTERFACE*);
+EXPORT 	boolean check_for_cut_nodes(INTERFACE*);
 
 	/* fscat3d1.c*/
 IMPORT	CURVE	*matching_curve(CURVE*,P_LINK*,int);
@@ -850,6 +851,9 @@ IMPORT	void	eliminate_small_loops(INTERFACE*,double,double,CROSS**);
 
 	/*funtan3d.c*/
 IMPORT	boolean scalar_unravel_3d(Front*,CROSS**);
+IMPORT	boolean retriangulate_surf_along_c_curves(SURFACE*);
+IMPORT  boolean split_surfaces_at_c_curves(INTERFACE*);
+IMPORT  boolean delete_surfaces_on_side(INTERFACE*,double,int,int,int);
 
 	/* fuserintfc.c */
 IMPORT	F_USER_INTERFACE *f_user_hook(int);

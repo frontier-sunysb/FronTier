@@ -1136,6 +1136,9 @@ EXPORT	boolean intersections(
 {
 	if (intfc == NULL)
 	    return NO;
+	/* Hooked to: i_intersections2d() if dim == 2;
+		      i_intersections2d() if dim == 3.
+	*/
 	return (*i_user_interface(intfc)._intersections)(intfc,cross,bdry);
 }		/*end intersections*/
 

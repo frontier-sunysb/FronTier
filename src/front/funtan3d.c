@@ -120,11 +120,9 @@ LOCAL	boolean	delete_unphysical_surfaces_at_c_curve(NCLIST**,NCLIST**);
 LOCAL	boolean	c_bonds_intersect(C_BOND*,C_BOND*);
 LOCAL	boolean	c_curve_out_comp_domain(C_CURVE*);
 LOCAL	boolean	cdt_triangulate_one_tri(Cdt*);
-LOCAL	boolean	cdt_retriangulate_surface_along_c_curves(SURFACE*);
 LOCAL	boolean	curve_is_in_c_curve_list(CURVE*);
 LOCAL	boolean	delete_inconsistent_surfs(INTERFACE*);
 LOCAL	boolean	prepare_v_and_e_for_cdt(Cdt*,Vertex*,int*,int*,int*);
-LOCAL	boolean	split_surfaces_at_c_curves(INTERFACE*);
 LOCAL	int	paint_component(TRI*,int);
 LOCAL	void	print_cdt(Cdt*);
 LOCAL	void	print_cdt_side(Cdt_Side*,INTERFACE*);
@@ -136,6 +134,9 @@ LOCAL	void	install_tris_from_dtris(Cdt*,Vertex*,triangulateio*);
 LOCAL	void	set_physical_surfaces_at_curve(CURVE*,NCLIST*);
 LOCAL	void	set_states_at_cross_points(Front*,C_CURVE*);
 LOCAL	void	set_states_at_crosses(Front*);
+LOCAL 	void 	correct_curve_surface_orientation(CURVE*);
+
+LOCAL	double	tol;
 
 /*
 *			scalar_unravel_3d():
@@ -212,11 +213,11 @@ EXPORT	boolean scalar_unravel_3d(
 	start_clock("constraint_delaunay_tri");
 	for (ps = intfc->surfaces; ps && *ps; ++ps)
 	{
-	    if (!cdt_retriangulate_surface_along_c_curves(*ps))
+	    if (!retriangulate_surf_along_c_curves(*ps))
 	    {
 	        set_current_interface(hold_intfc);
 		(void) printf("WARNING in scalar_unravel_3d(), "
-		              "cdt_retriangulate_surface_along_c_curves() "
+		              "retriangulate_surf_along_c_curves() "
 			      "failed\n");
 	        DEBUG_LEAVE(scalar_unravel_3d)
 		return FUNCTION_FAILED;
@@ -287,26 +288,22 @@ EXPORT	boolean scalar_unravel_3d(
 	return FUNCTION_SUCCEEDED;
 } 	/* end scalar_unravel_3d */
 
-LOCAL	boolean split_surfaces_at_c_curves(
+EXPORT	boolean split_surfaces_at_c_curves(
 	INTERFACE *intfc)
 {
 	BOND           *b;
-	BOND_TRI       **bts;
+	BOND_TRI       **bts,**bts1;
 	C_CURVE        **pc;
-	TRI            *tri;
+	TRI            *tri,*tri1;
+	CURVE 	       **c;
 	boolean        sav_intrp;
 	int            n, color, ncolors;
 	static SURFACE **news = NULL, **olds = NULL;
 	static int     *colors = NULL, *num_tris_of_color = NULL;
 	static size_t  max_ncolors = 0;
 
-	DEBUG_ENTER(split_surfaces_at_c_curves)
-
-	if (DEBUG)
-	{
-	    (void) printf("Interface into split_surfaces_at_c_curves()\n");
-	    print_interface(intfc);
-	}
+	if (debugging("split_surface"))
+	    (void) printf("Entering split_surfaces_at_c_curves()\n");
 
 	for (pc = intfc->c_curves; pc && *pc; ++pc)
 	    insert_curve_from_c_curve(*pc);
@@ -359,7 +356,7 @@ LOCAL	boolean split_surfaces_at_c_curves(
 	    }
 	}
 
-	if (DEBUG)
+	if (debugging("split_surface"))
 	    (void) printf("%d colors used\n",ncolors);
 
 	/* Create new surfaces, one for each color */
@@ -404,7 +401,8 @@ LOCAL	boolean split_surfaces_at_c_curves(
 			    (void) printf("WARNING in "
 					  "split_surfaces_at_c_curves(), "
 				          "inconsistent curve orientation\n");
-	                    DEBUG_LEAVE(split_surfaces_at_c_curves)
+	    		    if (debugging("split_surface"))
+	    	    	    	printf("Leaving split_surfaces_at_c_curves()\n");
 	                    return NO;
 		        }
 		    }
@@ -424,12 +422,13 @@ LOCAL	boolean split_surfaces_at_c_curves(
 	    }
 	}
 
-	if (DEBUG)
+	if (debugging("split_surface"))
 	{
 	    for (n = 0; n < ncolors; ++n)
 		(void) printf("New surface %llu has color %d, "
 			      "old surface = %llu\n",
-			      (long long unsigned int)surface_number(news[n]),colors[n],
+			      (long long unsigned int)surface_number(news[n]),
+			      colors[n],
 			      (long long unsigned int)surface_number(olds[n]));
 	}
 
@@ -451,8 +450,10 @@ LOCAL	boolean split_surfaces_at_c_curves(
 		        (void) printf("WARNING in "
 				      "split_surfaces_at_c_curves(), "
 			              "can't delete old surface %llu\n",
-				      (long long unsigned int)surface_number(olds[n]));
-	                DEBUG_LEAVE(split_surfaces_at_c_curves)
+				      (long long unsigned int)
+				      surface_number(olds[n]));
+	    		if (debugging("split_surface"))
+	    	    	    printf("Leaving split_surfaces_at_c_curves()\n");
 		        return NO;
 		    }
 		}
@@ -461,21 +462,39 @@ LOCAL	boolean split_surfaces_at_c_curves(
 	    {
 		(void) printf("WARNING in split_surfaces_at_c_curves(), "
 			      "triangles remain on surface to be deleted\n");
-	        DEBUG_LEAVE(split_surfaces_at_c_curves)
+	    	if (debugging("split_surface"))
+	    	    (void) printf("Leaving split_surfaces_at_c_curves()\n");
 		return NO;
 	    }
 	}
+
+	intfc_curve_loop(intfc,c)
+	    correct_curve_surface_orientation(*c);
+
 	sav_intrp = interpolate_intfc_states(intfc);
 	interpolate_intfc_states(intfc) = YES;
 	if (!sort_bond_tris(intfc))
 	{
 	    (void) printf("WARNING in split_surfaces_at_c_curves(), "
 			  "sort_bond_tris() failed\n");
-	    DEBUG_LEAVE(split_surfaces_at_c_curves)
+	    if (debugging("split_surface"))
+	    	(void) printf("Leaving split_surfaces_at_c_curves()\n");
 	    return NO;
 	}
 	interpolate_intfc_states(intfc) = sav_intrp;
-	DEBUG_LEAVE(split_surfaces_at_c_curves)
+
+	if (debugging("split_surface"))
+	{
+	    for (n = 0; n < ncolors; ++n)
+	    {
+		char dname[100];
+	    	sprintf(dname,"surface-%d",color);
+		gview_plot_colored_surface(dname,news[n],n);
+	    }
+	    consistent_interface(intfc);
+	    (void) printf("Passed consistency check\n");
+	    (void) printf("Leaving split_surfaces_at_c_curves()\n");
+	}
 	return YES;
 }		/*end split_surfaces_at_c_curves*/
 
@@ -664,8 +683,10 @@ LOCAL void insert_curve_from_c_curve(
 	        install_curve_in_surface_bdry(s,curve,orient);
 	    }
 	}
+	curve->num_points = 1;
 	for (b = curve->first; b != NULL; b = b->next)
 	{
+	    curve->num_points++;
 	    for (bts = Btris(b); bts && *bts; ++bts)
 	    {
 	        s = (*bts)->surface;
@@ -1059,7 +1080,7 @@ LOCAL	boolean delete_unphysical_surfaces_at_c_curve(
 
 
 /*
-*		cdt_retriangulate_surface_along_c_curves():
+*		retriangulate_surf_along_c_curves():
 *	   			
 *	This function retriangulates surface surf along c_curves.
 *	The main steps involved are the following: (1) Re-triangulate
@@ -1067,7 +1088,7 @@ LOCAL	boolean delete_unphysical_surfaces_at_c_curve(
 *	stitch neighboring cdts together. 
 */
 
-LOCAL  boolean  cdt_retriangulate_surface_along_c_curves(
+EXPORT  boolean  retriangulate_surf_along_c_curves(
 	SURFACE	*surf)
 {				 
 	int	  i;
@@ -1076,14 +1097,16 @@ LOCAL  boolean  cdt_retriangulate_surface_along_c_curves(
 	C_BOND	  *cb;
 	C_CURVE	  **pc;
 	Cdt	  *cdt, *cdt_tris;
+	INTERFACE *intfc = surf->interface;
 
-	DEBUG_ENTER(cdt_retriangulate_surface_along_c_curves)
+	DEBUG_ENTER(retriangulate_surf_along_c_curves)
 
 	if (surf->c_curves == NULL)
 	{
-	    DEBUG_LEAVE(cdt_retriangulate_surface_along_c_curves)
+	    DEBUG_LEAVE(retriangulate_surf_along_c_curves)
 	    return FUNCTION_SUCCEEDED;
 	}
+	tol = 0.001*grid_tolerance(computational_grid(intfc));
 
 	    /* allocate Cdts */
 
@@ -1095,7 +1118,8 @@ LOCAL  boolean  cdt_retriangulate_surface_along_c_curves(
 	{	    
 	    if (DEBUG)
 	    	(void) printf("Setting up cdt's along c_curve %p of surface "
-			      "%llu\n",(POINTER)*pc,(long long unsigned int)surface_number(surf));
+			      	"%llu\n",(POINTER)*pc,(long long unsigned int)
+				surface_number(surf));
 
 	    if (surf==(*pc)->s[0] && surf==(*pc)->s[1])
 	    {
@@ -1111,7 +1135,7 @@ LOCAL  boolean  cdt_retriangulate_surface_along_c_curves(
 	    }
 	    else 
 	    {
-		screen("ERROR in cdt_retriangulate_surface_along_c_curves(), "
+		screen("ERROR in retriangulate_surf_along_c_curves(), "
 		       "surfaces on c_curve do not match surf\n");
 		clean_up(ERROR);
 	    }
@@ -1131,7 +1155,8 @@ LOCAL  boolean  cdt_retriangulate_surface_along_c_curves(
 		    if (DEBUG)
 		    {
 		        (void) printf("c_bond %p TRI %llu  c_bond count = %d\n",
-			              (void*)cb,(long long unsigned int)tri_number(t,surf->interface),
+			              	(void*)cb,(long long unsigned int)
+					tri_number(t,surf->interface),
 			   (int)size_of_pointers((POINTER *)Tri_cross_list(t)));
 		    }
 
@@ -1163,9 +1188,9 @@ LOCAL  boolean  cdt_retriangulate_surface_along_c_curves(
 	    if (!cdt_triangulate_one_tri(cdt))
 	    {
 		(void) printf("WARNING in "
-		              "in cdt_retriangulate_surface_along_c_curves(), "
+		              "in retriangulate_surf_along_c_curves(), "
 		              "cdt_triangulate_one_tri() failed!\n");
-	        DEBUG_LEAVE(cdt_retriangulate_surface_along_c_curves)
+	        DEBUG_LEAVE(retriangulate_surf_along_c_curves)
 		return FUNCTION_FAILED;
 	    }
 	}	         
@@ -1195,7 +1220,7 @@ LOCAL  boolean  cdt_retriangulate_surface_along_c_curves(
 		    if (tri_side->num_tris > 1)
 		    {
 			screen("ERROR in "
-			       "cdt_retriangulate_surface_along_c_curves() "
+			       "retriangulate_surf_along_c_curves() "
 			       "Code needed for tri-bond intersection\n");
 			clean_up(ERROR);
 		    }
@@ -1216,7 +1241,7 @@ LOCAL  boolean  cdt_retriangulate_surface_along_c_curves(
 		    if (nside == 3)
 		    {
 		        screen("ERROR in "
-			        "cdt_retriangulate_surface_along_c_curves(), "
+			        "retriangulate_surf_along_c_curves(), "
 			        "inconsistent neighbors on side %d\n",side);
 		        (void) printf("tri - ");
 		        print_tri(tri,surf->interface);
@@ -1253,7 +1278,7 @@ LOCAL  boolean  cdt_retriangulate_surface_along_c_curves(
 		        else if (p[side] == np[nside])
 		        {
 		            screen("ERROR in "
-			         "cdt_retriangulate_surface_along_c_curves(), "
+			         "retriangulate_surf_along_c_curves(), "
 			         "inconsistent normals for neighboring tris\n");
 		            (void) printf("tri - ");
 		            print_tri(tri,surf->interface);
@@ -1265,7 +1290,7 @@ LOCAL  boolean  cdt_retriangulate_surface_along_c_curves(
 		        else
 		        {
 		            screen("ERROR in "
-			         "cdt_retriangulate_surface_along_c_curves(), "
+			         "retriangulate_surf_along_c_curves(), "
 			         "inconsistent neighboring points\n");
 		            (void) printf("tri - ");
 		            print_tri(tri,surf->interface);
@@ -1290,9 +1315,9 @@ LOCAL  boolean  cdt_retriangulate_surface_along_c_curves(
 	for (cdt = cdt_tris;  cdt;  cdt = cdt->next)
 	    remove_tri_from_surface(cdt->tri,surf,NO);
 
-	DEBUG_LEAVE(cdt_retriangulate_surface_along_c_curves)
+	DEBUG_LEAVE(retriangulate_surf_along_c_curves)
 	return FUNCTION_SUCCEEDED;
-}		/*end cdt_retriangulate_surface_along_c_curves*/
+}		/*end retriangulate_surf_along_c_curves*/
 
 
 /*
@@ -1315,6 +1340,7 @@ LOCAL 	boolean  c_bonds_intersect(
 	double d0, d1, d2;
 	double t0, t1, a00, a01, a10, a11, b0, b1;
 	double D;
+	double dis,vec[MAXD];
 
 	if ((p0s==p1s) || (p0s==p1e) || (p0e==p1s) || (p0e==p1e))
 	    return NO;
@@ -1340,6 +1366,13 @@ LOCAL 	boolean  c_bonds_intersect(
 	    return NO;
 	t0 = (b0*a11 - b1*a01)/D;
 	t1 = (b0*a10 - b1*a00)/D;
+
+	vec[0] = d0 + t0*d00 - t1*d10;
+        vec[1] = d1 + t0*d01 - t1*d11;
+        vec[2] = d2 + t0*d02 - t1*d12;
+        dis = Dot3d(vec,vec);
+	if (dis > tol) return NO;
+
 	if ((0.0 < t0 && t0 < 1.0) && (0.0 < t1 && t1 < 1.0))
 	    return YES;
 	return NO;
@@ -2002,3 +2035,167 @@ LOCAL	void	print_ncsurf(
 
 	(void) printf("End NCSURF structure 0x%p\n",(void*)ncs);
 }		/*end print_ncsurf*/
+
+LOCAL void correct_curve_surface_orientation(
+	CURVE *curve)
+{
+	SURFACE *surf,**s;
+	CURVE **c;
+	BOND *b;
+	BOND_TRI **bts;
+	TRI *tri;
+	ORIENTATION orient;
+	
+	b = curve->first;
+	bond_btri_loop(b,bts)
+	{
+	    surf = (*bts)->surface;
+	    tri = (*bts)->tri;
+	    orient = orientation_of_bond_at_tri(b,tri);
+	    if (orient == POSITIVE_ORIENTATION)
+	    {
+		curve_neg_surf_loop(curve,s)
+		{
+		    if (surf == *s)
+		    {
+		    	delete_from_pointers((POINTER)surf,
+				(POINTER**)&curve->neg_surfaces);
+		    	unique_add_to_pointers((POINTER)surf,
+				(POINTER**)&curve->pos_surfaces);
+			break;
+		    }
+		}
+		surf_neg_curve_loop(surf,c)
+		{
+		    if (curve == *c)
+		    {
+		    	delete_from_pointers((POINTER)curve,
+				(POINTER**)&surf->neg_curves);
+		    	unique_add_to_pointers((POINTER)curve,
+				(POINTER**)&surf->pos_curves);
+			break;
+		    }
+		}
+	    }
+	    else if (orient == NEGATIVE_ORIENTATION)
+	    {
+		curve_pos_surf_loop(curve,s)
+		{
+		    if (surf == *s)
+		    {
+		    	delete_from_pointers((POINTER)surf,
+				(POINTER**)&curve->pos_surfaces);
+		    	unique_add_to_pointers((POINTER)surf,
+				(POINTER**)&curve->neg_surfaces);
+			break;
+		    }
+		}
+		surf_pos_curve_loop(surf,c)
+		{
+		    if (curve == *c)
+		    {
+		    	delete_from_pointers((POINTER)curve,
+				(POINTER**)&surf->pos_curves);
+		    	unique_add_to_pointers((POINTER)curve,
+				(POINTER**)&surf->neg_curves);
+			break;
+		    }
+		}
+	    }
+	}	
+}	/* end correct_curve_surface_orientation */
+
+EXPORT boolean delete_surfaces_on_side(
+	INTERFACE *intfc,
+	double cut_line,
+	int w_type,
+	int dir,
+	int side)
+{
+	SURFACE **s,*surf1,*surf2;
+	CURVE **c,*curve;
+	TRI *tri,*tri1,*tri2;
+	BOND *b;
+	BOND_TRI **btris;
+	int i;
+	double tri_center;
+	boolean to_delete;
+
+	if (debugging("trace"))
+	    (void) printf("Entering delete_surfaces_on_side()\n");
+	intfc_surface_loop(intfc,s)
+	{
+	    if (wave_type(*s) != w_type) continue;
+	    to_delete = NO;
+	    surf_tri_loop(*s,tri)
+	    {
+		tri_center = 0.0;
+		for (i = 0; i < 3; ++i)
+		    tri_center += Coords(Point_of_tri(tri)[i])[dir];
+		tri_center /= 3.0;
+		if ((side == 0 && tri_center < cut_line) ||
+		    (side == 1 && tri_center > cut_line))
+		{
+		    to_delete = YES;
+		    break;
+		}
+	    }
+	    if (to_delete)
+		delete_surface(*s);
+	}
+	intfc_curve_loop(intfc,c)
+	{
+	    curve = *c;
+	    if (size_of_pointers((curve)->pos_surfaces) != 1 ||
+		size_of_pointers((curve)->neg_surfaces) != 1)
+		continue;
+	    surf1 = *(curve->pos_surfaces);
+	    surf2 = *(curve->neg_surfaces);
+	    if (wave_type(surf1) != wave_type(surf2))
+		continue;
+	    /* Link tris on two side of the curve */
+	    curve_bond_loop(curve,b)
+	    {
+		Boundary_point(b->start) = Boundary_point(b->end) = NO;
+		tri1 = tri2 = NULL;
+		bond_btri_loop(b,btris)
+		{
+		    if ((*btris)->surface == surf1)
+			tri1 = (*btris)->tri;
+		    if ((*btris)->surface == surf2)
+			tri2 = (*btris)->tri;
+		}
+		for (i = 0; i < 3; ++i)
+		{
+		    if (is_side_bdry(tri1,i) && Bond_on_side(tri1,i) == b)
+		    {
+			Tri_on_side(tri1,i) = tri2;
+			set_side_bdry(Boundary_tri(tri1),i,NO);
+		    }
+		    if (is_side_bdry(tri2,i) && Bond_on_side(tri2,i) == b)
+		    {
+			Tri_on_side(tri2,i) = tri1;
+			set_side_bdry(Boundary_tri(tri2),i,NO);
+		    }
+		}
+		remove_tri_from_surface(tri1,surf1,YES);
+                insert_tri_at_tail_of_list(tri1,surf2);
+	    }
+	    /* Move rest of tris on surf1 to surf2 */
+	    for (tri = first_tri(surf1); !at_end_of_tri_list(tri,surf1);
+		 tri = tri1)
+	    {
+		tri1 = tri->next;
+		remove_tri_from_surface(tri,surf1,YES);
+                insert_tri_at_tail_of_list(tri,surf2);
+	    }
+	    delete_surface(surf1);
+	    delete_curve(curve);
+	}
+	consistent_interface(intfc);
+	printf("Passed second consistent_interface()\n");
+	print_interface(intfc);
+	gview_plot_interface("final",intfc);
+	if (debugging("trace"))
+	    (void) printf("Leaving delete_surfaces_on_side()\n");
+}	/* end delete_surfaces_on_side */

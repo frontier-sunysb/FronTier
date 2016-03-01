@@ -468,11 +468,28 @@ EXPORT int check_comps_at_nodes(
 		    {
 		    	char xname[100];
 			double radius = 3.0*topological_grid(intfc).h[0];
+			int ii,jj;
 			print_node(*n);
 		    	sprintf(xname,"inconsis_comp-%d-%d",pp_mynode(),
 					num_inconsistent);
 			xgraph_2d_intfc_within_range(xname,intfc,
 					Coords((*n)->posn),radius,NO);
+	    		for (ii = 0; ii < onode->num_c; ++ii)
+			{
+	    		    jj = (ii + 1) % onode->num_c;
+	    		    if (onode->orient[ii] == POSITIVE_ORIENTATION)
+	    	    	        compi = negative_component(onode->nc[ii]);
+	    		    else
+	    	    	        compi = positive_component(onode->nc[ii]);
+	    		    if (onode->orient[jj] == POSITIVE_ORIENTATION)
+	    	    	        compj = positive_component(onode->nc[jj]);
+	    		    else
+	    	    	        compj = negative_component(onode->nc[jj]);
+			    printf("compi = %d\n",compi);
+			    printf("compj = %d\n",compj);
+			    print_curve(onode->nc[jj]);
+			}
+			
 		    }
 	    	    ++num_inconsistent;
 	    	    on->next = onode;

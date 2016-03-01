@@ -1448,13 +1448,33 @@ IMPORT  boolean FT_StateStructAtGridCrossing2(Front *front ,
 
     IMPORT void FT_MakeCylinderSurf(Front *front,double *center,double radius, double height, COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf);
 
-/*! \fn void FT_MakeConeSurf(Front *front,double *center,double slope, double height, COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf)
+/*! \fn void FT_MakeAnnularCylinderSurf(Front *front,double *center,double r_out,double r_in, double height, COMPONENT neg_comp,COMPONENT pos_comp,int idir,int w_type,int refinement_level,boolean extend_to_buffer,SURFACE **surf)
  *  \ingroup INSERT
     \brief This function inserts a cone surface into the front with given
      information of its parameters, components, and wave type.
     \param front @b inout Pointer to the front in which surface is inserted.
-    \param center @b in vertex of the cone.
-    \param slope @b in slope of the cone.
+    \param center @b in center of the cylinder.
+    \param r_out @b in radius of outer cylinder.
+    \param r_in @b in radius of inner cylinder.
+    \param height @b in height of the cylinder.
+    \param neg_comp @b in index for negative side of the surface (inner side).
+    \param pos_comp @b in index for positive side of the surface (outer side).
+    \param idir @b in direction of the axis.
+    \param w_type @b in wave type of the surface.
+    \param refinement_level @b in level of surface mesh refinement.
+    \param extend_to_buffer @b in if YES, extend to buffer zone.
+    \param surf @b out surface made by this function
+*/
+
+    IMPORT void FT_MakeAnnularCylinderSurf(Front *front,double *center,double r_out,double r_in,double height, COMPONENT neg_comp,COMPONENT pos_comp,int idir,int w_type,int refinement_level,boolean extend_to_buffer,SURFACE **surf);
+
+/*! \fn void FT_MakeConeSurf(Front *front,double *center,double slope,double height, COMPONENT neg_comp,COMPONENT pos_comp,int w_type,SURFACE **surf)
+ *  \ingroup INSERT
+    \brief This function inserts a cone surface into the front with given
+     information of its parameters, components, and wave type.
+    \param front @b inout Pointer to the front in which surface is inserted.
+    \param center @b in center of the cone base.
+    \param slope @b in slope of the cone side.
     \param height @b in height of the cone.
     \param neg_comp @b in index for negative side of the surface (inner side).
     \param pos_comp @b in index for positive side of the surface (outer side).

@@ -38,12 +38,12 @@ const char xgraph_color[][100] ={"red",
 			"orange",
 			"yellow",
 			"pink",
+			"gold",
 			"cyan",
-			"light-gray",
-			"dark-gray",
 			"fuchsia",
 			"aqua",
-			"gold",
+			"light-gray",
+			"dark-gray",
 			"navy"};
 
 

@@ -1564,6 +1564,9 @@ typedef struct _SCALED_REDIST_PARAMS SCALED_REDIST_PARAMS;
 #define	node_out_curve_loop(node,c)	\
 	for ((c) = (node)->out_curves; (c) && (*c); ++(c))
 
+#define bond_btri_loop(b,btris)		\
+	for ((btris) = Btris((b)); (btris) && *(btris); ++(btris))
+
 #define E_comps(intfc)          ((EQUIV_COMPS *) (intfc)->e_comps)
 
 #if defined(c_plusplus) || defined(__cplusplus)

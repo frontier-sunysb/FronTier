@@ -271,9 +271,9 @@ EXPORT boolean the_tri(TRI *tri)
 	double tol = 1.0e-5;	/* vertices coords must have at least */
 				/* five digits after decimal points */
 
-	double p[3][3] = {{7.086424,   6.177732,  18.731641},
-			  {7.011301,   6.168649,  18.730873},
-			  {7.094202,   6.103728,  18.718782}};
+	double p[3][3] = {{0.37703380423518,0.94999999999999,0.91339745962155},
+			  {0.38999999999999,0.94999999999999,0.91339745962155},
+			  {0.37704752670873,0.95415192215539,0.91119718437123}};
 
 	/*return NO; */
 
@@ -527,7 +527,7 @@ LOCAL boolean the_point_one(POINT *pt, double *p)
 
 EXPORT boolean the_point(POINT *pt)
 {
-	double	p1[3] = {7.086424, 6.177732, 18.731641};
+	double	p1[3] = {2.0, 0.0, 18.731641};
 	double	p2[3] = {7.086424, 6.177732, 18.731641};
 
 	if(the_point_one(pt,p1) || the_point_one(pt,p2))

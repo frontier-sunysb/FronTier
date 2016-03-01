@@ -5469,6 +5469,57 @@ EXPORT	ORIENTATION orientation_of_bond_at_tri(
 	return ORIENTATION_NOT_SET;
 }		/*end orientation_of_bond_at_tri*/
 
+EXPORT	ORIENTATION orientation_of_curve_at_surface(
+	CURVE *curve,
+	SURFACE  *surf)
+{
+	ORIENTATION orient;
+	CURVE **c;
+	SURFACE **s;
+
+	surf_pos_curve_loop(surf,c)
+	    if (curve == *c) orient = POSITIVE_ORIENTATION;
+
+	surf_neg_curve_loop(surf,c)
+	    if (curve == *c) orient = NEGATIVE_ORIENTATION;
+
+	curve_pos_surf_loop(curve,s)
+	{
+	    if (surf == *s)
+	    {
+		if (orient != POSITIVE_ORIENTATION)
+		{
+		    (void) printf("Inconsistent curve-surface orientation!\n");
+		    (void) printf("surface-curve orient = %s\n",
+					orientation_name(orient));
+		    (void) printf("curve-surface orient = "
+				  "POSITIVE_ORIENTATION\n");
+		    clean_up(ERROR);
+		}
+		else
+		    return orient;
+	    }
+	}
+	curve_neg_surf_loop(curve,s)
+	{
+	    if (surf == *s)
+	    {
+		if (orient != NEGATIVE_ORIENTATION)
+		{
+		    (void) printf("Inconsistent curve-surface orientation!\n");
+		    (void) printf("surface-curve orient = %s\n",
+					orientation_name(orient));
+		    (void) printf("curve-surface orient = "
+				  "NEGATIVE_ORIENTATION\n");
+		    clean_up(ERROR);
+		}
+		else
+		    return orient;
+	    }
+	}
+	return ORIENTATION_NOT_SET;
+}	/* end orientation_of_curve_at_surface */
+
 EXPORT	int side_of_tri_with_bond(
 	BOND *b,
 	TRI  *tri)

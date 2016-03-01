@@ -74,8 +74,9 @@ EXPORT boolean scatter_front(
 	boolean		sav_copy = copy_intfc_states();
 	boolean		sav_intrp = interpolate_intfc_states(intfc);
 	int		i, dim = gr->dim;
-	DEBUG_ENTER(scatter_front)
 
+	if (debugging("trace"))
+	    printf("Entering scatter_front()\n");
 	if ((dim == 3) && debugging("consistency"))
 	{
 	    (void) printf("Check consistency of interface "
@@ -137,7 +138,8 @@ EXPORT boolean scatter_front(
 	if (!status)
 	    printf("In scatter_front() status = FAILED mynode = %d\n",
 				pp_mynode());
-	DEBUG_LEAVE(scatter_front)
+	if (debugging("trace"))
+	    printf("Leaving scatter_front()\n");
 	return pp_min_status(status);
 }		/*end scatter_front*/
 
@@ -265,6 +267,7 @@ EXPORT	void	pp_clip_rect_grids(
 	RECT_GRID	 *c_gr = computational_grid(intfc), Dual_grid;
 	int		dim = front->rect_grid->dim;
 	int		i, tgmax[MAXD];
+	boolean		is_buffered;
 
 	for (i = 0; i < dim; ++i)
 	{
@@ -300,10 +303,12 @@ EXPORT	void	pp_clip_rect_grids(
 	    double h = t_gr->h[i];
 	    tgmax[i] = irint((zoom_gr->VU[i] - zoom_gr->VL[i])/h);
 	    t_gr->GL[i] = zoom_gr->GL[i];
-	    if (buffered_boundary_type(rbt[i][0]))
+	    is_buffered = pp_min_status(buffered_boundary_type(rbt[i][0]));
+	    if (is_buffered)
 		t_gr->GL[i] -= pp_grid->buf[i]*zoom_gr->h[i];
 	    t_gr->GU[i] = zoom_gr->GU[i];
-	    if (buffered_boundary_type(rbt[i][1]))
+	    is_buffered = pp_min_status(buffered_boundary_type(rbt[i][1]));
+	    if (is_buffered)
 		t_gr->GU[i] += pp_grid->buf[i]*zoom_gr->h[i];
 	}
 	
@@ -2698,7 +2703,7 @@ LOCAL	void bundle_struct_buffer(
 	    for (i = bmin[0]; i < bmax[0]; ++i)
 	    {
 	    	ic = d_index1d(i,gmax);
-		ps = pstorage + ic;
+		ps = pstorage + ic*psize;
 		ft_assign(variable,(POINTER)ps,psize);
 		variable += psize;
 	    }
@@ -2708,7 +2713,7 @@ LOCAL	void bundle_struct_buffer(
 	    for (j = bmin[1]; j < bmax[1]; ++j)
 	    {
 	    	ic = d_index2d(i,j,gmax);
-		ps = pstorage + ic;
+		ps = pstorage + ic*psize;
 		ft_assign(variable,(POINTER)ps,psize);
 		variable += psize;
 	    }
@@ -2719,7 +2724,7 @@ LOCAL	void bundle_struct_buffer(
 	    for (k = bmin[2]; k < bmax[2]; ++k)
 	    {
 	    	ic = d_index3d(i,j,k,gmax);
-		ps = pstorage + ic;
+		ps = pstorage + ic*psize;
 		ft_assign(variable,(POINTER)ps,psize);
 		variable += psize;
 	    }
@@ -2745,7 +2750,7 @@ LOCAL	void unbundle_struct_buffer(
 	    for (i = bmin[0]; i < bmax[0]; ++i)
 	    {
 	    	ic = d_index1d(i,gmax);
-		ps = pstorage + ic;
+		ps = pstorage + ic*psize;
 		ft_assign((POINTER)ps,variable,psize);
 		variable += psize;
 	    }
@@ -2755,7 +2760,7 @@ LOCAL	void unbundle_struct_buffer(
 	    for (j = bmin[1]; j < bmax[1]; ++j)
 	    {
 	    	ic = d_index2d(i,j,gmax);
-		ps = pstorage + ic;
+		ps = pstorage + ic*psize;
 		ft_assign((POINTER)ps,variable,psize);
 		variable += psize;
 	    }
@@ -2766,7 +2771,7 @@ LOCAL	void unbundle_struct_buffer(
 	    for (k = bmin[2]; k < bmax[2]; ++k)
 	    {
 	    	ic = d_index3d(i,j,k,gmax);
-		ps = pstorage + ic;
+		ps = pstorage + ic*psize;
 		ft_assign((POINTER)ps,variable,psize);
 		variable += psize;
 	    }
@@ -2797,8 +2802,8 @@ LOCAL   void reflect_struct_buffer(
                 {
                     isend = d_index1d(lbuf[0]+i,gmax);
                     irecv = d_index1d(lbuf[0]-1-i,gmax);
-		    ps1 = pstorage + isend;
-		    ps2 = pstorage + irecv;
+		    ps1 = pstorage + isend*psize;
+		    ps2 = pstorage + irecv*psize;
 		    ft_assign((POINTER)ps2,(POINTER)ps1,psize);
                 }
             }
@@ -2808,8 +2813,8 @@ LOCAL   void reflect_struct_buffer(
                 {
                     isend = d_index1d(gmax[0]-ubuf[0]-i,gmax);
                     irecv = d_index1d(gmax[0]-ubuf[0]+1+i,gmax);
-		    ps1 = pstorage + isend;
-		    ps2 = pstorage + irecv;
+		    ps1 = pstorage + isend*psize;
+		    ps2 = pstorage + irecv*psize;
 		    ft_assign((POINTER)ps2,(POINTER)ps1,psize);
                 }
             }
@@ -2825,8 +2830,8 @@ LOCAL   void reflect_struct_buffer(
 		    {
                     	isend = d_index2d(lbuf[0]+i,j,gmax);
                     	irecv = d_index2d(lbuf[0]-1-i,j,gmax);
-		    	ps1 = pstorage + isend;
-		    	ps2 = pstorage + irecv;
+		    	ps1 = pstorage + isend*psize;
+		    	ps2 = pstorage + irecv*psize;
 		    	ft_assign((POINTER)ps2,(POINTER)ps1,psize);
 		    }
 		    break;
@@ -2836,8 +2841,8 @@ LOCAL   void reflect_struct_buffer(
 		    {
                     	isend = d_index2d(i,lbuf[1]+j,gmax);
                     	irecv = d_index2d(i,lbuf[1]-1-j,gmax);
-		    	ps1 = pstorage + isend;
-		    	ps2 = pstorage + irecv;
+		    	ps1 = pstorage + isend*psize;
+		    	ps2 = pstorage + irecv*psize;
 		    	ft_assign((POINTER)ps2,(POINTER)ps1,psize);
 		    }
 		    break;
@@ -2853,8 +2858,8 @@ LOCAL   void reflect_struct_buffer(
 		    {
                     	isend = d_index2d(gmax[0]-ubuf[0]-i,j,gmax);
                     	irecv = d_index2d(gmax[0]-ubuf[0]+1+i,j,gmax);
-		    	ps1 = pstorage + isend;
-		    	ps2 = pstorage + irecv;
+		    	ps1 = pstorage + isend*psize;
+		    	ps2 = pstorage + irecv*psize;
 		    	ft_assign((POINTER)ps2,(POINTER)ps1,psize);
 		    }
 		    break;
@@ -2864,8 +2869,8 @@ LOCAL   void reflect_struct_buffer(
 		    {
                     	isend = d_index2d(i,gmax[1]-ubuf[1]-j,gmax);
                     	irecv = d_index2d(i,gmax[1]-ubuf[1]+1+j,gmax);
-		    	ps1 = pstorage + isend;
-		    	ps2 = pstorage + irecv;
+		    	ps1 = pstorage + isend*psize;
+		    	ps2 = pstorage + irecv*psize;
 		    	ft_assign((POINTER)ps2,(POINTER)ps1,psize);
 		    }
 		    break;
@@ -2884,8 +2889,8 @@ LOCAL   void reflect_struct_buffer(
 		    {
                     	isend = d_index3d(lbuf[0]+i,j,k,gmax);
                     	irecv = d_index3d(lbuf[0]-1-i,j,k,gmax);
-		    	ps1 = pstorage + isend;
-		    	ps2 = pstorage + irecv;
+		    	ps1 = pstorage + isend*psize;
+		    	ps2 = pstorage + irecv*psize;
 		    	ft_assign((POINTER)ps2,(POINTER)ps1,psize);
 		    }
 		    break;
@@ -2896,8 +2901,8 @@ LOCAL   void reflect_struct_buffer(
 		    {
                     	isend = d_index3d(i,lbuf[1]+j,k,gmax);
                     	irecv = d_index3d(i,lbuf[1]-1-j,k,gmax);
-		    	ps1 = pstorage + isend;
-		    	ps2 = pstorage + irecv;
+		    	ps1 = pstorage + isend*psize;
+		    	ps2 = pstorage + irecv*psize;
 		    	ft_assign((POINTER)ps2,(POINTER)ps1,psize);
 		    }
 		    break;
@@ -2908,8 +2913,8 @@ LOCAL   void reflect_struct_buffer(
 		    {
                     	isend = d_index3d(i,j,lbuf[2]+k,gmax);
                     	irecv = d_index3d(i,j,lbuf[2]-1-k,gmax);
-		    	ps1 = pstorage + isend;
-		    	ps2 = pstorage + irecv;
+		    	ps1 = pstorage + isend*psize;
+		    	ps2 = pstorage + irecv*psize;
 		    	ft_assign((POINTER)ps2,(POINTER)ps1,psize);
 		    }
 		    break;
@@ -2926,8 +2931,8 @@ LOCAL   void reflect_struct_buffer(
 		    {
                     	isend = d_index3d(gmax[0]-ubuf[0]-i,j,k,gmax);
                     	irecv = d_index3d(gmax[0]-ubuf[0]+1+i,j,k,gmax);
-		    	ps1 = pstorage + isend;
-		    	ps2 = pstorage + irecv;
+		    	ps1 = pstorage + isend*psize;
+		    	ps2 = pstorage + irecv*psize;
 		    	ft_assign((POINTER)ps2,(POINTER)ps1,psize);
 		    }
 		    break;
@@ -2938,8 +2943,8 @@ LOCAL   void reflect_struct_buffer(
 		    {
                     	isend = d_index3d(i,gmax[1]-ubuf[1]-j,k,gmax);
                     	irecv = d_index3d(i,gmax[1]-ubuf[1]+1+j,k,gmax);
-		    	ps1 = pstorage + isend;
-		    	ps2 = pstorage + irecv;
+		    	ps1 = pstorage + isend*psize;
+		    	ps2 = pstorage + irecv*psize;
 		    	ft_assign((POINTER)ps2,(POINTER)ps1,psize);
 		    }
 		    break;
@@ -2950,8 +2955,8 @@ LOCAL   void reflect_struct_buffer(
 		    {
                     	isend = d_index3d(i,j,gmax[2]-ubuf[2]-k,gmax);
                     	irecv = d_index3d(i,j,gmax[2]-ubuf[2]+1+k,gmax);
-		    	ps1 = pstorage + isend;
-		    	ps2 = pstorage + irecv;
+		    	ps1 = pstorage + isend*psize;
+		    	ps2 = pstorage + irecv*psize;
 		    	ft_assign((POINTER)ps2,(POINTER)ps1,psize);
 		    }
 		    break;

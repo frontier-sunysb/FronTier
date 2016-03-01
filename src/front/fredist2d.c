@@ -549,6 +549,7 @@ redistribute_interface:
 	    {
 	        if (DEBUG)
 	    	    (void) printf("Calling untangle front\n");
+		/* fr->untangle_front is hooled tp scalar_unravel() */
 	        status = (cross == NULL) ? CURVES_UNTANGLED :
 	    		(fr->untangle_front) ?
 	                        (*fr->untangle_front)(fr,&cross,flag) :
@@ -855,6 +856,8 @@ EXPORT boolean expansion_redistribute(
 		continue;
 	    if(wave_type(*c) == ELASTIC_BOUNDARY)
 		continue;
+	    if(wave_type(*c) == ELASTIC_STRING)
+		continue;
 	    if (!expand_redist_cur(fr,*c))
 	    {
 	    	Interface_redistributed(fr) = NO;
@@ -1092,6 +1095,8 @@ EXPORT boolean full_redistribute(
 	    if (wave_type(*c) == MOVABLE_BODY_BOUNDARY)
 		continue;
 	    if (wave_type(*c) == ELASTIC_BOUNDARY)
+		continue;
+	    if (wave_type(*c) == ELASTIC_STRING)
 		continue;
 	    if (perform_redistribution(*c,fr,force))
 	    {
@@ -1814,6 +1819,12 @@ LOCAL	boolean elastic_tangle(
 	    if (wave_type(cr->c1) == ELASTIC_BOUNDARY &&
 	        wave_type(cr->c2) == ELASTIC_BOUNDARY)
 	        status = YES;
+	    else if (wave_type(cr->c1) == ELASTIC_BOUNDARY &&
+                wave_type(cr->c2) == ELASTIC_STRING)
+		status = YES;
+	   else if (wave_type(cr->c1) == ELASTIC_STRING &&
+                wave_type(cr->c2) == ELASTIC_STRING)
+		status = YES;
 	}
 
 	return pp_max_status(status);

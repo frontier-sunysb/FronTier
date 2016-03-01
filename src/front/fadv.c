@@ -412,13 +412,16 @@ LOCAL int advance_front1d(
 	debug_front("redist_front","after redistribute",*newfront);
 	if (status != GOOD_STEP)
 	    return return_advance_front(front,newfront,status,fname);
+	start_clock("scatter_front");
 	if (!scatter_front(*newfront))
 	{
+	    stop_clock("scatter_front");
 	    (void) printf("WARNING in advance_front1d(), "
 	    	          "scatter_front() failed for "
 	    	          "normally propagated front\n");
 	    return return_advance_front(front,newfront,ERROR_IN_STEP,fname);
 	}
+	stop_clock("scatter_front");
 
 	(*newfront)->step = front->step + 1;
 	(*newfront)->time = front->time + dt;
@@ -936,10 +939,11 @@ sync_prop_stat1:
 	/* Check for the geometric orientation of loops */
 
 	/* ONLY check loops that will not be deleted !!!! */
-	delete_small_loops(*newfront);
+	if (front->step != 0)
+	    delete_small_loops(*newfront);
 
-		/* Delete non-boundary curves that lie  */
-		/* fully on or exterior to the boundary */
+	/* Delete non-boundary curves that lie  */
+	/* fully on or exterior to the boundary */
 
 	delete_exterior_curves(*newfront,front->interf);
 	intfc_delete_fold_back_bonds(*newfront);
@@ -1072,7 +1076,9 @@ sync_prop_stat2:
 	*  In general our policy should be never to modify the
 	*  old interface data.
 	*/
-	delete_small_loops(*newfront);
+	/* hooked to f_delete_small_loops() */
+	if (front->step != 0)
+	    delete_small_loops(*newfront);
 	debug_front("dsloop_front","after delete_small_loops():",*newfront);
 
 	test_for_mono_comp_curves((*newfront)->interf);
@@ -1083,14 +1089,17 @@ sync_prop_stat2:
 	pp_global_lmax(&intfc_modified,1L);
 	if (intfc_modified)
 	{
+	    start_clock("scatter_front");
 	    if (!scatter_front(*newfront))
 	    {
+	    	stop_clock("scatter_front");
 	    	(void) printf("WARNING in advance_front2d(), "
 	    	              "final scatter_front() failed\n");
 	    	*dt_frac = Max_time_step_modification_factor(front);
 	        return return_advance_front(front,newfront,
 		                            MODIFY_TIME_STEP,fname);
 	    }
+	    stop_clock("scatter_front");
 	    stat = make_bond_comp_lists((*newfront)->interf);
 	    if (pp_min_status(stat) == FUNCTION_FAILED)
 	    {
@@ -1099,6 +1108,11 @@ sync_prop_stat2:
 	    	clean_up(ERROR);
 	    }
 	}
+	start_clock("interior_propagate");
+
+        if (front->interior_propagate != NULL)
+            (*front->interior_propagate)(*newfront,dt);
+        stop_clock("interior_propagate");
 
 	return return_advance_front(front,newfront,GOOD_STEP,fname);
 }		/*end advance_front2d*/

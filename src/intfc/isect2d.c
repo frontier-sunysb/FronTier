@@ -142,12 +142,20 @@ LIB_LOCAL boolean i_intersections2d(
 		        continue;
 	    	    if (is_subdomain_boundary(Hyper_surf(c[i])))
 	    	    	continue;
+		    if ((is_subdomain_node(c[i]->end) && b[i] == c[i]->last) ||
+                        (is_subdomain_node(c[i]->start) && b[i] == c[i]->first))
+                        continue;
 	    	    for(j=i+1; j<nb; j++)
 	    	    {
 	    	    	if (is_bdry(c[j]) && !bdry)
 	    	    	    continue;
 	    	    	if (is_subdomain_boundary(Hyper_surf(c[j])))
 	    		    continue;
+			if ((is_subdomain_node(c[j]->end) &&
+                            b[j] == c[j]->last) ||
+                            (is_subdomain_node(c[j]->start) &&
+                            b[j] == c[j]->first))
+                            continue;
 
 	    			/* Skip if Adjacent Bonds */
 	    		if (b[i]->next == b[j])

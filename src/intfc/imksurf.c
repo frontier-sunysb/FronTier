@@ -353,7 +353,7 @@ EXPORT boolean make_level_surface(
 	else
 	{
 	    delete_surface(surf);
-	    surf = NULL;
+	    *s = NULL;
 	}
 	interface_reconstructed(intfc) = YES;
 	intfc->modified = YES;
@@ -361,7 +361,7 @@ EXPORT boolean make_level_surface(
 	free_grid_crx_mem(&Eg_crx,NO);
 	free_these(3,Eg_crx.comp,blk_info.surfs,blk_info.cur_tris);
 	set_current_interface(save_intfc);
-	return YES;
+	return (*s) == NULL ? NO : YES;
 }	/* end make_level_surface */
 
 /*******************************************************************
@@ -2256,6 +2256,39 @@ EXPORT  double cylinder_func(
         }
         return arg;
 }	/*end cylinder_func*/
+
+EXPORT  double acylinder_func(
+	POINTER func_params,
+	double *coords)
+{
+	ACYLINDER_PARAMS *d_params = (ACYLINDER_PARAMS*)func_params;
+        double *c;
+        double x,y,z,r1,r2,h,arg;
+	int idir;
+
+        c = d_params->center;
+        r1 = d_params->radius1;
+	r2 = d_params->radius2;
+        h = d_params->height;
+	idir = d_params->idir;
+
+        x = coords[idir] - c[idir];
+        y = coords[(idir+1)%3] - c[(idir+1)%3];
+        z = coords[(idir+2)%3] - c[(idir+2)%3];
+
+        if(x > -h && x < h)
+        {
+            if(sqr(y) + sqr(z) > sqr(r1) || sqr(y) + sqr(z) < sqr(r2))
+	       arg = 1; 
+	    else
+	       arg = -1;
+        }
+        else
+        {
+            arg = 1;
+        }
+        return arg;
+}	/* end acylinder_func */
 
 EXPORT  double cone_func(
 	POINTER func_params,

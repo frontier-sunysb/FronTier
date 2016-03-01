@@ -143,10 +143,11 @@ IMPORT	void	set_current_interface(INTERFACE*);
 IMPORT	POINT *i_average_points(boolean,POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*,
 	                             POINT*,HYPER_SURF_ELEMENT*,HYPER_SURF*);
 IMPORT	ORIENTATION orientation_of_bond_at_tri(BOND*,TRI*);
+IMPORT  ORIENTATION orientation_of_curve_at_surface(CURVE*,SURFACE*);
 IMPORT	boolean	delete_side_of_tri(TRI*,SURFACE*,int);
 IMPORT	boolean	delete_vertex_of_tri(POINT*pt,TRI*,SURFACE*);
-EXPORT	boolean	flip_diagonal(TRI*,int);
-EXPORT	boolean	retriangulate_polygon(POINT**,int,POINT**,int,const double*,
+IMPORT	boolean	flip_diagonal(TRI*,int);
+IMPORT	boolean	retriangulate_polygon(POINT**,int,POINT**,int,const double*,
 				      TRI**,int,SURFACE*,BOND_TRI**,TRI**,
 				      TRI***,int*);
 IMPORT	int side_of_tri_with_bond(BOND*,TRI*);
@@ -265,6 +266,8 @@ IMPORT boolean curve_in_interface(CURVE*,INTERFACE*);
 IMPORT boolean node_in_interface(NODE*,INTERFACE*);
 IMPORT void unit_vector(double*,double*,int);
 IMPORT BOND *bond_of_boundary_point(POINT*,TRI*);
+IMPORT void linear_22_equation(double*,double*,double*,double*);
+IMPORT void invert_to_icoords(int,int*,int*,int);
 
 /*	iuserintfc.c*/
 IMPORT	I_USER_INTERFACE	*i_user_hook(int);
@@ -430,6 +433,7 @@ IMPORT	char	*get_vtk_file_name(char*,const char*,const char*,size_t*);
 IMPORT	void	gview_plot_surf_within_range(const char*,SURFACE*,double*,
         			double);
 IMPORT	void	gview_plot_surface(const char*,SURFACE*);
+IMPORT	void	gview_plot_colored_surface(const char*,SURFACE*,SURFACE_COLOR);
 IMPORT	void	gview_plot_intfc_within_range(const char*,INTERFACE*,double*,
         			double);
 IMPORT  void    gview_plot_pt_tri_within_range(const char*,POINT*,TRI*,int);
@@ -498,17 +502,19 @@ IMPORT	void	gview_plot_polyline(const char*,const char*,POINT**,
 	                            int,boolean,double,double,double,double,
 				    const double*,const double*);
 IMPORT	void	gview_plot_triangle_list(const char*,const char*,TRI**,int,
-	                                 double,double,double,double,double,double,
-					 double,const double*,const double*);
+	                                double,double,double,double,double,double,
+					double,const double*,const double*);
 IMPORT	void	gview_plot_vertices(const char*,const char*,POINT**,
-	                            int,const double*,const double*);
+	                            	int,const double*,const double*);
 IMPORT	void	gview_plot_c_curve(const C_CURVE*,int,const char*);
 IMPORT  void    gview_plot_curve(const CURVE*,const char*,const char*,
-				 SURFACE_COLOR,int);
+				 	SURFACE_COLOR,int);
 IMPORT	void	gview_plot_tri_and_point_list(const char*,TRI**,
-	                                      const double*,int,double* const*,
-					      SURFACE_COLOR,double,int,int);
+	                                const double*,int,double* const*,
+					SURFACE_COLOR,double,int,int);
 IMPORT	void	gview_plot_tri_list(const char*,TRI**,int);
+IMPORT	void	gview_plot_colored_tri_list(const char*,TRI**,int,
+					SURFACE_COLOR);
 IMPORT	void	gview_intfc_within_range(const char*,INTERFACE*,
 					double*,double);
 IMPORT  void    gview_polyline(const char*,const char*,double* const*,
@@ -813,6 +819,7 @@ IMPORT  double  slotted_circle_func(POINTER,double*);
 IMPORT  double  four_slotted_circle_func(POINTER,double*);
 IMPORT  double  cuboid_func(POINTER,double*);
 IMPORT  double  cylinder_func(POINTER,double*);
+IMPORT  double  acylinder_func(POINTER,double*);
 IMPORT  double  cone_func(POINTER,double*);
 IMPORT  double  crosscylinder_func(POINTER,double*);
 IMPORT  double  bowl_func(POINTER,double*);
@@ -949,10 +956,10 @@ IMPORT  int     is_surface(BLK_CRX*,SURFACE*);
 IMPORT  int     construct_comp3_blk(BLK_CRX*,BLK_TRI*);
 
 /*	ixgraph.c */
-EXPORT  void 	xgraph_2d_intfc(const char*,INTERFACE*);
-EXPORT  void 	xgraph_2d_intfc_within_range(const char*,INTERFACE*,double*,
+IMPORT  void 	xgraph_2d_intfc(const char*,INTERFACE*);
+IMPORT  void 	xgraph_2d_intfc_within_range(const char*,INTERFACE*,double*,
 				  double,boolean);
-EXPORT  void 	xgraph_2d_reflection(const char*,INTERFACE*,double*,double*,
+IMPORT  void 	xgraph_2d_reflection(const char*,INTERFACE*,double*,double*,
 				  double*,double*);
 IMPORT  FILE 	*xgraph_file_open(const char*,const char*,
 				  const COORDINATE_PLANE);

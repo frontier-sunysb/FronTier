@@ -834,6 +834,8 @@ EXPORT	const char *f_wave_type_as_string(
 	    return "ICE_PARTICLE_BOUNDARY";
 	case ELASTIC_BOUNDARY:
 	    return "ELASTIC_BOUNDARY";
+	case ELASTIC_STRING:
+	    return "ELASTIC_STRING";
 	case FIRST_PHYSICS_WAVE_TYPE:
 	    return "FIRST_PHYSICS_WAVE_TYPE";
 	case FIRST_SCALAR_PHYSICS_WAVE_TYPE:
@@ -886,7 +888,7 @@ EXPORT	int f_read_wave_type_from_string(
 	    {"ICE_PARTICLE_BOUNDARY",   ICE_PARTICLE_BOUNDARY},
 	    {"G",                  GROWING_BODY_BOUNDARY},
 	    {"ELASTIC_BOUNDARY",   ELASTIC_BOUNDARY},
-	    {"E",                  ELASTIC_BOUNDARY},
+	    {"ELASTIC_STRING",     ELASTIC_STRING},
 	    {"DIRICHLET_BOUNDARY", DIRICHLET_BOUNDARY},
 	    {"D",                  DIRICHLET_BOUNDARY},
 	    {"FIRST_PHYSICS_WAVE_TYPE", FIRST_PHYSICS_WAVE_TYPE},
@@ -1390,6 +1392,14 @@ EXPORT	boolean f_user_read_print_curve(
 	    	for (i = 0; i < 2; ++i)
                     center_of_mass(Hyper_surf(curve))[i] =
                             fread_float(NULL,io_type);
+		fgetstring(file,"Translation Dir = ");
+		for (i = 0; i < 2; ++i)
+		    translation_dir(Hyper_surf(curve))[i] =
+                            fread_float(NULL,io_type);
+		fgetstring(file,"Rotation Dir = ");
+		for (i = 0; i < 2; ++i)
+		    rotation_direction(Hyper_surf(curve))[i] =
+                            fread_float(NULL,io_type);
                 fgetstring(file,"Center of mass velocity = ");
 	    	for (i = 0; i < 2; ++i)
 		    center_of_mass_velo(Hyper_surf(curve))[i] =
@@ -1636,6 +1646,14 @@ EXPORT	void f_user_fprint_curve(
                 (void) fprintf(file,"%"FFMT" %"FFMT"\n",
                                 center_of_mass(Hyper_surf(curve))[0],
                                 center_of_mass(Hyper_surf(curve))[1]);
+		(void ) fprintf(file,"\tTranslation Dir = ");
+		(void) fprintf(file,"%"FFMT" %"FFMT"\n",
+				translation_dir(Hyper_surf(curve))[0],
+				translation_dir(Hyper_surf(curve))[1]);
+		(void ) fprintf(file,"\tRotation Dir = ");
+		(void) fprintf(file,"%"FFMT" %"FFMT"\n",
+				rotation_direction(Hyper_surf(curve))[0],
+				rotation_direction(Hyper_surf(curve))[1]);
                 (void) fprintf(file,"\tCenter of mass velocity = ");
                 (void) fprintf(file,"%"FFMT" %"FFMT"\n",
                                 center_of_mass_velo(Hyper_surf(curve))[0],
@@ -2722,6 +2740,11 @@ EXPORT	void	f_user_fprint_surface(
                                 center_of_mass(Hyper_surf(s))[0],
                                 center_of_mass(Hyper_surf(s))[1],
                                 center_of_mass(Hyper_surf(s))[2]);
+            (void) fprintf(file,"\tTranslation Dir = ");
+            (void) fprintf(file,"%"FFMT" %"FFMT" %"FFMT"\n",
+                                translation_dir(Hyper_surf(s))[0],
+                                translation_dir(Hyper_surf(s))[1],
+                                translation_dir(Hyper_surf(s))[2]);
             (void) fprintf(file,"\tCenter of mass velocity = ");
             (void) fprintf(file,"%"FFMT" %"FFMT" %"FFMT"\n",
                                 center_of_mass_velo(Hyper_surf(s))[0],
@@ -2814,6 +2837,10 @@ EXPORT	void f_user_read_print_surface(
             fgetstring(file,"Center of Mass = ");
 	    for (i = 0; i < 3; ++i)
             	center_of_mass(Hyper_surf(surf))[i] =
+                            fread_float(NULL,io_type);
+            fgetstring(file,"Translation Dir = ");
+	    for (i = 0; i < 3; ++i)
+            	translation_dir(Hyper_surf(surf))[i] =
                             fread_float(NULL,io_type);
 	    fgetstring(file,"Center of mass velocity = ");
 	    for (i = 0; i < 3; ++i)

@@ -1728,6 +1728,39 @@ EXPORT double level_wave_func(
         return dist;
 }	/* end level_wave_func */
 
+EXPORT double level_cwave_func(
+        POINTER func_params,
+        double *coords)
+{
+        FOURIER_POLY_MD *wave_params = (FOURIER_POLY_MD*)func_params;
+        double y,k,k0,phase,dist,zCroSect;
+        int i,j,ii,num_modes,dim;
+        double *L = wave_params->L;
+        double *U = wave_params->U;
+        double arg;
+
+        dim = wave_params->dim ;
+        num_modes = wave_params->num_modes;
+        y = wave_params->z0;
+        k0 = 2.0*PI/(U[0]-L[0]);
+        zCroSect = wave_params->croSectAtz;
+
+        for (i = 0; i < num_modes+1; i++)
+        {
+            for (j = 0; j < num_modes+1; j++)
+            {
+                   arg = k0*i*coords[0];
+
+                   y += wave_params->A[i][j]*cos(arg)*cos(k0*j*zCroSect)+
+                        wave_params->B[i][j]*cos(arg)*sin(k0*j*zCroSect)+
+                        wave_params->C[i][j]*sin(arg)*cos(k0*j*zCroSect)+
+                        wave_params->D[i][j]*sin(arg)*sin(k0*j*zCroSect);
+            }
+        }
+        dist = coords[dim-1] - y;
+        return dist;
+}       /* end level_wave_func */
+
 EXPORT double level_circle_func(
         POINTER func_params,
         double *coords)
