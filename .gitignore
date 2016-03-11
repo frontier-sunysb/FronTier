@@ -36,9 +36,6 @@ Makefile
 *.files
 *.ofiles
 configure
-include
-crystal
-iFluid
 
 # Others
 *~

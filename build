@@ -11,12 +11,6 @@ function parse_arguments {
         echo "    -b          Base version"
         echo "    -n          Just configure. Do not run make."
         echo "    --with-gpu  Enable compilation with GPU."
-        echo "    --without-hypre  Not to enable compilation with HYPRE."
-        echo "    --without-hdf  Not to enable compilation with HDF4."
-        echo "    --without-gd   Not to enable compilation with graphics drawing for 1-D post processing."
-        echo "    --enable-itaps  Enable compilation with ITAPS."
-        echo "    --enable-imesh  Enable compilation with IMESH."
-	echo "    --with-***      Same parameter as old configure file."
         exit
     fi
     
@@ -62,29 +56,6 @@ export BASECODE="no"
     fi
 }
 
-function config_ycshu {
-    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
-    export F77="mpif77 ${OPTS}"
-    export CC="mpicc ${OPTS} ${COPTS_GCC}"
-
-    export PETSC_DIR=/usr/local/petsc
-    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11 -lgfortran" 
-
-    if [[ -n "$WITHHDF" ]]; then
-        CONF="$CONF --with-hdf=/usr/local/"
-    fi
-    if [[ -n "$WITHGD" ]]; then
-        CONF="$CONF --with-gd=/usr/local"
-    fi
-    if [[ -n "$WITHGSL" ]]; then
-        CONF="$CONF --with-gsl=/usr/local"
-    fi
-
-    export CONF="--with-mpich=/usr/local/mpich --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/usr/local"
-    PMAKE="-j2"
-}
-
 #################
 function config_generic {
     # Generic platforms. 
@@ -118,37 +89,6 @@ function config_generic {
         CONF="$CONF --with-mpich=${HASMPI/\/bin\/mpicxx/}"
     fi
 
-    if [[ -n "$WITHHDF" ]]; then
-        echo -n "Enter root directory for HDF5. (Hit RETURN to skip HDF5.): "
-        read HDF5_DIR
-        if [[ -n "$HDF5_DIR" ]]; then
-            CONF="$CONF --with-hdf=$HDF5_DIR"
-        fi
-    fi
-
-    if [[ -n "$WITHGD" ]]; then
-        echo -n "Enter root directory for GD. (Hit RETURN to skip GD.): "
-        read GD_DIR
-        if [[ -n "$GD_DIR" ]]; then
-            CONF="$CONF --with-gd=$GD_DIR"
-        fi
-    fi
-
-    echo -n "Enter root directory for PETSC. PETSc is required to compile iFluid. Note that PETSc requires MPI, and the MPI wrappers you specified for CC and CXX must be the same as those used to compile PETSc. (Hit RETURN to skip PETSc.): "
-    read PETSC_DIR
-    export PETSC_DIR
-
-    if [[ -n "$PETSC_DIR" ]]; then
-        export CONF="--with-petsc=$PETSC_DIR --with-devel ${CONF}"
-
-        export PETSC_INCLUDE="-I${PETSC_DIR}/include -I${PETSC_DIR}/include"
-
-        export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -l:libblas.so -l:liblapack.so -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
-        echo -n "Enter PETSC_LIB. Note that you may also need to include libraries for LAPACK and BLAS also. (Hit return to use default $PETSC_LIB):"
-        read PETSC_LIB_
-        if  [[ -n "$PETSC_LIB_" ]]; then export PETSC_LIB=$PETSC_LIB_; fi
-    fi
-
     if [[ "${BASECODE}" == "base" ]]; then
         echo "Configure with basic fucntion"
    	CONF="${CONF} --with-base" 
@@ -162,14 +102,6 @@ function config_generic {
         export USEGPU="yes"
     else
         export USEGPU="no"
-    fi
-
-    if [[ -n "$WITHHYPRE" ]]; then
-        CONF="$CONF --with-hypre"
-        export USEHYPRE="yes"
-	export PETSC_LIB="${PETSC_LIB} -lHYPRE"
-    else
-        export USEHYPRE="no"
     fi
 
     PMAKE="-j2"
@@ -199,10 +131,6 @@ function config_base {
         export USEGPU="no"
     fi
 
-    if [[ $WITHHDF -eq 1 ]]; then
-        CONF="$CONF --with-hdf=/usr/local/pkg/hdf"
-    fi
-    export CONF="--with-mpich=/usr/local/pkg/mpich2 -with-devel ${CONF}"
     WITHHDF=0;
     WITHGD=0;
 
@@ -218,17 +146,6 @@ export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
 
     export scriptotherlibs="${scriptotherlibs} /usr/lib/libblas.so /usr/lib/x86_64-linux-gnu/libgfortran.so.3"
 
-    export PETSC_DIR=/usr/local/pkg/petsc
-    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
-
-    if [[ -n "$WITHHYPRE" ]]; then
-        CONF="$CONF --with-hypre"
-        export USEHYPRE="yes"
-    else
-        export USEHYPRE="no"
-    fi
-
     if [[ -n "$WITHGPU" ]]; then
         CONF="$CONF --with-gpu"
         export USEGPU="yes"
@@ -236,39 +153,11 @@ export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
         export USEGPU="no"
     fi
 
-    if [[ -n "$WITHHDF" ]]; then
-        CONF="$CONF --with-hdf=/usr/local/pkg/hdf"
-    fi
-
     if [[ -n "$WITHGSL" ]]; then
         CONF="$CONF --with-gsl=/usr"
     fi
 
     export CONF="--with-mpich=/usr/local/pkg/mpich2 --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/usr"
-    PMAKE="-j2"
-}
-
-#################
-function config_blade {
-    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
-    export F77="mpif77 ${OPTS}"
-    export CC="mpicc ${OPTS} ${COPTS_GCC}"
-
-    export PETSC_DIR=/home/netusers/visitor/xiaolin/newpkg/petsc
-    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11 -lgfortran" 
-
-    if [[ -n "$WITHHDF" ]]; then
-        CONF="$CONF --with-hdf=/home/netusers/visitor/xiaolin/pkg/hdf"
-    fi
-    if [[ -n "$WITHGD" ]]; then
-        CONF="$CONF --with-gd=/home/netusers/visitor/xiaolin/newpkg/gd"
-    fi
-    if [[ -n "$WITHGSL" ]]; then
-        CONF="$CONF --with-gsl=/home/netusers/visitor/xiaolin/newpkg/gd"
-    fi
-
-    export CONF="--with-mpich=/home/netusers/visitor/xiaolin/newpkg/mpich --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/home/netusers/visitor/xiaolin/newpkg/gd"
     PMAKE="-j2"
 }
 
@@ -297,40 +186,6 @@ function config_vogon {
     fi
 
     export CONF="--with-openmpi=/usr/local/pkg/openmpi --with-petsc=${PETSC_DIR} -with-devel ${CONF}"
-    PMAKE="-j2"
-}
-
-#################
-function config_alpha {
-    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
-    export F77="mpif77 ${OPTS}"
-    export CC="mpicc ${OPTS} ${COPTS_GCC}"
-
-    export scriptotherlibs="${scriptotherlibs} /lib64/libblas.so /lib64/libgfortran.so.3"
-
-    export PETSC_DIR=/usr/local/pkg/petsc
-    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
-
-    if [[ -n "$WITHHYPRE" ]]; then
-        CONF="$CONF --with-hypre"
-	export USEHYPRE="yes"
-    else
-	export USEHYPRE="no"
-    fi
-
-    if [[ -n "$WITHGPU" ]]; then
-        CONF="$CONF --with-gpu"
-	export USEGPU="yes"
-    else
-	export USEGPU="no"
-    fi
-
-    if [[ -n "$WITHHDF" ]]; then
-        CONF="$CONF --with-hdf=/usr/local/pkg/hdf"
-    fi
-
-    export CONF="--with-mpich=/usr/local/pkg/mpich2 --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/usr"
     PMAKE="-j2"
 }
 
@@ -375,148 +230,6 @@ function config_sigma {
 #################
 
 #################
-function config_omega {
-    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
-    export F77="mpif77 ${OPTS}"
-    export CC="mpicc ${OPTS} ${COPTS_GCC}"
-
-    export scriptotherlibs="${scriptotherlibs} /usr/lib/libblas.so /usr/lib/x86_64-linux-gnu/libgfortran.so.3" 
-
-    export PETSC_DIR=/usr/local/pkg/petsc
-    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
-
-    if [[ -n "$WITHHYPRE" ]]; then
-        CONF="$CONF --with-hypre"
-	export USEHYPRE="yes"
-    else
-	export USEHYPRE="no"
-    fi
-
-    if [[ -n "$WITHGPU" ]]; then
-        CONF="$CONF --with-gpu"
-	export USEGPU="yes"
-    else
-	export USEGPU="no"
-    fi
-
-    if [[ -n "$WITHHDF" ]]; then
-        CONF="$CONF --with-hdf=/usr/local/pkg/hdf"
-    fi
-
-    if [[ -n "$WITHGSL" ]]; then
-        CONF="$CONF --with-gsl=/usr"
-    fi
-
-    export CONF="--with-mpich=/usr/local/pkg/mpich2 --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/usr"
-    PMAKE="-j2"
-}
-
-#################
-
-function config_lambda {
-    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
-    export F77="mpif77 ${OPTS}"
-    export CC="mpicc ${OPTS} ${COPTS_GCC}"
-
-    export scriptotherlibs="${scriptotherlibs} /usr/local/pkg/petsc/lib/libfblas.a /usr/lib/x86_64-linux-gnu/libgfortran.so.3"
-
-    export PETSC_DIR=/usr/local/pkg/petsc3.5
-    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
-
-    if [[ -n "$WITHHYPRE" ]]; then
-        CONF="$CONF --with-hypre"
-        export USEHYPRE="yes"
-    else
-        export USEHYPRE="no"
-    fi
-
-    if [[ -n "$WITHGPU" ]]; then
-        CONF="$CONF --with-gpu"
-        export USEGPU="yes"
-    else
-        export USEGPU="no"
-    fi
-
-    if [[ -n "$WITHHDF" ]]; then
-        CONF="$CONF --with-hdf=/usr/local/pkg/hdf"
-    fi
-
-    export CONF="--with-mpich=/usr/local/pkg/mpich2 --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/usr"
-    PMAKE="-j2"
-}
-
-#################
-
-
-#################
-function config_delta {
-    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
-    export F77="mpif77 ${OPTS}"
-    export CC="mpicc ${OPTS} ${COPTS_GCC}"
-
-    export PETSC_DIR=/usr/local/pkg/petsc
-    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
-
-    if [[ -n "$WITHHYPRE" ]]; then
-        CONF="$CONF --with-hypre"
-	export USEHYPRE="yes"
-    else
-	export USEHYPRE="no"
-    fi
-
-    if [[ -n "$WITHGPU" ]]; then
-        CONF="$CONF --with-gpu"
-	export USEGPU="yes"
-    else
-	export USEGPU="no"
-    fi
-
-    if [[ -n "$WITHHDF" ]]; then
-        CONF="$CONF --with-hdf=/usr/local/pkg/hdf"
-    fi
-    if [[ -n "$WITHGD" ]]; then
-        CONF="$CONF --with-gd=/usr"
-    fi
-    if [[ -n "$WITHGSL" ]]; then
-        CONF="$CONF --with-gsl=/usr"
-    fi
-
-    export CONF="--with-mpich=/usr/local/pkg/mpich --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/usr"
-    PMAKE="-j2"
-}
-
-#################
-function config_ubuntu {
-    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
-    export F77="mpif77 ${OPTS}"
-    export CC="mpicc ${OPTS} ${COPTS_GCC}"
-
-    export PETSC_DIR=/usr/lib/petscdir/3.0.0
-    export PETSC_ARCH=linux-gnu-c-opt
-    export PETSC_INCLUDE="-I${PETSC_DIR}/include -I${PETSC_DIR}/${PETSC_ARCH}/include"
-    export PETSC_LIB="-lblas -llapack -L${PETSC_DIR}/${PETSC_ARCH}/lib -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
-
-    if [[ -n "$WITHHDF" ]]; then
-        CONF="$CONF --with-hdf=/usr/lib"
-    fi
-    if [[ -n "$WITHHDF5" ]]; then
-        CONF="$CONF --with-hdf5=/usr/lib"
-    fi
-    if [[ -n "$WITHGD" ]]; then
-        CONF="$CONF --with-gd=/usr"
-    fi
-    if [[ -n "$WITHGSL" ]]; then
-        CONF="$CONF --with-gsl=/usr"
-    fi
-
-    export CONF="--with-mpi --with-petsc=${PETSC_DIR} -with-devel ${CONF}"
-    PMAKE="-j2"
-}
-
-#################
 function config_gentooORNL {
     export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
     export F77="mpif77 ${OPTS}"
@@ -527,50 +240,11 @@ function config_gentooORNL {
 
     export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -fopenmp -lm -L/usr/lib64 -lX11"
 
-    if [[ -n "$WITHHDF" ]]; then
-        CONF="$CONF --with-hdf=/usr/local/hdf4"
-    fi
-    if [[ -n "$WITHHDF5" ]]; then
-        CONF="$CONF --with-hdf5=/nfs/user01/duowang/hdf5-1.8.5"
-        #CONF="$CONF --with-hdf5=/usr/local/pkg/HDF5"
-    fi
-    if [[ -n "$WITHGD" ]]; then
-        CONF="$CONF --with-gd=/usr/lib64"
-    fi
     if [[ -n "$WITHGSL" ]]; then
         CONF="$CONF --with-gsl=/usr/lib64"
     fi
 
     export CONF="--with-openmpi=/usr/local/ompi --with-petsc=${PETSC_DIR} --with-devel ${CONF}"
-    PMAKE="-j2"
-}
-
-#################
-function config_fission {
-    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
-    export F77="mpif77 ${OPTS}"
-    export CC="mpicc ${OPTS} ${COPTS_GCC}"
-
-    export PETSC_DIR=/home/dealvf/libs/petsc-3.1-p8_ompi_gcc-1.4.3_fission
-    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lflapack -lfblas -ldl -fopenmp -lm -L/usr/X11R6/lib64 -lX11"
-
-    if [[ -n "$WITHHDF" ]]; then
-        CONF="$CONF --with-hdf=/usr/local/pkg/HDF4"
-    fi
-    if [[ -n "$WITHHDF5" ]]; then
-        CONF="$CONF --with-hdf5=/nfs/user01/duowang/hdf5-1.8.5"
-        #CONF="$CONF --with-hdf5=/usr/local/pkg/HDF5"
-    fi
-    if [[ -n "$WITHGD" ]]; then
-        CONF="$CONF --with-gd=/usr"
-    fi
-    if [[ -n "$WITHGSL" ]]; then
-        CONF="$CONF --with-gsl=/usr"
-    fi
-
-    export CONF="--with-openmpi=/apps/local/openmpi/1.4.3/gcc-4.1.2/opt --with-petsc=${PETSC_DIR} --with-devel ${CONF}"
     PMAKE="-j2"
 }
 
@@ -595,152 +269,6 @@ function config_galaxy {
     fi
 
     export CONF="--with-openmpi=/usr/local/pkg/openmpi --with-petsc=${PETSC_DIR} --with-gd=/usr/local/pkg/gd --with-devel ${CONF}"
-    PMAKE="-j2"
-}
-
-#################
-function config_seawulf {
-    if [[ -z "$LD_LIBRARY_PATH" ]]; then
-        echo "#### There seems to be a problem in your environment setting."
-        echo "#### You need to set LD_LIBRARY_PATH to include /usr/local/pkg/openmpi/lib."
-	exit
-    fi
-    echo "### Make sure you have the following environment variables set in .bash_profile or .cshrc:"
-    echo "export PATH=$PATH:/usr/local/pkg/torque/bin:/usr/local/pkg/openmpi/bin:/usr/local/pkg/HDF4/bin"
-    echo "export LD_LIBRARY_PATH=/usr/local/pkg/petsc-2.3.3-p11/lib:/usr/local/pkg/HDF4/lib:/usr/local/pkg/openmpi/lib"
-    echo
-    echo
-
-    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
-    export F77="mpif77 ${OPTS}"
-    export CC="mpicc ${OPTS} ${COPTS_GCC}"
-
-    export PETSC_DIR=/usr/local/pkg/petsc-2.3.3-p11
-    export PETSC_ARCH=linux-gnu-c-debug
-    export PETSC_INCLUDE="-I${PETSC_DIR}/include -I${PETSC_DIR}/bmake/${PETSC_ARCH}"
-    export PETSC_LIB="-lblas -llapack -L${PETSC_DIR}/lib/${PETSC_ARCH} -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -ldl -fopenmp -lm -lX11"
-
-    if [[ -n "$WITHHDF" ]]; then
-        CONF="$CONF --with-hdf=/usr/local/pkg/HDF4"
-    fi
-    if [[ -n "$WITHHDF5" ]]; then
-        CONF="$CONF --with-hdf5=/nfs/user07/duowang/hdf5-1.8.5"
-	#CONF="$CONF --with-hdf5=/usr/local/pkg/HDF5"
-    fi
-    export CONF="--with-openmpi --with-petsc=${PETSC_DIR} --with-devel ${CONF}"
-    PMAKE="-j2"
-}
-
-#################
-function config_nybluel {
-    export PETSC_ARCH=bgl-ibm-opt
-    export PETSC_DIR=/bgl/apps/petsc-2.3.3-p8/petsc-2.3.3-p8
-    export PETSC_INCLUDE="-I${PETSC_DIR}/include -I${PETSC_DIR}/bmake/${PETSC_ARCH}"
-    export HYPRE_DIR=/bgl/apps/petsc-2.3.3-p8/petsc-2.3.3-p8/externalpackages/hypre-2.0.0/bgl-ibm-opt/lib
-    export SUPERLU_DIST_DIR=/bgl/apps/petsc-2.3.3-p8/petsc-2.3.3-p8/externalpackages/SuperLU_DIST_2.0-Jan_5_2006/bgl-ibm-opt
-    export SUPERLU_DIR=/bgl/apps/petsc-2.3.3-p8/petsc-2.3.3-p8/externalpackages/SuperLU_3.0-Jan_5_2006/bgl-ibm-opt
-    export NSS_FILES_DIR=/bgl/BlueLight/ppcfloor/blrts-gnu/powerpc-bgl-blrts-gnu/lib
-
-    export PETSC_LIB="-L${PETSC_DIR}/lib/${PETSC_ARCH} -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -lg2c -L/bgl/local/lib -L${HYPRE_DIR} -lHYPRE -L${SUPERLU_DIR} -lsuperlu_3.0 -L${SUPERLU_DIST_DIR} -lsuperlu_dist_2.0  -lc -L${NSS_FILES_DIR} -lnss_files -lnss_dns -lresolv -llapack.rts -lblas.rts -L/usr/lib -ldl -lm"
-
-    export F77_LIBS="-L/opt/ibmcmp/xlsmp/bg/1.7/blrts_lib -L/opt/ibmcmp/xlmass/bg/4.4/blrts_lib -L/opt/ibmcmp/xlf/bg/11.1/blrts_lib -lxlf90 -lxlopt -lxlomp_ser -lxl -lxlfmath -fopenmp -lm -lc -lgcc"
-
-    export CXX="mpixlcxx -DMPICH_IGNORE_CXX_SEEK ${OPTS}"
-    export F77="mpixlf77 ${OPTS}"
-    export CC="mpixlc ${OPTS}"
-
-    if [[ -n "$WITHHDF5" ]]; then
-        CONF="$CONF --with-hdf5=/bgl/apps/hdf5"
-    fi
-
-    export CONF="--with-mpi --with-extra-libs=-lmpich.rts --with-petsc=${PETSC_DIR} $CONF"
-    PMAKE="-j8"
-}
-
-#################
-function config_nybluep {
-    export CXX="mpixlcxx_r -DMPICH_IGNORE_CXX_SEEK ${OPTS}"
-    export F77="mpixlf77_r ${OPTS}"
-    export CC="mpixlc_r ${OPTS}"
-
-    export CONF="--with-mpi --with-extra-libs=-lmpich.cnk $CONF"
-    PMAKE="-j8"
-}
-
-################
-function config_pnnl {
-    export CXX="mpiCC ${OPTS} ${COPTS_ICC}"
-    export F77="mpif77 ${OPTS}"
-    export CC="mpicc ${OPTS} ${COPTS_ICC}"
-    
-    # Specify Petsc path
-    export PETSC_ARCH=linux-hpmpi-intel
-    export PETSC_DIR=/hptc_cluster/apps/libraries/petsc/2.3.3-p8/Intel
-    export PETSC_INCLUDE="-I${PETSC_DIR}/include -I${PETSC_DIR}/bmake/${PETSC_ARCH}"
-    export PETSC_LIB="-lblas -L${PETSC_DIR}/lib/${PETSC_ARCH} -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -ldl -fopenmp -lm -L/usr/X11R6/lib64"
-    
-    ./configure --with-mpi --with-petsc=$PETSC_DIR --with-devel ${CONF}
-    PMAKE="-j8"
-}
-
-################
-function config_abe {
-    export CXX="mpicxx -DMPICH_IGNORE_CXX_SEEK -Wcheck ${OPTS} ${COPTS_ICC}"
-    export F77="mpif77 ${OPTS}"
-    export CC="mpicc ${OPTS} ${COPTS_ICC}"
-
-    # Specify Petsc path
-    export PETSC_ARCH=abe-intel10-opt
-    export PETSC_DIR=/usr/apps/math/petsc/petsc-2.3.3-p7
-    export PETSC_INCLUDE="-I${PETSC_DIR}/include -I${PETSC_DIR}/bmake/${PETSC_ARCH}"
-    export PETSC_LIB="-lblas -llapack -L${PETSC_DIR}/lib/${PETSC_ARCH} -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc -L ${MKL_HOME}/lib/em64t -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -ldl -fopenmp -lm -L/usr/X11R6/lib64"
-
-    # add szip library
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/apps/hdf/szip/lib
-    export scriptotherlibsinc="${scriptotherlibincs} -L/usr/apps/hdf/szip/lib"
-    export scriptotherlibs="${scriptotherlibs} -lsz"
-
-    if [[ -n "$WITHHDF" ]]; then
-        CONF="$CONF --with-hdf=/usr/apps/hdf/hdf4/v423"
-    fi
-    if [[ -n "$WITHHDF5" ]]; then
-        CONF="$CONF --with-hdf5=/usr/apps/hdf/phdf5/v185"
-    fi
-
-    export CONF="-with-mpich --with-petsc=$PETSC_DIR --with-devel ${CONF}"
-    PMAKE="-j8"
-}
-#################
-function config_cm {
-    export CXX="mpicxx ${OPTS} ${COPTS_GCC}"
-    export F77="mpif77 ${OPTS}"
-    export CC="mpicc ${OPTS} ${COPTS_GCC}"
-
-    export scriptotherlibs="${scriptotherlibs} /usr/lib64/libgfortran.so.3"
-
-    export PETSC_DIR=/home/zgao/pkg/petsc
-    export PETSC_INCLUDE="-I${PETSC_DIR}/include"
-    export PETSC_LIB="-L${PETSC_DIR}/lib -lpetsc -lHYPRE -llapack -lblas -ldl -fopenmp -lm -L/usr/X11R6/lib -lX11"
-
-    if [[ -n "$WITHHYPRE" ]]; then
-        CONF="$CONF --with-hypre"
-        export USEHYPRE="yes"
-    else
-        export USEHYPRE="no"
-    fi
-
-    if [[ -n "$WITHGPU" ]]; then
-        CONF="$CONF --with-gpu"
-        export USEGPU="yes"
-    else
-        export USEGPU="no"
-    fi
-
-    if [[ -n "$WITHHDF" ]]; then
-        CONF="$CONF --with-hdf=/home/zgao/pkg/hdf"
-    fi
-
-    export CONF="--with-mpich=/software/mvapich2/2.0b-intel --with-petsc=${PETSC_DIR} -with-devel ${CONF} --with-gd=/home/zgao/pkg/gd"
     PMAKE="-j2"
 }
 
